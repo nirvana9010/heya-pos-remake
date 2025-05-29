@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": false,
+    "baseUrl": ".",
+    "paths": {
+      "@heya-pos/ui": ["./packages/ui/src"],
+      "@heya-pos/ui/*": ["./packages/ui/src/*"],
+      "@heya-pos/utils": ["./packages/utils/src"],
+      "@heya-pos/utils/*": ["./packages/utils/src/*"],
+      "@heya-pos/types": ["./packages/types/src"],
+      "@heya-pos/types/*": ["./packages/types/src/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

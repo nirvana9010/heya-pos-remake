@@ -1,0 +1,120 @@
+export function formatCurrency(
+  amount: number,
+  currency: string = 'AUD',
+  locale: string = 'en-AU'
+): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatNumber(
+  value: number,
+  options?: Intl.NumberFormatOptions
+): string {
+  return new Intl.NumberFormat('en-AU', options).format(value);
+}
+
+export function formatPhone(phone: string): string {
+  // Remove all non-digits
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Australian mobile format: 0412 345 678
+  if (cleaned.startsWith('04') && cleaned.length === 10) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
+  }
+  
+  // Australian landline format: (02) 1234 5678
+  if (cleaned.startsWith('0') && cleaned.length === 10) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)} ${cleaned.slice(6)}`;
+  }
+  
+  // International format with +61
+  if (cleaned.startsWith('61') && cleaned.length === 11) {
+    return `+61 ${cleaned.slice(2, 3)} ${cleaned.slice(3, 7)} ${cleaned.slice(7)}`;
+  }
+  
+  return phone;
+}
+
+export function formatName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
+}
+
+export function formatInitials(firstName: string, lastName?: string): string {
+  const initials = firstName.charAt(0).toUpperCase() + 
+    (lastName ? lastName.charAt(0).toUpperCase() : '');
+  return initials;
+}
+
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}min`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  
+  return `${hours}h ${mins}min`;
+}
+
+export function formatPercentage(value: number, decimals: number = 0): string {
+  return `${(value * 100).toFixed(decimals)}%`;
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 3) + '...';
+}
+
+export function formatAddress(
+  address: string,
+  suburb?: string,
+  state?: string,
+  postcode?: string
+): string {
+  const parts = [address, suburb, state, postcode].filter(Boolean);
+  return parts.join(', ');
+}
+
+export function formatBookingNumber(id: string): string {
+  // Format: BK-YYYYMMDD-XXXX
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const shortId = id.slice(-4).toUpperCase();
+  
+  return `BK-${year}${month}${day}-${shortId}`;
+}
+
+export function formatInvoiceNumber(id: string): string {
+  // Format: INV-YYYY-XXXXX
+  const year = new Date().getFullYear();
+  const shortId = id.slice(-5).toUpperCase();
+  
+  return `INV-${year}-${shortId}`;
+}
+
+export function formatCardNumber(cardNumber: string): string {
+  // Format: XXXX XXXX XXXX XXXX
+  const cleaned = cardNumber.replace(/\D/g, '');
+  const chunks = cleaned.match(/.{1,4}/g) || [];
+  return chunks.join(' ');
+}
+
+export function maskCardNumber(cardNumber: string): string {
+  // Show only last 4 digits: **** **** **** 1234
+  const cleaned = cardNumber.replace(/\D/g, '');
+  if (cleaned.length < 4) return cardNumber;
+  
+  const last4 = cleaned.slice(-4);
+  return `**** **** **** ${last4}`;
+}

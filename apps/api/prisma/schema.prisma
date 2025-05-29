@@ -1,0 +1,671 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============= PACKAGE & SUBSCRIPTION =============
+
+model Package {
+  id            String   @id @default(cuid())
+  name          String   @unique // Starter/Professional/Enterprise
+  monthlyPrice  Float
+  trialDays     Int      @default(30)
+  maxLocations  Int
+  maxStaff      Int
+  maxCustomers  Int
+  features      Json     // Array of enabled features
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  merchants     Merchant[]
+}
+
+// ============= MULTI-TENANT FOUNDATION =============
+
+model Merchant {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  abn               String?  // Australian Business Number
+  subdomain         String   @unique
+  packageId         String
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  subscriptionEnds  DateTime?
+  trialEndsAt       DateTime?
+  stripeCustomerId  String?
+  website           String?
+  logo              String?
+  description       String?
+  status            MerchantStatus @default(ACTIVE)
+  settings          Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  package           Package  @relation(fields: [packageId], references: [id])
+  merchantAuth      MerchantAuth?
+  locations         Location[]
+  staff             Staff[]
+  services          Service[]
+  customers         Customer[]
+  loyaltyPrograms   LoyaltyProgram[]
+  invoices          Invoice[]
+  auditLogs         AuditLog[]
+  
+  @@index([status])
+  @@index([email])
+  @@index([subdomain])
+}
+
+model MerchantAuth {
+  id            String   @id @default(cuid())
+  merchantId    String   @unique
+  username      String   @unique
+  passwordHash  String
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  @@index([username])
+}
+
+model Location {
+  id                String   @id @default(cuid())
+  merchantId        String
+  name              String
+  address           String
+  suburb            String
+  city              String
+  state             String?
+  country           String
+  postalCode        String?
+  phone             String?
+  email             String?
+  timezone          String   @default("Australia/Sydney")
+  businessHours     Json     // Store operating hours as JSON
+  isActive          Boolean  @default(true)
+  settings          Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  staff             StaffLocation[]
+  bookings          Booking[]
+  payments          Payment[]
+  
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([isActive])
+}
+
+// ============= STAFF MANAGEMENT =============
+
+model Staff {
+  id                String   @id @default(cuid())
+  merchantId        String
+  email             String   @unique
+  firstName         String
+  lastName          String
+  phone             String?
+  pin               String   // Hashed 4-6 digit PIN
+  accessLevel       Int      @default(1) // 1=employee, 2=manager, 3=owner
+  calendarColor     String?
+  avatar            String?
+  status            StaffStatus @default(ACTIVE)
+  commissionRate    Float?   // Percentage for commission calculation
+  hireDate          DateTime @default(now())
+  lastLogin         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  locations         StaffLocation[]
+  bookingsAsProvider Booking[] @relation("BookingProvider")
+  bookingsAsCreator  Booking[] @relation("BookingCreator")
+  bookingServices   BookingService[]
+  invoicesCreated    Invoice[]
+  loyaltyTransactions LoyaltyTransaction[]
+  auditLogs         AuditLog[]
+  
+  @@index([merchantId])
+  @@index([email])
+  @@index([pin])
+  @@index([status])
+}
+
+model StaffLocation {
+  id                String   @id @default(cuid())
+  staffId           String
+  locationId        String
+  isPrimary         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  // Relations
+  staff             Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location          Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  @@unique([staffId, locationId])
+  @@index([staffId])
+  @@index([locationId])
+}
+
+// ============= CUSTOMER MANAGEMENT =============
+
+model Customer {
+  id                String   @id @default(cuid())
+  merchantId        String
+  email             String?
+  firstName         String
+  lastName          String
+  phone             String?
+  mobile            String?
+  dateOfBirth       DateTime?
+  gender            Gender?
+  address           String?
+  suburb            String?
+  city              String?
+  state             String?
+  country           String?
+  postalCode        String?
+  notes             String?
+  tags              Json     @default("[]") // For segmentation
+  preferredLanguage String   @default("en")
+  marketingConsent  Boolean  @default(false)
+  status            CustomerStatus @default(ACTIVE)
+  source            CustomerSource @default(WALK_IN)
+  loyaltyPoints     Float    @default(0)
+  visitCount        Int      @default(0)
+  totalSpent        Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  bookings          Booking[]
+  invoices          Invoice[]
+  loyaltyCards      LoyaltyCard[]
+  loyaltyTransactions LoyaltyTransaction[]
+  
+  @@unique([merchantId, email])
+  @@unique([merchantId, mobile])
+  @@index([merchantId])
+  @@index([email])
+  @@index([mobile])
+  @@index([status])
+}
+
+// ============= SERVICE CATALOG =============
+
+model Service {
+  id                String   @id @default(cuid())
+  merchantId        String
+  categoryId        String?
+  name              String
+  description       String?
+  category          String?
+  duration          Int      // Duration in minutes
+  price             Float
+  currency          String   @default("AUD")
+  taxRate           Float    @default(0.1) // 10% GST
+  isActive          Boolean  @default(true)
+  requiresDeposit   Boolean  @default(false)
+  depositAmount     Float?
+  maxAdvanceBooking Int      @default(90) // Days
+  minAdvanceBooking Int      @default(0)  // Hours
+  displayOrder      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  categoryModel     ServiceCategory? @relation(fields: [categoryId], references: [id])
+  bookingServices   BookingService[]
+  
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model ServiceCategory {
+  id                String   @id @default(cuid())
+  merchantId        String
+  name              String
+  description       String?
+  icon              String?
+  color             String?
+  sortOrder         Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  services          Service[]
+  
+  @@unique([merchantId, name])
+  @@index([merchantId])
+}
+
+// ============= BOOKING SYSTEM =============
+
+model Booking {
+  id                String   @id @default(cuid())
+  merchantId        String
+  locationId        String
+  customerId        String
+  bookingNumber     String   @unique
+  status            BookingStatus @default(PENDING)
+  startTime         DateTime
+  endTime           DateTime
+  totalAmount       Float
+  depositAmount     Float    @default(0)
+  notes             String?
+  cancellationReason String?
+  source            BookingSource @default(ONLINE)
+  createdById       String
+  providerId        String  // Main staff member
+  reminderSent      Boolean  @default(false)
+  confirmedAt       DateTime?
+  checkedInAt       DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  location          Location @relation(fields: [locationId], references: [id])
+  customer          Customer @relation(fields: [customerId], references: [id])
+  provider          Staff    @relation("BookingProvider", fields: [providerId], references: [id])
+  createdBy         Staff    @relation("BookingCreator", fields: [createdById], references: [id])
+  services          BookingService[]
+  invoice           Invoice?
+  
+  @@index([merchantId])
+  @@index([locationId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@index([startTime])
+  @@index([bookingNumber])
+}
+
+model BookingService {
+  id                String   @id @default(cuid())
+  bookingId         String
+  serviceId         String
+  price             Float
+  duration          Int      // minutes
+  staffId           String
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  booking           Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  service           Service  @relation(fields: [serviceId], references: [id])
+  staff             Staff    @relation(fields: [staffId], references: [id])
+  
+  @@index([bookingId])
+  @@index([serviceId])
+  @@index([staffId])
+}
+
+// ============= BILLING & PAYMENTS =============
+
+model Invoice {
+  id                String   @id @default(cuid())
+  merchantId        String
+  customerId        String
+  bookingId         String?  @unique
+  invoiceNumber     String   @unique
+  status            InvoiceStatus @default(DRAFT)
+  subtotal          Float
+  taxAmount         Float
+  discountAmount    Float    @default(0)
+  totalAmount       Float
+  paidAmount        Float    @default(0)
+  dueDate           DateTime
+  notes             String?
+  terms             String?
+  createdById       String
+  sentAt            DateTime?
+  paidAt            DateTime?
+  voidedAt          DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id])
+  customer          Customer @relation(fields: [customerId], references: [id])
+  booking           Booking? @relation(fields: [bookingId], references: [id])
+  createdBy         Staff    @relation(fields: [createdById], references: [id])
+  items             InvoiceItem[]
+  payments          Payment[]
+  
+  @@index([merchantId])
+  @@index([customerId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id                String   @id @default(cuid())
+  invoiceId         String
+  description       String
+  quantity          Float
+  unitPrice         Float
+  discount          Float    @default(0)
+  taxRate           Float    @default(0.1) // 10% GST
+  taxAmount         Float
+  total             Float
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@index([invoiceId])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  merchantId        String
+  locationId        String
+  invoiceId         String
+  paymentMethod     PaymentMethod
+  amount            Float
+  currency          String   @default("AUD")
+  status            PaymentStatus @default(PENDING)
+  reference         String?  // External payment reference
+  stripePaymentIntentId String?
+  tyroTransactionId String?
+  processorResponse Json?    // Store processor details
+  notes             String?
+  processedAt       DateTime?
+  failedAt          DateTime?
+  refundedAmount    Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  location          Location @relation(fields: [locationId], references: [id])
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id])
+  refunds           PaymentRefund[]
+  
+  @@index([merchantId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([paymentMethod])
+}
+
+model PaymentRefund {
+  id                String   @id @default(cuid())
+  paymentId         String
+  amount            Float
+  reason            String
+  status            RefundStatus @default(PENDING)
+  reference         String?
+  processedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+  
+  @@index([paymentId])
+  @@index([status])
+}
+
+// ============= LOYALTY PROGRAM =============
+
+model LoyaltyProgram {
+  id                String   @id @default(cuid())
+  merchantId        String
+  name              String
+  description       String?
+  type              LoyaltyType @default(POINTS)
+  pointsPerVisit    Float?   // If type=VISIT
+  pointsPerDollar   Float?   // If type=SPEND
+  pointsPerCurrency Float    @default(1) // Generic points per currency unit
+  rewardThreshold   Float    @default(100) // Points needed for reward
+  rewardValue       Float    @default(10) // Currency value of reward
+  expiryDays        Int?     // Points expiry in days
+  isActive          Boolean  @default(true)
+  terms             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  cards             LoyaltyCard[]
+  tiers             LoyaltyTier[]
+  
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([isActive])
+}
+
+model LoyaltyTier {
+  id                String   @id @default(cuid())
+  programId         String
+  name              String
+  requiredPoints    Float
+  multiplier        Float    @default(1) // Points multiplier for this tier
+  benefits          Json     // Array of benefit descriptions
+  sortOrder         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  program           LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  cards             LoyaltyCard[]
+  
+  @@unique([programId, name])
+  @@index([programId])
+}
+
+model LoyaltyCard {
+  id                String   @id @default(cuid())
+  programId         String
+  customerId        String
+  tierId            String?
+  cardNumber        String   @unique
+  points            Float    @default(0)
+  lifetimePoints    Float    @default(0)
+  status            LoyaltyCardStatus @default(ACTIVE)
+  joinedAt          DateTime @default(now())
+  lastActivityAt    DateTime @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  program           LoyaltyProgram @relation(fields: [programId], references: [id])
+  customer          Customer @relation(fields: [customerId], references: [id])
+  tier              LoyaltyTier? @relation(fields: [tierId], references: [id])
+  transactions      LoyaltyTransaction[]
+  
+  @@unique([programId, customerId])
+  @@index([programId])
+  @@index([customerId])
+  @@index([cardNumber])
+  @@index([status])
+}
+
+model LoyaltyTransaction {
+  id                String   @id @default(cuid())
+  cardId            String
+  customerId        String
+  merchantId        String
+  type              LoyaltyTransactionType
+  points            Float    // positive for earned, negative for redeemed
+  balance           Float    // Balance after transaction
+  description       String
+  referenceType     String?  // e.g., "invoice", "manual", "reward"
+  referenceId       String?  // ID of related entity
+  bookingId         String?
+  expiresAt         DateTime?
+  createdByStaffId  String?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  card              LoyaltyCard @relation(fields: [cardId], references: [id])
+  customer          Customer @relation(fields: [customerId], references: [id])
+  createdBy         Staff? @relation(fields: [createdByStaffId], references: [id])
+  
+  @@index([cardId])
+  @@index([customerId])
+  @@index([merchantId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============= AUDIT & SECURITY =============
+
+model AuditLog {
+  id                String   @id @default(cuid())
+  merchantId        String
+  staffId           String
+  action            String   // booking.cancel, payment.refund, etc
+  entityType        String
+  entityId          String
+  details           Json
+  ipAddress         String?
+  timestamp         DateTime @default(now())
+  
+  // Relations
+  merchant          Merchant @relation(fields: [merchantId], references: [id])
+  staff             Staff    @relation(fields: [staffId], references: [id])
+  
+  @@index([merchantId])
+  @@index([staffId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+// ============= ENUMS =============
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum CustomerSource {
+  WALK_IN
+  ONLINE
+  REFERRAL
+  SOCIAL_MEDIA
+  MIGRATED
+  OTHER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  ONLINE
+  WALK_IN
+  PHONE
+  POS
+  ADMIN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  VOIDED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  CARD_STRIPE
+  CARD_TYRO
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum LoyaltyType {
+  POINTS
+  CASHBACK
+  TIERED
+  VISIT
+  SPEND
+}
+
+enum LoyaltyCardStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
+enum LoyaltyTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  ADJUSTED
+}

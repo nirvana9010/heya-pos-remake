@@ -1,0 +1,46 @@
+{
+  "name": "heya-pos",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist apps/*/node_modules apps/*/.next apps/*/dist",
+    "clean:full": "npm run clean && rm -rf package-lock.json",
+    "api:dev": "cd apps/api && npm run start:dev",
+    "api:build": "cd apps/api && npm run build",
+    "api:start": "cd apps/api && npm run build && npm run start:prod",
+    "api:debug": "cd apps/api && npx ts-node src/main.ts",
+    "api:clean": "cd apps/api && rm -rf dist",
+    "api:restart": "npm run api:stop && npm run api:clean && npm run api:dev",
+    "api:stop": "pkill -f 'nest start' || true",
+    "api:logs": "cd apps/api && tail -f api.log",
+    "api:fix": "npm run api:stop && npm run api:clean && npm run api:build && npm run api:dev",
+    "merchant:dev": "cd apps/merchant-app && npm run dev",
+    "merchant:build": "cd apps/merchant-app && npm run build",
+    "merchant:start": "cd apps/merchant-app && npm run start",
+    "dev:api": "npm run api:dev",
+    "dev:merchant": "npm run merchant:dev",
+    "dev:all": "concurrently \"npm run api:dev\" \"npm run merchant:dev\"",
+    "stop:all": "pkill -f 'nest\\|next' || true",
+    "ps:check": "ps aux | grep -E 'nest|next' | grep -v grep || echo 'No nest/next processes running'"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^2.5.3",
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "npm@10.2.4",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  }
+}

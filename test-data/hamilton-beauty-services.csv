@@ -1,0 +1,33 @@
+Service Name,Category,Price,Duration (min),Description
+Classic Manicure,Nails,35,30,Basic nail shaping and polish
+Gel Manicure,Nails,55,45,Long-lasting gel polish manicure
+Classic Pedicure,Nails,45,45,Basic foot care and polish
+Gel Pedicure,Nails,65,60,Long-lasting gel polish pedicure
+Nail Art,Nails,20,30,Custom nail art per nail
+Polish Change,Nails,20,15,Quick polish change
+Women's Haircut,Hair,65,45,Professional cut and style
+Men's Haircut,Hair,45,30,Professional men's cut
+Hair Color,Hair,120,120,Full head single process color
+Highlights,Hair,180,150,Full head highlights
+Balayage,Hair,250,180,Hand-painted balayage technique
+Blowout,Hair,55,45,Professional blow dry and style
+Hair Treatment,Hair,75,45,Deep conditioning treatment
+Classic Facial,Skincare,85,60,Deep cleansing facial
+Anti-Aging Facial,Skincare,120,75,Advanced anti-aging treatment
+Acne Treatment,Skincare,95,60,Specialized acne facial
+Microdermabrasion,Skincare,110,45,Skin resurfacing treatment
+Chemical Peel,Skincare,130,60,Professional chemical peel
+Swedish Massage,Massage,90,60,Relaxing full body massage
+Deep Tissue Massage,Massage,110,60,Therapeutic deep tissue work
+Hot Stone Massage,Massage,130,75,Heated stone therapy
+Aromatherapy Massage,Massage,100,60,Essential oil massage
+Reflexology,Massage,70,45,Foot pressure point therapy
+Eyebrow Waxing,Waxing,25,15,Professional brow shaping
+Lip Waxing,Waxing,15,10,Upper lip hair removal
+Full Face Waxing,Waxing,65,30,Complete facial waxing
+Brazilian Wax,Waxing,75,45,Full bikini waxing
+Half Leg Wax,Waxing,45,30,Lower leg waxing
+Full Leg Wax,Waxing,85,60,Complete leg waxing
+Basic Makeup,Makeup,75,45,Day makeup application
+Bridal Makeup,Makeup,150,90,Special occasion makeup
+Makeup Lesson,Makeup,100,60,Personalized makeup tutorial
