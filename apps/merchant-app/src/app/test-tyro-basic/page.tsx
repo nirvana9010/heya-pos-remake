@@ -30,10 +30,10 @@ export default function TestTyroBasicPage() {
                 posProductVersion: '2.0.0'
               });
               console.log('✅ Test client created:', testClient);
-              setSdkDetails(prev => ({ ...prev, clientCreated: true }));
+              setSdkDetails((prev: any) => ({ ...prev, clientCreated: true }));
             } catch (error) {
               console.error('❌ Client creation failed:', error);
-              setSdkDetails(prev => ({ ...prev, clientError: error.message }));
+              setSdkDetails((prev: any) => ({ ...prev, clientError: (error as any).message }));
             }
             
           } else if (window.TYRO) {
@@ -44,8 +44,8 @@ export default function TestTyroBasicPage() {
             setSdkDetails({ tyroExists: false, iClientExists: false });
           }
         } catch (error) {
-          setSdkStatus(`❌ Error: ${error.message}`);
-          setSdkDetails({ error: error.message });
+          setSdkStatus(`❌ Error: ${(error as any).message}`);
+          setSdkDetails({ error: (error as any).message });
         }
       }
     };
@@ -72,13 +72,13 @@ export default function TestTyroBasicPage() {
       });
 
       console.log('Attempting terminal pairing...');
-      client.pairTerminal('TEST_MID', 'TEST_TID', (response) => {
+      client.pairTerminal('TEST_MID', 'TEST_TID', (response: any) => {
         console.log('Pairing response:', response);
         alert(`Pairing response: ${JSON.stringify(response)}`);
       });
     } catch (error) {
       console.error('Pairing error:', error);
-      alert(`Pairing error: ${error.message}`);
+      alert(`Pairing error: ${(error as any).message}`);
     }
   };
 
@@ -104,18 +104,18 @@ export default function TestTyroBasicPage() {
           enableSurcharge: true
         },
         {
-          transactionCompleteCallback: (response) => {
+          transactionCompleteCallback: (response: any) => {
             console.log('Payment response:', response);
             alert(`Payment result: ${response.result}`);
           },
-          receiptCallback: (receipt) => {
+          receiptCallback: (receipt: any) => {
             console.log('Receipt:', receipt);
           }
         }
       );
     } catch (error) {
       console.error('Payment error:', error);
-      alert(`Payment error: ${error.message}`);
+      alert(`Payment error: ${(error as any).message}`);
     }
   };
 

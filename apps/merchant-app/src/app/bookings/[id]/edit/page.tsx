@@ -176,7 +176,7 @@ export default function EditBookingPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {staff.filter(s => 
-                      s.services.includes(formData.serviceId) || !formData.serviceId
+                      (s.services && s.services.includes(formData.serviceId)) || !formData.serviceId
                     ).map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name}

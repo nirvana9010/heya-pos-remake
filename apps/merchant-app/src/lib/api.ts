@@ -17,20 +17,30 @@ export interface LoginResponse {
 }
 
 export async function merchantLogin(username: string, password: string): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/auth/merchant/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username, password }),
-  });
+  console.log('Calling API at:', `${API_URL}/auth/merchant/login`);
+  
+  try {
+    const response = await fetch(`${API_URL}/auth/merchant/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Login failed');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Login failed');
+    }
+
+    return response.json();
+  } catch (error: any) {
+    console.error('Login error:', error);
+    if (error.message === 'Failed to fetch') {
+      throw new Error('Cannot connect to API server. Please ensure the API is running on port 3000.');
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function getDashboardStats(token: string) {

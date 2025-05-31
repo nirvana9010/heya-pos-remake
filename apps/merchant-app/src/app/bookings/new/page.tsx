@@ -60,13 +60,13 @@ function NewBookingContent() {
         apiClient.getStaff()
       ]);
       
-      setServices(servicesData.filter(s => s.isActive));
+      setServices(servicesData.filter((s: any) => s.isActive));
       setCustomers(customersData);
-      setStaff(staffData.filter(s => s.isActive));
+      setStaff(staffData.filter((s: any) => s.isActive));
       
       // If customerId is provided, select that customer
       if (formData.customerId) {
-        const customer = customersData.find(c => c.id === formData.customerId);
+        const customer = customersData.find((c: any) => c.id === formData.customerId);
         if (customer) setSelectedCustomer(customer);
       }
     } catch (error) {

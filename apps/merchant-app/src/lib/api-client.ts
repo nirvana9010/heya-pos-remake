@@ -29,27 +29,60 @@ class ApiClient {
 
     // Add response interceptor to handle auth errors
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log('[API Client] Response received:', {
+          url: response.config.url,
+          status: response.status
+        });
+        return response;
+      },
       (error) => {
+        console.log('[API Client] Error interceptor triggered:', {
+          url: error.config?.url,
+          status: error.response?.status,
+          hasResponse: !!error.response,
+          isWindowDefined: typeof window !== 'undefined'
+        });
+
         // Only log detailed errors if they're not 404s (expected for missing endpoints)
         if (error.response?.status !== 404) {
-          console.error('API Error:', {
+          const errorDetails = {
             url: error.config?.url,
             method: error.config?.method,
             status: error.response?.status,
+            statusText: error.response?.statusText,
             data: error.response?.data,
             message: error.message
-          });
+          };
+          console.error('[API Client] API Error Details:', errorDetails);
         }
         
         if (error.response?.status === 401) {
+          console.log('[API Client] 401 Unauthorized detected!');
+          console.log('[API Client] Current URL:', window.location.href);
+          console.log('[API Client] Clearing tokens...');
+          
           // Token expired or invalid
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('merchant');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          
+          console.log('[API Client] Tokens cleared, attempting redirect...');
+          
+          // Try multiple redirect methods
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            console.log('[API Client] Window is defined, redirecting to /login');
+            
+            // Use immediate redirect
+            window.location.href = '/login';
+            
+            // Return a rejected promise with a specific error to prevent further processing
+            return Promise.reject(new Error('UNAUTHORIZED_REDIRECT'));
+          }
         }
+        
+        console.log('[API Client] Rejecting error...');
         return Promise.reject(error);
       }
     );
@@ -92,6 +125,21 @@ class ApiClient {
 
   async getCategories() {
     const response = await this.axiosInstance.get('/service-categories');
+    return response.data;
+  }
+
+  async createCategory(data: any) {
+    const response = await this.axiosInstance.post('/service-categories', data);
+    return response.data;
+  }
+
+  async updateCategory(id: string, data: any) {
+    const response = await this.axiosInstance.patch(`/service-categories/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCategory(id: string) {
+    const response = await this.axiosInstance.delete(`/service-categories/${id}`);
     return response.data;
   }
 
@@ -167,6 +215,21 @@ class ApiClient {
   // Staff endpoints
   async getStaff() {
     const response = await this.axiosInstance.get('/staff');
+    return response.data;
+  }
+
+  async createStaff(data: any) {
+    const response = await this.axiosInstance.post('/staff', data);
+    return response.data;
+  }
+
+  async updateStaff(id: string, data: any) {
+    const response = await this.axiosInstance.patch(`/staff/${id}`, data);
+    return response.data;
+  }
+
+  async deleteStaff(id: string) {
+    const response = await this.axiosInstance.delete(`/staff/${id}`);
     return response.data;
   }
 

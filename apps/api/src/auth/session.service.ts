@@ -8,7 +8,7 @@ interface SessionData extends AuthSession {
 @Injectable()
 export class SessionService {
   private sessions: Map<string, SessionData> = new Map();
-  private readonly SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_HOURS || '12') * 60 * 60 * 1000; // 12 hours default
+  private readonly SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_HOURS || '8760') * 60 * 60 * 1000; // 365 days default
 
   createSession(token: string, session: AuthSession): void {
     this.sessions.set(token, {
@@ -34,7 +34,7 @@ export class SessionService {
     }
 
     // Check if token has expired
-    if (session.expiresAt < now) {
+    if (new Date(session.expiresAt) < now) {
       this.removeSession(token);
       return null;
     }
@@ -84,21 +84,26 @@ export class SessionService {
     }
   }
 
-  getActiveSessions(merchantId: string): number {
-    let count = 0;
-    const now = new Date();
-    
-    for (const session of this.sessions.values()) {
-      if (
-        session.merchantId === merchantId &&
-        session.expiresAt > now &&
-        (now.getTime() - session.lastActivity.getTime()) <= this.SESSION_TIMEOUT
-      ) {
-        count++;
+  getActiveSessions(merchantId?: string): number | Map<string, SessionData> {
+    if (merchantId) {
+      let count = 0;
+      const now = new Date();
+      
+      for (const session of this.sessions.values()) {
+        if (
+          session.merchantId === merchantId &&
+          new Date(session.expiresAt) > now &&
+          now.getTime() - session.lastActivity.getTime() <= this.SESSION_TIMEOUT
+        ) {
+          count++;
+        }
       }
+      
+      return count;
+    } else {
+      // Return the entire sessions map when no merchantId is provided
+      return this.sessions;
     }
-    
-    return count;
   }
 
   cleanupExpiredSessions(): void {
@@ -106,8 +111,8 @@ export class SessionService {
     
     for (const [token, session] of this.sessions.entries()) {
       if (
-        session.expiresAt < now ||
-        (now.getTime() - session.lastActivity.getTime()) > this.SESSION_TIMEOUT
+        new Date(session.expiresAt) < now ||
+        now.getTime() - session.lastActivity.getTime() > this.SESSION_TIMEOUT
       ) {
         this.sessions.delete(token);
       }

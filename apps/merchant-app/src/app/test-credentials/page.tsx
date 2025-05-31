@@ -99,7 +99,7 @@ export default function TestCredentialsPage() {
         
         if (response.status === 'inProgress' || response.message) {
           setCredentialStatus('🎉 CREDENTIALS ACTIVE! Successfully connected to Tyro servers');
-          setSdkInitResult(prev => ({
+          setSdkInitResult((prev: any) => ({
             ...prev,
             serverConnection: 'SUCCESS',
             serverResponse: response
@@ -110,7 +110,7 @@ export default function TestCredentialsPage() {
           } else {
             setCredentialStatus('⚠️ Connected to servers but pairing failed (normal without physical terminal)');
           }
-          setSdkInitResult(prev => ({
+          setSdkInitResult((prev: any) => ({
             ...prev,
             serverConnection: 'CONNECTED_BUT_FAILED',
             serverResponse: response

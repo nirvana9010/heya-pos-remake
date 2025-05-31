@@ -1,9 +1,49 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-05-27 2:45 PM
+> Last Updated: 2025-05-31 7:00 PM
 > 
-> **SMART RULE**: Assess if mockApi can accomplish the task BEFORE debugging API issues!
+> **CRITICAL UPDATE**: Port management issues causing hours of debugging - SEE NEW SECTION BELOW
+
+## 🚨 CRITICAL: Recurring Port/Service Management Problem
+
+### The Problem That Keeps Happening
+**Every time services restart, we waste hours debugging "Failed to fetch" errors.** This is NOT a random issue - it's a systemic problem with how we manage services.
+
+### Root Causes Identified:
+1. **Port Confusion**: API configured for port 3000 but various places expect 3001
+2. **Build Cache Corruption**: Next.js `.next` cache corrupts when services crash
+3. **Process Zombies**: Multiple `nest start` processes running simultaneously
+4. **No Clean Shutdown**: Background processes (`&`) without proper tracking
+5. **Missing Health Checks**: No way to quickly verify all services are running
+
+### THE SOLUTION - USE THESE SCRIPTS ALWAYS:
+```bash
+npm run start       # Start all services properly
+npm run stop        # Stop all services cleanly
+npm run status      # Check what's running
+npm run restart     # Full restart
+npm run clean-start # Clean caches and start fresh
+```
+
+### Port Assignments (NEVER CHANGE):
+- API: 3000
+- Booking App: 3001
+- Merchant App: 3002
+- Admin Dashboard: 3003
+
+### Common Error Fixes:
+1. **"Failed to fetch"**: Run `npm run status` then `npm run restart`
+2. **"Cannot find module './496.js'"**: Run `npm run clean-start`
+3. **"EADDRINUSE"**: Run `npm run stop` then `npm run start`
+4. **Multiple processes**: Run `npm run stop` then check with `npm run status`
+
+### DO NOT DO THESE:
+- ❌ Start services with `npm run dev` in individual directories
+- ❌ Use random background processes with `&`
+- ❌ Change port assignments
+- ❌ Kill processes without using the stop script
+- ❌ Debug for hours - use the scripts!
 
 ## ⚡ Quick Decision Tree
 
@@ -77,6 +117,13 @@ npm run build
 ```
 
 ## 🚨 Critical Rules - DO NOT VIOLATE
+
+### 0. Authentication Redirect NOT WORKING
+- **STATUS**: UNSOLVED - There is NO automatic redirect to login when authentication fails
+- **PROBLEM**: The API client interceptor attempts `window.location.href = '/login'` on 401 errors
+- **REALITY**: This redirect is NOT working properly - users see errors instead of being redirected
+- **IMPACT**: When tokens expire, users get stuck with error messages instead of login page
+- **TODO**: This needs to be properly fixed - the redirect mechanism is broken
 
 ### 1. UI Debugging Order - ALWAYS START WITH VISUAL
 - **FIRST**: Check if element exists in DOM (Inspect Element)
@@ -194,6 +241,55 @@ npm run start:dev  # Let it compile on the fly
 ```
 
 ## 📊 Session History & Learnings
+
+### Session 2025-05-30: Calendar Page Freezing Issue
+**Duration**: ~15 minutes (but took 3 attempts)
+**Problem**: Calendar page freezing after closing New Booking slider - page becomes unresponsive
+**Root Cause**: SlideOutPanel component with `preserveState={true}` kept invisible overlay in DOM
+**Solution**: Set `preserveState={false}` on BookingSlideOut component
+
+**Why It Took Multiple Attempts**:
+1. **First Attempt - Wrong Root Cause**: 
+   - Focused on `document.body.style.overflow` not being reset
+   - Added timeouts and forced resets
+   - This was a symptom, not the cause
+
+2. **Second Attempt - Partial Understanding**:
+   - Found the overlay wasn't getting `pointer-events-none` when invisible
+   - Fixed the overlay CSS but didn't realize the real issue
+   - Still didn't solve the problem because overlay shouldn't exist at all
+
+3. **Third Attempt - Real Root Cause**:
+   - Finally checked the `preserveState` prop behavior
+   - Realized `shouldRender` never became false with `preserveState={true}`
+   - Invisible components were staying in DOM blocking all interactions
+
+**Key Mistake Pattern**:
+```
+Symptom: Page frozen/unresponsive
+Wrong: Debug body overflow → Add CSS fixes → Add more workarounds
+Right: What's blocking clicks? → Invisible elements? → Why are they still there?
+```
+
+**Critical Learnings**:
+1. **Invisible Elements Can Block Everything**: Elements with `opacity-0` without `pointer-events-none` catch all clicks
+2. **State Preservation Has Side Effects**: `preserveState={true}` keeps components in DOM even when "closed"
+3. **Debug What's There, Not What Should Be**: Use DevTools to see if invisible elements exist
+4. **Component Props Matter**: Default prop values can cause unexpected behavior
+5. **Z-Index Layers Are Critical**: High z-index elements (z-40, z-50) will block everything below
+
+**Debugging Strategy for Frozen UI**:
+1. Open DevTools → Elements tab
+2. Look for high z-index elements (`fixed` position, z-40+)
+3. Check if they have `pointer-events-none` when invisible
+4. Check if they should exist at all when "closed"
+5. Trace back to component lifecycle/state management
+
+**Pattern to Remember**:
+- Modal/Slider closes but page frozen = Invisible overlay still exists
+- Always check: Does the overlay get removed from DOM or just hidden?
+- Component libraries often preserve state by default for performance
+- When in doubt, set `preserveState={false}` for modals/sliders
 
 ### Session 2025-05-29: UI Component Dialog Issues 
 **Duration**: ~90 minutes

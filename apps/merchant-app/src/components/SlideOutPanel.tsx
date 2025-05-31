@@ -52,17 +52,21 @@ export function SlideOutPanel({
 
   // Handle opening/closing animations
   useEffect(() => {
+    console.log('[SlideOutPanel] isOpen changed to:', isOpen, 'preserveState:', preserveState);
     if (isOpen) {
       setShouldRender(true);
       // Small delay to ensure DOM is ready for animation
       requestAnimationFrame(() => {
         setIsVisible(true);
+        console.log('[SlideOutPanel] Panel opening - isVisible set to true');
       });
     } else {
       setIsVisible(false);
+      console.log('[SlideOutPanel] Panel closing - isVisible set to false');
       if (!preserveState) {
         const timer = setTimeout(() => {
           setShouldRender(false);
+          console.log('[SlideOutPanel] shouldRender set to false after animation');
         }, 300); // Match animation duration
         return () => clearTimeout(timer);
       }
@@ -101,11 +105,19 @@ export function SlideOutPanel({
   // Handle body scroll lock
   useEffect(() => {
     if (isOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow || '';
+      console.log('[SlideOutPanel] Setting body overflow to hidden, original was:', originalOverflow);
       document.body.style.overflow = "hidden";
+      
       return () => {
-        document.body.style.overflow = originalStyle;
+        console.log('[SlideOutPanel] Restoring body overflow to:', originalOverflow);
+        document.body.style.overflow = originalOverflow;
       };
+    } else {
+      // Ensure overflow is reset when closed
+      console.log('[SlideOutPanel] Panel closed, ensuring overflow is reset');
+      document.body.style.overflow = '';
     }
   }, [isOpen]);
 
@@ -118,8 +130,7 @@ export function SlideOutPanel({
         <div
           className={cn(
             "fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-40",
-            isVisible ? "opacity-100" : "opacity-0",
-            !shouldRender && "pointer-events-none",
+            isVisible ? "opacity-100" : "opacity-0 pointer-events-none",
             overlayClassName
           )}
           onClick={closeOnOverlayClick ? onClose : undefined}
@@ -133,7 +144,7 @@ export function SlideOutPanel({
         className={cn(
           "fixed right-0 top-0 h-full bg-white shadow-2xl z-50 flex flex-col",
           "transform transition-transform duration-300 ease-out",
-          isVisible ? "translate-x-0" : "translate-x-full",
+          isVisible ? "translate-x-0" : "translate-x-full pointer-events-none",
           widthClasses[width],
           "w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%]",
           width === "narrow" && "max-w-md",

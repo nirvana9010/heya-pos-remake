@@ -23,6 +23,7 @@ const navigation = [
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Bookings', href: '/bookings', icon: Calendar },
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Staff', href: '/staff', icon: Users },
   { name: 'Services', href: '/services', icon: Package },
   { name: 'Payments', href: '/payments', icon: DollarSign },
   { name: 'Reports', href: '/reports', icon: BarChart3 },

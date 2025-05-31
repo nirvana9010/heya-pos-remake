@@ -29,18 +29,24 @@
     "dev:merchant": "npm run merchant:dev",
     "dev:all": "concurrently \"npm run api:dev\" \"npm run merchant:dev\"",
     "stop:all": "pkill -f 'nest\\|next' || true",
-    "ps:check": "ps aux | grep -E 'nest|next' | grep -v grep || echo 'No nest/next processes running'"
+    "ps:check": "ps aux | grep -E 'nest|next' | grep -v grep || echo 'No nest/next processes running'",
+    "start": "./scripts/dev-start.sh",
+    "stop": "./scripts/dev-stop.sh",
+    "status": "./scripts/dev-status.sh",
+    "restart": "./scripts/dev-stop.sh && ./scripts/dev-start.sh",
+    "clean-start": "./scripts/dev-start.sh --clean"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "prettier": "^3.2.5",
-    "turbo": "^2.5.3",
-    "concurrently": "^8.2.2"
+    "turbo": "^2.5.3"
   },
   "packageManager": "npm@10.2.4",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "axios": "^1.9.0",
     "date-fns": "^4.1.0"
   }
 }

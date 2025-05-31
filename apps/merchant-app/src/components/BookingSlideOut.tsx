@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ChevronRight, 
   User, 
@@ -35,7 +35,7 @@ interface BookingSlideOutProps {
   onSave: (booking: any) => void;
 }
 
-type Step = "customer" | "service" | "datetime" | "confirm";
+type Step = "datetime" | "service" | "customer" | "confirm";
 
 export function BookingSlideOut({
   isOpen,
@@ -48,7 +48,7 @@ export function BookingSlideOut({
   customers = [],
   onSave
 }: BookingSlideOutProps) {
-  const [currentStep, setCurrentStep] = useState<Step>("customer");
+  const [currentStep, setCurrentStep] = useState<Step>("datetime");
   const [formData, setFormData] = useState({
     customerId: "",
     customerName: "",
@@ -65,10 +65,24 @@ export function BookingSlideOut({
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Reset to first step and update initial values when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep("datetime");
+      // Update date/time/staff from props when dialog opens
+      setFormData(prev => ({
+        ...prev,
+        date: initialDate,
+        time: initialTime || new Date(),
+        staffId: initialStaffId || prev.staffId
+      }));
+    }
+  }, [isOpen, initialDate, initialTime, initialStaffId]);
+
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
-    { id: "customer", label: "Customer", icon: <User className="h-4 w-4" /> },
-    { id: "service", label: "Service", icon: <Scissors className="h-4 w-4" /> },
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
+    { id: "service", label: "Service", icon: <Scissors className="h-4 w-4" /> },
+    { id: "customer", label: "Customer", icon: <User className="h-4 w-4" /> },
     { id: "confirm", label: "Confirm", icon: <CheckCircle className="h-4 w-4" /> }
   ];
 
@@ -350,12 +364,12 @@ export function BookingSlideOut({
 
   const canProceed = () => {
     switch (currentStep) {
-      case "customer":
-        return formData.customerName && formData.customerPhone;
+      case "datetime":
+        return formData.staffId && formData.date && formData.time;
       case "service":
         return formData.serviceId;
-      case "datetime":
-        return formData.staffId;
+      case "customer":
+        return formData.customerName && formData.customerPhone;
       default:
         return true;
     }
@@ -367,6 +381,7 @@ export function BookingSlideOut({
       onClose={onClose}
       title="New Booking"
       width="wide"
+      preserveState={false}
       footer={
         <div className="flex justify-between">
           <Button

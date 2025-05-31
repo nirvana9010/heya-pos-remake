@@ -9,13 +9,19 @@ import { UpdateServiceCategoryDto } from './dto/update-category.dto';
 import { Service, ServiceCategory, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '@heya-pos/types';
 
+// Extended Service type with categoryName
+type ServiceWithCategoryName = Service & {
+  categoryModel?: ServiceCategory | null;
+  categoryName?: string | null;
+};
+
 @Injectable()
 export class ServicesService {
   constructor(private prisma: PrismaService) {}
 
   // ============= SERVICE CRUD =============
 
-  async create(merchantId: string, dto: CreateServiceDto): Promise<Service> {
+  async create(merchantId: string, dto: CreateServiceDto): Promise<ServiceWithCategoryName> {
     // Check if service with same name already exists
     const existing = await this.prisma.service.findFirst({
       where: {
@@ -39,7 +45,7 @@ export class ServicesService {
       }
     }
 
-    return this.prisma.service.create({
+    const service = await this.prisma.service.create({
       data: {
         merchantId,
         name: dto.name,
@@ -61,12 +67,17 @@ export class ServicesService {
         categoryModel: true,
       },
     });
+
+    return {
+      ...service,
+      categoryName: service.categoryModel?.name || service.category || null,
+    };
   }
 
   async findAll(
     merchantId: string,
     query: QueryServiceDto,
-  ): Promise<PaginatedResponse<Service>> {
+  ): Promise<PaginatedResponse<ServiceWithCategoryName>> {
     const {
       categoryId,
       isActive,
@@ -163,6 +174,7 @@ export class ServicesService {
         createdAt: new Date(service.createdAt),
         updatedAt: new Date(service.updatedAt),
         categoryModel: service.categoryId ? categoryMap.get(service.categoryId) || null : null,
+        categoryName: service.categoryId ? categoryMap.get(service.categoryId)?.name || service.category : service.category,
       }));
       
       const total = Number(countResult[0].count);
@@ -202,8 +214,14 @@ export class ServicesService {
       }),
     ]);
 
+    // Add categoryName to each service
+    const servicesWithCategoryName = services.map(service => ({
+      ...service,
+      categoryName: service.categoryModel?.name || service.category || null,
+    }));
+
     return {
-      data: services,
+      data: servicesWithCategoryName,
       meta: {
         total,
         page,
@@ -213,7 +231,7 @@ export class ServicesService {
     };
   }
 
-  async findOne(id: string, merchantId: string): Promise<Service> {
+  async findOne(id: string, merchantId: string): Promise<ServiceWithCategoryName> {
     const service = await this.prisma.service.findFirst({
       where: { id, merchantId },
       include: {
@@ -225,14 +243,17 @@ export class ServicesService {
       throw new NotFoundException('Service not found');
     }
 
-    return service;
+    return {
+      ...service,
+      categoryName: service.categoryModel?.name || service.category || null,
+    };
   }
 
   async update(
     id: string,
     merchantId: string,
     dto: UpdateServiceDto,
-  ): Promise<Service> {
+  ): Promise<ServiceWithCategoryName> {
     const service = await this.findOne(id, merchantId);
 
     // Check if updating name would create duplicate
@@ -257,7 +278,7 @@ export class ServicesService {
       categoryId = category.id;
     }
 
-    return this.prisma.service.update({
+    const updatedService = await this.prisma.service.update({
       where: { id },
       data: {
         ...dto,
@@ -267,6 +288,11 @@ export class ServicesService {
         categoryModel: true,
       },
     });
+
+    return {
+      ...updatedService,
+      categoryName: updatedService.categoryModel?.name || updatedService.category || null,
+    };
   }
 
   async remove(id: string, merchantId: string): Promise<void> {

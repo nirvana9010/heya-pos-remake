@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { apiClient } from "@/lib/api-client";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -22,7 +23,9 @@ import {
   Play,
   Pause,
   CalendarDays,
-  Home
+  Home,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent } from "@heya-pos/ui";
@@ -33,8 +36,27 @@ import { Checkbox } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
-import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO } from "date-fns";
+import { 
+  format, 
+  addDays, 
+  addWeeks, 
+  addMonths,
+  subDays,
+  subWeeks,
+  subMonths,
+  startOfWeek, 
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  isSameDay, 
+  isToday,
+  parseISO,
+  eachDayOfInterval,
+  getDay,
+  getDaysInMonth
+} from "date-fns";
 import { BookingSlideOut } from "@/components/BookingSlideOut";
 
 interface Staff {
@@ -47,9 +69,9 @@ interface Staff {
 }
 
 interface BusinessHours {
-  start: string; // "09:00"
-  end: string;   // "18:00"
-  days: number[]; // [1,2,3,4,5] for Mon-Fri
+  start: string;
+  end: string;
+  days: number[];
 }
 
 type TimeInterval = 15 | 30 | 60;
@@ -59,6 +81,7 @@ interface CalendarFilters {
   showCompleted: boolean;
   showCancelled: boolean;
   showBlocked: boolean;
+  selectedStaffIds: string[];
 }
 
 interface Booking {
@@ -78,20 +101,22 @@ interface Booking {
   notes?: string;
 }
 
+// Mock data
 const mockStaff: Staff[] = [
-  { id: "1", name: "Emma Wilson", color: "#7C3AED", isVisible: true, isAvailable: true, avatar: "/placeholder-avatar.jpg" },
-  { id: "2", name: "James Brown", color: "#14B8A6", isVisible: true, isAvailable: true, avatar: "/placeholder-avatar.jpg" },
-  { id: "3", name: "Sophie Chen", color: "#F59E0B", isVisible: true, isAvailable: false, avatar: "/placeholder-avatar.jpg" },
-  { id: "4", name: "Michael Davis", color: "#EF4444", isVisible: true, isAvailable: true, avatar: "/placeholder-avatar.jpg" },
+  { id: "1", name: "Emma Wilson", color: "#7C3AED", isVisible: true, isAvailable: true },
+  { id: "2", name: "James Brown", color: "#14B8A6", isVisible: true, isAvailable: true },
+  { id: "3", name: "Sophie Chen", color: "#F59E0B", isVisible: true, isAvailable: false },
+  { id: "4", name: "Michael Davis", color: "#EF4444", isVisible: true, isAvailable: true },
 ];
 
 const mockBusinessHours: BusinessHours = {
   start: "09:00",
   end: "18:00",
-  days: [1, 2, 3, 4, 5] // Mon-Fri
+  days: [1, 2, 3, 4, 5]
 };
 
 const mockBookings: Booking[] = [
+  // Today's bookings
   {
     id: "1",
     customerId: "c1",
@@ -101,88 +126,227 @@ const mockBookings: Booking[] = [
     serviceIcon: "palette",
     staffId: "1",
     staffName: "Emma Wilson",
-    startTime: new Date(2025, 4, 29, 9, 30),
-    endTime: new Date(2025, 4, 29, 10, 30),
+    startTime: new Date(2025, 0, 31, 10, 0),
+    endTime: new Date(2025, 0, 31, 11, 0),
     status: "confirmed",
-    isPaid: true,
+    isPaid: false,
     totalPrice: 85,
-    notes: "First time client"
   },
   {
     id: "2",
     customerId: "c2",
     customerName: "Michael Chen",
     customerPhone: "+1 (555) 234-5678",
-    serviceName: "Hair Color",
-    serviceIcon: "scissors",
+    serviceName: "Deep Tissue Massage",
+    serviceIcon: "hand",
     staffId: "2",
     staffName: "James Brown",
-    startTime: new Date(2025, 4, 29, 10, 0),
-    endTime: new Date(2025, 4, 29, 11, 0),
+    startTime: new Date(2025, 0, 31, 14, 0),
+    endTime: new Date(2025, 0, 31, 15, 0),
     status: "in-progress",
-    isPaid: false,
-    totalPrice: 120
+    isPaid: true,
+    totalPrice: 90,
   },
   {
     id: "3",
     customerId: "c3",
     customerName: "Emily Brown",
     customerPhone: "+1 (555) 345-6789",
-    serviceName: "Facial Treatment",
-    serviceIcon: "sparkles",
-    staffId: "3",
-    staffName: "Sophie Chen",
-    startTime: new Date(2025, 4, 29, 11, 30),
-    endTime: new Date(2025, 4, 29, 12, 0),
-    status: "confirmed",
+    serviceName: "Haircut & Style",
+    serviceIcon: "scissors",
+    staffId: "1",
+    staffName: "Emma Wilson",
+    startTime: new Date(2025, 0, 31, 9, 0),
+    endTime: new Date(2025, 0, 31, 9, 30),
+    status: "completed",
     isPaid: true,
-    totalPrice: 110
+    totalPrice: 45,
   },
   {
     id: "4",
     customerId: "c4",
     customerName: "Lisa Wang",
     customerPhone: "+1 (555) 456-7890",
+    serviceName: "Facial Treatment",
+    serviceIcon: "sparkles",
+    staffId: "4",
+    staffName: "Michael Davis",
+    startTime: new Date(2025, 0, 31, 11, 30),
+    endTime: new Date(2025, 0, 31, 12, 30),
+    status: "cancelled",
+    isPaid: false,
+    totalPrice: 110,
+  },
+  // Past bookings (yesterday)
+  {
+    id: "5",
+    customerId: "c1",
+    customerName: "Sarah Johnson",
+    customerPhone: "+1 (555) 123-4567",
     serviceName: "Eyebrow Threading",
     serviceIcon: "sparkles",
     staffId: "4",
     staffName: "Michael Davis",
-    startTime: new Date(2025, 4, 29, 14, 30),
-    endTime: new Date(2025, 4, 29, 15, 0),
+    startTime: new Date(2025, 0, 30, 15, 0),
+    endTime: new Date(2025, 0, 30, 15, 30),
     status: "completed",
-    isPaid: false,
-    totalPrice: 35
-  },
-  {
-    id: "5",
-    customerId: "c5",
-    customerName: "Jennifer Martinez",
-    customerPhone: "+1 (555) 567-8901",
-    serviceName: "Deep Tissue Massage",
-    serviceIcon: "hand",
-    staffId: "1",
-    staffName: "Emma Wilson",
-    startTime: new Date(2025, 4, 29, 13, 15),
-    endTime: new Date(2025, 4, 29, 14, 15),
-    status: "confirmed",
     isPaid: true,
-    totalPrice: 90
+    totalPrice: 35,
   },
   {
     id: "6",
-    customerId: "c6",
-    customerName: "Robert Kim",
-    customerPhone: "+1 (555) 678-9012",
-    serviceName: "Haircut & Beard Trim",
+    customerId: "c2",
+    customerName: "Michael Chen",
+    customerPhone: "+1 (555) 234-5678",
+    serviceName: "Hair Color",
     serviceIcon: "scissors",
+    staffId: "1",
+    staffName: "Emma Wilson",
+    startTime: new Date(2025, 0, 30, 13, 0),
+    endTime: new Date(2025, 0, 30, 14, 30),
+    status: "no-show",
+    isPaid: false,
+    totalPrice: 120,
+  },
+  // Tomorrow's bookings
+  {
+    id: "7",
+    customerId: "c3",
+    customerName: "Emily Brown",
+    customerPhone: "+1 (555) 345-6789",
+    serviceName: "Manicure & Pedicure",
+    serviceIcon: "palette",
     staffId: "2",
     staffName: "James Brown",
-    startTime: new Date(2025, 4, 29, 15, 30),
-    endTime: new Date(2025, 4, 29, 16, 30),
+    startTime: new Date(2025, 1, 1, 10, 0),
+    endTime: new Date(2025, 1, 1, 11, 0),
     status: "confirmed",
     isPaid: false,
-    totalPrice: 65
-  }
+    totalPrice: 85,
+  },
+  {
+    id: "8",
+    customerId: "c4",
+    customerName: "Lisa Wang",
+    customerPhone: "+1 (555) 456-7890",
+    serviceName: "Deep Tissue Massage",
+    serviceIcon: "hand",
+    staffId: "4",
+    staffName: "Michael Davis",
+    startTime: new Date(2025, 1, 1, 14, 30),
+    endTime: new Date(2025, 1, 1, 15, 30),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 90,
+  },
+  // Next week bookings
+  {
+    id: "9",
+    customerId: "c1",
+    customerName: "Sarah Johnson",
+    customerPhone: "+1 (555) 123-4567",
+    serviceName: "Hair Color",
+    serviceIcon: "scissors",
+    staffId: "1",
+    staffName: "Emma Wilson",
+    startTime: new Date(2025, 1, 5, 10, 0),
+    endTime: new Date(2025, 1, 5, 11, 30),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 120,
+  },
+  {
+    id: "10",
+    customerId: "c2",
+    customerName: "Michael Chen",
+    customerPhone: "+1 (555) 234-5678",
+    serviceName: "Facial Treatment",
+    serviceIcon: "sparkles",
+    staffId: "2",
+    staffName: "James Brown",
+    startTime: new Date(2025, 1, 6, 15, 0),
+    endTime: new Date(2025, 1, 6, 16, 0),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 110,
+  },
+  {
+    id: "11",
+    customerId: "c3",
+    customerName: "Emily Brown",
+    customerPhone: "+1 (555) 345-6789",
+    serviceName: "Haircut & Style",
+    serviceIcon: "scissors",
+    staffId: "4",
+    staffName: "Michael Davis",
+    startTime: new Date(2025, 1, 7, 11, 0),
+    endTime: new Date(2025, 1, 7, 11, 30),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 45,
+  },
+  // Two weeks out
+  {
+    id: "12",
+    customerId: "c4",
+    customerName: "Lisa Wang",
+    customerPhone: "+1 (555) 456-7890",
+    serviceName: "Manicure & Pedicure",
+    serviceIcon: "palette",
+    staffId: "1",
+    staffName: "Emma Wilson",
+    startTime: new Date(2025, 1, 14, 13, 0),
+    endTime: new Date(2025, 1, 14, 14, 0),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 85,
+  },
+  {
+    id: "13",
+    customerId: "c1",
+    customerName: "Sarah Johnson",
+    customerPhone: "+1 (555) 123-4567",
+    serviceName: "Deep Tissue Massage",
+    serviceIcon: "hand",
+    staffId: "2",
+    staffName: "James Brown",
+    startTime: new Date(2025, 1, 14, 16, 0),
+    endTime: new Date(2025, 1, 14, 17, 0),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 90,
+  },
+  // More today bookings to fill the schedule
+  {
+    id: "14",
+    customerId: "c2",
+    customerName: "Michael Chen",
+    customerPhone: "+1 (555) 234-5678",
+    serviceName: "Haircut & Style",
+    serviceIcon: "scissors",
+    staffId: "4",
+    staffName: "Michael Davis",
+    startTime: new Date(2025, 0, 31, 15, 30),
+    endTime: new Date(2025, 0, 31, 16, 0),
+    status: "confirmed",
+    isPaid: false,
+    totalPrice: 45,
+  },
+  {
+    id: "15",
+    customerId: "c3",
+    customerName: "Emily Brown",
+    customerPhone: "+1 (555) 345-6789",
+    serviceName: "Eyebrow Threading",
+    serviceIcon: "sparkles",
+    staffId: "1",
+    staffName: "Emma Wilson",
+    startTime: new Date(2025, 0, 31, 14, 0),
+    endTime: new Date(2025, 0, 31, 14, 30),
+    status: "confirmed",
+    isPaid: true,
+    totalPrice: 35,
+  },
 ];
 
 const mockServices = [
@@ -201,14 +365,14 @@ const mockCustomers = [
   { id: "c4", name: "Lisa Wang", phone: "+1 (555) 456-7890", email: "lisa@example.com" }
 ];
 
-// Generate time slots based on business hours and interval
+// Helper functions
 const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval) => {
   const slots = [];
   const [startHour, startMinute] = businessHours.start.split(':').map(Number);
   const [endHour, endMinute] = businessHours.end.split(':').map(Number);
   
-  for (let hour = startHour; hour < endHour || (hour === endHour && startMinute === 0); hour++) {
-    if (hour >= endHour && endMinute === 0) break;
+  for (let hour = startHour; hour <= endHour; hour++) {
+    if (hour === endHour && endMinute === 0) break;
     
     const minutes = interval === 60 ? [0] : interval === 30 ? [0, 30] : [0, 15, 30, 45];
     
@@ -256,27 +420,16 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "confirmed": return <Clock className="h-3 w-3" />;
-    case "in-progress": return <Play className="h-3 w-3" />;
-    case "completed": return <Check className="h-3 w-3" />;
-    case "cancelled": return <X className="h-3 w-3" />;
-    case "no-show": return <AlertTriangle className="h-3 w-3" />;
-    default: return <Clock className="h-3 w-3" />;
-  }
-};
-
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<ViewType>("day");
   const [timeInterval, setTimeInterval] = useState<TimeInterval>(15);
   const [businessHours] = useState<BusinessHours>(mockBusinessHours);
-  const [staff, setStaff] = useState<Staff[]>(mockStaff);
   const [filters, setFilters] = useState<CalendarFilters>({
     showCompleted: true,
     showCancelled: false,
-    showBlocked: false
+    showBlocked: false,
+    selectedStaffIds: [] // Will be populated when staff loads
   });
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [hoveredBooking, setHoveredBooking] = useState<string | null>(null);
@@ -288,47 +441,195 @@ export default function CalendarPage() {
     time?: Date;
     staffId?: string;
   }>({});
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const timeSlots = useMemo(() => generateTimeSlots(businessHours, timeInterval), [businessHours, timeInterval]);
-  const visibleStaff = staff.filter(s => s.isVisible);
+  // Update current time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Load bookings from API
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        setLoading(true);
+        const apiBookings = await apiClient.getBookings();
+        
+        // Transform API bookings to match the calendar format
+        const transformedBookings = apiBookings.map((booking: any) => ({
+          id: booking.id,
+          customerId: booking.customerId,
+          customerName: booking.customer?.firstName && booking.customer?.lastName 
+            ? `${booking.customer.firstName} ${booking.customer.lastName}`
+            : booking.customerName || 'Unknown',
+          customerPhone: booking.customer?.mobile || '',
+          serviceName: booking.services?.[0]?.name || booking.serviceName || 'Service',
+          serviceIcon: 'scissors', // Default icon
+          staffId: booking.providerId || booking.staffId || '1',
+          staffName: booking.provider?.firstName && booking.provider?.lastName
+            ? `${booking.provider.firstName} ${booking.provider.lastName}`
+            : booking.staffName || 'Staff',
+          startTime: new Date(booking.startTime),
+          endTime: new Date(booking.endTime),
+          status: (booking.status || 'pending').toLowerCase().replace('_', '-'),
+          isPaid: booking.paidAmount > 0 || false,
+          totalPrice: booking.totalAmount || 0,
+        }));
+        
+        setBookings(transformedBookings);
+      } catch (error) {
+        console.error('Failed to load bookings:', error);
+        // Fall back to mock data if API fails
+        setBookings(mockBookings);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBookings();
+  }, [currentDate]); // Reload when date changes
+
+  // Load staff from API
+  useEffect(() => {
+    const loadStaff = async () => {
+      try {
+        const apiStaff = await apiClient.getStaff();
+        
+        // Transform API staff to match the calendar format
+        const transformedStaff = apiStaff.map((member: any) => ({
+          id: member.id,
+          name: `${member.firstName} ${member.lastName}`,
+          color: member.calendarColor || '#7C3AED',
+          isVisible: true,
+          isAvailable: member.status === 'ACTIVE',
+        }));
+        
+        setStaff(transformedStaff);
+        
+        // Update filters to include all staff IDs
+        setFilters(prev => ({
+          ...prev,
+          selectedStaffIds: transformedStaff.map((s: Staff) => s.id)
+        }));
+      } catch (error) {
+        console.error('Failed to load staff:', error);
+        // Fall back to mock data if API fails
+        setStaff(mockStaff);
+      }
+    };
+
+    loadStaff();
+  }, []);
+
+  const timeSlots = useMemo(() => {
+    const slots = generateTimeSlots(businessHours, timeInterval);
+    // Debug: Check first hour slots
+    const firstHourSlots = slots.filter(s => s.time.getHours() === 9);
+    console.log('9 AM slots:', firstHourSlots.length, firstHourSlots.map(s => format(s.time, 'HH:mm')));
+    const tenAmSlots = slots.filter(s => s.time.getHours() === 10);
+    console.log('10 AM slots:', tenAmSlots.length, tenAmSlots.map(s => format(s.time, 'HH:mm')));
+    return slots;
+  }, [businessHours, timeInterval]);
+  const visibleStaff = staff.filter(s => filters.selectedStaffIds.includes(s.id));
   
   const filteredBookings = useMemo(() => {
-    return mockBookings.filter(booking => {
+    return bookings.filter(booking => {
       if (!filters.showCompleted && booking.status === "completed") return false;
       if (!filters.showCancelled && booking.status === "cancelled") return false;
-      if (!visibleStaff.find(s => s.id === booking.staffId)) return false;
-      return isSameDay(booking.startTime, currentDate);
+      if (!filters.selectedStaffIds.includes(booking.staffId)) return false;
+      return true;
     });
-  }, [currentDate, filters, visibleStaff]);
+  }, [filters, bookings]);
 
-  const toggleStaffVisibility = (staffId: string) => {
-    setStaff(prev => prev.map(s => 
-      s.id === staffId ? { ...s, isVisible: !s.isVisible } : s
-    ));
+  // Navigation functions
+  const navigatePrevious = () => {
+    switch (viewType) {
+      case "day":
+        setCurrentDate(subDays(currentDate, 1));
+        break;
+      case "week":
+        setCurrentDate(subWeeks(currentDate, 1));
+        break;
+      case "month":
+        setCurrentDate(subMonths(currentDate, 1));
+        break;
+    }
   };
 
-  const getBookingPosition = (booking: Booking) => {
-    const [businessStartHour, businessStartMinute] = businessHours.start.split(':').map(Number);
-    const startHour = booking.startTime.getHours();
-    const startMinute = booking.startTime.getMinutes();
-    const endHour = booking.endTime.getHours();
-    const endMinute = booking.endTime.getMinutes();
-    
-    // Calculate position based on time interval
-    const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
-    const slotsPerHour = 60 / timeInterval;
-    
-    const startTotalMinutes = (startHour - businessStartHour) * 60 + (startMinute - businessStartMinute);
-    const endTotalMinutes = (endHour - businessStartHour) * 60 + (endMinute - businessStartMinute);
-    
-    const top = (startTotalMinutes / timeInterval) * slotHeight;
-    const height = Math.max(((endTotalMinutes - startTotalMinutes) / timeInterval) * slotHeight, slotHeight);
-    
-    return { top, height };
+  const navigateNext = () => {
+    switch (viewType) {
+      case "day":
+        setCurrentDate(addDays(currentDate, 1));
+        break;
+      case "week":
+        setCurrentDate(addWeeks(currentDate, 1));
+        break;
+      case "month":
+        setCurrentDate(addMonths(currentDate, 1));
+        break;
+    }
   };
 
+  // Get navigation labels
+  const getNavigationLabel = (direction: "prev" | "next") => {
+    switch (viewType) {
+      case "day":
+        const targetDay = direction === "prev" 
+          ? subDays(currentDate, 1) 
+          : addDays(currentDate, 1);
+        return format(targetDay, "EEEE, MMM d");
+      case "week":
+        const targetWeek = direction === "prev" 
+          ? subWeeks(currentDate, 1) 
+          : addWeeks(currentDate, 1);
+        return `Week of ${format(startOfWeek(targetWeek), "MMM d")}`;
+      case "month":
+        const targetMonth = direction === "prev" 
+          ? subMonths(currentDate, 1) 
+          : addMonths(currentDate, 1);
+        return format(targetMonth, "MMMM yyyy");
+    }
+  };
+
+  // Calculate active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (!filters.showCompleted) count++;
+    if (filters.showCancelled) count++;
+    if (filters.showBlocked) count++;
+    if (filters.selectedStaffIds.length < mockStaff.length) count++;
+    return count;
+  }, [filters]);
+
+  // Toggle all staff
+  const toggleAllStaff = () => {
+    if (filters.selectedStaffIds.length === staff.length) {
+      setFilters(prev => ({ ...prev, selectedStaffIds: [] }));
+    } else {
+      setFilters(prev => ({ ...prev, selectedStaffIds: staff.map(s => s.id) }));
+    }
+  };
+
+  // Toggle individual staff
+  const toggleStaff = (staffId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      selectedStaffIds: prev.selectedStaffIds.includes(staffId)
+        ? prev.selectedStaffIds.filter(id => id !== staffId)
+        : [...prev.selectedStaffIds, staffId]
+    }));
+  };
+
+  // Get current time position for indicator
   const getCurrentTimePosition = () => {
-    const now = new Date();
+    const now = currentTime;
     if (!isSameDay(now, currentDate)) return null;
     
     const [businessStartHour, businessStartMinute] = businessHours.start.split(':').map(Number);
@@ -339,319 +640,109 @@ export default function CalendarPage() {
     
     const businessStart = businessStartHour * 60 + businessStartMinute;
     const businessEnd = businessEndHour * 60 + businessEndMinute;
-    const currentTime = hour * 60 + minute;
+    const currentTimeMinutes = hour * 60 + minute;
     
-    if (currentTime < businessStart || currentTime >= businessEnd) return null;
+    if (currentTimeMinutes < businessStart || currentTimeMinutes >= businessEnd) return null;
     
     const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
-    const totalMinutes = currentTime - businessStart;
+    const totalMinutes = currentTimeMinutes - businessStart;
     const position = (totalMinutes / timeInterval) * slotHeight;
     
-    return { position, time: format(now, "h:mm a") };
+    // Add header offset (56px for the staff header)
+    const positionWithHeader = position + 56;
+    
+    return { position: positionWithHeader, time: format(now, "h:mm a") };
   };
 
   const currentTimeInfo = getCurrentTimePosition();
 
-  return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center justify-between h-14 px-6">
-          {/* Left: Navigation */}
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 px-3 hover:bg-gray-100 font-medium"
-              onClick={() => setCurrentDate(new Date())}
+  // Render different views
+  const renderDayView = () => (
+    <div className="flex flex-1 overflow-hidden relative">
+      {/* Time column */}
+      <div className="w-20 flex-shrink-0 bg-gray-50">
+        <div className="h-14 border-b bg-white" /> {/* Header spacer */}
+        <div>
+          {timeSlots.map((slot, index) => (
+            <div
+              key={index}
+              className={cn(
+                "text-right pr-3 text-xs border-b relative bg-gray-50",
+                // Show darker border on slot BEFORE the hour (45 min mark)
+                (slot.time.getMinutes() === 45 && timeInterval === 15) ||
+                (slot.time.getMinutes() === 30 && timeInterval === 30)
+                  ? "border-gray-400" : "border-gray-100",
+                slot.isHour ? "font-medium text-gray-700" : "text-gray-500",
+                slot.isMinorInterval && "opacity-50"
+              )}
+              style={{ height: `${slot.height}px` }}
             >
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Today
-            </Button>
-            
-            <div className="flex items-center bg-gray-100 rounded-lg">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-gray-200 rounded-l-lg rounded-r-none"
-                onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="px-4 py-1 min-w-[200px] text-center">
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {format(currentDate, "EEEE, MMMM d, yyyy")}
-                </h2>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-gray-200 rounded-r-lg rounded-l-none"
-                onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              {slot.isHour && (
+                <span className="absolute top-0 right-3 mt-1">
+                  {slot.label}
+                </span>
+              )}
             </div>
-          </div>
-
-          {/* Center: View Selector */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            {(["day", "week", "month"] as ViewType[]).map((view) => (
-              <button
-                key={view}
-                onClick={() => setViewType(view)}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-medium rounded-md transition-all capitalize min-w-[60px]",
-                  viewType === view
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                )}
-              >
-                {view === "day" && <CalendarDays className="h-4 w-4 inline mr-1.5" />}
-                {view}
-              </button>
-            ))}
-          </div>
-
-          {/* Right: Controls */}
-          <div className="flex items-center gap-3">
-            {/* Time Interval */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              {[15, 30, 60].map((interval) => (
-                <button
-                  key={interval}
-                  onClick={() => setTimeInterval(interval as TimeInterval)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm font-medium rounded-md transition-all min-w-[45px]",
-                    timeInterval === interval
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  )}
-                >
-                  {interval === 60 ? "1h" : `${interval}m`}
-                </button>
-              ))}
-            </div>
-            
-            <div className="h-6 w-px bg-gray-300" />
-            
-            {/* Filters */}
-            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-10 gap-2 hover:bg-gray-50 border-gray-200"
-                >
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-4" align="end">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-900 mb-3">Booking Status</h4>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={filters.showCompleted}
-                          onCheckedChange={(checked) => 
-                            setFilters(prev => ({ ...prev, showCompleted: !!checked }))
-                          }
-                        />
-                        <span className="flex-1">Show completed</span>
-                        <Badge variant="secondary" className="bg-gray-100">
-                          {mockBookings.filter(b => b.status === "completed").length}
-                        </Badge>
-                      </label>
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={filters.showCancelled}
-                          onCheckedChange={(checked) => 
-                            setFilters(prev => ({ ...prev, showCancelled: !!checked }))
-                          }
-                        />
-                        <span className="flex-1">Show cancelled</span>
-                        <Badge variant="secondary" className="bg-gray-100">
-                          {mockBookings.filter(b => b.status === "cancelled").length}
-                        </Badge>
-                      </label>
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={filters.showBlocked}
-                          onCheckedChange={(checked) => 
-                            setFilters(prev => ({ ...prev, showBlocked: !!checked }))
-                          }
-                        />
-                        <span className="flex-1">Show blocked time</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-900 mb-3">Staff Members</h4>
-                    <div className="space-y-2">
-                      {staff.map((member) => (
-                        <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                          <Checkbox
-                            checked={member.isVisible}
-                            onCheckedChange={() => toggleStaffVisibility(member.id)}
-                          />
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: member.color }}
-                          />
-                          <span className="flex-1">{member.name}</span>
-                          {!member.isAvailable && (
-                            <Badge variant="secondary" className="bg-gray-100 text-xs">
-                              Unavailable
-                            </Badge>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFilters({ showCompleted: true, showCancelled: false, showBlocked: false });
-                        staff.forEach(s => s.isVisible = true);
-                        setStaff([...staff]);
-                      }}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setFiltersOpen(false)}
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            <Button 
-              className="h-10 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
-              onClick={() => {
-                setNewBookingData({
-                  date: currentDate,
-                  time: new Date(),
-                  staffId: visibleStaff[0]?.id
-                });
-                setIsBookingOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Booking
-            </Button>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Calendar Container */}
-      <div className="flex-1 overflow-hidden relative bg-white">
-        <div className="h-full overflow-auto relative">
-          {/* Sticky Header Container */}
-          <div 
-            className="sticky top-0 z-20 bg-white border-b border-gray-200"
-            style={{
-              display: "grid",
-              gridTemplateColumns: `60px repeat(${visibleStaff.length}, minmax(200px, 1fr))`,
-              minWidth: `${60 + visibleStaff.length * 200}px`
-            }}
-          >
-            {/* Time Header */}
-            <div className="h-16 bg-gray-50 border-r border-gray-200" />
-            
-            {/* Staff Headers */}
-            {visibleStaff.map((staffMember, index) => (
-              <div 
-                key={`header-${staffMember.id}`}
-                className={cn(
-                  "h-16 bg-gray-50 p-3 flex items-center gap-3",
-                  index < visibleStaff.length - 1 ? "border-r border-dotted border-gray-300" : "border-r border-gray-200"
-                )}
-              >
-                <div className="relative">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={staffMember.avatar} />
-                    <AvatarFallback 
-                      className="text-white text-xs font-medium"
-                      style={{ backgroundColor: staffMember.color }}
-                    >
-                      {staffMember.name.split(" ").map(n => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
+      {/* Staff columns */}
+      <div className="flex-1 overflow-x-auto border-l">
+        <div className="min-w-[600px] h-full flex relative">
+          {visibleStaff.map((staffMember, staffIndex) => (
+            <div key={staffMember.id} className={cn(
+              "flex-1 border-r last:border-r-0 relative"
+            )}>
+              {/* Staff header */}
+              <div className="h-14 bg-white border-b px-4 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-2">
                   <div 
-                    className={cn(
-                      "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white",
-                      staffMember.isAvailable ? "bg-green-500" : "bg-gray-400"
-                    )}
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: staffMember.color }}
                   />
-                </div>
-                <div>
-                  <div className="font-medium text-sm text-gray-900">{staffMember.name}</div>
-                  <div className="text-xs text-gray-600">
-                    {filteredBookings.filter(b => b.staffId === staffMember.id).length} bookings
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm">{staffMember.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {filteredBookings.filter(b => 
+                        b.staffId === staffMember.id && 
+                        isSameDay(b.startTime, currentDate)
+                      ).length} bookings
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Body Grid */}
-          <div 
-            style={{
-              display: "grid",
-              gridTemplateColumns: `60px repeat(${visibleStaff.length}, minmax(200px, 1fr))`,
-              minWidth: `${60 + visibleStaff.length * 200}px`
-            }}
-          >
-            {/* Time Column */}
-            <div className="relative bg-white border-r border-gray-200">
-              {timeSlots.map((slot, index) => (
-                <div
-                  key={`time-${index}`}
-                  className={cn(
-                    "border-b border-gray-100 px-2 text-xs flex items-center",
-                    slot.isHour ? "font-medium text-gray-900 bg-gray-50" : slot.isMinorInterval ? "text-gray-400" : "text-gray-600",
-                    slot.isHour && "border-b-gray-200"
-                  )}
-                  style={{ height: `${slot.height}px` }}
-                >
-                  {(slot.isHour || !slot.isMinorInterval) && slot.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Staff Columns */}
-            {visibleStaff.map((staffMember, staffIndex) => (
-              <div 
-                key={`column-${staffMember.id}`}
-                className={cn(
-                  "relative bg-white",
-                  staffIndex < visibleStaff.length - 1 ? "border-r border-dotted border-gray-300" : "border-r border-gray-200"
+                {!staffMember.isAvailable && (
+                  <Badge variant="secondary" className="text-xs">Off</Badge>
                 )}
-              >
-                {/* Time Slots */}
+              </div>
+
+              {/* Unavailable overlay */}
+              {!staffMember.isAvailable && (
+                <div className="absolute inset-0 bg-gray-100/30 pointer-events-none" style={{ top: '56px', zIndex: 5 }}>
+                  <div className="text-center mt-8 text-gray-500 text-sm font-medium">Off today</div>
+                </div>
+              )}
+
+              {/* Time slots */}
+              <div className="relative">
                 {timeSlots.map((slot, timeIndex) => {
-                  const isHovered = hoveredSlot?.staffId === staffMember.id && hoveredSlot?.time.getTime() === slot.time.getTime();
+                  const slotBookings = filteredBookings.filter(b => 
+                    b.staffId === staffMember.id &&
+                    isSameDay(b.startTime, currentDate) &&
+                    b.startTime.getHours() === slot.time.getHours() &&
+                    b.startTime.getMinutes() === slot.time.getMinutes()
+                  );
+
                   return (
                     <div
                       key={`slot-${staffMember.id}-${timeIndex}`}
                       className={cn(
-                        "border-b border-gray-100 cursor-pointer transition-all relative group",
-                        slot.isHour && "border-b-gray-200 bg-gray-50/30",
-                        isHovered && "bg-blue-50 border-blue-200"
+                        "border-b cursor-pointer transition-all duration-50 relative group",
+                        // Show darker border on slot BEFORE the hour (45 min mark)
+                        (slot.time.getMinutes() === 45 && timeInterval === 15) ||
+                        (slot.time.getMinutes() === 30 && timeInterval === 30)
+                          ? "border-gray-300" : "border-gray-100",
+                        !staffMember.isAvailable && "pointer-events-none"
                       )}
                       style={{ height: `${slot.height}px` }}
                       onClick={() => {
@@ -665,184 +756,529 @@ export default function CalendarPage() {
                         });
                         setIsBookingOpen(true);
                       }}
-                      onMouseEnter={() => setHoveredSlot({ staffId: staffMember.id, time: slot.time })}
+                      onMouseEnter={() => {
+                        if (!staffMember.isAvailable) return;
+                        setHoveredSlot({ staffId: staffMember.id, time: slot.time });
+                      }}
                       onMouseLeave={() => setHoveredSlot(null)}
                     >
-                      {isHovered && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Plus className="h-4 w-4 text-blue-600" />
+                      {/* Hover effect for empty slots */}
+                      {hoveredSlot?.staffId === staffMember.id && 
+                       hoveredSlot?.time.getHours() === slot.time.getHours() &&
+                       hoveredSlot?.time.getMinutes() === slot.time.getMinutes() && 
+                       slotBookings.length === 0 && (
+                        <>
+                          <div className="absolute inset-0 bg-gray-100/50 transition-opacity duration-50" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Plus className="h-4 w-4 text-gray-600" />
+                          </div>
+                        </>
+                      )}
+                      
+                      {slotBookings.map((booking) => (
+                        <div
+                          key={booking.id}
+                          className={cn(
+                            "absolute inset-x-0 top-0 p-1 rounded-md m-0.5 cursor-pointer",
+                            getStatusColor(booking.status)
+                          )}
+                          style={{
+                            height: `${((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60)) * (slot.height / timeInterval) - 2}px`
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(booking);
+                          }}
+                        >
+                          <div className="text-xs">
+                            <div className="font-medium truncate">{booking.customerName}</div>
+                            <div className="opacity-90 truncate">{booking.serviceName}</div>
+                          </div>
                         </div>
-                      )}
-                      {isHovered && (
-                        <div className="absolute inset-x-0 border-2 border-dashed border-blue-300 h-full" />
-                      )}
+                      ))}
                     </div>
                   );
                 })}
 
-                {/* Current Time Indicator */}
-                {currentTimeInfo && staffIndex === 0 && (
-                  <div 
-                    className="absolute left-0 right-0 h-0.5 bg-red-500 z-20 pointer-events-none"
-                    style={{ 
-                      top: `${currentTimeInfo.position}px`,
-                      width: `calc(100% * ${visibleStaff.length} + 60px)`,
-                      left: "-60px"
-                    }}
-                  >
-                    <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full" />
-                    <div className="absolute left-0 -top-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {currentTimeInfo.time}
-                    </div>
-                  </div>
-                )}
+              </div>
+              
+            </div>
+          ))}
+          
+          {/* Current time indicator */}
+          {currentTimeInfo && viewType === "day" && (
+            <div 
+              className="absolute pointer-events-none"
+              style={{ 
+                top: `${currentTimeInfo.position}px`,
+                left: '0',
+                right: '0',
+                height: '2px',
+                zIndex: 25
+              }}
+            >
+              <div className="relative h-full">
+                <div className="absolute inset-0 bg-red-500 shadow-sm" />
+                <div className="absolute -left-1 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
+                <div className="absolute left-3 -top-6 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-md font-medium">
+                  {currentTimeInfo.time}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
-                {/* Booking Cards */}
-                {filteredBookings
-                  .filter(booking => booking.staffId === staffMember.id)
-                  .map((booking) => {
-                    const { top, height } = getBookingPosition(booking);
-                    const isHovered = hoveredBooking === booking.id;
-                    
-                    return (
-                      <div
-                        key={booking.id}
-                        className={cn(
-                          "absolute left-1 right-1 rounded-md border cursor-pointer transition-all duration-200 z-10",
-                          "hover:shadow-lg hover:z-20 hover:scale-[1.02]",
-                          isHovered && "shadow-xl z-30"
-                        )}
-                        style={{
-                          top: `${top}px`,
-                          height: `${height}px`,
-                          backgroundColor: "white",
-                          borderLeftWidth: "4px",
-                          borderLeftColor: staffMember.color,
-                          boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)"
-                        }}
-                        onClick={() => setSelectedBooking(booking)}
-                        onMouseEnter={() => setHoveredBooking(booking.id)}
-                        onMouseLeave={() => setHoveredBooking(null)}
-                      >
-                        <div className="p-2 h-full flex flex-col">
-                          {/* Header with status */}
-                          <div className="flex items-start justify-between mb-1">
-                            <div className="flex items-center gap-1 text-xs">
-                              {getServiceIcon(booking.serviceIcon)}
-                              <span className="font-medium text-gray-900 truncate">
-                                {booking.customerName}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div 
-                                className={cn(
-                                  "w-2 h-2 rounded-full",
-                                  booking.isPaid ? "bg-green-500" : "bg-red-500"
-                                )}
-                              />
-                              <Badge 
-                                className={cn(
-                                  "text-xs px-1 py-0 h-4 flex items-center gap-1",
-                                  getStatusColor(booking.status)
-                                )}
-                              >
-                                {getStatusIcon(booking.status)}
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          {/* Service name */}
-                          <div className="text-xs text-gray-600 truncate mb-1">
-                            {booking.serviceName}
-                          </div>
-                          
-                          {/* Time */}
-                          <div className="text-xs text-gray-500 mt-auto">
-                            {format(booking.startTime, "h:mm")} - {format(booking.endTime, "h:mm a")}
-                          </div>
-                          
-                          {/* Hover Details */}
-                          {isHovered && height > 48 && (
-                            <div className="absolute inset-x-2 bottom-2 bg-white/95 backdrop-blur-sm rounded border p-2 text-xs space-y-1">
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {booking.customerPhone}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <DollarSign className="h-3 w-3" />
-                                ${booking.totalPrice}
-                              </div>
-                              {booking.notes && (
-                                <div className="text-gray-600 italic">{booking.notes}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+  const renderWeekView = () => {
+    const weekStart = startOfWeek(currentDate);
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+    return (
+      <div className="flex flex-1 overflow-hidden">
+        {/* Time column */}
+        <div className="w-20 flex-shrink-0 bg-gray-50 border-r">
+          <div className="h-20 border-b bg-white" />
+          <div className="overflow-hidden">
+            {Array.from({ length: 24 }, (_, i) => (
+              <div
+                key={i}
+                className="h-12 border-b text-right pr-3 text-xs font-medium text-gray-700"
+              >
+                {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Status Legend */}
-      <div className="bg-white border-t border-gray-200 p-3">
-        <div className="flex items-center gap-6 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-purple-600 rounded" />
-            <span>Confirmed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-teal-600 rounded animate-pulse" />
-            <span>In Progress</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-500 rounded" />
-            <span>Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-600/70 rounded" />
-            <span>Cancelled</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-500 rounded" />
-            <span>No-show</span>
-          </div>
-          <div className="flex items-center gap-2 ml-6">
-            <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span>Paid</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full" />
-            <span>Unpaid</span>
+        {/* Day columns */}
+        <div className="flex-1 overflow-x-auto">
+          <div className="min-w-[800px] h-full flex">
+            {weekDays.map((day) => {
+              const dayBookings = filteredBookings.filter(b => 
+                isSameDay(b.startTime, day)
+              );
+
+              return (
+                <div key={day.toISOString()} className="flex-1 border-r last:border-r-0">
+                  {/* Day header */}
+                  <div className="h-20 bg-white border-b p-2 text-center">
+                    <div className={cn(
+                      "text-sm font-medium",
+                      isToday(day) && "text-purple-600"
+                    )}>
+                      {format(day, "EEE")}
+                    </div>
+                    <div className={cn(
+                      "text-2xl font-bold mt-1",
+                      isToday(day) && "bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto"
+                    )}>
+                      {format(day, "d")}
+                    </div>
+                  </div>
+
+                  {/* Hour slots */}
+                  <div className="relative">
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <div
+                        key={hour}
+                        className="h-12 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors duration-50"
+                        onClick={() => {
+                          const clickedTime = new Date(day);
+                          clickedTime.setHours(hour, 0, 0, 0);
+                          
+                          setNewBookingData({
+                            date: day,
+                            time: clickedTime,
+                            staffId: visibleStaff[0]?.id
+                          });
+                          setIsBookingOpen(true);
+                        }}
+                      >
+                        {dayBookings
+                          .filter(b => b.startTime.getHours() === hour)
+                          .map((booking) => (
+                            <div
+                              key={booking.id}
+                              className={cn(
+                                "text-xs p-1 m-0.5 rounded cursor-pointer truncate",
+                                getStatusColor(booking.status)
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBooking(booking);
+                              }}
+                            >
+                              {booking.customerName}
+                            </div>
+                          ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* Booking Slide-Out */}
-      <BookingSlideOut
-        isOpen={isBookingOpen}
-        onClose={() => {
-          setIsBookingOpen(false);
-          setNewBookingData({});
-        }}
-        initialDate={newBookingData.date}
-        initialTime={newBookingData.time}
-        initialStaffId={newBookingData.staffId}
-        staff={visibleStaff}
-        services={mockServices}
-        customers={mockCustomers}
-        onSave={(booking) => {
-          console.log("New booking:", booking);
-          // Here you would typically call an API to save the booking
-          // For now, just close the panel
-          setIsBookingOpen(false);
-          setNewBookingData({});
-          // You could also refresh the bookings list here
-        }}
-      />
-    </div>
+  const renderMonthView = () => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+    return (
+      <div className="flex-1 p-4">
+        <div className="bg-white rounded-lg shadow-sm border">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="p-3 text-center text-sm font-medium text-gray-700">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7">
+            {days.map((day) => {
+              const dayBookings = filteredBookings.filter(b => 
+                isSameDay(b.startTime, day)
+              );
+              const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+              const utilization = (dayBookings.length / (visibleStaff.length * 8)) * 100;
+
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={cn(
+                    "min-h-24 p-2 border-r border-b cursor-pointer hover:bg-gray-50 transition-colors duration-50",
+                    !isCurrentMonth && "bg-gray-50 text-gray-400",
+                    isToday(day) && "bg-purple-50",
+                    isSameDay(day, currentDate) && "ring-2 ring-purple-600 ring-inset"
+                  )}
+                  onClick={() => {
+                    setCurrentDate(day);
+                    setViewType("day");
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <span className={cn(
+                      "text-sm font-medium",
+                      isToday(day) && "bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                    )}>
+                      {format(day, "d")}
+                    </span>
+                    {dayBookings.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {dayBookings.length}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Utilization bar */}
+                  {isCurrentMonth && dayBookings.length > 0 && (
+                    <div className="mt-2">
+                      <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className={cn(
+                            "h-full transition-all duration-50",
+                            utilization > 75 ? "bg-red-500" : 
+                            utilization > 50 ? "bg-yellow-500" : 
+                            "bg-green-500"
+                          )}
+                          style={{ width: `${Math.min(utilization, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <TooltipProvider>
+      <div className="h-screen flex flex-col bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center justify-between h-14 px-6">
+            {/* Left: Navigation */}
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-3 hover:bg-gray-100 font-medium"
+                onClick={() => setCurrentDate(new Date())}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Today
+              </Button>
+              
+              <div className="flex items-center bg-gray-100 rounded-lg">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-200 rounded-l-lg rounded-r-none"
+                      onClick={navigatePrevious}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{getNavigationLabel("prev")}</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <div className="px-4 py-1 min-w-[240px] text-center">
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    {viewType === "day" && format(currentDate, "EEEE, MMMM d, yyyy")}
+                    {viewType === "week" && `Week of ${format(startOfWeek(currentDate), "MMM d, yyyy")}`}
+                    {viewType === "month" && format(currentDate, "MMMM yyyy")}
+                  </h2>
+                </div>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-200 rounded-r-lg rounded-l-none"
+                      onClick={navigateNext}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{getNavigationLabel("next")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* Center: View Selector */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              {(["day", "week", "month"] as ViewType[]).map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setViewType(view)}
+                  className={cn(
+                    "px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-50 capitalize min-w-[60px]",
+                    viewType === view
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  {view}
+                </button>
+              ))}
+            </div>
+
+            {/* Right: Controls */}
+            <div className="flex items-center gap-3">
+              {/* Time Interval - only for day view */}
+              {viewType === "day" && (
+                <>
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                    {[15, 30, 60].map((interval) => (
+                      <button
+                        key={interval}
+                        onClick={() => setTimeInterval(interval as TimeInterval)}
+                        className={cn(
+                          "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-50 min-w-[45px]",
+                          timeInterval === interval
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        )}
+                      >
+                        {interval === 60 ? "1h" : `${interval}m`}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="h-6 w-px bg-gray-300" />
+                </>
+              )}
+              
+              {/* Filters */}
+              <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-10 gap-2 hover:bg-gray-50 border-gray-200"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 min-w-[20px]">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0 bg-white shadow-lg z-50" align="end" sideOffset={5}>
+                  <div className="p-4 space-y-4">
+                    {/* Display Options */}
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900 mb-3">Display Options</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={filters.showCompleted}
+                            onCheckedChange={(checked) => 
+                              setFilters(prev => ({ ...prev, showCompleted: !!checked }))
+                            }
+                          />
+                          <span className="flex-1">Completed bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {bookings.filter(b => b.status === "completed").length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={filters.showCancelled}
+                            onCheckedChange={(checked) => 
+                              setFilters(prev => ({ ...prev, showCancelled: !!checked }))
+                            }
+                          />
+                          <span className="flex-1">Cancelled bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {bookings.filter(b => b.status === "cancelled").length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={filters.showBlocked}
+                            onCheckedChange={(checked) => 
+                              setFilters(prev => ({ ...prev, showBlocked: !!checked }))
+                            }
+                          />
+                          <span className="flex-1">Blocked time slots</span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Staff Members */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
+                        <button
+                          onClick={toggleAllStaff}
+                          className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                        >
+                          {filters.selectedStaffIds.length === staff.length ? "Clear all" : "Select all"}
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {staff.map((member) => (
+                          <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                            <Checkbox
+                              checked={filters.selectedStaffIds.includes(member.id)}
+                              onCheckedChange={() => toggleStaff(member.id)}
+                            />
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ backgroundColor: member.color }}
+                            />
+                            <span className="flex-1">{member.name}</span>
+                            {!member.isAvailable && (
+                              <Badge variant="secondary" className="text-xs bg-gray-100">
+                                Unavailable
+                              </Badge>
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFilters({
+                            showCompleted: true,
+                            showCancelled: false,
+                            showBlocked: false,
+                            selectedStaffIds: staff.map(s => s.id)
+                          });
+                        }}
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => setFiltersOpen(false)}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button 
+                className="h-10 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                onClick={() => {
+                  setNewBookingData({
+                    date: currentDate,
+                    time: new Date(),
+                    staffId: visibleStaff[0]?.id
+                  });
+                  setIsBookingOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Booking
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar Content */}
+        <div className="flex-1 overflow-hidden">
+          {viewType === "day" && renderDayView()}
+          {viewType === "week" && renderWeekView()}
+          {viewType === "month" && renderMonthView()}
+        </div>
+
+        {/* Booking Slide-Out */}
+        <BookingSlideOut
+          isOpen={isBookingOpen}
+          onClose={() => {
+            setIsBookingOpen(false);
+            setNewBookingData({});
+          }}
+          initialDate={newBookingData.date}
+          initialTime={newBookingData.time}
+          initialStaffId={newBookingData.staffId}
+          staff={visibleStaff}
+          services={mockServices}
+          customers={mockCustomers}
+          onSave={(booking) => {
+            console.log("New booking:", booking);
+            setIsBookingOpen(false);
+            setNewBookingData({});
+          }}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

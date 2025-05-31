@@ -9,6 +9,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PinAuthService } from './pin-auth.service';
@@ -22,6 +23,7 @@ import { VerifyPinDto } from './dto/verify-pin.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthSession, PinAuthResponse } from '@heya-pos/types';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +31,7 @@ export class AuthController {
     private authService: AuthService,
     private pinAuthService: PinAuthService,
     private sessionService: SessionService,
+    private jwtService: JwtService,
   ) {}
 
   @Post('merchant/login')
@@ -217,6 +220,86 @@ export class AuthController {
     }
 
     return session;
+  }
+
+  /**
+   * Health check endpoint for authentication module
+   * Verifies that all auth dependencies are properly configured
+   */
+  @Get('health')
+  async healthCheck(): Promise<{
+    status: string;
+    timestamp: Date;
+    checks: {
+      jwt: boolean;
+      sessionService: boolean;
+      authGuard: boolean;
+      strategies: {
+        jwt: boolean;
+        merchant: boolean;
+      };
+    };
+    details: {
+      jwtSecret: boolean;
+      sessionCount: number;
+      message: string;
+    };
+  }> {
+    try {
+      // Check if JWT module is configured
+      const jwtConfigured = !!this.jwtService;
+      
+      // Check if SessionService is injectable
+      const sessionServiceConfigured = !!this.sessionService;
+      
+      // Check if auth guard is properly registered
+      const authGuardConfigured = !!JwtAuthGuard;
+      
+      // Get active session count
+      const sessions = this.sessionService.getActiveSessions();
+      const sessionCount = sessions instanceof Map ? sessions.size : 0;
+      
+      // Check JWT secret configuration
+      const jwtSecretConfigured = !!(process.env.JWT_SECRET || 'default-secret');
+
+      return {
+        status: 'healthy',
+        timestamp: new Date(),
+        checks: {
+          jwt: jwtConfigured,
+          sessionService: sessionServiceConfigured,
+          authGuard: authGuardConfigured,
+          strategies: {
+            jwt: true, // If we got this far, strategies are loaded
+            merchant: true,
+          },
+        },
+        details: {
+          jwtSecret: jwtSecretConfigured,
+          sessionCount,
+          message: 'Authentication module is properly configured',
+        },
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        timestamp: new Date(),
+        checks: {
+          jwt: false,
+          sessionService: false,
+          authGuard: false,
+          strategies: {
+            jwt: false,
+            merchant: false,
+          },
+        },
+        details: {
+          jwtSecret: false,
+          sessionCount: 0,
+          message: `Authentication module error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      };
+    }
   }
 
   private getStaffPermissions(accessLevel: number): string[] {

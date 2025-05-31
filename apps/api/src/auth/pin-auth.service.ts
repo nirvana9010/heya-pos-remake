@@ -151,11 +151,11 @@ export class PinAuthService {
     const token = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '365d',
     });
 
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 12); // 12 hour session for staff (full working day)
+    expiresAt.setDate(expiresAt.getDate() + 365); // 365 days for permanent sessions
 
     return {
       user: authUser,

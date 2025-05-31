@@ -8,6 +8,7 @@ import { ServicesModule } from './services/services.module';
 import { CustomersModule } from './customers/customers.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
+import { StaffModule } from './staff/staff.module';
 import { SessionService } from './auth/session.service';
 
 @Module({
@@ -20,7 +21,8 @@ import { SessionService } from './auth/session.service';
     ServicesModule, 
     CustomersModule, 
     BookingsModule, 
-    PaymentsModule
+    PaymentsModule,
+    StaffModule
   ],
   controllers: [AppController],
   providers: [

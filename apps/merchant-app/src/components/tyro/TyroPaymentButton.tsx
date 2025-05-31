@@ -102,7 +102,7 @@ export const TyroPaymentButton: React.FC<TyroPaymentButtonProps> = ({
     if (lastResult === TyroTransactionResult.APPROVED) {
       return 'default'; // or a success variant if available
     }
-    if (lastResult && lastResult !== TyroTransactionResult.APPROVED) {
+    if (lastResult) {
       return 'destructive';
     }
     return 'default';

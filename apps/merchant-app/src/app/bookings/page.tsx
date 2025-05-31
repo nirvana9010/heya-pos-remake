@@ -7,14 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Badge } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
-import { DataTable } from '@heya-pos/ui';
+import { useToast } from '@heya-pos/ui';
 import { Plus, Search, Calendar, Clock, User, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { type Booking } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 
 export default function BookingsPage() {
+  console.log('[BookingsPage] Component rendering...');
+  
   const router = useRouter();
+  const { toast } = useToast();
+  
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +26,19 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[BookingsPage] useEffect triggered');
+    
+    // Check if we have a token before attempting to load bookings
+    const token = localStorage.getItem('access_token');
+    console.log('[BookingsPage] Token exists:', !!token);
+    
+    if (!token) {
+      console.log('[BookingsPage] No token, skipping loadBookings call');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('[BookingsPage] Token found, calling loadBookings...');
     loadBookings();
   }, []);
 
@@ -30,14 +47,40 @@ export default function BookingsPage() {
   }, [bookings, searchQuery, statusFilter]);
 
   const loadBookings = async () => {
+    console.log('[BookingsPage] loadBookings called');
     try {
       setLoading(true);
+      console.log('[BookingsPage] Calling apiClient.getBookings()...');
       const allBookings = await apiClient.getBookings();
+      console.log('[BookingsPage] Bookings loaded successfully:', allBookings);
       // Convert to the format expected by the component
       setBookings(allBookings as any);
-    } catch (error) {
-      console.error('Failed to load bookings:', error);
+    } catch (error: any) {
+      console.log('[BookingsPage] Error caught in loadBookings:', {
+        status: error?.response?.status,
+        message: error?.message,
+        fullError: error
+      });
+      
+      // Check for redirect error
+      if (error?.message === 'UNAUTHORIZED_REDIRECT') {
+        console.log('[BookingsPage] Unauthorized redirect in progress...');
+        return; // Don't process further
+      }
+      
+      // Don't log 401 errors as they will trigger a redirect
+      if (error?.response?.status !== 401) {
+        console.error('[BookingsPage] Non-401 error, showing toast...');
+        toast({
+          title: "Error",
+          description: "Failed to load bookings. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('[BookingsPage] 401 error caught, should be redirecting...');
+      }
     } finally {
+      console.log('[BookingsPage] Setting loading to false');
       setLoading(false);
     }
   };
@@ -47,25 +90,29 @@ export default function BookingsPage() {
 
     if (searchQuery) {
       filtered = filtered.filter(booking =>
-        booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.staffName.toLowerCase().includes(searchQuery.toLowerCase())
+        (booking.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (booking.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (booking.staffName || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.status === statusFilter);
+      filtered = filtered.filter(booking => 
+        booking.status?.toLowerCase() === statusFilter.toLowerCase()
+      );
     }
 
     setFilteredBookings(filtered);
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const lowerStatus = status?.toLowerCase() || '';
+    switch (lowerStatus) {
       case 'confirmed': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'no_show': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -74,65 +121,105 @@ export default function BookingsPage() {
     {
       header: 'Date',
       accessor: 'date',
-      cell: ({ row }: any) => (
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-gray-400" />
-          <span>{format(new Date(row.date), 'MMM dd, yyyy')}</span>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const date = row.date || row.startTime;
+        if (!date) return <span>-</span>;
+        
+        try {
+          const dateObj = new Date(date);
+          if (isNaN(dateObj.getTime())) return <span>-</span>;
+          
+          return (
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <span>{format(dateObj, 'MMM dd, yyyy')}</span>
+            </div>
+          );
+        } catch (error) {
+          return <span>-</span>;
+        }
+      }
     },
     {
       header: 'Time',
       accessor: 'startTime',
-      cell: ({ row }: any) => (
-        <div className="flex items-center space-x-2">
-          <Clock className="h-4 w-4 text-gray-400" />
-          <span>{row.startTime}</span>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        if (!row.startTime) return <span>-</span>;
+        
+        try {
+          const dateObj = new Date(row.startTime);
+          if (isNaN(dateObj.getTime())) return <span>{row.startTime}</span>;
+          
+          return (
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <span>{format(dateObj, 'h:mm a')}</span>
+            </div>
+          );
+        } catch (error) {
+          return <span>{row.startTime}</span>;
+        }
+      }
     },
     {
       header: 'Customer',
       accessor: 'customerName',
-      cell: ({ row }: any) => (
-        <div className="flex items-center space-x-2">
-          <User className="h-4 w-4 text-gray-400" />
-          <span className="font-medium">{row.customerName}</span>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const customerName = row.customerName || 'Unknown Customer';
+        return (
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-gray-400" />
+            <span className="font-medium">{customerName}</span>
+          </div>
+        );
+      }
     },
     {
       header: 'Service',
       accessor: 'serviceName',
-      cell: ({ row }: any) => (
-        <div>
-          <p className="font-medium">{row.serviceName}</p>
-          <p className="text-sm text-gray-500">{row.duration} min</p>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const serviceName = row.serviceName || 'Service';
+        const duration = row.duration || 0;
+        return (
+          <div>
+            <p className="font-medium">{serviceName}</p>
+            {duration > 0 && <p className="text-sm text-gray-500">{duration} min</p>}
+          </div>
+        );
+      }
     },
     {
       header: 'Staff',
-      accessor: 'staffName'
+      accessor: 'staffName',
+      cell: ({ row }: any) => {
+        const staffName = row.staffName || 'Staff';
+        return <span>{staffName}</span>;
+      }
     },
     {
       header: 'Price',
       accessor: 'price',
-      cell: ({ row }: any) => (
-        <div className="flex items-center space-x-1">
-          <DollarSign className="h-4 w-4 text-gray-400" />
-          <span>${row.price.toFixed(2)}</span>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const amount = row.totalAmount || row.price || 0;
+        return (
+          <div className="flex items-center space-x-1">
+            <DollarSign className="h-4 w-4 text-gray-400" />
+            <span>${amount.toFixed(2)}</span>
+          </div>
+        );
+      }
     },
     {
       header: 'Status',
       accessor: 'status',
-      cell: ({ row }: any) => (
-        <Badge className={getStatusColor(row.status)}>
-          {row.status}
-        </Badge>
-      )
+      cell: ({ row }: any) => {
+        const displayStatus = (row.status || '').toLowerCase().replace('_', ' ');
+        return (
+          <Badge className={getStatusColor(row.status)}>
+            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+          </Badge>
+        );
+      }
     },
     {
       header: 'Actions',
@@ -145,7 +232,7 @@ export default function BookingsPage() {
           >
             View
           </Button>
-          {row.status === 'pending' && (
+          {row.status?.toLowerCase() === 'pending' && (
             <Button
               size="sm"
               variant="default"

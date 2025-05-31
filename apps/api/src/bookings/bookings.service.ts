@@ -56,46 +56,68 @@ export class BookingsService {
       throw new ConflictException('Staff is not available at this time');
     }
 
-    // Generate booking number
-    const bookingNumber = await this.generateBookingNumber(merchantId);
+    // Create booking with retry logic for booking number generation
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        // Generate booking number
+        const bookingNumber = await this.generateBookingNumber(merchantId);
 
-    // Create booking with services
-    const booking = await this.prisma.booking.create({
-      data: {
-        merchantId,
-        locationId: dto.locationId || '',
-        customerId: dto.customerId,
-        providerId: dto.providerId,
-        createdById: dto.createdById || createdById,
-        bookingNumber,
-        startTime,
-        endTime,
-        status: dto.status || BookingStatus.CONFIRMED,
-        notes: dto.notes,
-        totalAmount: dto.totalAmount,
-        depositAmount: 0,
-        reminderSent: false,
-        services: {
-          create: dto.services.map(s => ({
-            serviceId: s.serviceId,
-            price: s.price,
-            duration: s.duration,
-            staffId: dto.providerId, // Default to main provider
-          })),
-        },
-      },
-      include: {
-        customer: true,
-        provider: true,
-        services: {
-          include: {
-            service: true,
+        // Create booking with services
+        const booking = await this.prisma.booking.create({
+          data: {
+            merchantId,
+            locationId: dto.locationId || '',
+            customerId: dto.customerId,
+            providerId: dto.providerId,
+            createdById: dto.createdById || createdById,
+            bookingNumber,
+            startTime,
+            endTime,
+            status: dto.status || BookingStatus.CONFIRMED,
+            notes: dto.notes,
+            totalAmount: dto.totalAmount,
+            depositAmount: 0,
+            reminderSent: false,
+            services: {
+              create: dto.services.map(s => ({
+                serviceId: s.serviceId,
+                price: s.price,
+                duration: s.duration,
+                staffId: dto.providerId, // Default to main provider
+              })),
+            },
           },
-        },
-      },
-    });
+          include: {
+            customer: true,
+            provider: true,
+            services: {
+              include: {
+                service: true,
+              },
+            },
+          },
+        });
 
-    return booking;
+        return booking;
+      } catch (error: any) {
+        attempts++;
+        
+        // If it's a unique constraint violation on bookingNumber, retry
+        if (error.code === 'P2002' && error.meta?.target?.includes('bookingNumber') && attempts < maxAttempts) {
+          // Wait a small random time before retrying
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+          continue;
+        }
+        
+        // For any other error or max attempts reached, throw
+        throw error;
+      }
+    }
+
+    throw new Error('Failed to generate unique booking number after multiple attempts');
   }
 
   async findAll(merchantId: string, params: any) {
@@ -525,7 +547,9 @@ export class BookingsService {
       },
     });
 
+    // Add a random 3-digit suffix to prevent collisions in concurrent requests
     const sequence = String(count + 1).padStart(4, '0');
-    return `B${year}${month}${sequence}`;
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `B${year}${month}${sequence}-${randomSuffix}`;
   }
 }

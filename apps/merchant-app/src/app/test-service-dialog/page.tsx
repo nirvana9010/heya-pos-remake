@@ -32,8 +32,8 @@ export default function TestServiceDialogPage() {
         }}
         service={null}
         categories={[
-          { id: '1', name: 'Hair', merchantId: '123', createdAt: new Date(), updatedAt: new Date() },
-          { id: '2', name: 'Nails', merchantId: '123', createdAt: new Date(), updatedAt: new Date() }
+          { id: '1', name: 'Hair', order: 1 },
+          { id: '2', name: 'Nails', order: 2 }
         ]}
         onSave={(data) => {
           console.log('Save called with:', data);
