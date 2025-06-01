@@ -123,27 +123,53 @@ export class BookingsService {
   async findAll(merchantId: string, params: any) {
     const {
       date,
+      startDate,
+      endDate,
       providerId,
       customerId,
       status,
       locationId,
+      includeAll = false,
       page = 1,
       limit = 20,
     } = params;
 
     const where: Prisma.BookingWhereInput = {
       merchantId,
-      ...(date && {
-        startTime: {
-          gte: startOfDay(new Date(date)),
-          lte: endOfDay(new Date(date)),
-        },
-      }),
-      ...(providerId && { providerId }),
-      ...(customerId && { customerId }),
-      ...(status && { status }),
-      ...(locationId && { locationId }),
     };
+
+    // Handle date filtering
+    if (!includeAll) {
+      if (date) {
+        // Single date filter - use local date boundaries
+        const dateObj = new Date(date);
+        where.startTime = {
+          gte: startOfDay(dateObj),
+          lte: endOfDay(dateObj),
+        };
+      } else if (startDate || endDate) {
+        // Date range filter
+        where.startTime = {};
+        if (startDate) {
+          where.startTime.gte = startOfDay(new Date(startDate));
+        }
+        if (endDate) {
+          where.startTime.lte = endOfDay(new Date(endDate));
+        }
+      } else {
+        // Default: show upcoming bookings (today and future)
+        where.startTime = {
+          gte: startOfDay(new Date()),
+        };
+      }
+    }
+    // If includeAll is true, don't add any date filters
+
+    // Add other filters
+    if (providerId) where.providerId = providerId;
+    if (customerId) where.customerId = customerId;
+    if (status) where.status = status;
+    if (locationId) where.locationId = locationId;
 
     const [bookings, total] = await Promise.all([
       this.prisma.booking.findMany({

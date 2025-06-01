@@ -23,6 +23,7 @@ export default function BookingsPage() {
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<'upcoming' | 'all' | 'past'>('upcoming');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,12 +47,28 @@ export default function BookingsPage() {
     filterBookings();
   }, [bookings, searchQuery, statusFilter]);
 
+  useEffect(() => {
+    if (localStorage.getItem('access_token')) {
+      loadBookings();
+    }
+  }, [dateFilter]);
+
   const loadBookings = async () => {
-    console.log('[BookingsPage] loadBookings called');
+    console.log('[BookingsPage] loadBookings called with dateFilter:', dateFilter);
     try {
       setLoading(true);
       console.log('[BookingsPage] Calling apiClient.getBookings()...');
-      const allBookings = await apiClient.getBookings();
+      
+      let params: any = {};
+      if (dateFilter === 'all') {
+        params.includeAll = true;
+      } else if (dateFilter === 'past') {
+        params.endDate = new Date().toISOString().split('T')[0];
+        params.includeAll = true;
+      }
+      // 'upcoming' is the default behavior (today and future)
+      
+      const allBookings = await apiClient.getBookings(params);
       console.log('[BookingsPage] Bookings loaded successfully:', allBookings);
       // Convert to the format expected by the component
       setBookings(allBookings as any);
@@ -269,6 +286,16 @@ export default function BookingsPage() {
                 className="pl-10"
               />
             </div>
+            <Select value={dateFilter} onValueChange={(value: any) => setDateFilter(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Date range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="all">All Bookings</SelectItem>
+                <SelectItem value="past">Past Only</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />

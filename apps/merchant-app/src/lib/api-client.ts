@@ -176,26 +176,69 @@ class ApiClient {
   }
 
   // Bookings endpoints
-  async getBookings(date?: Date) {
-    const params = date ? { date: date.toISOString() } : {};
+  async getBookings(params?: any) {
+    // If a Date object is passed, convert to params object
+    if (params instanceof Date) {
+      params = { date: params.toISOString() };
+    }
     const response = await this.axiosInstance.get('/bookings', { params });
     // Real API returns paginated response, extract data
-    return response.data.data || response.data;
+    const bookings = response.data.data || response.data;
+    
+    // Transform each booking to match the expected format
+    return bookings.map((booking: any) => this.transformBooking(booking));
   }
 
   async getBooking(id: string) {
     const response = await this.axiosInstance.get(`/bookings/${id}`);
-    return response.data;
+    const booking = response.data;
+    
+    // Transform the booking data to match the expected format
+    return this.transformBooking(booking);
   }
 
   async createBooking(data: any) {
     const response = await this.axiosInstance.post('/bookings', data);
-    return response.data;
+    const booking = response.data;
+    
+    // Transform the booking data to match the expected format
+    return this.transformBooking(booking);
   }
 
   async updateBooking(id: string, data: any) {
     const response = await this.axiosInstance.patch(`/bookings/${id}`, data);
-    return response.data;
+    const booking = response.data;
+    
+    // Transform the booking data to match the expected format
+    return this.transformBooking(booking);
+  }
+  
+  // Helper method to transform booking data
+  private transformBooking(booking: any) {
+    // Get the first service name (for display)
+    const firstService = booking.services?.[0]?.service;
+    const serviceName = firstService?.name || 'Service';
+    
+    // Calculate total amount from services if not set
+    const totalAmount = booking.totalAmount || 
+      (booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || 0);
+    
+    return {
+      ...booking,
+      customerName: booking.customer ? 
+        `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
+        'Unknown Customer',
+      customerPhone: booking.customer?.phone || '',
+      customerEmail: booking.customer?.email || '',
+      serviceName: serviceName,
+      staffName: booking.provider ? 
+        `${booking.provider.firstName} ${booking.provider.lastName}`.trim() : 
+        'Staff',
+      price: totalAmount,
+      totalAmount: totalAmount,
+      duration: booking.services?.[0]?.duration || 0,
+      date: booking.startTime, // For backward compatibility
+    };
   }
 
   async updateBookingStatus(id: string, status: string) {

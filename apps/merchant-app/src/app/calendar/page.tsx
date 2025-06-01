@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import { 
   ChevronLeft, 
@@ -58,6 +58,7 @@ import {
   getDaysInMonth
 } from "date-fns";
 import { BookingSlideOut } from "@/components/BookingSlideOut";
+import { BookingDetailsSlideOut } from "@/components/BookingDetailsSlideOut";
 
 interface Staff {
   id: string;
@@ -89,6 +90,7 @@ interface Booking {
   customerId: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   serviceName: string;
   serviceIcon: "scissors" | "sparkles" | "hand" | "palette";
   staffId: string;
@@ -122,6 +124,7 @@ const mockBookings: Booking[] = [
     customerId: "c1",
     customerName: "Sarah Johnson",
     customerPhone: "+1 (555) 123-4567",
+    customerEmail: "sarah@example.com",
     serviceName: "Manicure & Pedicure",
     serviceIcon: "palette",
     staffId: "1",
@@ -137,6 +140,7 @@ const mockBookings: Booking[] = [
     customerId: "c2",
     customerName: "Michael Chen",
     customerPhone: "+1 (555) 234-5678",
+    customerEmail: "michael@example.com",
     serviceName: "Deep Tissue Massage",
     serviceIcon: "hand",
     staffId: "2",
@@ -371,26 +375,29 @@ const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval)
   const [startHour, startMinute] = businessHours.start.split(':').map(Number);
   const [endHour, endMinute] = businessHours.end.split(':').map(Number);
   
-  for (let hour = startHour; hour <= endHour; hour++) {
-    if (hour === endHour && endMinute === 0) break;
-    
+  // Generate slots for the entire day to show non-business hours
+  for (let hour = 0; hour <= 23; hour++) {
     const minutes = interval === 60 ? [0] : interval === 30 ? [0, 30] : [0, 15, 30, 45];
     
     for (const minute of minutes) {
-      if (hour === endHour && minute >= endMinute) break;
-      if (hour === startHour && minute < startMinute) continue;
-      
       const time = new Date();
       time.setHours(hour, minute, 0, 0);
       
       const isHour = minute === 0;
       const isMinorInterval = interval === 15 && (minute === 15 || minute === 45);
       
+      // Check if this slot is within business hours
+      const totalMinutes = hour * 60 + minute;
+      const businessStartMinutes = startHour * 60 + startMinute;
+      const businessEndMinutes = endHour * 60 + endMinute;
+      const isBusinessHours = totalMinutes >= businessStartMinutes && totalMinutes < businessEndMinutes;
+      
       slots.push({
         time,
         label: format(time, isHour ? "h a" : "h:mm"),
         isHour,
         isMinorInterval,
+        isBusinessHours,
         height: interval === 60 ? 60 : interval === 30 ? 30 : 24
       });
     }
@@ -409,15 +416,55 @@ const getServiceIcon = (icon: string) => {
   }
 };
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "confirmed": return "bg-purple-600 text-white";
-    case "in-progress": return "bg-teal-600 text-white animate-pulse";
-    case "completed": return "bg-gray-500 text-white";
-    case "cancelled": return "bg-red-600/70 text-white line-through";
-    case "no-show": return "bg-orange-500 text-white";
-    default: return "bg-gray-400 text-white";
+const getStatusColor = (status: string, isPast: boolean = false) => {
+  if (isPast && status !== "in-progress") {
+    // Muted colors for past appointments
+    switch (status) {
+      case "completed": return "bg-gray-400 text-white border border-gray-500";
+      case "cancelled": return "bg-red-400/50 text-white line-through border border-red-500";
+      case "no-show": return "bg-orange-400/50 text-white border border-orange-500";
+      default: return "bg-gray-300 text-gray-700 border border-gray-400";
+    }
   }
+  
+  // Active colors for current/future appointments
+  switch (status) {
+    case "confirmed": return "bg-purple-600 text-white border border-purple-700 shadow-sm";
+    case "in-progress": return "bg-teal-600 text-white border-2 border-teal-400 shadow-md animate-pulse";
+    case "completed": return "bg-gray-500 text-white border border-gray-600";
+    case "cancelled": return "bg-red-600/70 text-white line-through border border-red-700";
+    case "no-show": return "bg-orange-500 text-white border border-orange-600";
+    default: return "bg-gray-400 text-white border border-gray-500";
+  }
+};
+
+// Helper to detect appointment conflicts
+const detectConflicts = (bookings: Booking[], staffId: string) => {
+  const staffBookings = bookings
+    .filter(b => b.staffId === staffId)
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  
+  const conflicts = new Set<string>();
+  
+  for (let i = 0; i < staffBookings.length - 1; i++) {
+    const current = staffBookings[i];
+    const next = staffBookings[i + 1];
+    
+    if (current.endTime > next.startTime) {
+      conflicts.add(current.id);
+      conflicts.add(next.id);
+    }
+  }
+  
+  return conflicts;
+};
+
+// Helper to convert hex color to rgba
+const hexToRgba = (hex: string, opacity: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
 export default function CalendarPage() {
@@ -445,6 +492,7 @@ export default function CalendarPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const calendarScrollRef = useRef<HTMLDivElement>(null);
 
   // Update current time every minute
   useEffect(() => {
@@ -462,25 +510,23 @@ export default function CalendarPage() {
         setLoading(true);
         const apiBookings = await apiClient.getBookings();
         
-        // Transform API bookings to match the calendar format
+        // API client already transforms the data, just adjust for calendar view
         const transformedBookings = apiBookings.map((booking: any) => ({
           id: booking.id,
           customerId: booking.customerId,
-          customerName: booking.customer?.firstName && booking.customer?.lastName 
-            ? `${booking.customer.firstName} ${booking.customer.lastName}`
-            : booking.customerName || 'Unknown',
-          customerPhone: booking.customer?.mobile || '',
-          serviceName: booking.services?.[0]?.name || booking.serviceName || 'Service',
+          customerName: booking.customerName || 'Unknown',
+          customerPhone: booking.customerPhone || '',
+          customerEmail: booking.customerEmail || booking.customer?.email || '',
+          serviceName: booking.serviceName || 'Service',
           serviceIcon: 'scissors', // Default icon
           staffId: booking.providerId || booking.staffId || '1',
-          staffName: booking.provider?.firstName && booking.provider?.lastName
-            ? `${booking.provider.firstName} ${booking.provider.lastName}`
-            : booking.staffName || 'Staff',
+          staffName: booking.staffName || 'Staff',
           startTime: new Date(booking.startTime),
           endTime: new Date(booking.endTime),
           status: (booking.status || 'pending').toLowerCase().replace('_', '-'),
           isPaid: booking.paidAmount > 0 || false,
-          totalPrice: booking.totalAmount || 0,
+          totalPrice: booking.totalAmount || booking.price || 0,
+          notes: booking.notes || '',
         }));
         
         setBookings(transformedBookings);
@@ -528,14 +574,25 @@ export default function CalendarPage() {
     loadStaff();
   }, []);
 
+  // Scroll to business hours on mount or view change
+  useEffect(() => {
+    if (viewType === "day" && calendarScrollRef.current) {
+      // Calculate scroll position for 8:30 AM (bit before business start)
+      const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
+      const slotsPerHour = 60 / timeInterval;
+      const scrollPosition = 8.5 * slotsPerHour * slotHeight; // 8:30 AM position
+      
+      setTimeout(() => {
+        calendarScrollRef.current?.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [viewType, timeInterval]);
+
   const timeSlots = useMemo(() => {
-    const slots = generateTimeSlots(businessHours, timeInterval);
-    // Debug: Check first hour slots
-    const firstHourSlots = slots.filter(s => s.time.getHours() === 9);
-    console.log('9 AM slots:', firstHourSlots.length, firstHourSlots.map(s => format(s.time, 'HH:mm')));
-    const tenAmSlots = slots.filter(s => s.time.getHours() === 10);
-    console.log('10 AM slots:', tenAmSlots.length, tenAmSlots.map(s => format(s.time, 'HH:mm')));
-    return slots;
+    return generateTimeSlots(businessHours, timeInterval);
   }, [businessHours, timeInterval]);
   const visibleStaff = staff.filter(s => filters.selectedStaffIds.includes(s.id));
   
@@ -632,100 +689,84 @@ export default function CalendarPage() {
     const now = currentTime;
     if (!isSameDay(now, currentDate)) return null;
     
-    const [businessStartHour, businessStartMinute] = businessHours.start.split(':').map(Number);
-    const [businessEndHour, businessEndMinute] = businessHours.end.split(':').map(Number);
-    
     const hour = now.getHours();
     const minute = now.getMinutes();
+    const totalMinutes = hour * 60 + minute;
     
-    const businessStart = businessStartHour * 60 + businessStartMinute;
-    const businessEnd = businessEndHour * 60 + businessEndMinute;
-    const currentTimeMinutes = hour * 60 + minute;
-    
-    if (currentTimeMinutes < businessStart || currentTimeMinutes >= businessEnd) return null;
-    
+    // Calculate position based on full day
     const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
-    const totalMinutes = currentTimeMinutes - businessStart;
     const position = (totalMinutes / timeInterval) * slotHeight;
     
-    // Add header offset (56px for the staff header)
-    const positionWithHeader = position + 56;
-    
-    return { position: positionWithHeader, time: format(now, "h:mm a") };
+    return { position, time: format(now, "h:mm a") };
   };
 
   const currentTimeInfo = getCurrentTimePosition();
 
   // Render different views
-  const renderDayView = () => (
-    <div className="flex flex-1 overflow-hidden relative">
-      {/* Time column */}
-      <div className="w-20 flex-shrink-0 bg-gray-50">
-        <div className="h-14 border-b bg-white" /> {/* Header spacer */}
-        <div>
-          {timeSlots.map((slot, index) => (
-            <div
-              key={index}
-              className={cn(
-                "text-right pr-3 text-xs border-b relative bg-gray-50",
-                // Show darker border on slot BEFORE the hour (45 min mark)
-                (slot.time.getMinutes() === 45 && timeInterval === 15) ||
-                (slot.time.getMinutes() === 30 && timeInterval === 30)
-                  ? "border-gray-400" : "border-gray-100",
-                slot.isHour ? "font-medium text-gray-700" : "text-gray-500",
-                slot.isMinorInterval && "opacity-50"
-              )}
-              style={{ height: `${slot.height}px` }}
-            >
-              {slot.isHour && (
-                <span className="absolute top-0 right-3 mt-1">
-                  {slot.label}
-                </span>
+  const renderDayView = () => {
+    // Create grid template columns based on staff count
+    const gridColumns = `80px repeat(${visibleStaff.length}, minmax(150px, 1fr))`;
+    
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Fixed header row */}
+        <div 
+          className="grid sticky top-0 z-20 bg-white border-b min-w-[600px]"
+          style={{ gridTemplateColumns: gridColumns }}
+        >
+          <div className="h-14 border-r" /> {/* Time column header */}
+          {visibleStaff.map((staffMember) => (
+            <div key={staffMember.id} className="h-14 px-4 flex items-center justify-between border-r last:border-r-0">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: staffMember.color }} />
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">{staffMember.name}</span>
+                  <span className="text-xs text-gray-500">
+                    {filteredBookings.filter(b => 
+                      b.staffId === staffMember.id && 
+                      isSameDay(b.startTime, currentDate)
+                    ).length} bookings
+                  </span>
+                </div>
+              </div>
+              {!staffMember.isAvailable && (
+                <Badge variant="secondary" className="text-xs">Off</Badge>
               )}
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Staff columns */}
-      <div className="flex-1 overflow-x-auto border-l">
-        <div className="min-w-[600px] h-full flex relative">
-          {visibleStaff.map((staffMember, staffIndex) => (
-            <div key={staffMember.id} className={cn(
-              "flex-1 border-r last:border-r-0 relative"
-            )}>
-              {/* Staff header */}
-              <div className="h-14 bg-white border-b px-4 flex items-center justify-between sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: staffMember.color }}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm">{staffMember.name}</span>
-                    <span className="text-xs text-gray-500">
-                      {filteredBookings.filter(b => 
-                        b.staffId === staffMember.id && 
-                        isSameDay(b.startTime, currentDate)
-                      ).length} bookings
+        {/* Scrollable calendar grid */}
+        <div className="flex-1 overflow-auto" ref={calendarScrollRef}>
+          <div 
+            className="grid min-w-[600px] relative"
+            style={{ gridTemplateColumns: gridColumns }}
+          >
+            {/* Render each time slot as a full row */}
+            {timeSlots.map((slot, slotIndex) => (
+              <React.Fragment key={slotIndex}>
+                {/* Time label cell */}
+                <div
+                  className={cn(
+                    "text-right pr-3 text-xs border-b border-r relative flex items-center justify-end",
+                    slot.isHour ? "border-t-gray-400 border-t" : "",
+                    !slot.isBusinessHours && "bg-gray-100"
+                  )}
+                  style={{ height: `${slot.height}px` }}
+                >
+                  {/* Show time only on hour marks */}
+                  {slot.isHour && (
+                    <span className={cn(
+                      "font-bold",
+                      !slot.isBusinessHours ? "text-gray-500" : "text-gray-700"
+                    )}>
+                      {slot.label}
                     </span>
-                  </div>
+                  )}
                 </div>
-                {!staffMember.isAvailable && (
-                  <Badge variant="secondary" className="text-xs">Off</Badge>
-                )}
-              </div>
 
-              {/* Unavailable overlay */}
-              {!staffMember.isAvailable && (
-                <div className="absolute inset-0 bg-gray-100/30 pointer-events-none" style={{ top: '56px', zIndex: 5 }}>
-                  <div className="text-center mt-8 text-gray-500 text-sm font-medium">Off today</div>
-                </div>
-              )}
-
-              {/* Time slots */}
-              <div className="relative">
-                {timeSlots.map((slot, timeIndex) => {
+                {/* Staff cells for this time slot */}
+                {visibleStaff.map((staffMember) => {
                   const slotBookings = filteredBookings.filter(b => 
                     b.staffId === staffMember.id &&
                     isSameDay(b.startTime, currentDate) &&
@@ -733,19 +774,19 @@ export default function CalendarPage() {
                     b.startTime.getMinutes() === slot.time.getMinutes()
                   );
 
+                  const conflicts = detectConflicts(filteredBookings, staffMember.id);
+                  
                   return (
                     <div
-                      key={`slot-${staffMember.id}-${timeIndex}`}
+                      key={`${staffMember.id}-${slotIndex}`}
                       className={cn(
-                        "border-b cursor-pointer transition-all duration-50 relative group",
-                        // Show darker border on slot BEFORE the hour (45 min mark)
-                        (slot.time.getMinutes() === 45 && timeInterval === 15) ||
-                        (slot.time.getMinutes() === 30 && timeInterval === 30)
-                          ? "border-gray-300" : "border-gray-100",
-                        !staffMember.isAvailable && "pointer-events-none"
+                        "border-b border-r last:border-r-0 cursor-pointer relative group",
+                        slot.isHour ? "border-t-gray-400 border-t" : "",
+                        !slot.isBusinessHours ? "bg-gray-50" : "bg-white"
                       )}
                       style={{ height: `${slot.height}px` }}
                       onClick={() => {
+                        if (!staffMember.isAvailable) return;
                         const clickedTime = new Date(currentDate);
                         clickedTime.setHours(slot.time.getHours(), slot.time.getMinutes(), 0, 0);
                         
@@ -762,74 +803,119 @@ export default function CalendarPage() {
                       }}
                       onMouseLeave={() => setHoveredSlot(null)}
                     >
-                      {/* Hover effect for empty slots */}
+                      {/* Non-business hours overlay */}
+                      {!slot.isBusinessHours && (
+                        <div className="absolute inset-0 bg-gray-900/5 pointer-events-none" />
+                      )}
+
+                      {/* Hover effect - simple */}
                       {hoveredSlot?.staffId === staffMember.id && 
                        hoveredSlot?.time.getHours() === slot.time.getHours() &&
                        hoveredSlot?.time.getMinutes() === slot.time.getMinutes() && 
-                       slotBookings.length === 0 && (
-                        <>
-                          <div className="absolute inset-0 bg-gray-100/50 transition-opacity duration-50" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Plus className="h-4 w-4 text-gray-600" />
-                          </div>
-                        </>
-                      )}
-                      
-                      {slotBookings.map((booking) => (
-                        <div
-                          key={booking.id}
-                          className={cn(
-                            "absolute inset-x-0 top-0 p-1 rounded-md m-0.5 cursor-pointer",
-                            getStatusColor(booking.status)
-                          )}
-                          style={{
-                            height: `${((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60)) * (slot.height / timeInterval) - 2}px`
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBooking(booking);
-                          }}
-                        >
-                          <div className="text-xs">
-                            <div className="font-medium truncate">{booking.customerName}</div>
-                            <div className="opacity-90 truncate">{booking.serviceName}</div>
-                          </div>
+                       slotBookings.length === 0 && 
+                       staffMember.isAvailable && 
+                       slot.isBusinessHours && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Plus className="h-4 w-4 text-gray-400" />
                         </div>
-                      ))}
+                      )}
+                        
+                      {/* Appointments */}
+                      {slotBookings.map((booking) => {
+                        const duration = (booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60);
+                        const isPast = booking.startTime < currentTime && booking.status !== "in-progress";
+                        const hasConflict = conflicts.has(booking.id);
+                        
+                        // Determine opacity based on status
+                        let bgOpacity = 0.7; // Default for confirmed - reduced for better contrast
+                        if (booking.status === "in-progress") bgOpacity = 0.85; // Still prominent but with contrast
+                        else if (booking.status === "completed" || isPast) bgOpacity = 0.15; // Very light
+                        else if (booking.status === "cancelled") bgOpacity = 0.1; // Almost transparent
+                        else if (booking.status === "no-show") bgOpacity = 0.12; // Very light
+                        
+                        return (
+                          <div
+                            key={booking.id}
+                            className={cn(
+                              "absolute left-1 right-1 top-0.5 rounded cursor-pointer border-2 text-xs",
+                              "transition-all hover:shadow-md hover:z-20",
+                              booking.status === "in-progress" && "animate-pulse",
+                              booking.status === "cancelled" && "line-through",
+                              hasConflict && "ring-2 ring-red-500 ring-offset-1"
+                            )}
+                            style={{
+                              height: `${(duration / timeInterval) * slot.height - 3}px`,
+                              backgroundColor: hexToRgba(staffMember.color, bgOpacity),
+                              borderColor: staffMember.color,
+                              zIndex: 15
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBooking(booking);
+                            }}
+                          >
+                            <div className="p-1.5 h-full flex flex-col justify-between relative">
+                              {/* Payment indicator */}
+                              <div className="absolute top-1 right-1">
+                                <div className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  booking.isPaid ? "bg-green-600" : "bg-orange-500"
+                                )} />
+                              </div>
+                              
+                              {/* Content */}
+                              <div>
+                                <div className="font-semibold truncate pr-3 text-gray-900">
+                                  {booking.customerName}
+                                </div>
+                                <div className="truncate text-gray-700 text-xs">
+                                  {booking.serviceName}
+                                </div>
+                              </div>
+                              
+                              {/* Duration for longer appointments */}
+                              {duration >= 45 && (
+                                <div className="text-xs text-gray-600 flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {duration}m
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          );
+                        })}
                     </div>
                   );
                 })}
+              </React.Fragment>
+            ))}
 
-              </div>
-              
-            </div>
-          ))}
-          
-          {/* Current time indicator */}
-          {currentTimeInfo && viewType === "day" && (
-            <div 
-              className="absolute pointer-events-none"
-              style={{ 
-                top: `${currentTimeInfo.position}px`,
-                left: '0',
-                right: '0',
-                height: '2px',
-                zIndex: 25
-              }}
-            >
-              <div className="relative h-full">
-                <div className="absolute inset-0 bg-red-500 shadow-sm" />
-                <div className="absolute -left-1 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
-                <div className="absolute left-3 -top-6 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-md font-medium">
-                  {currentTimeInfo.time}
+            {/* Current time indicator - positioned over the grid */}
+            {currentTimeInfo && (
+              <div 
+                className="absolute pointer-events-none"
+                style={{ 
+                  top: `${currentTimeInfo.position}px`,
+                  left: '80px', // Start after time column
+                  right: '0',
+                  height: '2px',
+                  zIndex: 30
+                }}
+              >
+                <div className="relative h-full">
+                  <div className="absolute inset-0 bg-red-500 shadow-sm" />
+                  <div className="absolute -left-1 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
+                  <div className="absolute left-3 -top-6 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-md font-medium">
+                    {currentTimeInfo.time}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderWeekView = () => {
     const weekStart = startOfWeek(currentDate);
@@ -1253,13 +1339,13 @@ export default function CalendarPage() {
         </div>
 
         {/* Calendar Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           {viewType === "day" && renderDayView()}
           {viewType === "week" && renderWeekView()}
           {viewType === "month" && renderMonthView()}
         </div>
 
-        {/* Booking Slide-Out */}
+        {/* New Booking Slide-Out */}
         <BookingSlideOut
           isOpen={isBookingOpen}
           onClose={() => {
@@ -1278,6 +1364,44 @@ export default function CalendarPage() {
             setNewBookingData({});
           }}
         />
+
+        {/* Booking Details Slide-Out */}
+        {selectedBooking && (
+          <BookingDetailsSlideOut
+            isOpen={!!selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            booking={selectedBooking}
+            staff={visibleStaff}
+            onSave={(updatedBooking) => {
+              console.log("Updated booking:", updatedBooking);
+              // Update the booking in the list
+              setBookings(prev => prev.map(b => 
+                b.id === updatedBooking.id ? updatedBooking : b
+              ));
+              setSelectedBooking(null);
+            }}
+            onDelete={(bookingId) => {
+              console.log("Delete booking:", bookingId);
+              // Remove the booking from the list
+              setBookings(prev => prev.filter(b => b.id !== bookingId));
+              setSelectedBooking(null);
+            }}
+            onStatusChange={(bookingId, newStatus) => {
+              // Update booking status
+              setBookings(prev => prev.map(b => 
+                b.id === bookingId ? { ...b, status: newStatus as any } : b
+              ));
+              setSelectedBooking(prev => prev ? { ...prev, status: newStatus as any } : null);
+            }}
+            onPaymentStatusChange={(bookingId, isPaid) => {
+              // Update payment status
+              setBookings(prev => prev.map(b => 
+                b.id === bookingId ? { ...b, isPaid } : b
+              ));
+              setSelectedBooking(prev => prev ? { ...prev, isPaid } : null);
+            }}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

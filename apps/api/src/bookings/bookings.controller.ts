@@ -16,6 +16,7 @@ import { BookingsGateway } from './bookings.gateway';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
+import { QueryBookingsDto } from './dto/query-bookings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PinAuthGuard } from '../auth/guards/pin-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -44,8 +45,8 @@ export class BookingsController {
 
   @Get()
   @Permissions('bookings.read')
-  findAll(@CurrentUser() user: any, @Query() params: any) {
-    return this.bookingsService.findAll(user.merchantId, params);
+  findAll(@CurrentUser() user: any, @Query() query: QueryBookingsDto) {
+    return this.bookingsService.findAll(user.merchantId, query);
   }
 
   @Get('calendar')
