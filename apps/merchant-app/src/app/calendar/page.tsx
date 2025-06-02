@@ -508,7 +508,28 @@ export default function CalendarPage() {
     const loadBookings = async () => {
       try {
         setLoading(true);
-        const apiBookings = await apiClient.getBookings();
+        
+        // Pass date parameters based on view type
+        let params: any = {};
+        
+        if (viewType === 'day') {
+          // For day view, get bookings for the specific date
+          params.date = currentDate.toISOString().split('T')[0];
+        } else if (viewType === 'week') {
+          // For week view, get bookings for the week
+          const weekStart = startOfWeek(currentDate);
+          const weekEnd = endOfWeek(currentDate);
+          params.startDate = weekStart.toISOString().split('T')[0];
+          params.endDate = weekEnd.toISOString().split('T')[0];
+        } else if (viewType === 'month') {
+          // For month view, get bookings for the month
+          const monthStart = startOfMonth(currentDate);
+          const monthEnd = endOfMonth(currentDate);
+          params.startDate = monthStart.toISOString().split('T')[0];
+          params.endDate = monthEnd.toISOString().split('T')[0];
+        }
+        
+        const apiBookings = await apiClient.getBookings(params);
         
         // API client already transforms the data, just adjust for calendar view
         const transformedBookings = apiBookings.map((booking: any) => ({
@@ -540,7 +561,7 @@ export default function CalendarPage() {
     };
 
     loadBookings();
-  }, [currentDate]); // Reload when date changes
+  }, [currentDate, viewType]); // Reload when date or view type changes
 
   // Load staff from API
   useEffect(() => {
@@ -821,10 +842,15 @@ export default function CalendarPage() {
                       )}
                         
                       {/* Appointments */}
-                      {slotBookings.map((booking) => {
+                      {slotBookings.map((booking, bookingIndex) => {
                         const duration = (booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60);
                         const isPast = booking.startTime < currentTime && booking.status !== "in-progress";
                         const hasConflict = conflicts.has(booking.id);
+                        
+                        // Calculate side-by-side layout for overlapping bookings
+                        const overlapCount = slotBookings.length;
+                        const bookingWidth = overlapCount > 1 ? (100 / overlapCount) - 2 : 100; // Leave small gap between
+                        const bookingLeft = overlapCount > 1 ? (bookingIndex * (100 / overlapCount)) : 0;
                         
                         // Determine opacity based on status
                         let bgOpacity = 0.7; // Default for confirmed - reduced for better contrast
@@ -837,50 +863,113 @@ export default function CalendarPage() {
                           <div
                             key={booking.id}
                             className={cn(
-                              "absolute left-1 right-1 top-0.5 rounded cursor-pointer border-2 text-xs",
-                              "transition-all hover:shadow-md hover:z-20",
+                              "absolute top-0.5 rounded cursor-pointer border-2 text-xs",
+                              "transition-all hover:shadow-md hover:z-30",
                               booking.status === "in-progress" && "animate-pulse",
                               booking.status === "cancelled" && "line-through",
                               hasConflict && "ring-2 ring-red-500 ring-offset-1"
                             )}
                             style={{
+                              left: `${bookingLeft}%`,
+                              width: `${bookingWidth}%`,
                               height: `${(duration / timeInterval) * slot.height - 3}px`,
                               backgroundColor: hexToRgba(staffMember.color, bgOpacity),
                               borderColor: staffMember.color,
-                              zIndex: 15
+                              zIndex: 15 + bookingIndex, // Ensure proper stacking
+                              marginLeft: bookingIndex > 0 ? '2px' : '4px',
+                              marginRight: bookingIndex < overlapCount - 1 ? '2px' : '4px'
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedBooking(booking);
                             }}
+                            onMouseEnter={() => setHoveredBooking(booking.id)}
+                            onMouseLeave={() => setHoveredBooking(null)}
                           >
-                            <div className="p-1.5 h-full flex flex-col justify-between relative">
+                            <div className="p-1 h-full flex flex-col justify-between relative overflow-hidden">
                               {/* Payment indicator */}
-                              <div className="absolute top-1 right-1">
+                              <div className="absolute top-0.5 right-0.5">
                                 <div className={cn(
                                   "w-1.5 h-1.5 rounded-full",
                                   booking.isPaid ? "bg-green-600" : "bg-orange-500"
                                 )} />
                               </div>
                               
-                              {/* Content */}
-                              <div>
-                                <div className="font-semibold truncate pr-3 text-gray-900">
+                              {/* Content - adjusted for smaller width */}
+                              <div className="pr-2">
+                                <div className="font-semibold truncate text-gray-900 text-xs">
                                   {booking.customerName}
                                 </div>
-                                <div className="truncate text-gray-700 text-xs">
-                                  {booking.serviceName}
-                                </div>
+                                {overlapCount <= 2 && ( // Only show service name if not too crowded
+                                  <div className="truncate text-gray-700" style={{ fontSize: '10px' }}>
+                                    {booking.serviceName}
+                                  </div>
+                                )}
                               </div>
                               
-                              {/* Duration for longer appointments */}
-                              {duration >= 45 && (
+                              {/* Duration for longer appointments - only if space allows */}
+                              {duration >= 45 && overlapCount === 1 && (
                                 <div className="text-xs text-gray-600 flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   {duration}m
                                 </div>
                               )}
+                              
+                              {/* Overlap indicator */}
+                              {overlapCount > 1 && (
+                                <div className="absolute -top-1 -left-1 bg-red-500 text-white rounded-br-md px-1" style={{ fontSize: '10px' }}>
+                                  {bookingIndex + 1}/{overlapCount}
+                                </div>
+                              )}
+                              
+                              {/* Status badge - only show for non-confirmed statuses */}
+                              {booking.status !== 'confirmed' && (
+                                <div className={cn(
+                                  "absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded-full text-white",
+                                  overlapCount > 2 ? "p-1" : "px-1.5 py-0.5", // Icon only when crowded
+                                  booking.status === 'completed' && "bg-green-600/80",
+                                  booking.status === 'in-progress' && "bg-teal-600/80 animate-pulse",
+                                  booking.status === 'cancelled' && "bg-red-600/80",
+                                  booking.status === 'no-show' && "bg-orange-600/80"
+                                )} style={{ fontSize: '9px' }}>
+                                  {booking.status === 'completed' && (
+                                    <>
+                                      <Check className="h-3 w-3" />
+                                      {overlapCount <= 2 && <span>Done</span>}
+                                    </>
+                                  )}
+                                  {booking.status === 'in-progress' && (
+                                    <>
+                                      <Play className="h-3 w-3" />
+                                      {overlapCount <= 2 && <span>Active</span>}
+                                    </>
+                                  )}
+                                  {booking.status === 'cancelled' && (
+                                    <>
+                                      <X className="h-3 w-3" />
+                                      {overlapCount <= 2 && <span>Cancel</span>}
+                                    </>
+                                  )}
+                                  {booking.status === 'no-show' && (
+                                    <>
+                                      <AlertTriangle className="h-3 w-3" />
+                                      {overlapCount <= 2 && <span>NoShow</span>}
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
+                            
+                            {/* Hover tooltip for crowded slots */}
+                            {hoveredBooking === booking.id && overlapCount > 2 && (
+                              <div className="absolute z-50 -top-2 left-full ml-2 bg-white shadow-lg rounded-lg p-3 w-48 pointer-events-none">
+                                <div className="font-semibold text-sm">{booking.customerName}</div>
+                                <div className="text-xs text-gray-600">{booking.serviceName}</div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           );
                         })}
