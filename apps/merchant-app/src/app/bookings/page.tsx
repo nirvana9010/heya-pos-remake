@@ -409,19 +409,17 @@ export default function BookingsPage() {
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now);
-    const weekEnd = endOfWeek(now);
     const next2Hours = addHours(now, 2);
+    const next3Hours = addHours(now, 3);
 
     const todayBookings = bookings.filter(b => {
       const bookingDate = new Date(b.startTime || b.date);
       return bookingDate >= todayStart && bookingDate <= todayEnd;
     });
 
-    const weekBookings = bookings.filter(b => {
-      const bookingDate = new Date(b.startTime || b.date);
-      return bookingDate >= weekStart && bookingDate <= weekEnd;
-    });
+    const todayCompleted = todayBookings.filter(b => 
+      b.status?.toLowerCase() === 'completed'
+    ).length;
 
     const upcomingIn2Hours = bookings.filter(b => {
       const bookingDate = new Date(b.startTime || b.date);
@@ -430,29 +428,44 @@ export default function BookingsPage() {
              b.status?.toLowerCase() !== 'completed';
     });
 
-    const todayRevenue = todayBookings
-      .filter(b => b.status?.toLowerCase() !== 'cancelled' && b.status?.toLowerCase() !== 'no_show')
-      .reduce((sum, b) => sum + (b.totalAmount || b.price || 0), 0);
+    // Calculate available slots in next 3 hours
+    // This is a simplified calculation - in reality you'd check against actual availability
+    const bookingsNext3Hours = bookings.filter(b => {
+      const bookingDate = new Date(b.startTime || b.date);
+      return bookingDate >= now && bookingDate <= next3Hours && 
+             b.status?.toLowerCase() !== 'cancelled';
+    });
+    
+    // Assume 30 min slots, 4 staff members working
+    const totalPossibleSlots = 6 * 4; // 6 half-hour slots * 4 staff
+    const availableSlots = Math.max(0, totalPossibleSlots - bookingsNext3Hours.length);
 
-    const weekRevenue = weekBookings
-      .filter(b => b.status?.toLowerCase() !== 'cancelled' && b.status?.toLowerCase() !== 'no_show')
-      .reduce((sum, b) => sum + (b.totalAmount || b.price || 0), 0);
-
-    const todayCancelled = todayBookings.filter(b => 
-      b.status?.toLowerCase() === 'cancelled' || b.status?.toLowerCase() === 'no_show'
-    ).length;
-
-    const cancellationRate = todayBookings.length > 0 
-      ? Math.round((todayCancelled / todayBookings.length) * 100)
-      : 0;
+    // Calculate average waiting time for in-progress bookings today
+    const inProgressToday = todayBookings.filter(b => 
+      b.status?.toLowerCase() === 'in-progress'
+    );
+    
+    let avgWaitTimeMinutes = 0;
+    if (inProgressToday.length > 0) {
+      const waitTimes = inProgressToday.map(b => {
+        const start = new Date(b.startTime || b.date);
+        const elapsedMinutes = Math.floor((now.getTime() - start.getTime()) / 60000);
+        return Math.max(0, elapsedMinutes - (b.duration || 60)); // Subtract expected duration
+      });
+      avgWaitTimeMinutes = Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length);
+    }
+    
+    const avgWaitTime = avgWaitTimeMinutes > 0 
+      ? `${avgWaitTimeMinutes} min`
+      : 'On time';
 
     return {
       todayCount: todayBookings.length,
-      todayRevenue,
-      weekCount: weekBookings.length,
-      weekRevenue,
+      todayCompleted,
       upcomingCount: upcomingIn2Hours.length,
-      cancellationRate
+      availableSlots,
+      avgWaitTime,
+      avgWaitTimeMinutes
     };
   }, [bookings]);
 
@@ -639,7 +652,7 @@ export default function BookingsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Today's Bookings</p>
                 <p className="text-2xl font-bold">{stats.todayCount}</p>
-                <p className="text-sm text-green-600 font-medium">${stats.todayRevenue}</p>
+                <p className="text-sm text-gray-500">{stats.todayCompleted} completed</p>
               </div>
               <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <Calendar className="h-6 w-6 text-purple-600" />
@@ -652,12 +665,12 @@ export default function BookingsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">This Week</p>
-                <p className="text-2xl font-bold">{stats.weekCount}</p>
-                <p className="text-sm text-green-600 font-medium">${stats.weekRevenue}</p>
+                <p className="text-sm font-medium text-gray-600">Walk-ins Available</p>
+                <p className="text-2xl font-bold">{stats.availableSlots}</p>
+                <p className="text-sm text-blue-600">next 3 hours</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+                <Users className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -682,18 +695,14 @@ export default function BookingsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Cancellation Rate</p>
-                <p className="text-2xl font-bold">{stats.cancellationRate}%</p>
-                <p className="text-sm text-gray-500">today</p>
+                <p className="text-sm font-medium text-gray-600">Waiting Time</p>
+                <p className="text-2xl font-bold">{stats.avgWaitTime}</p>
+                <p className="text-sm text-gray-500">average today</p>
               </div>
               <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                stats.cancellationRate > 20 ? 'bg-red-100' : 'bg-green-100'
+                stats.avgWaitTimeMinutes > 15 ? 'bg-yellow-100' : 'bg-green-100'
               }`}>
-                {stats.cancellationRate > 20 ? (
-                  <AlertCircle className={`h-6 w-6 ${stats.cancellationRate > 20 ? 'text-red-600' : 'text-green-600'}`} />
-                ) : (
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                )}
+                <Clock className={`h-6 w-6 ${stats.avgWaitTimeMinutes > 15 ? 'text-yellow-600' : 'text-green-600'}`} />
               </div>
             </div>
           </CardContent>
