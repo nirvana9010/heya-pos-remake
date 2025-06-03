@@ -440,32 +440,45 @@ export default function BookingsPage() {
     const totalPossibleSlots = 6 * 4; // 6 half-hour slots * 4 staff
     const availableSlots = Math.max(0, totalPossibleSlots - bookingsNext3Hours.length);
 
-    // Calculate average waiting time for in-progress bookings today
-    const inProgressToday = todayBookings.filter(b => 
-      b.status?.toLowerCase() === 'in-progress'
-    );
+    // Calculate pending confirmations
+    const pendingBookings = bookings.filter(b => {
+      const bookingDate = new Date(b.startTime || b.date);
+      return b.status?.toLowerCase() === 'pending' && 
+             bookingDate >= now; // Only future pending bookings
+    });
     
-    let avgWaitTimeMinutes = 0;
-    if (inProgressToday.length > 0) {
-      const waitTimes = inProgressToday.map(b => {
-        const start = new Date(b.startTime || b.date);
-        const elapsedMinutes = Math.floor((now.getTime() - start.getTime()) / 60000);
-        return Math.max(0, elapsedMinutes - (b.duration || 60)); // Subtract expected duration
+    const pendingCount = pendingBookings.length;
+    
+    // Find oldest pending booking
+    let oldestPendingTime = 'None pending';
+    if (pendingBookings.length > 0) {
+      const sortedPending = pendingBookings.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
+        return dateA - dateB;
       });
-      avgWaitTimeMinutes = Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length);
+      
+      const oldest = sortedPending[0];
+      if (oldest.createdAt) {
+        const hoursAgo = Math.floor((now.getTime() - new Date(oldest.createdAt).getTime()) / (1000 * 60 * 60));
+        if (hoursAgo >= 24) {
+          oldestPendingTime = `${Math.floor(hoursAgo / 24)}d old`;
+        } else if (hoursAgo > 0) {
+          oldestPendingTime = `${hoursAgo}h old`;
+        } else {
+          const minsAgo = Math.floor((now.getTime() - new Date(oldest.createdAt).getTime()) / (1000 * 60));
+          oldestPendingTime = `${minsAgo}m old`;
+        }
+      }
     }
-    
-    const avgWaitTime = avgWaitTimeMinutes > 0 
-      ? `${avgWaitTimeMinutes} min`
-      : 'On time';
 
     return {
       todayCount: todayBookings.length,
       todayCompleted,
       upcomingCount: upcomingIn2Hours.length,
       availableSlots,
-      avgWaitTime,
-      avgWaitTimeMinutes
+      pendingCount,
+      oldestPendingTime
     };
   }, [bookings]);
 
@@ -695,14 +708,14 @@ export default function BookingsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Waiting Time</p>
-                <p className="text-2xl font-bold">{stats.avgWaitTime}</p>
-                <p className="text-sm text-gray-500">average today</p>
+                <p className="text-sm font-medium text-gray-600">Pending Confirmations</p>
+                <p className="text-2xl font-bold">{stats.pendingCount}</p>
+                <p className="text-sm text-yellow-600">{stats.oldestPendingTime}</p>
               </div>
               <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                stats.avgWaitTimeMinutes > 15 ? 'bg-yellow-100' : 'bg-green-100'
+                stats.pendingCount > 3 ? 'bg-yellow-100' : 'bg-green-100'
               }`}>
-                <Clock className={`h-6 w-6 ${stats.avgWaitTimeMinutes > 15 ? 'text-yellow-600' : 'text-green-600'}`} />
+                <AlertCircle className={`h-6 w-6 ${stats.pendingCount > 3 ? 'text-yellow-600' : 'text-green-600'}`} />
               </div>
             </div>
           </CardContent>
