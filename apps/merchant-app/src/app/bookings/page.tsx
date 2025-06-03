@@ -428,17 +428,89 @@ export default function BookingsPage() {
              b.status?.toLowerCase() !== 'completed';
     });
 
-    // Calculate available slots in next 3 hours
-    // This is a simplified calculation - in reality you'd check against actual availability
-    const bookingsNext3Hours = bookings.filter(b => {
-      const bookingDate = new Date(b.startTime || b.date);
-      return bookingDate >= now && bookingDate <= next3Hours && 
-             b.status?.toLowerCase() !== 'cancelled';
-    });
+    // Calculate next available slot
+    // This is simplified - in production, you'd check actual staff schedules
+    const futureBookings = bookings
+      .filter(b => {
+        const bookingDate = new Date(b.startTime || b.date);
+        return bookingDate >= now && 
+               b.status?.toLowerCase() !== 'cancelled' &&
+               b.status?.toLowerCase() !== 'no_show';
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.startTime || a.date).getTime();
+        const dateB = new Date(b.startTime || b.date).getTime();
+        return dateA - dateB;
+      });
+
+    // Helper function to round up to next 15-minute increment
+    const roundToNext15Minutes = (date: Date): Date => {
+      const minutes = date.getMinutes();
+      const remainder = minutes % 15;
+      if (remainder === 0) return date;
+      const roundedMinutes = minutes + (15 - remainder);
+      const roundedDate = new Date(date);
+      roundedDate.setMinutes(roundedMinutes);
+      roundedDate.setSeconds(0);
+      roundedDate.setMilliseconds(0);
+      return roundedDate;
+    };
+
+    // Find the first gap of at least 30 minutes
+    let nextAvailableTime = 'NOW';
+    let nextAvailableStaff = 'Any staff';
+    let nextAvailableDate: Date | null = null;
     
-    // Assume 30 min slots, 4 staff members working
-    const totalPossibleSlots = 6 * 4; // 6 half-hour slots * 4 staff
-    const availableSlots = Math.max(0, totalPossibleSlots - bookingsNext3Hours.length);
+    if (futureBookings.length === 0) {
+      // No bookings, available now
+      nextAvailableTime = 'NOW';
+    } else {
+      // Check if there's a gap before the first booking
+      const firstBooking = futureBookings[0];
+      const firstBookingTime = new Date(firstBooking.startTime || firstBooking.date);
+      const minutesUntilFirst = Math.floor((firstBookingTime.getTime() - now.getTime()) / 60000);
+      
+      if (minutesUntilFirst >= 30) {
+        nextAvailableTime = 'NOW';
+      } else {
+        // Look for gaps between bookings
+        let foundSlot = false;
+        
+        for (let i = 0; i < futureBookings.length - 1; i++) {
+          const currentEnd = new Date(futureBookings[i].endTime || 
+            new Date(futureBookings[i].startTime).getTime() + (futureBookings[i].duration || 60) * 60000);
+          const nextStart = new Date(futureBookings[i + 1].startTime || futureBookings[i + 1].date);
+          
+          const gapMinutes = Math.floor((nextStart.getTime() - currentEnd.getTime()) / 60000);
+          
+          if (gapMinutes >= 30) {
+            nextAvailableDate = roundToNext15Minutes(currentEnd);
+            foundSlot = true;
+            break;
+          }
+        }
+        
+        // If no gap found, next available is after last booking
+        if (!foundSlot) {
+          const lastBooking = futureBookings[futureBookings.length - 1];
+          const lastEndTime = new Date(lastBooking.endTime || 
+            new Date(lastBooking.startTime).getTime() + (lastBooking.duration || 60) * 60000);
+          nextAvailableDate = roundToNext15Minutes(lastEndTime);
+        }
+        
+        // Format the time
+        if (nextAvailableDate) {
+          // Check if it's today
+          if (isSameDay(nextAvailableDate, now)) {
+            nextAvailableTime = format(nextAvailableDate, 'h:mm a');
+          } else if (isTomorrow(nextAvailableDate)) {
+            nextAvailableTime = `Tomorrow ${format(nextAvailableDate, 'h:mm a')}`;
+          } else {
+            nextAvailableTime = format(nextAvailableDate, 'MMM d, h:mm a');
+          }
+        }
+      }
+    }
 
     // Calculate pending confirmations
     const pendingBookings = bookings.filter(b => {
@@ -476,7 +548,8 @@ export default function BookingsPage() {
       todayCount: todayBookings.length,
       todayCompleted,
       upcomingCount: upcomingIn2Hours.length,
-      availableSlots,
+      nextAvailableTime,
+      nextAvailableStaff,
       pendingCount,
       oldestPendingTime
     };
@@ -678,12 +751,12 @@ export default function BookingsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Walk-ins Available</p>
-                <p className="text-2xl font-bold">{stats.availableSlots}</p>
-                <p className="text-sm text-blue-600">next 3 hours</p>
+                <p className="text-sm font-medium text-gray-600">Next Available Slot</p>
+                <p className="text-2xl font-bold">{stats.nextAvailableTime}</p>
+                <p className="text-sm text-blue-600">{stats.nextAvailableStaff}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="h-6 w-6 text-blue-600" />
+                <CalendarClock className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
