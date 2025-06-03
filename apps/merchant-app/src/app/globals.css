@@ -68,6 +68,28 @@
   --warning: #F59E0B;              /* Amber */
   --error: #EF4444;                /* Red */
   --info: #3B82F6;                 /* Blue */
+  
+  /* UI Component Variables for Radix/Shadcn */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary-ui: 212 100% 40%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent-ui: 169 100% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 43.1%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 212 100% 40%;
+  --radius: 0.5rem;
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -124,6 +146,27 @@
   --text-primary: var(--gray-50);
   --text-secondary: var(--gray-400);
   --border: var(--gray-700);
+  
+  /* Dark mode UI Component Variables for Radix/Shadcn */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary-ui: 212 100% 50%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent-ui: 169 100% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212 100% 50%;
 }
 
 /* Light Theme */
@@ -559,4 +602,91 @@ h1, h2, h3, h4, h5, h6 {
 
 .calendar-appointment-in-progress {
   animation: pulse-border 2s infinite;
+}
+
+/* Ensure popover backgrounds are solid */
+[data-radix-popper-content-wrapper] {
+  --tw-bg-opacity: 1;
+}
+
+/* Convert HSL to RGB for popover backgrounds */
+.bg-popover {
+  background-color: hsl(var(--popover));
+}
+
+.text-popover-foreground {
+  color: hsl(var(--popover-foreground));
+}
+
+/* Fix for transparent select dropdowns */
+[data-radix-select-content] {
+  background-color: hsl(var(--popover)) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure select items have proper contrast and hover states */
+[role="option"] {
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+[role="option"]:hover,
+[role="option"]:focus {
+  background-color: #f3f4f6 !important;
+}
+
+/* Radix Select specific hover states */
+[data-radix-collection-item] {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+[data-radix-collection-item]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-radix-collection-item][data-highlighted] {
+  background-color: #e5e7eb !important;
+  outline: none;
+}
+
+/* Dropdown menu hover states */
+[role="menuitem"] {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+[role="menuitem"]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-highlighted][role="menuitem"] {
+  background-color: #e5e7eb !important;
+  outline: none;
+}
+
+/* Additional Radix UI select hover states */
+[data-radix-select-item]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-radix-select-item][data-highlighted] {
+  background-color: #e5e7eb !important;
+  outline: none;
+}
+
+/* Dark mode hover states */
+[data-theme="dark"] [role="option"]:hover,
+[data-theme="dark"] [role="option"]:focus,
+[data-theme="dark"] [data-radix-collection-item]:hover,
+[data-theme="dark"] [data-radix-select-item]:hover,
+[data-theme="dark"] [role="menuitem"]:hover {
+  background-color: #374151 !important;
+}
+
+[data-theme="dark"] [data-radix-collection-item][data-highlighted],
+[data-theme="dark"] [data-radix-select-item][data-highlighted],
+[data-theme="dark"] [data-highlighted][role="menuitem"] {
+  background-color: #4b5563 !important;
 }

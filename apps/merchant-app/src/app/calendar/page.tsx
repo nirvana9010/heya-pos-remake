@@ -467,6 +467,101 @@ const hexToRgba = (hex: string, opacity: number) => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
+// Calculate layout for overlapping bookings
+const calculateBookingLayout = (dayBookings: Booking[]) => {
+  const layoutMap = new Map();
+  
+  // Group bookings by time slots
+  const timeGroups = new Map();
+  
+  dayBookings.forEach((booking) => {
+    // Find all time slots this booking occupies (in 15-min increments)
+    const startSlot = Math.floor(booking.startTime.getHours() * 4 + booking.startTime.getMinutes() / 15);
+    const endSlot = Math.ceil(booking.endTime.getHours() * 4 + booking.endTime.getMinutes() / 15);
+    
+    for (let slot = startSlot; slot < endSlot; slot++) {
+      if (!timeGroups.has(slot)) {
+        timeGroups.set(slot, new Set());
+      }
+      timeGroups.get(slot).add(booking.id);
+    }
+  });
+  
+  // Find maximum concurrent bookings
+  let maxConcurrent = 0;
+  timeGroups.forEach((bookingIds) => {
+    maxConcurrent = Math.max(maxConcurrent, bookingIds.size);
+  });
+  
+  // For week view, use a more compact layout strategy
+  const useCompactLayout = maxConcurrent > 4;
+  
+  // Sort bookings by start time and duration
+  const sortedBookings = [...dayBookings].sort((a, b) => {
+    if (a.startTime.getTime() !== b.startTime.getTime()) {
+      return a.startTime.getTime() - b.startTime.getTime();
+    }
+    return b.endTime.getTime() - a.endTime.getTime();
+  });
+
+  // Assign columns to bookings
+  sortedBookings.forEach((booking) => {
+    const overlapping = new Set();
+    
+    // Find all overlapping bookings
+    sortedBookings.forEach((other) => {
+      if (booking.id !== other.id && 
+          booking.startTime < other.endTime && 
+          booking.endTime > other.startTime) {
+        overlapping.add(other.id);
+      }
+    });
+    
+    // Find available column
+    let column = 0;
+    const usedColumns = new Set();
+    
+    overlapping.forEach((otherId) => {
+      const otherLayout = layoutMap.get(otherId);
+      if (otherLayout) {
+        usedColumns.add(otherLayout.column);
+      }
+    });
+    
+    while (usedColumns.has(column)) {
+      column++;
+    }
+    
+    // Calculate actual number of columns needed for this time period
+    const columnsNeeded = Math.max(column + 1, overlapping.size + 1);
+    
+    if (useCompactLayout) {
+      // Compact mode: Show only time and initials, stack more densely
+      layoutMap.set(booking.id, {
+        column,
+        totalColumns: columnsNeeded,
+        left: 0, // Stack vertically instead
+        width: 100,
+        isCompact: true,
+        stackIndex: column
+      });
+    } else {
+      // Normal mode: Side by side up to 4 columns
+      const maxColumns = Math.min(columnsNeeded, 4);
+      layoutMap.set(booking.id, {
+        column: column % maxColumns,
+        totalColumns: maxColumns,
+        left: (column % maxColumns) / maxColumns * 100,
+        width: (1 / maxColumns) * 100 - 1,
+        isCompact: false,
+        isOverflow: columnsNeeded > 4
+      });
+    }
+  });
+  
+  return { layoutMap, maxConcurrent, useCompactLayout };
+};
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<ViewType>("day");
@@ -493,6 +588,7 @@ export default function CalendarPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const calendarScrollRef = useRef<HTMLDivElement>(null);
+  const weekHeaderRef = useRef<HTMLDivElement>(null);
 
   // Update current time every minute
   useEffect(() => {
@@ -597,18 +693,27 @@ export default function CalendarPage() {
 
   // Scroll to business hours on mount or view change
   useEffect(() => {
-    if (viewType === "day" && calendarScrollRef.current) {
-      // Calculate scroll position for 8:30 AM (bit before business start)
-      const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
-      const slotsPerHour = 60 / timeInterval;
-      const scrollPosition = 8.5 * slotsPerHour * slotHeight; // 8:30 AM position
+    if (calendarScrollRef.current) {
+      let scrollPosition = 0;
       
-      setTimeout(() => {
-        calendarScrollRef.current?.scrollTo({
-          top: scrollPosition,
-          behavior: 'smooth'
-        });
-      }, 100);
+      if (viewType === "day") {
+        // Calculate scroll position for 8:30 AM (bit before business start)
+        const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
+        const slotsPerHour = 60 / timeInterval;
+        scrollPosition = 8.5 * slotsPerHour * slotHeight; // 8:30 AM position
+      } else if (viewType === "week") {
+        // For week view, scroll to 8 AM (64px per hour)
+        scrollPosition = 8 * 64; // 8 AM position
+      }
+      
+      if (scrollPosition > 0) {
+        setTimeout(() => {
+          calendarScrollRef.current?.scrollTo({
+            top: scrollPosition,
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
     }
   }, [viewType, timeInterval]);
 
@@ -708,15 +813,23 @@ export default function CalendarPage() {
   // Get current time position for indicator
   const getCurrentTimePosition = () => {
     const now = currentTime;
-    if (!isSameDay(now, currentDate)) return null;
+    if (!isSameDay(now, currentDate) && viewType === 'day') return null;
     
     const hour = now.getHours();
     const minute = now.getMinutes();
     const totalMinutes = hour * 60 + minute;
     
-    // Calculate position based on full day
-    const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
-    const position = (totalMinutes / timeInterval) * slotHeight;
+    // Calculate position based on view type
+    let slotHeight, timeDiv;
+    if (viewType === 'week') {
+      slotHeight = 30; // Week view uses 30min slots
+      timeDiv = 30;
+    } else {
+      slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
+      timeDiv = timeInterval;
+    }
+    
+    const position = (totalMinutes / timeDiv) * slotHeight;
     
     return { position, time: format(now, "h:mm a") };
   };
@@ -1011,89 +1124,301 @@ export default function CalendarPage() {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
     return (
-      <div className="flex flex-1 overflow-hidden">
-        {/* Time column */}
-        <div className="w-20 flex-shrink-0 bg-gray-50 border-r">
-          <div className="h-20 border-b bg-white" />
-          <div className="overflow-hidden">
-            {Array.from({ length: 24 }, (_, i) => (
-              <div
-                key={i}
-                className="h-12 border-b text-right pr-3 text-xs font-medium text-gray-700"
-              >
-                {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
-              </div>
-            ))}
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Fixed header row - matching scrollable area structure */}
+        <div className="h-20 border-b bg-white overflow-hidden">
+          <div className="flex h-full">
+            <div className="w-20 flex-shrink-0 border-r bg-gray-50 h-full" />
+            <div className="flex flex-1 min-w-[860px]">
+              {weekDays.map((day) => {
+                const dayBookings = filteredBookings.filter(b => 
+                  isSameDay(b.startTime, day)
+                );
+                const totalRevenue = dayBookings
+                  .filter(b => b.status !== 'cancelled' && b.status !== 'no-show')
+                  .reduce((sum, b) => sum + b.totalPrice, 0);
+
+                return (
+                  <div key={day.toISOString()} className="flex-1 border-r last:border-r-0 px-3 py-2 h-full">
+                    <div className="flex items-center justify-between h-full">
+                      <div>
+                        <div className={cn(
+                          "text-xs font-medium uppercase tracking-wider",
+                          isToday(day) && "text-purple-600"
+                        )}>
+                          {format(day, "EEE")}
+                        </div>
+                        <div className={cn(
+                          "text-2xl font-bold mt-0.5",
+                          isToday(day) && "text-purple-600"
+                        )}>
+                          {format(day, "d")}
+                        </div>
+                      </div>
+                      {dayBookings.length > 0 && (
+                        <div className="text-right">
+                          <div className="text-lg font-semibold text-gray-900">
+                            ${totalRevenue}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {dayBookings.length} bookings
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Day columns */}
-        <div className="flex-1 overflow-x-auto">
-          <div className="min-w-[800px] h-full flex">
-            {weekDays.map((day) => {
-              const dayBookings = filteredBookings.filter(b => 
-                isSameDay(b.startTime, day)
-              );
+        {/* Scrollable content area - includes both time and day columns */}
+        <div 
+          className="flex-1 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" 
+          ref={calendarScrollRef} 
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          <div className="flex">
+            {/* Time column */}
+            <div className="w-20 flex-shrink-0 bg-gray-50 border-r sticky left-0 z-10" style={{ height: `${24 * 64}px` }}>
+              {Array.from({ length: 24 }, (_, hour) => (
+                <div
+                  key={hour}
+                  className="h-16 border-b text-right pr-3 text-xs font-medium text-gray-700 flex items-center justify-end bg-gray-50"
+                >
+                  {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
+                </div>
+              ))}
+            </div>
 
-              return (
-                <div key={day.toISOString()} className="flex-1 border-r last:border-r-0">
-                  {/* Day header */}
-                  <div className="h-20 bg-white border-b p-2 text-center">
-                    <div className={cn(
-                      "text-sm font-medium",
-                      isToday(day) && "text-purple-600"
-                    )}>
-                      {format(day, "EEE")}
-                    </div>
-                    <div className={cn(
-                      "text-2xl font-bold mt-1",
-                      isToday(day) && "bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto"
-                    )}>
-                      {format(day, "d")}
-                    </div>
-                  </div>
+            {/* Day columns */}
+            <div className="flex flex-1 min-w-[860px]" style={{ minHeight: `${24 * 64}px` }}>
+              {weekDays.map((day) => {
+                const dayBookings = filteredBookings.filter(b => 
+                  isSameDay(b.startTime, day)
+                );
 
-                  {/* Hour slots */}
-                  <div className="relative">
-                    {Array.from({ length: 24 }, (_, hour) => (
-                      <div
-                        key={hour}
-                        className="h-12 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors duration-50"
-                        onClick={() => {
-                          const clickedTime = new Date(day);
-                          clickedTime.setHours(hour, 0, 0, 0);
-                          
-                          setNewBookingData({
-                            date: day,
-                            time: clickedTime,
-                            staffId: visibleStaff[0]?.id
-                          });
-                          setIsBookingOpen(true);
-                        }}
-                      >
-                        {dayBookings
-                          .filter(b => b.startTime.getHours() === hour)
-                          .map((booking) => (
+                return (
+                  <div key={day.toISOString()} className="flex-1 border-r last:border-r-0 relative" style={{ height: `${24 * 64}px` }}>
+                    {/* Hour blocks */}
+                    {Array.from({ length: 24 }, (_, hour) => {
+                      const isBusinessHour = hour >= 9 && hour < 18;
+                      return (
+                        <div
+                          key={hour}
+                          className={cn(
+                            "h-16 border-b relative",
+                            "cursor-pointer hover:bg-gray-50 transition-colors"
+                          )}
+                          onClick={() => {
+                            const clickedTime = new Date(day);
+                            clickedTime.setHours(hour, 0, 0, 0);
+                            setNewBookingData({
+                              date: day,
+                              time: clickedTime,
+                              staffId: visibleStaff[0]?.id
+                            });
+                            setIsBookingOpen(true);
+                          }}
+                        >
+                          {!isBusinessHour && (
+                            <div className="absolute inset-0 bg-gray-900/5 pointer-events-none" />
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Bookings with smart layout */}
+                    {(() => {
+                      const { layoutMap, maxConcurrent, useCompactLayout } = calculateBookingLayout(dayBookings);
+                      
+                      return dayBookings.map((booking) => {
+                        const startHour = booking.startTime.getHours();
+                        const startMinute = booking.startTime.getMinutes();
+                        const duration = (booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60);
+                        const topPosition = (startHour * 64) + (startMinute / 60 * 64);
+                        const height = (duration / 60) * 64;
+                        const staffMember = staff.find(s => s.id === booking.staffId);
+                        const staffColor = staffMember?.color || '#7C3AED';
+                        
+                        const layout = layoutMap.get(booking.id) || { left: 0, width: 100, isCompact: false };
+                        
+                        const isPast = booking.startTime < currentTime && booking.status !== "in-progress";
+                        let bgOpacity = 0.85;
+                        if (booking.status === "in-progress") bgOpacity = 0.95;
+                        else if (booking.status === "completed" || isPast) bgOpacity = 0.4;
+                        else if (booking.status === "cancelled") bgOpacity = 0.3;
+                        else if (booking.status === "no-show") bgOpacity = 0.35;
+
+                        // In compact mode, create a simple badge-like display
+                        if (layout.isCompact) {
+                          return (
                             <div
                               key={booking.id}
                               className={cn(
-                                "text-xs p-1 m-0.5 rounded cursor-pointer truncate",
-                                getStatusColor(booking.status)
+                                "absolute left-1 right-1 flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer",
+                                "transition-all hover:z-20 text-xs",
+                                booking.status === "cancelled" && "line-through opacity-60"
                               )}
+                              style={{
+                                top: `${topPosition + (layout.stackIndex * 12)}px`,
+                                height: '11px',
+                                backgroundColor: hexToRgba(staffColor, 0.2),
+                                borderLeft: `3px solid ${staffColor}`
+                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedBooking(booking);
                               }}
+                              onMouseEnter={() => setHoveredBooking(booking.id)}
+                              onMouseLeave={() => setHoveredBooking(null)}
                             >
-                              {booking.customerName}
+                              <div className="font-medium truncate" style={{ fontSize: '10px' }}>
+                                {format(booking.startTime, 'HH:mm')} {booking.customerName.split(' ').map(n => n[0]).join('')}
+                              </div>
+                              {booking.isPaid && <div className="w-1 h-1 rounded-full bg-green-500 flex-shrink-0" />}
+                              
+                              {/* Hover tooltip is essential in compact mode */}
+                              {hoveredBooking === booking.id && (
+                                <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-lg rounded-lg p-3 w-64 pointer-events-none">
+                                  <div className="space-y-1">
+                                    <div className="font-semibold">{booking.customerName}</div>
+                                    <div className="text-sm text-gray-600">{booking.serviceName}</div>
+                                    <div className="text-sm">
+                                      <span className="text-gray-500">Time:</span> {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-gray-500">Staff:</span> {booking.staffName}
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-gray-500">Status:</span> {booking.status}
+                                      {booking.isPaid && <span className="text-green-600 ml-1">(Paid)</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          );
+                        }
+
+                        // Normal layout (up to 4 columns)
+                        return (
+                          <div
+                            key={booking.id}
+                            className={cn(
+                              "absolute rounded cursor-pointer border-l-4 bg-white shadow-sm",
+                              "transition-all hover:shadow-md hover:z-10 text-xs p-1",
+                              booking.status === "in-progress" && "animate-pulse ring-2 ring-teal-400",
+                              booking.status === "cancelled" && "opacity-60",
+                              layout.isOverflow && "ring-1 ring-orange-400"
+                            )}
+                            style={{
+                              top: `${topPosition}px`,
+                              height: `${Math.max(height - 4, 20)}px`,
+                              left: `${layout.left}%`,
+                              width: `${layout.width}%`,
+                              borderLeftColor: staffColor,
+                              backgroundColor: hexToRgba(staffColor, bgOpacity * 0.15)
+                            }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(booking);
+                          }}
+                          onMouseEnter={() => setHoveredBooking(booking.id)}
+                          onMouseLeave={() => setHoveredBooking(null)}
+                        >
+                          <div className="h-full flex flex-col">
+                            {/* For narrow columns, show minimal info */}
+                            {layout.width < 35 ? (
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-gray-900 truncate" style={{ fontSize: '10px' }}>
+                                  {booking.customerName.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div className="flex items-center gap-0.5">
+                                  {booking.status === 'in-progress' && <Play className="h-2.5 w-2.5 text-teal-600" />}
+                                  {booking.status === 'cancelled' && <X className="h-2.5 w-2.5 text-red-600" />}
+                                  <div className={cn(
+                                    "w-1 h-1 rounded-full",
+                                    booking.isPaid ? "bg-green-500" : "bg-orange-500"
+                                  )} />
+                                </div>
+                              </div>
+                            ) : (
+                              /* Normal width - show more info */
+                              <>
+                                <div className="font-semibold text-gray-900 truncate" style={{ fontSize: '11px' }}>
+                                  {booking.customerName}
+                                </div>
+                                {height > 35 && (
+                                  <div className="text-gray-600 truncate" style={{ fontSize: '10px' }}>
+                                    {booking.serviceName}
+                                  </div>
+                                )}
+                                {height > 50 && (
+                                  <div className="flex items-center gap-0.5 mt-auto">
+                                    {booking.status !== 'confirmed' && (
+                                      <>
+                                        {booking.status === 'completed' && <Check className="h-2.5 w-2.5 text-green-600" />}
+                                        {booking.status === 'in-progress' && <Play className="h-2.5 w-2.5 text-teal-600" />}
+                                        {booking.status === 'cancelled' && <X className="h-2.5 w-2.5 text-red-600" />}
+                                        {booking.status === 'no-show' && <AlertTriangle className="h-2.5 w-2.5 text-orange-600" />}
+                                      </>
+                                    )}
+                                    <div className={cn(
+                                      "w-1 h-1 rounded-full",
+                                      booking.isPaid ? "bg-green-500" : "bg-orange-500"
+                                    )} />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+
+                          {/* Hover tooltip */}
+                          {hoveredBooking === booking.id && (
+                            <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-lg rounded-lg p-3 w-64 pointer-events-none">
+                              <div className="space-y-1">
+                                <div className="font-semibold">{booking.customerName}</div>
+                                <div className="text-sm text-gray-600">{booking.serviceName}</div>
+                                <div className="text-sm">
+                                  <span className="text-gray-500">Staff:</span> {booking.staffName}
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-gray-500">Duration:</span> {duration} minutes
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-gray-500">Price:</span> ${booking.totalPrice}
+                                  {booking.isPaid && <span className="text-green-600 ml-1">(Paid)</span>}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                    })()}
+
+                    {/* Current time line */}
+                    {isToday(day) && currentTimeInfo && (
+                      <div 
+                        className="absolute left-0 right-0 pointer-events-none"
+                        style={{ 
+                          top: `${(currentTime.getHours() * 64) + (currentTime.getMinutes() / 60 * 64)}px`,
+                          height: '2px',
+                          zIndex: 20
+                        }}
+                      >
+                        <div className="relative h-full">
+                          <div className="absolute inset-0 bg-red-500 shadow-sm" />
+                          <div className="absolute -left-1 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -1108,10 +1433,10 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 overflow-auto">
         <div className="bg-white rounded-lg shadow-sm border">
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b">
+          <div className="grid grid-cols-7 border-b bg-gray-50">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div key={day} className="p-3 text-center text-sm font-medium text-gray-700">
                 {day}
@@ -1126,52 +1451,119 @@ export default function CalendarPage() {
                 isSameDay(b.startTime, day)
               );
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-              const utilization = (dayBookings.length / (visibleStaff.length * 8)) * 100;
+              const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              
+              // Calculate business metrics
+              const totalRevenue = dayBookings
+                .filter(b => b.status !== 'cancelled' && b.status !== 'no-show')
+                .reduce((sum, b) => sum + b.totalPrice, 0);
+              
+              const confirmedBookings = dayBookings.filter(b => 
+                b.status === 'confirmed' || b.status === 'completed' || b.status === 'in-progress'
+              ).length;
+              
+              const maxBookingsPerDay = visibleStaff.length * 12; // Rough estimate for utilization color
+              const utilization = (confirmedBookings / maxBookingsPerDay) * 100;
+              
+              // Get unique staff with bookings
+              const staffWithBookings = [...new Set(dayBookings.map(b => b.staffId))];
+              const staffColors = staffWithBookings
+                .map(id => staff.find(s => s.id === id)?.color)
+                .filter(Boolean);
+              
+              // Determine heat map color based on utilization
+              let bgIntensity = 'bg-white';
+              if (isCurrentMonth && confirmedBookings > 0) {
+                if (utilization >= 80) bgIntensity = 'bg-red-50';
+                else if (utilization >= 60) bgIntensity = 'bg-orange-50';
+                else if (utilization >= 40) bgIntensity = 'bg-yellow-50';
+                else if (utilization >= 20) bgIntensity = 'bg-green-50';
+                else bgIntensity = 'bg-blue-50';
+              }
 
               return (
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    "min-h-24 p-2 border-r border-b cursor-pointer hover:bg-gray-50 transition-colors duration-50",
+                    "min-h-32 p-2 border-r border-b cursor-pointer transition-all relative group",
                     !isCurrentMonth && "bg-gray-50 text-gray-400",
-                    isToday(day) && "bg-purple-50",
-                    isSameDay(day, currentDate) && "ring-2 ring-purple-600 ring-inset"
+                    isCurrentMonth && bgIntensity,
+                    isCurrentMonth && isWeekend && "bg-gray-50/50",
+                    isToday(day) && "ring-2 ring-purple-600 ring-inset",
+                    "hover:shadow-inner"
                   )}
                   onClick={() => {
                     setCurrentDate(day);
                     setViewType("day");
                   }}
                 >
-                  <div className="flex items-start justify-between mb-1">
+                  {/* Date header */}
+                  <div className="flex items-start justify-between mb-2">
                     <span className={cn(
                       "text-sm font-medium",
                       isToday(day) && "bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
                     )}>
                       {format(day, "d")}
                     </span>
-                    {dayBookings.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {dayBookings.length}
-                      </Badge>
+                    {isCurrentMonth && utilization > 0 && (
+                      <div className={cn(
+                        "text-xs font-medium px-1.5 py-0.5 rounded",
+                        utilization >= 80 && "bg-red-100 text-red-700",
+                        utilization >= 60 && utilization < 80 && "bg-orange-100 text-orange-700",
+                        utilization >= 40 && utilization < 60 && "bg-yellow-100 text-yellow-700",
+                        utilization < 40 && "bg-green-100 text-green-700"
+                      )}>
+                        {Math.round(utilization)}%
+                      </div>
                     )}
                   </div>
                   
-                  {/* Utilization bar */}
-                  {isCurrentMonth && dayBookings.length > 0 && (
-                    <div className="mt-2">
-                      <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full transition-all duration-50",
-                            utilization > 75 ? "bg-red-500" : 
-                            utilization > 50 ? "bg-yellow-500" : 
-                            "bg-green-500"
-                          )}
-                          style={{ width: `${Math.min(utilization, 100)}%` }}
-                        />
+                  {/* Revenue display */}
+                  {isCurrentMonth && totalRevenue > 0 && (
+                    <div className="mb-2">
+                      <div className="text-lg font-semibold text-gray-900">
+                        ${totalRevenue}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {confirmedBookings} bookings
                       </div>
                     </div>
                   )}
+                  
+                  {/* Staff availability dots */}
+                  {isCurrentMonth && staffColors.length > 0 && (
+                    <div className="flex gap-1 flex-wrap">
+                      {staffColors.slice(0, 4).map((color, idx) => (
+                        <div
+                          key={idx}
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      {staffColors.length > 4 && (
+                        <div className="text-xs text-gray-500">
+                          +{staffColors.length - 4}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Hover tooltip */}
+                  <div className="absolute z-10 invisible group-hover:visible bg-white shadow-lg rounded-lg p-3 -top-2 left-full ml-2 w-48 pointer-events-none">
+                    <div className="text-sm font-medium mb-1">
+                      {format(day, "EEEE, MMM d")}
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div>Revenue: ${totalRevenue}</div>
+                      <div>Bookings: {confirmedBookings}</div>
+                      <div>Utilization: {Math.round(utilization)}%</div>
+                      {dayBookings.filter(b => b.status === 'cancelled').length > 0 && (
+                        <div className="text-red-600">
+                          {dayBookings.filter(b => b.status === 'cancelled').length} cancelled
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
