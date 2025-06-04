@@ -130,7 +130,7 @@ function NewBookingContent() {
       await apiClient.createBooking({
         customerId: formData.customerId,
         customerName: selectedCustomer.name,
-        customerPhone: selectedCustomer.phone,
+        customerPhone: (selectedCustomer as any).mobile || selectedCustomer.phone,
         customerEmail: selectedCustomer.email,
         serviceId: formData.serviceId,
         serviceName: selectedService.name,
@@ -199,7 +199,7 @@ function NewBookingContent() {
                   <SelectContent>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name} - {customer.phone}
+                        {customer.name} - {(customer as any).mobile || customer.phone}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -213,7 +213,7 @@ function NewBookingContent() {
                     <span className="font-medium">{selectedCustomer.name}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
-                  <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
+                  <p className="text-sm text-muted-foreground">{(selectedCustomer as any).mobile || selectedCustomer.phone}</p>
                 </div>
               )}
             </CardContent>

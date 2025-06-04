@@ -9,6 +9,7 @@ import { CustomersModule } from './customers/customers.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 
 @Module({
@@ -22,7 +23,8 @@ import { SessionService } from './auth/session.service';
     CustomersModule, 
     BookingsModule, 
     PaymentsModule,
-    StaffModule
+    StaffModule,
+    LoyaltyModule
   ],
   controllers: [AppController],
   providers: [

@@ -1,0 +1,379 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class LoyaltyService {
+  constructor(private prisma: PrismaService) {}
+
+  // Get or create loyalty program for merchant
+  async getProgram(merchantId: string) {
+    return this.prisma.loyaltyProgram.findFirst({
+      where: { merchantId }
+    });
+  }
+
+  // Save loyalty program settings
+  async updateProgram(merchantId: string, data: any) {
+    const existing = await this.getProgram(merchantId);
+    
+    if (existing) {
+      return this.prisma.loyaltyProgram.update({
+        where: { id: existing.id },
+        data
+      });
+    }
+    
+    // Create new program with default name
+    return this.prisma.loyaltyProgram.create({
+      data: {
+        merchantId,
+        name: 'Loyalty Program',
+        ...data
+      }
+    });
+  }
+
+  // Process booking completion
+  async processBookingCompletion(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { 
+        customer: true,
+        createdBy: true
+      }
+    });
+
+    if (!booking || booking.status !== 'COMPLETED') return;
+
+    const program = await this.getProgram(booking.merchantId);
+    if (!program?.isActive) return;
+
+    if (program.type === 'VISITS') {
+      await this.earnVisit(booking, program);
+    } else {
+      await this.earnPoints(booking, program);
+    }
+  }
+
+  // Earn a visit (punch card)
+  private async earnVisit(booking: any, program: any) {
+    // Check if this booking already earned a visit
+    const existingTransaction = await this.prisma.loyaltyTransaction.findFirst({
+      where: {
+        bookingId: booking.id,
+        type: 'EARNED',
+        visitsDelta: { gt: 0 }
+      }
+    });
+
+    if (existingTransaction) {
+      return { alreadyEarned: true };
+    }
+    
+    // Increment visit count
+    const customer = await this.prisma.customer.update({
+      where: { id: booking.customerId },
+      data: {
+        loyaltyVisits: { increment: 1 },
+        lifetimeVisits: { increment: 1 }
+      }
+    });
+
+    // Record transaction
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId: booking.customerId,
+        merchantId: booking.merchantId,
+        bookingId: booking.id,
+        type: 'EARNED',
+        visitsDelta: 1,
+        description: 'Visit earned from booking',
+        createdByStaffId: booking.createdById
+      }
+    });
+
+    // Check if reward earned
+    const newVisitCount = customer.loyaltyVisits + 1; // Account for increment
+    if (program.visitsRequired && newVisitCount >= program.visitsRequired) {
+      return { 
+        rewardAvailable: true,
+        visitsCompleted: newVisitCount,
+        visitsRequired: program.visitsRequired
+      };
+    }
+
+    return { 
+      rewardAvailable: false,
+      visitsCompleted: newVisitCount,
+      visitsRequired: program.visitsRequired || 10
+    };
+  }
+
+  // Earn points
+  private async earnPoints(booking: any, program: any) {
+    // Check if this booking already earned points
+    const existingTransaction = await this.prisma.loyaltyTransaction.findFirst({
+      where: {
+        bookingId: booking.id,
+        type: 'EARNED',
+        points: { gt: 0 }
+      }
+    });
+
+    if (existingTransaction) {
+      return { alreadyEarned: true };
+    }
+
+    const pointsPerDollar = program.pointsPerDollar || 1;
+    const pointsEarned = Math.floor(booking.totalAmount * pointsPerDollar);
+
+    if (pointsEarned === 0) return { pointsEarned: 0 };
+
+    // Add points
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { id: booking.customerId },
+      data: {
+        loyaltyPoints: { increment: pointsEarned }
+      }
+    });
+
+    // Record transaction
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId: booking.customerId,
+        merchantId: booking.merchantId,
+        bookingId: booking.id,
+        type: 'EARNED',
+        points: pointsEarned,
+        balance: updatedCustomer.loyaltyPoints + pointsEarned,
+        description: `Earned ${pointsEarned} points from booking`,
+        createdByStaffId: booking.createdById
+      }
+    });
+
+    return { 
+      pointsEarned,
+      newBalance: updatedCustomer.loyaltyPoints + pointsEarned
+    };
+  }
+
+  // Get customer loyalty status
+  async getCustomerLoyalty(customerId: string, merchantId: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        id: customerId,
+        merchantId
+      }
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const program = await this.getProgram(merchantId);
+    
+    // Get recent transactions
+    const transactions = await this.prisma.loyaltyTransaction.findMany({
+      where: {
+        customerId,
+        merchantId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10,
+      include: {
+        booking: true,
+        createdBy: true
+      }
+    });
+
+    if (program?.type === 'VISITS') {
+      return {
+        type: 'VISITS',
+        currentVisits: customer.loyaltyVisits,
+        visitsRequired: program.visitsRequired || 10,
+        rewardAvailable: customer.loyaltyVisits >= (program.visitsRequired || 10),
+        rewardType: program.visitRewardType,
+        rewardValue: program.visitRewardValue,
+        lifetimeVisits: customer.lifetimeVisits,
+        transactions
+      };
+    } else {
+      return {
+        type: 'POINTS',
+        currentPoints: customer.loyaltyPoints,
+        pointsValue: program?.pointsValue || 0.01,
+        dollarValue: customer.loyaltyPoints * (program?.pointsValue || 0.01),
+        transactions
+      };
+    }
+  }
+
+  // Redeem visits reward
+  async redeemVisitReward(customerId: string, merchantId: string, bookingId?: string, staffId?: string) {
+    const program = await this.getProgram(merchantId);
+    if (!program || program.type !== 'VISITS') {
+      throw new BadRequestException('Loyalty program not configured for visits');
+    }
+
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        id: customerId,
+        merchantId
+      }
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (customer.loyaltyVisits < program.visitsRequired) {
+      throw new BadRequestException(`Not enough visits. Required: ${program.visitsRequired}, Current: ${customer.loyaltyVisits}`);
+    }
+
+    // Reset visit count
+    await this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        loyaltyVisits: 0 // Reset punch card
+      }
+    });
+
+    // Record redemption
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId,
+        merchantId,
+        bookingId,
+        type: 'REDEEMED',
+        visitsDelta: -program.visitsRequired,
+        description: `Redeemed ${program.visitsRequired} visits for ${program.visitRewardType === 'FREE' ? 'free service' : `${program.visitRewardValue}% off`}`,
+        createdByStaffId: staffId
+      }
+    });
+
+    return {
+      success: true,
+      rewardType: program.visitRewardType,
+      rewardValue: program.visitRewardValue,
+      message: program.visitRewardType === 'FREE' 
+        ? 'Free service reward applied!' 
+        : `${program.visitRewardValue}% discount applied!`
+    };
+  }
+
+  // Redeem points
+  async redeemPoints(customerId: string, merchantId: string, points: number, bookingId?: string, staffId?: string) {
+    const program = await this.getProgram(merchantId);
+    if (!program || program.type !== 'POINTS') {
+      throw new BadRequestException('Loyalty program not configured for points');
+    }
+
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        id: customerId,
+        merchantId
+      }
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (customer.loyaltyPoints < points) {
+      throw new BadRequestException(`Insufficient points. Available: ${customer.loyaltyPoints}, Requested: ${points}`);
+    }
+
+    const pointsValue = program.pointsValue || 0.01;
+    const dollarValue = points * pointsValue;
+
+    // Deduct points
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        loyaltyPoints: { decrement: points }
+      }
+    });
+
+    // Record redemption
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId,
+        merchantId,
+        bookingId,
+        type: 'REDEEMED',
+        points: -points,
+        balance: updatedCustomer.loyaltyPoints - points,
+        description: `Redeemed ${points} points for $${dollarValue.toFixed(2)}`,
+        createdByStaffId: staffId
+      }
+    });
+
+    return { 
+      success: true,
+      dollarValue,
+      remainingPoints: updatedCustomer.loyaltyPoints - points,
+      message: `$${dollarValue.toFixed(2)} discount applied!`
+    };
+  }
+
+  // Manual adjustment (for admin use)
+  async adjustLoyalty(
+    customerId: string, 
+    merchantId: string, 
+    adjustment: { points?: number; visits?: number; reason: string },
+    staffId: string
+  ) {
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        id: customerId,
+        merchantId
+      }
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const updates: any = {};
+    const transactionData: any = {
+      customerId,
+      merchantId,
+      type: 'ADJUSTED',
+      description: adjustment.reason,
+      createdByStaffId: staffId
+    };
+
+    if (adjustment.points !== undefined) {
+      updates.loyaltyPoints = { increment: adjustment.points };
+      transactionData.points = adjustment.points;
+      transactionData.balance = customer.loyaltyPoints + adjustment.points;
+    }
+
+    if (adjustment.visits !== undefined) {
+      updates.loyaltyVisits = { increment: adjustment.visits };
+      if (adjustment.visits > 0) {
+        updates.lifetimeVisits = { increment: adjustment.visits };
+      }
+      transactionData.visitsDelta = adjustment.visits;
+    }
+
+    // Update customer
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { id: customerId },
+      data: updates
+    });
+
+    // Record transaction
+    await this.prisma.loyaltyTransaction.create({
+      data: transactionData
+    });
+
+    return {
+      success: true,
+      customer: updatedCustomer,
+      adjustment
+    };
+  }
+}

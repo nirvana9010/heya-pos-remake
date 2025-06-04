@@ -690,3 +690,232 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme="dark"] [data-highlighted][role="menuitem"] {
   background-color: #4b5563 !important;
 }
+
+/* Toast notification styles */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 100 !important;
+}
+
+[data-sonner-toast] {
+  background-color: white !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  opacity: 1 !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background-color: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  background-color: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #1e40af !important;
+}
+
+[data-sonner-toast-title] {
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+}
+
+[data-sonner-toast-description] {
+  font-size: 14px !important;
+  opacity: 0.9 !important;
+}
+
+/* Dark mode toast styles */
+[data-theme="dark"] [data-sonner-toast] {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  border-color: #374151 !important;
+}
+
+[data-theme="dark"] [data-sonner-toast][data-type="success"] {
+  background-color: #064e3b !important;
+  border-color: #059669 !important;
+  color: #d1fae5 !important;
+}
+
+[data-theme="dark"] [data-sonner-toast][data-type="error"] {
+  background-color: #7f1d1d !important;
+  border-color: #dc2626 !important;
+  color: #fee2e2 !important;
+}
+
+[data-theme="dark"] [data-sonner-toast][data-type="info"] {
+  background-color: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  color: #dbeafe !important;
+}
+
+/* Animation utilities for dialogs */
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes animate-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes zoom-out {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.95);
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-to-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes slide-out-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-10px);
+  }
+}
+
+/* Animation classes */
+.animate-in {
+  animation: animate-in 200ms ease-out;
+}
+
+.animate-out {
+  animation: animate-out 200ms ease-in;
+}
+
+.fade-in-0 {
+  animation: fade-in 200ms ease-out;
+}
+
+.fade-out-0 {
+  animation: fade-out 200ms ease-in;
+}
+
+.zoom-in-95 {
+  animation: zoom-in 200ms ease-out;
+}
+
+.zoom-out-95 {
+  animation: zoom-out 200ms ease-in;
+}
+
+.data-\[state\=open\]\:animate-in[data-state="open"] {
+  animation: animate-in 200ms ease-out;
+}
+
+.data-\[state\=closed\]\:animate-out[data-state="closed"] {
+  animation: animate-out 200ms ease-in;
+}
+
+.data-\[state\=open\]\:fade-in-0[data-state="open"] {
+  animation: fade-in 200ms ease-out;
+}
+
+.data-\[state\=closed\]\:fade-out-0[data-state="closed"] {
+  animation: fade-out 200ms ease-in;
+}
+
+.data-\[state\=open\]\:zoom-in-95[data-state="open"] {
+  animation: zoom-in 200ms ease-out;
+}
+
+.data-\[state\=closed\]\:zoom-out-95[data-state="closed"] {
+  animation: zoom-out 200ms ease-in;
+}
+
+.data-\[state\=open\]\:slide-in-from-left-1\/2[data-state="open"] {
+  animation: slide-in-from-left 200ms ease-out;
+}
+
+.data-\[state\=open\]\:slide-in-from-top-\[48\%\][data-state="open"] {
+  animation: slide-in-from-top 200ms ease-out;
+}
+
+.data-\[state\=closed\]\:slide-out-to-left-1\/2[data-state="closed"] {
+  animation: slide-out-to-left 200ms ease-in;
+}
+
+.data-\[state\=closed\]\:slide-out-to-top-\[48\%\][data-state="closed"] {
+  animation: slide-out-to-top 200ms ease-in;
+}

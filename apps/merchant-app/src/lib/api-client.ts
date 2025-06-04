@@ -182,6 +182,17 @@ class ApiClient {
       params = { date: params.toISOString() };
     }
     const response = await this.axiosInstance.get('/bookings', { params });
+    
+    // Debug pagination
+    console.log('Bookings API raw response:', {
+      hasData: !!response.data.data,
+      dataLength: response.data.data?.length || response.data.length,
+      total: response.data.total,
+      page: response.data.page,
+      limit: response.data.limit,
+      params: params
+    });
+    
     // Real API returns paginated response, extract data
     const bookings = response.data.data || response.data;
     
@@ -228,7 +239,7 @@ class ApiClient {
       customerName: booking.customer ? 
         `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
         'Unknown Customer',
-      customerPhone: booking.customer?.phone || '',
+      customerPhone: booking.customer?.mobile || booking.customer?.phone || '',
       customerEmail: booking.customer?.email || '',
       serviceName: serviceName,
       staffName: booking.provider ? 

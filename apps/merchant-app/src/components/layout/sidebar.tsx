@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Menu,
   Sparkles,
+  Gift,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
 
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Staff', href: '/staff', icon: Users },
   { name: 'Services', href: '/services', icon: Package },
+  { name: 'Loyalty', href: '/loyalty', icon: Gift },
   { name: 'Payments', href: '/payments', icon: DollarSign },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },

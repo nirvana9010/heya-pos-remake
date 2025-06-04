@@ -31,7 +31,7 @@ interface BookingSlideOutProps {
   initialStaffId?: string;
   staff: Array<{ id: string; name: string; color: string }>;
   services: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
-  customers?: Array<{ id: string; name: string; phone: string; email?: string }>;
+  customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
   onSave: (booking: any) => void;
 }
 
@@ -92,7 +92,7 @@ export function BookingSlideOut({
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery)
+    (c.mobile || c.phone || '').includes(searchQuery)
   );
 
   const handleNext = () => {
@@ -144,7 +144,7 @@ export function BookingSlideOut({
                         ...formData,
                         customerId: customer.id,
                         customerName: customer.name,
-                        customerPhone: customer.phone,
+                        customerPhone: customer.mobile || customer.phone,
                         customerEmail: customer.email || "",
                         isNewCustomer: false
                       });
@@ -152,7 +152,7 @@ export function BookingSlideOut({
                     }}
                   >
                     <div className="font-medium">{customer.name}</div>
-                    <div className="text-sm text-gray-600">{customer.phone}</div>
+                    <div className="text-sm text-gray-600">{customer.mobile || customer.phone}</div>
                   </button>
                 ))}
               </div>

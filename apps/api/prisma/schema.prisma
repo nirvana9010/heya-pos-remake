@@ -167,6 +167,10 @@ model Customer {
   loyaltyPoints       Float                @default(0)
   visitCount          Int                  @default(0)
   totalSpent          Float                @default(0)
+  
+  // Loyalty tracking
+  loyaltyVisits       Int                  @default(0)  // Current punch card progress
+  lifetimeVisits      Int                  @default(0)  // Total visits ever for loyalty
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   bookings            Booking[]
@@ -258,6 +262,7 @@ model Booking {
   location           Location         @relation(fields: [locationId], references: [id])
   services           BookingService[]
   invoice            Invoice?
+  loyaltyTransactions LoyaltyTransaction[]
 
   @@index([merchantId])
   @@index([locationId])
@@ -342,10 +347,10 @@ model Payment {
   merchantId            String
   locationId            String
   invoiceId             String
-  paymentMethod         String
+  paymentMethod         PaymentMethod
   amount                Float
   currency              String          @default("AUD")
-  status                String          @default("PENDING")
+  status                PaymentStatus   @default(PENDING)
   reference             String?
   stripePaymentIntentId String?
   tyroTransactionId     String?
@@ -371,7 +376,7 @@ model PaymentRefund {
   paymentId   String
   amount      Float
   reason      String
-  status      String    @default("PENDING")
+  status      RefundStatus @default(PENDING)
   reference   String?
   processedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -384,15 +389,24 @@ model PaymentRefund {
 
 model LoyaltyProgram {
   id                String        @id @default(cuid())
-  merchantId        String
+  merchantId        String        @unique
   name              String
   description       String?
-  type              String        @default("POINTS")
+  type              String        @default("POINTS") // VISITS or POINTS
+  
+  // Visit-based settings (punch card)
+  visitsRequired    Int?          // e.g., 10 visits for reward
+  visitRewardType   String?       // FREE or PERCENTAGE
+  visitRewardValue  Float?        // 100 for free, or 20 for 20% off
+  
+  // Points-based settings
   pointsPerVisit    Float?
-  pointsPerDollar   Float?
+  pointsPerDollar   Float?        @default(1)
   pointsPerCurrency Float         @default(1)
   rewardThreshold   Float         @default(100)
   rewardValue       Float         @default(10)
+  pointsValue       Float         @default(0.01) // Dollar value per point for redemption
+  
   expiryDays        Int?
   isActive          Boolean       @default(true)
   terms             String?
@@ -402,7 +416,6 @@ model LoyaltyProgram {
   merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   tiers             LoyaltyTier[]
 
-  @@unique([merchantId, name])
   @@index([merchantId])
   @@index([isActive])
 }
@@ -452,22 +465,24 @@ model LoyaltyCard {
 
 model LoyaltyTransaction {
   id               String      @id @default(cuid())
-  cardId           String
+  cardId           String?     // Made optional for direct customer transactions
   customerId       String
   merchantId       String
-  type             String
-  points           Float
-  balance          Float
+  type             String      // EARNED, REDEEMED, EXPIRED, ADJUSTED
+  points           Float       @default(0)
+  visitsDelta      Int         @default(0) // +1 for earned visit, -X for redeemed visits
+  balance          Float       @default(0)
   description      String
   referenceType    String?
   referenceId      String?
   bookingId        String?
+  booking          Booking?    @relation(fields: [bookingId], references: [id])
   expiresAt        DateTime?
   createdByStaffId String?
   createdAt        DateTime    @default(now())
   createdBy        Staff?      @relation(fields: [createdByStaffId], references: [id])
   customer         Customer    @relation(fields: [customerId], references: [id])
-  card             LoyaltyCard @relation(fields: [cardId], references: [id])
+  card             LoyaltyCard? @relation(fields: [cardId], references: [id])
 
   @@index([cardId])
   @@index([customerId])
@@ -493,4 +508,28 @@ model AuditLog {
   @@index([staffId])
   @@index([action])
   @@index([timestamp])
+}
+
+// Enums
+enum PaymentMethod {
+  CASH
+  CARD
+  CARD_STRIPE
+  CARD_TYRO
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

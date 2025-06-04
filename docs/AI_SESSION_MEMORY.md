@@ -49,72 +49,54 @@ npm run clean-start # Clean caches and start fresh
 
 ```
 API won't start?
-├─ Try once: `cd apps/api && npm run start:dev`
-├─ Still failing? → CHECK TASK REQUIREMENTS:
-│   ├─ Can use mockApi? → USE IT ✅
-│   └─ MUST use real API? → See "When Real API is Required" below
-└─ Don't debug blindly → Have a clear fix strategy
-
-Need to test UI?
-├─ API running? → Use real API
-├─ API broken? → Use mockApi (if possible)
-└─ Don't wait → Complete what you can
+├─ Check status: `npm run status`
+├─ Try restart: `npm run restart`
+├─ Still failing? → Use clean start: `npm run clean-start`
+└─ Still issues? → Debug systematically (see below)
 
 Repeated error pattern?
 ├─ Same error 3+ times? → STOP
 ├─ Check this file for solution
+├─ Fix the root cause, don't work around it
 └─ If not here → Add it after fixing
 ```
 
-### When Real API is Required (Can't Use MockApi)
+### Fixing API Issues Properly
 
-**MUST use real API for:**
-1. **Database Operations**
-   - Data persistence testing
-   - Database migrations
-   - Seeding test data
-   - Testing transactions
+**Common API startup problems and their REAL fixes:**
 
-2. **Authentication Testing**
-   - JWT token generation/validation
-   - Session management
-   - Permission checking
-   - Security testing
+1. **Port conflicts (EADDRINUSE)**
+   ```bash
+   npm run stop       # Clean shutdown
+   npm run status     # Verify stopped
+   npm run start      # Clean start
+   ```
 
-3. **Integration Testing**
-   - Third-party service integration
-   - WebSocket real-time features
-   - File uploads
-   - Email sending
+2. **Module resolution errors**
+   ```bash
+   # Build packages first - they're dependencies!
+   npm run build:packages
+   npm run clean-start
+   ```
 
-4. **Performance Testing**
-   - Load testing
-   - Query optimization
-   - Caching behavior
+3. **Build cache corruption**
+   ```bash
+   # Nuclear option - full reset
+   cd apps/api
+   rm -rf dist node_modules .next
+   npm install
+   npm run build
+   npm run start:dev
+   ```
 
-5. **API-Specific Features**
-   - Swagger documentation
-   - API versioning
-   - Rate limiting
-   - CORS configuration
+4. **Process zombies**
+   ```bash
+   npm run stop       # Uses proper process tracking
+   ps aux | grep nest # Verify cleanup
+   npm run start      # Fresh start
+   ```
 
-**If Real API is Required:**
-```bash
-# 1. Focus on the specific error
-cat apps/api/api.log | tail -50
-
-# 2. Try the simple fix first
-cd apps/api && node dist/main.js
-
-# 3. If module errors, try dev mode
-npm run start:dev
-
-# 4. Last resort - fresh build
-rm -rf dist node_modules
-npm install
-npm run build:packages
-npm run build
-```
+**Key principle**: The API MUST work. Don't bypass it - fix it.
 
 ## 🚨 Critical Rules - DO NOT VIOLATE
 
@@ -155,11 +137,11 @@ npm run build
 - **WHY**: Broad kill commands can terminate the development environment
 
 ### 4. API Build & Startup
-- **NEVER** waste time debugging API module resolution errors
-- **ALWAYS** check if API is already built: `ls apps/api/dist/`
+- **ALWAYS** fix API issues properly - no workarounds
+- **FIRST** check if API is already built: `ls apps/api/dist/`
 - **PROBLEM**: NestJS build creates nested structure (dist/apps/api/src/main.js)
-- **QUICK FIX**: `cd apps/api && node dist/main.js` (if exists)
-- **WHY**: Monorepo + TypeScript paths = complex build issues
+- **PROPER FIX**: Use the npm scripts that handle this complexity
+- **WHY**: Workarounds create technical debt and hide real issues
 
 ### 5. Package Management
 - **ALWAYS** build packages before API: `npm run build -w @heya-pos/types -w @heya-pos/utils`
@@ -370,10 +352,10 @@ Right: Debug UI → Can you see it? → Is it clickable? → Does it render?
 - Multiple build attempts with same result
 - Debugging module paths that were fundamentally broken
 
-**Key Learning**: STOP trying to fix API build issues during testing!
-- Use mockApi for UI testing
-- Document API issues and move on
-- Come back to API fixes in dedicated session
+**Key Learning**: Fix API issues immediately!
+- Don't work around them - they'll only get worse
+- Use the proper scripts (`npm run clean-start`)
+- Every workaround creates future problems
 
 **Pattern to Avoid**:
 ```
@@ -387,30 +369,30 @@ Right: Debug UI → Can you see it? → Is it clickable? → Does it render?
 
 **Better Approach**:
 ```
-1. API won't start? → Use mockApi ✅
-2. Document the issue → Move on ✅
-3. Complete the user's task → Success ✅
+1. API won't start? → Use npm run status & restart ✅
+2. Still broken? → Use npm run clean-start ✅
+3. Fix root cause → No tech debt ✅
 ```
 
 ## 🎯 Optimization Strategies
 
-### Smart Task Assessment
+### Smart Problem Solving
 
-Before diving into fixes, ask:
-1. **What's the actual goal?**
-   - UI testing? → MockApi probably fine
-   - Database testing? → Need real API
-   - Feature demo? → MockApi often sufficient
+When facing API issues:
+1. **Use the right tools**
+   - `npm run status` - What's actually running?
+   - `npm run restart` - Clean restart
+   - `npm run clean-start` - Full reset with cache clearing
 
-2. **What's the time budget?**
-   - Quick task? → Use mockApi
-   - Deep dive session? → Fix the API
-   - Mixed tasks? → Start with mockApi, fix API later
+2. **Fix root causes**
+   - Port conflicts? → Proper shutdown/startup
+   - Build errors? → Build packages first
+   - Module errors? → Check package exports
 
-3. **What's blocking progress?**
-   - Just API startup? → Try workarounds
-   - Fundamental architecture issue? → Needs proper fix
-   - Unknown? → Try mockApi first to understand
+3. **No workarounds**
+   - Every shortcut creates debt
+   - Fix it now or waste hours later
+   - The scripts exist for a reason - use them!
 
 ### For Future Sessions
 1. **First Steps**:
@@ -502,3 +484,24 @@ Before ending session:
 - [ ] Document any new issues discovered
 - [ ] Note what's working/broken
 - [ ] Add any new efficiency tips
+
+## 📚 Important Debugging Principles
+
+### Always Investigate Root Causes Before Implementing Workarounds
+**Added**: 2025-06-03
+
+When encountering import errors or "missing" components:
+1. **FIRST**: Check if the component exists in the codebase
+2. **SECOND**: Verify it's exported from package index files
+3. **THIRD**: Look for working examples in other files
+4. **NEVER**: Jump straight to implementing a workaround
+
+**Example**: Staff page DataTable "missing" - Actually existed in UI package, just needed proper import.
+
+**Cost of Workarounds**:
+- Technical debt accumulation
+- Loss of features (pagination, sorting, etc.)
+- Inconsistent user experience
+- More work to fix later
+
+**See**: `/docs/sessions/2025-06-03-component-import-debugging.md` for detailed case study

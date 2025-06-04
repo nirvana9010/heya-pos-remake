@@ -6,6 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Badge } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
 import { DataTable } from '@heya-pos/ui';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
@@ -182,6 +189,25 @@ export default function StaffPage() {
     }
   };
 
+  const handleToggleStatus = async (member: Staff) => {
+    const newStatus = member.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    
+    try {
+      await apiClient.updateStaff(member.id, { status: newStatus });
+      toast({
+        title: "Success",
+        description: `Staff member ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'} successfully`,
+      });
+      loadStaff();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update staff status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       firstName: '',
@@ -216,38 +242,42 @@ export default function StaffPage() {
 
   const columns = [
     {
+      id: 'name',
       header: 'Staff Member',
-      accessor: 'name',
-      cell: ({ row }: any) => (
-        <div className="flex items-center space-x-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
-            style={{ backgroundColor: row.calendarColor }}
-          >
-            {row.firstName[0]}{row.lastName[0]}
+      accessorKey: 'name',
+      cell: ({ row }: any) => {
+        const staff = row.original;
+        return (
+          <div className="flex items-center space-x-3">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
+              style={{ backgroundColor: staff.calendarColor }}
+            >
+              {staff.firstName[0]}{staff.lastName[0]}
+            </div>
+            <div>
+              <p className="font-medium">{staff.firstName} {staff.lastName}</p>
+              <p className="text-sm text-gray-500">{staff.email}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium">{row.firstName} {row.lastName}</p>
-            <p className="text-sm text-gray-500">{row.email}</p>
-          </div>
-        </div>
-      )
+        );
+      }
     },
     {
+      accessorKey: 'phone',
       header: 'Phone',
-      accessor: 'phone',
       cell: ({ row }: any) => (
         <div className="flex items-center space-x-2">
           <Phone className="h-4 w-4 text-gray-400" />
-          <span>{row.phone || '-'}</span>
+          <span>{row.original.phone || '-'}</span>
         </div>
       )
     },
     {
+      accessorKey: 'accessLevel',
       header: 'Access Level',
-      accessor: 'accessLevel',
       cell: ({ row }: any) => {
-        const level = accessLevels.find(l => l.value === row.accessLevel);
+        const level = accessLevels.find(l => l.value === row.original.accessLevel);
         return (
           <div className="flex items-center space-x-2">
             <Shield className="h-4 w-4 text-gray-400" />
@@ -257,18 +287,18 @@ export default function StaffPage() {
       }
     },
     {
+      accessorKey: 'commissionRate',
       header: 'Commission',
-      accessor: 'commissionRate',
       cell: ({ row }: any) => (
-        <span>{row.commissionRate ? `${(row.commissionRate * 100).toFixed(0)}%` : '-'}</span>
+        <span>{row.original.commissionRate ? `${row.original.commissionRate}%` : '-'}</span>
       )
     },
     {
+      accessorKey: 'status',
       header: 'Status',
-      accessor: 'status',
       cell: ({ row }: any) => (
-        <Badge variant={row.status === 'ACTIVE' ? 'default' : 'secondary'}>
-          {row.status === 'ACTIVE' ? (
+        <Badge variant={row.original.status === 'ACTIVE' ? 'default' : 'secondary'}>
+          {row.original.status === 'ACTIVE' ? (
             <>
               <UserCheck className="h-3 w-3 mr-1" />
               Active
@@ -283,27 +313,54 @@ export default function StaffPage() {
       )
     },
     {
+      id: 'actions',
       header: 'Actions',
-      cell: ({ row }: any) => (
-        <div className="flex space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openEditDialog(row)}
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-red-600 hover:text-red-700"
-            onClick={() => handleDelete(row.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const staff = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openEditDialog(staff)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Details
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Key className="h-4 w-4 mr-2" />
+                Reset PIN
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleToggleStatus(staff)}
+                className={staff.status === 'ACTIVE' ? 'text-orange-600' : 'text-green-600'}
+              >
+                {staff.status === 'ACTIVE' ? (
+                  <>
+                    <UserX className="h-4 w-4 mr-2" />
+                    Deactivate
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Activate
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-red-600"
+                onClick={() => handleDelete(staff.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      }
     }
   ];
 

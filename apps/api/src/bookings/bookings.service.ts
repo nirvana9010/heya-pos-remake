@@ -5,10 +5,14 @@ import { UpdateBookingDto } from './dto/update-booking.dto';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { Prisma } from '@prisma/client';
 import { addMinutes, startOfDay, endOfDay, format, parse, isAfter, isBefore, isWithinInterval } from 'date-fns';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private loyaltyService: LoyaltyService
+  ) {}
 
   async create(merchantId: string, dto: CreateBookingDto, createdById: string) {
     // Validate customer exists
@@ -269,7 +273,7 @@ export class BookingsService {
       updateData.endTime = addMinutes(new Date(dto.startTime), totalDuration);
     }
 
-    return this.prisma.booking.update({
+    const updatedBooking = await this.prisma.booking.update({
       where: { id },
       data: updateData,
       include: {
@@ -282,6 +286,18 @@ export class BookingsService {
         },
       },
     });
+
+    // Process loyalty points/visits when booking is completed
+    if (dto.status === BookingStatus.COMPLETED) {
+      try {
+        await this.loyaltyService.processBookingCompletion(id);
+      } catch (error) {
+        // Log error but don't fail the booking update
+        console.error('Failed to process loyalty for booking:', error);
+      }
+    }
+
+    return updatedBooking;
   }
 
   async remove(merchantId: string, id: string) {
