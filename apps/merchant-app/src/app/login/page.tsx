@@ -7,12 +7,14 @@ import { Input } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Alert, AlertDescription } from '@heya-pos/ui';
+import { Checkbox } from '@heya-pos/ui';
 import { merchantLogin } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -26,7 +28,8 @@ export default function LoginPage() {
     try {
       const response = await merchantLogin(
         formData.username,
-        formData.password
+        formData.password,
+        rememberMe
       );
 
       // Store auth data - ensure the token field name matches what api-client expects
@@ -85,6 +88,21 @@ export default function LoginPage() {
                 required
                 disabled={loading}
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                disabled={loading}
+              />
+              <Label 
+                htmlFor="remember" 
+                className="text-sm font-normal cursor-pointer"
+              >
+                Remember me
+              </Label>
             </div>
 
             <Button 

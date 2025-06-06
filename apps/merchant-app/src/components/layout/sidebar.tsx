@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@heya-pos/ui'
+import { useTransition, useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Calendar,
@@ -39,6 +40,30 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [isNavigating, setIsNavigating] = useState(false)
+
+  const handleNavigation = (href: string) => {
+    // Show loading state immediately
+    setIsNavigating(true)
+    
+    // Use React's concurrent features to keep UI responsive
+    startTransition(() => {
+      // Prefetch the route first
+      router.prefetch(href)
+      
+      // Then navigate after a micro delay to allow UI to update
+      requestAnimationFrame(() => {
+        router.push(href)
+      })
+    })
+  }
+
+  // Clear navigation state when route changes
+  useEffect(() => {
+    setIsNavigating(false)
+  }, [pathname])
 
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -78,10 +103,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {navigation.map((item, index) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href)
           return (
-            <Link
+            <button
               key={item.name}
-              href={item.href}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => handleNavigation(item.href)}
+              className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
+              disabled={isPending || isNavigating}
             >
               <item.icon size={20} />
               {!collapsed && (
@@ -89,7 +115,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   {item.name}
                 </span>
               )}
-            </Link>
+            </button>
           )
         })}
       </nav>

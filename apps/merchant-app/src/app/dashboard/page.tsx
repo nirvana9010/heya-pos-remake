@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { StatCard } from '@heya-pos/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
+import { Skeleton, CardSkeleton } from '@heya-pos/ui';
+import { LastUpdated, ConnectionStatus, FadeIn } from '@heya-pos/ui';
 import { Calendar, Users, DollarSign, Clock, Plus, TrendingUp, Sparkles, Zap } from 'lucide-react';
 import { type Booking, type DashboardStats } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
@@ -14,19 +16,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "polling" | "disconnected">("connected");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    // Load dashboard data
-    loadDashboardData();
-  }, [router]);
+    // Load dashboard data immediately
+    loadDashboardData().finally(() => {
+      setIsInitialLoad(false);
+    });
+  }, []);
 
   const loadDashboardData = async () => {
     try {
@@ -40,8 +39,10 @@ export default function DashboardPage() {
       
       setStats(dashboardStats);
       setTodayBookings(bookings);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
+      setConnectionStatus("disconnected");
     } finally {
       setLoading(false);
     }
@@ -54,8 +55,66 @@ export default function DashboardPage() {
     { label: 'Reports', icon: DollarSign, action: () => router.push('/reports') }
   ];
 
+  // Show skeleton during initial load
+  if (isInitialLoad && loading) {
+    return (
+      <div className="container animate-in fade-in-0 duration-300" style={{ 
+        padding: 'var(--space-6)'
+      }}>
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <Skeleton className="h-10 w-48 mb-2" />
+            <Skeleton className="h-6 w-80" />
+          </div>
+          <Skeleton className="h-10 w-36" />
+        </div>
+
+        {/* Stats Grid skeleton */}
+        <div className="dashboard-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="stat-card">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-10 w-10 rounded" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Actions skeleton */}
+        <div className="card">
+          <Skeleton className="h-8 w-40 mb-6" />
+          <div className="quick-actions">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+        </div>
+
+        {/* Today's Schedule skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <Skeleton className="h-8 w-48 mb-6" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <Skeleton className="h-8 w-48 mb-6" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container" style={{ 
+    <div className="container animate-in fade-in-0 slide-in-from-bottom-4 duration-300" style={{ 
       padding: 'var(--space-6)'
     }}>
       {/* Header */}

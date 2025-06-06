@@ -1,57 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useLayoutEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
+// Check auth synchronously on mount to avoid flash
+function checkAuthSync() {
+  if (typeof window === 'undefined') return true;
+  const token = localStorage.getItem('access_token');
+  return !!token;
+}
+
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
+  // Initialize with sync check to avoid flash
+  const [isAuthenticated, setIsAuthenticated] = useState(checkAuthSync);
+  const [hasChecked, setHasChecked] = useState(false);
 
-  useEffect(() => {
-    console.log('[AuthGuard] Checking authentication...');
-    console.log('[AuthGuard] Current pathname:', pathname);
-
-    // Check for access token
+  // Use useLayoutEffect for faster auth check
+  useLayoutEffect(() => {
     const token = localStorage.getItem('access_token');
-    console.log('[AuthGuard] Token exists:', !!token);
-
-    if (!token) {
-      console.log('[AuthGuard] No token found, redirecting to login');
-      setIsAuthenticated(false);
-      setIsChecking(false);
-      
-      // Only redirect once to avoid multiple redirects
-      if (!hasRedirected) {
-        setHasRedirected(true);
-        // Use window.location for immediate redirect
-        window.location.href = '/login';
-      }
-    } else {
-      console.log('[AuthGuard] Token found, allowing access');
-      setIsAuthenticated(true);
-      setIsChecking(false);
+    const authenticated = !!token;
+    
+    setIsAuthenticated(authenticated);
+    setHasChecked(true);
+    
+    if (!authenticated && pathname !== '/login') {
+      router.replace('/login');
     }
-  }, [pathname, hasRedirected]);
+  }, [pathname, router]);
 
-  // Show loading spinner while checking auth
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  // If we haven't checked yet but initial sync check passed, render immediately
+  // This prevents the loading state for authenticated users
+  if (!hasChecked && isAuthenticated) {
+    return <>{children}</>;
   }
 
-  // If not authenticated after checking, show nothing (prevents any API calls)
-  if (!isAuthenticated) {
-    console.log('[AuthGuard] Not authenticated, preventing render');
+  // If not authenticated after checking, show nothing
+  if (hasChecked && !isAuthenticated) {
     return null;
   }
 

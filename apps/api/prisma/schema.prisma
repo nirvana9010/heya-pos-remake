@@ -22,30 +22,30 @@ model Package {
 }
 
 model Merchant {
-  id                 String           @id @default(cuid())
+  id                 String          @id @default(cuid())
   name               String
-  email              String           @unique
+  email              String          @unique
   phone              String?
   abn                String?
-  subdomain          String           @unique
+  subdomain          String          @unique
   packageId          String
-  subscriptionStatus String           @default("TRIAL")
+  subscriptionStatus String          @default("TRIAL")
   subscriptionEnds   DateTime?
   trialEndsAt        DateTime?
   stripeCustomerId   String?
   website            String?
   logo               String?
   description        String?
-  status             String           @default("ACTIVE")
+  status             String          @default("ACTIVE")
   settings           Json
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
   auditLogs          AuditLog[]
   customers          Customer[]
   invoices           Invoice[]
   locations          Location[]
-  loyaltyPrograms    LoyaltyProgram[]
-  package            Package          @relation(fields: [packageId], references: [id])
+  loyaltyPrograms    LoyaltyProgram?
+  package            Package         @relation(fields: [packageId], references: [id])
   merchantAuth       MerchantAuth?
   services           Service[]
   staff              Staff[]
@@ -167,10 +167,8 @@ model Customer {
   loyaltyPoints       Float                @default(0)
   visitCount          Int                  @default(0)
   totalSpent          Float                @default(0)
-  
-  // Loyalty tracking
-  loyaltyVisits       Int                  @default(0)  // Current punch card progress
-  lifetimeVisits      Int                  @default(0)  // Total visits ever for loyalty
+  loyaltyVisits       Int                  @default(0)
+  lifetimeVisits      Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   bookings            Booking[]
@@ -234,34 +232,34 @@ model ServiceCategory {
 }
 
 model Booking {
-  id                 String           @id @default(cuid())
-  merchantId         String
-  locationId         String
-  customerId         String
-  bookingNumber      String           @unique
-  status             String           @default("PENDING")
-  startTime          DateTime
-  endTime            DateTime
-  totalAmount        Float
-  depositAmount      Float            @default(0)
-  notes              String?
-  cancellationReason String?
-  source             String           @default("ONLINE")
-  createdById        String
-  providerId         String
-  reminderSent       Boolean          @default(false)
-  confirmedAt        DateTime?
-  checkedInAt        DateTime?
-  completedAt        DateTime?
-  cancelledAt        DateTime?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  createdBy          Staff            @relation("BookingCreator", fields: [createdById], references: [id])
-  provider           Staff            @relation("BookingProvider", fields: [providerId], references: [id])
-  customer           Customer         @relation(fields: [customerId], references: [id])
-  location           Location         @relation(fields: [locationId], references: [id])
-  services           BookingService[]
-  invoice            Invoice?
+  id                  String               @id @default(cuid())
+  merchantId          String
+  locationId          String
+  customerId          String
+  bookingNumber       String               @unique
+  status              String               @default("PENDING")
+  startTime           DateTime
+  endTime             DateTime
+  totalAmount         Float
+  depositAmount       Float                @default(0)
+  notes               String?
+  cancellationReason  String?
+  source              String               @default("ONLINE")
+  createdById         String
+  providerId          String
+  reminderSent        Boolean              @default(false)
+  confirmedAt         DateTime?
+  checkedInAt         DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
+  provider            Staff                @relation("BookingProvider", fields: [providerId], references: [id])
+  customer            Customer             @relation(fields: [customerId], references: [id])
+  location            Location             @relation(fields: [locationId], references: [id])
+  services            BookingService[]
+  invoice             Invoice?
   loyaltyTransactions LoyaltyTransaction[]
 
   @@index([merchantId])
@@ -347,10 +345,10 @@ model Payment {
   merchantId            String
   locationId            String
   invoiceId             String
-  paymentMethod         PaymentMethod
+  paymentMethod         String
   amount                Float
   currency              String          @default("AUD")
-  status                PaymentStatus   @default(PENDING)
+  status                String          @default("PENDING")
   reference             String?
   stripePaymentIntentId String?
   tyroTransactionId     String?
@@ -376,7 +374,7 @@ model PaymentRefund {
   paymentId   String
   amount      Float
   reason      String
-  status      RefundStatus @default(PENDING)
+  status      String    @default("PENDING")
   reference   String?
   processedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -392,21 +390,16 @@ model LoyaltyProgram {
   merchantId        String        @unique
   name              String
   description       String?
-  type              String        @default("POINTS") // VISITS or POINTS
-  
-  // Visit-based settings (punch card)
-  visitsRequired    Int?          // e.g., 10 visits for reward
-  visitRewardType   String?       // FREE or PERCENTAGE
-  visitRewardValue  Float?        // 100 for free, or 20 for 20% off
-  
-  // Points-based settings
+  type              String        @default("POINTS")
+  visitsRequired    Int?
+  visitRewardType   String?
+  visitRewardValue  Float?
   pointsPerVisit    Float?
   pointsPerDollar   Float?        @default(1)
   pointsPerCurrency Float         @default(1)
   rewardThreshold   Float         @default(100)
   rewardValue       Float         @default(10)
-  pointsValue       Float         @default(0.01) // Dollar value per point for redemption
-  
+  pointsValue       Float         @default(0.01)
   expiryDays        Int?
   isActive          Boolean       @default(true)
   terms             String?
@@ -464,25 +457,25 @@ model LoyaltyCard {
 }
 
 model LoyaltyTransaction {
-  id               String      @id @default(cuid())
-  cardId           String?     // Made optional for direct customer transactions
+  id               String       @id @default(cuid())
+  cardId           String?
   customerId       String
   merchantId       String
-  type             String      // EARNED, REDEEMED, EXPIRED, ADJUSTED
-  points           Float       @default(0)
-  visitsDelta      Int         @default(0) // +1 for earned visit, -X for redeemed visits
-  balance          Float       @default(0)
+  type             String
+  points           Float        @default(0)
+  visitsDelta      Int          @default(0)
+  balance          Float        @default(0)
   description      String
   referenceType    String?
   referenceId      String?
   bookingId        String?
-  booking          Booking?    @relation(fields: [bookingId], references: [id])
   expiresAt        DateTime?
   createdByStaffId String?
-  createdAt        DateTime    @default(now())
-  createdBy        Staff?      @relation(fields: [createdByStaffId], references: [id])
-  customer         Customer    @relation(fields: [customerId], references: [id])
+  createdAt        DateTime     @default(now())
   card             LoyaltyCard? @relation(fields: [cardId], references: [id])
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  createdBy        Staff?       @relation(fields: [createdByStaffId], references: [id])
+  booking          Booking?     @relation(fields: [bookingId], references: [id])
 
   @@index([cardId])
   @@index([customerId])
@@ -508,28 +501,4 @@ model AuditLog {
   @@index([staffId])
   @@index([action])
   @@index([timestamp])
-}
-
-// Enums
-enum PaymentMethod {
-  CASH
-  CARD
-  CARD_STRIPE
-  CARD_TYRO
-  BANK_TRANSFER
-  OTHER
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-  PARTIALLY_REFUNDED
-}
-
-enum RefundStatus {
-  PENDING
-  COMPLETED
-  FAILED
 }

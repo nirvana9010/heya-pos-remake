@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "madge": "^8.0.0",
     "prettier": "^3.2.5",
     "turbo": "^2.5.3"
   },

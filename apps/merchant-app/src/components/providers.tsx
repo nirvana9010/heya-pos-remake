@@ -3,6 +3,8 @@
 import { usePathname } from 'next/navigation';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { AuthGuard } from './AuthGuard';
+import { PrefetchManager } from './PrefetchManager';
+import { PerformanceMonitor } from './PerformanceMonitor';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,6 +18,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
+      <PerformanceMonitor />
+      <PrefetchManager />
       <DashboardLayout>{children}</DashboardLayout>
     </AuthGuard>
   );

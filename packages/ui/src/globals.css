@@ -57,3 +57,84 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Shimmer animation for skeletons */
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Scale in animation for success check */
+  @keyframes scale-in {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Draw check animation */
+  @keyframes draw-check {
+    0% {
+      stroke-dasharray: 0 100;
+    }
+    100% {
+      stroke-dasharray: 100 0;
+    }
+  }
+
+  /* Shake animation for errors */
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(2px);
+    }
+  }
+
+  /* Fade in animation */
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  .animate-draw-check {
+    stroke-dasharray: 0 100;
+    animation: draw-check 0.3s ease-out 0.3s forwards;
+  }
+
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .animate-fade-in {
+    opacity: 0;
+    animation: fade-in 0.3s ease-out forwards;
+  }
+}

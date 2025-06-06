@@ -11,6 +11,9 @@ import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
+import { DebugModule } from './debug/debug.module';
+import { PublicModule } from './public/public.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -24,7 +27,10 @@ import { SessionService } from './auth/session.service';
     BookingsModule, 
     PaymentsModule,
     StaffModule,
-    LoyaltyModule
+    LoyaltyModule,
+    DebugModule,
+    PublicModule,
+    LocationsModule
   ],
   controllers: [AppController],
   providers: [

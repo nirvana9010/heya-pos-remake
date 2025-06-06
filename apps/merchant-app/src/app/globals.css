@@ -5,6 +5,67 @@
 /* Import Inter Font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Page transition animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth page transitions */
+.animate-in {
+  animation-fill-mode: both;
+  animation-duration: 300ms;
+}
+
+.fade-in-0 {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom;
+}
+
+/* Prevent layout shift during navigation */
+main {
+  min-height: calc(100vh - 60px);
+}
+
+/* Skeleton loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 /* Dialog and Modal Styles */
 [data-radix-portal] {
   z-index: 50 !important;
@@ -407,6 +468,10 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
   margin-bottom: var(--space-1);
   text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .nav-item:hover {
@@ -417,6 +482,11 @@ h1, h2, h3, h4, h5, h6 {
 .nav-item.active {
   background-color: var(--primary);
   color: white;
+}
+
+.nav-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Top Bar */

@@ -33,7 +33,7 @@ export class BookingsController {
 
   @Post()
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.create')
+  @Permissions('booking.create')
   async create(@CurrentUser() user: any, @Body() createBookingDto: CreateBookingDto) {
     const booking = await this.bookingsService.create(user.merchantId, createBookingDto, user.staffId || user.id);
     
@@ -44,19 +44,19 @@ export class BookingsController {
   }
 
   @Get()
-  @Permissions('bookings.read')
+  @Permissions('booking.view')
   findAll(@CurrentUser() user: any, @Query() query: QueryBookingsDto) {
     return this.bookingsService.findAll(user.merchantId, query);
   }
 
   @Get('calendar')
-  @Permissions('bookings.read')
+  @Permissions('booking.view')
   getCalendarView(@CurrentUser() user: any, @Query() params: any) {
     return this.bookingsService.getCalendarView(user.merchantId, params);
   }
 
   @Post('check-availability')
-  @Permissions('bookings.read')
+  @Permissions('booking.view')
   @HttpCode(HttpStatus.OK)
   checkAvailability(
     @CurrentUser() user: any,
@@ -66,14 +66,14 @@ export class BookingsController {
   }
 
   @Get(':id')
-  @Permissions('bookings.read')
+  @Permissions('booking.view')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
     return this.bookingsService.findOne(user.merchantId, id);
   }
 
   @Patch(':id')
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.update')
+  @Permissions('booking.update')
   async update(
     @CurrentUser() user: any,
     @Param('id') id: string,
@@ -89,7 +89,7 @@ export class BookingsController {
 
   @Delete(':id')
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.delete')
+  @Permissions('booking.cancel')
   async remove(@CurrentUser() user: any, @Param('id') id: string) {
     const booking = await this.bookingsService.remove(user.merchantId, id);
     
@@ -101,7 +101,7 @@ export class BookingsController {
 
   @Patch(':id/status')
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.update')
+  @Permissions('booking.update')
   async updateStatus(
     @CurrentUser() user: any,
     @Param('id') id: string,
@@ -117,7 +117,7 @@ export class BookingsController {
 
   @Post(':id/start')
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.update')
+  @Permissions('booking.update')
   @HttpCode(HttpStatus.OK)
   async startBooking(@CurrentUser() user: any, @Param('id') id: string) {
     const booking = await this.bookingsService.update(user.merchantId, id, {
@@ -132,7 +132,7 @@ export class BookingsController {
 
   @Post(':id/complete')
   @UseGuards(PinAuthGuard)
-  @Permissions('bookings.update')
+  @Permissions('booking.update')
   @HttpCode(HttpStatus.OK)
   async completeBooking(@CurrentUser() user: any, @Param('id') id: string) {
     const booking = await this.bookingsService.update(user.merchantId, id, {

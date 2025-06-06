@@ -4,6 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
+  private refreshPromise: Promise<any> | null = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -36,19 +37,22 @@ class ApiClient {
         });
         return response;
       },
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+        
         console.log('[API Client] Error interceptor triggered:', {
-          url: error.config?.url,
+          url: originalRequest?.url,
           status: error.response?.status,
           hasResponse: !!error.response,
-          isWindowDefined: typeof window !== 'undefined'
+          isWindowDefined: typeof window !== 'undefined',
+          isRetry: originalRequest?._retry
         });
 
         // Only log detailed errors if they're not 404s (expected for missing endpoints)
         if (error.response?.status !== 404) {
           const errorDetails = {
-            url: error.config?.url,
-            method: error.config?.method,
+            url: originalRequest?.url,
+            method: originalRequest?.method,
             status: error.response?.status,
             statusText: error.response?.statusText,
             data: error.response?.data,
@@ -57,28 +61,56 @@ class ApiClient {
           console.error('[API Client] API Error Details:', errorDetails);
         }
         
-        if (error.response?.status === 401) {
+        // Handle 401 errors
+        if (error.response?.status === 401 && !originalRequest._retry) {
           console.log('[API Client] 401 Unauthorized detected!');
-          console.log('[API Client] Current URL:', window.location.href);
-          console.log('[API Client] Clearing tokens...');
           
-          // Token expired or invalid
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('merchant');
-          localStorage.removeItem('user');
-          
-          console.log('[API Client] Tokens cleared, attempting redirect...');
-          
-          // Try multiple redirect methods
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            console.log('[API Client] Window is defined, redirecting to /login');
-            
-            // Use immediate redirect
-            window.location.href = '/login';
-            
-            // Return a rejected promise with a specific error to prevent further processing
-            return Promise.reject(new Error('UNAUTHORIZED_REDIRECT'));
+          // Don't attempt refresh for auth endpoints
+          if (originalRequest.url?.includes('/auth/')) {
+            console.log('[API Client] Auth endpoint failed, clearing tokens...');
+            this.clearAuthData();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            return Promise.reject(error);
+          }
+
+          // Check if we have a refresh token
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (!refreshToken) {
+            console.log('[API Client] No refresh token available, redirecting to login...');
+            this.clearAuthData();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            return Promise.reject(error);
+          }
+
+          // Mark this request as a retry to prevent infinite loops
+          originalRequest._retry = true;
+
+          try {
+            // If we're already refreshing, wait for it
+            if (this.refreshPromise) {
+              console.log('[API Client] Waiting for existing refresh...');
+              await this.refreshPromise;
+            } else {
+              console.log('[API Client] Attempting to refresh token...');
+              this.refreshPromise = this.performTokenRefresh(refreshToken);
+              await this.refreshPromise;
+              this.refreshPromise = null;
+            }
+
+            // Retry the original request with the new token
+            console.log('[API Client] Retrying original request after refresh...');
+            return this.axiosInstance(originalRequest);
+          } catch (refreshError) {
+            console.error('[API Client] Token refresh failed:', refreshError);
+            this.clearAuthData();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            return Promise.reject(refreshError);
           }
         }
         
@@ -88,8 +120,75 @@ class ApiClient {
     );
   }
 
+  // Helper method to clear auth data
+  private clearAuthData() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('merchant');
+    localStorage.removeItem('user');
+  }
+
+  // Helper method to perform token refresh
+  private async performTokenRefresh(refreshToken: string): Promise<void> {
+    try {
+      // Create a new axios instance without interceptors to avoid loops
+      const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        refreshToken
+      });
+
+      const { token, refreshToken: newRefreshToken, user, expiresAt } = response.data;
+
+      // Update stored tokens
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('refresh_token', newRefreshToken);
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('merchant', JSON.stringify(user));
+      }
+
+      console.log('[API Client] Token refresh successful');
+      
+      // Schedule proactive refresh 5 minutes before expiry
+      this.scheduleTokenRefresh(expiresAt);
+    } catch (error) {
+      console.error('[API Client] Token refresh failed:', error);
+      throw error;
+    }
+  }
+
+  // Schedule proactive token refresh
+  private scheduleTokenRefresh(expiresAt: string) {
+    // Clear any existing timeout
+    if ((window as any).tokenRefreshTimeout) {
+      clearTimeout((window as any).tokenRefreshTimeout);
+    }
+
+    const expiryTime = new Date(expiresAt).getTime();
+    const now = Date.now();
+    const timeUntilExpiry = expiryTime - now;
+    
+    // Schedule refresh 5 minutes before expiry
+    const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
+    
+    if (refreshTime > 0) {
+      console.log(`[API Client] Scheduling token refresh in ${Math.round(refreshTime / 1000 / 60)} minutes`);
+      
+      (window as any).tokenRefreshTimeout = setTimeout(async () => {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          console.log('[API Client] Proactive token refresh triggered');
+          try {
+            await this.performTokenRefresh(refreshToken);
+          } catch (error) {
+            console.error('[API Client] Proactive refresh failed:', error);
+          }
+        }
+      }, refreshTime);
+    }
+  }
+
   // Auth endpoints
-  async login(username: string, password: string) {
+  async login(username: string, password: string, rememberMe: boolean = false) {
     const response = await this.axiosInstance.post('/auth/merchant/login', {
       username,
       password,
@@ -97,13 +196,25 @@ class ApiClient {
     
     // Normalize the response to match what the frontend expects
     const data = response.data;
-    return {
+    const result = {
       access_token: data.token,
       refresh_token: data.refreshToken,
       user: data.user,
       merchant: data.user, // The API returns user info that includes merchant data
       expiresAt: data.expiresAt
     };
+
+    // Store remember me preference
+    if (rememberMe) {
+      localStorage.setItem('remember_me', 'true');
+    } else {
+      sessionStorage.setItem('session_only', 'true');
+    }
+
+    // Schedule proactive token refresh
+    this.scheduleTokenRefresh(data.expiresAt);
+
+    return result;
   }
 
   async verifyPin(pin: string) {
@@ -181,7 +292,14 @@ class ApiClient {
     if (params instanceof Date) {
       params = { date: params.toISOString() };
     }
-    const response = await this.axiosInstance.get('/bookings', { params });
+    
+    // Ensure we get more bookings by default
+    const requestParams = {
+      limit: 1000,  // Get up to 1000 bookings
+      ...params
+    };
+    
+    const response = await this.axiosInstance.get('/bookings', { params: requestParams });
     
     // Debug pagination
     console.log('Bookings API raw response:', {
@@ -315,6 +433,67 @@ class ApiClient {
       throw error;
     }
   }
+
+  // Location endpoints
+  async getLocations() {
+    const response = await this.axiosInstance.get('/locations');
+    return response.data;
+  }
+
+  async getLocation(id: string) {
+    const response = await this.axiosInstance.get(`/locations/${id}`);
+    return response.data;
+  }
+
+  async updateLocation(id: string, data: any) {
+    const response = await this.axiosInstance.patch(`/locations/${id}`, data);
+    return response.data;
+  }
+
+  async updateLocationTimezone(id: string, timezone: string) {
+    const response = await this.axiosInstance.patch(`/locations/${id}/timezone`, { timezone });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();
+
+// Defer token refresh initialization to not block module loading
+if (typeof window !== 'undefined') {
+  // Use requestIdleCallback if available, otherwise setTimeout
+  const scheduleTokenCheck = (callback: () => void) => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(callback);
+    } else {
+      setTimeout(callback, 1);
+    }
+  };
+  
+  scheduleTokenCheck(() => {
+    const token = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (token && refreshToken) {
+      // Check if token is about to expire
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiresAt = new Date(payload.exp * 1000);
+        const now = new Date();
+        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+        
+        // If token expires in less than 10 minutes, refresh immediately
+        if (timeUntilExpiry < 10 * 60 * 1000) {
+          console.log('[API Client] Token expiring soon, refreshing on load...');
+          apiClient['performTokenRefresh'](refreshToken).catch(error => {
+            console.error('[API Client] Initial token refresh failed:', error);
+          });
+        } else {
+          // Schedule refresh
+          apiClient['scheduleTokenRefresh'](expiresAt.toISOString());
+        }
+      } catch (error) {
+        console.error('[API Client] Failed to parse token:', error);
+      }
+    }
+  });
+}

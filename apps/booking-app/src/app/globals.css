@@ -1,52 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* UI Component Variables for Radix/Shadcn */
+/* Luxurious Design System */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Premium color palette */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 212 100% 40%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 169 100% 42%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Sophisticated primary colors */
+    --primary: 262 83% 58%; /* Rich purple */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Elegant secondary colors */
+    --secondary: 340 65% 88%; /* Soft rose */
+    --secondary-foreground: 240 5.9% 10%;
+    
+    /* Muted tones */
+    --muted: 30 20% 95%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    /* Accent colors */
+    --accent: 280 65% 60%; /* Lavender */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 43.1%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 212 100% 40%;
-    --radius: 0.5rem;
+    
+    /* Functional colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+    
+    /* Font families */
+    --font-sans: var(--font-inter);
+    --font-serif: var(--font-playfair), 'Cormorant Garamond', serif;
+    
+    /* Gradient definitions */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(280 65% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(340 65% 88%), hsl(340 65% 78%));
+    --gradient-massage: linear-gradient(135deg, #4F46E5, #7C3AED);
+    --gradient-facial: linear-gradient(135deg, #EC4899, #F472B6);
+    --gradient-nails: linear-gradient(135deg, #F59E0B, #FBBF24);
+    --gradient-hair: linear-gradient(135deg, #059669, #10B981);
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-medium: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+    --shadow-luxury: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 212 100% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 169 100% 42%;
-    --accent-foreground: 0 0% 100%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 262 83% 68%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 340 65% 78%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 280 65% 70%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 72% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212 100% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262 83% 68%;
   }
 }
 
@@ -121,4 +151,262 @@
 .dark [data-radix-select-item][data-highlighted],
 .dark [data-highlighted][role="menuitem"] {
   background-color: #4b5563 !important;
+}
+
+/* Luxurious Typography */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    antialiased: true;
+  }
+}
+
+/* Premium Components */
+@layer components {
+  /* Luxury card styles */
+  .luxury-card {
+    @apply relative overflow-hidden rounded-2xl;
+    background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-luxury);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .luxury-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 30px 35px -10px rgb(0 0 0 / 0.15);
+  }
+  
+  /* Service category gradients */
+  .gradient-massage {
+    background: var(--gradient-massage);
+  }
+  
+  .gradient-facial {
+    background: var(--gradient-facial);
+  }
+  
+  .gradient-nails {
+    background: var(--gradient-nails);
+  }
+  
+  .gradient-hair {
+    background: var(--gradient-hair);
+  }
+  
+  /* Premium buttons */
+  .btn-luxury {
+    @apply relative overflow-hidden;
+    background: var(--gradient-primary);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-luxury::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+  }
+  
+  .btn-luxury:hover::before {
+    left: 100%;
+  }
+  
+  /* Text gradients */
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Animated background pattern */
+  .spa-pattern {
+    position: relative;
+    background-color: hsl(var(--background));
+  }
+  
+  .spa-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(255, 219, 198, 0.1) 0%, transparent 50%);
+    z-index: -1;
+  }
+}
+
+/* Premium Utilities */
+@layer utilities {
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom focus states */
+  .focus-luxury {
+    @apply focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary;
+  }
+  
+  /* Glass morphism */
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Smooth transitions */
+  .transition-luxury {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+  
+  /* Shimmer loading effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  .shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 1000px 100%;
+  }
+  
+  /* Pulse glow */
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.8);
+    }
+  }
+  
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  /* Entrance animations */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+}
+
+/* Premium Calendar Styles */
+@layer components {
+  /* Calendar enhancements */
+  .calendar-day-with-availability {
+    position: relative;
+  }
+  
+  .calendar-day-with-availability::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+  }
+  
+  /* Weekend columns styling */
+  [role="grid"] tbody td:first-child button,
+  [role="grid"] tbody td:last-child button {
+    background-color: rgba(139, 92, 246, 0.03);
+  }
+  
+  [role="grid"] tbody td:first-child button:hover:not(:disabled),
+  [role="grid"] tbody td:last-child button:hover:not(:disabled) {
+    background-color: rgba(139, 92, 246, 0.1);
+  }
+  
+  /* Calendar day states */
+  .calendar-day-available {
+    @apply hover:shadow-md hover:ring-2 hover:ring-purple-200 hover:ring-opacity-50;
+  }
+  
+  /* Time slot animations */
+  @keyframes slot-appear {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .time-slot-appear {
+    animation: slot-appear 0.3s ease-out forwards;
+  }
+  
+  /* Calendar navigation */
+  .calendar-nav-button {
+    @apply transition-all duration-200 hover:scale-110;
+  }
+  
+  /* Today indicator dot */
+  button[aria-label*="Today"] {
+    position: relative;
+  }
+  
+  button[aria-label*="Today"]::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background-color: hsl(var(--primary));
+    border-radius: 50%;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }

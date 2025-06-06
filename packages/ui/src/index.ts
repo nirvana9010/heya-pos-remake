@@ -30,6 +30,7 @@ export * from "./components/tooltip"
 export * from "./components/table"
 export * from "./components/calendar"
 export * from "./components/skeleton"
+export * from "./components/loading"
 
 // Feedback components
 export * from "./components/toast"

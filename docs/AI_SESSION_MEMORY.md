@@ -100,6 +100,13 @@ Repeated error pattern?
 
 ## 🚨 Critical Rules - DO NOT VIOLATE
 
+### -1. React Component Definition Location
+- **NEVER** define components inside other components
+- **WHY**: Components defined inside render functions are recreated on every parent render
+- **SYMPTOM**: Form inputs lose focus on every keystroke
+- **FIX**: Move component definitions outside the parent component
+- **EXAMPLE**: CustomerForm inside BookingPage caused focus loss on every input change
+
 ### 0. Authentication Redirect NOT WORKING
 - **STATUS**: UNSOLVED - There is NO automatic redirect to login when authentication fails
 - **PROBLEM**: The API client interceptor attempts `window.location.href = '/login'` on 401 errors
@@ -223,6 +230,60 @@ npm run start:dev  # Let it compile on the fly
 ```
 
 ## 📊 Session History & Learnings
+
+### Session 2025-06-06: Form Input Focus Loss Issue
+**Duration**: ~45 minutes (multiple attempts needed)
+**Problem**: Form inputs losing focus after every keystroke in booking form
+**Root Cause**: CustomerForm component was defined INSIDE the parent BookingPage component
+**Solution**: Move CustomerForm outside the parent component and use React.memo
+
+**Why It Took Multiple Attempts**:
+1. **First Attempts - Wrong Diagnosis**:
+   - Thought it was animation re-renders (removed motion.div wrappers)
+   - Thought it was the progress bar re-rendering (memoized it)
+   - Thought it was the card header re-rendering
+   - Fixed CSS transitions from transition-all to transition-colors
+   
+2. **Missed the Real Issue**:
+   - Didn't immediately recognize that components defined inside other components get recreated on every parent render
+   - This is a fundamental React pattern but easy to miss when debugging
+
+3. **The Real Problem**:
+   ```javascript
+   // BAD - Component defined inside parent
+   function BookingPage() {
+     const [customerInfo, setCustomerInfo] = useState({...});
+     
+     const CustomerForm = () => {  // ❌ Recreated on every render!
+       return <input value={customerInfo.name} onChange={...} />
+     }
+     
+     return <CustomerForm />;
+   }
+   ```
+
+4. **The Solution**:
+   ```javascript
+   // GOOD - Component defined outside parent
+   const CustomerForm = React.memo(({ customerInfo, onChange }) => {
+     return <input value={customerInfo.name} onChange={onChange} />
+   });
+   
+   function BookingPage() {
+     const [customerInfo, setCustomerInfo] = useState({...});
+     return <CustomerForm customerInfo={customerInfo} onChange={setCustomerInfo} />;
+   }
+   ```
+
+**Critical Learnings**:
+1. **Component Definition Location Matters**: NEVER define components inside other components unless you want them recreated on every render
+2. **Focus Loss = Component Recreation**: If inputs lose focus on every keystroke, the component is being destroyed and recreated
+3. **Debug Hierarchy**: Check component structure before checking animations, state updates, or CSS
+4. **React Fundamentals**: This is basic React - components defined inside render functions are new instances every time
+
+**Pattern to Remember**:
+- Input loses focus on typing → Component being recreated → Check where component is defined
+- AnimatePresence issues can also cause this but check component definition FIRST
 
 ### Session 2025-05-30: Calendar Page Freezing Issue
 **Duration**: ~15 minutes (but took 3 attempts)

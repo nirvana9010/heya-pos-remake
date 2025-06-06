@@ -6,6 +6,7 @@ import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { Prisma } from '@prisma/client';
 import { addMinutes, startOfDay, endOfDay, format, parse, isAfter, isBefore, isWithinInterval } from 'date-fns';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { TimezoneUtils } from '@heya-pos/utils';
 
 @Injectable()
 export class BookingsService {
@@ -68,6 +69,7 @@ export class BookingsService {
       try {
         // Generate booking number
         const bookingNumber = await this.generateBookingNumber(merchantId);
+        console.log('Generated booking number:', bookingNumber);
 
         // Create booking with services
         const booking = await this.prisma.booking.create({
@@ -97,6 +99,7 @@ export class BookingsService {
           include: {
             customer: true,
             provider: true,
+            location: true,
             services: {
               include: {
                 service: true,
@@ -105,7 +108,21 @@ export class BookingsService {
           },
         });
 
-        return booking;
+        console.log('Created booking with number:', booking.bookingNumber);
+
+        // Format dates in location timezone
+        const timezone = booking.location?.timezone || 'Australia/Sydney';
+        const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, timezone);
+        const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, timezone);
+        
+        return {
+          ...booking,
+          // Add formatted dates for display
+          displayDate: startTimeDisplay.date,
+          displayStartTime: startTimeDisplay.time,
+          displayEndTime: endTimeDisplay.time,
+          displayDateTime: startTimeDisplay.datetime,
+        };
       } catch (error: any) {
         attempts++;
         
@@ -184,6 +201,7 @@ export class BookingsService {
         include: {
           customer: true,
           provider: true,
+          location: true,
           services: {
             include: {
               service: true,
@@ -194,8 +212,24 @@ export class BookingsService {
       this.prisma.booking.count({ where }),
     ]);
 
+    // Format dates in location timezone
+    const formattedBookings = bookings.map(booking => {
+      const timezone = booking.location?.timezone || 'Australia/Sydney';
+      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, timezone);
+      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, timezone);
+      
+      return {
+        ...booking,
+        // Add formatted dates for display
+        displayDate: startTimeDisplay.date,
+        displayStartTime: startTimeDisplay.time,
+        displayEndTime: endTimeDisplay.time,
+        displayDateTime: startTimeDisplay.datetime,
+      };
+    });
+
     return {
-      data: bookings,
+      data: formattedBookings,
       meta: {
         total,
         page,
@@ -212,6 +246,7 @@ export class BookingsService {
         customer: true,
         provider: true,
         createdBy: true,
+        location: true,
         services: {
           include: {
             service: true,
@@ -226,7 +261,19 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    return booking;
+    // Format dates in location timezone
+    const timezone = booking.location?.timezone || 'Australia/Sydney';
+    const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, timezone);
+    const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, timezone);
+    
+    return {
+      ...booking,
+      // Add formatted dates for display
+      displayDate: startTimeDisplay.date,
+      displayStartTime: startTimeDisplay.time,
+      displayEndTime: endTimeDisplay.time,
+      displayDateTime: startTimeDisplay.datetime,
+    };
   }
 
   async update(merchantId: string, id: string, dto: UpdateBookingDto) {
@@ -279,6 +326,7 @@ export class BookingsService {
       include: {
         customer: true,
         provider: true,
+        location: true,
         services: {
           include: {
             service: true,
@@ -297,7 +345,19 @@ export class BookingsService {
       }
     }
 
-    return updatedBooking;
+    // Format dates in location timezone
+    const timezone = updatedBooking.location?.timezone || 'Australia/Sydney';
+    const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(updatedBooking.startTime, timezone);
+    const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(updatedBooking.endTime, timezone);
+    
+    return {
+      ...updatedBooking,
+      // Add formatted dates for display
+      displayDate: startTimeDisplay.date,
+      displayStartTime: startTimeDisplay.time,
+      displayEndTime: endTimeDisplay.time,
+      displayDateTime: startTimeDisplay.datetime,
+    };
   }
 
   async remove(merchantId: string, id: string) {
@@ -314,15 +374,23 @@ export class BookingsService {
   }
 
   async checkAvailability(merchantId: string, dto: CheckAvailabilityDto) {
-    const date = new Date(dto.date);
-    const dayStart = startOfDay(date);
-    const dayEnd = endOfDay(date);
+    // Get location to determine timezone
+    const location = await this.prisma.location.findFirst({
+      where: { 
+        merchantId,
+        ...(dto.locationId ? { id: dto.locationId } : { isActive: true })
+      },
+    });
+    
+    const timezone = location?.timezone || 'Australia/Sydney';
+    
+    // Use timezone-aware date boundaries
+    const dayStart = TimezoneUtils.startOfDayInTimezone(dto.date, timezone);
+    const dayEnd = TimezoneUtils.endOfDayInTimezone(dto.date, timezone);
 
-    // Get business hours (example: 9 AM - 7 PM)
-    const businessStart = new Date(dayStart);
-    businessStart.setHours(9, 0, 0, 0);
-    const businessEnd = new Date(dayStart);
-    businessEnd.setHours(19, 0, 0, 0);
+    // Get business hours in the location's timezone
+    const businessStart = TimezoneUtils.createDateInTimezone(dto.date, '09:00', timezone);
+    const businessEnd = TimezoneUtils.createDateInTimezone(dto.date, '19:00', timezone);
 
     // Get services to calculate duration
     let totalDuration = dto.duration;
@@ -571,27 +639,35 @@ export class BookingsService {
   }
 
   private async generateBookingNumber(merchantId: string): Promise<string> {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    // Generate a short, memorable booking number
+    // Format: BK-XXXX where XXXX is a 4-digit number
     
-    // Get the count of bookings for this merchant this month
-    const startOfMonth = new Date(year, date.getMonth(), 1);
-    const endOfMonth = new Date(year, date.getMonth() + 1, 0);
+    // Use a counter-based approach with collision detection
+    let attempts = 0;
+    const maxAttempts = 10;
     
-    const count = await this.prisma.booking.count({
-      where: {
-        merchantId,
-        createdAt: {
-          gte: startOfMonth,
-          lte: endOfMonth,
+    while (attempts < maxAttempts) {
+      // Generate a random 4-digit number
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const bookingNumber = `BK-${randomNum}`;
+      
+      // Check if this booking number already exists for this merchant
+      const existing = await this.prisma.booking.findFirst({
+        where: {
+          merchantId,
+          bookingNumber,
         },
-      },
-    });
-
-    // Add a random 3-digit suffix to prevent collisions in concurrent requests
-    const sequence = String(count + 1).padStart(4, '0');
-    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `B${year}${month}${sequence}-${randomSuffix}`;
+      });
+      
+      if (!existing) {
+        return bookingNumber;
+      }
+      
+      attempts++;
+    }
+    
+    // Fallback to timestamp-based if random fails
+    const timestamp = Date.now().toString().slice(-6);
+    return `BK-${timestamp}`;
   }
 }

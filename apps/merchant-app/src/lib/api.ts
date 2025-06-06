@@ -16,27 +16,24 @@ export interface LoginResponse {
   };
 }
 
-export async function merchantLogin(username: string, password: string): Promise<LoginResponse> {
+export async function merchantLogin(username: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
   console.log('Calling API at:', `${API_URL}/auth/merchant/login`);
   
   try {
-    const response = await fetch(`${API_URL}/auth/merchant/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-
-    return response.json();
+    // Use api-client for consistency and to get auto token refresh
+    const { apiClient } = await import('./api-client');
+    const response = await apiClient.login(username, password, rememberMe);
+    
+    // Transform response to match expected format
+    return {
+      token: response.access_token,
+      refreshToken: response.refresh_token,
+      merchant: response.merchant,
+      user: response.user
+    };
   } catch (error: any) {
     console.error('Login error:', error);
-    if (error.message === 'Failed to fetch') {
+    if (error.message === 'Failed to fetch' || error.code === 'ECONNREFUSED') {
       throw new Error('Cannot connect to API server. Please ensure the API is running on port 3000.');
     }
     throw error;

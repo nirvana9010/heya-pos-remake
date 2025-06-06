@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Gift, Database } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Gift, Database, Globe } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -11,8 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
+import { TimezoneUtils } from "@heya-pos/utils";
+import { useToast } from "@heya-pos/ui";
+import { apiClient } from "@/lib/api-client";
 
 export default function SettingsPage() {
+  const { toast } = useToast();
   const [bookingAdvanceHours, setBookingAdvanceHours] = useState("48");
   const [cancellationHours, setCancellationHours] = useState("24");
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
@@ -20,6 +24,55 @@ export default function SettingsPage() {
   const [loyaltyType, setLoyaltyType] = useState("visit");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
+  const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Load location data on mount
+  useEffect(() => {
+    loadLocationData();
+  }, []);
+
+  const loadLocationData = async () => {
+    try {
+      const locations = await apiClient.getLocations();
+      if (locations.length > 0) {
+        const firstLocation = locations[0];
+        setLocationId(firstLocation.id);
+        setSelectedTimezone(firstLocation.timezone || "Australia/Sydney");
+      }
+    } catch (error) {
+      console.error("Failed to load location data:", error);
+    }
+  };
+
+  const handleSaveTimezone = async () => {
+    if (!locationId) {
+      toast({
+        title: "Error",
+        description: "No location found to update",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiClient.updateLocationTimezone(locationId, selectedTimezone);
+      toast({
+        title: "Success",
+        description: "Timezone updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update timezone",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const BusinessTab = () => (
     <Card>
@@ -53,6 +106,48 @@ export default function SettingsPage() {
         <Separator />
 
         <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Location Settings
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                <SelectTrigger id="timezone">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TimezoneUtils.getAustralianTimezones().map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                All bookings and appointments will be displayed in this timezone
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Select defaultValue="AUD">
+                <SelectTrigger id="currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AUD">Australian Dollar (AUD)</SelectItem>
+                  <SelectItem value="NZD">New Zealand Dollar (NZD)</SelectItem>
+                  <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Business Hours</h3>
           <div className="grid gap-3">
             {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
@@ -70,7 +165,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex justify-end">
-          <Button>Save Changes</Button>
+          <Button onClick={handleSaveTimezone} disabled={loading}>
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
       </CardContent>
     </Card>

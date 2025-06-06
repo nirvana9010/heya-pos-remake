@@ -6,9 +6,13 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
 import * as dotenv from 'dotenv';
 import compression from 'compression';
 import helmet from 'helmet';
+import { memoryLogger } from './utils/memory-logger';
 
 // Load environment variables
 dotenv.config();
+
+// Log initial memory state
+memoryLogger.logMemory('Application Start');
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -54,5 +58,23 @@ async function bootstrap() {
   await app.listen(port);
   
   logger.log(`API server running on http://localhost:${port}/api`);
+  memoryLogger.logMemory('Application Ready');
+
+  // Log memory every 30 seconds
+  setInterval(() => {
+    memoryLogger.logMemory('Periodic Check');
+  }, 30000);
+
+  // Handle shutdown gracefully
+  process.on('SIGTERM', async () => {
+    logger.log('SIGTERM received, shutting down gracefully...');
+    memoryLogger.logMemory('Shutdown');
+    await app.close();
+    process.exit(0);
+  });
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});
