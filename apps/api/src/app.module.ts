@@ -11,27 +11,34 @@ import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
-import { DebugModule } from './debug/debug.module';
 import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
 
+// Only import DebugModule in development
+const imports = [
+  ConfigModule.forRoot({
+    isGlobal: true,
+  }),
+  PrismaModule, 
+  AuthModule, 
+  ServicesModule, 
+  CustomersModule, 
+  BookingsModule, 
+  PaymentsModule,
+  StaffModule,
+  LoyaltyModule,
+  PublicModule,
+  LocationsModule
+];
+
+// Add DebugModule only in development
+if (process.env.NODE_ENV !== 'production') {
+  // Dynamic import to avoid build errors
+  imports.push(require('./debug/debug.module').DebugModule);
+}
+
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    PrismaModule, 
-    AuthModule, 
-    ServicesModule, 
-    CustomersModule, 
-    BookingsModule, 
-    PaymentsModule,
-    StaffModule,
-    LoyaltyModule,
-    DebugModule,
-    PublicModule,
-    LocationsModule
-  ],
+  imports,
   controllers: [AppController],
   providers: [
     AppService,
