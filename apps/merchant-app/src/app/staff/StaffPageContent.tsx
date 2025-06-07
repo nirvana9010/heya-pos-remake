@@ -153,7 +153,23 @@ export default function StaffPageContent() {
     if (!selectedStaff) return;
     
     try {
-      await apiClient.updateStaff(selectedStaff.id, formData);
+      // Prepare update data without email and pin fields
+      const updateData: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        accessLevel: formData.accessLevel,
+        calendarColor: formData.calendarColor,
+        status: formData.status,
+        commissionRate: formData.commissionRate,
+      };
+      
+      // If pin is provided, use newPin field
+      if (formData.pin) {
+        updateData.newPin = formData.pin;
+      }
+      
+      await apiClient.updateStaff(selectedStaff.id, updateData);
       toast({
         title: "Success",
         description: "Staff member updated successfully",

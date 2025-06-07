@@ -92,105 +92,7 @@ export class ServicesService {
       sortOrder = 'asc',
     } = query;
 
-    // If there's a search term, use raw SQL for case-insensitive search
-    if (searchTerm) {
-      const searchPattern = `%${searchTerm.toLowerCase()}%`;
-      
-      // Build the WHERE clause parts
-      const conditions: string[] = ['merchantId = ?'];
-      const params: any[] = [merchantId];
-      
-      if (categoryId !== undefined) {
-        conditions.push('categoryId = ?');
-        params.push(categoryId);
-      }
-      
-      if (isActive !== undefined) {
-        conditions.push('isActive = ?');
-        params.push(isActive ? 1 : 0);
-      }
-      
-      if (minPrice !== undefined) {
-        conditions.push('price >= ?');
-        params.push(minPrice);
-      }
-      
-      if (maxPrice !== undefined) {
-        conditions.push('price <= ?');
-        params.push(maxPrice);
-      }
-      
-      if (minDuration !== undefined) {
-        conditions.push('duration >= ?');
-        params.push(minDuration);
-      }
-      
-      if (maxDuration !== undefined) {
-        conditions.push('duration <= ?');
-        params.push(maxDuration);
-      }
-      
-      // Add search conditions
-      conditions.push(`(
-        LOWER(name) LIKE ? OR 
-        LOWER(description) LIKE ? OR 
-        LOWER(category) LIKE ?
-      )`);
-      params.push(searchPattern, searchPattern, searchPattern);
-      
-      const whereClause = conditions.join(' AND ');
-      const offset = (page - 1) * limit;
-      
-      // Execute queries
-      const [services, countResult] = await Promise.all([
-        this.prisma.$queryRawUnsafe<any[]>(
-          `SELECT * FROM Service
-           WHERE ${whereClause}
-           ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
-           LIMIT ? OFFSET ?`,
-          ...params,
-          limit,
-          offset
-        ),
-        this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
-          `SELECT COUNT(*) as count FROM Service WHERE ${whereClause}`,
-          ...params
-        ),
-      ]);
-      
-      // Load categories separately for services that have them
-      const serviceIds = services.filter(s => s.categoryId).map(s => s.categoryId);
-      const categories = serviceIds.length > 0 ? await this.prisma.serviceCategory.findMany({
-        where: { id: { in: serviceIds } }
-      }) : [];
-      
-      const categoryMap = new Map(categories.map(c => [c.id, c]));
-      
-      // Transform raw results to match Prisma format
-      const transformedServices = services.map(service => ({
-        ...service,
-        isActive: Boolean(service.isActive),
-        requiresDeposit: Boolean(service.requiresDeposit),
-        createdAt: new Date(service.createdAt),
-        updatedAt: new Date(service.updatedAt),
-        categoryModel: service.categoryId ? categoryMap.get(service.categoryId) || null : null,
-        categoryName: service.categoryId ? categoryMap.get(service.categoryId)?.name || service.category : service.category,
-      }));
-      
-      const total = Number(countResult[0].count);
-      
-      return {
-        data: transformedServices,
-        meta: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-      };
-    }
-
-    // Original Prisma query for non-search cases
+    // Build where clause for Prisma query
     const where: Prisma.ServiceWhereInput = {
       merchantId,
       ...(categoryId && { categoryId }),
@@ -200,6 +102,16 @@ export class ServicesService {
       ...(minDuration !== undefined && { duration: { gte: minDuration } }),
       ...(maxDuration !== undefined && { duration: { lte: maxDuration } }),
     };
+
+    // Add search conditions if provided
+    if (searchTerm && searchTerm.trim()) {
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { category: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
 
     const [total, services] = await Promise.all([
       this.prisma.service.count({ where }),

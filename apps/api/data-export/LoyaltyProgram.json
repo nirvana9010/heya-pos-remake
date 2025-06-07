@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cmbcxfdkz000yvopjk2sxx6b6",
+    "merchantId": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Punch Card Rewards",
+    "description": "Get your 10th visit free!",
+    "type": "VISITS",
+    "visitsRequired": 10,
+    "visitRewardType": "PERCENTAGE",
+    "visitRewardValue": 10,
+    "pointsPerVisit": null,
+    "pointsPerDollar": 1,
+    "pointsPerCurrency": 1,
+    "rewardThreshold": 100,
+    "rewardValue": 10,
+    "pointsValue": 0.01,
+    "expiryDays": 365,
+    "isActive": true,
+    "terms": "Points expire after 12 months. Rewards can be redeemed on services only.",
+    "createdAt": "2025-06-01T00:32:34.691Z",
+    "updatedAt": "2025-06-03T11:28:10.719Z"
+  }
+]

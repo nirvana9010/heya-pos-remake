@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { transformApiResponse } from './db-transforms';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -28,13 +29,19 @@ class ApiClient {
       }
     );
 
-    // Add response interceptor to handle auth errors
+    // Add response interceptor to handle auth errors and transform data
     this.axiosInstance.interceptors.response.use(
       (response) => {
         console.log('[API Client] Response received:', {
           url: response.config.url,
           status: response.status
         });
+        
+        // Transform API response to handle PostgreSQL data types
+        if (response.data) {
+          response.data = transformApiResponse(response.data);
+        }
+        
         return response;
       },
       async (error) => {
@@ -349,8 +356,8 @@ class ApiClient {
     const serviceName = firstService?.name || 'Service';
     
     // Calculate total amount from services if not set
-    const totalAmount = booking.totalAmount || 
-      (booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || 0);
+    const totalAmount = Number(booking.totalAmount) || 
+      (booking.services?.reduce((sum: number, s: any) => sum + (Number(s.price) || 0), 0) || 0);
     
     return {
       ...booking,
@@ -422,7 +429,7 @@ class ApiClient {
         // Calculate basic stats
         return {
           todayBookings: bookings.length,
-          todayRevenue: bookings.reduce((sum: number, b: any) => sum + (b.totalAmount || 0), 0),
+          todayRevenue: bookings.reduce((sum: number, b: any) => sum + (Number(b.totalAmount) || 0), 0),
           newCustomers: 0, // Would need customers endpoint with date filter
           pendingBookings: bookings.filter((b: any) => b.status === 'PENDING').length,
           bookingGrowth: 0,

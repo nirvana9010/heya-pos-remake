@@ -3,7 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TyroPaymentService } from './tyro-payment.service';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
-import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import { PaymentMethod, PaymentStatus } from '../types/payment.types';
+import { Decimal } from '@prisma/client/runtime/library';
+import { toNumber, subtractDecimals, isGreaterThan, toDecimal, addDecimals } from '../utils/decimal';
 
 @Injectable()
 export class PaymentsService {
@@ -29,7 +31,7 @@ export class PaymentsService {
     }
 
     // Check if payment amount is valid
-    const remainingAmount = invoice.totalAmount - invoice.paidAmount;
+    const remainingAmount = subtractDecimals(invoice.totalAmount, invoice.paidAmount);
     if (dto.amount > remainingAmount) {
       throw new BadRequestException('Payment amount exceeds remaining balance');
     }
@@ -184,8 +186,8 @@ export class PaymentsService {
     }
 
     // Check refund amount
-    const totalRefunded = payment.refunds.reduce((sum, refund) => sum + refund.amount, 0);
-    const maxRefundable = payment.amount - totalRefunded;
+    const totalRefunded = payment.refunds.reduce((sum, refund) => addDecimals(sum, refund.amount), 0);
+    const maxRefundable = subtractDecimals(payment.amount, totalRefunded);
 
     if (dto.amount > maxRefundable) {
       throw new BadRequestException('Refund amount exceeds refundable balance');
@@ -207,7 +209,7 @@ export class PaymentsService {
     const refund = await this.prisma.paymentRefund.create({
       data: {
         paymentId,
-        amount,
+        amount: toDecimal(amount),
         reason,
         status: 'COMPLETED',
         processedAt: new Date(),
@@ -284,8 +286,8 @@ export class PaymentsService {
 
     if (!invoice) return;
 
-    const newPaidAmount = invoice.paidAmount + paidAmount;
-    const isPaidInFull = newPaidAmount >= invoice.totalAmount;
+    const newPaidAmount = addDecimals(invoice.paidAmount, paidAmount);
+    const isPaidInFull = newPaidAmount >= toNumber(invoice.totalAmount);
 
     await this.prisma.invoice.update({
       where: { id: invoiceId },

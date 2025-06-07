@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import { transformApiResponse } from './db-transforms';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -19,7 +20,8 @@ export const api = {
       throw new Error(error.message || 'Request failed');
     }
 
-    return response.json();
+    const responseData = await response.json();
+    return transformApiResponse(responseData);
   },
 
   async post(path: string, data?: any, options?: any) {
@@ -39,7 +41,8 @@ export const api = {
       throw new Error(error.message || 'Request failed');
     }
 
-    return response.json();
+    const responseData = await response.json();
+    return transformApiResponse(responseData);
   },
 
   async put(path: string, data?: any, options?: any) {
@@ -59,7 +62,8 @@ export const api = {
       throw new Error(error.message || 'Request failed');
     }
 
-    return response.json();
+    const responseData = await response.json();
+    return transformApiResponse(responseData);
   },
 
   async delete(path: string, options?: any) {
@@ -78,6 +82,7 @@ export const api = {
       throw new Error(error.message || 'Request failed');
     }
 
-    return response.json();
+    const responseData = await response.json();
+    return transformApiResponse(responseData);
   },
 };

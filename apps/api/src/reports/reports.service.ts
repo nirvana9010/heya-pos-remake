@@ -13,6 +13,7 @@ import {
   subWeeks,
   subMonths,
 } from 'date-fns';
+import { toNumber, subtractDecimals, divideDecimals } from '../utils/decimal';
 
 @Injectable()
 export class ReportsService {
@@ -97,19 +98,24 @@ export class ReportsService {
     ]);
 
     // Calculate growth percentages
-    const weeklyGrowth = lastWeek._sum.amount
-      ? (((weekly._sum.amount || 0) - lastWeek._sum.amount) / lastWeek._sum.amount) * 100
+    const weeklyAmount = toNumber(weekly._sum.amount);
+    const lastWeekAmount = toNumber(lastWeek._sum.amount);
+    const monthlyAmount = toNumber(monthly._sum.amount);
+    const lastMonthAmount = toNumber(lastMonth._sum.amount);
+    
+    const weeklyGrowth = lastWeekAmount > 0
+      ? ((weeklyAmount - lastWeekAmount) / lastWeekAmount) * 100
       : 0;
-    const monthlyGrowth = lastMonth._sum.amount
-      ? (((monthly._sum.amount || 0) - lastMonth._sum.amount) / lastMonth._sum.amount) * 100
+    const monthlyGrowth = lastMonthAmount > 0
+      ? ((monthlyAmount - lastMonthAmount) / lastMonthAmount) * 100
       : 0;
 
     return {
       revenue: {
-        daily: daily._sum.amount || 0,
-        weekly: weekly._sum.amount || 0,
-        monthly: monthly._sum.amount || 0,
-        yearly: yearly._sum.amount || 0,
+        daily: toNumber(daily._sum.amount),
+        weekly: weeklyAmount,
+        monthly: monthlyAmount,
+        yearly: toNumber(yearly._sum.amount),
       },
       growth: {
         weekly: Math.round(weeklyGrowth * 10) / 10,
@@ -285,7 +291,7 @@ export class ReportsService {
       serviceId: item.serviceId,
       name: serviceMap[item.serviceId] || 'Unknown Service',
       bookings: item._count,
-      revenue: item._sum.price || 0,
+      revenue: toNumber(item._sum.price),
     }));
   }
 
@@ -334,7 +340,7 @@ export class ReportsService {
       staffId: item.providerId,
       name: staffMap[item.providerId] || 'Unknown Staff',
       bookings: item._count,
-      revenue: item._sum.totalAmount || 0,
+      revenue: toNumber(item._sum.totalAmount),
       utilization: Math.min(100, Math.round(((item._count * 1.5) / hoursInMonth) * 100)), // Assuming 1.5 hours per booking average
     }));
   }
@@ -369,7 +375,7 @@ export class ReportsService {
 
     payments.forEach((payment) => {
       const day = startOfDay(payment.processedAt!).toISOString();
-      revenueByDay[day] = (revenueByDay[day] || 0) + payment.amount;
+      revenueByDay[day] = (revenueByDay[day] || 0) + toNumber(payment.amount);
     });
 
     // Fill in missing days with 0

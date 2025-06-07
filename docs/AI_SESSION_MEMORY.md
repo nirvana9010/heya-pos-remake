@@ -1,9 +1,10 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-05-31 7:00 PM
+> Last Updated: 2025-06-06 9:00 PM
 > 
 > **CRITICAL UPDATE**: Port management issues causing hours of debugging - SEE NEW SECTION BELOW
+> **NEW**: Screenshots are stored in `/home/nirvana9010/projects/heya-pos-remake/screenshots/` folder
 
 ## 🚨 CRITICAL: Recurring Port/Service Management Problem
 
@@ -526,6 +527,15 @@ cd apps/api && npx prisma studio
 | Database | ✅ Connected | SQLite with test data |
 
 ---
+
+## 📸 Screenshots Location
+
+**All screenshots are stored in**: `/home/nirvana9010/projects/heya-pos-remake/screenshots/`
+
+To view the latest screenshot:
+```bash
+ls -la /home/nirvana9010/projects/heya-pos-remake/screenshots/*.png | tail -5
+```
 
 ## 📌 Session Checklist
 

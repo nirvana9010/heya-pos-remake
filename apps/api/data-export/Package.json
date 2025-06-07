@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cmbcxfd550000vopjyd297m9e",
+    "name": "Starter",
+    "monthlyPrice": 49,
+    "trialDays": 30,
+    "maxLocations": 1,
+    "maxStaff": 5,
+    "maxCustomers": 1000,
+    "features": "[\"basic_booking\",\"customer_management\",\"basic_reports\"]",
+    "createdAt": "2025-06-01T00:32:34.121Z",
+    "updatedAt": "2025-06-01T00:32:34.121Z"
+  },
+  {
+    "id": "cmbcxfd6h0001vopjj1t8r5vx",
+    "name": "Professional",
+    "monthlyPrice": 99,
+    "trialDays": 30,
+    "maxLocations": 3,
+    "maxStaff": 15,
+    "maxCustomers": 5000,
+    "features": "[\"advanced_booking\",\"customer_management\",\"advanced_reports\",\"loyalty_program\",\"multi_location\"]",
+    "createdAt": "2025-06-01T00:32:34.170Z",
+    "updatedAt": "2025-06-01T00:32:34.170Z"
+  }
+]

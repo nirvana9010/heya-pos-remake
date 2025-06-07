@@ -345,7 +345,7 @@ export function BookingDetailsSlideOut({
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="h-4 w-4 text-gray-400" />
-                    <span className="font-semibold">${booking.totalPrice}</span>
+                    <span className="font-semibold">${Number(booking.totalPrice).toFixed(2)}</span>
                     {booking.isPaid && (
                       <Badge variant="success" className="text-xs">Paid</Badge>
                     )}

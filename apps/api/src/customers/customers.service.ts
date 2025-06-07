@@ -64,122 +64,7 @@ export class CustomersService {
       limit,
     } = params;
 
-    // If there's any text search, use raw SQL for case-insensitive search
-    if (search || email || phone || firstName || lastName) {
-      // Build the WHERE clause parts
-      const conditions: string[] = ['merchantId = ?'];
-      const params: any[] = [merchantId];
-      
-      if (search) {
-        const searchPattern = `%${search.toLowerCase()}%`;
-        conditions.push(`(
-          LOWER(firstName) LIKE ? OR 
-          LOWER(lastName) LIKE ? OR 
-          LOWER(email) LIKE ? OR 
-          LOWER(phone) LIKE ? OR 
-          LOWER(mobile) LIKE ?
-        )`);
-        params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-      }
-      
-      if (email) {
-        conditions.push('LOWER(email) LIKE ?');
-        params.push(`%${email.toLowerCase()}%`);
-      }
-      
-      if (phone) {
-        conditions.push('(LOWER(phone) LIKE ? OR LOWER(mobile) LIKE ?)');
-        params.push(`%${phone.toLowerCase()}%`, `%${phone.toLowerCase()}%`);
-      }
-      
-      if (firstName) {
-        conditions.push('LOWER(firstName) LIKE ?');
-        params.push(`%${firstName.toLowerCase()}%`);
-      }
-      
-      if (lastName) {
-        conditions.push('LOWER(lastName) LIKE ?');
-        params.push(`%${lastName.toLowerCase()}%`);
-      }
-      
-      if (createdAfter) {
-        conditions.push('createdAt >= ?');
-        params.push(new Date(createdAfter).toISOString());
-      }
-      
-      if (createdBefore) {
-        conditions.push('createdAt <= ?');
-        params.push(new Date(createdBefore).toISOString());
-      }
-      
-      if (minTotalSpent !== undefined) {
-        conditions.push('totalSpent >= ?');
-        params.push(minTotalSpent);
-      }
-      
-      if (maxTotalSpent !== undefined) {
-        conditions.push('totalSpent <= ?');
-        params.push(maxTotalSpent);
-      }
-      
-      const whereClause = conditions.join(' AND ');
-      const offset = (page - 1) * limit;
-      const orderClause = `${sortBy || 'createdAt'} ${(sortOrder || 'desc').toUpperCase()}`;
-      
-      // Execute queries
-      const [customers, countResult] = await Promise.all([
-        this.prisma.$queryRawUnsafe<any[]>(
-          `SELECT * FROM Customer
-           WHERE ${whereClause}
-           ORDER BY ${orderClause}
-           LIMIT ? OFFSET ?`,
-          ...params,
-          limit,
-          offset
-        ),
-        this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
-          `SELECT COUNT(*) as count FROM Customer WHERE ${whereClause}`,
-          ...params
-        ),
-      ]);
-      
-      // Get booking counts for customers
-      const customerIds = customers.map(c => c.id);
-      const bookingCounts = customerIds.length > 0 ? await this.prisma.booking.groupBy({
-        by: ['customerId'],
-        where: { customerId: { in: customerIds } },
-        _count: true,
-      }) : [];
-      
-      const bookingCountMap = new Map(bookingCounts.map(b => [b.customerId, b._count]));
-      
-      // Transform raw results to match Prisma format
-      const transformedCustomers = customers.map(customer => ({
-        ...customer,
-        dateOfBirth: customer.dateOfBirth ? new Date(customer.dateOfBirth) : null,
-        tags: customer.tags ? JSON.parse(customer.tags) : [],
-        marketingConsent: Boolean(customer.marketingConsent),
-        createdAt: new Date(customer.createdAt),
-        updatedAt: new Date(customer.updatedAt),
-        _count: {
-          bookings: bookingCountMap.get(customer.id) || 0,
-        },
-      }));
-      
-      const total = Number(countResult[0].count);
-      
-      return {
-        data: transformedCustomers,
-        meta: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-      };
-    }
-
-    // Original Prisma query for non-search cases
+    // Build where clause for Prisma query
     const where: Prisma.CustomerWhereInput = {
       merchantId,
       ...(createdAfter && { createdAt: { gte: new Date(createdAfter) } }),
@@ -187,6 +72,61 @@ export class CustomersService {
       ...(minTotalSpent !== undefined && { totalSpent: { gte: minTotalSpent } }),
       ...(maxTotalSpent !== undefined && { totalSpent: { lte: maxTotalSpent } }),
     };
+
+    // Add search conditions
+    const searchConditions: any[] = [];
+    
+    if (search) {
+      searchConditions.push(
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+        { mobile: { contains: search, mode: 'insensitive' } }
+      );
+    }
+    
+    if (email) {
+      searchConditions.push({ email: { contains: email, mode: 'insensitive' } });
+    }
+    
+    if (phone) {
+      searchConditions.push(
+        { phone: { contains: phone, mode: 'insensitive' } },
+        { mobile: { contains: phone, mode: 'insensitive' } }
+      );
+    }
+    
+    if (firstName) {
+      searchConditions.push({ firstName: { contains: firstName, mode: 'insensitive' } });
+    }
+    
+    if (lastName) {
+      searchConditions.push({ lastName: { contains: lastName, mode: 'insensitive' } });
+    }
+    
+    // If we have any search conditions, add them as OR conditions
+    if (searchConditions.length > 0) {
+      if (email || firstName || lastName) {
+        // For specific field searches, use AND logic
+        Object.assign(where, {
+          ...(email && { email: { contains: email, mode: 'insensitive' } }),
+          ...(firstName && { firstName: { contains: firstName, mode: 'insensitive' } }),
+          ...(lastName && { lastName: { contains: lastName, mode: 'insensitive' } }),
+        });
+        
+        if (phone) {
+          where.OR = [
+            { phone: { contains: phone, mode: 'insensitive' } },
+            { mobile: { contains: phone, mode: 'insensitive' } }
+          ];
+        }
+      } else if (search) {
+        // For general search, use OR logic
+        where.OR = searchConditions;
+      }
+    }
+
 
     const orderBy = this.buildOrderBy(sortBy, sortOrder);
 

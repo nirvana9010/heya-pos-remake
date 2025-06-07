@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cmbcxfdj1000evopjy2p2dhru",
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "locationId": "cmbcxfd9z0007vopjy4jj9igu",
+    "isPrimary": true,
+    "createdAt": "2025-06-01T00:32:34.621Z"
+  },
+  {
+    "id": "cmbcxfdj1000fvopjcgmbujh1",
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "locationId": "cmbcxfd9z0007vopjy4jj9igu",
+    "isPrimary": true,
+    "createdAt": "2025-06-01T00:32:34.621Z"
+  },
+  {
+    "id": "cmbcxfdj1000gvopj8tea3rpo",
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "locationId": "cmbcxfd9z0007vopjy4jj9igu",
+    "isPrimary": true,
+    "createdAt": "2025-06-01T00:32:34.621Z"
+  }
+]

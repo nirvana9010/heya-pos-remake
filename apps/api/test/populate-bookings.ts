@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3000';
 const MERCHANT_USERNAME = 'HAMILTON';
 
 // Helper function to generate random time slots
@@ -38,7 +38,7 @@ async function getServices(token: string) {
         'Content-Type': 'application/json'
       }
     });
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to get services:', error.response?.data || error.message);
     return [];
@@ -53,7 +53,7 @@ async function getStaff(token: string) {
         'Content-Type': 'application/json'
       }
     });
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to get staff:', error.response?.data || error.message);
     return [];
@@ -68,9 +68,24 @@ async function getCustomers(token: string) {
         'Content-Type': 'application/json'
       }
     });
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to get customers:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+async function getLocations(token: string) {
+  try {
+    const response = await axios.get(`${API_URL}/api/locations`, {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data.data || response.data;
+  } catch (error: any) {
+    console.error('Failed to get locations:', error.response?.data || error.message);
     return [];
   }
 }
@@ -83,7 +98,7 @@ async function createCustomer(token: string, customerData: any) {
         'Content-Type': 'application/json'
       }
     });
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to create customer:', error.response?.data || error.message);
     return null;
@@ -99,7 +114,7 @@ async function createBooking(token: string, bookingData: any) {
       }
     });
     console.log(`✓ Created booking: ${response.data.bookingNumber} - ${bookingData.customerName} at ${new Date(bookingData.startTime).toLocaleString()}`);
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to create booking:', error.response?.data || error.message);
     return null;
@@ -116,7 +131,7 @@ async function updateBookingStatus(token: string, bookingId: string, status: str
       }
     });
     console.log(`✓ Updated booking ${bookingId} status to ${status}`);
-    return response.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     console.error('Failed to update booking status:', error.response?.data || error.message);
     return null;
@@ -134,26 +149,27 @@ async function populateBookings() {
 
     // Get existing data
     console.log('Fetching existing data...');
-    const [services, staff, customers] = await Promise.all([
+    const [services, staff, customers, locations] = await Promise.all([
       getServices(token),
       getStaff(token),
-      getCustomers(token)
+      getCustomers(token),
+      getLocations(token)
     ]);
     
-    console.log(`Found ${services?.length || 0} services, ${staff?.length || 0} staff members, ${customers?.length || 0} customers\n`);
+    console.log(`Found ${services?.length || 0} services, ${staff?.length || 0} staff members, ${customers?.length || 0} customers, ${locations?.length || 0} locations\n`);
 
     // Create sample customers if needed
     const sampleCustomers = [
-      { name: 'Emma Wilson', email: 'emma.wilson@example.com', phone: '0412345678' },
-      { name: 'Liam Brown', email: 'liam.brown@example.com', phone: '0423456789' },
-      { name: 'Olivia Taylor', email: 'olivia.taylor@example.com', phone: '0434567890' },
-      { name: 'Noah Martinez', email: 'noah.martinez@example.com', phone: '0445678901' },
-      { name: 'Ava Johnson', email: 'ava.johnson@example.com', phone: '0456789012' },
-      { name: 'Sophia Davis', email: 'sophia.davis@example.com', phone: '0467890123' },
-      { name: 'Mason Miller', email: 'mason.miller@example.com', phone: '0478901234' },
-      { name: 'Isabella Garcia', email: 'isabella.garcia@example.com', phone: '0489012345' },
-      { name: 'Lucas Anderson', email: 'lucas.anderson@example.com', phone: '0490123456' },
-      { name: 'Mia Robinson', email: 'mia.robinson@example.com', phone: '0401234567' }
+      { firstName: 'Emma', lastName: 'Wilson', email: 'emma.wilson@example.com', mobile: '+61412345678' },
+      { firstName: 'Liam', lastName: 'Brown', email: 'liam.brown@example.com', mobile: '+61423456789' },
+      { firstName: 'Olivia', lastName: 'Taylor', email: 'olivia.taylor@example.com', mobile: '+61434567890' },
+      { firstName: 'Noah', lastName: 'Martinez', email: 'noah.martinez@example.com', mobile: '+61445678901' },
+      { firstName: 'Ava', lastName: 'Johnson', email: 'ava.johnson@example.com', mobile: '+61456789012' },
+      { firstName: 'Sophia', lastName: 'Davis', email: 'sophia.davis@example.com', mobile: '+61467890123' },
+      { firstName: 'Mason', lastName: 'Miller', email: 'mason.miller@example.com', mobile: '+61478901234' },
+      { firstName: 'Isabella', lastName: 'Garcia', email: 'isabella.garcia@example.com', mobile: '+61489012345' },
+      { firstName: 'Lucas', lastName: 'Anderson', email: 'lucas.anderson@example.com', mobile: '+61490123456' },
+      { firstName: 'Mia', lastName: 'Robinson', email: 'mia.robinson@example.com', mobile: '+61401234567' }
     ];
 
     if (customers.length < 5) {
@@ -175,37 +191,37 @@ async function populateBookings() {
 
     const bookingScenarios = [
       // Today's bookings
-      { date: today, hour: 9, minute: 0, status: 'completed' },
-      { date: today, hour: 10, minute: 0, status: 'completed' },
-      { date: today, hour: 11, minute: 30, status: 'completed' },
-      { date: today, hour: 13, minute: 0, status: 'confirmed' },
-      { date: today, hour: 14, minute: 30, status: 'confirmed' },
-      { date: today, hour: 15, minute: 0, status: 'confirmed' },
-      { date: today, hour: 16, minute: 0, status: 'confirmed' },
-      { date: today, hour: 17, minute: 0, status: 'cancelled' },
+      { date: today, hour: 9, minute: 0, status: 'COMPLETED' },
+      { date: today, hour: 10, minute: 0, status: 'COMPLETED' },
+      { date: today, hour: 11, minute: 30, status: 'COMPLETED' },
+      { date: today, hour: 13, minute: 0, status: 'CONFIRMED' },
+      { date: today, hour: 14, minute: 30, status: 'CONFIRMED' },
+      { date: today, hour: 15, minute: 0, status: 'CONFIRMED' },
+      { date: today, hour: 16, minute: 0, status: 'CONFIRMED' },
+      { date: today, hour: 17, minute: 0, status: 'CANCELLED' },
       
       // Tomorrow's bookings
-      { date: tomorrow, hour: 9, minute: 30, status: 'confirmed' },
-      { date: tomorrow, hour: 10, minute: 0, status: 'confirmed' },
-      { date: tomorrow, hour: 11, minute: 0, status: 'confirmed' },
-      { date: tomorrow, hour: 12, minute: 0, status: 'confirmed' },
-      { date: tomorrow, hour: 14, minute: 0, status: 'confirmed' },
-      { date: tomorrow, hour: 15, minute: 30, status: 'confirmed' },
-      { date: tomorrow, hour: 16, minute: 30, status: 'confirmed' },
+      { date: tomorrow, hour: 9, minute: 30, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 10, minute: 0, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 11, minute: 0, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 12, minute: 0, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 14, minute: 0, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 15, minute: 30, status: 'CONFIRMED' },
+      { date: tomorrow, hour: 16, minute: 30, status: 'CONFIRMED' },
       
       // Next week bookings
-      { date: nextWeek, hour: 10, minute: 0, status: 'confirmed' },
-      { date: nextWeek, hour: 11, minute: 30, status: 'confirmed' },
-      { date: nextWeek, hour: 13, minute: 0, status: 'confirmed' },
-      { date: nextWeek, hour: 14, minute: 0, status: 'confirmed' },
-      { date: nextWeek, hour: 15, minute: 30, status: 'confirmed' },
+      { date: nextWeek, hour: 10, minute: 0, status: 'CONFIRMED' },
+      { date: nextWeek, hour: 11, minute: 30, status: 'CONFIRMED' },
+      { date: nextWeek, hour: 13, minute: 0, status: 'CONFIRMED' },
+      { date: nextWeek, hour: 14, minute: 0, status: 'CONFIRMED' },
+      { date: nextWeek, hour: 15, minute: 30, status: 'CONFIRMED' },
       
       // Two weeks out bookings
-      { date: twoWeeks, hour: 9, minute: 0, status: 'confirmed' },
-      { date: twoWeeks, hour: 10, minute: 30, status: 'confirmed' },
-      { date: twoWeeks, hour: 12, minute: 0, status: 'confirmed' },
-      { date: twoWeeks, hour: 14, minute: 30, status: 'confirmed' },
-      { date: twoWeeks, hour: 16, minute: 0, status: 'confirmed' }
+      { date: twoWeeks, hour: 9, minute: 0, status: 'CONFIRMED' },
+      { date: twoWeeks, hour: 10, minute: 30, status: 'CONFIRMED' },
+      { date: twoWeeks, hour: 12, minute: 0, status: 'CONFIRMED' },
+      { date: twoWeeks, hour: 14, minute: 30, status: 'CONFIRMED' },
+      { date: twoWeeks, hour: 16, minute: 0, status: 'CONFIRMED' }
     ];
 
     console.log('Creating bookings...\n');
@@ -228,24 +244,26 @@ async function populateBookings() {
 
       const bookingData = {
         customerId: customer.id,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        customerEmail: customer.email,
-        serviceId: service.id,
-        serviceName: service.name,
-        staffId: staffMember.id,
-        staffName: staffMember.name,
+        providerId: staffMember.id,
+        createdById: staffMember.id, // Add createdById field
+        locationId: locations[0]?.id || undefined, // Use first location
         startTime: startTime,
-        endTime: endTime.toISOString(),
-        price: service.price,
-        status: 'pending', // Start with pending
-        notes: `Test booking for ${service.name}`
+        services: [{
+          serviceId: service.id,
+          price: parseFloat(service.price),
+          duration: service.duration
+        }],
+        totalAmount: parseFloat(service.price),
+        status: 'CONFIRMED', // Start with confirmed
+        notes: `Test booking for ${service.name}`,
+        sendConfirmation: false,
+        sendReminder: false
       };
 
       const booking = await createBooking(token, bookingData);
       
       // Update status if needed
-      if (booking && scenario.status !== 'pending') {
+      if (booking && scenario.status !== 'CONFIRMED') {
         await updateBookingStatus(token, booking.id, scenario.status);
       }
       
