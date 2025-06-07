@@ -1,0 +1,38 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "description": "Heya POS API",
+  "scripts": {
+    "build": "nest build",
+    "start:prod": "node dist/main",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/mapped-types": "^2.1.0",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.4.17",
+    "@nestjs/websockets": "^10.4.17",
+    "@prisma/client": "^6.8.2",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "compression": "^1.8.0",
+    "csv-parse": "^5.6.0",
+    "date-fns-tz": "^3.2.0",
+    "dotenv": "^16.5.0",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "prisma": "^6.8.2",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1"
+  }
+}

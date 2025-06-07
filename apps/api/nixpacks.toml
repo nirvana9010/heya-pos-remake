@@ -1,14 +1,22 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "postgresql"]
+nixPkgs = ["nodejs_18"]
 
 [phases.install]
-cmds = ["npm ci --production=false"]
+cmds = [
+  "cd ../..",
+  "npm install --legacy-peer-deps",
+  "cd apps/api"
+]
 
 [phases.build]
-cmds = ["npx prisma generate", "npm run build"]
+cmds = [
+  "cd ../..",
+  "npm run build --workspace=@heya-pos/types",
+  "npm run build --workspace=@heya-pos/utils", 
+  "cd apps/api",
+  "npx prisma generate",
+  "npm run build"
+]
 
 [start]
-cmd = "npm run start:prod"
-
-[variables]
-NODE_ENV = "production"
+cmd = "cd apps/api && npm run start:prod"

@@ -1,0 +1,50 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+COPY packages/types/package*.json ./packages/types/
+COPY packages/utils/package*.json ./packages/utils/
+COPY packages/ui/package*.json ./packages/ui/
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build shared packages
+RUN npm run build --workspace=@heya-pos/types
+RUN npm run build --workspace=@heya-pos/utils
+RUN npm run build --workspace=@heya-pos/ui
+
+# Generate Prisma client
+WORKDIR /app/apps/api
+RUN npx prisma generate
+
+# Build API
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/package*.json ./apps/api/
+
+# Copy shared packages
+COPY --from=builder /app/packages ./packages
+
+WORKDIR /app/apps/api
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start:prod"]
