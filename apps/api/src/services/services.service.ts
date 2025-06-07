@@ -7,7 +7,7 @@ import { ImportServicesDto, ServiceImportItem } from './dto/import-services.dto'
 import { CreateServiceCategoryDto } from './dto/create-category.dto';
 import { UpdateServiceCategoryDto } from './dto/update-category.dto';
 import { Service, ServiceCategory, Prisma } from '@prisma/client';
-import { PaginatedResponse } from '@heya-pos/types';
+import { PaginatedResponse } from '../types';
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {

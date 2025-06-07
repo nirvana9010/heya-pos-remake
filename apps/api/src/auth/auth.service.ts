@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { MerchantLoginDto } from './dto/merchant-login.dto';
-import { AuthUser, AuthSession } from '@heya-pos/types';
+import { AuthUser, AuthSession } from '../types';
 
 @Injectable()
 export class AuthService {

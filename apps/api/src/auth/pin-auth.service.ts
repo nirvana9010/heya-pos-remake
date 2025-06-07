@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PinAuthDto } from './dto/pin-auth.dto';
-import { AuthUser, AuthSession, PinAuthResponse } from '@heya-pos/types';
-import { PinAuthManager } from '@heya-pos/utils';
+import { AuthUser, AuthSession, PinAuthResponse } from '../types';
+import { PinAuthManager } from '../utils/shared/pin';
 import { AuditLog } from '@prisma/client';
 
 @Injectable()

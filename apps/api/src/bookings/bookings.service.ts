@@ -6,7 +6,7 @@ import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { Prisma } from '@prisma/client';
 import { addMinutes, startOfDay, endOfDay, format, parse, isAfter, isBefore, isWithinInterval } from 'date-fns';
 import { LoyaltyService } from '../loyalty/loyalty.service';
-import { TimezoneUtils } from '@heya-pos/utils';
+import { TimezoneUtils } from '../utils/shared/timezone';
 
 @Injectable()
 export class BookingsService {

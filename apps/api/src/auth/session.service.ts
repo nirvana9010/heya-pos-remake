@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
-import { AuthSession } from '@heya-pos/types';
+import { AuthSession } from '../types';
 
 interface SessionData extends AuthSession {
   lastActivity: Date;

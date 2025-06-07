@@ -22,7 +22,7 @@ import { ChangePinDto } from './dto/change-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { AuthSession, PinAuthResponse } from '@heya-pos/types';
+import { AuthSession, PinAuthResponse } from '../types';
 import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
