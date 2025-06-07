@@ -2,21 +2,13 @@
 nixPkgs = ["nodejs_18"]
 
 [phases.install]
-cmds = [
-  "cd ../..",
-  "npm install --legacy-peer-deps",
-  "cd apps/api"
-]
+cmds = ["npm ci"]
 
 [phases.build]
 cmds = [
-  "cd ../..",
-  "npm run build --workspace=@heya-pos/types",
-  "npm run build --workspace=@heya-pos/utils", 
-  "cd apps/api",
   "npx prisma generate",
   "npm run build"
 ]
 
 [start]
-cmd = "cd apps/api && npm run start:prod"
+cmd = "npm run start:prod"
