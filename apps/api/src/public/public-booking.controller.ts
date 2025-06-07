@@ -14,7 +14,7 @@ import { BookingStatus } from '../bookings/dto/create-booking.dto';
 import { ServicesService } from '../services/services.service';
 import { StaffService } from '../staff/staff.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { TimezoneUtils } from '@heya-pos/utils';
+import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
 
 interface PublicCreateBookingDto {

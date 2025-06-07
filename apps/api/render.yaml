@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: heya-pos-api
+    runtime: node
+    buildCommand: "npm install && npx prisma generate && npm run build"
+    startCommand: "npm run start:prod"
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000

@@ -25,7 +25,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Service } from '@prisma/client';
-import { PaginatedResponse } from '@heya-pos/types';
+import { PaginatedResponse } from '../types';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard, PermissionsGuard)

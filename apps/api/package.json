@@ -37,8 +37,6 @@
     "memory:heap": "NODE_OPTIONS='--max-old-space-size=4096' clinic heapprofiler -- node dist/main.js"
   },
   "dependencies": {
-    "@heya-pos/types": "*",
-    "@heya-pos/utils": "*",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",

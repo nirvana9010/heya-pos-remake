@@ -1,5 +1,5 @@
 import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, Min, Max, IsArray } from 'class-validator';
-import { StaffRole } from '@heya-pos/types';
+import { StaffRole } from '../../types';
 
 export class CreateStaffDto {
   @IsEmail()

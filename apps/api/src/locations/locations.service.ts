@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TimezoneUtils } from '@heya-pos/utils';
+import { TimezoneUtils } from '../utils/shared/timezone';
 
 @Injectable()
 export class LocationsService {
