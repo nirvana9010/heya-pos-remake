@@ -1,9 +1,7 @@
 {
-  "buildCommand": "cd ../.. && npm run build --workspace=admin-dashboard",
-  "outputDirectory": ".next",
-  "installCommand": "cd ../.. && npm install",
   "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@heya-pos-api-url"
-  }
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
 }
