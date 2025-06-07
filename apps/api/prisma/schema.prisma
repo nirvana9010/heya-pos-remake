@@ -3,26 +3,27 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")      // For runtime (pooled connection)
+  directUrl = env("DIRECT_URL")       // For migrations (direct connection)
 }
 
 model Package {
-  id           String     @id @default(cuid())
+  id           String     @id @default(uuid())
   name         String     @unique
-  monthlyPrice Float
+  monthlyPrice Decimal    @db.Decimal(10, 2)
   trialDays    Int        @default(30)
   maxLocations Int
   maxStaff     Int
   maxCustomers Int
-  features     Json
+  features     Json       @db.JsonB
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   merchants    Merchant[]
 }
 
 model Merchant {
-  id                 String          @id @default(cuid())
+  id                 String          @id @default(uuid())
   name               String
   email              String          @unique
   phone              String?
@@ -35,9 +36,9 @@ model Merchant {
   stripeCustomerId   String?
   website            String?
   logo               String?
-  description        String?
+  description        String?         @db.Text
   status             String          @default("ACTIVE")
-  settings           Json
+  settings           Json            @db.JsonB
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   auditLogs          AuditLog[]
@@ -56,7 +57,7 @@ model Merchant {
 }
 
 model MerchantAuth {
-  id           String    @id @default(cuid())
+  id           String    @id @default(uuid())
   merchantId   String    @unique
   username     String    @unique
   passwordHash String
@@ -69,7 +70,7 @@ model MerchantAuth {
 }
 
 model Location {
-  id            String          @id @default(cuid())
+  id            String          @id @default(uuid())
   merchantId    String
   name          String
   address       String
@@ -81,9 +82,9 @@ model Location {
   phone         String?
   email         String?
   timezone      String          @default("Australia/Sydney")
-  businessHours Json
+  businessHours Json            @db.JsonB
   isActive      Boolean         @default(true)
-  settings      Json
+  settings      Json            @db.JsonB
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   bookings      Booking[]
@@ -97,7 +98,7 @@ model Location {
 }
 
 model Staff {
-  id                  String               @id @default(cuid())
+  id                  String               @id @default(uuid())
   merchantId          String
   email               String               @unique
   firstName           String
@@ -108,7 +109,7 @@ model Staff {
   calendarColor       String?
   avatar              String?
   status              String               @default("ACTIVE")
-  commissionRate      Float?
+  commissionRate      Decimal?             @db.Decimal(5, 2)
   hireDate            DateTime             @default(now())
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())
@@ -129,7 +130,7 @@ model Staff {
 }
 
 model StaffLocation {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   staffId    String
   locationId String
   isPrimary  Boolean  @default(false)
@@ -143,7 +144,7 @@ model StaffLocation {
 }
 
 model Customer {
-  id                  String               @id @default(cuid())
+  id                  String               @id @default(uuid())
   merchantId          String
   email               String?
   firstName           String
@@ -158,15 +159,15 @@ model Customer {
   state               String?
   country             String?
   postalCode          String?
-  notes               String?
-  tags                Json                 @default("[]")
+  notes               String?              @db.Text
+  tags                Json                 @default("[]") @db.JsonB
   preferredLanguage   String               @default("en")
   marketingConsent    Boolean              @default(false)
   status              String               @default("ACTIVE")
   source              String               @default("WALK_IN")
-  loyaltyPoints       Float                @default(0)
+  loyaltyPoints       Decimal              @default(0) @db.Decimal(10, 2)
   visitCount          Int                  @default(0)
-  totalSpent          Float                @default(0)
+  totalSpent          Decimal              @default(0) @db.Decimal(10, 2)
   loyaltyVisits       Int                  @default(0)
   lifetimeVisits      Int                  @default(0)
   createdAt           DateTime             @default(now())
@@ -183,22 +184,24 @@ model Customer {
   @@index([email])
   @@index([mobile])
   @@index([status])
+  @@index([firstName])
+  @@index([lastName])
 }
 
 model Service {
-  id                String           @id @default(cuid())
+  id                String           @id @default(uuid())
   merchantId        String
   categoryId        String?
   name              String
-  description       String?
+  description       String?          @db.Text
   category          String?
   duration          Int
-  price             Float
+  price             Decimal          @db.Decimal(10, 2)
   currency          String           @default("AUD")
-  taxRate           Float            @default(0.1)
+  taxRate           Decimal          @default(0.1) @db.Decimal(5, 4)
   isActive          Boolean          @default(true)
   requiresDeposit   Boolean          @default(false)
-  depositAmount     Float?
+  depositAmount     Decimal?         @db.Decimal(10, 2)
   maxAdvanceBooking Int              @default(90)
   minAdvanceBooking Int              @default(0)
   displayOrder      Int              @default(0)
@@ -212,13 +215,14 @@ model Service {
   @@index([merchantId])
   @@index([categoryId])
   @@index([isActive])
+  @@index([name])
 }
 
 model ServiceCategory {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   merchantId  String
   name        String
-  description String?
+  description String?   @db.Text
   icon        String?
   color       String?
   sortOrder   Int       @default(0)
@@ -232,7 +236,7 @@ model ServiceCategory {
 }
 
 model Booking {
-  id                  String               @id @default(cuid())
+  id                  String               @id @default(uuid())
   merchantId          String
   locationId          String
   customerId          String
@@ -240,10 +244,10 @@ model Booking {
   status              String               @default("PENDING")
   startTime           DateTime
   endTime             DateTime
-  totalAmount         Float
-  depositAmount       Float                @default(0)
-  notes               String?
-  cancellationReason  String?
+  totalAmount         Decimal              @db.Decimal(10, 2)
+  depositAmount       Decimal              @default(0) @db.Decimal(10, 2)
+  notes               String?              @db.Text
+  cancellationReason  String?              @db.Text
   source              String               @default("ONLINE")
   createdById         String
   providerId          String
@@ -268,14 +272,15 @@ model Booking {
   @@index([providerId])
   @@index([status])
   @@index([startTime])
+  @@index([endTime])
   @@index([bookingNumber])
 }
 
 model BookingService {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   bookingId String
   serviceId String
-  price     Float
+  price     Decimal  @db.Decimal(10, 2)
   duration  Int
   staffId   String
   createdAt DateTime @default(now())
@@ -289,20 +294,20 @@ model BookingService {
 }
 
 model Invoice {
-  id             String        @id @default(cuid())
+  id             String        @id @default(uuid())
   merchantId     String
   customerId     String
   bookingId      String?       @unique
   invoiceNumber  String        @unique
   status         String        @default("DRAFT")
-  subtotal       Float
-  taxAmount      Float
-  discountAmount Float         @default(0)
-  totalAmount    Float
-  paidAmount     Float         @default(0)
+  subtotal       Decimal       @db.Decimal(10, 2)
+  taxAmount      Decimal       @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal       @db.Decimal(10, 2)
+  paidAmount     Decimal       @default(0) @db.Decimal(10, 2)
   dueDate        DateTime
-  notes          String?
-  terms          String?
+  notes          String?       @db.Text
+  terms          String?       @db.Text
   createdById    String
   sentAt         DateTime?
   paidAt         DateTime?
@@ -323,15 +328,15 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   invoiceId   String
   description String
-  quantity    Float
-  unitPrice   Float
-  discount    Float    @default(0)
-  taxRate     Float    @default(0.1)
-  taxAmount   Float
-  total       Float
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  discount    Decimal  @default(0) @db.Decimal(10, 2)
+  taxRate     Decimal  @default(0.1) @db.Decimal(5, 4)
+  taxAmount   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -341,22 +346,22 @@ model InvoiceItem {
 }
 
 model Payment {
-  id                    String          @id @default(cuid())
+  id                    String          @id @default(uuid())
   merchantId            String
   locationId            String
   invoiceId             String
   paymentMethod         String
-  amount                Float
+  amount                Decimal         @db.Decimal(10, 2)
   currency              String          @default("AUD")
   status                String          @default("PENDING")
   reference             String?
   stripePaymentIntentId String?
   tyroTransactionId     String?
-  processorResponse     Json?
-  notes                 String?
+  processorResponse     Json?           @db.JsonB
+  notes                 String?         @db.Text
   processedAt           DateTime?
   failedAt              DateTime?
-  refundedAmount        Float           @default(0)
+  refundedAmount        Decimal         @default(0) @db.Decimal(10, 2)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   invoice               Invoice         @relation(fields: [invoiceId], references: [id])
@@ -367,12 +372,13 @@ model Payment {
   @@index([invoiceId])
   @@index([status])
   @@index([paymentMethod])
+  @@index([createdAt])
 }
 
 model PaymentRefund {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   paymentId   String
-  amount      Float
+  amount      Decimal   @db.Decimal(10, 2)
   reason      String
   status      String    @default("PENDING")
   reference   String?
@@ -386,23 +392,23 @@ model PaymentRefund {
 }
 
 model LoyaltyProgram {
-  id                String        @id @default(cuid())
+  id                String        @id @default(uuid())
   merchantId        String        @unique
   name              String
-  description       String?
+  description       String?       @db.Text
   type              String        @default("POINTS")
   visitsRequired    Int?
   visitRewardType   String?
-  visitRewardValue  Float?
-  pointsPerVisit    Float?
-  pointsPerDollar   Float?        @default(1)
-  pointsPerCurrency Float         @default(1)
-  rewardThreshold   Float         @default(100)
-  rewardValue       Float         @default(10)
-  pointsValue       Float         @default(0.01)
+  visitRewardValue  Decimal?      @db.Decimal(10, 2)
+  pointsPerVisit    Decimal?      @db.Decimal(10, 2)
+  pointsPerDollar   Decimal?      @default(1) @db.Decimal(10, 2)
+  pointsPerCurrency Decimal       @default(1) @db.Decimal(10, 2)
+  rewardThreshold   Decimal       @default(100) @db.Decimal(10, 2)
+  rewardValue       Decimal       @default(10) @db.Decimal(10, 2)
+  pointsValue       Decimal       @default(0.01) @db.Decimal(10, 4)
   expiryDays        Int?
   isActive          Boolean       @default(true)
-  terms             String?
+  terms             String?       @db.Text
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   cards             LoyaltyCard[]
@@ -414,12 +420,12 @@ model LoyaltyProgram {
 }
 
 model LoyaltyTier {
-  id             String         @id @default(cuid())
+  id             String         @id @default(uuid())
   programId      String
   name           String
-  requiredPoints Float
-  multiplier     Float          @default(1)
-  benefits       Json
+  requiredPoints Decimal        @db.Decimal(10, 2)
+  multiplier     Decimal        @default(1) @db.Decimal(5, 2)
+  benefits       Json           @db.JsonB
   sortOrder      Int
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -431,13 +437,13 @@ model LoyaltyTier {
 }
 
 model LoyaltyCard {
-  id             String               @id @default(cuid())
+  id             String               @id @default(uuid())
   programId      String
   customerId     String
   tierId         String?
   cardNumber     String               @unique
-  points         Float                @default(0)
-  lifetimePoints Float                @default(0)
+  points         Decimal              @default(0) @db.Decimal(10, 2)
+  lifetimePoints Decimal              @default(0) @db.Decimal(10, 2)
   status         String               @default("ACTIVE")
   joinedAt       DateTime             @default(now())
   lastActivityAt DateTime             @default(now())
@@ -457,14 +463,14 @@ model LoyaltyCard {
 }
 
 model LoyaltyTransaction {
-  id               String       @id @default(cuid())
+  id               String       @id @default(uuid())
   cardId           String?
   customerId       String
   merchantId       String
   type             String
-  points           Float        @default(0)
+  points           Decimal      @default(0) @db.Decimal(10, 2)
   visitsDelta      Int          @default(0)
-  balance          Float        @default(0)
+  balance          Decimal      @default(0) @db.Decimal(10, 2)
   description      String
   referenceType    String?
   referenceId      String?
@@ -485,13 +491,13 @@ model LoyaltyTransaction {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   merchantId String
   staffId    String
   action     String
   entityType String
   entityId   String
-  details    Json
+  details    Json     @db.JsonB
   ipAddress  String?
   timestamp  DateTime @default(now())
   staff      Staff    @relation(fields: [staffId], references: [id])

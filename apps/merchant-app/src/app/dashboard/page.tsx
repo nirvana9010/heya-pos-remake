@@ -155,7 +155,7 @@ export default function DashboardPage() {
           },
           { 
             title: "Today's Revenue", 
-            value: loading ? '-' : `$${(stats?.todayRevenue || 1240).toFixed(0)}`,
+            value: loading ? '-' : `$${Math.round(Number(stats?.todayRevenue) || 1240)}`,
             icon: DollarSign,
             change: '+8.5%',
             positive: true

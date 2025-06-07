@@ -93,7 +93,7 @@ export const TyroPaymentButton: React.FC<TyroPaymentButtonProps> = ({
     return (
       <>
         <CreditCard className="mr-2 h-4 w-4" />
-        Pay ${amount.toFixed(2)}
+        Pay ${Number(amount).toFixed(2)}
       </>
     );
   };

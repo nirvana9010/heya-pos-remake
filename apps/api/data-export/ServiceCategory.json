@@ -1,0 +1,38 @@
+[
+  {
+    "id": "cmbcxfdjc000hvopj9vo8q5wb",
+    "merchantId": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Facials",
+    "description": "Rejuvenating facial treatments",
+    "icon": "face",
+    "color": "#FFB6C1",
+    "sortOrder": 1,
+    "isActive": true,
+    "createdAt": "2025-06-01T00:32:34.633Z",
+    "updatedAt": "2025-06-01T00:32:34.633Z"
+  },
+  {
+    "id": "cmbcxfdjl000ivopjhtr5uwxu",
+    "merchantId": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Massages",
+    "description": "Relaxing massage therapies",
+    "icon": "spa",
+    "color": "#87CEEB",
+    "sortOrder": 2,
+    "isActive": true,
+    "createdAt": "2025-06-01T00:32:34.641Z",
+    "updatedAt": "2025-06-01T00:32:34.641Z"
+  },
+  {
+    "id": "cmbcxfdjx000jvopj31s0jlfd",
+    "merchantId": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Nails",
+    "description": "Manicure and pedicure services",
+    "icon": "brush",
+    "color": "#FFD700",
+    "sortOrder": 3,
+    "isActive": true,
+    "createdAt": "2025-06-01T00:32:34.654Z",
+    "updatedAt": "2025-06-01T00:32:34.654Z"
+  }
+]

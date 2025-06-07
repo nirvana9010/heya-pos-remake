@@ -1,0 +1,22 @@
+[
+  {
+    "id": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Hamilton Beauty Spa",
+    "email": "admin@hamiltonbeauty.com",
+    "phone": "+61 2 9456 7890",
+    "abn": "12345678901",
+    "subdomain": "hamilton",
+    "packageId": "cmbcxfd6h0001vopjj1t8r5vx",
+    "subscriptionStatus": "TRIAL",
+    "subscriptionEnds": null,
+    "trialEndsAt": "2025-07-01T00:32:34.179Z",
+    "stripeCustomerId": null,
+    "website": "https://hamiltonbeauty.com",
+    "logo": null,
+    "description": "Premium beauty and wellness spa in Hamilton",
+    "status": "ACTIVE",
+    "settings": "{\"currency\":\"AUD\",\"timezone\":\"Australia/Sydney\",\"bookingBuffer\":15,\"cancellationHours\":24}",
+    "createdAt": "2025-06-01T00:32:34.180Z",
+    "updatedAt": "2025-06-01T00:32:34.180Z"
+  }
+]

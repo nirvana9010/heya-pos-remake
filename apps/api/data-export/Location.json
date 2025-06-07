@@ -1,0 +1,21 @@
+[
+  {
+    "id": "cmbcxfd9z0007vopjy4jj9igu",
+    "merchantId": "cmbcxfd6s0003vopjw80c3qpe",
+    "name": "Hamilton Main",
+    "address": "123 Beauty Street",
+    "suburb": "Hamilton",
+    "city": "Sydney",
+    "state": "NSW",
+    "country": "Australia",
+    "postalCode": "2000",
+    "phone": "+61 2 9456 7890",
+    "email": "hamilton@hamiltonbeauty.com",
+    "timezone": "Australia/Sydney",
+    "businessHours": "{\"monday\":{\"open\":\"09:00\",\"close\":\"18:00\"},\"tuesday\":{\"open\":\"09:00\",\"close\":\"18:00\"},\"wednesday\":{\"open\":\"09:00\",\"close\":\"20:00\"},\"thursday\":{\"open\":\"09:00\",\"close\":\"20:00\"},\"friday\":{\"open\":\"09:00\",\"close\":\"18:00\"},\"saturday\":{\"open\":\"09:00\",\"close\":\"17:00\"},\"sunday\":{\"open\":\"10:00\",\"close\":\"16:00\"}}",
+    "isActive": true,
+    "settings": "{}",
+    "createdAt": "2025-06-01T00:32:34.295Z",
+    "updatedAt": "2025-06-01T00:32:34.295Z"
+  }
+]

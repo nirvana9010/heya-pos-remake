@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "projects": {
+    "merchant-app": {
+      "root": "apps/merchant-app"
+    },
+    "booking-app": {
+      "root": "apps/booking-app"
+    },
+    "admin-dashboard": {
+      "root": "apps/admin-dashboard"
+    },
+    "api": {
+      "root": "apps/api"
+    }
+  }
+}

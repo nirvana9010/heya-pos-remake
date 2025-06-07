@@ -187,7 +187,7 @@ export default function DashboardPageEnhanced() {
         <FadeIn delay={100}>
           <StatCard
             title="Today's Revenue"
-            value={`$${(stats?.todayRevenue || 1240).toFixed(0)}`}
+            value={`$${Math.round(Number(stats?.todayRevenue) || 1240)}`}
             icon={DollarSign}
             change={stats?.revenueGrowth || 8}
             className={refreshing ? "opacity-70" : ""}

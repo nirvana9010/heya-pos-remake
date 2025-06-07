@@ -486,7 +486,7 @@ export default function CustomersPageContent() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${Number(stats.totalRevenue).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               <Gift className="inline w-3 h-3 mr-1" />
               All time
@@ -570,7 +570,7 @@ export default function CustomersPageContent() {
                     </Badge>
                     {customer.totalSpent && customer.totalSpent > 0 && (
                       <span className="text-sm font-medium">
-                        ${customer.totalSpent.toFixed(2)}
+                        ${Number(customer.totalSpent).toFixed(2)}
                       </span>
                     )}
                     <Button

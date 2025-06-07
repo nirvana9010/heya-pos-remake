@@ -1128,7 +1128,7 @@ export default function BookingsPageContent() {
                                       "font-medium",
                                       booking.paidAmount > 0 && "text-green-600"
                                     )}>
-                                      ${(booking.totalAmount || booking.price || 0).toFixed(2)}
+                                      ${Number(booking.totalAmount || booking.price || 0).toFixed(2)}
                                     </span>
                                   </div>
                                   {booking.paidAmount > 0 && (

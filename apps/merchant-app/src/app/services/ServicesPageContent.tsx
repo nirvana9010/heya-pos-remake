@@ -399,7 +399,7 @@ export default function ServicesPageContent() {
             }}
             className="block w-full text-right font-medium text-gray-900 hover:text-gray-700 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
           >
-            ${service.price.toFixed(2)}
+            ${Number(service.price).toFixed(2)}
           </button>
         );
       },
@@ -616,7 +616,7 @@ export default function ServicesPageContent() {
           newPrice = service.price + priceAdjustment.value;
         }
         
-        return apiClient.updateService(serviceId, { price: Math.round(newPrice * 100) / 100 });
+        return apiClient.updateService(serviceId, { price: Math.round(Number(newPrice) * 100) / 100 });
       });
       
       await Promise.all(updates);

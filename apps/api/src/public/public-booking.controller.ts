@@ -15,6 +15,7 @@ import { ServicesService } from '../services/services.service';
 import { StaffService } from '../staff/staff.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimezoneUtils } from '@heya-pos/utils';
+import { toNumber } from '../utils/decimal';
 
 interface PublicCreateBookingDto {
   customerName: string;
@@ -107,7 +108,7 @@ export class PublicBookingController {
         id: service.id,
         name: service.name,
         description: service.description,
-        price: service.price,
+        price: toNumber(service.price),
         duration: service.duration,
         categoryId: service.categoryId,
         categoryName: service.categoryModel?.name,
@@ -350,10 +351,10 @@ export class PublicBookingController {
         startTime: startTime.toISOString(),
         services: [{
           serviceId: service.id,
-          price: service.price,
+          price: toNumber(service.price),
           duration: service.duration,
         }],
-        totalAmount: service.price,
+        totalAmount: toNumber(service.price),
         notes: dto.notes,
         status: BookingStatus.CONFIRMED,
       },
@@ -385,7 +386,7 @@ export class PublicBookingController {
       startTime: startTimeDisplay.time.substring(0, 5), // Remove seconds if present
       endTime: endTimeDisplay.time.substring(0, 5), // Remove seconds if present
       duration: service.duration,
-      price: service.price,
+      price: toNumber(service.price),
       status: booking.status,
       notes: booking.notes,
       createdAt: booking.createdAt.toISOString(),
@@ -435,7 +436,7 @@ export class PublicBookingController {
       startTime: startTimeDisplay.time.substring(0, 5), // Remove seconds if present
       endTime: endTimeDisplay.time.substring(0, 5), // Remove seconds if present
       duration: service?.duration || 0,
-      price: booking.totalAmount,
+      price: toNumber(booking.totalAmount),
       status: booking.status,
       notes: booking.notes,
       createdAt: booking.createdAt.toISOString(),

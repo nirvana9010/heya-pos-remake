@@ -569,7 +569,7 @@ export default function CalendarPageContent() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<ViewType>("day");
   const [timeInterval, setTimeInterval] = useState<TimeInterval>(15);
-  const [businessHours] = useState<BusinessHours>(mockBusinessHours);
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(mockBusinessHours);
   const [filters, setFilters] = useState<CalendarFilters>({
     showCompleted: true,
     showCancelled: false,
@@ -698,19 +698,90 @@ export default function CalendarPageContent() {
     loadStaff();
   }, []);
 
+  // Load location data to get actual business hours
+  useEffect(() => {
+    const loadLocationData = async () => {
+      try {
+        const locations = await apiClient.getLocations();
+        if (locations && locations.length > 0) {
+          const location = locations[0]; // Use first location
+          
+          // Check if businessHours exists in the location data
+          if (location.businessHours && typeof location.businessHours === 'object') {
+            // Parse business hours from the location
+            const hours = location.businessHours;
+            
+            // Expected format: { monday: { open: "09:00", close: "18:00" }, ... }
+            // or: { start: "09:00", end: "18:00", days: [1,2,3,4,5] }
+            
+            if (hours.start && hours.end) {
+              setBusinessHours({
+                start: hours.start,
+                end: hours.end,
+                days: hours.days || [1, 2, 3, 4, 5] // Default to Mon-Fri if not specified
+              });
+            } else {
+              // Try to extract from weekly schedule
+              const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+              const openDays: number[] = [];
+              let earliestStart = '';
+              let latestEnd = '';
+              
+              daysOfWeek.forEach((day, index) => {
+                const dayHours = hours[day];
+                if (dayHours && (dayHours.open || dayHours.start)) {
+                  openDays.push(index);
+                  const dayStart = dayHours.open || dayHours.start;
+                  const dayEnd = dayHours.close || dayHours.end;
+                  
+                  // Find the earliest opening time
+                  if (!earliestStart || dayStart < earliestStart) {
+                    earliestStart = dayStart;
+                  }
+                  // Find the latest closing time
+                  if (!latestEnd || dayEnd > latestEnd) {
+                    latestEnd = dayEnd;
+                  }
+                }
+              });
+              
+              if (earliestStart && latestEnd && openDays.length > 0) {
+                setBusinessHours({
+                  start: earliestStart,
+                  end: latestEnd,
+                  days: openDays
+                });
+                console.log('Loaded business hours:', { start: earliestStart, end: latestEnd, days: openDays });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load location data:', error);
+        // Keep using mock business hours if load fails
+      }
+    };
+
+    loadLocationData();
+  }, []);
+
   // Scroll to business hours on mount or view change
   useEffect(() => {
-    if (calendarScrollRef.current) {
+    if (calendarScrollRef.current && businessHours) {
       let scrollPosition = 0;
       
+      // Parse business hours start time
+      const [startHour, startMinute] = businessHours.start.split(':').map(Number);
+      const scrollToHour = Math.max(0, startHour - 0.5); // 30 minutes before business start
+      
       if (viewType === "day") {
-        // Calculate scroll position for 8:30 AM (bit before business start)
+        // Calculate scroll position based on business hours
         const slotHeight = timeInterval === 60 ? 60 : timeInterval === 30 ? 30 : 24;
         const slotsPerHour = 60 / timeInterval;
-        scrollPosition = 8.5 * slotsPerHour * slotHeight; // 8:30 AM position
+        scrollPosition = scrollToHour * slotsPerHour * slotHeight;
       } else if (viewType === "week") {
-        // For week view, scroll to 8 AM (64px per hour)
-        scrollPosition = 8 * 64; // 8 AM position
+        // For week view, scroll to 30 minutes before business start
+        scrollPosition = scrollToHour * 64; // 64px per hour in week view
       }
       
       if (scrollPosition > 0) {
@@ -722,7 +793,7 @@ export default function CalendarPageContent() {
         }, 100);
       }
     }
-  }, [viewType, timeInterval]);
+  }, [viewType, timeInterval, businessHours]);
 
   const timeSlots = useMemo(() => {
     return generateTimeSlots(businessHours, timeInterval);
@@ -878,7 +949,10 @@ export default function CalendarPageContent() {
         </div>
 
         {/* Scrollable calendar grid */}
-        <div className="flex-1 overflow-auto" ref={calendarScrollRef}>
+        <div 
+          className="flex-1 overflow-auto calendar-scroll-container" 
+          ref={calendarScrollRef}
+        >
           <div 
             className="grid min-w-[600px] relative"
             style={{ gridTemplateColumns: gridColumns }}
@@ -969,8 +1043,13 @@ export default function CalendarPageContent() {
                         
                         // Calculate side-by-side layout for overlapping bookings
                         const overlapCount = slotBookings.length;
-                        const bookingWidth = overlapCount > 1 ? (100 / overlapCount) - 2 : 100; // Leave small gap between
-                        const bookingLeft = overlapCount > 1 ? (bookingIndex * (100 / overlapCount)) : 0;
+                        const gapBetweenBookings = 2; // pixels between bookings
+                        const bookingWidth = overlapCount > 1 
+                          ? `calc(${100 / overlapCount}% - ${gapBetweenBookings * (overlapCount - 1) / overlapCount}px)`
+                          : '100%';
+                        const bookingLeft = overlapCount > 1 
+                          ? `calc(${bookingIndex * (100 / overlapCount)}% + ${bookingIndex * gapBetweenBookings / overlapCount}px)`
+                          : '0';
                         
                         // Determine opacity based on status
                         let bgOpacity = 0.7; // Default for confirmed - reduced for better contrast
@@ -983,21 +1062,19 @@ export default function CalendarPageContent() {
                           <div
                             key={booking.id}
                             className={cn(
-                              "absolute top-0.5 rounded cursor-pointer border-2 text-xs",
+                              "absolute top-0 left-0 right-0 rounded cursor-pointer border-l-4 text-xs",
                               "transition-all hover:shadow-md hover:z-30",
                               booking.status === "in-progress" && "animate-pulse",
                               booking.status === "cancelled" && "line-through",
                               hasConflict && "ring-2 ring-red-500 ring-offset-1"
                             )}
                             style={{
-                              left: `${bookingLeft}%`,
-                              width: `${bookingWidth}%`,
-                              height: `${(duration / timeInterval) * slot.height - 3}px`,
+                              left: bookingLeft,
+                              width: bookingWidth,
+                              height: `calc(${(duration / timeInterval) * slot.height}px - 2px)`,
                               backgroundColor: hexToRgba(staffMember.color, bgOpacity),
-                              borderColor: staffMember.color,
-                              zIndex: 15 + bookingIndex, // Ensure proper stacking
-                              marginLeft: bookingIndex > 0 ? '2px' : '4px',
-                              marginRight: bookingIndex < overlapCount - 1 ? '2px' : '4px'
+                              borderLeftColor: staffMember.color,
+                              zIndex: 15 + bookingIndex // Ensure proper stacking
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1182,7 +1259,7 @@ export default function CalendarPageContent() {
 
         {/* Scrollable content area - includes both time and day columns */}
         <div 
-          className="flex-1 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" 
+          className="flex-1 overflow-auto calendar-scroll-container" 
           ref={calendarScrollRef} 
           style={{ scrollBehavior: 'smooth' }}
         >

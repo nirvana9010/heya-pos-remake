@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Decimal } from '@prisma/client/runtime/library';
+import { toNumber, addDecimals, subtractDecimals, multiplyDecimals, isLessThan, toDecimal } from '../utils/decimal';
 
 @Injectable()
 export class LoyaltyService {
@@ -145,7 +147,7 @@ export class LoyaltyService {
         bookingId: booking.id,
         type: 'EARNED',
         points: pointsEarned,
-        balance: updatedCustomer.loyaltyPoints + pointsEarned,
+        balance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned),
         description: `Earned ${pointsEarned} points from booking`,
         createdByStaffId: booking.createdById
       }
@@ -153,7 +155,7 @@ export class LoyaltyService {
 
     return { 
       pointsEarned,
-      newBalance: updatedCustomer.loyaltyPoints + pointsEarned
+      newBalance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned)
     };
   }
 
@@ -204,7 +206,7 @@ export class LoyaltyService {
         type: 'POINTS',
         currentPoints: customer.loyaltyPoints,
         pointsValue: program?.pointsValue || 0.01,
-        dollarValue: customer.loyaltyPoints * (program?.pointsValue || 0.01),
+        dollarValue: multiplyDecimals(customer.loyaltyPoints, program?.pointsValue || 0.01),
         transactions
       };
     }
@@ -281,12 +283,12 @@ export class LoyaltyService {
       throw new NotFoundException('Customer not found');
     }
 
-    if (customer.loyaltyPoints < points) {
-      throw new BadRequestException(`Insufficient points. Available: ${customer.loyaltyPoints}, Requested: ${points}`);
+    if (isLessThan(customer.loyaltyPoints, points)) {
+      throw new BadRequestException(`Insufficient points. Available: ${toNumber(customer.loyaltyPoints)}, Requested: ${points}`);
     }
 
     const pointsValue = program.pointsValue || 0.01;
-    const dollarValue = points * pointsValue;
+    const dollarValue = multiplyDecimals(points, pointsValue);
 
     // Deduct points
     const updatedCustomer = await this.prisma.customer.update({
@@ -304,7 +306,7 @@ export class LoyaltyService {
         bookingId,
         type: 'REDEEMED',
         points: -points,
-        balance: updatedCustomer.loyaltyPoints - points,
+        balance: subtractDecimals(updatedCustomer.loyaltyPoints, points),
         description: `Redeemed ${points} points for $${dollarValue.toFixed(2)}`,
         createdByStaffId: staffId
       }
@@ -313,7 +315,7 @@ export class LoyaltyService {
     return { 
       success: true,
       dollarValue,
-      remainingPoints: updatedCustomer.loyaltyPoints - points,
+      remainingPoints: subtractDecimals(updatedCustomer.loyaltyPoints, points),
       message: `$${dollarValue.toFixed(2)} discount applied!`
     };
   }
@@ -348,7 +350,7 @@ export class LoyaltyService {
     if (adjustment.points !== undefined) {
       updates.loyaltyPoints = { increment: adjustment.points };
       transactionData.points = adjustment.points;
-      transactionData.balance = customer.loyaltyPoints + adjustment.points;
+      transactionData.balance = addDecimals(customer.loyaltyPoints, adjustment.points);
     }
 
     if (adjustment.visits !== undefined) {

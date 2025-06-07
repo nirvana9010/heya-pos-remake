@@ -1,0 +1,504 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")      // Using pooled connection for both
+}
+
+model Package {
+  id           String     @id @default(uuid())
+  name         String     @unique
+  monthlyPrice Decimal    @db.Decimal(10, 2)
+  trialDays    Int        @default(30)
+  maxLocations Int
+  maxStaff     Int
+  maxCustomers Int
+  features     Json       @db.JsonB
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  merchants    Merchant[]
+}
+
+model Merchant {
+  id                 String          @id @default(uuid())
+  name               String
+  email              String          @unique
+  phone              String?
+  abn                String?
+  subdomain          String          @unique
+  packageId          String
+  subscriptionStatus String          @default("TRIAL")
+  subscriptionEnds   DateTime?
+  trialEndsAt        DateTime?
+  stripeCustomerId   String?
+  website            String?
+  logo               String?
+  description        String?         @db.Text
+  status             String          @default("ACTIVE")
+  settings           Json            @db.JsonB
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  auditLogs          AuditLog[]
+  customers          Customer[]
+  invoices           Invoice[]
+  locations          Location[]
+  loyaltyPrograms    LoyaltyProgram?
+  package            Package         @relation(fields: [packageId], references: [id])
+  merchantAuth       MerchantAuth?
+  services           Service[]
+  staff              Staff[]
+
+  @@index([status])
+  @@index([email])
+  @@index([subdomain])
+}
+
+model MerchantAuth {
+  id           String    @id @default(uuid())
+  merchantId   String    @unique
+  username     String    @unique
+  passwordHash String
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  merchant     Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([username])
+}
+
+model Location {
+  id            String          @id @default(uuid())
+  merchantId    String
+  name          String
+  address       String
+  suburb        String
+  city          String
+  state         String?
+  country       String
+  postalCode    String?
+  phone         String?
+  email         String?
+  timezone      String          @default("Australia/Sydney")
+  businessHours Json            @db.JsonB
+  isActive      Boolean         @default(true)
+  settings      Json            @db.JsonB
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  bookings      Booking[]
+  merchant      Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  staff         StaffLocation[]
+
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([isActive])
+}
+
+model Staff {
+  id                  String               @id @default(uuid())
+  merchantId          String
+  email               String               @unique
+  firstName           String
+  lastName            String
+  phone               String?
+  pin                 String
+  accessLevel         Int                  @default(1)
+  calendarColor       String?
+  avatar              String?
+  status              String               @default("ACTIVE")
+  commissionRate      Decimal?             @db.Decimal(5, 2)
+  hireDate            DateTime             @default(now())
+  lastLogin           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
+  bookingsAsCreator   Booking[]            @relation("BookingCreator")
+  bookingsAsProvider  Booking[]            @relation("BookingProvider")
+  bookingServices     BookingService[]
+  invoicesCreated     Invoice[]
+  loyaltyTransactions LoyaltyTransaction[]
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  locations           StaffLocation[]
+
+  @@index([merchantId])
+  @@index([email])
+  @@index([pin])
+  @@index([status])
+}
+
+model StaffLocation {
+  id         String   @id @default(uuid())
+  staffId    String
+  locationId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, locationId])
+  @@index([staffId])
+  @@index([locationId])
+}
+
+model Customer {
+  id                  String               @id @default(uuid())
+  merchantId          String
+  email               String?
+  firstName           String
+  lastName            String
+  phone               String?
+  mobile              String?
+  dateOfBirth         DateTime?
+  gender              String?
+  address             String?
+  suburb              String?
+  city                String?
+  state               String?
+  country             String?
+  postalCode          String?
+  notes               String?              @db.Text
+  tags                Json                 @default("[]") @db.JsonB
+  preferredLanguage   String               @default("en")
+  marketingConsent    Boolean              @default(false)
+  status              String               @default("ACTIVE")
+  source              String               @default("WALK_IN")
+  loyaltyPoints       Decimal              @default(0) @db.Decimal(10, 2)
+  visitCount          Int                  @default(0)
+  totalSpent          Decimal              @default(0) @db.Decimal(10, 2)
+  loyaltyVisits       Int                  @default(0)
+  lifetimeVisits      Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  bookings            Booking[]
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invoices            Invoice[]
+  loyaltyCards        LoyaltyCard[]
+  loyaltyTransactions LoyaltyTransaction[]
+
+  @@unique([merchantId, email])
+  @@unique([merchantId, mobile])
+  @@index([merchantId])
+  @@index([email])
+  @@index([mobile])
+  @@index([status])
+}
+
+model Service {
+  id                String           @id @default(uuid())
+  merchantId        String
+  categoryId        String?
+  name              String
+  description       String?          @db.Text
+  category          String?
+  duration          Int
+  price             Decimal          @db.Decimal(10, 2)
+  currency          String           @default("AUD")
+  taxRate           Decimal          @default(0.1) @db.Decimal(5, 4)
+  isActive          Boolean          @default(true)
+  requiresDeposit   Boolean          @default(false)
+  depositAmount     Decimal?         @db.Decimal(10, 2)
+  maxAdvanceBooking Int              @default(90)
+  minAdvanceBooking Int              @default(0)
+  displayOrder      Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  bookingServices   BookingService[]
+  categoryModel     ServiceCategory? @relation(fields: [categoryId], references: [id])
+  merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model ServiceCategory {
+  id          String    @id @default(uuid())
+  merchantId  String
+  name        String
+  description String?   @db.Text
+  icon        String?
+  color       String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+
+  @@unique([merchantId, name])
+  @@index([merchantId])
+}
+
+model Booking {
+  id                  String               @id @default(uuid())
+  merchantId          String
+  locationId          String
+  customerId          String
+  bookingNumber       String               @unique
+  status              String               @default("PENDING")
+  startTime           DateTime
+  endTime             DateTime
+  totalAmount         Decimal              @db.Decimal(10, 2)
+  depositAmount       Decimal              @default(0) @db.Decimal(10, 2)
+  notes               String?              @db.Text
+  cancellationReason  String?              @db.Text
+  source              String               @default("ONLINE")
+  createdById         String
+  providerId          String
+  reminderSent        Boolean              @default(false)
+  confirmedAt         DateTime?
+  checkedInAt         DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
+  provider            Staff                @relation("BookingProvider", fields: [providerId], references: [id])
+  customer            Customer             @relation(fields: [customerId], references: [id])
+  location            Location             @relation(fields: [locationId], references: [id])
+  services            BookingService[]
+  invoice             Invoice?
+  loyaltyTransactions LoyaltyTransaction[]
+
+  @@index([merchantId])
+  @@index([locationId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@index([startTime])
+  @@index([bookingNumber])
+}
+
+model BookingService {
+  id        String   @id @default(uuid())
+  bookingId String
+  serviceId String
+  price     Decimal  @db.Decimal(10, 2)
+  duration  Int
+  staffId   String
+  createdAt DateTime @default(now())
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  service   Service  @relation(fields: [serviceId], references: [id])
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([serviceId])
+  @@index([staffId])
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  merchantId     String
+  customerId     String
+  bookingId      String?       @unique
+  invoiceNumber  String        @unique
+  status         String        @default("DRAFT")
+  subtotal       Decimal       @db.Decimal(10, 2)
+  taxAmount      Decimal       @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal       @db.Decimal(10, 2)
+  paidAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  dueDate        DateTime
+  notes          String?       @db.Text
+  terms          String?       @db.Text
+  createdById    String
+  sentAt         DateTime?
+  paidAt         DateTime?
+  voidedAt       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdBy      Staff         @relation(fields: [createdById], references: [id])
+  booking        Booking?      @relation(fields: [bookingId], references: [id])
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  merchant       Merchant      @relation(fields: [merchantId], references: [id])
+  items          InvoiceItem[]
+  payments       Payment[]
+
+  @@index([merchantId])
+  @@index([customerId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  discount    Decimal  @default(0) @db.Decimal(10, 2)
+  taxRate     Decimal  @default(0.1) @db.Decimal(5, 4)
+  taxAmount   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id                    String          @id @default(uuid())
+  merchantId            String
+  locationId            String
+  invoiceId             String
+  paymentMethod         String
+  amount                Decimal         @db.Decimal(10, 2)
+  currency              String          @default("AUD")
+  status                String          @default("PENDING")
+  reference             String?
+  stripePaymentIntentId String?
+  tyroTransactionId     String?
+  processorResponse     Json?           @db.JsonB
+  notes                 String?         @db.Text
+  processedAt           DateTime?
+  failedAt              DateTime?
+  refundedAmount        Decimal         @default(0) @db.Decimal(10, 2)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  invoice               Invoice         @relation(fields: [invoiceId], references: [id])
+  location              Location        @relation(fields: [locationId], references: [id])
+  refunds               PaymentRefund[]
+
+  @@index([merchantId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([paymentMethod])
+}
+
+model PaymentRefund {
+  id          String    @id @default(uuid())
+  paymentId   String
+  amount      Decimal   @db.Decimal(10, 2)
+  reason      String
+  status      String    @default("PENDING")
+  reference   String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  payment     Payment   @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([status])
+}
+
+model LoyaltyProgram {
+  id                String        @id @default(uuid())
+  merchantId        String        @unique
+  name              String
+  description       String?       @db.Text
+  type              String        @default("POINTS")
+  visitsRequired    Int?
+  visitRewardType   String?
+  visitRewardValue  Decimal?      @db.Decimal(10, 2)
+  pointsPerVisit    Decimal?      @db.Decimal(10, 2)
+  pointsPerDollar   Decimal?      @default(1) @db.Decimal(10, 2)
+  pointsPerCurrency Decimal       @default(1) @db.Decimal(10, 2)
+  rewardThreshold   Decimal       @default(100) @db.Decimal(10, 2)
+  rewardValue       Decimal       @default(10) @db.Decimal(10, 2)
+  pointsValue       Decimal       @default(0.01) @db.Decimal(10, 4)
+  expiryDays        Int?
+  isActive          Boolean       @default(true)
+  terms             String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  cards             LoyaltyCard[]
+  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tiers             LoyaltyTier[]
+
+  @@index([merchantId])
+  @@index([isActive])
+}
+
+model LoyaltyTier {
+  id             String         @id @default(uuid())
+  programId      String
+  name           String
+  requiredPoints Decimal        @db.Decimal(10, 2)
+  multiplier     Decimal        @default(1) @db.Decimal(5, 2)
+  benefits       Json           @db.JsonB
+  sortOrder      Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  cards          LoyaltyCard[]
+  program        LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, name])
+  @@index([programId])
+}
+
+model LoyaltyCard {
+  id             String               @id @default(uuid())
+  programId      String
+  customerId     String
+  tierId         String?
+  cardNumber     String               @unique
+  points         Decimal              @default(0) @db.Decimal(10, 2)
+  lifetimePoints Decimal              @default(0) @db.Decimal(10, 2)
+  status         String               @default("ACTIVE")
+  joinedAt       DateTime             @default(now())
+  lastActivityAt DateTime             @default(now())
+  expiresAt      DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  tier           LoyaltyTier?         @relation(fields: [tierId], references: [id])
+  customer       Customer             @relation(fields: [customerId], references: [id])
+  program        LoyaltyProgram       @relation(fields: [programId], references: [id])
+  transactions   LoyaltyTransaction[]
+
+  @@unique([programId, customerId])
+  @@index([programId])
+  @@index([customerId])
+  @@index([cardNumber])
+  @@index([status])
+}
+
+model LoyaltyTransaction {
+  id               String       @id @default(uuid())
+  cardId           String?
+  customerId       String
+  merchantId       String
+  type             String
+  points           Decimal      @default(0) @db.Decimal(10, 2)
+  visitsDelta      Int          @default(0)
+  balance          Decimal      @default(0) @db.Decimal(10, 2)
+  description      String
+  referenceType    String?
+  referenceId      String?
+  bookingId        String?
+  expiresAt        DateTime?
+  createdByStaffId String?
+  createdAt        DateTime     @default(now())
+  card             LoyaltyCard? @relation(fields: [cardId], references: [id])
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  createdBy        Staff?       @relation(fields: [createdByStaffId], references: [id])
+  booking          Booking?     @relation(fields: [bookingId], references: [id])
+
+  @@index([cardId])
+  @@index([customerId])
+  @@index([merchantId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  merchantId String
+  staffId    String
+  action     String
+  entityType String
+  entityId   String
+  details    Json     @db.JsonB
+  ipAddress  String?
+  timestamp  DateTime @default(now())
+  staff      Staff    @relation(fields: [staffId], references: [id])
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([staffId])
+  @@index([action])
+  @@index([timestamp])
+}

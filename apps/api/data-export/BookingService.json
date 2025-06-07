@@ -1,0 +1,3719 @@
+[
+  {
+    "id": "cmbec3y070002voe2jh2h7gxe",
+    "bookingId": "cmbec3xzn0001voe2769w7523",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:21.703Z"
+  },
+  {
+    "id": "cmbec3y1z000avoe20pb86o5s",
+    "bookingId": "cmbec3y1n0009voe263uex15r",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:21.767Z"
+  },
+  {
+    "id": "cmbec3y3m000ivoe2whba97r0",
+    "bookingId": "cmbec3y3a000hvoe281v7vsmy",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:21.826Z"
+  },
+  {
+    "id": "cmbec3y3m000jvoe2ib8do8rh",
+    "bookingId": "cmbec3y3a000hvoe281v7vsmy",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:21.826Z"
+  },
+  {
+    "id": "cmbec3y53000svoe2qvdcvcfe",
+    "bookingId": "cmbec3y4r000rvoe2hsq0sch1",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:21.879Z"
+  },
+  {
+    "id": "cmbec3y53000tvoe2g5jocu8g",
+    "bookingId": "cmbec3y4r000rvoe2hsq0sch1",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:21.879Z"
+  },
+  {
+    "id": "cmbec3y6y0012voe2wgxntc16",
+    "bookingId": "cmbec3y6g0011voe282b7tgc9",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:21.946Z"
+  },
+  {
+    "id": "cmbec3y8u001avoe22wnc46ct",
+    "bookingId": "cmbec3y8e0019voe2a3b5u526",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.015Z"
+  },
+  {
+    "id": "cmbec3y8v001bvoe2ir8cucv1",
+    "bookingId": "cmbec3y8e0019voe2a3b5u526",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.015Z"
+  },
+  {
+    "id": "cmbec3yae001kvoe2o1r30p2n",
+    "bookingId": "cmbec3ya0001jvoe2amkenef5",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.071Z"
+  },
+  {
+    "id": "cmbec3ybv001svoe2th852a28",
+    "bookingId": "cmbec3ybf001rvoe2uattwad0",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.123Z"
+  },
+  {
+    "id": "cmbec3ybv001tvoe2720gblxf",
+    "bookingId": "cmbec3ybf001rvoe2uattwad0",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.123Z"
+  },
+  {
+    "id": "cmbec3ydb0022voe2tiq9dfwg",
+    "bookingId": "cmbec3ycz0021voe2obt88tkc",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.176Z"
+  },
+  {
+    "id": "cmbec3ydb0023voe221ce0r9v",
+    "bookingId": "cmbec3ycz0021voe2obt88tkc",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.176Z"
+  },
+  {
+    "id": "cmbec3ye10026voe2i83nhb7f",
+    "bookingId": "cmbec3ydq0025voe2ragodzm0",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.202Z"
+  },
+  {
+    "id": "cmbec3ye10027voe2zc5d32hz",
+    "bookingId": "cmbec3ydq0025voe2ragodzm0",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.202Z"
+  },
+  {
+    "id": "cmbec3yem002avoe22it626jw",
+    "bookingId": "cmbec3yea0029voe2vieovbon",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.222Z"
+  },
+  {
+    "id": "cmbec3yem002bvoe2kiu1lux5",
+    "bookingId": "cmbec3yea0029voe2vieovbon",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.222Z"
+  },
+  {
+    "id": "cmbec3yg2002kvoe2206prnth",
+    "bookingId": "cmbec3yfr002jvoe200xeqf9z",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.275Z"
+  },
+  {
+    "id": "cmbec3yg2002lvoe25peitltt",
+    "bookingId": "cmbec3yfr002jvoe200xeqf9z",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.275Z"
+  },
+  {
+    "id": "cmbec3yhr002uvoe2z3q46a4b",
+    "bookingId": "cmbec3yha002tvoe2suk6p7wk",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.335Z"
+  },
+  {
+    "id": "cmbec3yin002xvoe2w0uaj8g0",
+    "bookingId": "cmbec3yi8002wvoe2zgs8gcq7",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.367Z"
+  },
+  {
+    "id": "cmbec3ykd0035voe2x35p57lb",
+    "bookingId": "cmbec3yk10034voe2wlxr1730",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.429Z"
+  },
+  {
+    "id": "cmbec3ykd0036voe2ybykvkiq",
+    "bookingId": "cmbec3yk10034voe2wlxr1730",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.429Z"
+  },
+  {
+    "id": "cmbec3yl80039voe2p77idypc",
+    "bookingId": "cmbec3ykt0038voe2j7u1595a",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.461Z"
+  },
+  {
+    "id": "cmbec3ymt003hvoe2q8jzddsx",
+    "bookingId": "cmbec3ymg003gvoe2hfiqndg4",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.518Z"
+  },
+  {
+    "id": "cmbec3ymt003ivoe2jk0k594h",
+    "bookingId": "cmbec3ymg003gvoe2hfiqndg4",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.518Z"
+  },
+  {
+    "id": "cmbec3yol003rvoe2ev1mj010",
+    "bookingId": "cmbec3yo5003qvoe2crkmct1c",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.582Z"
+  },
+  {
+    "id": "cmbec3yom003svoe2qzqbljqs",
+    "bookingId": "cmbec3yo5003qvoe2crkmct1c",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.582Z"
+  },
+  {
+    "id": "cmbec3yqh0041voe23nf7eikn",
+    "bookingId": "cmbec3yq60040voe2yghh5dpk",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.649Z"
+  },
+  {
+    "id": "cmbec3yqh0042voe2yo3eq6du",
+    "bookingId": "cmbec3yq60040voe2yghh5dpk",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.649Z"
+  },
+  {
+    "id": "cmbec3ys3004bvoe2nbj0zodz",
+    "bookingId": "cmbec3yrp004avoe2cbyj2mv1",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.708Z"
+  },
+  {
+    "id": "cmbec3yst004evoe2hqkj4iub",
+    "bookingId": "cmbec3ysh004dvoe28z2fg1i8",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.734Z"
+  },
+  {
+    "id": "cmbec3yub004mvoe2jbr96cpq",
+    "bookingId": "cmbec3ytx004lvoe2pffdjafs",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:22.788Z"
+  },
+  {
+    "id": "cmbec3yv4004pvoe2a6pmk83o",
+    "bookingId": "cmbec3yur004ovoe2u9c27gt6",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.817Z"
+  },
+  {
+    "id": "cmbec3yv4004qvoe2gb0qe6hv",
+    "bookingId": "cmbec3yur004ovoe2u9c27gt6",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.817Z"
+  },
+  {
+    "id": "cmbec3ywr004zvoe2xyf26qaw",
+    "bookingId": "cmbec3ywe004yvoe29h69hb29",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:22.876Z"
+  },
+  {
+    "id": "cmbec3yyd0057voe2n2a2wbkh",
+    "bookingId": "cmbec3yy10056voe2mv0i64hb",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:22.934Z"
+  },
+  {
+    "id": "cmbec3z0b005fvoe2qds37bnz",
+    "bookingId": "cmbec3yzs005evoe2nxgr8x8q",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.003Z"
+  },
+  {
+    "id": "cmbec3z20005nvoe2e4291uzs",
+    "bookingId": "cmbec3z1n005mvoe2z6dtiwa6",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.065Z"
+  },
+  {
+    "id": "cmbec3z3v005vvoe242qjf0ur",
+    "bookingId": "cmbec3z3f005uvoe254wboqpi",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.132Z"
+  },
+  {
+    "id": "cmbec3z3v005wvoe2gxez52zd",
+    "bookingId": "cmbec3z3f005uvoe254wboqpi",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.132Z"
+  },
+  {
+    "id": "cmbec3z4p005zvoe2kpkveaxt",
+    "bookingId": "cmbec3z49005yvoe2dxf0jp78",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.161Z"
+  },
+  {
+    "id": "cmbec3z4p0060voe2toizqh5x",
+    "bookingId": "cmbec3z49005yvoe2dxf0jp78",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.161Z"
+  },
+  {
+    "id": "cmbec3z660069voe2vmdiv9sj",
+    "bookingId": "cmbec3z5t0068voe2osfcysjf",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.215Z"
+  },
+  {
+    "id": "cmbec3z7v006hvoe26xmm4zxr",
+    "bookingId": "cmbec3z7h006gvoe2hojjj9m4",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.275Z"
+  },
+  {
+    "id": "cmbec3z7v006ivoe2oez9qfdv",
+    "bookingId": "cmbec3z7h006gvoe2hojjj9m4",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.275Z"
+  },
+  {
+    "id": "cmbec3z8o006lvoe2sw60h1vk",
+    "bookingId": "cmbec3z8b006kvoe2fdv7oqro",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.305Z"
+  },
+  {
+    "id": "cmbec3za8006tvoe29ks85uq4",
+    "bookingId": "cmbec3z9u006svoe2hddqrr55",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.360Z"
+  },
+  {
+    "id": "cmbec3zbs0071voe20g4nos3n",
+    "bookingId": "cmbec3zbi0070voe2s7twfmy8",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.417Z"
+  },
+  {
+    "id": "cmbec3zbs0072voe2fwrk1avs",
+    "bookingId": "cmbec3zbi0070voe2s7twfmy8",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.417Z"
+  },
+  {
+    "id": "cmbec3zd7007bvoe2mgz3llx3",
+    "bookingId": "cmbec3zcv007avoe2ynabpd0n",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.467Z"
+  },
+  {
+    "id": "cmbec3zej007jvoe2qhjqqqzw",
+    "bookingId": "cmbec3ze8007ivoe2oacsox78",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.516Z"
+  },
+  {
+    "id": "cmbec3zej007kvoe2rumsf9iv",
+    "bookingId": "cmbec3ze8007ivoe2oacsox78",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.516Z"
+  },
+  {
+    "id": "cmbec3zfw007tvoe2cy1jikmr",
+    "bookingId": "cmbec3zfk007svoe2j2g7hujt",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.564Z"
+  },
+  {
+    "id": "cmbec3zha0081voe26iphr82p",
+    "bookingId": "cmbec3zgz0080voe2elucdvqd",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.614Z"
+  },
+  {
+    "id": "cmbec3ziv0089voe281j0gxza",
+    "bookingId": "cmbec3zie0088voe26x0unqt1",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.672Z"
+  },
+  {
+    "id": "cmbec3ziv008avoe2vehij3wl",
+    "bookingId": "cmbec3zie0088voe26x0unqt1",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.672Z"
+  },
+  {
+    "id": "cmbec3zke008jvoe23i97h9fl",
+    "bookingId": "cmbec3zk2008ivoe2i8o8ffcc",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.726Z"
+  },
+  {
+    "id": "cmbec3zm9008rvoe2m7v3wn9t",
+    "bookingId": "cmbec3zlp008qvoe2qso95bjb",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.794Z"
+  },
+  {
+    "id": "cmbec3zm9008svoe2jhlbvzp1",
+    "bookingId": "cmbec3zlp008qvoe2qso95bjb",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:23.794Z"
+  },
+  {
+    "id": "cmbec3zoc0091voe274aih81j",
+    "bookingId": "cmbec3zny0090voe2bm3ul4e9",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:23.868Z"
+  },
+  {
+    "id": "cmbec3zq50099voe26mzexabm",
+    "bookingId": "cmbec3zpq0098voe2n870zg9s",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.933Z"
+  },
+  {
+    "id": "cmbec3zrt009hvoe2czbj6o39",
+    "bookingId": "cmbec3zrh009gvoe2te74fk8c",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:23.994Z"
+  },
+  {
+    "id": "cmbec3zt7009pvoe2v2hjwnds",
+    "bookingId": "cmbec3zsw009ovoe2iu5kpkij",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.043Z"
+  },
+  {
+    "id": "cmbec3zt7009qvoe2lycxywa0",
+    "bookingId": "cmbec3zsw009ovoe2iu5kpkij",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.043Z"
+  },
+  {
+    "id": "cmbec3zut009zvoe2s99rqjin",
+    "bookingId": "cmbec3zuf009yvoe2axda73xc",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.101Z"
+  },
+  {
+    "id": "cmbec3zwj00a7voe2fuiviwv8",
+    "bookingId": "cmbec3zw300a6voe27mdjv65r",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.164Z"
+  },
+  {
+    "id": "cmbec3zx800aavoe2ux7sut3i",
+    "bookingId": "cmbec3zwx00a9voe23s7c6pdg",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.188Z"
+  },
+  {
+    "id": "cmbec3zz200aivoe2jg3meeyq",
+    "bookingId": "cmbec3zyq00ahvoe233orf64g",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.254Z"
+  },
+  {
+    "id": "cmbec3zz200ajvoe2x3sup34p",
+    "bookingId": "cmbec3zyq00ahvoe233orf64g",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.254Z"
+  },
+  {
+    "id": "cmbec400z00asvoe2pvm4hymi",
+    "bookingId": "cmbec400i00arvoe20799azbh",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.324Z"
+  },
+  {
+    "id": "cmbec401s00avvoe2xt5earne",
+    "bookingId": "cmbec401c00auvoe214v2af6z",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.353Z"
+  },
+  {
+    "id": "cmbec401s00awvoe24ja21ce7",
+    "bookingId": "cmbec401c00auvoe214v2af6z",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.353Z"
+  },
+  {
+    "id": "cmbec403d00b5voe23qruqe03",
+    "bookingId": "cmbec403200b4voe2uere3cqc",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.409Z"
+  },
+  {
+    "id": "cmbec403d00b6voe2fjgn83z8",
+    "bookingId": "cmbec403200b4voe2uere3cqc",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.409Z"
+  },
+  {
+    "id": "cmbec404600b9voe288l6fbyj",
+    "bookingId": "cmbec403r00b8voe28f8ter9s",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.439Z"
+  },
+  {
+    "id": "cmbec404y00bcvoe2phpju18q",
+    "bookingId": "cmbec404l00bbvoe2zawrrq9t",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.466Z"
+  },
+  {
+    "id": "cmbec406g00bkvoe26xaxfrbw",
+    "bookingId": "cmbec406600bjvoe2xtijao77",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.520Z"
+  },
+  {
+    "id": "cmbec407z00bsvoe2ut5x4t3u",
+    "bookingId": "cmbec407n00brvoe26esy3ytq",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.575Z"
+  },
+  {
+    "id": "cmbec407z00btvoe2px1daimt",
+    "bookingId": "cmbec407n00brvoe26esy3ytq",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.575Z"
+  },
+  {
+    "id": "cmbec409k00c2voe2pgnyxzf2",
+    "bookingId": "cmbec409a00c1voe23zphyrby",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.633Z"
+  },
+  {
+    "id": "cmbec409k00c3voe27roac5pr",
+    "bookingId": "cmbec409a00c1voe23zphyrby",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.633Z"
+  },
+  {
+    "id": "cmbec40b700ccvoe2dwwmrtmx",
+    "bookingId": "cmbec40ar00cbvoe20ioxa8qr",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.691Z"
+  },
+  {
+    "id": "cmbec40b700cdvoe2x5im4t25",
+    "bookingId": "cmbec40ar00cbvoe20ioxa8qr",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.691Z"
+  },
+  {
+    "id": "cmbec40bw00cgvoe2961fmpza",
+    "bookingId": "cmbec40bk00cfvoe283l8ak5p",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.716Z"
+  },
+  {
+    "id": "cmbec40bw00chvoe2c47d9sjp",
+    "bookingId": "cmbec40bk00cfvoe283l8ak5p",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.716Z"
+  },
+  {
+    "id": "cmbec40ck00ckvoe2fbcrv01l",
+    "bookingId": "cmbec40cb00cjvoe2iwyvg3f5",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.740Z"
+  },
+  {
+    "id": "cmbec40ck00clvoe2n3oyblou",
+    "bookingId": "cmbec40cb00cjvoe2iwyvg3f5",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.740Z"
+  },
+  {
+    "id": "cmbec40ea00cuvoe2m4xyugua",
+    "bookingId": "cmbec40ds00ctvoe2aw1mhaa2",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.802Z"
+  },
+  {
+    "id": "cmbec40ea00cvvoe299v8hqf9",
+    "bookingId": "cmbec40ds00ctvoe2aw1mhaa2",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:24.802Z"
+  },
+  {
+    "id": "cmbec40fy00d4voe2x81q7k1v",
+    "bookingId": "cmbec40fh00d3voe2oqfn6ys0",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.862Z"
+  },
+  {
+    "id": "cmbec40fy00d5voe2gl4gmkbu",
+    "bookingId": "cmbec40fh00d3voe2oqfn6ys0",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.862Z"
+  },
+  {
+    "id": "cmbec40ho00devoe277aj9tec",
+    "bookingId": "cmbec40h800ddvoe256xsttxf",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.924Z"
+  },
+  {
+    "id": "cmbec40ho00dfvoe24asxyv2t",
+    "bookingId": "cmbec40h800ddvoe256xsttxf",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:24.924Z"
+  },
+  {
+    "id": "cmbec40ii00divoe28nov6c2l",
+    "bookingId": "cmbec40i100dhvoe20qirn9bp",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:24.954Z"
+  },
+  {
+    "id": "cmbec40k500dqvoe2lo00ctf0",
+    "bookingId": "cmbec40jr00dpvoe2gzptshmq",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.013Z"
+  },
+  {
+    "id": "cmbec40lm00dyvoe23z9rbypo",
+    "bookingId": "cmbec40lc00dxvoe2u50yukkw",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.066Z"
+  },
+  {
+    "id": "cmbec40lm00dzvoe2mcd1vn15",
+    "bookingId": "cmbec40lc00dxvoe2u50yukkw",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.066Z"
+  },
+  {
+    "id": "cmbec40md00e2voe2rpo58aaf",
+    "bookingId": "cmbec40m100e1voe2eekvi3vx",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.094Z"
+  },
+  {
+    "id": "cmbec40md00e3voe2d6t6y55e",
+    "bookingId": "cmbec40m100e1voe2eekvi3vx",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.094Z"
+  },
+  {
+    "id": "cmbec40o300ecvoe2b3habb9n",
+    "bookingId": "cmbec40nj00ebvoe24t4xo09g",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.155Z"
+  },
+  {
+    "id": "cmbec40ot00efvoe2tlyhtkv4",
+    "bookingId": "cmbec40of00eevoe2xb0lnqyj",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.181Z"
+  },
+  {
+    "id": "cmbec40q200envoe2fyen6g72",
+    "bookingId": "cmbec40pq00emvoe2t05b4wyj",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.226Z"
+  },
+  {
+    "id": "cmbec40rn00evvoe2bc2g37c6",
+    "bookingId": "cmbec40ra00euvoe2xm9yg377",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.283Z"
+  },
+  {
+    "id": "cmbec40rn00ewvoe2og898y5c",
+    "bookingId": "cmbec40ra00euvoe2xm9yg377",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.283Z"
+  },
+  {
+    "id": "cmbec40sa00ezvoe2xajr5tlb",
+    "bookingId": "cmbec40rx00eyvoe2nknnyu2q",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.307Z"
+  },
+  {
+    "id": "cmbec40sa00f0voe2entj7qv7",
+    "bookingId": "cmbec40rx00eyvoe2nknnyu2q",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.307Z"
+  },
+  {
+    "id": "cmbec40tn00f9voe2mrn42m5q",
+    "bookingId": "cmbec40tb00f8voe2iiz75iaq",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.355Z"
+  },
+  {
+    "id": "cmbec40tn00favoe2cprtyzu4",
+    "bookingId": "cmbec40tb00f8voe2iiz75iaq",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.355Z"
+  },
+  {
+    "id": "cmbec40v900fjvoe2dmgoofy5",
+    "bookingId": "cmbec40uv00fivoe2tncczy6b",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.413Z"
+  },
+  {
+    "id": "cmbec40wv00frvoe2wgxesv9b",
+    "bookingId": "cmbec40wg00fqvoe24fuu5u5z",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.472Z"
+  },
+  {
+    "id": "cmbec40yl00fzvoe2z8spu8w8",
+    "bookingId": "cmbec40y800fyvoe219isu1sr",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.534Z"
+  },
+  {
+    "id": "cmbec410300g7voe2z3dgzjdc",
+    "bookingId": "cmbec40zq00g6voe2wdh94h8n",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.587Z"
+  },
+  {
+    "id": "cmbec410300g8voe2z53f0ff8",
+    "bookingId": "cmbec40zq00g6voe2wdh94h8n",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.587Z"
+  },
+  {
+    "id": "cmbec411j00ghvoe2h3gl6xpf",
+    "bookingId": "cmbec411500ggvoe2u3eatjgo",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.639Z"
+  },
+  {
+    "id": "cmbec413000gpvoe2674flwtl",
+    "bookingId": "cmbec412k00govoe2gc5bbgsa",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.692Z"
+  },
+  {
+    "id": "cmbec414d00gxvoe24fu2zttb",
+    "bookingId": "cmbec413y00gwvoe2uqscj8qm",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.741Z"
+  },
+  {
+    "id": "cmbec415x00h5voe2oun22c2f",
+    "bookingId": "cmbec415i00h4voe2lspmshzz",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.797Z"
+  },
+  {
+    "id": "cmbec417a00hdvoe2xrovmgxw",
+    "bookingId": "cmbec416y00hcvoe2j2zy5el5",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.846Z"
+  },
+  {
+    "id": "cmbec418f00hgvoe244mvrxvv",
+    "bookingId": "cmbec418000hfvoe2cdlnq6zr",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.887Z"
+  },
+  {
+    "id": "cmbec41aa00hpvoe2dxf1ipcf",
+    "bookingId": "cmbec419y00hnvoe2hpn23uqp",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.955Z"
+  },
+  {
+    "id": "cmbec41b400hsvoe2fbknx2uq",
+    "bookingId": "cmbec41an00hrvoe2e7499ggl",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.984Z"
+  },
+  {
+    "id": "cmbec482i00hvvoe2yls8jd78",
+    "bookingId": "cmbec41bm00huvoe20btrlr7m",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:34.746Z"
+  },
+  {
+    "id": "cmbec483k00hyvoe23c2hxmme",
+    "bookingId": "cmbec482v00hxvoe2k4rdvrvb",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:34.784Z"
+  },
+  {
+    "id": "cmbec484e00i1voe21hpcw37b",
+    "bookingId": "cmbec483y00i0voe26ezb1deq",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.815Z"
+  },
+  {
+    "id": "cmbec484e00i2voe2qn8kxe2b",
+    "bookingId": "cmbec483y00i0voe26ezb1deq",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.815Z"
+  },
+  {
+    "id": "cmbec485900i5voe29ka52vcn",
+    "bookingId": "cmbec484r00i4voe2af6l2e9n",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:34.846Z"
+  },
+  {
+    "id": "cmbec486500i8voe2difmuuk2",
+    "bookingId": "cmbec485p00i7voe299jf5lwy",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:34.877Z"
+  },
+  {
+    "id": "cmbec486x00ibvoe26xuvr36d",
+    "bookingId": "cmbec486k00iavoe2q4a0vwvr",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.905Z"
+  },
+  {
+    "id": "cmbec486x00icvoe2kt9znidz",
+    "bookingId": "cmbec486k00iavoe2q4a0vwvr",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.905Z"
+  },
+  {
+    "id": "cmbec487j00ifvoe2n65ge2s0",
+    "bookingId": "cmbec487900ievoe2jg9d0ge9",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:34.928Z"
+  },
+  {
+    "id": "cmbec488c00iivoe2ue49s2rl",
+    "bookingId": "cmbec487y00ihvoe2x5wpc51s",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.956Z"
+  },
+  {
+    "id": "cmbec488c00ijvoe2hjdm1zq1",
+    "bookingId": "cmbec487y00ihvoe2x5wpc51s",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.956Z"
+  },
+  {
+    "id": "cmbec488c00ikvoe2ud3z9fi9",
+    "bookingId": "cmbec487y00ihvoe2x5wpc51s",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:34.956Z"
+  },
+  {
+    "id": "cmbec489600invoe23j7lmzt0",
+    "bookingId": "cmbec488t00imvoe2mxwpu12l",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:34.986Z"
+  },
+  {
+    "id": "cmbec489600iovoe2dkco3o74",
+    "bookingId": "cmbec488t00imvoe2mxwpu12l",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:34.986Z"
+  },
+  {
+    "id": "cmbec48a000irvoe2y3jz790d",
+    "bookingId": "cmbec489l00iqvoe2yrt45jrj",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:35.016Z"
+  },
+  {
+    "id": "cmbec48a000isvoe28v8vebuj",
+    "bookingId": "cmbec489l00iqvoe2yrt45jrj",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:35.016Z"
+  },
+  {
+    "id": "cmbec417a00ivvoe2jt1x7s1a",
+    "bookingId": "cmbec48af00iuvoe2ds42ugr3",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.846Z"
+  },
+  {
+    "id": "cmbec417a00iwvoe22wy5perg",
+    "bookingId": "cmbec48af00iuvoe2ds42ugr3",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.846Z"
+  },
+  {
+    "id": "cmbec417a00ixvoe2x1bgacr3",
+    "bookingId": "cmbec48af00iuvoe2ds42ugr3",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.846Z"
+  },
+  {
+    "id": "cmbec418u00j0voe2kjr4o3oy",
+    "bookingId": "cmbec418800izvoe2fw0jern1",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:25.902Z"
+  },
+  {
+    "id": "cmbec41a700j3voe28gfzdt2j",
+    "bookingId": "cmbec419u00j2voe2ja03zl10",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.951Z"
+  },
+  {
+    "id": "cmbec41a700j4voe2fwjuejox",
+    "bookingId": "cmbec419u00j2voe2ja03zl10",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.951Z"
+  },
+  {
+    "id": "cmbec41a700j5voe2ijxbrgtj",
+    "bookingId": "cmbec419u00j2voe2ja03zl10",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:25.951Z"
+  },
+  {
+    "id": "cmbec41ax00j8voe2cd9g5rm0",
+    "bookingId": "cmbec41aj00j7voe24mgjuqaa",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:25.977Z"
+  },
+  {
+    "id": "cmbec41bn00jbvoe2n1q71xsh",
+    "bookingId": "cmbec41b900javoe2itmv2aes",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.004Z"
+  },
+  {
+    "id": "cmbec41cr00jevoe2zbfhcbjv",
+    "bookingId": "cmbec41c500jdvoe219xllour",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.044Z"
+  },
+  {
+    "id": "cmbec41dj00jhvoe2plh14hp4",
+    "bookingId": "cmbec41d700jgvoe2gvzp4ixn",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.072Z"
+  },
+  {
+    "id": "cmbec41e700jkvoe25lg2d644",
+    "bookingId": "cmbec41dv00jjvoe2v03akj9y",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.095Z"
+  },
+  {
+    "id": "cmbec41e700jlvoe271a7km5i",
+    "bookingId": "cmbec41dv00jjvoe2v03akj9y",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.095Z"
+  },
+  {
+    "id": "cmbec41f600jovoe2q9d5bwuk",
+    "bookingId": "cmbec41ep00jnvoe2qwozt0fe",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.130Z"
+  },
+  {
+    "id": "cmbec41f600jpvoe2vwe5y2o5",
+    "bookingId": "cmbec41ep00jnvoe2qwozt0fe",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.130Z"
+  },
+  {
+    "id": "cmbec41fy00jsvoe2cm0bqtkd",
+    "bookingId": "cmbec41fj00jrvoe24b8c0heg",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.159Z"
+  },
+  {
+    "id": "cmbec41fy00jtvoe2hx5bl3ef",
+    "bookingId": "cmbec41fj00jrvoe24b8c0heg",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.159Z"
+  },
+  {
+    "id": "cmbec41fy00juvoe29apc3sld",
+    "bookingId": "cmbec41fj00jrvoe24b8c0heg",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.159Z"
+  },
+  {
+    "id": "cmbec41gu00jxvoe2jxxnqpm1",
+    "bookingId": "cmbec41ga00jwvoe2xgvbgxd6",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.190Z"
+  },
+  {
+    "id": "cmbec41gu00jyvoe2it9a5ry0",
+    "bookingId": "cmbec41ga00jwvoe2xgvbgxd6",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.190Z"
+  },
+  {
+    "id": "cmbec41gu00jzvoe20rrkhnpf",
+    "bookingId": "cmbec41ga00jwvoe2xgvbgxd6",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.190Z"
+  },
+  {
+    "id": "cmbec41hm00k2voe29dqcirfm",
+    "bookingId": "cmbec41h700k1voe2dcg0tlbp",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.219Z"
+  },
+  {
+    "id": "cmbec41hm00k3voe2mg4uppty",
+    "bookingId": "cmbec41h700k1voe2dcg0tlbp",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.219Z"
+  },
+  {
+    "id": "cmbec41ib00k6voe2q9yrqd4v",
+    "bookingId": "cmbec41hy00k5voe2h8fti41m",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.243Z"
+  },
+  {
+    "id": "cmbec41ib00k7voe27nsoq7fe",
+    "bookingId": "cmbec41hy00k5voe2h8fti41m",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.243Z"
+  },
+  {
+    "id": "cmbec41j200kavoe2amsnlgkd",
+    "bookingId": "cmbec41iq00k9voe25boo7iqg",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.271Z"
+  },
+  {
+    "id": "cmbec41j300kbvoe26cz2rnzt",
+    "bookingId": "cmbec41iq00k9voe25boo7iqg",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.271Z"
+  },
+  {
+    "id": "cmbec41jr00kevoe2su12ovwd",
+    "bookingId": "cmbec41je00kdvoe2rg81n6e9",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.295Z"
+  },
+  {
+    "id": "cmbec41jr00kfvoe2t1zi1pyw",
+    "bookingId": "cmbec41je00kdvoe2rg81n6e9",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.295Z"
+  },
+  {
+    "id": "cmbec41kf00kivoe21mcwvj0s",
+    "bookingId": "cmbec41k600khvoe25nuba1h5",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.320Z"
+  },
+  {
+    "id": "cmbec41kf00kjvoe29gsel13y",
+    "bookingId": "cmbec41k600khvoe25nuba1h5",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.320Z"
+  },
+  {
+    "id": "cmbec41l700kmvoe26dfu9d7z",
+    "bookingId": "cmbec41ks00klvoe2dve8u18r",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.347Z"
+  },
+  {
+    "id": "cmbec41lv00kpvoe2bzlavaiu",
+    "bookingId": "cmbec41lj00kovoe2dx6vqck9",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.372Z"
+  },
+  {
+    "id": "cmbec41lv00kqvoe22df6mpet",
+    "bookingId": "cmbec41lj00kovoe2dx6vqck9",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.372Z"
+  },
+  {
+    "id": "cmbec41lv00krvoe2igcbmsq7",
+    "bookingId": "cmbec41lj00kovoe2dx6vqck9",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.372Z"
+  },
+  {
+    "id": "cmbec41mm00kuvoe2eqx7h4sq",
+    "bookingId": "cmbec41m700ktvoe2qmdtgsma",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.398Z"
+  },
+  {
+    "id": "cmbec41n900kxvoe2ghspr9p7",
+    "bookingId": "cmbec41mx00kwvoe2usyktion",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.422Z"
+  },
+  {
+    "id": "cmbec41o000l0voe2p8bezdra",
+    "bookingId": "cmbec41nl00kzvoe2pefb1qx2",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.448Z"
+  },
+  {
+    "id": "cmbec41or00l3voe2947v56th",
+    "bookingId": "cmbec41oe00l2voe2r6fm2ngd",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.476Z"
+  },
+  {
+    "id": "cmbec41po00l6voe2bt5z7wck",
+    "bookingId": "cmbec41p800l5voe2opm9s5a3",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.508Z"
+  },
+  {
+    "id": "cmbec41po00l7voe23to60p0i",
+    "bookingId": "cmbec41p800l5voe2opm9s5a3",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.508Z"
+  },
+  {
+    "id": "cmbec41qb00lavoe2pieud0os",
+    "bookingId": "cmbec41pz00l9voe22me81m62",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.531Z"
+  },
+  {
+    "id": "cmbec41qb00lbvoe2064zilsu",
+    "bookingId": "cmbec41pz00l9voe22me81m62",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.531Z"
+  },
+  {
+    "id": "cmbec41r200levoe25w93q9np",
+    "bookingId": "cmbec41qk00ldvoe28fz2r8m0",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.558Z"
+  },
+  {
+    "id": "cmbec41r200lfvoe2avtrdlfz",
+    "bookingId": "cmbec41qk00ldvoe28fz2r8m0",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.558Z"
+  },
+  {
+    "id": "cmbec41rs00livoe2v1j1e78i",
+    "bookingId": "cmbec41re00lhvoe214xaqlq6",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.584Z"
+  },
+  {
+    "id": "cmbec41rs00ljvoe2s651rzfr",
+    "bookingId": "cmbec41re00lhvoe214xaqlq6",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.584Z"
+  },
+  {
+    "id": "cmbec41sl00lmvoe20obvswk9",
+    "bookingId": "cmbec41s700llvoe2we93k81b",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.613Z"
+  },
+  {
+    "id": "cmbec41sl00lnvoe2a5oa9ayr",
+    "bookingId": "cmbec41s700llvoe2we93k81b",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.613Z"
+  },
+  {
+    "id": "cmbec41td00lqvoe2f4v0j54n",
+    "bookingId": "cmbec41t000lpvoe2t3g1mrty",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.642Z"
+  },
+  {
+    "id": "cmbec41te00lrvoe2z339pi45",
+    "bookingId": "cmbec41t000lpvoe2t3g1mrty",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.642Z"
+  },
+  {
+    "id": "cmbec41te00lsvoe2oiqsi4pw",
+    "bookingId": "cmbec41t000lpvoe2t3g1mrty",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.642Z"
+  },
+  {
+    "id": "cmbec41ub00lvvoe2fjqpnd1o",
+    "bookingId": "cmbec41ty00luvoe27eqivd7u",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.676Z"
+  },
+  {
+    "id": "cmbec41uc00lwvoe27bubrnoq",
+    "bookingId": "cmbec41ty00luvoe27eqivd7u",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.676Z"
+  },
+  {
+    "id": "cmbec41va00lzvoe2ctlkku0a",
+    "bookingId": "cmbec41ut00lyvoe2hkrs8csz",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.711Z"
+  },
+  {
+    "id": "cmbec41w500m2voe287m6nkqo",
+    "bookingId": "cmbec41vo00m1voe28969mrrx",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.741Z"
+  },
+  {
+    "id": "cmbec41wr00m5voe2qz99tnmj",
+    "bookingId": "cmbec41wg00m4voe2gggzqfez",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.763Z"
+  },
+  {
+    "id": "cmbec41xh00m8voe2jwpfjyfc",
+    "bookingId": "cmbec41x500m7voe2kk5v3dut",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.789Z"
+  },
+  {
+    "id": "cmbec41y300mbvoe23tdpckuy",
+    "bookingId": "cmbec41xs00mavoe288ry4w1v",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.812Z"
+  },
+  {
+    "id": "cmbec41y300mcvoe2w0w1royh",
+    "bookingId": "cmbec41xs00mavoe288ry4w1v",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.812Z"
+  },
+  {
+    "id": "cmbec41yz00mfvoe2nbg6krar",
+    "bookingId": "cmbec41yf00mevoe2k718bkiu",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.844Z"
+  },
+  {
+    "id": "cmbec41yz00mgvoe2h7hpufp7",
+    "bookingId": "cmbec41yf00mevoe2k718bkiu",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:26.844Z"
+  },
+  {
+    "id": "cmbec41zt00mjvoe250c1zxxf",
+    "bookingId": "cmbec41zg00mivoe2y5tgw1fi",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.874Z"
+  },
+  {
+    "id": "cmbec420r00mmvoe2cie6veqz",
+    "bookingId": "cmbec420900mlvoe2aau87or8",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.907Z"
+  },
+  {
+    "id": "cmbec420r00mnvoe2je6r4y80",
+    "bookingId": "cmbec420900mlvoe2aau87or8",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.907Z"
+  },
+  {
+    "id": "cmbec421j00mqvoe22uh5tbs3",
+    "bookingId": "cmbec421400mpvoe2udxny6c7",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:26.935Z"
+  },
+  {
+    "id": "cmbec422g00mtvoe2k4355qrx",
+    "bookingId": "cmbec422100msvoe2z0lwa1nz",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.968Z"
+  },
+  {
+    "id": "cmbec423500mwvoe2k1ejj3mi",
+    "bookingId": "cmbec422s00mvvoe2hga0vtau",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.993Z"
+  },
+  {
+    "id": "cmbec423500mxvoe2nxgnd6tb",
+    "bookingId": "cmbec422s00mvvoe2hga0vtau",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.993Z"
+  },
+  {
+    "id": "cmbec423500myvoe2s1qjw1i6",
+    "bookingId": "cmbec422s00mvvoe2hga0vtau",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:26.993Z"
+  },
+  {
+    "id": "cmbec423x00n1voe2lyjwnu2p",
+    "bookingId": "cmbec423k00n0voe2uf3qxwx1",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.021Z"
+  },
+  {
+    "id": "cmbec423x00n2voe2ceue5wy2",
+    "bookingId": "cmbec423k00n0voe2uf3qxwx1",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.021Z"
+  },
+  {
+    "id": "cmbec424n00n5voe2qdeef7e6",
+    "bookingId": "cmbec424a00n4voe2k3q1qs12",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.048Z"
+  },
+  {
+    "id": "cmbec424n00n6voe2zuw61ihu",
+    "bookingId": "cmbec424a00n4voe2k3q1qs12",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.048Z"
+  },
+  {
+    "id": "cmbec424n00n7voe2kqqmjq7q",
+    "bookingId": "cmbec424a00n4voe2k3q1qs12",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.048Z"
+  },
+  {
+    "id": "cmbec425f00navoe2gjoe9ejg",
+    "bookingId": "cmbec424z00n9voe23ookk1qz",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.076Z"
+  },
+  {
+    "id": "cmbec425f00nbvoe21p95atqp",
+    "bookingId": "cmbec424z00n9voe23ookk1qz",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.076Z"
+  },
+  {
+    "id": "cmbec426800nevoe2bhzynvc9",
+    "bookingId": "cmbec425s00ndvoe2m3t9zwoh",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.104Z"
+  },
+  {
+    "id": "cmbec426800nfvoe2lj722lu7",
+    "bookingId": "cmbec425s00ndvoe2m3t9zwoh",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.104Z"
+  },
+  {
+    "id": "cmbec427400nivoe2pqmh3je2",
+    "bookingId": "cmbec426n00nhvoe2jliwov0v",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.136Z"
+  },
+  {
+    "id": "cmbec427400njvoe2t5u7vvhy",
+    "bookingId": "cmbec426n00nhvoe2jliwov0v",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.136Z"
+  },
+  {
+    "id": "cmbec428500nmvoe2d7r4g1vc",
+    "bookingId": "cmbec427r00nlvoe2owm7oc3g",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.174Z"
+  },
+  {
+    "id": "cmbec428500nnvoe2a0jvzuru",
+    "bookingId": "cmbec427r00nlvoe2owm7oc3g",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.174Z"
+  },
+  {
+    "id": "cmbec428500novoe21bu7qdr2",
+    "bookingId": "cmbec427r00nlvoe2owm7oc3g",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.174Z"
+  },
+  {
+    "id": "cmbec429100nrvoe2eov2pgvh",
+    "bookingId": "cmbec428m00nqvoe2jm1700qs",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.205Z"
+  },
+  {
+    "id": "cmbec429100nsvoe2gmq9a1p9",
+    "bookingId": "cmbec428m00nqvoe2jm1700qs",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.205Z"
+  },
+  {
+    "id": "cmbec429100ntvoe21lk1ajsf",
+    "bookingId": "cmbec428m00nqvoe2jm1700qs",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.205Z"
+  },
+  {
+    "id": "cmbec42a000nwvoe2jrsvfyau",
+    "bookingId": "cmbec429i00nvvoe2z3dqg7qi",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.241Z"
+  },
+  {
+    "id": "cmbec42a000nxvoe2s8tzy7mz",
+    "bookingId": "cmbec429i00nvvoe2z3dqg7qi",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.241Z"
+  },
+  {
+    "id": "cmbec42ay00o0voe2k8m5ylos",
+    "bookingId": "cmbec42aj00nzvoe2mja1hhj8",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.275Z"
+  },
+  {
+    "id": "cmbec42az00o1voe288zz94rv",
+    "bookingId": "cmbec42aj00nzvoe2mja1hhj8",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.275Z"
+  },
+  {
+    "id": "cmbec42bs00o4voe2kqi5tr4j",
+    "bookingId": "cmbec42bd00o3voe2iqcbxrr6",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.304Z"
+  },
+  {
+    "id": "cmbec42bs00o5voe2cxq6kgi3",
+    "bookingId": "cmbec42bd00o3voe2iqcbxrr6",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.304Z"
+  },
+  {
+    "id": "cmbec42cn00o8voe22l6nfz8j",
+    "bookingId": "cmbec42c900o7voe2wacktvzj",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.335Z"
+  },
+  {
+    "id": "cmbec42cn00o9voe24pc20fcc",
+    "bookingId": "cmbec42c900o7voe2wacktvzj",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.335Z"
+  },
+  {
+    "id": "cmbec42cn00oavoe2cz3s1y6e",
+    "bookingId": "cmbec42c900o7voe2wacktvzj",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.335Z"
+  },
+  {
+    "id": "cmbec42dc00odvoe21idc29t9",
+    "bookingId": "cmbec42d100ocvoe2wyahkv2y",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.361Z"
+  },
+  {
+    "id": "cmbec42dc00oevoe2bykrvtmm",
+    "bookingId": "cmbec42d100ocvoe2wyahkv2y",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.361Z"
+  },
+  {
+    "id": "cmbec42dc00ofvoe27so5qx2b",
+    "bookingId": "cmbec42d100ocvoe2wyahkv2y",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.361Z"
+  },
+  {
+    "id": "cmbec42dz00oivoe2su9mjw09",
+    "bookingId": "cmbec42dn00ohvoe2wxh5fsuo",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.383Z"
+  },
+  {
+    "id": "cmbec42dz00ojvoe22iakleg6",
+    "bookingId": "cmbec42dn00ohvoe2wxh5fsuo",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.383Z"
+  },
+  {
+    "id": "cmbec42dz00okvoe28mujdkmo",
+    "bookingId": "cmbec42dn00ohvoe2wxh5fsuo",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.383Z"
+  },
+  {
+    "id": "cmbec42er00onvoe2t7matpxe",
+    "bookingId": "cmbec42ed00omvoe2v0agj1mu",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.412Z"
+  },
+  {
+    "id": "cmbec42er00oovoe25gtu27b9",
+    "bookingId": "cmbec42ed00omvoe2v0agj1mu",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.412Z"
+  },
+  {
+    "id": "cmbec42fm00orvoe2lyiz43q4",
+    "bookingId": "cmbec42f400oqvoe26shbr8nc",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.442Z"
+  },
+  {
+    "id": "cmbec42fm00osvoe2rrvaihdp",
+    "bookingId": "cmbec42f400oqvoe26shbr8nc",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.442Z"
+  },
+  {
+    "id": "cmbec42h200ovvoe2n0syt3r0",
+    "bookingId": "cmbec42gf00ouvoe2y6nh4tgl",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.494Z"
+  },
+  {
+    "id": "cmbec42h200owvoe2ao9doawh",
+    "bookingId": "cmbec42gf00ouvoe2y6nh4tgl",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.494Z"
+  },
+  {
+    "id": "cmbec42h200oxvoe2rspgkdjq",
+    "bookingId": "cmbec42gf00ouvoe2y6nh4tgl",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.494Z"
+  },
+  {
+    "id": "cmbec42i100p0voe2y2v2xogi",
+    "bookingId": "cmbec42ho00ozvoe2px6r3r5f",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.529Z"
+  },
+  {
+    "id": "cmbec42ix00p3voe2ol35a265",
+    "bookingId": "cmbec42ig00p2voe2nw5go4gi",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.561Z"
+  },
+  {
+    "id": "cmbec42ix00p4voe2wbil9o0a",
+    "bookingId": "cmbec42ig00p2voe2nw5go4gi",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.561Z"
+  },
+  {
+    "id": "cmbec42jp00p7voe2o8dlkvbx",
+    "bookingId": "cmbec42ja00p6voe2qa98rpde",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.590Z"
+  },
+  {
+    "id": "cmbec42jp00p8voe2s7b3f6qr",
+    "bookingId": "cmbec42ja00p6voe2qa98rpde",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.590Z"
+  },
+  {
+    "id": "cmbec42jp00p9voe2k4c4hz8c",
+    "bookingId": "cmbec42ja00p6voe2qa98rpde",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.590Z"
+  },
+  {
+    "id": "cmbec42kj00pcvoe2mgmnp968",
+    "bookingId": "cmbec42k400pbvoe2q0u6tde7",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.619Z"
+  },
+  {
+    "id": "cmbec42l900pfvoe2akhy1xjq",
+    "bookingId": "cmbec42kv00pevoe2jbtloo44",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.645Z"
+  },
+  {
+    "id": "cmbec42mc00pivoe2p3h756gz",
+    "bookingId": "cmbec42lt00phvoe227l6jaki",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.685Z"
+  },
+  {
+    "id": "cmbec42mc00pjvoe2kjlzirk0",
+    "bookingId": "cmbec42lt00phvoe227l6jaki",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.685Z"
+  },
+  {
+    "id": "cmbec42na00pmvoe244kzugd5",
+    "bookingId": "cmbec42mv00plvoe2n9v1gln2",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.719Z"
+  },
+  {
+    "id": "cmbec42o300ppvoe2xdzqkd9x",
+    "bookingId": "cmbec42np00povoe2dqdhot8b",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.747Z"
+  },
+  {
+    "id": "cmbec42o300pqvoe22kkj2sfh",
+    "bookingId": "cmbec42np00povoe2dqdhot8b",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.747Z"
+  },
+  {
+    "id": "cmbec42os00ptvoe22po7lo5x",
+    "bookingId": "cmbec42of00psvoe2u13nu098",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.773Z"
+  },
+  {
+    "id": "cmbec42os00puvoe2nc5y9wxr",
+    "bookingId": "cmbec42of00psvoe2u13nu098",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.773Z"
+  },
+  {
+    "id": "cmbec42os00pvvoe29pga16pw",
+    "bookingId": "cmbec42of00psvoe2u13nu098",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.773Z"
+  },
+  {
+    "id": "cmbec42po00pyvoe2hz766uh7",
+    "bookingId": "cmbec42p500pxvoe2nr9vma03",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.805Z"
+  },
+  {
+    "id": "cmbec42po00pzvoe248qrxizy",
+    "bookingId": "cmbec42p500pxvoe2nr9vma03",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.805Z"
+  },
+  {
+    "id": "cmbec42po00q0voe28wiuhes5",
+    "bookingId": "cmbec42p500pxvoe2nr9vma03",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.805Z"
+  },
+  {
+    "id": "cmbec42qr00q3voe2tiv2zy6o",
+    "bookingId": "cmbec42q800q2voe2ctuceipu",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.843Z"
+  },
+  {
+    "id": "cmbec42rl00q6voe2jxdp5skc",
+    "bookingId": "cmbec42r700q5voe2brdv6hdh",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.873Z"
+  },
+  {
+    "id": "cmbec42rl00q7voe2p0hqf7kb",
+    "bookingId": "cmbec42r700q5voe2brdv6hdh",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.873Z"
+  },
+  {
+    "id": "cmbec42sh00qavoe2imkeq4m4",
+    "bookingId": "cmbec42s100q9voe2oeqmds8p",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.905Z"
+  },
+  {
+    "id": "cmbec42sh00qbvoe2zrp2m1mh",
+    "bookingId": "cmbec42s100q9voe2oeqmds8p",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.905Z"
+  },
+  {
+    "id": "cmbec42ti00qevoe20ggq1jkh",
+    "bookingId": "cmbec42sy00qdvoe26sc2fnsw",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.942Z"
+  },
+  {
+    "id": "cmbec42ti00qfvoe26jsswvzl",
+    "bookingId": "cmbec42sy00qdvoe26sc2fnsw",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.942Z"
+  },
+  {
+    "id": "cmbec42ti00qgvoe2c92i252q",
+    "bookingId": "cmbec42sy00qdvoe26sc2fnsw",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:27.942Z"
+  },
+  {
+    "id": "cmbec42u900qjvoe2w5tekpy6",
+    "bookingId": "cmbec42ty00qivoe26hn5iezj",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.969Z"
+  },
+  {
+    "id": "cmbec42u900qkvoe26ehahj6m",
+    "bookingId": "cmbec42ty00qivoe26hn5iezj",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.969Z"
+  },
+  {
+    "id": "cmbec42u900qlvoe23rli699r",
+    "bookingId": "cmbec42ty00qivoe26hn5iezj",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:27.969Z"
+  },
+  {
+    "id": "cmbec42uy00qovoe20p9w9vxp",
+    "bookingId": "cmbec42ul00qnvoe2njjztbuk",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.994Z"
+  },
+  {
+    "id": "cmbec42uy00qpvoe2mau2sxcm",
+    "bookingId": "cmbec42ul00qnvoe2njjztbuk",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.994Z"
+  },
+  {
+    "id": "cmbec42uy00qqvoe28obrfy8j",
+    "bookingId": "cmbec42ul00qnvoe2njjztbuk",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:27.994Z"
+  },
+  {
+    "id": "cmbec42vq00qtvoe2mw2j2isr",
+    "bookingId": "cmbec42vc00qsvoe296f0sq1y",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.023Z"
+  },
+  {
+    "id": "cmbec42vq00quvoe2cq4sw5u7",
+    "bookingId": "cmbec42vc00qsvoe296f0sq1y",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.023Z"
+  },
+  {
+    "id": "cmbec42wm00qxvoe24fgynety",
+    "bookingId": "cmbec42w600qwvoe2vtrgl3pl",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.054Z"
+  },
+  {
+    "id": "cmbec42wm00qyvoe2p8ipi439",
+    "bookingId": "cmbec42w600qwvoe2vtrgl3pl",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.054Z"
+  },
+  {
+    "id": "cmbec42xd00r1voe25y7mptbe",
+    "bookingId": "cmbec42x100r0voe2pvzmishn",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.081Z"
+  },
+  {
+    "id": "cmbec42xd00r2voe2txn7qx7j",
+    "bookingId": "cmbec42x100r0voe2pvzmishn",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.081Z"
+  },
+  {
+    "id": "cmbec42y600r5voe2umfpjnfc",
+    "bookingId": "cmbec42xp00r4voe22seur3qz",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.111Z"
+  },
+  {
+    "id": "cmbec42z400r8voe208ot5a93",
+    "bookingId": "cmbec42yo00r7voe28jehzdij",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.144Z"
+  },
+  {
+    "id": "cmbec42z400r9voe2r7yon1p7",
+    "bookingId": "cmbec42yo00r7voe28jehzdij",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.144Z"
+  },
+  {
+    "id": "cmbec42z400ravoe28dn7x58h",
+    "bookingId": "cmbec42yo00r7voe28jehzdij",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.144Z"
+  },
+  {
+    "id": "cmbec430400rdvoe20bk73v64",
+    "bookingId": "cmbec42zn00rcvoe2zwyq7te4",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.181Z"
+  },
+  {
+    "id": "cmbec430400revoe2stctzln3",
+    "bookingId": "cmbec42zn00rcvoe2zwyq7te4",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.181Z"
+  },
+  {
+    "id": "cmbec431800rhvoe2f263jf8c",
+    "bookingId": "cmbec430q00rgvoe2zzz64qs8",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.221Z"
+  },
+  {
+    "id": "cmbec431800rivoe2jnuqlhhk",
+    "bookingId": "cmbec430q00rgvoe2zzz64qs8",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.221Z"
+  },
+  {
+    "id": "cmbec432200rlvoe2hz2xnm6l",
+    "bookingId": "cmbec431m00rkvoe2h030lz7f",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.250Z"
+  },
+  {
+    "id": "cmbec432200rmvoe291b41ped",
+    "bookingId": "cmbec431m00rkvoe2h030lz7f",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.250Z"
+  },
+  {
+    "id": "cmbec432y00rpvoe236vqa8ip",
+    "bookingId": "cmbec432h00rovoe267nd493y",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.282Z"
+  },
+  {
+    "id": "cmbec432y00rqvoe27sxqhvl3",
+    "bookingId": "cmbec432h00rovoe267nd493y",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.282Z"
+  },
+  {
+    "id": "cmbec432y00rrvoe2yvayr2on",
+    "bookingId": "cmbec432h00rovoe267nd493y",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.282Z"
+  },
+  {
+    "id": "cmbec433v00ruvoe293zijq2n",
+    "bookingId": "cmbec433h00rtvoe2s463fhbf",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.315Z"
+  },
+  {
+    "id": "cmbec433v00rvvoe22bn5vhu8",
+    "bookingId": "cmbec433h00rtvoe2s463fhbf",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.315Z"
+  },
+  {
+    "id": "cmbec434o00ryvoe2h1v58wiv",
+    "bookingId": "cmbec434a00rxvoe236xd5frb",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.344Z"
+  },
+  {
+    "id": "cmbec434o00rzvoe22xspyk7d",
+    "bookingId": "cmbec434a00rxvoe236xd5frb",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.344Z"
+  },
+  {
+    "id": "cmbec434o00s0voe27azdyvt9",
+    "bookingId": "cmbec434a00rxvoe236xd5frb",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.344Z"
+  },
+  {
+    "id": "cmbec435i00s3voe2pvcgjsu0",
+    "bookingId": "cmbec435400s2voe2lr9wyvxs",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.374Z"
+  },
+  {
+    "id": "cmbec435i00s4voe2bozzump9",
+    "bookingId": "cmbec435400s2voe2lr9wyvxs",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.374Z"
+  },
+  {
+    "id": "cmbec436900s7voe28llwqikq",
+    "bookingId": "cmbec435w00s6voe2uld8qcz9",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.401Z"
+  },
+  {
+    "id": "cmbec436900s8voe2a8n20906",
+    "bookingId": "cmbec435w00s6voe2uld8qcz9",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.401Z"
+  },
+  {
+    "id": "cmbec436900s9voe2ogo2jux5",
+    "bookingId": "cmbec435w00s6voe2uld8qcz9",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.401Z"
+  },
+  {
+    "id": "cmbec437400scvoe2rh3q0vcl",
+    "bookingId": "cmbec436r00sbvoe2uro2466t",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.432Z"
+  },
+  {
+    "id": "cmbec437400sdvoe2iqodfvtm",
+    "bookingId": "cmbec436r00sbvoe2uro2466t",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.432Z"
+  },
+  {
+    "id": "cmbec437u00sgvoe2nnv99mn2",
+    "bookingId": "cmbec437g00sfvoe2ujky9gh4",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.458Z"
+  },
+  {
+    "id": "cmbec438i00sjvoe2or3ex1xt",
+    "bookingId": "cmbec438600sivoe2n6ens8gr",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.482Z"
+  },
+  {
+    "id": "cmbec438i00skvoe257xeen9u",
+    "bookingId": "cmbec438600sivoe2n6ens8gr",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.482Z"
+  },
+  {
+    "id": "cmbec438i00slvoe2g5gpijdm",
+    "bookingId": "cmbec438600sivoe2n6ens8gr",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.482Z"
+  },
+  {
+    "id": "cmbec439900sovoe2ukw1a16b",
+    "bookingId": "cmbec438u00snvoe2gck27wsv",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.509Z"
+  },
+  {
+    "id": "cmbec43a600srvoe2trzci0cc",
+    "bookingId": "cmbec439q00sqvoe2gv39nf6p",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.542Z"
+  },
+  {
+    "id": "cmbec43aw00suvoe261n3fbjq",
+    "bookingId": "cmbec43ai00stvoe2gobvi3ol",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.569Z"
+  },
+  {
+    "id": "cmbec43bm00sxvoe2qnvjies2",
+    "bookingId": "cmbec43b900swvoe23lml1qx1",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.595Z"
+  },
+  {
+    "id": "cmbec43bm00syvoe2zqvewu87",
+    "bookingId": "cmbec43b900swvoe23lml1qx1",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.595Z"
+  },
+  {
+    "id": "cmbec43ce00t1voe2debrm3r5",
+    "bookingId": "cmbec43c100t0voe2h6z7v8d8",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.622Z"
+  },
+  {
+    "id": "cmbec43ce00t2voe2slnhtk0a",
+    "bookingId": "cmbec43c100t0voe2h6z7v8d8",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.622Z"
+  },
+  {
+    "id": "cmbec43ce00t3voe27nql6x2e",
+    "bookingId": "cmbec43c100t0voe2h6z7v8d8",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.622Z"
+  },
+  {
+    "id": "cmbec43dc00t6voe22cc9zs6u",
+    "bookingId": "cmbec43cr00t5voe2rbohvf0x",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.657Z"
+  },
+  {
+    "id": "cmbec43dc00t7voe2ekc61t8r",
+    "bookingId": "cmbec43cr00t5voe2rbohvf0x",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.657Z"
+  },
+  {
+    "id": "cmbec43dc00t8voe2z4fn0qa5",
+    "bookingId": "cmbec43cr00t5voe2rbohvf0x",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.657Z"
+  },
+  {
+    "id": "cmbec43eb00tbvoe2i45lvbhy",
+    "bookingId": "cmbec43ds00tavoe219wpdf0b",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.692Z"
+  },
+  {
+    "id": "cmbec43fc00tevoe2rx8jt68y",
+    "bookingId": "cmbec43ev00tdvoe2xu59kkzu",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.729Z"
+  },
+  {
+    "id": "cmbec43fz00thvoe2rvbd14i3",
+    "bookingId": "cmbec43fn00tgvoe2fdjvkx2q",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.752Z"
+  },
+  {
+    "id": "cmbec43fz00tivoe2vn4ff7ca",
+    "bookingId": "cmbec43fn00tgvoe2fdjvkx2q",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:28.752Z"
+  },
+  {
+    "id": "cmbec43gr00tlvoe2gmkdctmd",
+    "bookingId": "cmbec43gb00tkvoe2mjx82dfa",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.779Z"
+  },
+  {
+    "id": "cmbec43he00tovoe2sr10g1uq",
+    "bookingId": "cmbec43h300tnvoe26s5ysnd1",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.802Z"
+  },
+  {
+    "id": "cmbec43i300trvoe2ajfo8k6a",
+    "bookingId": "cmbec43hp00tqvoe22rzf9d8s",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.827Z"
+  },
+  {
+    "id": "cmbec43ip00tuvoe262cflt9u",
+    "bookingId": "cmbec43ie00ttvoe2q90l16vr",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.850Z"
+  },
+  {
+    "id": "cmbec43ja00txvoe2k7rqf83s",
+    "bookingId": "cmbec43iy00twvoe20ebsoei9",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.870Z"
+  },
+  {
+    "id": "cmbec43ja00tyvoe2o48w6a1c",
+    "bookingId": "cmbec43iy00twvoe20ebsoei9",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.870Z"
+  },
+  {
+    "id": "cmbec43k800u1voe272mgl4ch",
+    "bookingId": "cmbec43jr00u0voe2cm5m9e82",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.905Z"
+  },
+  {
+    "id": "cmbec43l800u4voe2u8dti3vj",
+    "bookingId": "cmbec43kr00u3voe2dglegvrv",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:28.941Z"
+  },
+  {
+    "id": "cmbec43m400u7voe2mb32f1dk",
+    "bookingId": "cmbec43ln00u6voe2avhjhf71",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.973Z"
+  },
+  {
+    "id": "cmbec43m400u8voe2wc6tct0r",
+    "bookingId": "cmbec43ln00u6voe2avhjhf71",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:28.973Z"
+  },
+  {
+    "id": "cmbec43n800ubvoe2yuxtaeve",
+    "bookingId": "cmbec43mp00uavoe2d3eqhwuv",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.013Z"
+  },
+  {
+    "id": "cmbec43n800ucvoe2w9n3b9tl",
+    "bookingId": "cmbec43mp00uavoe2d3eqhwuv",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.013Z"
+  },
+  {
+    "id": "cmbec43o100ufvoe2h9jzzrqg",
+    "bookingId": "cmbec43nn00uevoe2eepok3rg",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.042Z"
+  },
+  {
+    "id": "cmbec43o100ugvoe2k9zsmqpq",
+    "bookingId": "cmbec43nn00uevoe2eepok3rg",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.042Z"
+  },
+  {
+    "id": "cmbec43os00ujvoe2dvsh5l3m",
+    "bookingId": "cmbec43oe00uivoe2oxy8342p",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.069Z"
+  },
+  {
+    "id": "cmbec43os00ukvoe2evojqjdr",
+    "bookingId": "cmbec43oe00uivoe2oxy8342p",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.069Z"
+  },
+  {
+    "id": "cmbec43ph00unvoe237k6dncp",
+    "bookingId": "cmbec43p500umvoe2gu68x429",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.094Z"
+  },
+  {
+    "id": "cmbec43ph00uovoe2btlueb44",
+    "bookingId": "cmbec43p500umvoe2gu68x429",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.094Z"
+  },
+  {
+    "id": "cmbec43pi00upvoe23e0zt3gl",
+    "bookingId": "cmbec43p500umvoe2gu68x429",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.094Z"
+  },
+  {
+    "id": "cmbec43qd00usvoe23mkjys2b",
+    "bookingId": "cmbec43py00urvoe28w7je59j",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.126Z"
+  },
+  {
+    "id": "cmbec43qd00utvoe2h90lghc3",
+    "bookingId": "cmbec43py00urvoe28w7je59j",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.126Z"
+  },
+  {
+    "id": "cmbec43rh00uwvoe26lly3t51",
+    "bookingId": "cmbec43qx00uvvoe2ewvjqm23",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.165Z"
+  },
+  {
+    "id": "cmbec43rh00uxvoe26wzqphmq",
+    "bookingId": "cmbec43qx00uvvoe2ewvjqm23",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.165Z"
+  },
+  {
+    "id": "cmbec43rh00uyvoe2ukwggjnc",
+    "bookingId": "cmbec43qx00uvvoe2ewvjqm23",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.165Z"
+  },
+  {
+    "id": "cmbec43s800v1voe2u4tzo0cj",
+    "bookingId": "cmbec43rv00v0voe2iqpqsov3",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.192Z"
+  },
+  {
+    "id": "cmbec43s800v2voe23te2gu1x",
+    "bookingId": "cmbec43rv00v0voe2iqpqsov3",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.192Z"
+  },
+  {
+    "id": "cmbec43t400v5voe2w9i1k8qu",
+    "bookingId": "cmbec43so00v4voe25zl6csyo",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.225Z"
+  },
+  {
+    "id": "cmbec43t400v6voe2fhf8o5d8",
+    "bookingId": "cmbec43so00v4voe25zl6csyo",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.225Z"
+  },
+  {
+    "id": "cmbec43u300v9voe2153fzu53",
+    "bookingId": "cmbec43tm00v8voe2i4cdsjsu",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.260Z"
+  },
+  {
+    "id": "cmbec43u300vavoe2gn9xhas2",
+    "bookingId": "cmbec43tm00v8voe2i4cdsjsu",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.260Z"
+  },
+  {
+    "id": "cmbec43u300vbvoe27w9p1pqc",
+    "bookingId": "cmbec43tm00v8voe2i4cdsjsu",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.260Z"
+  },
+  {
+    "id": "cmbec43uw00vevoe2nhvj5t78",
+    "bookingId": "cmbec43uh00vdvoe2nwxm6sml",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.288Z"
+  },
+  {
+    "id": "cmbec43vo00vhvoe29xv0r2w1",
+    "bookingId": "cmbec43va00vgvoe2a65khjmn",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.316Z"
+  },
+  {
+    "id": "cmbec43wl00vkvoe2fan5enpt",
+    "bookingId": "cmbec43w500vjvoe2zsjsftyu",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.349Z"
+  },
+  {
+    "id": "cmbec43wl00vlvoe2240j0gtz",
+    "bookingId": "cmbec43w500vjvoe2zsjsftyu",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.349Z"
+  },
+  {
+    "id": "cmbec43xk00vovoe2ocgciqem",
+    "bookingId": "cmbec43x000vnvoe2vwu1brb9",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.384Z"
+  },
+  {
+    "id": "cmbec43xk00vpvoe2y5gc8on2",
+    "bookingId": "cmbec43x000vnvoe2vwu1brb9",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.384Z"
+  },
+  {
+    "id": "cmbec43yj00vsvoe2q06pxyar",
+    "bookingId": "cmbec43y300vrvoe23sha0akt",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.419Z"
+  },
+  {
+    "id": "cmbec43z600vvvoe2316xf4xu",
+    "bookingId": "cmbec43yu00vuvoe2ggknwghm",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.443Z"
+  },
+  {
+    "id": "cmbec43zw00vyvoe2l6vudw1m",
+    "bookingId": "cmbec43zi00vxvoe2udpjig6p",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.468Z"
+  },
+  {
+    "id": "cmbec43zw00vzvoe2kborj83b",
+    "bookingId": "cmbec43zi00vxvoe2udpjig6p",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.468Z"
+  },
+  {
+    "id": "cmbec440k00w2voe2hin1vgd0",
+    "bookingId": "cmbec440800w1voe2ke0toic0",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.493Z"
+  },
+  {
+    "id": "cmbec440k00w3voe2dhs1qw48",
+    "bookingId": "cmbec440800w1voe2ke0toic0",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.493Z"
+  },
+  {
+    "id": "cmbec440k00w4voe2txnjko96",
+    "bookingId": "cmbec440800w1voe2ke0toic0",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.493Z"
+  },
+  {
+    "id": "cmbec441c00w7voe29ujeqens",
+    "bookingId": "cmbec440z00w6voe26vivr8ye",
+    "serviceId": "cmbcxfdk6000rvopj5vax6mfm",
+    "price": 75,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.521Z"
+  },
+  {
+    "id": "cmbec442400wavoe2f9rfqeil",
+    "bookingId": "cmbec441p00w9voe275rvpb0b",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.548Z"
+  },
+  {
+    "id": "cmbec442400wbvoe2eazsjoyz",
+    "bookingId": "cmbec441p00w9voe275rvpb0b",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.548Z"
+  },
+  {
+    "id": "cmbec442400wcvoe23pruinj5",
+    "bookingId": "cmbec441p00w9voe275rvpb0b",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.548Z"
+  },
+  {
+    "id": "cmbec442r00wfvoe23xnt1b0e",
+    "bookingId": "cmbec442g00wevoe2phcg9m4i",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.572Z"
+  },
+  {
+    "id": "cmbec442r00wgvoe2bdpl2urt",
+    "bookingId": "cmbec442g00wevoe2phcg9m4i",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.572Z"
+  },
+  {
+    "id": "cmbec442r00whvoe2cigqvybr",
+    "bookingId": "cmbec442g00wevoe2phcg9m4i",
+    "serviceId": "cmbcxfdk6000svopjesn02oaa",
+    "price": 85,
+    "duration": 60,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.572Z"
+  },
+  {
+    "id": "cmbec443k00wkvoe2dh8lm01p",
+    "bookingId": "cmbec443400wjvoe2bpwedj22",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.600Z"
+  },
+  {
+    "id": "cmbec443k00wlvoe2zkkgbchp",
+    "bookingId": "cmbec443400wjvoe2bpwedj22",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:29.600Z"
+  },
+  {
+    "id": "cmbec444h00wpvoe2ns5miq6w",
+    "bookingId": "cmbec444100wnvoe2c31emjqq",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.633Z"
+  },
+  {
+    "id": "cmbec445e00wtvoe2ivz9dv5v",
+    "bookingId": "cmbec444y00wrvoe2c2stmva5",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.666Z"
+  },
+  {
+    "id": "cmbec446500wxvoe273uzhjqc",
+    "bookingId": "cmbec445s00wvvoe2s9gtckda",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.693Z"
+  },
+  {
+    "id": "cmbec447b00x1voe2cqs7q07f",
+    "bookingId": "cmbec446g00wzvoe2m38fid78",
+    "serviceId": "cmbcxfdk6000ovopjdc8oj10e",
+    "price": 130,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:29.735Z"
+  },
+  {
+    "id": "cmbec448800x5voe291g3e662",
+    "bookingId": "cmbec447t00x3voe2rf16uibf",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.769Z"
+  },
+  {
+    "id": "cmbec448w00x9voe2o0qymg2f",
+    "bookingId": "cmbec448j00x7voe2f1t88e3f",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.792Z"
+  },
+  {
+    "id": "cmbec449m00xdvoe2y0dua7pi",
+    "bookingId": "cmbec449800xbvoe2kh4uocwb",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.819Z"
+  },
+  {
+    "id": "cmbec44ai00xhvoe2sr3ujlr7",
+    "bookingId": "cmbec44a000xfvoe2c899p2oc",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.850Z"
+  },
+  {
+    "id": "cmbec44be00xlvoe2qqqg1uuv",
+    "bookingId": "cmbec44b100xjvoe2fwleya89",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.882Z"
+  },
+  {
+    "id": "cmbec44c900xpvoe2dthkgcph",
+    "bookingId": "cmbec44br00xnvoe284cutvm7",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.914Z"
+  },
+  {
+    "id": "cmbec44d600xtvoe2khulbbud",
+    "bookingId": "cmbec44cr00xrvoe2h44pnett",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.946Z"
+  },
+  {
+    "id": "cmbec44e200xxvoe2kw5olwui",
+    "bookingId": "cmbec44dm00xvvoe2gfnqxif5",
+    "serviceId": "cmbcxfdk6000mvopj3iw5hym1",
+    "price": 75,
+    "duration": 30,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:29.978Z"
+  },
+  {
+    "id": "cmbec44ez00y0voe2u9tc2pgb",
+    "bookingId": "cmbec44eh00xzvoe2sieykccq",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:30.011Z"
+  },
+  {
+    "id": "cmbec44ez00y1voe2y3wrlfr8",
+    "bookingId": "cmbec44eh00xzvoe2sieykccq",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:30.011Z"
+  },
+  {
+    "id": "cmbec44fq00y4voe2lv7taze2",
+    "bookingId": "cmbec44fb00y3voe2qb5bxaob",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:30.039Z"
+  },
+  {
+    "id": "cmbec44fq00y5voe2gl0spspg",
+    "bookingId": "cmbec44fb00y3voe2qb5bxaob",
+    "serviceId": "cmbcxfdk6000qvopjqhqjtqou",
+    "price": 55,
+    "duration": 45,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-02T00:11:30.039Z"
+  },
+  {
+    "id": "cmbec44gf00y8voe229i1r6fa",
+    "bookingId": "cmbec44g200y7voe2bha46gig",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:30.064Z"
+  },
+  {
+    "id": "cmbec44gf00y9voe2x8clbv2b",
+    "bookingId": "cmbec44g200y7voe2bha46gig",
+    "serviceId": "cmbcxfdk6000nvopjag2en42o",
+    "price": 110,
+    "duration": 60,
+    "staffId": "cmbcxfdhp000dvopjvncvxvnp",
+    "createdAt": "2025-06-02T00:11:30.064Z"
+  },
+  {
+    "id": "cmbec44hf00ycvoe2gyaztw9k",
+    "bookingId": "cmbec44gv00ybvoe2qrzyt8j7",
+    "serviceId": "cmbcxfdk6000pvopjbair1bjp",
+    "price": 160,
+    "duration": 90,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:30.099Z"
+  },
+  {
+    "id": "cmbec44hf00ydvoe2l3b1waep",
+    "bookingId": "cmbec44gv00ybvoe2qrzyt8j7",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-02T00:11:30.099Z"
+  },
+  {
+    "id": "cmbk1shax0005vo2fsx4t3e8m",
+    "bookingId": "cmbk1shax0003vo2fjhhcchjo",
+    "serviceId": "cmbcxfdk6000lvopjoujcsz1p",
+    "price": 180,
+    "duration": 90,
+    "staffId": "cmbcxfdeu000bvopjs95xer0e",
+    "createdAt": "2025-06-06T00:09:07.737Z"
+  },
+  {
+    "id": "cmbkb88p10005voxn3owg9ulf",
+    "bookingId": "cmbkb88p00003voxnoxw5hbds",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:33:19.620Z"
+  },
+  {
+    "id": "cmbkbapb40009voxnxokd6i03",
+    "bookingId": "cmbkbapb40007voxnmq69pfz7",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:35:14.464Z"
+  },
+  {
+    "id": "cmbkbj2dl000dvoxn0eifbzd3",
+    "bookingId": "cmbkbj2dl000bvoxn9bjo1fwn",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:41:44.650Z"
+  },
+  {
+    "id": "cmbkc4401000hvoxnahw3vvij",
+    "bookingId": "cmbkc4401000fvoxn6lz1dsl7",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:58:06.529Z"
+  },
+  {
+    "id": "cmbkc516r000lvoxnwrh0el15",
+    "bookingId": "cmbkc516r000jvoxn3ecv1wto",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:58:49.539Z"
+  },
+  {
+    "id": "cmbkc5udb000pvoxny8lj6tmx",
+    "bookingId": "cmbkc5udb000nvoxn7js1p7e4",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T04:59:27.359Z"
+  },
+  {
+    "id": "cmbkd2moc0003vocrsdmdi91s",
+    "bookingId": "cmbkd2moc0001vocr4ls9zlzl",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T05:24:57.035Z"
+  },
+  {
+    "id": "cmbkd3cbp0007vocrtslsdjo0",
+    "bookingId": "cmbkd3cbp0005vocr3q35jtvm",
+    "serviceId": "cmbcxfdk6000kvopjqjyaru1o",
+    "price": 120,
+    "duration": 60,
+    "staffId": "cmbcxfdbp0009vopjq2q3wwzc",
+    "createdAt": "2025-06-06T05:25:30.277Z"
+  }
+]

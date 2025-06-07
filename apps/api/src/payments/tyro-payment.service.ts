@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { TyroTransactionDto, TyroTransactionResult } from './dto/tyro-transaction.dto';
-import { PaymentMethod, PaymentStatus, RefundStatus } from '@prisma/client';
+import { PaymentMethod, PaymentStatus, RefundStatus } from '../types/payment.types';
+import { Decimal } from '@prisma/client/runtime/library';
+import { toNumber, toDecimal, addDecimals, subtractDecimals, isGreaterThanOrEqual, isLessThanOrEqual } from '../utils/decimal';
 
 @Injectable()
 export class TyroPaymentService {
@@ -36,7 +38,7 @@ export class TyroPaymentService {
           locationId,
           invoiceId,
           paymentMethod: PaymentMethod.CARD_TYRO,
-          amount: tyroTransaction.baseAmount / 100, // Convert from cents
+          amount: toDecimal(tyroTransaction.baseAmount / 100), // Convert from cents
           currency: 'AUD',
           status,
           reference: tyroTransaction.transactionReference,
@@ -105,7 +107,7 @@ export class TyroPaymentService {
       const refund = await this.prisma.paymentRefund.create({
         data: {
           paymentId,
-          amount,
+          amount: toDecimal(amount),
           reason,
           status,
           reference: tyroTransaction?.transactionReference,
@@ -121,7 +123,7 @@ export class TyroPaymentService {
             refundedAmount: {
               increment: amount,
             },
-            status: payment.amount <= (payment.refundedAmount + amount) 
+            status: isLessThanOrEqual(payment.amount, addDecimals(payment.refundedAmount, amount))
               ? PaymentStatus.REFUNDED 
               : PaymentStatus.PARTIALLY_REFUNDED,
           },
@@ -194,20 +196,20 @@ export class TyroPaymentService {
   /**
    * Update invoice payment status
    */
-  private async updateInvoicePaymentStatus(invoiceId: string, paidAmount: number) {
+  private async updateInvoicePaymentStatus(invoiceId: string, paidAmount: Decimal) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 
     if (!invoice) return;
 
-    const newPaidAmount = invoice.paidAmount + paidAmount;
-    const isPaidInFull = newPaidAmount >= invoice.totalAmount;
+    const newPaidAmount = addDecimals(invoice.paidAmount, paidAmount);
+    const isPaidInFull = isGreaterThanOrEqual(newPaidAmount, invoice.totalAmount);
 
     await this.prisma.invoice.update({
       where: { id: invoiceId },
       data: {
-        paidAmount: newPaidAmount,
+        paidAmount: toDecimal(newPaidAmount),
         status: isPaidInFull ? 'PAID' : 'PARTIALLY_PAID',
         paidAt: isPaidInFull ? new Date() : invoice.paidAt,
       },
@@ -233,11 +235,11 @@ export class TyroPaymentService {
 
     // Calculate total refunded amount
     const totalRefunded = invoice.payments.reduce((total, payment) => {
-      return total + payment.refunds.reduce((sum, refund) => sum + refund.amount, 0);
+      return addDecimals(total, payment.refunds.reduce((sum, refund) => addDecimals(sum, toNumber(refund.amount)), 0));
     }, 0);
 
     // Update invoice status based on refund amount
-    const isFullyRefunded = totalRefunded >= invoice.paidAmount;
+    const isFullyRefunded = isGreaterThanOrEqual(totalRefunded, invoice.paidAmount);
     
     if (isFullyRefunded) {
       await this.prisma.invoice.update({
