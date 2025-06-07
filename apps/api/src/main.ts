@@ -44,11 +44,15 @@ async function bootstrap() {
   }));
 
   // Enable CORS
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(url => url.trim())
+    : true;
+    
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'http://localhost:3000']
-      : true,
+    origin: allowedOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Set global prefix
