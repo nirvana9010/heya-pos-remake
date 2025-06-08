@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_18"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["cp package.json.standalone package.json && npm install"]
 
 [phases.build]
 cmds = [
