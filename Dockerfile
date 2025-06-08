@@ -37,5 +37,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Run migrations and start the API
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm run start:prod"]
+# Start the API directly (migrations handled separately)
+CMD ["npm", "run", "start:prod"]
