@@ -1,7 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "./Dockerfile",
     "watchPatterns": [
       "apps/api/**",
       "packages/**",
@@ -11,7 +12,6 @@
     ]
   },
   "deploy": {
-    "startCommand": "cd apps/api && npm run start:prod",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   },
@@ -21,12 +21,6 @@
     },
     "PORT": {
       "default": "3000"
-    },
-    "NIXPACKS_BUILD_CMD": {
-      "default": "npm install --legacy-peer-deps && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && cd apps/api && npm run build"
-    },
-    "NIXPACKS_INSTALL_CMD": {
-      "default": "npm install --legacy-peer-deps"
     }
   }
 }
