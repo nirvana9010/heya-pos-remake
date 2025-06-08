@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya
 import { Badge } from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
-import { mockApi, type Service, type ServiceCategory } from "@heya-pos/shared";
+import { publicBookingApi } from "@/lib/booking-api";
+import type { Service, ServiceCategory } from "@heya-pos/types";
 
 
 export default function ServicesPage() {
@@ -28,8 +29,8 @@ export default function ServicesPage() {
     try {
       setLoading(true);
       const [servicesData, categoriesData] = await Promise.all([
-        mockApi.getServices(),
-        mockApi.getCategories()
+        publicBookingApi.getServices(),
+        publicBookingApi.getCategories()
       ]);
       setServices(servicesData.filter(s => s.isActive));
       setCategories(categoriesData);
