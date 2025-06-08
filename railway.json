@@ -23,7 +23,10 @@
       "default": "3000"
     },
     "NIXPACKS_BUILD_CMD": {
-      "default": "npm ci && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && cd apps/api && npm run build"
+      "default": "npm install --legacy-peer-deps && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && cd apps/api && npm run build"
+    },
+    "NIXPACKS_INSTALL_CMD": {
+      "default": "npm install --legacy-peer-deps"
     }
   }
 }
