@@ -1,0 +1,29 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "watchPatterns": [
+      "apps/api/**",
+      "packages/**",
+      "package.json",
+      "package-lock.json",
+      "turbo.json"
+    ]
+  },
+  "deploy": {
+    "startCommand": "cd apps/api && npm run start:prod",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "envVars": {
+    "NODE_ENV": {
+      "default": "production"
+    },
+    "PORT": {
+      "default": "3000"
+    },
+    "NIXPACKS_BUILD_CMD": {
+      "default": "npm ci && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && cd apps/api && npm run build"
+    }
+  }
+}
