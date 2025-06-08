@@ -12,6 +12,14 @@ export interface Service {
   displayOrder?: number;
 }
 
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  description?: string;
+  displayOrder?: number;
+  isActive: boolean;
+}
+
 export interface Staff {
   id: string;
   name: string;
@@ -82,6 +90,12 @@ class BookingApi {
     return response.data;
   }
 
+  // Get service categories (public endpoint)
+  async getCategories(): Promise<ServiceCategory[]> {
+    const response = await apiClient.get<{ data: ServiceCategory[] }>('/public/service-categories');
+    return response.data || [];
+  }
+
   // Get active staff members (public endpoint)
   async getStaff(): Promise<Staff[]> {
     const response = await apiClient.get<{ data: Staff[] }>('/public/staff');
@@ -120,3 +134,4 @@ class BookingApi {
 }
 
 export const bookingApi = new BookingApi();
+export const publicBookingApi = bookingApi; // Alias for compatibility
