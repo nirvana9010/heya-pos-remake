@@ -59,9 +59,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  const host = '0.0.0.0'; // Bind to all interfaces for Railway
+  await app.listen(port, host);
   
-  logger.log(`API server running on http://localhost:${port}/api`);
+  logger.log(`API server running on http://${host}:${port}/api`);
   memoryLogger.logMemory('Application Ready');
 
   // Log memory every 30 seconds
