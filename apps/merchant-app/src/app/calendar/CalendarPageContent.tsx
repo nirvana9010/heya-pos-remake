@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
+import { safeFormat, isValidDate, getSafeNavigationLabel } from "./calendar-safe";
 import { 
   format, 
   addDays, 
@@ -1071,25 +1072,7 @@ export default function CalendarPageContent() {
 
   // Get navigation labels
   const getNavigationLabel = (direction: "prev" | "next") => {
-    switch (viewType) {
-      case "day":
-        const targetDay = direction === "prev" 
-          ? subDays(currentDate, 1) 
-          : addDays(currentDate, 1);
-        return format(targetDay, "EEEE, MMM d");
-      case "week":
-        const targetWeek = direction === "prev" 
-          ? subWeeks(currentDate, 1) 
-          : addWeeks(currentDate, 1);
-        return `Week of ${format(startOfWeek(targetWeek), "MMM d")}`;
-      case "month":
-        const targetMonth = direction === "prev" 
-          ? subMonths(currentDate, 1) 
-          : addMonths(currentDate, 1);
-        return format(targetMonth, "MMMM yyyy");
-      default:
-        return "";
-    }
+    return getSafeNavigationLabel(currentDate, viewType, direction);
   };
 
   // Calculate active filter count
@@ -1506,13 +1489,13 @@ export default function CalendarPageContent() {
                           "text-xs font-medium uppercase tracking-wider",
                           isToday(day) ? "text-purple-600" : "text-gray-500"
                         )}>
-                          {format(day, "EEE")}
+                          {safeFormat(day, "EEE")}
                         </div>
                         <div className={cn(
                           "text-2xl font-bold mt-0.5",
                           isToday(day) ? "text-purple-600" : "text-gray-900"
                         )}>
-                          {format(day, "d")}
+                          {safeFormat(day, "d")}
                         </div>
                       </div>
                       {dayBookings.length > 0 && (
@@ -1941,7 +1924,7 @@ export default function CalendarPageContent() {
                       "text-sm font-medium",
                       isToday(day) && "bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
                     )}>
-                      {format(day, "d")}
+                      {safeFormat(day, "d")}
                     </span>
                     {isCurrentMonth && utilization > 0 && (
                       <div className={cn(
@@ -1989,7 +1972,7 @@ export default function CalendarPageContent() {
                   {/* Hover tooltip */}
                   <div className="absolute z-10 invisible group-hover:visible bg-white shadow-lg rounded-lg p-3 -top-2 left-full ml-2 w-48 pointer-events-none">
                     <div className="text-sm font-medium mb-1">
-                      {format(day, "EEEE, MMM d")}
+                      {safeFormat(day, "EEEE, MMM d")}
                     </div>
                     <div className="space-y-1 text-xs">
                       <div>Revenue: ${totalRevenue}</div>
@@ -2049,9 +2032,9 @@ export default function CalendarPageContent() {
                 
                 <div className="px-4 py-1 min-w-[240px] text-center">
                   <h2 className="text-sm font-semibold text-gray-900">
-                    {viewType === "day" && format(currentDate, "EEEE, MMMM d, yyyy")}
-                    {viewType === "week" && `Week of ${format(startOfWeek(currentDate), "MMM d, yyyy")}`}
-                    {viewType === "month" && format(currentDate, "MMMM yyyy")}
+                    {viewType === "day" && safeFormat(currentDate, "EEEE, MMMM d, yyyy")}
+                    {viewType === "week" && `Week of ${safeFormat(startOfWeek(currentDate), "MMM d, yyyy")}`}
+                    {viewType === "month" && safeFormat(currentDate, "MMMM yyyy")}
                   </h2>
                 </div>
                 
