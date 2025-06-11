@@ -120,7 +120,204 @@ const mockBusinessHours: BusinessHours = {
   days: [1, 2, 3, 4, 5]
 };
 
-const mockBookings: Booking[] = [
+// Generate comprehensive mock bookings
+const generateMockBookings = (): Booking[] => {
+  const bookings: Booking[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Service details with durations
+  const serviceDetails = [
+    { name: "Haircut & Style", icon: "scissors", duration: 30, price: 45 },
+    { name: "Hair Color", icon: "scissors", duration: 90, price: 120 },
+    { name: "Manicure & Pedicure", icon: "palette", duration: 60, price: 85 },
+    { name: "Facial Treatment", icon: "sparkles", duration: 60, price: 110 },
+    { name: "Deep Tissue Massage", icon: "hand", duration: 60, price: 90 },
+    { name: "Eyebrow Threading", icon: "sparkles", duration: 30, price: 35 },
+    { name: "Highlights", icon: "scissors", duration: 120, price: 150 },
+    { name: "Hair Treatment", icon: "scissors", duration: 45, price: 65 },
+    { name: "Nail Art", icon: "palette", duration: 45, price: 55 },
+    { name: "Swedish Massage", icon: "hand", duration: 60, price: 80 },
+  ];
+  
+  const customers = [
+    { id: "c1", name: "Sarah Johnson", phone: "+1 (555) 123-4567" },
+    { id: "c2", name: "Michael Chen", phone: "+1 (555) 234-5678" },
+    { id: "c3", name: "Emily Brown", phone: "+1 (555) 345-6789" },
+    { id: "c4", name: "Lisa Wang", phone: "+1 (555) 456-7890" },
+    { id: "c5", name: "David Kim", phone: "+1 (555) 567-8901" },
+    { id: "c6", name: "Jennifer Lee", phone: "+1 (555) 678-9012" },
+    { id: "c7", name: "Robert Taylor", phone: "+1 (555) 789-0123" },
+    { id: "c8", name: "Maria Garcia", phone: "+1 (555) 890-1234" },
+    { id: "c9", name: "James Wilson", phone: "+1 (555) 901-2345" },
+    { id: "c10", name: "Patricia Martinez", phone: "+1 (555) 012-3456" },
+  ];
+  
+  const staff = [
+    { id: "1", name: "Emma Wilson" },
+    { id: "2", name: "James Brown" },
+    { id: "3", name: "Sophie Chen" },
+    { id: "4", name: "Michael Davis" },
+  ];
+  
+  const statuses: Array<"pending" | "confirmed" | "completed" | "cancelled" | "no-show" | "in-progress"> = 
+    ["pending", "confirmed", "completed", "cancelled", "no-show", "confirmed", "confirmed", "completed"];
+  
+  let bookingId = 1;
+  
+  // Generate bookings for 14 days (7 past, 7 future)
+  for (let dayOffset = -7; dayOffset <= 7; dayOffset++) {
+    const currentDay = new Date(today);
+    currentDay.setDate(today.getDate() + dayOffset);
+    const dayOfWeek = currentDay.getDay();
+    
+    // Determine booking density based on day of week
+    let bookingDensity: number;
+    let allowOverlaps = true;
+    
+    switch (dayOfWeek) {
+      case 0: // Sunday
+        bookingDensity = 0.4;
+        allowOverlaps = false; // No overlaps on Sundays
+        break;
+      case 1: // Monday
+      case 2: // Tuesday
+        bookingDensity = 0.6;
+        allowOverlaps = dayOffset % 2 === 0; // Alternate overlaps
+        break;
+      case 3: // Wednesday
+      case 4: // Thursday
+        bookingDensity = 0.75;
+        allowOverlaps = true;
+        break;
+      case 5: // Friday
+      case 6: // Saturday
+        bookingDensity = 0.9;
+        allowOverlaps = true;
+        break;
+      default:
+        bookingDensity = 0.7;
+        allowOverlaps = true;
+    }
+    
+    // Track staff schedules for the day to manage overlaps
+    const staffSchedules: Map<string, Array<{start: Date, end: Date}>> = new Map();
+    staff.forEach(s => staffSchedules.set(s.id, []));
+    
+    // Generate time slots starting from 9 AM
+    let currentTime = new Date(currentDay);
+    currentTime.setHours(9, 0, 0, 0);
+    const endTime = new Date(currentDay);
+    endTime.setHours(19, 0, 0, 0); // 7 PM
+    
+    while (currentTime < endTime) {
+      // Random chance to create booking based on density
+      if (Math.random() < bookingDensity) {
+        const service = serviceDetails[Math.floor(Math.random() * serviceDetails.length)];
+        const customer = customers[Math.floor(Math.random() * customers.length)];
+        
+        // Find available staff member
+        let selectedStaff = null;
+        const shuffledStaff = [...staff].sort(() => Math.random() - 0.5);
+        
+        for (const staffMember of shuffledStaff) {
+          const schedule = staffSchedules.get(staffMember.id) || [];
+          const bookingEnd = new Date(currentTime.getTime() + service.duration * 60000);
+          
+          // Check if staff is available
+          const hasConflict = schedule.some(slot => {
+            return (currentTime >= slot.start && currentTime < slot.end) ||
+                   (bookingEnd > slot.start && bookingEnd <= slot.end) ||
+                   (currentTime <= slot.start && bookingEnd >= slot.end);
+          });
+          
+          if (!hasConflict || (allowOverlaps && Math.random() < 0.3)) {
+            selectedStaff = staffMember;
+            schedule.push({ start: new Date(currentTime), end: bookingEnd });
+            staffSchedules.set(staffMember.id, schedule);
+            break;
+          }
+        }
+        
+        if (selectedStaff) {
+          const bookingStart = new Date(currentTime);
+          const bookingEnd = new Date(currentTime.getTime() + service.duration * 60000);
+          
+          // Determine status based on time
+          let status: typeof statuses[number];
+          if (dayOffset < -1) {
+            status = "completed";
+          } else if (dayOffset === -1) {
+            status = Math.random() < 0.1 ? "no-show" : "completed";
+          } else if (dayOffset === 0) {
+            const now = new Date();
+            if (bookingEnd < now) {
+              status = "completed";
+            } else if (bookingStart < now && bookingEnd > now) {
+              status = "in-progress";
+            } else {
+              status = "confirmed";
+            }
+          } else {
+            status = Math.random() < 0.8 ? "confirmed" : "pending";
+          }
+          
+          // Add some cancelled bookings
+          if (Math.random() < 0.05) {
+            status = "cancelled";
+          }
+          
+          bookings.push({
+            id: bookingId.toString(),
+            customerId: customer.id,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            serviceName: service.name,
+            serviceIcon: service.icon,
+            staffId: selectedStaff.id,
+            staffName: selectedStaff.name,
+            startTime: bookingStart,
+            endTime: bookingEnd,
+            status: status,
+            isPaid: status === "completed" || (status === "confirmed" && Math.random() < 0.3),
+            totalPrice: service.price,
+          });
+          
+          bookingId++;
+        }
+      }
+      
+      // Move to next time slot (15-30 minute increments)
+      const increment = Math.random() < 0.7 ? 15 : 30;
+      currentTime.setMinutes(currentTime.getMinutes() + increment);
+    }
+  }
+  
+  return bookings;
+};
+
+const mockBookings: Booking[] = generateMockBookings();
+
+// Log booking summary
+const bookingSummary = mockBookings.reduce((acc, booking) => {
+  const date = format(booking.startTime, 'yyyy-MM-dd');
+  const staffName = booking.staffName;
+  
+  if (!acc[date]) {
+    acc[date] = { total: 0, byStaff: {} };
+  }
+  
+  acc[date].total++;
+  acc[date].byStaff[staffName] = (acc[date].byStaff[staffName] || 0) + 1;
+  
+  return acc;
+}, {} as Record<string, { total: number; byStaff: Record<string, number> }>);
+
+console.log(`Generated ${mockBookings.length} mock bookings for 14 days`);
+console.log('Booking distribution by day:', bookingSummary);
+
+// Keep original mock bookings as fallback
+const originalMockBookings: Booking[] = [
   // Today's bookings
   {
     id: "1",
@@ -565,6 +762,40 @@ const calculateBookingLayout = (dayBookings: Booking[]) => {
   return { layoutMap, maxConcurrent, useCompactLayout };
 };
 
+class CalendarErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Calendar Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 bg-red-50 text-red-600">
+          <h2>Something went wrong in the calendar.</h2>
+          <details className="mt-2">
+            <summary>Error details</summary>
+            <pre className="mt-2 text-xs">{this.state.error?.toString()}</pre>
+          </details>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function CalendarPageContent() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<ViewType>("day");
@@ -856,6 +1087,8 @@ export default function CalendarPageContent() {
           ? subMonths(currentDate, 1) 
           : addMonths(currentDate, 1);
         return format(targetMonth, "MMMM yyyy");
+      default:
+        return "";
     }
   };
 
@@ -923,29 +1156,49 @@ export default function CalendarPageContent() {
       <div className="flex flex-col h-full overflow-hidden">
         {/* Fixed header row */}
         <div 
-          className="grid sticky top-0 z-20 bg-white border-b min-w-[600px]"
+          className="grid sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm min-w-[600px]"
           style={{ gridTemplateColumns: gridColumns }}
         >
-          <div className="h-14 border-r" /> {/* Time column header */}
-          {visibleStaff.map((staffMember) => (
-            <div key={staffMember.id} className="h-14 px-4 flex items-center justify-between border-r last:border-r-0">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: staffMember.color }} />
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">{staffMember.name}</span>
-                  <span className="text-xs text-gray-500">
-                    {filteredBookings.filter(b => 
-                      b.staffId === staffMember.id && 
-                      isSameDay(b.startTime, currentDate)
-                    ).length} bookings
-                  </span>
+          <div className="h-16 border-r border-gray-100 bg-gray-50" /> {/* Time column header */}
+          {visibleStaff.map((staffMember) => {
+            const todayBookings = filteredBookings.filter(b => 
+              b.staffId === staffMember.id && 
+              isSameDay(b.startTime, currentDate)
+            );
+            const confirmedCount = todayBookings.filter(b => b.status === 'confirmed' || b.status === 'in-progress').length;
+            
+            return (
+              <div key={staffMember.id} className="h-16 px-4 flex items-center justify-between border-r border-gray-100 last:border-r-0 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm" 
+                         style={{ backgroundColor: staffMember.color }}>
+                      {staffMember.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    {staffMember.isAvailable && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm text-gray-900">{staffMember.name}</span>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 font-medium">
+                        {confirmedCount} active
+                      </span>
+                      {todayBookings.length > confirmedCount && (
+                        <span className="text-gray-400">
+                          • {todayBookings.length - confirmedCount} other
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                {!staffMember.isAvailable && (
+                  <Badge variant="outline" className="text-xs bg-gray-50 border-gray-200">Unavailable</Badge>
+                )}
               </div>
-              {!staffMember.isAvailable && (
-                <Badge variant="secondary" className="text-xs">Off</Badge>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Scrollable calendar grid */}
@@ -963,17 +1216,18 @@ export default function CalendarPageContent() {
                 {/* Time label cell */}
                 <div
                   className={cn(
-                    "text-right pr-3 text-xs border-b border-r relative flex items-center justify-end",
-                    slot.isHour ? "border-t-gray-400 border-t" : "",
-                    !slot.isBusinessHours && "bg-gray-100"
+                    "text-right pr-3 text-xs relative flex items-center justify-end",
+                    slot.isHour ? "border-b border-gray-200" : slot.isMinorInterval ? "border-b border-gray-50" : "border-b border-gray-100",
+                    "border-r border-gray-100",
+                    !slot.isBusinessHours && "bg-gray-50/50"
                   )}
                   style={{ height: `${slot.height}px` }}
                 >
                   {/* Show time only on hour marks */}
                   {slot.isHour && (
                     <span className={cn(
-                      "font-bold",
-                      !slot.isBusinessHours ? "text-gray-500" : "text-gray-700"
+                      "font-medium",
+                      !slot.isBusinessHours ? "text-gray-400" : "text-gray-600"
                     )}>
                       {slot.label}
                     </span>
@@ -995,9 +1249,10 @@ export default function CalendarPageContent() {
                     <div
                       key={`${staffMember.id}-${slotIndex}`}
                       className={cn(
-                        "border-b border-r last:border-r-0 cursor-pointer relative group",
-                        slot.isHour ? "border-t-gray-400 border-t" : "",
-                        !slot.isBusinessHours ? "bg-gray-50" : "bg-white"
+                        "cursor-pointer relative group transition-colors",
+                        slot.isHour ? "border-b border-gray-200" : slot.isMinorInterval ? "border-b border-gray-50" : "border-b border-gray-100",
+                        "border-r border-gray-100 last:border-r-0",
+                        !slot.isBusinessHours ? "bg-gray-50/30" : "bg-white hover:bg-gray-50/30"
                       )}
                       style={{ height: `${slot.height}px` }}
                       onClick={() => {
@@ -1020,7 +1275,7 @@ export default function CalendarPageContent() {
                     >
                       {/* Non-business hours overlay */}
                       {!slot.isBusinessHours && (
-                        <div className="absolute inset-0 bg-gray-900/5 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gray-900/3 pointer-events-none" />
                       )}
 
                       {/* Hover effect - simple */}
@@ -1030,8 +1285,10 @@ export default function CalendarPageContent() {
                        slotBookings.length === 0 && 
                        staffMember.isAvailable && 
                        slot.isBusinessHours && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Plus className="h-4 w-4 text-gray-400" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 rounded">
+                          <div className="bg-white rounded-full p-1.5 shadow-sm">
+                            <Plus className="h-3.5 w-3.5 text-gray-500" />
+                          </div>
                         </div>
                       )}
                         
@@ -1051,30 +1308,45 @@ export default function CalendarPageContent() {
                           ? `calc(${bookingIndex * (100 / overlapCount)}% + ${bookingIndex * gapBetweenBookings / overlapCount}px)`
                           : '0';
                         
-                        // Determine opacity based on status
-                        let bgOpacity = 0.7; // Default for confirmed - reduced for better contrast
-                        if (booking.status === "in-progress") bgOpacity = 0.85; // Still prominent but with contrast
-                        else if (booking.status === "completed" || isPast) bgOpacity = 0.15; // Very light
-                        else if (booking.status === "cancelled") bgOpacity = 0.1; // Almost transparent
-                        else if (booking.status === "no-show") bgOpacity = 0.12; // Very light
+                        // Determine colors and styles based on status
+                        let bgColor = staffMember.color;
+                        let bgOpacity = 1; // Full opacity for better visibility
+                        let textColor = "text-white";
+                        let borderWidth = "4px";
+                        
+                        if (booking.status === "completed" || isPast) {
+                          bgOpacity = 0.08;
+                          textColor = "text-gray-700";
+                          borderWidth = "3px";
+                        } else if (booking.status === "cancelled") {
+                          bgOpacity = 0.05;
+                          textColor = "text-gray-500";
+                          borderWidth = "3px";
+                        } else if (booking.status === "no-show") {
+                          bgOpacity = 0.05;
+                          textColor = "text-gray-500";
+                          borderWidth = "3px";
+                        }
                         
                         return (
                           <div
                             key={booking.id}
                             className={cn(
-                              "absolute top-0 left-0 right-0 rounded cursor-pointer border-l-4 text-xs",
-                              "transition-all hover:shadow-md hover:z-30",
-                              booking.status === "in-progress" && "animate-pulse",
-                              booking.status === "cancelled" && "line-through",
-                              hasConflict && "ring-2 ring-red-500 ring-offset-1"
+                              "absolute top-0 left-0 right-0 rounded-md cursor-pointer text-xs",
+                              "transition-all duration-200 hover:scale-[1.02] hover:z-30",
+                              "shadow-sm hover:shadow-lg",
+                              booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
+                              booking.status === "cancelled" && "opacity-60",
+                              hasConflict && "ring-2 ring-red-500 ring-offset-1",
+                              textColor
                             )}
                             style={{
                               left: bookingLeft,
                               width: bookingWidth,
-                              height: `calc(${(duration / timeInterval) * slot.height}px - 2px)`,
-                              backgroundColor: hexToRgba(staffMember.color, bgOpacity),
-                              borderLeftColor: staffMember.color,
-                              zIndex: 15 + bookingIndex // Ensure proper stacking
+                              height: `calc(${(duration / timeInterval) * slot.height}px - 4px)`,
+                              backgroundColor: hexToRgba(bgColor, bgOpacity),
+                              borderLeft: `${borderWidth} solid ${bgColor}`,
+                              zIndex: hoveredBooking === booking.id ? 40 : 15 + bookingIndex // Lift on hover
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1083,34 +1355,46 @@ export default function CalendarPageContent() {
                             onMouseEnter={() => setHoveredBooking(booking.id)}
                             onMouseLeave={() => setHoveredBooking(null)}
                           >
-                            <div className="p-1 h-full flex flex-col justify-between relative overflow-hidden">
-                              {/* Payment indicator */}
-                              <div className="absolute top-0.5 right-0.5">
+                            <div className="p-2 h-full flex flex-col relative overflow-hidden">
+                              {/* Content with improved hierarchy */}
+                              <div className="space-y-0.5">
                                 <div className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  booking.isPaid ? "bg-green-600" : "bg-orange-500"
-                                )} />
-                              </div>
-                              
-                              {/* Content - adjusted for smaller width */}
-                              <div className="pr-2">
-                                <div className="font-semibold truncate text-gray-900 text-xs">
+                                  "font-semibold truncate leading-tight",
+                                  textColor === "text-white" ? "" : "text-gray-900"
+                                )} style={{ fontSize: '14px' }}>
                                   {booking.customerName}
                                 </div>
-                                {overlapCount <= 2 && ( // Only show service name if not too crowded
-                                  <div className="truncate text-gray-700" style={{ fontSize: '10px' }}>
+                                {(overlapCount <= 2 || duration >= 45) && ( // Show service name if space allows
+                                  <div className={cn(
+                                    "truncate leading-tight",
+                                    textColor === "text-white" ? "opacity-90" : "text-gray-600"
+                                  )} style={{ fontSize: '12px' }}>
                                     {booking.serviceName}
                                   </div>
                                 )}
                               </div>
                               
-                              {/* Duration for longer appointments - only if space allows */}
-                              {duration >= 45 && overlapCount === 1 && (
-                                <div className="text-xs text-gray-600 flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
+                              {/* Duration chip in bottom-right corner */}
+                              {duration >= 30 && (
+                                <div className={cn(
+                                  "absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium",
+                                  textColor === "text-white" 
+                                    ? "bg-black/20 text-white/90" 
+                                    : "bg-gray-100 text-gray-600"
+                                )}>
+                                  <Clock className="h-2.5 w-2.5" />
                                   {duration}m
                                 </div>
                               )}
+                              
+                              {/* Payment indicator */}
+                              <div className="absolute top-1.5 right-1.5">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full shadow-sm",
+                                  booking.isPaid ? "bg-green-500" : "bg-orange-500",
+                                  textColor === "text-white" && "ring-1 ring-white/30"
+                                )} />
+                              </div>
                               
                               {/* Overlap indicator */}
                               {overlapCount > 1 && (
@@ -1119,51 +1403,43 @@ export default function CalendarPageContent() {
                                 </div>
                               )}
                               
-                              {/* Status badge - only show for non-confirmed statuses */}
-                              {booking.status !== 'confirmed' && (
-                                <div className={cn(
-                                  "absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded-full text-white",
-                                  overlapCount > 2 ? "p-1" : "px-1.5 py-0.5", // Icon only when crowded
-                                  booking.status === 'completed' && "bg-green-600/80",
-                                  booking.status === 'in-progress' && "bg-teal-600/80 animate-pulse",
-                                  booking.status === 'cancelled' && "bg-red-600/80",
-                                  booking.status === 'no-show' && "bg-orange-600/80"
-                                )} style={{ fontSize: '9px' }}>
-                                  {booking.status === 'completed' && (
-                                    <>
-                                      <Check className="h-3 w-3" />
-                                      {overlapCount <= 2 && <span>Done</span>}
-                                    </>
-                                  )}
-                                  {booking.status === 'in-progress' && (
-                                    <>
-                                      <Play className="h-3 w-3" />
-                                      {overlapCount <= 2 && <span>Active</span>}
-                                    </>
-                                  )}
-                                  {booking.status === 'cancelled' && (
-                                    <>
-                                      <X className="h-3 w-3" />
-                                      {overlapCount <= 2 && <span>Cancel</span>}
-                                    </>
-                                  )}
-                                  {booking.status === 'no-show' && (
-                                    <>
-                                      <AlertTriangle className="h-3 w-3" />
-                                      {overlapCount <= 2 && <span>NoShow</span>}
-                                    </>
-                                  )}
-                                </div>
-                              )}
                             </div>
                             
-                            {/* Hover tooltip for crowded slots */}
-                            {hoveredBooking === booking.id && overlapCount > 2 && (
-                              <div className="absolute z-50 -top-2 left-full ml-2 bg-white shadow-lg rounded-lg p-3 w-48 pointer-events-none">
-                                <div className="font-semibold text-sm">{booking.customerName}</div>
-                                <div className="text-xs text-gray-600">{booking.serviceName}</div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {booking.displayStartTime || format(booking.startTime, 'h:mm a')} - {booking.displayEndTime || format(booking.endTime, 'h:mm a')}
+                            {/* Enhanced hover tooltip */}
+                            {hoveredBooking === booking.id && (
+                              <div className="absolute z-50 -top-2 left-full ml-2 bg-white shadow-xl rounded-lg p-4 w-64 pointer-events-none border border-gray-100">
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <div className="font-semibold text-base text-gray-900">{booking.customerName}</div>
+                                      <div className="text-sm text-gray-600">{booking.serviceName}</div>
+                                    </div>
+                                    <div className={cn(
+                                      "px-2 py-1 rounded-full text-xs font-medium",
+                                      booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                      booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
+                                      booking.status === 'completed' && "bg-gray-100 text-gray-700",
+                                      booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
+                                      booking.status === 'no-show' && "bg-orange-100 text-orange-700"
+                                    )}>
+                                      {booking.status === 'in-progress' ? 'In Progress' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {booking.displayStartTime || format(booking.startTime, 'h:mm a')} - {booking.displayEndTime || format(booking.endTime, 'h:mm a')}
+                                  </div>
+                                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                                    <DollarSign className="h-3.5 w-3.5" />
+                                    ${booking.totalPrice}
+                                    {booking.isPaid && <span className="text-green-600 font-medium ml-1">• Paid</span>}
+                                  </div>
+                                  {booking.customerPhone && (
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                      <Phone className="h-3.5 w-3.5" />
+                                      {booking.customerPhone}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1210,9 +1486,9 @@ export default function CalendarPageContent() {
     return (
       <div className="flex flex-col h-full overflow-hidden">
         {/* Fixed header row - matching scrollable area structure */}
-        <div className="h-20 border-b bg-white overflow-hidden">
+        <div className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm">
           <div className="flex h-full">
-            <div className="w-20 flex-shrink-0 border-r bg-gray-50 h-full" />
+            <div className="w-20 flex-shrink-0 border-r border-gray-100 bg-gray-50 h-full" />
             <div className="flex flex-1 min-w-[860px]">
               {weekDays.map((day) => {
                 const dayBookings = filteredBookings.filter(b => 
@@ -1223,18 +1499,18 @@ export default function CalendarPageContent() {
                   .reduce((sum, b) => sum + b.totalPrice, 0);
 
                 return (
-                  <div key={day.toISOString()} className="flex-1 border-r last:border-r-0 px-3 py-2 h-full">
+                  <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 px-3 py-2 h-full">
                     <div className="flex items-center justify-between h-full">
                       <div>
                         <div className={cn(
                           "text-xs font-medium uppercase tracking-wider",
-                          isToday(day) && "text-purple-600"
+                          isToday(day) ? "text-purple-600" : "text-gray-500"
                         )}>
                           {format(day, "EEE")}
                         </div>
                         <div className={cn(
                           "text-2xl font-bold mt-0.5",
-                          isToday(day) && "text-purple-600"
+                          isToday(day) ? "text-purple-600" : "text-gray-900"
                         )}>
                           {format(day, "d")}
                         </div>
@@ -1265,11 +1541,11 @@ export default function CalendarPageContent() {
         >
           <div className="flex">
             {/* Time column */}
-            <div className="w-20 flex-shrink-0 bg-gray-50 border-r sticky left-0 z-10" style={{ height: `${24 * 64}px` }}>
+            <div className="w-20 flex-shrink-0 bg-gray-50 border-r border-gray-100 sticky left-0 z-10" style={{ height: `${24 * 64}px` }}>
               {Array.from({ length: 24 }, (_, hour) => (
                 <div
                   key={hour}
-                  className="h-16 border-b text-right pr-3 text-xs font-medium text-gray-700 flex items-center justify-end bg-gray-50"
+                  className="h-16 border-b border-gray-200 text-right pr-3 text-xs font-medium text-gray-600 flex items-center justify-end bg-gray-50"
                 >
                   {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
                 </div>
@@ -1284,7 +1560,7 @@ export default function CalendarPageContent() {
                 );
 
                 return (
-                  <div key={day.toISOString()} className="flex-1 border-r last:border-r-0 relative" style={{ height: `${24 * 64}px` }}>
+                  <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 relative" style={{ height: `${24 * 64}px` }}>
                     {/* Hour blocks */}
                     {Array.from({ length: 24 }, (_, hour) => {
                       const isBusinessHour = hour >= 9 && hour < 18;
@@ -1292,8 +1568,9 @@ export default function CalendarPageContent() {
                         <div
                           key={hour}
                           className={cn(
-                            "h-16 border-b relative",
-                            "cursor-pointer hover:bg-gray-50 transition-colors"
+                            "h-16 border-b border-gray-200 relative",
+                            "cursor-pointer transition-colors",
+                            isBusinessHour ? "hover:bg-gray-50/50" : "bg-gray-50/30"
                           )}
                           onClick={() => {
                             const clickedTime = new Date(day);
@@ -1307,7 +1584,7 @@ export default function CalendarPageContent() {
                           }}
                         >
                           {!isBusinessHour && (
-                            <div className="absolute inset-0 bg-gray-900/5 pointer-events-none" />
+                            <div className="absolute inset-0 bg-gray-900/3 pointer-events-none" />
                           )}
                         </div>
                       );
@@ -1329,11 +1606,20 @@ export default function CalendarPageContent() {
                         const layout = layoutMap.get(booking.id) || { left: 0, width: 100, isCompact: false };
                         
                         const isPast = booking.startTime < currentTime && booking.status !== "in-progress";
-                        let bgOpacity = 0.85;
-                        if (booking.status === "in-progress") bgOpacity = 0.95;
-                        else if (booking.status === "completed" || isPast) bgOpacity = 0.4;
-                        else if (booking.status === "cancelled") bgOpacity = 0.3;
-                        else if (booking.status === "no-show") bgOpacity = 0.35;
+                        
+                        // Consistent color scheme with day view
+                        let bgOpacity = 1;
+                        let borderWidth = "4px";
+                        if (booking.status === "completed" || isPast) {
+                          bgOpacity = 0.08;
+                          borderWidth = "3px";
+                        } else if (booking.status === "cancelled") {
+                          bgOpacity = 0.05;
+                          borderWidth = "3px";
+                        } else if (booking.status === "no-show") {
+                          bgOpacity = 0.05;
+                          borderWidth = "3px";
+                        }
 
                         // In compact mode, create a simple badge-like display
                         if (layout.isCompact) {
@@ -1363,21 +1649,38 @@ export default function CalendarPageContent() {
                               </div>
                               {booking.isPaid && <div className="w-1 h-1 rounded-full bg-green-500 flex-shrink-0" />}
                               
-                              {/* Hover tooltip is essential in compact mode */}
+                              {/* Enhanced tooltip for compact mode */}
                               {hoveredBooking === booking.id && (
-                                <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-lg rounded-lg p-3 w-64 pointer-events-none">
-                                  <div className="space-y-1">
-                                    <div className="font-semibold">{booking.customerName}</div>
-                                    <div className="text-sm text-gray-600">{booking.serviceName}</div>
-                                    <div className="text-sm">
-                                      <span className="text-gray-500">Time:</span> {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-xl rounded-lg p-4 w-64 pointer-events-none border border-gray-100">
+                                  <div className="space-y-2">
+                                    <div className="flex items-start justify-between">
+                                      <div>
+                                        <div className="font-semibold text-base text-gray-900">{booking.customerName}</div>
+                                        <div className="text-sm text-gray-600">{booking.serviceName}</div>
+                                      </div>
+                                      <div className={cn(
+                                        "px-2 py-1 rounded-full text-xs font-medium",
+                                        booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                        booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
+                                        booking.status === 'completed' && "bg-gray-100 text-gray-700",
+                                        booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
+                                        booking.status === 'no-show' && "bg-orange-100 text-orange-700"
+                                      )}>
+                                        {booking.status === 'in-progress' ? 'In Progress' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                      </div>
                                     </div>
-                                    <div className="text-sm">
-                                      <span className="text-gray-500">Staff:</span> {booking.staffName}
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                      <Clock className="h-3.5 w-3.5" />
+                                      {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
                                     </div>
-                                    <div className="text-sm">
-                                      <span className="text-gray-500">Status:</span> {booking.status}
-                                      {booking.isPaid && <span className="text-green-600 ml-1">(Paid)</span>}
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                      <DollarSign className="h-3.5 w-3.5" />
+                                      ${booking.totalPrice}
+                                      {booking.isPaid && <span className="text-green-600 font-medium ml-1">• Paid</span>}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                      <Users className="h-3.5 w-3.5" />
+                                      {booking.staffName}
                                     </div>
                                   </div>
                                 </div>
@@ -1391,19 +1694,21 @@ export default function CalendarPageContent() {
                           <div
                             key={booking.id}
                             className={cn(
-                              "absolute rounded cursor-pointer border-l-4 bg-white shadow-sm",
-                              "transition-all hover:shadow-md hover:z-10 text-xs p-1",
-                              booking.status === "in-progress" && "animate-pulse ring-2 ring-teal-400",
+                              "absolute rounded-md cursor-pointer shadow-sm",
+                              "transition-all duration-200 hover:shadow-lg hover:scale-[1.01] hover:z-20",
+                              "text-xs",
+                              booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
                               booking.status === "cancelled" && "opacity-60",
-                              layout.isOverflow && "ring-1 ring-orange-400"
+                              layout.isOverflow && "ring-1 ring-orange-400",
+                              (booking.status === "completed" || isPast) ? "text-gray-700" : "text-white"
                             )}
                             style={{
                               top: `${topPosition}px`,
                               height: `${Math.max(height - 4, 20)}px`,
                               left: `${layout.left}%`,
                               width: `${layout.width}%`,
-                              borderLeftColor: staffColor,
-                              backgroundColor: hexToRgba(staffColor, bgOpacity * 0.15)
+                              borderLeft: `${borderWidth} solid ${staffColor}`,
+                              backgroundColor: hexToRgba(staffColor, bgOpacity)
                             }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1412,69 +1717,114 @@ export default function CalendarPageContent() {
                           onMouseEnter={() => setHoveredBooking(booking.id)}
                           onMouseLeave={() => setHoveredBooking(null)}
                         >
-                          <div className="h-full flex flex-col">
+                          <div className="h-full flex flex-col p-2">
                             {/* For narrow columns, show minimal info */}
                             {layout.width < 35 ? (
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-gray-900 truncate" style={{ fontSize: '10px' }}>
+                              <div className="space-y-0.5">
+                                <div className={cn(
+                                  "font-semibold truncate",
+                                  (booking.status === "completed" || isPast) ? "text-gray-900" : ""
+                                )} style={{ fontSize: '12px' }}>
                                   {booking.customerName.split(' ').map(n => n[0]).join('')}
                                 </div>
-                                <div className="flex items-center gap-0.5">
-                                  {booking.status === 'in-progress' && <Play className="h-2.5 w-2.5 text-teal-600" />}
-                                  {booking.status === 'cancelled' && <X className="h-2.5 w-2.5 text-red-600" />}
+                                <div className="flex items-center gap-1">
                                   <div className={cn(
-                                    "w-1 h-1 rounded-full",
+                                    "w-1.5 h-1.5 rounded-full",
                                     booking.isPaid ? "bg-green-500" : "bg-orange-500"
                                   )} />
+                                  <span className={cn(
+                                    "text-xs",
+                                    (booking.status === "completed" || isPast) ? "text-gray-600" : "opacity-90"
+                                  )}>
+                                    {format(booking.startTime, 'HH:mm')}
+                                  </span>
                                 </div>
                               </div>
                             ) : (
                               /* Normal width - show more info */
                               <>
-                                <div className="font-semibold text-gray-900 truncate" style={{ fontSize: '11px' }}>
-                                  {booking.customerName}
-                                </div>
-                                {height > 35 && (
-                                  <div className="text-gray-600 truncate" style={{ fontSize: '10px' }}>
-                                    {booking.serviceName}
+                                <div className="space-y-0.5">
+                                  <div className={cn(
+                                    "font-semibold truncate leading-tight",
+                                    (booking.status === "completed" || isPast) ? "text-gray-900" : ""
+                                  )} style={{ fontSize: height > 50 ? '14px' : '12px' }}>
+                                    {booking.customerName}
                                   </div>
-                                )}
-                                {height > 50 && (
-                                  <div className="flex items-center gap-0.5 mt-auto">
-                                    {booking.status !== 'confirmed' && (
-                                      <>
-                                        {booking.status === 'completed' && <Check className="h-2.5 w-2.5 text-green-600" />}
-                                        {booking.status === 'in-progress' && <Play className="h-2.5 w-2.5 text-teal-600" />}
-                                        {booking.status === 'cancelled' && <X className="h-2.5 w-2.5 text-red-600" />}
-                                        {booking.status === 'no-show' && <AlertTriangle className="h-2.5 w-2.5 text-orange-600" />}
-                                      </>
-                                    )}
+                                  {height > 35 && (
                                     <div className={cn(
-                                      "w-1 h-1 rounded-full",
-                                      booking.isPaid ? "bg-green-500" : "bg-orange-500"
-                                    )} />
+                                      "truncate leading-tight",
+                                      (booking.status === "completed" || isPast) ? "text-gray-600" : "opacity-90"
+                                    )} style={{ fontSize: '11px' }}>
+                                      {booking.serviceName}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Duration chip if space allows */}
+                                {height > 60 && (
+                                  <div className={cn(
+                                    "absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium",
+                                    (booking.status === "completed" || isPast)
+                                      ? "bg-gray-100 text-gray-600" 
+                                      : "bg-black/20 text-white/90"
+                                  )}>
+                                    <Clock className="h-2.5 w-2.5" />
+                                    {Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60))}m
                                   </div>
                                 )}
+                                
+                                {/* Payment indicator */}
+                                <div className="absolute top-1.5 right-1.5">
+                                  <div className={cn(
+                                    "w-2 h-2 rounded-full shadow-sm",
+                                    booking.isPaid ? "bg-green-500" : "bg-orange-500",
+                                    !(booking.status === "completed" || isPast) && "ring-1 ring-white/30"
+                                  )} />
+                                </div>
                               </>
                             )}
                           </div>
 
-                          {/* Hover tooltip */}
+                          {/* Enhanced hover tooltip - same as day view */}
                           {hoveredBooking === booking.id && (
-                            <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-lg rounded-lg p-3 w-64 pointer-events-none">
-                              <div className="space-y-1">
-                                <div className="font-semibold">{booking.customerName}</div>
-                                <div className="text-sm text-gray-600">{booking.serviceName}</div>
-                                <div className="text-sm">
-                                  <span className="text-gray-500">Staff:</span> {booking.staffName}
+                            <div className="absolute z-50 top-full left-0 mt-1 bg-white shadow-xl rounded-lg p-4 w-64 pointer-events-none border border-gray-100">
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <div className="font-semibold text-base text-gray-900">{booking.customerName}</div>
+                                    <div className="text-sm text-gray-600">{booking.serviceName}</div>
+                                  </div>
+                                  <div className={cn(
+                                    "px-2 py-1 rounded-full text-xs font-medium",
+                                    booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                    booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
+                                    booking.status === 'completed' && "bg-gray-100 text-gray-700",
+                                    booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
+                                    booking.status === 'no-show' && "bg-orange-100 text-orange-700"
+                                  )}>
+                                    {booking.status === 'in-progress' ? 'In Progress' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                  </div>
                                 </div>
-                                <div className="text-sm">
-                                  <span className="text-gray-500">Duration:</span> {duration} minutes
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                  <span className="text-gray-600 font-medium ml-1">({duration}m)</span>
                                 </div>
-                                <div className="text-sm">
-                                  <span className="text-gray-500">Price:</span> ${booking.totalPrice}
-                                  {booking.isPaid && <span className="text-green-600 ml-1">(Paid)</span>}
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                  <DollarSign className="h-3.5 w-3.5" />
+                                  ${booking.totalPrice}
+                                  {booking.isPaid && <span className="text-green-600 font-medium ml-1">• Paid</span>}
                                 </div>
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                  <Users className="h-3.5 w-3.5" />
+                                  {booking.staffName}
+                                </div>
+                                {booking.customerPhone && (
+                                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                                    <Phone className="h-3.5 w-3.5" />
+                                    {booking.customerPhone}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -1531,6 +1881,10 @@ export default function CalendarPageContent() {
           {/* Calendar grid */}
           <div className="grid grid-cols-7">
             {days.map((day) => {
+              if (!day || !(day instanceof Date)) {
+                console.error("Invalid day in calendar grid:", day);
+                return null;
+              }
               const dayBookings = filteredBookings.filter(b => 
                 isSameDay(b.startTime, day)
               );
@@ -1658,8 +2012,9 @@ export default function CalendarPageContent() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="h-screen flex flex-col bg-gray-50">
+    <CalendarErrorBoundary>
+      <TooltipProvider>
+        <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center justify-between h-14 px-6">
@@ -1688,7 +2043,7 @@ export default function CalendarPageContent() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{getNavigationLabel("prev")}</p>
+                    <p>{getNavigationLabel("prev") || ""}</p>
                   </TooltipContent>
                 </Tooltip>
                 
@@ -1712,7 +2067,7 @@ export default function CalendarPageContent() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{getNavigationLabel("next")}</p>
+                    <p>{getNavigationLabel("next") || ""}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1969,5 +2324,6 @@ export default function CalendarPageContent() {
         )}
       </div>
     </TooltipProvider>
+    </CalendarErrorBoundary>
   );
 }

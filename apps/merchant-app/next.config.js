@@ -16,11 +16,17 @@ const nextConfig = {
   // Enable experimental optimizations
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@heya-pos/ui'],
+    optimizePackageImports: ['lucide-react'],
   },
   
   // Webpack optimization
   webpack: (config, { isServer }) => {
+    // Resolve @heya-pos/ui to its dist folder
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@heya-pos/ui': require.resolve('@heya-pos/ui'),
+    };
+    
     // Split chunks more aggressively
     if (!isServer) {
       config.optimization.splitChunks = {
@@ -43,13 +49,6 @@ const nextConfig = {
             priority: 10,
             reuseExistingChunk: true,
             enforce: true,
-          },
-          // UI library
-          ui: {
-            name: 'ui',
-            test: /[\\/]packages[\\/]ui[\\/]/,
-            chunks: 'all',
-            priority: 30,
           },
         },
       };
