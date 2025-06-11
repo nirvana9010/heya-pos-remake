@@ -576,3 +576,88 @@ When encountering import errors or "missing" components:
 - More work to fix later
 
 **See**: `/docs/sessions/2025-06-03-component-import-debugging.md` for detailed case study
+
+## 🗄️ Database Seeding and Mock Data Generation
+**Added**: 2025-06-11
+
+### Key Learnings from Booking Population Disaster
+
+#### What Went Wrong:
+1. **Database Environment Confusion**: Always check which database you're connected to!
+   - Local SQLite vs Production PostgreSQL (Supabase)
+   - Check `.env` files to understand the current configuration
+   - API might be using different DB than scripts
+
+2. **Booking Generation Logic Flaws**:
+   - Creating bookings for EVERY staff member in EVERY time slot = 300% overbooking
+   - No proper conflict checking before creating bookings
+   - Floating point precision issues with prices (13599.869999999999)
+
+3. **Schema Mismatches**:
+   - `totalPrice` vs `totalAmount` field names
+   - `staffId` vs `providerId` vs `createdById` confusion
+   - Missing required fields like `bookingNumber`
+   - Payment model requiring `invoiceId` (not just `bookingId`)
+
+#### Best Practices for Database Seeding:
+
+1. **Always Start with Environment Check**:
+   ```javascript
+   // Check if using local or production DB
+   console.log('DATABASE_URL:', process.env.DATABASE_URL);
+   ```
+
+2. **Clean Before Seeding**:
+   ```javascript
+   // Always clean up existing data first
+   await prisma.bookingService.deleteMany({});
+   await prisma.booking.deleteMany({});
+   ```
+
+3. **Use Realistic Constraints**:
+   - Max bookings per staff per day: 8-10
+   - Proper time slot management (no overlaps)
+   - Business hours constraints (9 AM - 6 PM)
+   - Day-specific patterns (less on Sundays)
+
+4. **Handle Decimal/Money Properly**:
+   ```javascript
+   // Use Number() for price calculations
+   const totalPrice = services.reduce((sum, s) => sum + Number(s.price), 0);
+   ```
+
+5. **Track What You Create**:
+   ```javascript
+   // Keep track of staff schedules to prevent conflicts
+   const staffSchedules = {};
+   staff.forEach(s => { staffSchedules[s.id] = []; });
+   ```
+
+#### Working Script Template:
+```javascript
+// 1. Environment check
+// 2. Clean existing data
+// 3. Get reference data (merchant, staff, services, customers)
+// 4. Create bookings with:
+//    - Realistic daily limits
+//    - Proper status based on date
+//    - No overlapping for same staff
+//    - Even distribution across days
+// 5. Verify results
+```
+
+#### Production Stack Reference:
+- **API**: Railway (check deployment logs)
+- **Database**: Supabase PostgreSQL (not local SQLite!)
+- **Frontend**: Vercel
+
+#### Useful Verification Scripts:
+- `scripts/check-bookings.js` - Check booking distribution
+- `scripts/fix-production-bookings.js` - Fix overbooking issues
+
+#### Common Pitfalls to Avoid:
+- ❌ Assuming local SQLite when it's PostgreSQL
+- ❌ Creating bookings without checking conflicts
+- ❌ Using random probability for EACH staff member
+- ❌ Ignoring business hour constraints
+- ❌ Not checking existing data before seeding
