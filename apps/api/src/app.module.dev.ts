@@ -13,6 +13,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
+import { DebugModule } from './debug/debug.module';
 
 @Module({
   imports: [
@@ -28,14 +29,15 @@ import { LocationsModule } from './locations/locations.module';
     StaffModule,
     LoyaltyModule,
     PublicModule,
-    LocationsModule
+    LocationsModule,
+    DebugModule // Include debug module in development
   ],
   controllers: [AppController],
   providers: [
     AppService,
   ],
 })
-export class AppModule implements OnModuleInit {
+export class AppModuleDev implements OnModuleInit {
   constructor(private sessionService: SessionService) {}
 
   onModuleInit() {

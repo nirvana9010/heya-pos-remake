@@ -1057,3 +1057,59 @@ h1, h2, h3, h4, h5, h6 {
 .data-\[state\=closed\]\:slide-out-to-top-\[48\%\][data-state="closed"] {
   animation: slide-out-to-top 200ms ease-in;
 }
+
+/* Enhanced calendar animations and styling */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.01);
+  }
+}
+
+.animate-pulse {
+  animation: subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Calendar booking card transitions */
+.calendar-booking-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-booking-card:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Custom scrollbar styles for calendar */
+.calendar-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb #fafafa;
+}
+
+.calendar-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-track {
+  background: #fafafa;
+  border-radius: 3px;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
+}
+
+/* Smooth shadow transitions */
+.shadow-transition {
+  transition: box-shadow 0.2s ease-in-out;
+}
