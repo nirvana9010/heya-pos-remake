@@ -322,7 +322,7 @@ export default function CalendarPageEnhanced() {
 
             <Button 
               onClick={() => setIsCreateBookingOpen(true)}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-teal-600 hover:bg-teal-700"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Booking
@@ -335,7 +335,7 @@ export default function CalendarPageEnhanced() {
       <div className="flex-1 overflow-hidden relative">
         {switchingDate && (
           <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-            <Spinner className="h-8 w-8 text-purple-600" />
+            <Spinner className="h-8 w-8 text-teal-600" />
           </div>
         )}
         

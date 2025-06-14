@@ -1,5 +1,11 @@
 "use client";
 
+// Import debugging helper in development
+// Temporarily disabled to test if this is causing issues
+// if (process.env.NODE_ENV === 'development') {
+//   require('./debug-calendar');
+// }
+
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import { 
@@ -60,6 +66,30 @@ import {
 } from "date-fns";
 import { BookingSlideOut } from "@/components/BookingSlideOut";
 import { BookingDetailsSlideOut } from "@/components/BookingDetailsSlideOut";
+
+// Safe component wrapper that prevents Date objects from being rendered
+const SafeRender: React.FC<{ children: any }> = ({ children }) => {
+  if (children instanceof Date) {
+    console.error('Attempted to render Date object:', children);
+    return <>{safeFormat(children, 'PPP')}</>;
+  }
+  
+  if (Array.isArray(children)) {
+    return (
+      <>
+        {children.map((child, index) => 
+          child instanceof Date ? (
+            <span key={index}>{safeFormat(child, 'PPP')}</span>
+          ) : (
+            <React.Fragment key={index}>{child}</React.Fragment>
+          )
+        )}
+      </>
+    );
+  }
+  
+  return <>{children}</>;
+};
 
 interface Staff {
   id: string;
@@ -279,6 +309,8 @@ const generateMockBookings = (): Booking[] => {
             staffName: selectedStaff.name,
             startTime: bookingStart,
             endTime: bookingEnd,
+            displayStartTime: format(bookingStart, 'h:mm a'),
+            displayEndTime: format(bookingEnd, 'h:mm a'),
             status: status,
             isPaid: status === "completed" || (status === "confirmed" && Math.random() < 0.3),
             totalPrice: service.price,
@@ -314,8 +346,9 @@ const bookingSummary = mockBookings.reduce((acc, booking) => {
   return acc;
 }, {} as Record<string, { total: number; byStaff: Record<string, number> }>);
 
-console.log(`Generated ${mockBookings.length} mock bookings for 14 days`);
-console.log('Booking distribution by day:', bookingSummary);
+// Commenting out console.logs that might cause issues in some environments
+// console.log(`Generated ${mockBookings.length} mock bookings for 14 days`);
+// console.log('Booking distribution by day:', bookingSummary);
 
 // Keep original mock bookings as fallback
 const originalMockBookings: Booking[] = [
@@ -630,7 +663,7 @@ const getStatusColor = (status: string, isPast: boolean = false) => {
   
   // Active colors for current/future appointments
   switch (status) {
-    case "confirmed": return "bg-purple-600 text-white border border-purple-700 shadow-sm";
+    case "confirmed": return "bg-teal-600 text-white border border-teal-700 shadow-sm";
     case "in-progress": return "bg-teal-600 text-white border-2 border-teal-400 shadow-md animate-pulse";
     case "completed": return "bg-gray-500 text-white border border-gray-600";
     case "cancelled": return "bg-red-600/70 text-white line-through border border-red-700";
@@ -788,7 +821,16 @@ class CalendarErrorBoundary extends React.Component<
           <details className="mt-2">
             <summary>Error details</summary>
             <pre className="mt-2 text-xs">{this.state.error?.toString()}</pre>
+            {this.state.error?.stack && (
+              <pre className="mt-2 text-xs overflow-auto">{this.state.error.stack}</pre>
+            )}
           </details>
+          <button 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
+            onClick={() => window.location.reload()}
+          >
+            Reload Page
+          </button>
         </div>
       );
     }
@@ -798,7 +840,15 @@ class CalendarErrorBoundary extends React.Component<
 }
 
 export default function CalendarPageContent() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Ensure initial date is valid
+  const [currentDate, setCurrentDate] = useState(() => {
+    const date = new Date();
+    if (!isValidDate(date)) {
+      console.error('Invalid initial date, using fallback');
+      return new Date('2025-01-01');
+    }
+    return date;
+  });
   const [viewType, setViewType] = useState<ViewType>("day");
   const [timeInterval, setTimeInterval] = useState<TimeInterval>(15);
   const [businessHours, setBusinessHours] = useState<BusinessHours>(mockBusinessHours);
@@ -863,27 +913,33 @@ export default function CalendarPageContent() {
         const apiBookings = await apiClient.getBookings(params);
         
         // API client already transforms the data, just adjust for calendar view
-        const transformedBookings = apiBookings.map((booking: any) => ({
-          id: booking.id,
-          customerId: booking.customerId,
-          customerName: booking.customerName || 'Unknown',
-          customerPhone: booking.customerPhone || '',
-          customerEmail: booking.customerEmail || booking.customer?.email || '',
-          serviceName: booking.serviceName || 'Service',
-          serviceIcon: 'scissors', // Default icon
-          staffId: booking.providerId || booking.staffId || '1',
-          staffName: booking.staffName || 'Staff',
-          startTime: new Date(booking.startTime),
-          endTime: new Date(booking.endTime),
-          status: (booking.status || 'pending').toLowerCase().replace('_', '-'),
-          isPaid: booking.paidAmount > 0 || false,
-          totalPrice: booking.totalAmount || booking.price || 0,
-          notes: booking.notes || '',
-          // Add display times for timezone-aware display
-          displayStartTime: booking.displayStartTime,
-          displayEndTime: booking.displayEndTime,
-          displayDate: booking.displayDate,
-        }));
+        const transformedBookings = apiBookings.map((booking: any) => {
+          // Ensure dates are Date objects (they might be strings from API)
+          const startTime = booking.startTime instanceof Date ? booking.startTime : new Date(booking.startTime);
+          const endTime = booking.endTime instanceof Date ? booking.endTime : new Date(booking.endTime);
+          
+          return {
+            id: booking.id,
+            customerId: booking.customerId,
+            customerName: booking.customerName || 'Unknown',
+            customerPhone: booking.customerPhone || '',
+            customerEmail: booking.customerEmail || booking.customer?.email || '',
+            serviceName: booking.serviceName || 'Service',
+            serviceIcon: 'scissors' as const, // Default icon
+            staffId: booking.providerId || booking.staffId || '1',
+            staffName: booking.staffName || 'Staff',
+            startTime,
+            endTime,
+            status: (booking.status || 'pending').toLowerCase().replace('_', '-') as any,
+            isPaid: booking.paidAmount > 0 || false,
+            totalPrice: booking.totalAmount || booking.price || 0,
+            notes: booking.notes || '',
+            // Add display times for timezone-aware display
+            displayStartTime: booking.displayStartTime,
+            displayEndTime: booking.displayEndTime,
+            displayDate: booking.displayDate,
+          };
+        });
         
         setBookings(transformedBookings);
       } catch (error) {
@@ -1399,7 +1455,7 @@ export default function CalendarPageContent() {
                                     </div>
                                     <div className={cn(
                                       "px-2 py-1 rounded-full text-xs font-medium",
-                                      booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                      booking.status === 'confirmed' && "bg-teal-100 text-teal-700",
                                       booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
                                       booking.status === 'completed' && "bg-gray-100 text-gray-700",
                                       booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
@@ -1410,7 +1466,7 @@ export default function CalendarPageContent() {
                                   </div>
                                   <div className="flex items-center gap-1 text-sm text-gray-500">
                                     <Clock className="h-3.5 w-3.5" />
-                                    {booking.displayStartTime || format(booking.startTime, 'h:mm a')} - {booking.displayEndTime || format(booking.endTime, 'h:mm a')}
+                                    {booking.displayStartTime || (booking.startTime instanceof Date ? format(booking.startTime, 'h:mm a') : 'N/A')} - {booking.displayEndTime || (booking.endTime instanceof Date ? format(booking.endTime, 'h:mm a') : 'N/A')}
                                   </div>
                                   <div className="flex items-center gap-1 text-sm text-gray-500">
                                     <DollarSign className="h-3.5 w-3.5" />
@@ -1487,13 +1543,13 @@ export default function CalendarPageContent() {
                       <div>
                         <div className={cn(
                           "text-xs font-medium uppercase tracking-wider",
-                          isToday(day) ? "text-purple-600" : "text-gray-500"
+                          isToday(day) ? "text-teal-600" : "text-gray-500"
                         )}>
                           {safeFormat(day, "EEE")}
                         </div>
                         <div className={cn(
                           "text-2xl font-bold mt-0.5",
-                          isToday(day) ? "text-purple-600" : "text-gray-900"
+                          isToday(day) ? "text-teal-600" : "text-gray-900"
                         )}>
                           {safeFormat(day, "d")}
                         </div>
@@ -1643,7 +1699,7 @@ export default function CalendarPageContent() {
                                       </div>
                                       <div className={cn(
                                         "px-2 py-1 rounded-full text-xs font-medium",
-                                        booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                        booking.status === 'confirmed' && "bg-teal-100 text-teal-700",
                                         booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
                                         booking.status === 'completed' && "bg-gray-100 text-gray-700",
                                         booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
@@ -1779,7 +1835,7 @@ export default function CalendarPageContent() {
                                   </div>
                                   <div className={cn(
                                     "px-2 py-1 rounded-full text-xs font-medium",
-                                    booking.status === 'confirmed' && "bg-purple-100 text-purple-700",
+                                    booking.status === 'confirmed' && "bg-teal-100 text-teal-700",
                                     booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
                                     booking.status === 'completed' && "bg-gray-100 text-gray-700",
                                     booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
@@ -1910,7 +1966,7 @@ export default function CalendarPageContent() {
                     !isCurrentMonth && "bg-gray-50 text-gray-400",
                     isCurrentMonth && bgIntensity,
                     isCurrentMonth && isWeekend && "bg-gray-50/50",
-                    isToday(day) && "ring-2 ring-purple-600 ring-inset",
+                    isToday(day) && "ring-2 ring-teal-600 ring-inset",
                     "hover:shadow-inner"
                   )}
                   onClick={() => {
@@ -1922,7 +1978,7 @@ export default function CalendarPageContent() {
                   <div className="flex items-start justify-between mb-2">
                     <span className={cn(
                       "text-sm font-medium",
-                      isToday(day) && "bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                      isToday(day) && "bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
                     )}>
                       {safeFormat(day, "d")}
                     </span>
@@ -1994,7 +2050,8 @@ export default function CalendarPageContent() {
     );
   };
 
-  return (
+  // Wrap the entire component to catch any Date rendering issues
+  const content = (
     <CalendarErrorBoundary>
       <TooltipProvider>
         <div className="h-screen flex flex-col bg-gray-50">
@@ -2026,14 +2083,18 @@ export default function CalendarPageContent() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{getNavigationLabel("prev") || ""}</p>
+                    <p>{String(getNavigationLabel("prev") || "")}</p>
                   </TooltipContent>
                 </Tooltip>
                 
                 <div className="px-4 py-1 min-w-[240px] text-center">
                   <h2 className="text-sm font-semibold text-gray-900">
                     {viewType === "day" && safeFormat(currentDate, "EEEE, MMMM d, yyyy")}
-                    {viewType === "week" && `Week of ${safeFormat(startOfWeek(currentDate), "MMM d, yyyy")}`}
+                    {viewType === "week" && (() => {
+                      const weekStart = startOfWeek(currentDate);
+                      const formatted = safeFormat(weekStart, "MMM d, yyyy");
+                      return formatted ? `Week of ${formatted}` : '';
+                    })()}
                     {viewType === "month" && safeFormat(currentDate, "MMMM yyyy")}
                   </h2>
                 </div>
@@ -2050,7 +2111,7 @@ export default function CalendarPageContent() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{getNavigationLabel("next") || ""}</p>
+                    <p>{String(getNavigationLabel("next") || "")}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -2167,7 +2228,7 @@ export default function CalendarPageContent() {
                         <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
                         <button
                           onClick={toggleAllStaff}
-                          className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                         >
                           {filters.selectedStaffIds.length === staff.length ? "Clear all" : "Select all"}
                         </button>
@@ -2213,7 +2274,7 @@ export default function CalendarPageContent() {
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        className="bg-teal-600 hover:bg-teal-700 text-white"
                         onClick={() => setFiltersOpen(false)}
                       >
                         Apply
@@ -2224,7 +2285,7 @@ export default function CalendarPageContent() {
               </Popover>
               
               <Button 
-                className="h-10 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                className="h-10 bg-teal-600 hover:bg-teal-700 text-white shadow-sm"
                 onClick={() => {
                   setNewBookingData({
                     date: currentDate,
@@ -2249,24 +2310,26 @@ export default function CalendarPageContent() {
         </div>
 
         {/* New Booking Slide-Out */}
-        <BookingSlideOut
-          isOpen={isBookingOpen}
-          onClose={() => {
-            setIsBookingOpen(false);
-            setNewBookingData({});
-          }}
-          initialDate={newBookingData.date}
-          initialTime={newBookingData.time}
-          initialStaffId={newBookingData.staffId}
-          staff={visibleStaff}
-          services={mockServices}
-          customers={mockCustomers}
-          onSave={(booking) => {
-            console.log("New booking:", booking);
-            setIsBookingOpen(false);
-            setNewBookingData({});
-          }}
-        />
+        {isBookingOpen && (
+          <BookingSlideOut
+            isOpen={isBookingOpen}
+            onClose={() => {
+              setIsBookingOpen(false);
+              setNewBookingData({});
+            }}
+            initialDate={newBookingData.date}
+            initialTime={newBookingData.time}
+            initialStaffId={newBookingData.staffId}
+            staff={visibleStaff}
+            services={mockServices}
+            customers={mockCustomers}
+            onSave={(booking) => {
+              console.log("New booking:", booking);
+              setIsBookingOpen(false);
+              setNewBookingData({});
+            }}
+          />
+        )}
 
         {/* Booking Details Slide-Out */}
         {selectedBooking && (
@@ -2309,4 +2372,6 @@ export default function CalendarPageContent() {
     </TooltipProvider>
     </CalendarErrorBoundary>
   );
+  
+  return content;
 }

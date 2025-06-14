@@ -31,6 +31,9 @@ export interface MerchantSettings {
   currency: string;
   dateFormat: string;
   timeFormat: '12h' | '24h';
+  // Payment settings
+  requireDeposit: boolean;
+  depositPercentage: number; // 1-100
 }
 
 export enum MerchantStatus {
