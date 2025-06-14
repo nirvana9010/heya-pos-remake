@@ -409,13 +409,13 @@ export default function BookingPageClient() {
     <div className="mb-12">
       <div className="relative max-w-3xl mx-auto">
         {/* Background gradient line */}
-        <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-indigo-100 via-pink-100 to-indigo-100 rounded-full" />
+        <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-teal-100 via-emerald-100 to-teal-100 rounded-full" />
         
         {/* Progress line - no animation on re-renders */}
         <div 
           className="absolute top-6 left-0 h-1 rounded-full transition-all duration-700 ease-in-out"
           style={{
-            background: 'linear-gradient(90deg, #14B8A6 0%, #EC4899 100%)',
+            background: 'linear-gradient(90deg, #14B8A6 0%, #10B981 100%)',
             width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`
           }}
         />
@@ -434,8 +434,8 @@ export default function BookingPageClient() {
                 <div
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
-                    isActive && "bg-gradient-to-r from-indigo-500 to-pink-500 shadow-lg scale-125",
-                    isCompleted && "bg-gradient-to-r from-indigo-400 to-pink-400",
+                    isActive && "bg-gradient-to-r from-teal-500 to-emerald-500 shadow-lg scale-125",
+                    isCompleted && "bg-gradient-to-r from-teal-400 to-emerald-400",
                     !isActive && !isCompleted && "bg-gray-100"
                   )}
                 >
@@ -551,7 +551,7 @@ export default function BookingPageClient() {
                             <motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="w-3 h-3 rounded-full bg-gradient-to-r from-indigo-600 to-pink-600"
+                              className="w-3 h-3 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600"
                             />
                           )}
                         </div>
@@ -819,7 +819,7 @@ export default function BookingPageClient() {
                   caption: "flex justify-center pt-2 relative items-center mb-8",
                   caption_label: "font-serif text-3xl font-medium text-gray-900",
                   nav: "space-x-1 flex items-center",
-                  nav_button: "h-12 w-12 bg-white hover:bg-indigo-50 rounded-full transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-indigo-300 hover:scale-110",
+                  nav_button: "h-12 w-12 bg-white hover:bg-teal-50 rounded-full transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-teal-300 hover:scale-110",
                   nav_button_previous: "absolute left-1",
                   nav_button_next: "absolute right-1",
                   table: "w-full border-collapse",
@@ -834,16 +834,16 @@ export default function BookingPageClient() {
                   day: cn(
                     "h-14 w-14 p-0 font-normal text-base rounded-xl",
                     "transition-all duration-200",
-                    "hover:bg-indigo-50 hover:scale-105",
-                    "focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2",
+                    "hover:bg-teal-50 hover:scale-105",
+                    "focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2",
                     "aria-selected:opacity-100"
                   ),
-                  day_selected: "bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold hover:from-indigo-600 hover:to-pink-600 shadow-lg",
-                  day_today: "bg-indigo-100 text-indigo-900 font-bold ring-2 ring-indigo-300 ring-offset-2",
+                  day_selected: "bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold hover:from-teal-600 hover:to-emerald-600 shadow-lg",
+                  day_today: "bg-teal-100 text-teal-900 font-bold ring-2 ring-teal-300 ring-offset-2",
                   day_outside: "text-gray-300 opacity-50",
                   day_disabled: "text-gray-300 opacity-40 cursor-not-allowed hover:bg-transparent hover:scale-100",
                   day_hidden: "invisible",
-                  day_range_middle: "aria-selected:bg-indigo-100 aria-selected:text-indigo-900",
+                  day_range_middle: "aria-selected:bg-teal-100 aria-selected:text-teal-900",
                 }}
                 components={{
                   IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5 text-gray-600" />,
@@ -854,11 +854,11 @@ export default function BookingPageClient() {
               {/* Weekend indicator */}
               <div className="mt-6 flex items-center justify-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-indigo-100" />
+                  <div className="w-4 h-4 rounded bg-teal-100" />
                   <span className="text-gray-600">Today</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-gradient-to-r from-indigo-500 to-pink-500" />
+                  <div className="w-4 h-4 rounded bg-gradient-to-r from-teal-500 to-emerald-500" />
                   <span className="text-gray-600">Selected</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -908,13 +908,13 @@ export default function BookingPageClient() {
                       },
                       afternoon: { 
                         icon: Cloud, 
-                        gradient: 'from-blue-50 to-indigo-50',
+                        gradient: 'from-blue-50 to-teal-50',
                         label: 'Afternoon',
                         description: 'Perfect midday escape'
                       },
                       evening: { 
                         icon: Moon, 
-                        gradient: 'from-indigo-50 to-pink-50',
+                        gradient: 'from-teal-50 to-emerald-50',
                         label: 'Evening',
                         description: 'Unwind after your day'
                       }
@@ -959,8 +959,8 @@ export default function BookingPageClient() {
                                   onClick={() => setSelectedTime(slot.time)}
                                   className={cn(
                                     "w-full p-4 rounded-xl transition-all duration-300 relative group",
-                                    slot.available && !isSelected && "bg-white hover:shadow-lg hover:shadow-indigo-200/50",
-                                    slot.available && isSelected && "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg",
+                                    slot.available && !isSelected && "bg-white hover:shadow-lg hover:shadow-teal-200/50",
+                                    slot.available && isSelected && "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg",
                                     !slot.available && "bg-gray-100 cursor-not-allowed opacity-50"
                                   )}
                                 >
@@ -987,7 +987,7 @@ export default function BookingPageClient() {
                                     <motion.div
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
-                                      className="absolute inset-0 rounded-xl ring-4 ring-indigo-300 ring-offset-2"
+                                      className="absolute inset-0 rounded-xl ring-4 ring-teal-300 ring-offset-2"
                                     />
                                   )}
                                 </button>
