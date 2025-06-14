@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { 
   ChevronLeft, ChevronRight, Calendar, User, Clock, UserCircle, CheckCircle,
   Sparkles, Shield, CalendarCheck, Star, MapPin, Phone, Mail, Download,
-  Zap, CalendarDays, Sun, Cloud, Moon
+  Zap, CalendarDays, Sun, Cloud, Moon, DollarSign
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
@@ -21,23 +21,29 @@ import { bookingApi, type Service, type Staff, type TimeSlot, type MerchantInfo 
 import { format } from "date-fns";
 import { TimezoneUtils } from "@heya-pos/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { CustomerIdentification } from "../../components/CustomerIdentification";
+import { PaymentStep } from "../../components/PaymentStep";
 
 
 const steps = [
   { id: 1, name: "Service", icon: CheckCircle },
   { id: 2, name: "Staff", icon: User },
   { id: 3, name: "Date & Time", icon: Calendar },
-  { id: 4, name: "Your Details", icon: UserCircle },
-  { id: 5, name: "Confirmation", icon: CheckCircle },
+  { id: 4, name: "Identify", icon: UserCircle },
+  { id: 5, name: "Your Details", icon: UserCircle },
+  { id: 6, name: "Payment", icon: DollarSign },
+  { id: 7, name: "Confirmation", icon: CheckCircle },
 ];
 
 // Customer Form Component - Outside of BookingPage to prevent re-creation
 const CustomerFormComponent = React.memo(({ 
   customerInfo, 
-  onCustomerInfoChange 
+  onCustomerInfoChange,
+  isReturningCustomer = false
 }: { 
   customerInfo: any, 
-  onCustomerInfoChange: (info: any) => void 
+  onCustomerInfoChange: (info: any) => void,
+  isReturningCustomer?: boolean
 }) => {
   const [touched, setTouched] = useState({
     firstName: false,
@@ -64,11 +70,35 @@ const CustomerFormComponent = React.memo(({
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium mb-2">Almost there!</h3>
+        <h3 className="text-lg font-medium mb-2">
+          {isReturningCustomer ? 'Welcome back!' : 'Almost there!'}
+        </h3>
         <p className="text-sm text-muted-foreground">
-          We just need a few details to confirm your booking
+          {isReturningCustomer 
+            ? 'Please confirm your details are correct'
+            : 'We just need a few details to confirm your booking'}
         </p>
       </div>
+
+      {/* Show simplified view for returning customers */}
+      {isReturningCustomer && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-blue-900">Your Information:</p>
+            <p className="text-sm text-blue-800">
+              {customerInfo.firstName} {customerInfo.lastName}
+            </p>
+            <p className="text-sm text-blue-800">{customerInfo.email}</p>
+            <p className="text-sm text-blue-800">{customerInfo.phone}</p>
+          </div>
+          <button
+            onClick={() => setTouched({ firstName: true, lastName: true, email: true, phone: true })}
+            className="text-sm text-blue-600 hover:text-blue-800 underline mt-3"
+          >
+            Need to update these details?
+          </button>
+        </div>
+      )}
       
       <div className="grid grid-cols-2 gap-4">
         <div className="relative">
@@ -230,6 +260,7 @@ export default function BookingPageClient() {
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isReturningCustomer, setIsReturningCustomer] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     firstName: "",
     lastName: "",
@@ -294,10 +325,18 @@ export default function BookingPageClient() {
   };
 
   const handleNext = async () => {
-    if (currentStep === 4) {
-      // Submit booking
-      await handleBookingSubmit();
-    } else if (currentStep < 5) {
+    if (currentStep === 5) {
+      // Move to payment step if deposit required, otherwise skip to booking creation
+      if (merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0) {
+        setCurrentStep(6); // Go to payment step
+      } else {
+        // Skip payment, create booking directly
+        await handleBookingSubmit();
+      }
+    } else if (currentStep === 6) {
+      // Payment step - handled by payment form submission
+      return;
+    } else if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -305,28 +344,30 @@ export default function BookingPageClient() {
   const handleBookingSubmit = async () => {
     if (!service || !selectedDate || !selectedTime) return;
     
+    // Create booking directly
+    await createBooking({
+      customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+      customerPhone: customerInfo.phone,
+      customerEmail: customerInfo.email,
+      serviceId: service.id,
+      staffId: selectedStaff || undefined,
+      date: selectedDate,
+      startTime: selectedTime,
+      notes: customerInfo.notes
+    });
+  };
+
+  const createBooking = async (bookingData: any) => {
     try {
       setSubmitting(true);
       
-      const booking = await bookingApi.createBooking({
-        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
-        customerPhone: customerInfo.phone,
-        customerEmail: customerInfo.email,
-        serviceId: service.id,
-        staffId: selectedStaff || undefined,
-        date: selectedDate,
-        startTime: selectedTime,
-        notes: customerInfo.notes
-      });
+      const booking = await bookingApi.createBooking(bookingData);
       
       setBookingId(booking.id);
       setBookingNumber(booking.bookingNumber || booking.id);
-      setCurrentStep(5);
+      setCurrentStep(7); // Go to confirmation step
       
-      toast({
-        title: "Success",
-        description: "Your booking has been confirmed!",
-      });
+      // Don't show toast - we're showing the confirmation page instead
     } catch (error) {
       console.error('Failed to create booking:', error);
       toast({
@@ -354,7 +395,11 @@ export default function BookingPageClient() {
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:
+        return true; // Customer identification step - always can proceed
+      case 5:
         return customerInfo.firstName && customerInfo.lastName && customerInfo.email && customerInfo.phone;
+      case 6:
+        return true; // Payment step - validation handled by payment form
       default:
         return true;
     }
@@ -364,13 +409,13 @@ export default function BookingPageClient() {
     <div className="mb-12">
       <div className="relative max-w-3xl mx-auto">
         {/* Background gradient line */}
-        <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 rounded-full" />
+        <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-indigo-100 via-pink-100 to-indigo-100 rounded-full" />
         
         {/* Progress line - no animation on re-renders */}
         <div 
           className="absolute top-6 left-0 h-1 rounded-full transition-all duration-700 ease-in-out"
           style={{
-            background: 'linear-gradient(90deg, #8B5CF6 0%, #EC4899 100%)',
+            background: 'linear-gradient(90deg, #14B8A6 0%, #EC4899 100%)',
             width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`
           }}
         />
@@ -389,8 +434,8 @@ export default function BookingPageClient() {
                 <div
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
-                    isActive && "bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg scale-125",
-                    isCompleted && "bg-gradient-to-r from-purple-400 to-pink-400",
+                    isActive && "bg-gradient-to-r from-indigo-500 to-pink-500 shadow-lg scale-125",
+                    isCompleted && "bg-gradient-to-r from-indigo-400 to-pink-400",
                     !isActive && !isCompleted && "bg-gray-100"
                   )}
                 >
@@ -506,7 +551,7 @@ export default function BookingPageClient() {
                             <motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600"
+                              className="w-3 h-3 rounded-full bg-gradient-to-r from-indigo-600 to-pink-600"
                             />
                           )}
                         </div>
@@ -702,7 +747,7 @@ export default function BookingPageClient() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6"
+          className="bg-gradient-to-r from-indigo-50 to-pink-50 rounded-2xl p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-6">
@@ -774,7 +819,7 @@ export default function BookingPageClient() {
                   caption: "flex justify-center pt-2 relative items-center mb-8",
                   caption_label: "font-serif text-3xl font-medium text-gray-900",
                   nav: "space-x-1 flex items-center",
-                  nav_button: "h-12 w-12 bg-white hover:bg-purple-50 rounded-full transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-purple-300 hover:scale-110",
+                  nav_button: "h-12 w-12 bg-white hover:bg-indigo-50 rounded-full transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-indigo-300 hover:scale-110",
                   nav_button_previous: "absolute left-1",
                   nav_button_next: "absolute right-1",
                   table: "w-full border-collapse",
@@ -789,16 +834,16 @@ export default function BookingPageClient() {
                   day: cn(
                     "h-14 w-14 p-0 font-normal text-base rounded-xl",
                     "transition-all duration-200",
-                    "hover:bg-purple-50 hover:scale-105",
-                    "focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2",
+                    "hover:bg-indigo-50 hover:scale-105",
+                    "focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2",
                     "aria-selected:opacity-100"
                   ),
-                  day_selected: "bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:from-purple-600 hover:to-pink-600 shadow-lg",
-                  day_today: "bg-purple-100 text-purple-900 font-bold ring-2 ring-purple-300 ring-offset-2",
+                  day_selected: "bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold hover:from-indigo-600 hover:to-pink-600 shadow-lg",
+                  day_today: "bg-indigo-100 text-indigo-900 font-bold ring-2 ring-indigo-300 ring-offset-2",
                   day_outside: "text-gray-300 opacity-50",
                   day_disabled: "text-gray-300 opacity-40 cursor-not-allowed hover:bg-transparent hover:scale-100",
                   day_hidden: "invisible",
-                  day_range_middle: "aria-selected:bg-purple-100 aria-selected:text-purple-900",
+                  day_range_middle: "aria-selected:bg-indigo-100 aria-selected:text-indigo-900",
                 }}
                 components={{
                   IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5 text-gray-600" />,
@@ -809,11 +854,11 @@ export default function BookingPageClient() {
               {/* Weekend indicator */}
               <div className="mt-6 flex items-center justify-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-purple-100" />
+                  <div className="w-4 h-4 rounded bg-indigo-100" />
                   <span className="text-gray-600">Today</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-gradient-to-r from-purple-500 to-pink-500" />
+                  <div className="w-4 h-4 rounded bg-gradient-to-r from-indigo-500 to-pink-500" />
                   <span className="text-gray-600">Selected</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -863,13 +908,13 @@ export default function BookingPageClient() {
                       },
                       afternoon: { 
                         icon: Cloud, 
-                        gradient: 'from-blue-50 to-purple-50',
+                        gradient: 'from-blue-50 to-indigo-50',
                         label: 'Afternoon',
                         description: 'Perfect midday escape'
                       },
                       evening: { 
                         icon: Moon, 
-                        gradient: 'from-purple-50 to-pink-50',
+                        gradient: 'from-indigo-50 to-pink-50',
                         label: 'Evening',
                         description: 'Unwind after your day'
                       }
@@ -914,8 +959,8 @@ export default function BookingPageClient() {
                                   onClick={() => setSelectedTime(slot.time)}
                                   className={cn(
                                     "w-full p-4 rounded-xl transition-all duration-300 relative group",
-                                    slot.available && !isSelected && "bg-white hover:shadow-lg hover:shadow-purple-200/50",
-                                    slot.available && isSelected && "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg",
+                                    slot.available && !isSelected && "bg-white hover:shadow-lg hover:shadow-indigo-200/50",
+                                    slot.available && isSelected && "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg",
                                     !slot.available && "bg-gray-100 cursor-not-allowed opacity-50"
                                   )}
                                 >
@@ -942,7 +987,7 @@ export default function BookingPageClient() {
                                     <motion.div
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
-                                      className="absolute inset-0 rounded-xl ring-4 ring-purple-300 ring-offset-2"
+                                      className="absolute inset-0 rounded-xl ring-4 ring-indigo-300 ring-offset-2"
                                     />
                                   )}
                                 </button>
@@ -1073,6 +1118,11 @@ export default function BookingPageClient() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-primary">${service?.price}</p>
+                    {merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Deposit paid: ${Math.round(service.price * (merchantInfo.depositPercentage / 100) * 100) / 100}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1178,6 +1228,7 @@ export default function BookingPageClient() {
               });
               setBookingId(null);
               setBookingNumber(null);
+              setIsReturningCustomer(false);
             }}
           >
             Book Another Appointment
@@ -1292,23 +1343,28 @@ export default function BookingPageClient() {
                   {currentStep === 1 && "Select Your Treatment"}
                   {currentStep === 2 && "Choose Your Specialist"}
                   {currentStep === 3 && "Schedule Your Visit"}
-                  {currentStep === 4 && "Complete Your Booking"}
-                  {currentStep === 5 && `Welcome to ${merchantInfo?.name || 'Serenity'}`}
+                  {currentStep === 4 && "Your Information"}
+                  {currentStep === 5 && "Complete Your Booking"}
+                  {currentStep === 6 && "Secure Payment"}
+                  {currentStep === 7 && `Welcome to ${merchantInfo?.name || 'Serenity'}`}
                 </CardTitle>
                 <CardDescription className="text-lg text-foreground/60 max-w-2xl mx-auto">
                   {currentStep === 1 && "Indulge in our curated collection of rejuvenating treatments"}
                   {currentStep === 2 && "Our expert therapists are here to provide you with an exceptional experience"}
                   {currentStep === 3 && "Find the perfect time for your moment of relaxation"}
-                  {currentStep === 4 && "Just a few details to secure your appointment"}
-                  {currentStep === 5 && "Your journey to wellness begins here"}
+                  {currentStep === 4 && "Are you a returning customer? Let's check"}
+                  {currentStep === 5 && "Just a few details to secure your appointment"}
+                  {currentStep === 6 && "Pay deposit to secure your booking"}
+                  {currentStep === 7 && "Your journey to wellness begins here"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {currentStep === 4 ? (
+                {currentStep === 5 ? (
                   // No animation wrapper for the form to prevent focus loss
                   <CustomerFormComponent 
                     customerInfo={customerInfo} 
                     onCustomerInfoChange={setCustomerInfo}
+                    isReturningCustomer={isReturningCustomer}
                   />
                 ) : (
                   <AnimatePresence mode="wait">
@@ -1322,12 +1378,44 @@ export default function BookingPageClient() {
                       {currentStep === 1 && <ServiceSelection />}
                       {currentStep === 2 && <StaffSelection />}
                       {currentStep === 3 && <DateTimeSelection />}
-                      {currentStep === 5 && <Confirmation />}
+                      {currentStep === 4 && (
+                        <CustomerIdentification
+                          onCustomerFound={(customer) => {
+                            setIsReturningCustomer(true);
+                            setCustomerInfo({
+                              firstName: customer.firstName,
+                              lastName: customer.lastName,
+                              email: customer.email,
+                              phone: customer.phone,
+                              notes: customerInfo.notes,
+                            });
+                            setCurrentStep(5);
+                          }}
+                          onNewCustomer={() => {
+                            setIsReturningCustomer(false);
+                            setCurrentStep(5);
+                          }}
+                        />
+                      )}
+                      {currentStep === 6 && service && (
+                        <PaymentStep
+                          amount={Math.round(service.price * (merchantInfo?.depositPercentage || 0) / 100 * 100) / 100}
+                          currency={merchantInfo?.currency || 'AUD'}
+                          onPaymentSuccess={handleBookingSubmit}
+                          onCancel={() => setCurrentStep(5)}
+                          service={service}
+                          date={selectedDate!}
+                          time={selectedTime!}
+                          staffName={selectedStaffMember?.name || 'Any Available'}
+                          customerName={`${customerInfo.firstName} ${customerInfo.lastName}`}
+                        />
+                      )}
+                      {currentStep === 7 && <Confirmation />}
                     </motion.div>
                   </AnimatePresence>
                 )}
 
-                  {currentStep < 5 && (
+                  {currentStep < 7 && currentStep !== 6 && (
                     <div className="flex justify-between mt-12 px-2">
                       <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -1365,7 +1453,7 @@ export default function BookingPageClient() {
                             </>
                           ) : (
                             <>
-                              {currentStep === 4 ? "Complete Booking" : "Continue"}
+                              {currentStep === 5 ? "Complete Booking" : "Continue"}
                               <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                             </>
                           )}
