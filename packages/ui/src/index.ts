@@ -45,6 +45,7 @@ export * from "./components/data-table"
 export * from "./components/booking-calendar"
 export * from "./components/payment-form"
 export * from "./components/search-command"
+export * from "./components/pin-verification-dialog"
 
 // Utilities
 export * from "./lib/utils"

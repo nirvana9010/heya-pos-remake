@@ -35,8 +35,8 @@ export function validatePinFormat(pin: string): PinValidationResult {
     return { valid: false, error: 'PIN must contain only numbers' };
   }
   
-  if (pin.length < 4 || pin.length > 6) {
-    return { valid: false, error: 'PIN must be 4-6 digits' };
+  if (pin.length !== 4) {
+    return { valid: false, error: 'PIN must be exactly 4 digits' };
   }
   
   // Check for sequential numbers
