@@ -15,11 +15,11 @@ export function transformDecimal(value: any): number {
 }
 
 /**
- * Transform boolean values (handles both PostgreSQL true/false and SQLite 1/0)
+ * Transform boolean values from PostgreSQL
  */
 export function transformBoolean(value: any): boolean {
   if (typeof value === 'boolean') return value;
-  return value === 1 || value === '1' || value === 'true' || value === true;
+  return value === 'true' || value === true;
 }
 
 /**
@@ -57,9 +57,10 @@ export function transformApiResponse(data: any): any {
       else if (isBooleanField(key)) {
         transformed[key] = transformBoolean(value);
       }
-      // Transform known date fields
+      // Transform known date fields - but keep as strings for React rendering safety
       else if (isDateField(key)) {
-        transformed[key] = value ? transformDate(value) : value;
+        // Don't transform to Date objects - keep as ISO strings to avoid React rendering errors
+        transformed[key] = value;
       }
       // Recursively transform nested objects/arrays
       else if (typeof value === 'object' && value !== null) {
