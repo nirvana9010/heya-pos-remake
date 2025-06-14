@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { 
   ChevronLeft, ChevronRight, Calendar, User, Clock, UserCircle, CheckCircle,
   Sparkles, Shield, CalendarCheck, Star, MapPin, Phone, Mail, Download,
-  Zap, CalendarDays, Sun, Cloud, Moon, DollarSign
+  Zap, CalendarDays, Sun, Cloud, Moon, DollarSign, Search, LayoutGrid, List
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
@@ -463,6 +463,10 @@ export default function BookingPageClient() {
   ));
 
   const ServiceSelection = () => {
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    
     if (loading) {
       return (
         <div className="flex items-center justify-center py-20">
@@ -474,113 +478,212 @@ export default function BookingPageClient() {
       );
     }
     
-    // Category gradients mapping
-    const getCategoryGradient = (categoryName?: string) => {
-      const gradients: Record<string, string> = {
-        'Massage': 'gradient-massage',
-        'Facial': 'gradient-facial',
-        'Nails': 'gradient-nails',
-        'Hair': 'gradient-hair'
-      };
-      return gradients[categoryName || ''] || 'gradient-massage';
-    };
+    // Get unique categories
+    const categories = Array.from(new Set(services.map(s => s.categoryName).filter(Boolean)));
     
-    // Mock descriptions
-    const serviceDescriptions: Record<string, string> = {
-      'Swedish Massage': 'A gentle, relaxing massage using smooth, gliding strokes',
-      'Deep Tissue': 'Targeted pressure to release chronic muscle tension',
-      'Hot Stone': 'Heated stones melt away tension and ease muscle stiffness',
-      'Aromatherapy': 'Essential oils enhance your massage experience',
-      'Classic Facial': 'Deep cleansing and hydration for radiant skin',
-      'Anti-Aging': 'Advanced treatments to reduce fine lines and wrinkles'
-    };
+    // Filter services
+    const filteredServices = services.filter(service => {
+      const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || service.categoryName === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+    
+    // Group services by category
+    const groupedServices = filteredServices.reduce((acc, service) => {
+      const category = service.categoryName || 'Other';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(service);
+      return acc;
+    }, {} as Record<string, typeof services>);
     
     return (
-      <RadioGroup value={selectedService || ""} onValueChange={setSelectedService}>
-        <div className="grid md:grid-cols-2 gap-6 px-2">
-          {services.map((service, index) => {
-            const isSelected = selectedService === service.id;
-            const gradientClass = getCategoryGradient(service.categoryName);
-            const description = serviceDescriptions[service.name] || 'Experience ultimate relaxation and rejuvenation';
-            
-            return (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-                whileHover={{ y: -8 }}
-                className="relative"
+      <div className="space-y-4">
+        {/* Search and View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-9"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-9"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Category Pills */}
+        {categories.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
+                selectedCategory === null
+                  ? "bg-teal-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              )}
+            >
+              All Services
+            </button>
+            {categories.map(category => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
+                  selectedCategory === category
+                    ? "bg-teal-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                )}
               >
-                <div
-                  className={cn(
-                    "group cursor-pointer relative overflow-hidden rounded-2xl transition-all duration-500",
-                    "shadow-lg hover:shadow-2xl",
-                    isSelected && "ring-4 ring-primary/30 ring-offset-4"
+                {category}
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {/* Services Display */}
+        <RadioGroup value={selectedService || ""} onValueChange={setSelectedService}>
+          {viewMode === 'grid' ? (
+            <div className="space-y-6">
+              {Object.entries(groupedServices).map(([category, categoryServices]) => (
+                <div key={category}>
+                  {categories.length > 1 && (
+                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                      {category}
+                    </h3>
                   )}
-                  onClick={() => setSelectedService(service.id)}
-                >
-                  {/* Gradient Background */}
-                  <div className={cn(
-                    "absolute inset-0",
-                    gradientClass,
-                    "opacity-90 group-hover:opacity-100 transition-opacity duration-500"
-                  )} />
-                  
-                  {/* Content */}
-                  <div className="relative z-10 p-8 text-white">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <h3 className="font-serif text-3xl mb-2">{service.name}</h3>
-                        <p className="text-white/80 text-sm leading-relaxed max-w-xs">
-                          {description}
-                        </p>
-                      </div>
-                      <motion.div
-                        animate={isSelected ? { scale: [1, 1.3, 1] } : {}}
-                        transition={{ duration: 0.3 }}
-                        className="relative"
-                      >
-                        <div className={cn(
-                          "w-6 h-6 rounded-full border-2 border-white/70",
-                          "flex items-center justify-center",
-                          isSelected && "bg-white"
-                        )}>
-                          {isSelected && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-3 h-3 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600"
-                            />
-                          )}
-                        </div>
-                      </motion.div>
-                    </div>
-                    
-                    {/* Footer */}
-                    <div className="flex justify-between items-end">
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Clock className="h-4 w-4" />
-                        <span className="text-sm">{service.duration} minutes</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-4xl font-light">
-                          <span className="text-lg align-top">$</span>
-                          {service.price}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Decorative element */}
-                    <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {categoryServices.map((service, index) => {
+                      const isSelected = selectedService === service.id;
+                      
+                      return (
+                        <motion.div
+                          key={service.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ y: -2 }}
+                        >
+                          <div
+                            className={cn(
+                              "relative cursor-pointer rounded-lg border-2 transition-all duration-200",
+                              "hover:shadow-md",
+                              isSelected 
+                                ? "border-teal-500 bg-teal-50 shadow-md" 
+                                : "border-gray-200 bg-white hover:border-gray-300"
+                            )}
+                            onClick={() => setSelectedService(service.id)}
+                          >
+                            <div className="p-4">
+                              {/* Header */}
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-base leading-tight mb-1">
+                                    {service.name}
+                                  </h4>
+                                  {service.categoryName && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {service.categoryName}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <RadioGroupItem 
+                                  value={service.id} 
+                                  className="mt-0.5 data-[state=checked]:border-teal-500 data-[state=checked]:text-teal-500" 
+                                />
+                              </div>
+                              
+                              {/* Footer */}
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                                <div className="flex items-center gap-1 text-gray-600">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span className="text-sm">{service.duration}min</span>
+                                </div>
+                                <p className="text-lg font-semibold text-gray-900">
+                                  ${service.price}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </RadioGroup>
+              ))}
+            </div>
+          ) : (
+            // List View
+            <div className="space-y-4">
+              {Object.entries(groupedServices).map(([category, categoryServices]) => (
+                <div key={category}>
+                  {categories.length > 1 && (
+                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                      {category}
+                    </h3>
+                  )}
+                  <div className="space-y-1">
+                    {categoryServices.map((service) => {
+                      const isSelected = selectedService === service.id;
+                      
+                      return (
+                        <div
+                          key={service.id}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all",
+                            isSelected 
+                              ? "bg-teal-50 border-2 border-teal-500" 
+                              : "bg-white border-2 border-gray-200 hover:border-gray-300"
+                          )}
+                          onClick={() => setSelectedService(service.id)}
+                        >
+                          <RadioGroupItem 
+                            value={service.id} 
+                            className="data-[state=checked]:border-teal-500 data-[state=checked]:text-teal-500" 
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{service.name}</h4>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm text-gray-600">
+                            <span>{service.duration}min</span>
+                            <span className="font-semibold text-gray-900">${service.price}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </RadioGroup>
+        
+        {filteredServices.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No services found matching your search.</p>
+          </div>
+        )}
+      </div>
     );
   };
 
