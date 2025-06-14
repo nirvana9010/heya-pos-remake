@@ -13,6 +13,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
+import { MerchantModule } from './merchant/merchant.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { LocationsModule } from './locations/locations.module';
     StaffModule,
     LoyaltyModule,
     PublicModule,
-    LocationsModule
+    LocationsModule,
+    MerchantModule
   ],
   controllers: [AppController],
   providers: [
