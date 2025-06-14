@@ -75,6 +75,8 @@ export interface MerchantInfo {
   address: string;
   phone: string;
   email: string;
+  requireDeposit: boolean;
+  depositPercentage: number;
 }
 
 class BookingApi {
@@ -129,6 +131,21 @@ class BookingApi {
   // Get booking by ID (for confirmation page)
   async getBooking(bookingId: string): Promise<Booking> {
     const response = await apiClient.get<Booking>(`/public/bookings/${bookingId}`);
+    return response;
+  }
+
+  // Lookup customer by email or phone
+  async lookupCustomer(params: { email?: string; phone?: string }): Promise<{
+    found: boolean;
+    customer?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    };
+  }> {
+    const response = await apiClient.post('/public/customers/lookup', params);
     return response;
   }
 }

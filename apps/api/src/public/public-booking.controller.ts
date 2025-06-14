@@ -66,14 +66,18 @@ export class PublicBookingController {
       throw new BadRequestException('No active location found');
     }
 
+    const settings = merchant.settings as any;
+
     return {
       id: merchant.id,
       name: merchant.name,
       timezone: location.timezone,
-      currency: 'AUD', // Default to AUD for now
+      currency: settings?.currency || 'AUD',
       address: location.address,
       phone: location.phone,
       email: location.email,
+      requireDeposit: settings?.requireDeposit || false,
+      depositPercentage: settings?.depositPercentage || 0,
     };
   }
 
@@ -149,6 +153,52 @@ export class PublicBookingController {
         isActive: member.status === 'ACTIVE',
         services: [], // TODO: Add service assignments if needed
       })),
+    };
+  }
+
+  @Post('customers/lookup')
+  @HttpCode(HttpStatus.OK)
+  async lookupCustomer(@Body() dto: { email?: string; phone?: string }) {
+    // Validate input - need at least one identifier
+    if (!dto.email && !dto.phone) {
+      throw new BadRequestException('Email or phone number is required');
+    }
+
+    // Get the first active merchant for now
+    const merchant = await this.prisma.merchant.findFirst({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (!merchant) {
+      throw new BadRequestException('No active merchant found');
+    }
+
+    // Find customer by email or phone
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        merchantId: merchant.id,
+        OR: [
+          ...(dto.email ? [{ email: dto.email }] : []),
+          ...(dto.phone ? [{ phone: dto.phone }] : []),
+        ],
+      },
+    });
+
+    if (!customer) {
+      return { found: false };
+    }
+
+    // Return sanitized customer data
+    return {
+      found: true,
+      customer: {
+        id: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        // Don't expose sensitive data like birthday, notes, etc.
+      },
     };
   }
 
