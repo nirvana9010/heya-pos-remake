@@ -39,10 +39,14 @@ export class PinRequiredGuard implements CanActivate {
       const ipAddress = request.ip || request.connection.remoteAddress;
 
       try {
-        await this.pinAuthService.verifyPinForAction(
-          user.staffId,
-          pin,
-          action,
+        await this.pinAuthService.verifyPinAndLogAction(
+          {
+            staffId: user.staffId,
+            pin,
+            action,
+            resourceId: request.params?.id || 'unknown'
+          },
+          user.merchantId,
           ipAddress,
         );
         return true;
