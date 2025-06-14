@@ -82,3 +82,11 @@ secrets/
 # Testing
 coverage/
 .nyc_output/
+
+# Debug and test files
+apps/merchant-app/src/app/test-*/
+apps/merchant-app/debug-*.md
+apps/merchant-app/public/test-*.html
+apps/merchant-app/src/app/*/debug-*.tsx
+**/test-*.tsx
+**/debug-*.tsx
