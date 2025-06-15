@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  test-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: heya_test
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - test-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d heya_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://testuser:testpassword@test-db:5432/heya_test
+      DIRECT_URL: postgresql://testuser:testpassword@test-db:5432/heya_test
+      JWT_SECRET: test-jwt-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+    depends_on:
+      test-db:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./src:/app/src
+      - ./test:/app/test
+    command: npm run test:integration
+
+volumes:
+  test-postgres-data:
