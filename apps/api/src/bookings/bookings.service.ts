@@ -7,12 +7,16 @@ import { Prisma } from '@prisma/client';
 import { addMinutes, startOfDay, endOfDay, format, parse, isAfter, isBefore, isWithinInterval } from 'date-fns';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { TimezoneUtils } from '../utils/shared/timezone';
+import { MerchantService } from '../merchant/merchant.service';
+import { BookingRepository } from './booking.repository';
 
 @Injectable()
 export class BookingsService {
   constructor(
     private prisma: PrismaService,
-    private loyaltyService: LoyaltyService
+    private bookingRepository: BookingRepository,
+    private loyaltyService: LoyaltyService,
+    private merchantService: MerchantService
   ) {}
 
   async create(merchantId: string, dto: CreateBookingDto, createdById: string) {
@@ -61,6 +65,14 @@ export class BookingsService {
       throw new ConflictException('Staff is not available at this time');
     }
 
+    // Get merchant settings to calculate deposit
+    const merchantSettings = await this.merchantService.getMerchantSettings(merchantId);
+    let depositAmount = 0;
+    
+    if (merchantSettings.requireDeposit) {
+      depositAmount = Math.round(dto.totalAmount * (merchantSettings.depositPercentage / 100) * 100) / 100;
+    }
+
     // Create booking with retry logic for booking number generation
     let attempts = 0;
     const maxAttempts = 3;
@@ -85,7 +97,7 @@ export class BookingsService {
             status: dto.status || BookingStatus.CONFIRMED,
             notes: dto.notes,
             totalAmount: dto.totalAmount,
-            depositAmount: 0,
+            depositAmount,
             reminderSent: false,
             services: {
               create: dto.services.map(s => ({
@@ -155,32 +167,35 @@ export class BookingsService {
       limit = 20,
     } = params;
 
-    const where: Prisma.BookingWhereInput = {
-      merchantId,
-    };
+    const where: Prisma.BookingWhereInput = {};
+
+    // Get merchant's timezone (you'll need to fetch this)
+    const location = await this.prisma.location.findFirst({
+      where: { merchantId },
+    });
+    const timezone = location?.timezone || 'Australia/Sydney';
 
     // Handle date filtering
     if (!includeAll) {
       if (date) {
-        // Single date filter - use local date boundaries
-        const dateObj = new Date(date);
+        // Single date filter - use timezone-aware boundaries
         where.startTime = {
-          gte: startOfDay(dateObj),
-          lte: endOfDay(dateObj),
+          gte: TimezoneUtils.startOfDayInTimezone(date, timezone),
+          lte: TimezoneUtils.endOfDayInTimezone(date, timezone),
         };
       } else if (startDate || endDate) {
-        // Date range filter
+        // Date range filter - timezone aware
         where.startTime = {};
         if (startDate) {
-          where.startTime.gte = startOfDay(new Date(startDate));
+          where.startTime.gte = TimezoneUtils.startOfDayInTimezone(startDate, timezone);
         }
         if (endDate) {
-          where.startTime.lte = endOfDay(new Date(endDate));
+          where.startTime.lte = TimezoneUtils.endOfDayInTimezone(endDate, timezone);
         }
       } else {
-        // Default: show upcoming bookings (today and future)
+        // Default: show upcoming bookings (today and future) - timezone aware
         where.startTime = {
-          gte: startOfDay(new Date()),
+          gte: TimezoneUtils.startOfDayInTimezone(new Date(), timezone),
         };
       }
     }
@@ -192,25 +207,15 @@ export class BookingsService {
     if (status) where.status = status;
     if (locationId) where.locationId = locationId;
 
-    const [bookings, total] = await Promise.all([
-      this.prisma.booking.findMany({
-        where,
+    const { bookings, total } = await this.bookingRepository.findMany(
+      merchantId,
+      {
         skip: (page - 1) * limit,
         take: limit,
+        where,
         orderBy: { startTime: 'asc' },
-        include: {
-          customer: true,
-          provider: true,
-          location: true,
-          services: {
-            include: {
-              service: true,
-            },
-          },
-        },
-      }),
-      this.prisma.booking.count({ where }),
-    ]);
+      }
+    );
 
     // Format dates in location timezone
     const formattedBookings = bookings.map(booking => {
@@ -240,22 +245,7 @@ export class BookingsService {
   }
 
   async findOne(merchantId: string, id: string) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id, merchantId },
-      include: {
-        customer: true,
-        provider: true,
-        createdBy: true,
-        location: true,
-        services: {
-          include: {
-            service: true,
-            staff: true,
-          },
-        },
-        invoice: true,
-      },
-    });
+    const booking = await this.bookingRepository.findById(id, merchantId);
 
     if (!booking) {
       throw new NotFoundException('Booking not found');
