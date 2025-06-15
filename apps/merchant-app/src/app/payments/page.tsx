@@ -1,93 +1,430 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Download, CreditCard, DollarSign, TrendingUp, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { 
+  Search, Download, CreditCard, DollarSign, TrendingUp, RefreshCw, 
+  CheckCircle, XCircle, Clock, RotateCcw, Banknote, Calendar,
+  MoreVertical, FileText, Mail, Filter, ChevronDown, AlertCircle,
+  ArrowUpRight, ArrowDownRight, Minus, CreditCard as CardIcon
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { DataTable } from "@heya-pos/ui";
-import { StatCard } from "@heya-pos/ui";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { formatDate } from "@heya-pos/utils";
+import { cn } from "@heya-pos/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@heya-pos/ui";
+import { Checkbox } from "@heya-pos/ui";
+import { Separator } from "@heya-pos/ui";
+import { PinVerificationDialog } from "@heya-pos/ui";
+import { motion, AnimatePresence } from "framer-motion";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@heya-pos/ui";
 
 interface Payment {
   id: string;
   invoiceNumber: string;
   customerName: string;
   amount: number;
-  method: "cash" | "card-stripe" | "card-tyro";
+  method: "cash" | "card-tyro";
   status: "completed" | "pending" | "failed" | "refunded";
   processedAt: Date;
+  type?: "booking" | "product" | "tip";
+  customerId?: string;
 }
 
+// Get current date for mock data
+const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(yesterday.getDate() - 1);
+const twoDaysAgo = new Date(today);
+twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+// Enhanced mock data with current dates
 const mockPayments: Payment[] = [
   {
     id: "1",
-    invoiceNumber: "INV-2024-001",
+    invoiceNumber: "INV-2025-001",
     customerName: "Sarah Johnson",
     amount: 150.00,
-    method: "card-stripe",
+    method: "card-tyro",
     status: "completed",
-    processedAt: new Date("2024-01-26T10:30:00"),
+    processedAt: new Date(today.setHours(10, 30, 0, 0)),
+    type: "booking",
+    customerId: "cust_001"
   },
   {
     id: "2",
-    invoiceNumber: "INV-2024-002",
+    invoiceNumber: "INV-2025-002",
     customerName: "Michael Chen",
     amount: 75.00,
     method: "cash",
     status: "completed",
-    processedAt: new Date("2024-01-26T11:45:00"),
+    processedAt: new Date(today.setHours(11, 45, 0, 0)),
+    type: "booking",
+    customerId: "cust_002"
   },
   {
     id: "3",
-    invoiceNumber: "INV-2024-003",
+    invoiceNumber: "INV-2025-003",
     customerName: "Emily Brown",
     amount: 200.00,
-    method: "card-stripe",
+    method: "card-tyro",
     status: "pending",
-    processedAt: new Date("2024-01-26T14:15:00"),
+    processedAt: new Date(today.setHours(14, 15, 0, 0)),
+    type: "booking",
+    customerId: "cust_003"
   },
   {
     id: "4",
-    invoiceNumber: "INV-2024-004",
+    invoiceNumber: "INV-2025-004",
     customerName: "David Wilson",
     amount: 90.00,
     method: "card-tyro",
     status: "refunded",
-    processedAt: new Date("2024-01-25T16:00:00"),
+    processedAt: new Date(yesterday.setHours(16, 0, 0, 0)),
+    type: "product",
+    customerId: "cust_004"
   },
+  {
+    id: "5",
+    invoiceNumber: "INV-2025-005",
+    customerName: "Lisa Martinez",
+    amount: 120.00,
+    method: "cash",
+    status: "completed",
+    processedAt: new Date(today.setHours(9, 15, 0, 0)),
+    type: "booking",
+    customerId: "cust_005"
+  },
+  {
+    id: "6",
+    invoiceNumber: "INV-2025-006",
+    customerName: "James Anderson",
+    amount: 25.00,
+    method: "card-tyro",
+    status: "completed",
+    processedAt: new Date(today.setHours(13, 0, 0, 0)),
+    type: "tip",
+    customerId: "cust_006"
+  },
+  {
+    id: "7",
+    invoiceNumber: "INV-2025-007",
+    customerName: "Jennifer White",
+    amount: 180.00,
+    method: "card-tyro",
+    status: "completed",
+    processedAt: new Date(today.setHours(15, 30, 0, 0)),
+    type: "booking",
+    customerId: "cust_007"
+  },
+  {
+    id: "8",
+    invoiceNumber: "INV-2025-008",
+    customerName: "Robert Garcia",
+    amount: 95.00,
+    method: "cash",
+    status: "completed",
+    processedAt: new Date(today.setHours(16, 45, 0, 0)),
+    type: "booking",
+    customerId: "cust_008"
+  },
+  {
+    id: "9",
+    invoiceNumber: "INV-2025-009",
+    customerName: "Maria Rodriguez",
+    amount: 220.00,
+    method: "card-tyro",
+    status: "completed",
+    processedAt: new Date(yesterday.setHours(11, 0, 0, 0)),
+    type: "booking",
+    customerId: "cust_009"
+  },
+  {
+    id: "10",
+    invoiceNumber: "INV-2025-010",
+    customerName: "William Taylor",
+    amount: 45.00,
+    method: "cash",
+    status: "completed",
+    processedAt: new Date(yesterday.setHours(12, 15, 0, 0)),
+    type: "product",
+    customerId: "cust_010"
+  },
+  {
+    id: "11",
+    invoiceNumber: "INV-2025-011",
+    customerName: "Linda Davis",
+    amount: 165.00,
+    method: "card-tyro",
+    status: "completed",
+    processedAt: new Date(yesterday.setHours(13, 30, 0, 0)),
+    type: "booking",
+    customerId: "cust_011"
+  },
+  {
+    id: "12",
+    invoiceNumber: "INV-2025-012",
+    customerName: "Charles Miller",
+    amount: 35.00,
+    method: "cash",
+    status: "failed",
+    processedAt: new Date(yesterday.setHours(14, 0, 0, 0)),
+    type: "tip",
+    customerId: "cust_012"
+  },
+  {
+    id: "13",
+    invoiceNumber: "INV-2025-013",
+    customerName: "Patricia Moore",
+    amount: 130.00,
+    method: "card-tyro",
+    status: "completed",
+    processedAt: new Date(twoDaysAgo.setHours(10, 0, 0, 0)),
+    type: "booking",
+    customerId: "cust_013"
+  },
+  {
+    id: "14",
+    invoiceNumber: "INV-2025-014",
+    customerName: "Christopher Jackson",
+    amount: 85.00,
+    method: "cash",
+    status: "completed",
+    processedAt: new Date(twoDaysAgo.setHours(11, 30, 0, 0)),
+    type: "booking",
+    customerId: "cust_014"
+  },
+  {
+    id: "15",
+    invoiceNumber: "INV-2025-015",
+    customerName: "Barbara Martinez",
+    amount: 195.00,
+    method: "card-tyro",
+    status: "refunded",
+    processedAt: new Date(twoDaysAgo.setHours(14, 45, 0, 0)),
+    type: "booking",
+    customerId: "cust_015"
+  }
 ];
+
+// Mock sparkline data (7 days)
+const mockSparklineData = {
+  today: [400, 380, 420, 450, 470, 420, 425],
+  week: [2500, 2700, 2600, 2900, 2800, 2750, 2850],
+  month: [11000, 11500, 12000, 11800, 12200, 12300, 12500],
+  pending: [150, 180, 200, 190, 210, 180, 200]
+};
+
+// Simple sparkline component
+const Sparkline = ({ data, color = "text-primary" }: { data: number[], color?: string }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min;
+  const height = 32;
+  const width = 80;
+  
+  const points = data.map((value, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((value - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        points={points}
+        className={cn("transition-all", color)}
+      />
+    </svg>
+  );
+};
+
+// Enhanced stat card component
+const EnhancedStatCard = ({ 
+  title, 
+  value, 
+  trend, 
+  trendValue,
+  icon,
+  sparklineData,
+  accentColor = "primary"
+}: {
+  title: string;
+  value: string;
+  trend: "up" | "down" | "neutral";
+  trendValue: string;
+  icon: React.ReactNode;
+  sparklineData: number[];
+  accentColor?: "primary" | "success" | "warning" | "neutral";
+}) => {
+  const trendIcon = trend === "up" ? <ArrowUpRight className="h-4 w-4" /> : 
+                    trend === "down" ? <ArrowDownRight className="h-4 w-4" /> : 
+                    <Minus className="h-4 w-4" />;
+  
+  const trendColor = trend === "up" ? "text-green-600" : 
+                     trend === "down" ? "text-red-600" : 
+                     "text-gray-600";
+  
+  const accentColors = {
+    primary: "from-primary/5 to-primary/10 border-primary/20",
+    success: "from-green-50 to-green-100 border-green-200",
+    warning: "from-yellow-50 to-yellow-100 border-yellow-200",
+    neutral: "from-gray-50 to-gray-100 border-gray-200"
+  };
+  
+  const sparklineColors = {
+    primary: "text-primary",
+    success: "text-green-600",
+    warning: "text-yellow-600",
+    neutral: "text-gray-600"
+  };
+  
+  return (
+    <Card className={cn(
+      "relative overflow-hidden transition-all hover:shadow-lg",
+      "bg-gradient-to-br",
+      accentColors[accentColor]
+    )}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          <div className="p-2 rounded-lg bg-background/50">
+            {icon}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="text-3xl font-bold tracking-tight">
+          {value}
+        </div>
+        <div className="flex items-center justify-between">
+          <div className={cn("flex items-center text-sm font-medium", trendColor)}>
+            {trendIcon}
+            <span className="ml-1">{trendValue}</span>
+          </div>
+          <div className="flex items-center">
+            <Sparkline data={sparklineData} color={sparklineColors[accentColor]} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
+  const [dateRange, setDateRange] = useState("today");
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [verifiedStaff, setVerifiedStaff] = useState<any>(null);
+  const { toast } = useToast();
 
   const todayTotal = 425.00;
   const weekTotal = 2850.00;
   const monthTotal = 12500.00;
   const pendingAmount = 200.00;
 
+  // Format currency with commas
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Enhanced payment columns with better formatting
   const paymentColumns = [
+    {
+      id: "select",
+      header: ({ table }: any) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }: any) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "invoiceNumber",
       header: "Invoice",
+      cell: ({ row }: any) => (
+        <div className="font-medium text-sm">{row.original.invoiceNumber}</div>
+      ),
     },
     {
       accessorKey: "customerName",
       header: "Customer",
+      cell: ({ row }: any) => (
+        <Button
+          variant="link"
+          className="p-0 h-auto font-medium hover:underline"
+          onClick={() => console.log(`Navigate to customer ${row.original.customerId}`)}
+        >
+          {row.original.customerName}
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }: any) => {
+        const type = row.original.type || "booking";
+        const typeConfig = {
+          booking: { label: "Booking", color: "text-blue-600 bg-blue-50" },
+          product: { label: "Product", color: "text-purple-600 bg-purple-50" },
+          tip: { label: "Tip", color: "text-green-600 bg-green-50" }
+        };
+        const config = typeConfig[type as keyof typeof typeConfig];
+        return (
+          <Badge variant="secondary" className={cn("text-xs", config.color, "border-0")}>
+            {config.label}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "amount",
-      header: "Amount",
+      header: () => <div className="text-right">Amount</div>,
       cell: ({ row }: any) => {
-        return <span className="font-medium">${row.original.amount.toFixed(2)}</span>;
+        return (
+          <div className="text-right font-semibold text-sm">
+            ${row.original.amount.toFixed(2)}
+          </div>
+        );
       },
     },
     {
@@ -95,15 +432,16 @@ export default function PaymentsPage() {
       header: "Method",
       cell: ({ row }: any) => {
         const method = row.original.method;
+        const MethodIcon = method === "cash" ? Banknote : CardIcon;
         const methodLabels: Record<string, string> = {
           "cash": "Cash",
-          "card-stripe": "Card (Stripe)",
-          "card-tyro": "Card (Tyro)",
+          "card-tyro": "Tyro",
         };
         return (
-          <Badge variant="outline" className="capitalize">
-            {methodLabels[method] || method}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <MethodIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{methodLabels[method] || method}</span>
+          </div>
         );
       },
     },
@@ -112,20 +450,51 @@ export default function PaymentsPage() {
       header: "Status",
       cell: ({ row }: any) => {
         const status = row.original.status as Payment['status'];
-        const statusConfig: Record<Payment['status'], { icon: typeof CheckCircle; color: string; bg: string }> = {
-          completed: { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
-          pending: { icon: RefreshCw, color: "text-yellow-600", bg: "bg-yellow-50" },
-          failed: { icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
-          refunded: { icon: RefreshCw, color: "text-gray-600", bg: "bg-gray-50" },
+        const statusConfig: Record<Payment['status'], { 
+          icon: typeof CheckCircle; 
+          label: string;
+          color: string; 
+          bg: string 
+        }> = {
+          completed: { 
+            icon: CheckCircle, 
+            label: "Completed",
+            color: "text-green-700", 
+            bg: "bg-green-50 border-green-200" 
+          },
+          pending: { 
+            icon: Clock, 
+            label: "Pending",
+            color: "text-yellow-700", 
+            bg: "bg-yellow-50 border-yellow-200" 
+          },
+          failed: { 
+            icon: XCircle, 
+            label: "Failed",
+            color: "text-red-700", 
+            bg: "bg-red-50 border-red-200" 
+          },
+          refunded: { 
+            icon: RotateCcw, 
+            label: "Refunded",
+            color: "text-gray-700", 
+            bg: "bg-gray-50 border-gray-200" 
+          },
         };
         const config = statusConfig[status] || statusConfig.completed;
-
         const Icon = config.icon;
         
         return (
-          <Badge variant="secondary" className={`${config.bg} ${config.color} border-0`}>
-            <Icon className="mr-1 h-3 w-3" />
-            {status}
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "font-medium text-xs px-2.5 py-0.5 border",
+              config.bg, 
+              config.color
+            )}
+          >
+            <Icon className="mr-1.5 h-3.5 w-3.5" />
+            {config.label}
           </Badge>
         );
       },
@@ -134,183 +503,509 @@ export default function PaymentsPage() {
       accessorKey: "processedAt",
       header: "Date",
       cell: ({ row }: any) => {
-        return formatDate(row.original.processedAt);
+        const date = new Date(row.original.processedAt);
+        return (
+          <div className="text-sm text-muted-foreground">
+            {date.toLocaleDateString()}
+            <div className="text-xs">{date.toLocaleTimeString()}</div>
+          </div>
+        );
       },
     },
     {
       id: "actions",
-      header: "Actions",
+      header: () => <div className="text-right">Actions</div>,
       cell: ({ row }: any) => {
         const payment = row.original;
+        
         return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (payment.status === "completed") {
-                setSelectedPayment(payment);
-                setIsRefundDialogOpen(true);
-              }
-            }}
-            disabled={payment.status !== "completed"}
-          >
-            Refund
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            {payment.status === "completed" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  setSelectedPayment(payment);
+                  setIsPinDialogOpen(true);
+                }}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Invoice
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email Receipt
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </DropdownMenuItem>
+                {payment.status === "completed" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => {
+                        setSelectedPayment(payment);
+                        setIsPinDialogOpen(true);
+                      }}
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Process Refund
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
   ];
 
-  const filteredPayments = mockPayments.filter(payment => {
-    const matchesSearch = payment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         payment.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-    const matchesMethod = methodFilter === "all" || payment.method === methodFilter;
-    return matchesSearch && matchesStatus && matchesMethod;
-  });
+  // Filter payments based on all criteria
+  const filteredPayments = useMemo(() => {
+    return mockPayments.filter(payment => {
+      const matchesSearch = payment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           payment.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+      const matchesMethod = methodFilter === "all" || payment.method === methodFilter;
+      
+      // Date range filtering
+      const paymentDate = new Date(payment.processedAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let matchesDate = true;
+      if (dateRange === "today") {
+        matchesDate = paymentDate >= today;
+      } else if (dateRange === "yesterday") {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        matchesDate = paymentDate >= yesterday && paymentDate < today;
+      } else if (dateRange === "last7days") {
+        const week = new Date(today);
+        week.setDate(week.getDate() - 7);
+        matchesDate = paymentDate >= week;
+      } else if (dateRange === "last30days") {
+        const month = new Date(today);
+        month.setDate(month.getDate() - 30);
+        matchesDate = paymentDate >= month;
+      }
+      
+      return matchesSearch && matchesStatus && matchesMethod && matchesDate;
+    });
+  }, [searchQuery, statusFilter, methodFilter, dateRange]);
 
+  // Enhanced refund dialog
   const RefundDialog = () => (
     <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Process Refund</DialogTitle>
           <DialogDescription>
-            Refund for {selectedPayment?.customerName} - {selectedPayment?.invoiceNumber}
+            Issue a refund for {selectedPayment?.customerName}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label>Original Amount</Label>
-            <div className="text-2xl font-semibold">${selectedPayment?.amount.toFixed(2)}</div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-muted-foreground">Invoice Number</span>
+              <span className="font-medium">{selectedPayment?.invoiceNumber}</span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-muted-foreground">Original Amount</span>
+              <span className="text-2xl font-bold">${selectedPayment?.amount.toFixed(2)}</span>
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="refund-amount">Refund Amount</Label>
-            <Input
-              id="refund-amount"
-              type="number"
-              defaultValue={selectedPayment?.amount}
-              max={selectedPayment?.amount}
-              step="0.01"
-            />
+          <Separator />
+          <div className="grid gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="refund-amount">Refund Amount</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="refund-amount"
+                  type="number"
+                  defaultValue={selectedPayment?.amount}
+                  max={selectedPayment?.amount}
+                  step="0.01"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="refund-reason">Reason for Refund</Label>
+              <Select defaultValue="customer-request">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer-request">Customer Request</SelectItem>
+                  <SelectItem value="service-issue">Service Issue</SelectItem>
+                  <SelectItem value="duplicate-payment">Duplicate Payment</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="refund-notes">Additional Notes</Label>
+              <Input
+                id="refund-notes"
+                placeholder="Optional notes about this refund..."
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="refund-reason">Reason for Refund</Label>
-            <Input
-              id="refund-reason"
-              placeholder="Enter reason..."
-            />
-          </div>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <p className="text-sm text-yellow-800">
-              This action requires PIN authorization from a manager or owner.
-            </p>
+          <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-yellow-800">Manager Authorization Required</p>
+              <p className="text-yellow-700 mt-1">
+                This action requires PIN authorization from a manager or owner.
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsRefundDialogOpen(false)}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={() => setIsRefundDialogOpen(false)}>
-            Process Refund
+          <Button 
+            variant="destructive" 
+            onClick={async () => {
+              setIsLoading(true);
+              try {
+                // Process the refund with verified staff info
+                console.log('Processing refund for:', selectedPayment);
+                console.log('Authorized by:', verifiedStaff);
+                
+                // TODO: Call actual refund API endpoint here
+                // await apiClient.processRefund(selectedPayment.id, refundAmount, verifiedStaff.id);
+                
+                // Simulate success
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                toast({
+                  title: "Refund Processed",
+                  description: `Refund of ${formatCurrency(selectedPayment?.amount || 0)} processed successfully`,
+                });
+                
+                setIsRefundDialogOpen(false);
+                setVerifiedStaff(null);
+              } catch (error) {
+                toast({
+                  title: "Refund Failed",
+                  description: "Unable to process refund. Please try again.",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            disabled={isLoading || !verifiedStaff}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Process Refund
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 
+  // Empty state component
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="rounded-full bg-gray-100 p-3 mb-4">
+        <CreditCard className="h-6 w-6 text-gray-600" />
+      </div>
+      <h3 className="text-lg font-semibold mb-1">No transactions found</h3>
+      <p className="text-sm text-muted-foreground text-center max-w-sm">
+        No payments match your current filters. Try adjusting your search criteria or date range.
+      </p>
+    </div>
+  );
+
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
-          <p className="text-muted-foreground mt-1">Track and manage all payment transactions</p>
+          <p className="text-muted-foreground mt-1">
+            Monitor transactions and financial performance
+          </p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
       </div>
 
+      {/* Enhanced Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Today"
-          value={`$${todayTotal.toFixed(2)}`}
-          description="+12% from yesterday"
-          icon={<DollarSign className="h-4 w-4" />}
+        <EnhancedStatCard
+          title="Today's Revenue"
+          value={formatCurrency(todayTotal)}
           trend="up"
+          trendValue="12% from yesterday"
+          icon={<DollarSign className="h-5 w-5 text-primary" />}
+          sparklineData={mockSparklineData.today}
+          accentColor="primary"
         />
-        <StatCard
+        <EnhancedStatCard
           title="This Week"
-          value={`$${weekTotal.toFixed(2)}`}
-          description="+8% from last week"
-          icon={<TrendingUp className="h-4 w-4" />}
+          value={formatCurrency(weekTotal)}
           trend="up"
+          trendValue="8% from last week"
+          icon={<Calendar className="h-5 w-5 text-green-600" />}
+          sparklineData={mockSparklineData.week}
+          accentColor="success"
         />
-        <StatCard
+        <EnhancedStatCard
           title="This Month"
-          value={`$${monthTotal.toFixed(2)}`}
-          description="+15% from last month"
-          icon={<CreditCard className="h-4 w-4" />}
+          value={formatCurrency(monthTotal)}
           trend="up"
+          trendValue="15% from last month"
+          icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+          sparklineData={mockSparklineData.month}
+          accentColor="primary"
         />
-        <StatCard
+        <EnhancedStatCard
           title="Pending"
-          value={`$${pendingAmount.toFixed(2)}`}
-          description="2 transactions"
-          icon={<RefreshCw className="h-4 w-4" />}
+          value={formatCurrency(pendingAmount)}
           trend="neutral"
+          trendValue="2 transactions"
+          icon={<Clock className="h-5 w-5 text-yellow-600" />}
+          sparklineData={mockSparklineData.pending}
+          accentColor="warning"
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>All payment transactions from your business</CardDescription>
+      {/* Transactions Card */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Transactions</CardTitle>
+              <CardDescription>
+                {filteredPayments.length} transactions found
+              </CardDescription>
+            </div>
+            {selectedPayments.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedPayments.length} selected
+                </span>
+                <Button size="sm" variant="outline">
+                  Bulk Actions
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by customer or invoice..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          {/* Enhanced Filter Bar */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger className="w-[160px]">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="yesterday">Yesterday</SelectItem>
+                    <SelectItem value="last7days">Last 7 days</SelectItem>
+                    <SelectItem value="last30days">Last 30 days</SelectItem>
+                    <SelectItem value="all">All time</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="default">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filters
+                      {(statusFilter !== "all" || methodFilter !== "all") && (
+                        <Badge variant="secondary" className="ml-2 px-1.5 py-0.5 text-xs">
+                          {[statusFilter !== "all", methodFilter !== "all"].filter(Boolean).length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="p-2 space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Status</Label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="failed">Failed</SelectItem>
+                            <SelectItem value="refunded">Refunded</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Payment Method</Label>
+                        <Select value={methodFilter} onValueChange={setMethodFilter}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Methods</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="card-tyro">Card (Tyro)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {(statusFilter !== "all" || methodFilter !== "all") && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter("all");
+                            setMethodFilter("all");
+                          }}
+                          className="text-sm"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Clear filters
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Export as CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Export as PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Email Report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={methodFilter} onValueChange={setMethodFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card-stripe">Card (Stripe)</SelectItem>
-                <SelectItem value="card-tyro">Card (Tyro)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
-          <DataTable
-            columns={paymentColumns}
-            data={filteredPayments}
-          />
+          {/* Table with loading state */}
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
+              >
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </motion.div>
+            ) : filteredPayments.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <EmptyState />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <DataTable
+                  columns={paymentColumns}
+                  data={filteredPayments}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 
       <RefundDialog />
+      
+      <PinVerificationDialog
+        open={isPinDialogOpen}
+        onOpenChange={setIsPinDialogOpen}
+        action="refund_payment"
+        actionDescription="Enter your PIN to authorize this refund"
+        onVerify={async (pin) => {
+          try {
+            const result = await apiClient.verifyAction(pin, 'refund_payment');
+            return {
+              success: result.success,
+              staff: result.staff,
+            };
+          } catch (error: any) {
+            return {
+              success: false,
+              error: error.response?.data?.message || 'Invalid PIN',
+            };
+          }
+        }}
+        onSuccess={(staff) => {
+          setVerifiedStaff(staff);
+          setIsPinDialogOpen(false);
+          setIsRefundDialogOpen(true);
+        }}
+        onCancel={() => {
+          setSelectedPayment(null);
+        }}
+      />
     </div>
   );
 }

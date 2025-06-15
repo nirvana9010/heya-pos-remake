@@ -133,21 +133,20 @@ export class TestSeederService {
       'Package',
     ];
 
-    // Disable foreign key checks for cleanup
-    await this.prisma.$executeRawUnsafe('PRAGMA foreign_keys = OFF');
-
+    // Use PostgreSQL TRUNCATE with CASCADE for cleanup
     try {
+      // PostgreSQL-compatible cleanup with CASCADE to handle foreign keys
       for (const table of tables) {
         try {
-          await this.prisma.$executeRawUnsafe(`DELETE FROM "${table}"`);
+          await this.prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE`);
           console.log(`  ✓ Cleaned table: ${table}`);
         } catch (error) {
-          // Table might not exist, ignore
+          // Table might not exist or might be empty, ignore
+          console.log(`  ⚠️  Skipped table: ${table} (${error instanceof Error ? error.message : 'Unknown error'})`);
         }
       }
-    } finally {
-      // Re-enable foreign key checks
-      await this.prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON');
+    } catch (error) {
+      console.error('Error during cleanup:', error);
     }
 
     console.log('✅ Database cleaned');

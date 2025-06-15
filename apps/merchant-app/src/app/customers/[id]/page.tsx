@@ -200,7 +200,7 @@ export default function CustomerProfilePage() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold shadow-md",
-                  isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-purple-500 to-purple-700"
+                  isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-teal-500 to-teal-700"
                 )}>
                   {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
                 </div>
@@ -276,8 +276,8 @@ export default function CustomerProfilePage() {
                 </div>
                 {customer.address && (
                   <div className="flex items-start gap-3 p-2">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
-                      <MapPin className="h-4 w-4 text-purple-600" />
+                    <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center mt-0.5">
+                      <MapPin className="h-4 w-4 text-teal-600" />
                     </div>
                     <div className="text-sm text-gray-700">
                       <p>{customer.address}</p>
@@ -307,10 +307,10 @@ export default function CustomerProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                    <Star className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-purple-900">{customer.loyaltyPoints || 0}</p>
-                    <p className="text-sm text-purple-700 font-medium">Points</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg border border-teal-200">
+                    <Star className="h-8 w-8 text-teal-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-teal-900">{customer.loyaltyPoints || 0}</p>
+                    <p className="text-sm text-teal-700 font-medium">Points</p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
                     <Gift className="h-8 w-8 text-green-600 mx-auto mb-2" />
@@ -369,8 +369,8 @@ export default function CustomerProfilePage() {
               <Card className="shadow-sm hover:shadow-md transition-shadow group">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                    <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center group-hover:bg-teal-200 transition-colors">
+                      <TrendingUp className="h-5 w-5 text-teal-600" />
                     </div>
                   </div>
                   <p className="text-2xl font-bold text-gray-900">${averageSpend.toFixed(0)}</p>
@@ -410,8 +410,8 @@ export default function CustomerProfilePage() {
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <User className="h-5 w-5 text-indigo-600" />
+                            <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-teal-600" />
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">Member Since</p>
@@ -431,7 +431,7 @@ export default function CustomerProfilePage() {
                             {favoriteServices.map((service, index) => (
                               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                 <span className="text-sm text-gray-700 font-medium">{service.name}</span>
-                                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                <Badge variant="secondary" className="bg-teal-100 text-teal-700">
                                   {service.count} times
                                 </Badge>
                               </div>
@@ -511,7 +511,7 @@ export default function CustomerProfilePage() {
                   
                   <TabsContent value="insights" className="mt-6">
                     <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
+                      <div className="bg-gradient-to-r from-teal-50 to-teal-100 p-4 rounded-lg">
                         <h4 className="font-medium mb-2">Visit Pattern</h4>
                         <p className="text-sm text-gray-600">
                           Typically visits every {customer.totalVisits && customer.totalVisits > 1 

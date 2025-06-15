@@ -28,7 +28,7 @@ export function Topbar() {
 
   return (
     <header className="topbar">
-      <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 'var(--space-lg)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
         {/* Enhanced Search */}
         <div style={{ 
           maxWidth: '400px', 
@@ -40,10 +40,10 @@ export function Topbar() {
             size={18} 
             style={{ 
               position: 'absolute', 
-              left: 'var(--space-3)', 
+              left: '0.75rem', 
               top: '50%', 
               transform: 'translateY(-50%)', 
-              color: 'var(--text-secondary)',
+              color: 'var(--color-text-secondary)',
               zIndex: 1
             }} 
           />
@@ -52,20 +52,20 @@ export function Topbar() {
             placeholder="Search customers, bookings, services..."
             className="form-input"
             style={{ 
-              paddingLeft: 'var(--space-10)'
+              paddingLeft: '2.5rem'
             }}
           />
         </div>
 
         {/* Quick Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button className="btn btn-secondary btn-sm">
             + New Booking
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
@@ -102,34 +102,34 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" style={{ 
             width: '320px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)'
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0.75rem'
           }}>
             <DropdownMenuLabel style={{ 
-              color: 'var(--text-primary)',
-              fontSize: 'var(--text-lg)',
-              padding: 'var(--space-4)'
+              color: 'var(--color-text-primary)',
+              fontSize: '1.125rem',
+              padding: '1rem'
             }}>
               Notifications
             </DropdownMenuLabel>
-            <DropdownMenuSeparator style={{ background: 'var(--border)' }} />
+            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
             
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)'
+              padding: '1rem',
+              margin: '0.25rem'
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <p style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--font-semibold)',
-                  color: 'var(--text-primary)'
+                  fontSize: '0.875rem', 
+                  fontWeight: '600',
+                  color: 'var(--color-text-primary)'
                 }}>
                   New booking
                 </p>
                 <p style={{ 
-                  fontSize: 'var(--text-xs)', 
-                  color: 'var(--text-secondary)'
+                  fontSize: '0.75rem', 
+                  color: 'var(--color-text-secondary)'
                 }}>
                   Sarah Johnson booked a hair appointment for tomorrow
                 </p>
@@ -137,20 +137,20 @@ export function Topbar() {
             </DropdownMenuItem>
 
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)'
+              padding: '1rem',
+              margin: '0.25rem'
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <p style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--font-semibold)',
-                  color: 'var(--text-primary)'
+                  fontSize: '0.875rem', 
+                  fontWeight: '600',
+                  color: 'var(--color-text-primary)'
                 }}>
                   Payment received
                 </p>
                 <p style={{ 
-                  fontSize: 'var(--text-xs)', 
-                  color: 'var(--text-secondary)'
+                  fontSize: '0.75rem', 
+                  color: 'var(--color-text-secondary)'
                 }}>
                   $120 payment from Michael Chen via Tyro
                 </p>
@@ -158,20 +158,20 @@ export function Topbar() {
             </DropdownMenuItem>
 
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)'
+              padding: '1rem',
+              margin: '0.25rem'
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <p style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--font-semibold)',
-                  color: 'var(--text-primary)'
+                  fontSize: '0.875rem', 
+                  fontWeight: '600',
+                  color: 'var(--color-text-primary)'
                 }}>
                   Staff reminder
                 </p>
                 <p style={{ 
-                  fontSize: 'var(--text-xs)', 
-                  color: 'var(--text-secondary)'
+                  fontSize: '0.75rem', 
+                  color: 'var(--color-text-secondary)'
                 }}>
                   Emma Wilson is on break in 15 minutes
                 </p>
@@ -188,7 +188,7 @@ export function Topbar() {
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                borderRadius: 'var(--radius-full)',
+                borderRadius: '50%',
                 padding: '2px'
               }}
             >
@@ -196,13 +196,13 @@ export function Topbar() {
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
-                background: 'var(--primary)',
+                background: 'var(--color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontWeight: 'var(--font-semibold)',
-                fontSize: 'var(--text-sm)'
+                fontWeight: '600',
+                fontSize: '0.875rem'
               }}>
                 HB
               </div>
@@ -225,43 +225,43 @@ export function Topbar() {
                   Hamilton Beauty
                 </p>
                 <p style={{ 
-                  fontSize: 'var(--text-xs)', 
-                  color: 'var(--text-secondary)'
+                  fontSize: '0.75rem', 
+                  color: 'var(--color-text-secondary)'
                 }}>
                   admin@hamiltonbeauty.com
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator style={{ background: 'var(--border)' }} />
+            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
             
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)',
+              padding: '1rem',
+              margin: '0.25rem',
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)'
+              gap: '0.5rem'
             }}>
               <User size={16} />
               <span style={{ color: 'var(--text-primary)' }}>Profile</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)',
+              padding: '1rem',
+              margin: '0.25rem',
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)'
+              gap: '0.5rem'
             }}>
               <Palette size={16} />
               <span style={{ color: 'var(--text-primary)' }}>Appearance</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator style={{ background: 'var(--border)' }} />
+            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
             
             <DropdownMenuItem style={{ 
-              padding: 'var(--space-4)',
-              margin: 'var(--space-1)',
-              color: 'var(--error)'
+              padding: '1rem',
+              margin: '0.25rem',
+              color: 'var(--color-error)'
             }}>
               Log out
             </DropdownMenuItem>

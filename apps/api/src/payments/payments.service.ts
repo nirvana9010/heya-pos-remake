@@ -1,183 +1,292 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TyroPaymentService } from './tyro-payment.service';
-import { ProcessPaymentDto } from './dto/process-payment.dto';
-import { RefundPaymentDto } from './dto/refund-payment.dto';
-import { PaymentMethod, PaymentStatus } from '../types/payment.types';
+import { OrdersService } from './orders.service';
+import { PaymentGatewayService } from './payment-gateway.service';
+import { 
+  ProcessPaymentDto, 
+  SplitPaymentDto,
+  PaymentMethod, 
+  PaymentStatus,
+  OrderState,
+} from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
-import { toNumber, subtractDecimals, isGreaterThan, toDecimal, addDecimals } from '../utils/decimal';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly tyroService: TyroPaymentService,
+    private readonly ordersService: OrdersService,
+    private readonly gatewayService: PaymentGatewayService,
   ) {}
 
   /**
-   * Process a payment for an invoice
+   * Process a single payment for an order
    */
-  async processPayment(dto: ProcessPaymentDto, merchantId: string, locationId: string) {
-    // Verify invoice exists and belongs to merchant
-    const invoice = await this.prisma.invoice.findFirst({
-      where: {
-        id: dto.invoiceId,
-        merchantId,
-      },
-    });
+  async processPayment(dto: ProcessPaymentDto, merchantId: string, staffId: string) {
+    const order = await this.ordersService.findOrder(dto.orderId, merchantId);
 
-    if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+    // Validate order state
+    if (order.state !== OrderState.PENDING_PAYMENT && 
+        order.state !== OrderState.PARTIALLY_PAID &&
+        order.state !== OrderState.LOCKED) {
+      throw new BadRequestException('Order is not ready for payment');
     }
 
     // Check if payment amount is valid
-    const remainingAmount = subtractDecimals(invoice.totalAmount, invoice.paidAmount);
-    if (dto.amount > remainingAmount) {
-      throw new BadRequestException('Payment amount exceeds remaining balance');
+    if (dto.amount > order.balanceDue.toNumber()) {
+      throw new BadRequestException('Payment amount exceeds balance due');
+    }
+
+    // Lock the order if it's still in draft state
+    if (order.state === OrderState.LOCKED) {
+      await this.ordersService.updateOrderState(order.id, merchantId, OrderState.PENDING_PAYMENT);
     }
 
     // Process based on payment method
+    let paymentResult;
     switch (dto.method) {
-      case PaymentMethod.CARD_TYRO:
-        return this.processTyroPayment(dto, merchantId, locationId);
-      
       case PaymentMethod.CASH:
-        return this.processCashPayment(dto, merchantId, locationId);
+        paymentResult = await this.processCashPayment(order.id, dto, staffId);
+        break;
       
-      case PaymentMethod.CARD_STRIPE:
-        return this.processStripePayment(dto, merchantId, locationId);
+      case PaymentMethod.CARD_TYRO:
+        paymentResult = await this.processCardPayment(order.id, dto, staffId);
+        break;
       
       default:
-        return this.processGenericPayment(dto, merchantId, locationId);
+        paymentResult = await this.processGenericPayment(order.id, dto, staffId);
     }
+
+    // Update order state based on payment result
+    await this.updateOrderPaymentState(order.id, merchantId);
+
+    return paymentResult;
   }
 
   /**
-   * Process Tyro card payment
+   * Process split payments for an order
    */
-  private async processTyroPayment(dto: ProcessPaymentDto, merchantId: string, locationId: string) {
-    if (!dto.tyroTransactionReference) {
-      throw new BadRequestException('Tyro transaction reference is required');
+  async processSplitPayment(dto: SplitPaymentDto, merchantId: string, staffId: string) {
+    const order = await this.ordersService.findOrder(dto.orderId, merchantId);
+
+    // Validate total amount
+    const totalPaymentAmount = dto.payments.reduce((sum, p) => sum + p.amount, 0);
+    if (totalPaymentAmount !== order.balanceDue.toNumber()) {
+      throw new BadRequestException('Split payment amounts must equal balance due');
     }
 
-    const tyroTransaction = {
-      amount: dto.amount * 100, // Convert to cents
-      transactionReference: dto.tyroTransactionReference,
-      authorisationCode: dto.tyroAuthorisationCode || '',
-      surchargeAmount: dto.tyroDasurchargeAmount || 0,
-      baseAmount: dto.tyroBaseAmount || dto.amount * 100,
-      result: 'APPROVED' as any, // This would come from the frontend
-    };
+    // Process each payment
+    const results = [];
+    for (const payment of dto.payments) {
+      const paymentDto: ProcessPaymentDto = {
+        orderId: dto.orderId,
+        amount: payment.amount,
+        method: payment.method,
+        tipAmount: payment.tipAmount,
+        reference: payment.reference,
+      };
 
-    return this.tyroService.processPayment(
-      dto.invoiceId,
-      dto.amount,
-      tyroTransaction,
-      locationId,
-      merchantId,
-    );
+      const result = await this.processPayment(paymentDto, merchantId, staffId);
+      results.push(result);
+    }
+
+    return results;
   }
 
   /**
    * Process cash payment
    */
-  private async processCashPayment(dto: ProcessPaymentDto, merchantId: string, locationId: string) {
-    const changeAmount = (dto.cashReceived || dto.amount) - dto.amount;
-
-    const payment = await this.prisma.payment.create({
+  private async processCashPayment(orderId: string, dto: ProcessPaymentDto, staffId: string) {
+    const payment = await this.prisma.orderPayment.create({
       data: {
-        merchantId,
-        locationId,
-        invoiceId: dto.invoiceId,
+        orderId,
         paymentMethod: PaymentMethod.CASH,
-        amount: dto.amount,
-        currency: 'AUD',
+        amount: new Decimal(dto.amount),
+        tipAmount: new Decimal(dto.tipAmount || 0),
         status: PaymentStatus.COMPLETED,
         reference: dto.reference,
-        notes: dto.notes,
+        processedById: staffId,
         processedAt: new Date(),
-        processorResponse: {
-          cashReceived: dto.cashReceived,
-          changeAmount,
-        },
+        gatewayResponse: dto.metadata,
       },
       include: {
-        invoice: true,
+        order: true,
       },
     });
 
-    // Update invoice
-    await this.updateInvoicePaymentStatus(dto.invoiceId, dto.amount);
+    // Handle tip allocation if tips are enabled and provided
+    if (dto.tipAmount && dto.tipAmount > 0) {
+      await this.allocateTips(payment.id, dto.tipAmount, dto.metadata?.tipAllocations);
+    }
 
     return {
       payment,
-      changeAmount: changeAmount > 0 ? changeAmount : 0,
+      changeAmount: dto.metadata?.cashReceived ? dto.metadata.cashReceived - dto.amount : 0,
     };
   }
 
   /**
-   * Process Stripe payment (placeholder)
+   * Process card payment via gateway
    */
-  private async processStripePayment(dto: ProcessPaymentDto, merchantId: string, locationId: string) {
-    // This would integrate with Stripe API
-    const payment = await this.prisma.payment.create({
+  private async processCardPayment(orderId: string, dto: ProcessPaymentDto, staffId: string) {
+    // Create pending payment record
+    const payment = await this.prisma.orderPayment.create({
       data: {
-        merchantId,
-        locationId,
-        invoiceId: dto.invoiceId,
-        paymentMethod: PaymentMethod.CARD_STRIPE,
-        amount: dto.amount,
-        currency: 'AUD',
-        status: PaymentStatus.PENDING,
+        orderId,
+        paymentMethod: dto.method,
+        amount: new Decimal(dto.amount),
+        tipAmount: new Decimal(dto.tipAmount || 0),
+        status: PaymentStatus.PROCESSING,
         reference: dto.reference,
-        stripePaymentIntentId: dto.stripePaymentMethodId,
-        notes: dto.notes,
-      },
-      include: {
-        invoice: true,
+        processedById: staffId,
       },
     });
 
-    return { payment };
+    try {
+      // Process through gateway
+      const gatewayResult = await this.gatewayService.getTerminalStatus(dto.reference!);
+
+      if (gatewayResult.success) {
+        // Update payment as completed
+        await this.prisma.orderPayment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.COMPLETED,
+            processedAt: new Date(),
+            gatewayResponse: gatewayResult.gatewayResponse,
+          },
+        });
+
+        // Handle tip allocation
+        if (dto.tipAmount && dto.tipAmount > 0) {
+          await this.allocateTips(payment.id, dto.tipAmount, dto.metadata?.tipAllocations);
+        }
+      } else {
+        // Update payment as failed
+        await this.prisma.orderPayment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.FAILED,
+            failedAt: new Date(),
+            failureReason: gatewayResult.error,
+            gatewayResponse: gatewayResult.gatewayResponse,
+          },
+        });
+      }
+
+      return { payment: await this.prisma.orderPayment.findUnique({ where: { id: payment.id } }) };
+    } catch (error) {
+      // Update payment as failed
+      await this.prisma.orderPayment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.FAILED,
+          failedAt: new Date(),
+          failureReason: (error as any).message || 'Unknown error',
+        },
+      });
+      throw error;
+    }
   }
 
   /**
    * Process generic payment method
    */
-  private async processGenericPayment(dto: ProcessPaymentDto, merchantId: string, locationId: string) {
-    const payment = await this.prisma.payment.create({
+  private async processGenericPayment(orderId: string, dto: ProcessPaymentDto, staffId: string) {
+    const payment = await this.prisma.orderPayment.create({
       data: {
-        merchantId,
-        locationId,
-        invoiceId: dto.invoiceId,
+        orderId,
         paymentMethod: dto.method,
-        amount: dto.amount,
-        currency: 'AUD',
+        amount: new Decimal(dto.amount),
+        tipAmount: new Decimal(dto.tipAmount || 0),
         status: PaymentStatus.COMPLETED,
         reference: dto.reference,
-        notes: dto.notes,
+        processedById: staffId,
         processedAt: new Date(),
-      },
-      include: {
-        invoice: true,
+        gatewayResponse: dto.metadata,
       },
     });
 
-    await this.updateInvoicePaymentStatus(dto.invoiceId, dto.amount);
     return { payment };
   }
 
   /**
-   * Process payment refund
+   * Allocate tips to staff
    */
-  async refundPayment(dto: RefundPaymentDto, merchantId: string) {
-    const payment = await this.prisma.payment.findFirst({
+  private async allocateTips(
+    orderPaymentId: string, 
+    tipAmount: number, 
+    allocations?: Array<{ staffId: string; amount?: number; percentage?: number }>
+  ) {
+    if (!allocations || allocations.length === 0) {
+      // Default: allocate to order items staff evenly
+      const payment = await this.prisma.orderPayment.findUnique({
+        where: { id: orderPaymentId },
+        include: {
+          order: {
+            include: {
+              items: {
+                where: { staffId: { not: null } },
+              },
+            },
+          },
+        },
+      });
+
+      if (payment && payment.order.items.length > 0) {
+        const staffIds = [...new Set(payment.order.items.map(item => item.staffId!))];
+        const amountPerStaff = tipAmount / staffIds.length;
+
+        allocations = staffIds.map(staffId => ({
+          staffId,
+          amount: amountPerStaff,
+        }));
+      }
+    }
+
+    if (allocations) {
+      await Promise.all(
+        allocations.map(allocation =>
+          this.prisma.tipAllocation.create({
+            data: {
+              orderPaymentId,
+              staffId: allocation.staffId,
+              amount: new Decimal(allocation.amount || (tipAmount * (allocation.percentage || 0) / 100)),
+              percentage: allocation.percentage ? new Decimal(allocation.percentage) : null,
+            },
+          })
+        )
+      );
+    }
+  }
+
+  /**
+   * Update order payment state
+   */
+  private async updateOrderPaymentState(orderId: string, merchantId: string) {
+    await this.ordersService.recalculateOrderTotals(orderId);
+    const order = await this.ordersService.findOrder(orderId, merchantId);
+
+    let newState: OrderState;
+    if (order.balanceDue.equals(0)) {
+      newState = OrderState.PAID;
+    } else if (order.paidAmount.greaterThan(0)) {
+      newState = OrderState.PARTIALLY_PAID;
+    } else {
+      return; // No state change needed
+    }
+
+    await this.ordersService.updateOrderState(orderId, merchantId, newState);
+  }
+
+  /**
+   * Process refund
+   */
+  async refundPayment(paymentId: string, amount: number, reason: string, merchantId: string) {
+    const payment = await this.prisma.orderPayment.findFirst({
       where: {
-        id: dto.paymentId,
-        merchantId,
-      },
-      include: {
-        refunds: true,
+        id: paymentId,
+        order: { merchantId },
       },
     });
 
@@ -185,117 +294,103 @@ export class PaymentsService {
       throw new NotFoundException('Payment not found');
     }
 
-    // Check refund amount
-    const totalRefunded = payment.refunds.reduce((sum, refund) => addDecimals(sum, refund.amount), 0);
-    const maxRefundable = subtractDecimals(payment.amount, totalRefunded);
+    if (payment.status !== PaymentStatus.COMPLETED) {
+      throw new BadRequestException('Can only refund completed payments');
+    }
 
-    if (dto.amount > maxRefundable) {
+    // Check refund amount
+    const refunded = await this.prisma.orderPayment.findMany({
+      where: {
+        orderId: payment.orderId,
+        status: PaymentStatus.REFUNDED,
+      },
+    });
+
+    const totalRefunded = refunded.reduce((sum, r) => sum.add(r.amount), new Decimal(0));
+    if (amount > payment.amount.sub(totalRefunded).toNumber()) {
       throw new BadRequestException('Refund amount exceeds refundable balance');
     }
 
-    // Process based on payment method
+    // Process refund based on payment method
+    let refundResult;
     if (payment.paymentMethod === PaymentMethod.CARD_TYRO) {
-      return this.tyroService.processRefund(payment.id, dto.amount, dto.reason);
+      refundResult = await this.gatewayService.refundPayment(payment.id, amount, reason);
     }
 
-    // Generic refund for other methods
-    return this.processGenericRefund(payment.id, dto.amount, dto.reason);
-  }
-
-  /**
-   * Process generic refund
-   */
-  private async processGenericRefund(paymentId: string, amount: number, reason: string) {
-    const refund = await this.prisma.paymentRefund.create({
+    // Create refund record
+    const refund = await this.prisma.orderPayment.create({
       data: {
-        paymentId,
-        amount: toDecimal(amount),
-        reason,
-        status: 'COMPLETED',
-        processedAt: new Date(),
-      },
-    });
-
-    // Update payment
-    await this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        refundedAmount: {
-          increment: amount,
+        orderId: payment.orderId,
+        paymentMethod: payment.paymentMethod,
+        amount: new Decimal(-amount), // Negative amount for refund
+        status: refundResult?.success ? PaymentStatus.REFUNDED : PaymentStatus.FAILED,
+        reference: refundResult?.refundId,
+        gatewayResponse: { 
+          originalPaymentId: payment.id,
+          reason,
+          ...refundResult,
         },
+        processedAt: refundResult?.success ? new Date() : null,
+        failedAt: refundResult?.success ? null : new Date(),
+        failureReason: refundResult?.error,
       },
     });
+
+    // Update order state if needed
+    if (refundResult?.success) {
+      await this.updateOrderPaymentState(payment.orderId, merchantId);
+    }
 
     return refund;
   }
 
   /**
-   * Get payments for a merchant
+   * Void a payment (for same-day cancellations)
    */
-  async getPayments(
-    merchantId: string,
-    locationId?: string,
-    page = 1,
-    limit = 50,
-  ) {
-    const skip = (page - 1) * limit;
+  async voidPayment(paymentId: string, merchantId: string) {
+    const payment = await this.prisma.orderPayment.findFirst({
+      where: {
+        id: paymentId,
+        order: { merchantId },
+      },
+    });
 
-    const where: any = { merchantId };
-    if (locationId) {
-      where.locationId = locationId;
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
     }
 
-    const [payments, total] = await Promise.all([
-      this.prisma.payment.findMany({
-        where,
-        include: {
-          invoice: {
-            include: {
-              customer: true,
-            },
-          },
-          refunds: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      this.prisma.payment.count({ where }),
-    ]);
+    if (payment.status !== PaymentStatus.COMPLETED) {
+      throw new BadRequestException('Can only void completed payments');
+    }
 
-    return {
-      payments,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
+    // Check if payment is same-day
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (payment.processedAt && payment.processedAt < today) {
+      throw new BadRequestException('Can only void same-day payments. Use refund instead.');
+    }
 
-  /**
-   * Update invoice payment status
-   */
-  private async updateInvoicePaymentStatus(invoiceId: string, paidAmount: number) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-    });
+    // Process void based on payment method
+    let voidResult;
+    if (payment.paymentMethod === PaymentMethod.CARD_TYRO) {
+      voidResult = await this.gatewayService.voidPayment(payment.id);
+    }
 
-    if (!invoice) return;
-
-    const newPaidAmount = addDecimals(invoice.paidAmount, paidAmount);
-    const isPaidInFull = newPaidAmount >= toNumber(invoice.totalAmount);
-
-    await this.prisma.invoice.update({
-      where: { id: invoiceId },
+    // Update payment status
+    await this.prisma.orderPayment.update({
+      where: { id: payment.id },
       data: {
-        paidAmount: newPaidAmount,
-        status: isPaidInFull ? 'PAID' : 'PARTIALLY_PAID',
-        paidAt: isPaidInFull ? new Date() : invoice.paidAt,
+        status: PaymentStatus.VOIDED,
+        gatewayResponse: {
+          ...payment.gatewayResponse as any,
+          voidResult,
+        },
       },
     });
+
+    // Update order state
+    await this.updateOrderPaymentState(payment.orderId, merchantId);
+
+    return payment;
   }
 }

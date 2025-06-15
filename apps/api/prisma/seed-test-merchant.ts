@@ -20,7 +20,7 @@ async function seedTestMerchant() {
         maxLocations: 3,
         maxStaff: 20,
         maxCustomers: 5000,
-        features: JSON.stringify([
+        features: [
           'advanced_booking',
           'customer_management',
           'loyalty_program',
@@ -29,7 +29,7 @@ async function seedTestMerchant() {
           'online_booking',
           'sms_reminders',
           'email_marketing'
-        ]),
+        ],
       },
     });
   }
@@ -48,7 +48,7 @@ async function seedTestMerchant() {
       subscriptionStatus: 'ACTIVE',
       website: 'https://luxebeauty.com.au',
       description: 'Premium beauty and wellness services in Sydney CBD',
-      settings: JSON.stringify({
+      settings: {
         currency: 'AUD',
         timezone: 'Australia/Sydney',
         bookingBuffer: 15,
@@ -62,7 +62,7 @@ async function seedTestMerchant() {
           saturday: { open: '09:00', close: '17:00' },
           sunday: { open: '10:00', close: '16:00' }
         }
-      }),
+      },
     },
   });
 
@@ -90,7 +90,8 @@ async function seedTestMerchant() {
       postalCode: '2000',
       phone: '+61 2 9876 5432',
       email: 'cbd@luxebeauty.com',
-      businessHours: JSON.stringify({
+      timezone: 'Australia/Sydney',
+      businessHours: {
         monday: { open: '09:00', close: '19:00' },
         tuesday: { open: '09:00', close: '19:00' },
         wednesday: { open: '09:00', close: '21:00' },
@@ -98,11 +99,11 @@ async function seedTestMerchant() {
         friday: { open: '09:00', close: '19:00' },
         saturday: { open: '09:00', close: '17:00' },
         sunday: { open: '10:00', close: '16:00' }
-      }),
-      settings: JSON.stringify({
+      },
+      settings: {
         maxAdvanceBooking: 90,
         minAdvanceBooking: 2
-      }),
+      },
     },
   });
 
@@ -118,7 +119,8 @@ async function seedTestMerchant() {
       postalCode: '2026',
       phone: '+61 2 9876 5433',
       email: 'bondi@luxebeauty.com',
-      businessHours: JSON.stringify({
+      timezone: 'Australia/Sydney',
+      businessHours: {
         monday: { open: '09:00', close: '18:00' },
         tuesday: { open: '09:00', close: '18:00' },
         wednesday: { open: '09:00', close: '18:00' },
@@ -126,11 +128,11 @@ async function seedTestMerchant() {
         friday: { open: '09:00', close: '18:00' },
         saturday: { open: '08:00', close: '18:00' },
         sunday: { open: '09:00', close: '17:00' }
-      }),
-      settings: JSON.stringify({
+      },
+      settings: {
         maxAdvanceBooking: 60,
         minAdvanceBooking: 1
-      }),
+      },
     },
   });
 
@@ -797,17 +799,25 @@ async function seedTestMerchant() {
 
   // Create loyalty cards for regular customers
   const loyaltyCards = await Promise.all(
-    customers.slice(0, 5).map((customer, index) =>
-      prisma.loyaltyCard.create({
+    customers.slice(0, 5).map(async (customer, index) => {
+      // Retrieve the customer with totalSpent field
+      const customerWithSpent = await prisma.customer.findUnique({
+        where: { id: customer.id },
+        select: { totalSpent: true }
+      });
+      
+      const spentAmount = customerWithSpent?.totalSpent ? Number(customerWithSpent.totalSpent) : 0;
+      
+      return prisma.loyaltyCard.create({
         data: {
           programId: loyaltyProgram.id,
           customerId: customer.id,
           cardNumber: `LUX${new Date().getFullYear()}${(1000 + index).toString()}`,
-          points: customer.totalSpent * 0.1, // 10% of spend as points
-          lifetimePoints: customer.totalSpent * 0.1,
+          points: Math.floor(spentAmount * 0.1), // 10% of spend as points
+          lifetimePoints: Math.floor(spentAmount * 0.1),
         },
-      })
-    )
+      });
+    })
   );
 
   console.log(`✅ Created loyalty program with ${loyaltyCards.length} cards`);

@@ -15,7 +15,8 @@ const nextConfig = {
   
   // Enable experimental optimizations
   experimental: {
-    optimizeCss: true,
+    // Temporarily disable CSS optimization to debug CSS stripping issue
+    optimizeCss: false,
     optimizePackageImports: ['lucide-react'],
   },
   

@@ -1,41 +1,80 @@
 import {
   Controller,
   Post,
-  Body,
   Get,
+  Body,
+  Param,
   Query,
   UseGuards,
+  Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { TyroPaymentService } from './tyro-payment.service';
-import { ProcessPaymentDto } from './dto/process-payment.dto';
-import { RefundPaymentDto } from './dto/refund-payment.dto';
-import { TyroTransactionDto } from './dto/tyro-transaction.dto';
+import { OrdersService } from './orders.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PinRequiredGuard } from '../auth/guards/pin-required.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PinRequired } from '../auth/decorators/pin-required.decorator';
+import {
+  ProcessPaymentDto,
+  SplitPaymentDto,
+  OrderModifierDto,
+  OrderState,
+} from '@heya-pos/types';
+import { BadRequestException } from '@nestjs/common';
 
+// @ApiTags('payments')
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
+// @ApiBearerAuth()
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
-    private readonly tyroService: TyroPaymentService,
+    private readonly ordersService: OrdersService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('process')
   @HttpCode(HttpStatus.OK)
-  async processPayment(
-    @Body() dto: ProcessPaymentDto,
-    @CurrentUser() user: any,
-  ) {
+  // @ApiOperation({ summary: 'Process a payment for an order' })
+  async processPayment(@Body() dto: ProcessPaymentDto, @CurrentUser() user: any) {
+    // For merchant users, we need to find a staff member to process the payment
+    let staffId = user.id;
+    
+    if (user.type === 'merchant' || user.role === 'MERCHANT') {
+      // Get any active staff member for this merchant
+      const staff = await this.prisma.staff.findFirst({
+        where: { 
+          merchantId: user.merchantId,
+          status: 'ACTIVE'
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      if (!staff) {
+        throw new BadRequestException('No active staff found to process payment');
+      }
+      
+      staffId = staff.id;
+    }
+    
     return this.paymentsService.processPayment(
       dto,
       user.merchantId,
-      user.locationId,
+      staffId,
+    );
+  }
+
+  @Post('split')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Process split payments for an order' })
+  async processSplitPayment(@Body() dto: SplitPaymentDto, @CurrentUser() user: any) {
+    return this.paymentsService.processSplitPayment(
+      dto,
+      user.merchantId,
+      user.id,
     );
   }
 
@@ -43,13 +82,114 @@ export class PaymentsController {
   @UseGuards(PinRequiredGuard)
   @PinRequired('refund_payment')
   @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Refund a payment' })
   async refundPayment(
-    @Body() dto: RefundPaymentDto,
-    @CurrentUser() user?: any,
+    @Body() dto: { paymentId: string; amount: number; reason: string },
+    @CurrentUser() user: any,
   ) {
-    return this.paymentsService.refundPayment(dto, user.merchantId);
+    return this.paymentsService.refundPayment(
+      dto.paymentId,
+      dto.amount,
+      dto.reason,
+      user.merchantId,
+    );
   }
 
+  @Post('void/:paymentId')
+  @UseGuards(PinRequiredGuard)
+  @PinRequired('void_payment')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Void a payment (same-day only)' })
+  async voidPayment(@Param('paymentId') paymentId: string, @CurrentUser() user: any) {
+    return this.paymentsService.voidPayment(paymentId, user.merchantId);
+  }
+
+  // Order endpoints
+  @Post('orders')
+  @HttpCode(HttpStatus.CREATED)
+  // @ApiOperation({ summary: 'Create a new order' })
+  async createOrder(
+    @Body() dto: { customerId?: string; bookingId?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.createOrder({
+      merchantId: user.merchantId,
+      locationId: user.currentLocationId || user.locations[0]?.id,
+      customerId: dto.customerId,
+      bookingId: dto.bookingId,
+      createdById: user.id,
+    });
+  }
+
+  @Get('orders/:orderId')
+  // @ApiOperation({ summary: 'Get order details' })
+  async getOrder(@Param('orderId') orderId: string, @CurrentUser() user: any) {
+    return this.ordersService.findOrder(orderId, user.merchantId);
+  }
+
+  @Post('orders/:orderId/items')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Add items to an order' })
+  async addOrderItems(
+    @Param('orderId') orderId: string,
+    @Body() dto: { items: any[] },
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.addOrderItems(
+      orderId,
+      user.merchantId,
+      dto.items,
+    );
+  }
+
+  @Post('orders/:orderId/modifiers')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Add discount or surcharge to an order' })
+  async addOrderModifier(
+    @Param('orderId') orderId: string,
+    @Body() dto: OrderModifierDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.addOrderModifier(
+      orderId,
+      user.merchantId,
+      dto,
+    );
+  }
+
+  @Post('orders/:orderId/state')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Update order state' })
+  async updateOrderState(
+    @Param('orderId') orderId: string,
+    @Body() dto: { state: OrderState },
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.updateOrderState(
+      orderId,
+      user.merchantId,
+      dto.state,
+    );
+  }
+
+  @Post('orders/from-booking/:bookingId')
+  @HttpCode(HttpStatus.CREATED)
+  // @ApiOperation({ summary: 'Create order from booking' })
+  async createOrderFromBooking(
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() user: any,
+  ) {
+    // For merchant users, staffId will be null and the service will find an appropriate staff
+    const staffId = user.type === 'staff' ? user.id : null;
+    
+    return this.ordersService.createOrderFromBooking(
+      bookingId,
+      user.merchantId,
+      staffId,
+    );
+  }
+
+  // Legacy endpoints for backwards compatibility
   @Get()
   async getPayments(
     @CurrentUser() user: any,
@@ -57,46 +197,48 @@ export class PaymentsController {
     @Query('limit') limit = 50,
     @Query('locationId') locationId?: string,
   ) {
-    return this.paymentsService.getPayments(
-      user.merchantId,
-      locationId,
-      +page,
-      +limit,
-    );
-  }
+    const skip = (page - 1) * limit;
 
-  // Tyro-specific endpoints
-  @Post('tyro/transaction')
-  @HttpCode(HttpStatus.OK)
-  async saveTyroTransaction(
-    @Body() body: {
-      amount: number;
-      transaction_id: string;
-      authorisation_code: string;
-      surcharge_amount?: number;
-      base_amount?: number;
-      status: string;
-    },
-    @CurrentUser() user: any,
-  ) {
-    // This endpoint matches the guide's expected format
-    // In a real implementation, you might save this to an audit log
+    const where: any = { 
+      order: { merchantId: user.merchantId }
+    };
+    if (locationId) {
+      where.order.locationId = locationId;
+    }
+
+    const [payments, total] = await Promise.all([
+      this.prisma.orderPayment.findMany({
+        where,
+        include: {
+          order: {
+            include: {
+              customer: true,
+            },
+          },
+          tipAllocations: {
+            include: {
+              staff: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.orderPayment.count({ where }),
+    ]);
+
     return {
-      success: true,
-      message: 'Transaction saved',
-      transactionId: body.transaction_id,
+      payments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
-  @Post('tyro/pair')
-  @HttpCode(HttpStatus.OK)
-  async pairTyroTerminal(
-    @Body() body: { MID: string; TID: string },
-    @CurrentUser() user: any,
-  ) {
-    return this.tyroService.pairTerminal(
-      body.MID || user.merchantId,
-      body.TID,
-    );
-  }
 }

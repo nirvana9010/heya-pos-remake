@@ -101,7 +101,7 @@ export function BookingDetailsSlideOut({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "confirmed": return "bg-purple-100 text-purple-800";
+      case "confirmed": return "bg-teal-100 text-teal-800";
       case "in-progress": return "bg-teal-100 text-teal-800";
       case "completed": return "bg-green-100 text-green-800";
       case "cancelled": return "bg-red-100 text-red-800";

@@ -286,8 +286,8 @@ export default function ReportsPage() {
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center">
+                <Users className="h-4 w-4 text-teal-600 dark:text-teal-400" />
               </div>
             </CardHeader>
             <CardContent>

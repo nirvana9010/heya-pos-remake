@@ -86,7 +86,7 @@ export default function DashboardPageEnhanced() {
   };
 
   const quickActions = [
-    { label: 'New Booking', icon: Plus, action: () => router.push('/bookings/new'), color: 'bg-purple-600 hover:bg-purple-700' },
+    { label: 'New Booking', icon: Plus, action: () => router.push('/bookings/new'), color: 'bg-teal-600 hover:bg-teal-700' },
     { label: 'View Calendar', icon: Calendar, action: () => router.push('/calendar'), color: 'bg-blue-600 hover:bg-blue-700' },
     { label: 'Customers', icon: Users, action: () => router.push('/customers'), color: 'bg-green-600 hover:bg-green-700' },
     { label: 'Reports', icon: DollarSign, action: () => router.push('/reports'), color: 'bg-amber-600 hover:bg-amber-700' }
@@ -165,7 +165,7 @@ export default function DashboardPageEnhanced() {
         </div>
         <Button 
           onClick={() => router.push('/bookings/new')}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="bg-teal-600 hover:bg-teal-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Booking

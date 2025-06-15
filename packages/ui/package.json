@@ -9,7 +9,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./shadcn-base.css": "./src/shadcn-base.css"
   },
   "scripts": {
     "build": "tsup",

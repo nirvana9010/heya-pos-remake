@@ -110,6 +110,11 @@ export function BookingSlideOut({
   };
 
   const handleSubmit = () => {
+    if (!formData.time) {
+      console.error('Cannot submit booking without time');
+      return;
+    }
+    
     onSave({
       ...formData,
       startTime: formData.time,
@@ -207,7 +212,7 @@ export function BookingSlideOut({
                   className={cn(
                     "p-4 rounded-lg border-2 text-left transition-all",
                     formData.serviceId === service.id
-                      ? "border-purple-500 bg-purple-50"
+                      ? "border-teal-500 bg-teal-50"
                       : "border-gray-200 hover:border-gray-300"
                   )}
                   onClick={() => setFormData({ ...formData, serviceId: service.id })}
@@ -264,7 +269,7 @@ export function BookingSlideOut({
               <Label>Date</Label>
               <Input
                 type="date"
-                value={format(formData.date, "yyyy-MM-dd")}
+                value={formData.date ? format(formData.date, "yyyy-MM-dd") : ""}
                 onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
                 className="mt-1"
               />
@@ -274,10 +279,10 @@ export function BookingSlideOut({
               <Label>Time</Label>
               <Input
                 type="time"
-                value={format(formData.time, "HH:mm")}
+                value={formData.time ? format(formData.time, "HH:mm") : ""}
                 onChange={(e) => {
                   const [hours, minutes] = e.target.value.split(':');
-                  const newTime = new Date(formData.date);
+                  const newTime = new Date(formData.date || new Date());
                   newTime.setHours(parseInt(hours), parseInt(minutes));
                   setFormData({ ...formData, time: newTime });
                 }}
@@ -302,8 +307,8 @@ export function BookingSlideOut({
       case "confirm":
         return (
           <div className="space-y-4">
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <h4 className="font-medium text-purple-900 mb-3">Booking Summary</h4>
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+              <h4 className="font-medium text-teal-900 mb-3">Booking Summary</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Customer:</span>
@@ -338,7 +343,9 @@ export function BookingSlideOut({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Date & Time:</span>
                   <span className="font-medium">
-                    {format(formData.date, "MMM d, yyyy")} at {format(formData.time, "h:mm a")}
+                    {formData.date && formData.time ? 
+                      `${format(formData.date, "MMM d, yyyy")} at ${format(formData.time, "h:mm a")}` : 
+                      "Not selected"}
                   </span>
                 </div>
               </div>
@@ -399,7 +406,7 @@ export function BookingSlideOut({
               <Button 
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 Next
                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -407,7 +414,7 @@ export function BookingSlideOut({
             ) : (
               <Button 
                 onClick={handleSubmit}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 Confirm Booking
               </Button>
@@ -431,7 +438,7 @@ export function BookingSlideOut({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",
                   currentStep === step.id
-                    ? "bg-purple-100 text-purple-700"
+                    ? "bg-teal-100 text-teal-700"
                     : index < currentStepIndex
                     ? "text-green-600"
                     : "text-gray-400"

@@ -26,7 +26,7 @@ const AVAILABLE_ICONS = [
 
 const AVAILABLE_COLORS = [
   '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
-  '#3B82F6', '#6366F1', '#84CC16', '#06B6D4', '#F97316'
+  '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
 ];
 
 export default function CategoryDialog({ isOpen, onClose, category, onSuccess }: CategoryDialogProps) {
@@ -124,7 +124,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="e.g., Hair Services, Facials, Massages"
               required
               autoFocus
@@ -139,7 +139,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               rows={2}
               placeholder="Optional: Add a brief description"
             />
@@ -157,7 +157,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
                   onClick={() => setFormData({ ...formData, icon: name })}
                   className={`p-2 border rounded-md flex items-center justify-center ${
                     formData.icon === name
-                      ? 'border-purple-500 bg-purple-50'
+                      ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
@@ -196,7 +196,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
               type="number"
               value={formData.sortOrder}
               onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -206,7 +206,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
               Active
@@ -224,7 +224,7 @@ export default function CategoryDialog({ isOpen, onClose, category, onSuccess }:
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
             >
               {loading ? (
                 <>

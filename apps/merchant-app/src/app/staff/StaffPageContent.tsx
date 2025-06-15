@@ -68,7 +68,7 @@ const calendarColors = [
   { value: '#3B82F6', label: 'Blue' },
   { value: '#10B981', label: 'Green' },
   { value: '#EC4899', label: 'Pink' },
-  { value: '#6366F1', label: 'Indigo' },
+  { value: '#06B6D4', label: 'Cyan' },
 ];
 
 export default function StaffPageContent() {
@@ -131,12 +131,25 @@ export default function StaffPageContent() {
   });
 
   const handleCreate = async () => {
+    // Validate PIN
+    if (!/^\d{4}$/.test(formData.pin)) {
+      toast({
+        title: "Error",
+        description: "PIN must be exactly 4 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await apiClient.createStaff(formData);
+      const response = await apiClient.createStaff(formData);
+      
+      // Show success message
       toast({
         title: "Success",
         description: "Staff member created successfully",
       });
+      
       setIsCreateDialogOpen(false);
       resetForm();
       loadStaff();
@@ -152,8 +165,18 @@ export default function StaffPageContent() {
   const handleUpdate = async () => {
     if (!selectedStaff) return;
     
+    // Validate PIN if provided
+    if (formData.pin && !/^\d{4}$/.test(formData.pin)) {
+      toast({
+        title: "Error",
+        description: "PIN must be exactly 4 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      // Prepare update data without email and pin fields
+      // Prepare update data without email field
       const updateData: any = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -164,16 +187,19 @@ export default function StaffPageContent() {
         commissionRate: formData.commissionRate,
       };
       
-      // If pin is provided, use newPin field
+      // If pin is provided, include it
       if (formData.pin) {
-        updateData.newPin = formData.pin;
+        updateData.pin = formData.pin;
       }
       
-      await apiClient.updateStaff(selectedStaff.id, updateData);
+      const response = await apiClient.updateStaff(selectedStaff.id, updateData);
+      
+      // Show success message
       toast({
         title: "Success",
-        description: "Staff member updated successfully",
+        description: formData.pin ? "Staff member and PIN updated successfully" : "Staff member updated successfully",
       });
+      
       setIsEditDialogOpen(false);
       resetForm();
       loadStaff();
@@ -298,6 +324,22 @@ export default function StaffPageContent() {
           <div className="flex items-center space-x-2">
             <Shield className="h-4 w-4 text-gray-400" />
             <span>{level?.label || 'Unknown'}</span>
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: 'pin',
+      header: 'PIN',
+      cell: ({ row }: any) => {
+        const staff = row.original;
+        if (!staff.pin && !staff.hasPinSet) {
+          return <span className="text-red-500 text-sm">Not Set</span>;
+        }
+        return (
+          <div className="flex items-center space-x-2">
+            <Key className="h-4 w-4 text-gray-400" />
+            <span className="font-mono">{staff.pin || '****'}</span>
           </div>
         );
       }
@@ -533,7 +575,12 @@ export default function StaffPageContent() {
                     id="pin"
                     type={showPin ? "text" : "password"}
                     value={formData.pin}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      if (value.length <= 4) {
+                        setFormData({ ...formData, pin: value });
+                      }
+                    }}
                     placeholder="4-digit PIN"
                     maxLength={4}
                     required
@@ -548,7 +595,7 @@ export default function StaffPageContent() {
                     {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-sm text-gray-500">Staff will use this PIN to access the POS</p>
+                <p className="text-sm text-gray-500">Staff will use this 4-digit PIN for authorizing actions</p>
               </div>
               
               <div className="space-y-2">
@@ -698,7 +745,12 @@ export default function StaffPageContent() {
                     id="pin"
                     type={showPin ? "text" : "password"}
                     value={formData.pin}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      if (value.length <= 4) {
+                        setFormData({ ...formData, pin: value });
+                      }
+                    }}
                     placeholder="4-digit PIN"
                     maxLength={4}
                   />

@@ -7,9 +7,11 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { BookingsService } from '../bookings/bookings.service';
+import { AvailabilityService } from '../bookings/availability.service';
 import { BookingStatus } from '../bookings/dto/create-booking.dto';
 import { ServicesService } from '../services/services.service';
 import { StaffService } from '../staff/staff.service';
@@ -39,6 +41,7 @@ interface CheckAvailabilityDto {
 export class PublicBookingController {
   constructor(
     private readonly bookingsService: BookingsService,
+    private readonly availabilityService: AvailabilityService,
     private readonly servicesService: ServicesService,
     private readonly staffService: StaffService,
     private readonly prisma: PrismaService,
@@ -391,57 +394,62 @@ export class PublicBookingController {
       throw new BadRequestException('No staff available');
     }
 
-    // Use the bookings service to create the booking (which generates proper booking number)
-    const booking = await this.bookingsService.create(
-      merchant.id,
-      {
+    try {
+      // Use availability service to create booking with double-booking prevention
+      const booking = await this.availabilityService.createBookingWithLock({
+        staffId: staffId,
+        serviceId: service.id,
         customerId: customer.id,
-        providerId: staffId,
+        startTime: startTime,
         locationId: location.id,
-        startTime: startTime.toISOString(),
-        services: [{
-          serviceId: service.id,
-          price: toNumber(service.price),
-          duration: service.duration,
-        }],
-        totalAmount: toNumber(service.price),
+        merchantId: merchant.id,
         notes: dto.notes,
-        status: BookingStatus.CONFIRMED,
-      },
-      staffId,
-    );
+        source: 'ONLINE',
+        createdById: staffId, // For public bookings, use the staff as creator
+        isOverride: false, // Never allow overrides from public API
+      });
 
-    console.log('Public controller received booking:', booking.id, 'with number:', booking.bookingNumber);
+      console.log('Public controller received booking:', booking.id, 'with number:', booking.bookingNumber);
 
-    const firstService = booking.services?.[0];
-    const serviceName = firstService?.service?.name || service.name;
+      const firstService = booking.services?.[0];
+      const serviceName = firstService?.service?.name || service.name;
     
-    // Convert the stored UTC times back to the location's timezone for display
-    const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, location.timezone);
-    const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, location.timezone);
-    
-    return {
-      id: booking.id,
-      bookingNumber: booking.bookingNumber,
-      customerName: dto.customerName,
-      customerEmail: dto.customerEmail,
-      customerPhone: dto.customerPhone,
-      serviceId: service.id,
-      serviceName: serviceName,
-      staffId: booking.providerId,
-      staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
-      date: startTimeDisplay.date.split('/')[2] + '-' + 
-            startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 
-            startTimeDisplay.date.split('/')[0].padStart(2, '0'), // Convert DD/MM/YYYY to YYYY-MM-DD
-      startTime: startTimeDisplay.time.substring(0, 5), // Remove seconds if present
-      endTime: endTimeDisplay.time.substring(0, 5), // Remove seconds if present
-      duration: service.duration,
-      price: toNumber(service.price),
-      status: booking.status,
-      notes: booking.notes,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-    };
+      // Convert the stored UTC times back to the location's timezone for display
+      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, location.timezone);
+      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, location.timezone);
+      
+      return {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerName: dto.customerName,
+        customerEmail: dto.customerEmail,
+        customerPhone: dto.customerPhone,
+        serviceId: service.id,
+        serviceName: serviceName,
+        staffId: booking.providerId,
+        staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
+        date: startTimeDisplay.date.split('/')[2] + '-' + 
+              startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 
+              startTimeDisplay.date.split('/')[0].padStart(2, '0'), // Convert DD/MM/YYYY to YYYY-MM-DD
+        startTime: startTimeDisplay.time.substring(0, 5), // Remove seconds if present
+        endTime: endTimeDisplay.time.substring(0, 5), // Remove seconds if present
+        duration: service.duration,
+        price: toNumber(service.price),
+        status: booking.status,
+        notes: booking.notes,
+        createdAt: booking.createdAt.toISOString(),
+        updatedAt: booking.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        // Return a more user-friendly error for booking conflicts
+        throw new ConflictException({
+          message: 'This time slot is no longer available. Please choose a different time.',
+          conflicts: error.getResponse()['conflicts'],
+        });
+      }
+      throw error;
+    }
   }
 
   @Get('bookings/:id')

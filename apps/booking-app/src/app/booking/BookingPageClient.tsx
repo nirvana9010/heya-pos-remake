@@ -23,6 +23,7 @@ import { TimezoneUtils } from "@heya-pos/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CustomerIdentification } from "../../components/CustomerIdentification";
 import { PaymentStep } from "../../components/PaymentStep";
+import { TimeDisplay, TimezoneIndicator } from "@/components/TimeDisplay";
 
 
 const steps = [
@@ -409,13 +410,12 @@ export default function BookingPageClient() {
     <div className="mb-12">
       <div className="relative max-w-3xl mx-auto">
         {/* Background gradient line */}
-        <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-teal-100 via-emerald-100 to-teal-100 rounded-full" />
+        <div className="absolute top-6 left-0 right-0 h-1 bg-muted/30 rounded-full" />
         
         {/* Progress line - no animation on re-renders */}
         <div 
-          className="absolute top-6 left-0 h-1 rounded-full transition-all duration-700 ease-in-out"
+          className="absolute top-6 left-0 h-1 rounded-full transition-all duration-700 ease-in-out bg-gradient-to-r from-primary to-secondary"
           style={{
-            background: 'linear-gradient(90deg, #14B8A6 0%, #10B981 100%)',
             width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`
           }}
         />
@@ -434,9 +434,9 @@ export default function BookingPageClient() {
                 <div
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
-                    isActive && "bg-gradient-to-r from-teal-500 to-emerald-500 shadow-lg scale-125",
-                    isCompleted && "bg-gradient-to-r from-teal-400 to-emerald-400",
-                    !isActive && !isCompleted && "bg-gray-100"
+                    isActive && "bg-gradient-to-r from-primary to-secondary shadow-lg scale-125",
+                    isCompleted && "bg-gradient-to-r from-primary/80 to-secondary/80",
+                    !isActive && !isCompleted && "bg-muted"
                   )}
                 >
                   <Icon className={cn(
@@ -538,8 +538,8 @@ export default function BookingPageClient() {
               className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
                 selectedCategory === null
-                  ? "bg-teal-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
               All Services
@@ -551,8 +551,8 @@ export default function BookingPageClient() {
                 className={cn(
                   "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
                   selectedCategory === category
-                    ? "bg-teal-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
                 {category}
@@ -589,8 +589,8 @@ export default function BookingPageClient() {
                               "relative cursor-pointer rounded-lg border-2 transition-all duration-200",
                               "hover:shadow-md",
                               isSelected 
-                                ? "border-teal-500 bg-teal-50 shadow-md" 
-                                : "border-gray-200 bg-white hover:border-gray-300"
+                                ? "border-primary bg-primary/5 shadow-md" 
+                                : "border-border bg-card hover:border-border/80"
                             )}
                             onClick={() => setSelectedService(service.id)}
                           >
@@ -609,7 +609,7 @@ export default function BookingPageClient() {
                                 </div>
                                 <RadioGroupItem 
                                   value={service.id} 
-                                  className="mt-0.5 data-[state=checked]:border-teal-500 data-[state=checked]:text-teal-500" 
+                                  className="mt-0.5 data-[state=checked]:border-primary data-[state=checked]:text-primary" 
                                 />
                               </div>
                               
@@ -652,14 +652,14 @@ export default function BookingPageClient() {
                           className={cn(
                             "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all",
                             isSelected 
-                              ? "bg-teal-50 border-2 border-teal-500" 
-                              : "bg-white border-2 border-gray-200 hover:border-gray-300"
+                              ? "bg-primary/5 border-2 border-primary" 
+                              : "bg-card border-2 border-border hover:border-border/80"
                           )}
                           onClick={() => setSelectedService(service.id)}
                         >
                           <RadioGroupItem 
                             value={service.id} 
-                            className="data-[state=checked]:border-teal-500 data-[state=checked]:text-teal-500" 
+                            className="data-[state=checked]:border-primary data-[state=checked]:text-primary" 
                           />
                           <div className="flex-1">
                             <h4 className="font-medium text-sm">{service.name}</h4>
@@ -720,7 +720,7 @@ export default function BookingPageClient() {
                     <Sparkles className="h-6 w-6 text-primary" />
                   </motion.div>
                   <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-base font-medium flex items-center gap-2">
                       Any Available
                       <Badge variant="secondary" className="text-xs">Smart Match</Badge>
                     </CardTitle>
@@ -776,7 +776,7 @@ export default function BookingPageClient() {
                         {member.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{member.name}</CardTitle>
+                        <CardTitle className="text-base font-medium">{member.name}</CardTitle>
                         <p className="text-sm text-muted-foreground">{specialty}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex">
@@ -850,13 +850,13 @@ export default function BookingPageClient() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-50 to-pink-50 rounded-2xl p-6"
+          className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Selected Treatment</p>
-                <p className="font-serif text-xl">{service?.name}</p>
+                <p className="font-display text-lg font-medium">{service?.name}</p>
               </div>
               <div className="h-12 w-px bg-gray-300" />
               <div>
@@ -894,7 +894,7 @@ export default function BookingPageClient() {
           className="space-y-6"
         >
           <div className="text-center">
-            <h3 className="font-serif text-3xl mb-2">Choose Your Perfect Time</h3>
+            <h3 className="font-display text-2xl font-semibold mb-2">Choose Your Perfect Time</h3>
             <p className="text-muted-foreground">Select a date to see available appointment times</p>
           </div>
           
@@ -920,9 +920,9 @@ export default function BookingPageClient() {
                   months: "space-y-6",
                   month: "space-y-6 w-full",
                   caption: "flex justify-center pt-2 relative items-center mb-8",
-                  caption_label: "font-serif text-3xl font-medium text-gray-900",
+                  caption_label: "font-display text-xl font-semibold text-gray-900",
                   nav: "space-x-1 flex items-center",
-                  nav_button: "h-12 w-12 bg-white hover:bg-teal-50 rounded-full transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-teal-300 hover:scale-110",
+                  nav_button: "h-12 w-12 bg-card hover:bg-primary/5 rounded-full transition-all duration-200 flex items-center justify-center border border-border hover:border-primary/30 hover:scale-110",
                   nav_button_previous: "absolute left-1",
                   nav_button_next: "absolute right-1",
                   table: "w-full border-collapse",
@@ -937,16 +937,16 @@ export default function BookingPageClient() {
                   day: cn(
                     "h-14 w-14 p-0 font-normal text-base rounded-xl",
                     "transition-all duration-200",
-                    "hover:bg-teal-50 hover:scale-105",
-                    "focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2",
+                    "hover:bg-primary/5 hover:scale-105",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2",
                     "aria-selected:opacity-100"
                   ),
-                  day_selected: "bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold hover:from-teal-600 hover:to-emerald-600 shadow-lg",
-                  day_today: "bg-teal-100 text-teal-900 font-bold ring-2 ring-teal-300 ring-offset-2",
+                  day_selected: "bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:from-primary/90 hover:to-secondary/90 shadow-lg",
+                  day_today: "bg-primary/10 text-primary font-bold ring-2 ring-primary/30 ring-offset-2",
                   day_outside: "text-gray-300 opacity-50",
                   day_disabled: "text-gray-300 opacity-40 cursor-not-allowed hover:bg-transparent hover:scale-100",
                   day_hidden: "invisible",
-                  day_range_middle: "aria-selected:bg-teal-100 aria-selected:text-teal-900",
+                  day_range_middle: "aria-selected:bg-primary/10 aria-selected:text-primary",
                 }}
                 components={{
                   IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5 text-gray-600" />,
@@ -957,11 +957,11 @@ export default function BookingPageClient() {
               {/* Weekend indicator */}
               <div className="mt-6 flex items-center justify-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-teal-100" />
+                  <div className="w-4 h-4 rounded bg-primary/10" />
                   <span className="text-gray-600">Today</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-gradient-to-r from-teal-500 to-emerald-500" />
+                  <div className="w-4 h-4 rounded bg-gradient-to-r from-primary to-secondary" />
                   <span className="text-gray-600">Selected</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -985,13 +985,18 @@ export default function BookingPageClient() {
               className="space-y-6"
             >
               <div className="text-center">
-                <h3 className="font-serif text-2xl mb-2">
+                <h3 className="font-display text-xl font-semibold mb-2">
                   Available Times for {merchantInfo ? 
                     TimezoneUtils.formatInTimezone(selectedDate, merchantInfo.timezone, 'EEEE, MMMM d') : 
                     format(selectedDate, 'EEEE, MMMM d')}
                 </h3>
                 {hasAvailableSlots ? (
-                  <p className="text-muted-foreground">Select your preferred appointment time</p>
+                  <>
+                    <p className="text-muted-foreground mb-3">Select your preferred appointment time</p>
+                    <div className="flex justify-center">
+                      <TimezoneIndicator />
+                    </div>
+                  </>
                 ) : (
                   <p className="text-amber-600">No availability on this date - please try another</p>
                 )}
@@ -1017,7 +1022,7 @@ export default function BookingPageClient() {
                       },
                       evening: { 
                         icon: Moon, 
-                        gradient: 'from-teal-50 to-emerald-50',
+                        gradient: 'from-primary/5 to-secondary/5',
                         label: 'Evening',
                         description: 'Unwind after your day'
                       }
@@ -1038,7 +1043,7 @@ export default function BookingPageClient() {
                             <Icon className="h-5 w-5 text-gray-700" />
                           </div>
                           <div>
-                            <h4 className="font-serif text-xl">{config.label}</h4>
+                            <h4 className="font-display text-lg font-medium">{config.label}</h4>
                             <p className="text-sm text-muted-foreground">{config.description}</p>
                           </div>
                         </div>
@@ -1062,8 +1067,8 @@ export default function BookingPageClient() {
                                   onClick={() => setSelectedTime(slot.time)}
                                   className={cn(
                                     "w-full p-4 rounded-xl transition-all duration-300 relative group",
-                                    slot.available && !isSelected && "bg-white hover:shadow-lg hover:shadow-teal-200/50",
-                                    slot.available && isSelected && "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg",
+                                    slot.available && !isSelected && "bg-card hover:shadow-lg hover:shadow-primary/20",
+                                    slot.available && isSelected && "bg-gradient-to-r from-primary to-secondary text-white shadow-lg",
                                     !slot.available && "bg-gray-100 cursor-not-allowed opacity-50"
                                   )}
                                 >
@@ -1090,7 +1095,7 @@ export default function BookingPageClient() {
                                     <motion.div
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
-                                      className="absolute inset-0 rounded-xl ring-4 ring-teal-300 ring-offset-2"
+                                      className="absolute inset-0 rounded-xl ring-4 ring-primary/30 ring-offset-2"
                                     />
                                   )}
                                 </button>
@@ -1180,7 +1185,7 @@ export default function BookingPageClient() {
           </motion.div>
           
           <motion.h2 
-            className="text-3xl font-bold mb-2"
+            className="text-2xl font-display font-bold mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -1208,7 +1213,7 @@ export default function BookingPageClient() {
               <Badge variant="secondary" className="mb-2 mx-auto">
                 {bookingNumber || 'PENDING'}
               </Badge>
-              <CardTitle className="text-xl">Appointment Confirmation</CardTitle>
+              <CardTitle className="text-lg font-display">Appointment Confirmation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Service Details */}
@@ -1243,7 +1248,13 @@ export default function BookingPageClient() {
                         day: "numeric" 
                       })}
                   </p>
-                  <p className="text-sm text-muted-foreground">at {selectedTime}</p>
+                  <p className="text-sm text-muted-foreground">
+                    at <TimeDisplay 
+                      date={`${format(selectedDate!, 'yyyy-MM-dd')}T${selectedTime}:00`} 
+                      format="time" 
+                      showTimezone={true} 
+                    />
+                  </p>
                 </div>
               </div>
               
@@ -1386,10 +1397,10 @@ export default function BookingPageClient() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl mb-6 text-foreground/90">
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground/90 tracking-tight">
               {merchantInfo?.name || 'Serenity Spa'}
             </h1>
-            <p className="text-xl md:text-2xl text-foreground/70 font-light mb-12">
+            <p className="text-lg md:text-xl text-foreground/70 font-light mb-12">
               Where luxury meets tranquility
             </p>
             
@@ -1442,7 +1453,7 @@ export default function BookingPageClient() {
           <div className="max-w-5xl mx-auto">
             <Card className="luxury-card border-0">
               <CardHeader className="text-center pb-8 pt-10">
-                <CardTitle className="font-serif text-4xl md:text-5xl mb-4">
+                <CardTitle className="font-display text-2xl md:text-3xl font-semibold mb-3">
                   {currentStep === 1 && "Select Your Treatment"}
                   {currentStep === 2 && "Choose Your Specialist"}
                   {currentStep === 3 && "Schedule Your Visit"}

@@ -105,7 +105,7 @@ const userColumns = [
     cell: ({ row }: any) => {
       const role = row.original.role;
       const roleConfig = {
-        superadmin: { label: "Super Admin", icon: Shield, color: "text-purple-600 bg-purple-50" },
+        superadmin: { label: "Super Admin", icon: Shield, color: "text-teal-600 bg-teal-50" },
         admin: { label: "Admin", color: "text-blue-600 bg-blue-50" },
         support: { label: "Support", color: "text-green-600 bg-green-50" },
       };
@@ -291,8 +291,8 @@ export default function UsersPage() {
                 <p className="text-sm text-muted-foreground">Platform Admins</p>
                 <p className="text-2xl font-bold">{platformAdmins.length}</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <Shield className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-teal-100 rounded-full">
+                <Shield className="h-6 w-6 text-teal-600" />
               </div>
             </div>
           </CardContent>

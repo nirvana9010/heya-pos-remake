@@ -10,8 +10,15 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-playfair)', 'Cormorant Garamond', 'serif'],
+        'sans': ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        'serif': ['var(--font-playfair)', 'Georgia', 'serif'],
+        'display': ['var(--font-manrope)', 'var(--font-dm-sans)', 'sans-serif'],
+      },
+      letterSpacing: {
+        'tighter': '-0.02em',
+        'tight': '-0.01em',
+        'normal': '0',
+        'wide': '0.01em',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

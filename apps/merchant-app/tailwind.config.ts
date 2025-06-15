@@ -9,6 +9,16 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'sans': ['DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        'display': ['Manrope', 'DM Sans', 'sans-serif'],
+      },
+      letterSpacing: {
+        'tighter': '-0.02em',
+        'tight': '-0.01em',
+        'normal': '0',
+        'wide': '0.01em',
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -37,5 +47,6 @@ const config: Config = {
     },
   },
   plugins: [],
+  presets: [require('../../packages/ui/tailwind.config')]
 }
 export default config

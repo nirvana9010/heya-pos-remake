@@ -34,6 +34,10 @@ export interface MerchantSettings {
   // Payment settings
   requireDeposit: boolean;
   depositPercentage: number; // 1-100
+  // Tips settings (disabled by default in Australia)
+  enableTips: boolean;
+  defaultTipPercentages?: number[]; // e.g., [10, 15, 20]
+  allowCustomTipAmount?: boolean;
 }
 
 export enum MerchantStatus {

@@ -72,26 +72,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: collapsed ? 'center' : 'space-between',
-        marginBottom: 'var(--space-8)',
+        marginBottom: '2rem',
         height: '60px'
       }}>
         {!collapsed && (
           <div className="sidebar-logo">
             <Sparkles size={28} />
-            <span style={{ fontSize: 'var(--text-xl)' }}>
+            <span style={{ fontSize: '1.25rem' }}>
               Heya
             </span>
           </div>
         )}
         {collapsed && (
-          <Sparkles size={28} style={{ color: 'var(--primary)' }} />
+          <Sparkles size={28} style={{ color: 'var(--color-primary)' }} />
         )}
         
         <button
           onClick={() => onToggle(!collapsed)}
           className="btn btn-ghost btn-sm"
           style={{
-            padding: 'var(--space-2)'
+            padding: '0.5rem'
           }}
         >
           {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
@@ -99,7 +99,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
         {navigation.map((item, index) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href)
           return (
@@ -122,9 +122,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Logout Section */}
       <div style={{ 
-        borderTop: '1px solid var(--border)', 
-        paddingTop: 'var(--space-4)',
-        marginTop: 'var(--space-4)'
+        borderTop: '1px solid var(--color-border)', 
+        paddingTop: '1rem',
+        marginTop: '1rem'
       }}>
         <button
           className="nav-item"

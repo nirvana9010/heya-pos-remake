@@ -37,7 +37,7 @@ async function main() {
       maxLocations: 1,
       maxStaff: 5,
       maxCustomers: 1000,
-      features: JSON.stringify(['basic_booking', 'customer_management', 'basic_reports']),
+      features: ['basic_booking', 'customer_management', 'basic_reports'],
     },
   });
 
@@ -49,7 +49,7 @@ async function main() {
       maxLocations: 3,
       maxStaff: 15,
       maxCustomers: 5000,
-      features: JSON.stringify(['advanced_booking', 'customer_management', 'advanced_reports', 'loyalty_program', 'multi_location']),
+      features: ['advanced_booking', 'customer_management', 'advanced_reports', 'loyalty_program', 'multi_location'],
     },
   });
 
@@ -66,12 +66,22 @@ async function main() {
       trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       website: 'https://hamiltonbeauty.com',
       description: 'Premium beauty and wellness spa in Hamilton',
-      settings: JSON.stringify({
+      settings: {
         currency: 'AUD',
         timezone: 'Australia/Sydney',
         bookingBuffer: 15, // minutes between bookings
         cancellationHours: 24,
-      }),
+        bookingAdvanceHours: 168, // 7 days
+        loyaltyType: 'visit',
+        loyaltyRate: 1,
+        requirePinForRefunds: true,
+        requirePinForCancellations: true,
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '12h',
+        // Payment settings
+        requireDeposit: true,
+        depositPercentage: 30, // 30% deposit required
+      },
     },
   });
 
@@ -98,7 +108,7 @@ async function main() {
       phone: '+61 2 9456 7890',
       email: 'hamilton@hamiltonbeauty.com',
       timezone: 'Australia/Sydney',
-      businessHours: JSON.stringify({
+      businessHours: {
         monday: { open: '09:00', close: '18:00' },
         tuesday: { open: '09:00', close: '18:00' },
         wednesday: { open: '09:00', close: '20:00' },
@@ -106,8 +116,8 @@ async function main() {
         friday: { open: '09:00', close: '18:00' },
         saturday: { open: '09:00', close: '17:00' },
         sunday: { open: '10:00', close: '16:00' },
-      }),
-      settings: JSON.stringify({}),
+      },
+      settings: {},
     },
   });
 
@@ -315,7 +325,7 @@ async function main() {
       postalCode: '2026',
       marketingConsent: true,
       notes: 'Prefers morning appointments',
-      tags: JSON.stringify([]),
+      tags: [],
     },
   });
 
@@ -334,7 +344,7 @@ async function main() {
       postalCode: '2089',
       marketingConsent: true,
       notes: 'Allergic to certain oils',
-      tags: JSON.stringify([]),
+      tags: [],
     },
   });
 

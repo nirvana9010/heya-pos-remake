@@ -1,3 +1,10 @@
+// Import PaymentMethod, PaymentStatus and RefundStatus from payments module
+import { PaymentMethod, PaymentStatus, RefundStatus } from '../payments';
+import type { Invoice } from './';
+
+// Re-export for backwards compatibility
+export { PaymentMethod, PaymentStatus, RefundStatus };
+
 export interface Payment {
   id: string;
   merchantId: string;
@@ -32,29 +39,3 @@ export interface PaymentRefund {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export enum PaymentMethod {
-  CASH = 'CASH',
-  CARD = 'CARD',
-  CARD_STRIPE = 'CARD_STRIPE',
-  CARD_TYRO = 'CARD_TYRO',
-  BANK_TRANSFER = 'BANK_TRANSFER',
-  DIGITAL_WALLET = 'DIGITAL_WALLET',
-  OTHER = 'OTHER'
-}
-
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
-  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED'
-}
-
-export enum RefundStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED'
-}
-
-import type { Invoice } from './';

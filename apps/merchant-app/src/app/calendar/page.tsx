@@ -2,6 +2,57 @@
 
 import dynamic from 'next/dynamic';
 import { PageLoader } from '@/components/PageLoader';
+import React from 'react';
+
+// Error boundary to catch and log the specific error
+class CalendarErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Calendar Page Error:", error);
+    console.error("Error Info:", errorInfo);
+    
+    // Log the error message to help debug
+    if (error.message.includes('Objects are not valid as a React child')) {
+      console.error('Date rendering error detected. Check for Date objects being rendered directly.');
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 bg-red-50 text-red-600 rounded-lg m-4">
+          <h2 className="text-xl font-semibold mb-4">Calendar Error</h2>
+          <p className="mb-4">The calendar encountered an error while loading.</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer font-medium">Error details</summary>
+            <pre className="mt-2 text-xs overflow-auto bg-red-100 p-4 rounded">
+              {this.state.error?.toString()}
+            </pre>
+          </details>
+          <button 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            onClick={() => window.location.reload()}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Dynamically import the page content
 const CalendarPageContent = dynamic(
@@ -14,5 +65,9 @@ const CalendarPageContent = dynamic(
 
 // This lightweight wrapper loads instantly
 export default function CalendarPage() {
-  return <CalendarPageContent />;
+  return (
+    <CalendarErrorBoundary>
+      <CalendarPageContent />
+    </CalendarErrorBoundary>
+  );
 }

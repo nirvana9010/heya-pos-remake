@@ -13,7 +13,9 @@ import {
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { BookingsGateway } from './bookings.gateway';
+import { AvailabilityService } from './availability.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateBookingWithOverrideDto } from './dto/create-booking-with-override.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { QueryBookingsDto } from './dto/query-bookings.dto';
@@ -29,6 +31,7 @@ export class BookingsController {
   constructor(
     private readonly bookingsService: BookingsService,
     private readonly bookingsGateway: BookingsGateway,
+    private readonly availabilityService: AvailabilityService,
   ) {}
 
   @Post()
@@ -41,6 +44,39 @@ export class BookingsController {
     this.bookingsGateway.emitBookingCreated(user.merchantId, booking);
     
     return booking;
+  }
+
+  @Post('create-with-check')
+  @UseGuards(PinAuthGuard)
+  @Permissions('booking.create')
+  async createWithDoubleBookingCheck(
+    @CurrentUser() user: any, 
+    @Body() dto: CreateBookingWithOverrideDto
+  ) {
+    try {
+      const booking = await this.availabilityService.createBookingWithLock({
+        staffId: dto.staffId,
+        serviceId: dto.serviceId,
+        customerId: dto.customerId,
+        startTime: new Date(dto.startTime),
+        locationId: dto.locationId,
+        merchantId: user.merchantId,
+        notes: dto.notes,
+        source: 'MANUAL',
+        createdById: user.id,
+        isOverride: dto.isOverride || false,
+        overrideReason: dto.overrideReason,
+        overrideApprovedBy: dto.isOverride ? user.id : undefined,
+      });
+
+      // Emit real-time update
+      this.bookingsGateway.emitBookingCreated(user.merchantId, booking);
+      
+      return booking;
+    } catch (error) {
+      // Let ConflictException pass through with conflict details
+      throw error;
+    }
   }
 
   @Get()
@@ -63,6 +99,34 @@ export class BookingsController {
     @Body() checkAvailabilityDto: CheckAvailabilityDto,
   ) {
     return this.bookingsService.checkAvailability(user.merchantId, checkAvailabilityDto);
+  }
+
+  @Get('available-slots')
+  @Permissions('booking.view')
+  async getAvailableSlots(
+    @CurrentUser() user: any,
+    @Query() query: any,
+  ) {
+    const slots = await this.availabilityService.getAvailableSlots({
+      staffId: query.staffId,
+      serviceId: query.serviceId,
+      startDate: new Date(query.startDate),
+      endDate: new Date(query.endDate),
+      timezone: query.timezone,
+    });
+
+    // For merchant app, return all slots with conflict information
+    return {
+      staffId: query.staffId,
+      serviceId: query.serviceId,
+      timezone: query.timezone || 'Australia/Sydney',
+      slots: slots.map(slot => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        available: slot.available,
+        conflictReason: slot.conflictReason,
+      })),
+    };
   }
 
   @Get(':id')
