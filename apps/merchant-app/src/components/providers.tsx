@@ -5,10 +5,11 @@ import { DashboardLayout } from './layout/dashboard-layout';
 import { AuthGuard } from './AuthGuard';
 import { PrefetchManager } from './PrefetchManager';
 import { PerformanceMonitor } from './PerformanceMonitor';
+import { TimezoneProvider } from '@/contexts/timezone-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/pin';
+  const isAuthPage = pathname === '/login';
   const isTestPage = pathname.startsWith('/test');
 
   // Only wrap protected routes in AuthGuard
@@ -18,9 +19,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      <PerformanceMonitor />
-      <PrefetchManager />
-      <DashboardLayout>{children}</DashboardLayout>
+      <TimezoneProvider>
+        <PerformanceMonitor />
+        <PrefetchManager />
+        <DashboardLayout>{children}</DashboardLayout>
+      </TimezoneProvider>
     </AuthGuard>
   );
 }

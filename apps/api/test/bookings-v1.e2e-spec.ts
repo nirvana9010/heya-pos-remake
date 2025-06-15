@@ -5,6 +5,13 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TestSeederService } from '../src/test/services/test-seeder.service';
 
+// Ensure test environment is loaded
+process.env.NODE_ENV = 'test';
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://postgres.hpvnmqvdgkfeykekosrh:***REMOVED***@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true';
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
 describe('Bookings v1 API (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;

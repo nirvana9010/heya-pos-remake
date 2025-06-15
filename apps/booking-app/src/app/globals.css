@@ -1,82 +1,301 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Luxurious Design System */
+/* 🌿 HEYA Light & Playful Mint Theme - Booking App */
 @layer base {
+  /* 🎨 SHADCN/UI REQUIRED VARIABLES - DO NOT REMOVE */
   :root {
-    /* Premium color palette */
-    --background: 0 0% 98%;
-    --foreground: 240 10% 3.9%;
+    /* Core shadcn/ui variables for component functionality */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 174 86% 27%;  /* Deep teal primary */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 173 58% 95%;
+    --secondary-foreground: 174 86% 27%;
+    --muted: 173 58% 95%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 174 86% 90%;  /* Light teal for hover states */
+    --accent-foreground: 174 86% 20%;  /* Dark teal text on light accent */
+    --destructive: 0 84.2% 43.1%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 174 30% 85%;  /* Slightly darker border for visibility */
+    --input: 174 30% 85%;  /* Darker input background for better contrast */
+    --ring: 174 86% 27%;
+    --radius: 0.5rem;
+    
+    /* =================================
+       PRIMARY BACKGROUNDS
+       ================================= */
+    /* Light, airy backgrounds that create a fresh salon atmosphere */
+    --color-background-primary: #F0FFF4;      /* Soft mint - main background */
+    --color-background-secondary: #E6FFFA;    /* Soft teal - alternate sections */
+    --color-background-soft: #F5FFF5;         /* Even lighter mint - subtle areas */
+    --color-surface: #FFFFFF;                 /* White - cards and overlays */
+    
+    /* Background Gradients for Hero/Special Sections */
+    --gradient-hero: linear-gradient(135deg, #A7F3D0 0%, #E6FFFA 50%, #FEFCE8 100%);
+    --gradient-subtle: linear-gradient(180deg, #F0FFF4 0%, #E6FFFA 100%);
+    --gradient-mint-glow: radial-gradient(circle at top right, rgba(167, 243, 208, 0.3), transparent 50%);
+    
+    /* =================================
+       PRIMARY COLORS
+       ================================= */
+    /* Dark colors for text and interactive elements - ensuring accessibility */
+    --color-primary: #0F766E;                 /* Deep teal - primary CTAs */
+    --color-primary-hover: #134E4A;           /* Darker teal - hover state */
+    --color-primary-light: #10B981;           /* Medium teal - secondary actions */
+    --color-primary-dark: #064E3B;            /* Darkest teal - emphasis */
+    
+    /* =================================
+       TEXT COLORS
+       ================================= */
+    /* High contrast text colors for excellent readability */
+    --color-text-primary: #0F172A;            /* Nearly black - main text */
+    --color-text-secondary: #334155;          /* Slate gray - secondary text */
+    --color-text-tertiary: #64748B;           /* Light gray - metadata */
+    --color-text-on-dark: #FFFFFF;            /* White - text on dark backgrounds */
+    --color-text-mint: #0F766E;               /* Teal - links and accents */
+    
+    /* =================================
+       PLAYFUL ACCENT COLORS
+       ================================= */
+    /* Beauty industry-inspired accent palette */
+    --color-accent-coral: #FF6B6B;            /* Coral pink - energy */
+    --color-accent-peach: #FFB088;            /* Soft peach - warmth */
+    --color-accent-lavender: #C7B2FF;         /* Light purple - luxury */
+    --color-accent-yellow: #FCD34D;           /* Sunny yellow - happiness */
+    --color-accent-mint-bright: #5DE0A6;      /* Bright mint - freshness */
+    
+    /* =================================
+       SEMANTIC COLORS
+       ================================= */
+    /* Functional colors that fit the mint theme */
+    --color-success: #059669;                 /* Green - different from primary */
+    --color-warning: #F59E0B;                 /* Amber - stands out on mint */
+    --color-error: #DC2626;                   /* Red - urgent actions */
+    --color-info: #0891B2;                    /* Cyan - informational */
+    
+    /* Success/Error backgrounds for notifications */
+    --color-success-bg: rgba(5, 150, 105, 0.1);
+    --color-warning-bg: rgba(245, 158, 11, 0.1);
+    --color-error-bg: rgba(220, 38, 38, 0.1);
+    --color-info-bg: rgba(8, 145, 178, 0.1);
+    
+    /* =================================
+       UI ELEMENT COLORS
+       ================================= */
+    /* Borders, shadows, and other UI details */
+    --color-border: rgba(15, 118, 110, 0.15); /* Tinted mint border */
+    --color-border-light: rgba(15, 118, 110, 0.08);
+    --color-shadow: rgba(15, 118, 110, 0.1);  /* Tinted shadows */
+    --color-focus-ring: rgba(15, 118, 110, 0.3);
+    
+    /* =================================
+       INTERACTIVE STATES
+       ================================= */
+    /* Hover, active, and focus states */
+    --color-hover-overlay: rgba(15, 118, 110, 0.05);
+    --color-active-overlay: rgba(15, 118, 110, 0.1);
+    --color-selected-bg: rgba(94, 234, 212, 0.2);
+    
+    /* =================================
+       CATEGORY COLORS
+       ================================= */
+    /* Service category color coding */
+    --category-hair: #FFB088;                 /* Peach */
+    --category-nails: #C7B2FF;                /* Lavender */
+    --category-waxing: #FF6B6B;               /* Coral */
+    --category-facial: #5DE0A6;               /* Bright mint */
+    --category-massage: #10B981;              /* Medium teal */
+    
+    /* Premium color palette (legacy mapping) */
+    --background: 160 100% 97%;              /* Mint background in HSL */
+    --foreground: 222 39% 14%;               /* Dark text */
+    --card: 0 0% 100%;                       /* White cards */
+    --card-foreground: 222 39% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 39% 14%;
     
     /* Sophisticated primary colors */
-    --primary: 262 83% 58%; /* Rich purple */
+    --primary: 174 86% 27%;                  /* Deep teal in HSL */
     --primary-foreground: 0 0% 100%;
     
     /* Elegant secondary colors */
-    --secondary: 340 65% 88%; /* Soft rose */
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 173 58% 95%;                /* Soft mint */
+    --secondary-foreground: 174 86% 27%;
     
     /* Muted tones */
-    --muted: 30 20% 95%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 173 58% 95%;
+    --muted-foreground: 215 16% 47%;
     
     /* Accent colors */
-    --accent: 280 65% 60%; /* Lavender */
+    --accent: 158 64% 52%;                   /* Bright mint */
     --accent-foreground: 0 0% 100%;
     
     /* Functional colors */
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262 83% 58%;
+    --border: 174 86% 27% / 0.15;
+    --input: 174 86% 27% / 0.15;
+    --ring: 174 86% 27%;
     --radius: 0.75rem;
     
     /* Font families */
-    --font-sans: var(--font-inter);
+    --font-sans: var(--font-dm-sans), 'DM Sans', -apple-system, sans-serif;
     --font-serif: var(--font-playfair), 'Cormorant Garamond', serif;
     
-    /* Gradient definitions */
-    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(280 65% 60%));
-    --gradient-secondary: linear-gradient(135deg, hsl(340 65% 88%), hsl(340 65% 78%));
-    --gradient-massage: linear-gradient(135deg, #4F46E5, #7C3AED);
-    --gradient-facial: linear-gradient(135deg, #EC4899, #F472B6);
-    --gradient-nails: linear-gradient(135deg, #F59E0B, #FBBF24);
-    --gradient-hair: linear-gradient(135deg, #059669, #10B981);
+    /* Primary Font Stack */
+    --font-primary: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-body: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Optional Display Font for Special Cases */
+    --font-display: var(--font-manrope), 'Manrope', 'DM Sans', -apple-system, sans-serif;
+    
+    /* Fallback System Fonts */
+    --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    
+    /* Font Weights */
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Letter Spacing Adjustments for DM Sans */
+    --letter-spacing-tight: -0.02em;
+    --letter-spacing-normal: -0.01em;
+    --letter-spacing-wide: 0.01em;
+    
+    /* Line Heights */
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.7;
+    
+    /* Gradient definitions (updated) */
+    --gradient-primary: linear-gradient(135deg, #0F766E, #10B981);
+    --gradient-secondary: linear-gradient(135deg, #E6FFFA, #A7F3D0);
+    --gradient-massage: linear-gradient(135deg, #10B981, #5DE0A6);
+    --gradient-facial: linear-gradient(135deg, #5DE0A6, #A7F3D0);
+    --gradient-nails: linear-gradient(135deg, #C7B2FF, #E9D5FF);
+    --gradient-hair: linear-gradient(135deg, #FFB088, #FED7AA);
     
     /* Shadows */
-    --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-medium: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
-    --shadow-luxury: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-soft: 0 4px 6px -1px rgba(15, 118, 110, 0.05), 0 2px 4px -2px rgba(15, 118, 110, 0.05);
+    --shadow-medium: 0 10px 15px -3px rgba(15, 118, 110, 0.08), 0 4px 6px -4px rgba(15, 118, 110, 0.08);
+    --shadow-luxury: 0 20px 25px -5px rgba(15, 118, 110, 0.1), 0 8px 10px -6px rgba(15, 118, 110, 0.1);
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 68%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 340 65% 78%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 280 65% 70%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 262 83% 68%;
+    --background: 174 86% 4%;
+    --foreground: 158 58% 95%;
+    --card: 174 86% 4%;
+    --card-foreground: 158 58% 95%;
+    --popover: 174 86% 4%;
+    --popover-foreground: 158 58% 95%;
+    --primary: 174 86% 27%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 30% 15%;
+    --secondary-foreground: 158 58% 95%;
+    --muted: 174 30% 15%;
+    --muted-foreground: 158 20% 65%;
+    --accent: 158 64% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 158 58% 95%;
+    --border: 174 30% 15%;
+    --input: 174 30% 15%;
+    --ring: 174 86% 70%;
+  }
+  
+  /* 🌸 Blush + Sage Luxury Theme */
+  .theme-sage-blush {
+    /* =================================
+       LUXURY SPA BACKGROUNDS
+       ================================= */
+    /* Warm, sophisticated backgrounds */
+    --color-background-primary: #F8F6F4;      /* Alabaster - main background */
+    --color-background-secondary: #FAF8F6;    /* Soft cream - alternate sections */
+    --color-background-soft: #FDFCFB;         /* Snow - subtle areas */
+    --color-surface: #FFFFFF;                 /* White - cards and overlays */
+    
+    /* Background Gradients for Luxury Feel */
+    --gradient-hero: linear-gradient(135deg, #F0D9D6 0%, #E8DDD6 50%, #F5F1ED 100%);
+    --gradient-subtle: linear-gradient(180deg, #F8F6F4 0%, #FAF8F6 100%);
+    --gradient-blush-glow: radial-gradient(circle at top right, rgba(217, 175, 172, 0.2), transparent 50%);
+    
+    /* =================================
+       PRIMARY COLORS (WCAG Compliant)
+       ================================= */
+    /* Accessible versions for text on colored backgrounds */
+    --color-primary: #B98B85;                 /* Accessible Blush - primary CTAs */
+    --color-primary-hover: #A17670;           /* Darker blush - hover state */
+    --color-primary-light: #D9AFAC;           /* Light blush - decorative only */
+    --color-primary-dark: #9D736E;            /* Darkest blush - emphasis */
+    
+    /* Sage accents */
+    --color-accent: #829180;                  /* Accessible Sage - secondary actions */
+    --color-accent-hover: #6F7E6D;            /* Darker sage - hover state */
+    --color-accent-light: #A3B1A1;            /* Light sage - decorative */
+    
+    /* =================================
+       TEXT COLORS
+       ================================= */
+    /* Premium, sophisticated text hierarchy */
+    --color-text-primary: #3D3A3A;            /* Charcoal - main text */
+    --color-text-secondary: #7B7878;          /* Stone - secondary text */
+    --color-text-tertiary: #9B9898;           /* Light stone - metadata */
+    --color-text-on-dark: #FFFFFF;            /* White - text on dark backgrounds */
+    --color-text-blush: #B98B85;              /* Blush - links and accents */
+    
+    /* =================================
+       LUXURY ACCENT COLORS
+       ================================= */
+    /* Sophisticated accent palette */
+    --color-accent-gold: #C0A068;             /* Soft gold - premium highlights */
+    --color-accent-success: #7A8A78;          /* Forest sage - success states */
+    --color-accent-error: #C75D5D;            /* Terracotta - error states */
+    --color-accent-lavender: #C7B2D6;         /* Soft lavender - special accents */
+    
+    /* Category Gradients with Luxury Feel */
+    --gradient-primary: linear-gradient(135deg, #B98B85, #D9AFAC);
+    --gradient-secondary: linear-gradient(135deg, #829180, #A3B1A1);
+    --gradient-massage: linear-gradient(135deg, #C7B2D6, #E8DDD6);
+    --gradient-facial: linear-gradient(135deg, #D9AFAC, #F0D9D6);
+    --gradient-nails: linear-gradient(135deg, #C0A068, #E8DDD6);
+    --gradient-hair: linear-gradient(135deg, #A3B1A1, #C7B2D6);
+    
+    /* Tailwind-compatible HSL values */
+    --background: 30 25% 97%;                 /* Alabaster */
+    --foreground: 0 4% 23%;                   /* Charcoal */
+    --card: 0 0% 100%;                        /* White */
+    --card-foreground: 0 4% 23%;              /* Charcoal */
+    --popover: 0 0% 100%;                     /* White */
+    --popover-foreground: 0 4% 23%;           /* Charcoal */
+    --primary: 7 26% 60%;                     /* Accessible Blush */
+    --primary-foreground: 0 0% 100%;          /* White */
+    --secondary: 117 7% 56%;                  /* Accessible Sage */
+    --secondary-foreground: 0 0% 100%;        /* White */
+    --muted: 30 15% 95%;                      /* Soft cream */
+    --muted-foreground: 0 2% 47%;             /* Stone */
+    --accent: 46 32% 60%;                     /* Soft gold */
+    --accent-foreground: 0 0% 100%;           /* White */
+    --destructive: 0 45% 60%;                 /* Terracotta */
+    --destructive-foreground: 0 0% 100%;      /* White */
+    --border: 30 10% 90%;                     /* Soft border */
+    --input: 30 10% 90%;                      /* Soft input border */
+    --ring: 7 26% 60%;                        /* Blush ring */
+    
+    /* Shadows with warm undertones */
+    --shadow-soft: 0 4px 6px -1px rgba(185, 139, 133, 0.05), 0 2px 4px -2px rgba(185, 139, 133, 0.05);
+    --shadow-medium: 0 10px 15px -3px rgba(185, 139, 133, 0.08), 0 4px 6px -4px rgba(185, 139, 133, 0.08);
+    --shadow-luxury: 0 20px 25px -5px rgba(185, 139, 133, 0.1), 0 8px 10px -6px rgba(185, 139, 133, 0.1);
   }
 }
 
@@ -95,7 +314,7 @@
 
 [role="option"]:hover,
 [role="option"]:focus {
-  background-color: #f3f4f6 !important;
+  background-color: var(--color-hover-overlay) !important;
 }
 
 /* Radix Select specific hover states */
@@ -105,11 +324,11 @@
 }
 
 [data-radix-collection-item]:hover {
-  background-color: #f3f4f6 !important;
+  background-color: var(--color-hover-overlay) !important;
 }
 
 [data-radix-collection-item][data-highlighted] {
-  background-color: #e5e7eb !important;
+  background-color: var(--color-active-overlay) !important;
   outline: none;
 }
 
@@ -120,21 +339,21 @@
 }
 
 [role="menuitem"]:hover {
-  background-color: #f3f4f6 !important;
+  background-color: var(--color-hover-overlay) !important;
 }
 
 [data-highlighted][role="menuitem"] {
-  background-color: #e5e7eb !important;
+  background-color: var(--color-active-overlay) !important;
   outline: none;
 }
 
 /* Additional Radix UI select hover states */
 [data-radix-select-item]:hover {
-  background-color: #f3f4f6 !important;
+  background-color: var(--color-hover-overlay) !important;
 }
 
 [data-radix-select-item][data-highlighted] {
-  background-color: #e5e7eb !important;
+  background-color: var(--color-active-overlay) !important;
   outline: none;
 }
 
@@ -153,17 +372,149 @@
   background-color: #4b5563 !important;
 }
 
-/* Luxurious Typography */
+/* Base styles */
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
+  body {
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-regular);
+    font-size: 16px;
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+    font-feature-settings: 'kern' 1, 'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Keep Playfair for main headers in booking app for elegance */
+  h1, h2 {
     font-family: var(--font-serif);
     font-weight: 400;
     letter-spacing: -0.02em;
+    line-height: var(--line-height-tight);
   }
   
-  body {
-    font-family: var(--font-sans);
-    antialiased: true;
+  /* Use DM Sans for smaller headers */
+  h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--color-text-primary);
+  }
+  
+  /* Specific Heading Sizes */
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+  }
+  
+  h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+  
+  h3 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  h4 {
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    font-weight: var(--font-weight-medium);
+  }
+  
+  /* Body Text Variations */
+  .text-large {
+    font-size: 1.125rem;
+    line-height: var(--line-height-relaxed);
+  }
+  
+  .text-small {
+    font-size: 0.875rem;
+    letter-spacing: 0;
+  }
+  
+  .text-xs {
+    font-size: 0.75rem;
+    letter-spacing: var(--letter-spacing-wide);
+  }
+  
+  /* Special Display Text (using Manrope) */
+  .display-text {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  /* Buttons and UI Elements */
+  button, .btn {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0;
+  }
+  
+  /* Forms */
+  input, textarea, select {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-regular);
+    font-size: 1rem;
+  }
+  
+  /* Navigation */
+  nav, .nav-link {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0;
+  }
+}
+
+/* 🌿 Mint Theme Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 var(--color-primary); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes slot-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
   }
 }
 
@@ -172,15 +523,17 @@
   /* Luxury card styles */
   .luxury-card {
     @apply relative overflow-hidden rounded-2xl;
-    background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+    background: var(--color-surface);
     backdrop-filter: blur(10px);
     box-shadow: var(--shadow-luxury);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--color-border-light);
   }
   
   .luxury-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 30px 35px -10px rgb(0 0 0 / 0.15);
+    box-shadow: 0 30px 35px -10px rgba(15, 118, 110, 0.15);
+    border-color: var(--color-border);
   }
   
   /* Service category gradients */
@@ -244,9 +597,9 @@
     right: 0;
     bottom: 0;
     background-image: 
-      radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, rgba(255, 219, 198, 0.1) 0%, transparent 50%);
+      radial-gradient(circle at 20% 50%, rgba(167, 243, 208, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(93, 224, 166, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(230, 255, 250, 0.1) 0%, transparent 50%);
     z-index: -1;
   }
 }
@@ -282,15 +635,6 @@
   }
   
   /* Shimmer loading effect */
-  @keyframes shimmer {
-    0% {
-      background-position: -1000px 0;
-    }
-    100% {
-      background-position: 1000px 0;
-    }
-  }
-  
   .shimmer {
     animation: shimmer 2s linear infinite;
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -298,33 +642,11 @@
   }
   
   /* Pulse glow */
-  @keyframes pulse-glow {
-    0%, 100% {
-      opacity: 1;
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
-    }
-    50% {
-      opacity: 0.8;
-      box-shadow: 0 0 40px rgba(139, 92, 246, 0.8);
-    }
-  }
-  
   .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+    animation: pulse 2s ease-in-out infinite;
   }
   
   /* Entrance animations */
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
   .animate-fade-in-up {
     animation: fade-in-up 0.6s ease-out forwards;
   }
@@ -352,31 +674,20 @@
   /* Weekend columns styling */
   [role="grid"] tbody td:first-child button,
   [role="grid"] tbody td:last-child button {
-    background-color: rgba(139, 92, 246, 0.03);
+    background-color: rgba(15, 118, 110, 0.03);
   }
   
   [role="grid"] tbody td:first-child button:hover:not(:disabled),
   [role="grid"] tbody td:last-child button:hover:not(:disabled) {
-    background-color: rgba(139, 92, 246, 0.1);
+    background-color: rgba(15, 118, 110, 0.1);
   }
   
   /* Calendar day states */
   .calendar-day-available {
-    @apply hover:shadow-md hover:ring-2 hover:ring-purple-200 hover:ring-opacity-50;
+    @apply hover:shadow-md hover:ring-2 hover:ring-teal-200 hover:ring-opacity-50;
   }
   
   /* Time slot animations */
-  @keyframes slot-appear {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
   .time-slot-appear {
     animation: slot-appear 0.3s ease-out forwards;
   }
@@ -402,6 +713,282 @@
     background-color: hsl(var(--primary));
     border-radius: 50%;
   }
+}
+
+/* Service Category Cards */
+.service-card {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-luxury);
+  border-color: var(--color-border);
+}
+
+.service-card:hover::before {
+  width: 8px;
+}
+
+/* Category variations */
+.service-card.hair::before {
+  background: var(--category-hair);
+}
+
+.service-card.hair {
+  background: linear-gradient(135deg, rgba(255, 176, 136, 0.1) 0%, transparent 50%);
+}
+
+.service-card.nails::before {
+  background: var(--category-nails);
+}
+
+.service-card.nails {
+  background: linear-gradient(135deg, rgba(199, 178, 255, 0.1) 0%, transparent 50%);
+}
+
+.service-card.waxing::before {
+  background: var(--category-waxing);
+}
+
+.service-card.waxing {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, transparent 50%);
+}
+
+.service-card.facial::before {
+  background: var(--category-facial);
+}
+
+.service-card.facial {
+  background: linear-gradient(135deg, rgba(93, 224, 166, 0.1) 0%, transparent 50%);
+}
+
+.service-card.massage::before {
+  background: var(--category-massage);
+}
+
+.service-card.massage {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+}
+
+/* Button Styles */
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.05) rotate(-1deg);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+  transform: translateY(-2px);
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.badge-coral {
+  background: var(--color-accent-coral);
+  color: white;
+}
+
+.badge-peach {
+  background: var(--color-accent-peach);
+  color: var(--color-text-primary);
+}
+
+.badge-lavender {
+  background: var(--color-accent-lavender);
+  color: white;
+}
+
+.badge-mint {
+  background: var(--color-accent-mint-bright);
+  color: var(--color-text-primary);
+}
+
+/* Form Elements */
+.input {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Navigation */
+.nav-item {
+  color: var(--color-text-primary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-item:hover {
+  background: var(--color-hover-overlay);
+  color: var(--color-primary);
+}
+
+.nav-item.active {
+  background: var(--color-selected-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Playful underline animation */
+.nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-item:hover::after,
+.nav-item.active::after {
+  width: 80%;
+}
+
+/* Special Effects */
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+.gradient-animated {
+  background: var(--gradient-hero);
+  background-size: 200% 200%;
+  animation: gradient-shift 5s ease infinite;
+}
+
+.bounce-hover {
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.bounce-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Section backgrounds */
+.section:nth-child(odd) {
+  background: var(--color-background-primary);
+}
+
+.section:nth-child(even) {
+  background: var(--color-surface);
+}
+
+.section-pattern {
+  background-color: var(--color-background-secondary);
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 35px,
+      rgba(15, 118, 110, 0.03) 35px,
+      rgba(15, 118, 110, 0.03) 70px
+    );
+}
+
+/* 💆 Booking App Specific Typography */
+/* Welcoming and readable */
+.service-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: 1.125rem;
+}
+
+.booking-confirmation h2 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  color: var(--color-success);
+}
+
+/* Testimonials - add elegance */
+.testimonial-text {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-light);
+  line-height: var(--line-height-relaxed);
+  font-style: italic;
+}
+
+/* Service descriptions */
+.service-description {
+  font-size: 0.95rem;
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Price display */
+.price {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Print styles */

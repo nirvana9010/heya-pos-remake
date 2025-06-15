@@ -1,6 +1,15 @@
 "use client";
 
-import { format } from "date-fns";
+import { 
+  format, 
+  subDays, 
+  addDays, 
+  subWeeks, 
+  addWeeks, 
+  subMonths, 
+  addMonths, 
+  startOfWeek 
+} from "date-fns";
 
 // Safe date formatting function that prevents React rendering errors
 export function safeFormat(date: Date | null | undefined, formatString: string): string {
@@ -39,9 +48,6 @@ export function getSafeNavigationLabel(
       return '';
     }
 
-    // Import date-fns functions
-    const { subDays, addDays, subWeeks, addWeeks, subMonths, addMonths, startOfWeek } = require('date-fns');
-    
     switch (viewType) {
       case "day":
         const targetDay = direction === "prev" 

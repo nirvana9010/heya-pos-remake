@@ -29,11 +29,14 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState("30");
+  const [enableTips, setEnableTips] = useState(false);
+  const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>([10, 15, 20]);
+  const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
 
   // Load location data on mount
   useEffect(() => {
-    loadLocationData();
     loadMerchantSettings();
+    loadLocationData();
   }, []);
 
   const loadLocationData = async () => {
@@ -42,7 +45,10 @@ export default function SettingsPage() {
       if (locations.length > 0) {
         const firstLocation = locations[0];
         setLocationId(firstLocation.id);
-        setSelectedTimezone(firstLocation.timezone || "Australia/Sydney");
+        // Location timezone will inherit from merchant if not set
+        if (firstLocation.timezone) {
+          setSelectedTimezone(firstLocation.timezone);
+        }
       }
     } catch (error) {
       console.error("Failed to load location data:", error);
@@ -60,6 +66,13 @@ export default function SettingsPage() {
         setLoyaltyType(response.loyaltyType || "visit");
         setRequireDeposit(response.requireDeposit ?? false);
         setDepositPercentage(response.depositPercentage?.toString() || "30");
+        setEnableTips(response.enableTips ?? false);
+        setDefaultTipPercentages(response.defaultTipPercentages || [10, 15, 20]);
+        setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
+        // Set timezone from merchant settings
+        if (response.timezone) {
+          setSelectedTimezone(response.timezone);
+        }
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
@@ -67,18 +80,18 @@ export default function SettingsPage() {
   };
 
   const handleSaveTimezone = async () => {
-    if (!locationId) {
-      toast({
-        title: "Error",
-        description: "No location found to update",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      await apiClient.updateLocationTimezone(locationId, selectedTimezone);
+      // Update merchant-level timezone
+      await apiClient.put("/merchant/settings", {
+        timezone: selectedTimezone,
+      });
+
+      // If we have a location, update it too
+      if (locationId) {
+        await apiClient.updateLocationTimezone(locationId, selectedTimezone);
+      }
+
       toast({
         title: "Success",
         description: "Timezone updated successfully",
@@ -105,6 +118,10 @@ export default function SettingsPage() {
         loyaltyType,
         requireDeposit,
         depositPercentage: parseInt(depositPercentage),
+        timezone: selectedTimezone,
+        enableTips,
+        defaultTipPercentages,
+        allowCustomTipAmount,
       });
       
       toast({
@@ -368,6 +385,58 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground">
                         Percentage of total booking amount required as deposit
                       </p>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable Tips</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Allow customers to add tips during payment (disabled by default in Australia)
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={enableTips} 
+                      onCheckedChange={setEnableTips}
+                    />
+                  </div>
+
+                  {enableTips && (
+                    <div className="space-y-4 ml-6">
+                      <div className="space-y-2">
+                        <Label>Default Tip Percentages</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="text"
+                            value={defaultTipPercentages.join(', ')}
+                            onChange={(e) => {
+                              const values = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                              setDefaultTipPercentages(values);
+                            }}
+                            placeholder="10, 15, 20"
+                            className="w-48"
+                          />
+                          <span className="text-sm text-muted-foreground">%</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Comma-separated tip percentage options
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Allow Custom Tip Amount</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Let customers enter a custom tip amount
+                          </p>
+                        </div>
+                        <Switch 
+                          checked={allowCustomTipAmount} 
+                          onCheckedChange={setAllowCustomTipAmount}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

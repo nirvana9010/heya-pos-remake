@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <main style={{ 
           flex: 1, 
           overflowY: 'auto',
-          background: 'var(--bg-primary)'
+          background: 'var(--color-background-primary)'
         }}>
           {children}
         </main>

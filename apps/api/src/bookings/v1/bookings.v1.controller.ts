@@ -15,7 +15,7 @@ import {
 import { BookingsService } from '../bookings.service';
 import { BookingsGateway } from '../bookings.gateway';
 import { AvailabilityService } from '../availability.service';
-import { CreateBookingDto } from '../dto/create-booking.dto';
+import { CreateBookingDto, BookingStatus } from '../dto/create-booking.dto';
 import { CreateBookingWithOverrideDto } from '../dto/create-booking-with-override.dto';
 import { UpdateBookingDto } from '../dto/update-booking.dto';
 import { CheckAvailabilityDto } from '../dto/check-availability.dto';
@@ -56,8 +56,8 @@ export class BookingsV1Controller {
   async createWithCheck(@CurrentUser() user: any, @Body() dto: CreateBookingWithOverrideDto) {
     try {
       const booking = await this.availabilityService.createBookingWithLock({
-        staffId: dto.providerId,
-        serviceId: dto.services[0].serviceId,
+        staffId: dto.staffId,
+        serviceId: dto.serviceId,
         customerId: dto.customerId,
         startTime: new Date(dto.startTime),
         locationId: dto.locationId,
@@ -155,7 +155,7 @@ export class BookingsV1Controller {
     const booking = await this.bookingsService.remove(user.merchantId, id);
     
     // Emit real-time update
-    this.bookingsGateway.emitBookingDeleted(user.merchantId, id);
+    this.bookingsGateway.emitBookingDeleted(user.merchantId, id, booking);
     
     return booking;
   }
@@ -167,7 +167,7 @@ export class BookingsV1Controller {
   async updateStatus(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() body: { status: string; cancellationReason?: string },
+    @Body() body: UpdateBookingDto,
   ) {
     const booking = await this.bookingsService.update(user.merchantId, id, body);
     
@@ -183,7 +183,7 @@ export class BookingsV1Controller {
   @HttpCode(HttpStatus.OK)
   async startBooking(@CurrentUser() user: any, @Param('id') id: string) {
     const booking = await this.bookingsService.update(user.merchantId, id, {
-      status: 'IN_PROGRESS',
+      status: BookingStatus.IN_PROGRESS,
     });
     
     // Emit real-time update
@@ -198,7 +198,7 @@ export class BookingsV1Controller {
   @HttpCode(HttpStatus.OK)
   async completeBooking(@CurrentUser() user: any, @Param('id') id: string) {
     const booking = await this.bookingsService.update(user.merchantId, id, {
-      status: 'COMPLETED',
+      status: BookingStatus.COMPLETED,
     });
     
     // Emit real-time update

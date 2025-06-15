@@ -88,7 +88,7 @@ export function LoyaltyStatusDisplay({
       <div className="flex items-center gap-2">
         {isVisitsBased ? (
           <>
-            <Gift className="h-4 w-4 text-purple-600" />
+            <Gift className="h-4 w-4 text-teal-600" />
             <span className="text-sm font-medium">
               {loyalty.currentVisits}/{program.visitsRequired} visits
             </span>
@@ -117,7 +117,7 @@ export function LoyaltyStatusDisplay({
           <h4 className="font-medium flex items-center gap-2">
             {isVisitsBased ? (
               <>
-                <Gift className="h-5 w-5 text-purple-600" />
+                <Gift className="h-5 w-5 text-teal-600" />
                 {program.name}
               </>
             ) : (
@@ -147,7 +147,7 @@ export function LoyaltyStatusDisplay({
                 <div
                   className={cn(
                     "h-2 rounded-full transition-all",
-                    loyalty.canRedeem ? "bg-green-600" : "bg-purple-600"
+                    loyalty.canRedeem ? "bg-green-600" : "bg-teal-600"
                   )}
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />

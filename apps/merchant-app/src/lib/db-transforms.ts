@@ -90,8 +90,11 @@ function isMoneyField(fieldName: string): boolean {
     'cost',
     'revenue',
     'balance',
+    'balanceDue',
+    'paidAmount',
     'discount',
     'tax',
+    'taxAmount',
     'subtotal',
     'fee',
     'commission',
@@ -109,7 +112,9 @@ function isMoneyField(fieldName: string): boolean {
     'weeklyRevenue',
     'monthlyRevenue',
     'yearlyRevenue',
-    'avgServiceValue'
+    'avgServiceValue',
+    'unitPrice',
+    'tipAmount'
   ];
   
   const fieldLower = fieldName.toLowerCase();

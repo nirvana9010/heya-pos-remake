@@ -168,7 +168,7 @@ export function LoyaltyDialog({ customer, open, onOpenChange, onSuccess }: Loyal
           <DialogTitle className="flex items-center gap-2">
             {program?.type === 'VISITS' ? (
               <>
-                <Gift className="h-5 w-5 text-purple-600" />
+                <Gift className="h-5 w-5 text-teal-600" />
                 Loyalty Management
               </>
             ) : (
@@ -199,13 +199,13 @@ export function LoyaltyDialog({ customer, open, onOpenChange, onSuccess }: Loyal
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Current Visits</span>
-                    <span className="text-2xl font-bold text-purple-600">
+                    <span className="text-2xl font-bold text-teal-600">
                       {loyalty?.currentVisits || 0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="h-2 rounded-full bg-purple-600"
+                      className="h-2 rounded-full bg-teal-600"
                       style={{ 
                         width: `${Math.min(((loyalty?.currentVisits || 0) / program.visitsRequired) * 100, 100)}%` 
                       }}

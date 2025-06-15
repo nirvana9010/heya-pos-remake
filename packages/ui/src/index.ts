@@ -52,3 +52,6 @@ export * from "./lib/utils"
 
 // Theme
 export * from "./lib/theme"
+
+// CSS Base Requirements
+// Import '@heya/ui/shadcn-base.css' in your app's globals.css to ensure components display correctly

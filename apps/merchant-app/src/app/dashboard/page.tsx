@@ -57,9 +57,7 @@ export default function DashboardPage() {
   // Show skeleton during initial load
   if (isInitialLoad && loading) {
     return (
-      <div className="container animate-in fade-in-0 duration-300" style={{ 
-        padding: 'var(--space-6)'
-      }}>
+      <div className="container animate-in fade-in-0 duration-300">
         {/* Header skeleton */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -113,22 +111,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container animate-in fade-in-0 slide-in-from-bottom-4 duration-300" style={{ 
-      padding: 'var(--space-6)'
-    }}>
+    <div className="container animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 style={{ 
-            fontSize: 'var(--text-4xl)', 
-            marginBottom: 'var(--space-2)',
-            color: 'var(--text-primary)'
+            fontSize: '2.5rem', 
+            marginBottom: '0.5rem',
+            color: 'var(--color-text-primary)'
           }}>
             Welcome back!
           </h1>
           <p style={{ 
-            color: 'var(--text-secondary)', 
-            fontSize: 'var(--text-lg)'
+            color: 'var(--color-text-secondary)', 
+            fontSize: '1.125rem'
           }}>
             Here's what's happening at your salon today
           </p>
@@ -177,9 +173,9 @@ export default function DashboardPage() {
           <div key={stat.title} className="stat-card">
             <div className="flex justify-between items-center mb-4">
               <div style={{
-                background: 'var(--primary)',
-                padding: 'var(--space-2)',
-                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-primary)',
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
                 color: 'white',
                 opacity: 0.9
               }}>
@@ -202,9 +198,9 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="card">
         <h2 style={{ 
-          fontSize: 'var(--text-2xl)',
-          marginBottom: 'var(--space-6)',
-          color: 'var(--text-primary)'
+          fontSize: '1.5rem',
+          marginBottom: '1.5rem',
+          color: 'var(--color-text-primary)'
         }}>
           Quick Actions
         </h2>
@@ -219,9 +215,9 @@ export default function DashboardPage() {
                 <action.icon size={24} />
               </div>
               <span style={{ 
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--font-medium)',
-                color: 'var(--text-primary)'
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: 'var(--color-text-primary)'
               }}>
                 {action.label}
               </span>
@@ -234,8 +230,8 @@ export default function DashboardPage() {
       <div className="card">
         <div className="flex justify-between items-center mb-6">
           <h2 style={{ 
-            fontSize: 'var(--text-2xl)',
-            color: 'var(--text-primary)',
+            fontSize: '1.5rem',
+            color: 'var(--color-text-primary)',
             margin: 0
           }}>
             Today's Schedule
@@ -251,14 +247,14 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4">
           {loading ? (
             <div className="text-center" style={{ 
-              padding: 'var(--space-16)', 
-              color: 'var(--text-secondary)'
+              padding: '4rem', 
+              color: 'var(--color-text-secondary)'
             }}>
               <div style={{ 
                 height: '60px', 
-                backgroundColor: 'var(--bg-tertiary)',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: 'var(--space-4)',
+                backgroundColor: 'var(--color-background-soft)',
+                borderRadius: '0.5rem',
+                marginBottom: '1rem',
                 animation: 'pulse 1.5s ease-in-out infinite'
               }}></div>
               <div style={{ 
@@ -270,16 +266,16 @@ export default function DashboardPage() {
             </div>
           ) : todayBookings.length === 0 ? (
             <div className="text-center" style={{ 
-              padding: 'var(--space-16)', 
-              color: 'var(--text-secondary)'
+              padding: '4rem', 
+              color: 'var(--color-text-secondary)'
             }}>
               <Calendar size={48} style={{ 
-                margin: '0 auto var(--space-6)', 
-                color: 'var(--primary)',
+                margin: '0 auto 1.5rem', 
+                color: 'var(--color-primary)',
                 opacity: 0.5
               }} />
               <p>No bookings scheduled for today</p>
-              <p style={{ fontSize: 'var(--text-sm)' }}>Time to relax or catch up on other tasks!</p>
+              <p style={{ fontSize: '0.875rem' }}>Time to relax or catch up on other tasks!</p>
             </div>
           ) : (
             // Sample bookings for demo
@@ -296,7 +292,7 @@ export default function DashboardPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: 'var(--space-4)'
+                  padding: '1rem'
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -305,28 +301,28 @@ export default function DashboardPage() {
                       width: '48px',
                       height: '48px',
                       borderRadius: '50%',
-                      background: 'var(--primary)',
+                      background: 'var(--color-primary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: 'white',
-                      fontWeight: 'var(--font-semibold)',
-                      fontSize: 'var(--text-sm)'
+                      fontWeight: '600',
+                      fontSize: '0.875rem'
                     }}>
                       {booking.customerName.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div>
                       <p style={{ 
-                        fontWeight: 'var(--font-semibold)',
-                        color: 'var(--text-primary)',
+                        fontWeight: '600',
+                        color: 'var(--color-text-primary)',
                         margin: 0,
                         marginBottom: '4px'
                       }}>
                         {booking.customerName}
                       </p>
                       <p style={{ 
-                        fontSize: 'var(--text-sm)', 
-                        color: 'var(--text-secondary)',
+                        fontSize: '0.875rem', 
+                        color: 'var(--color-text-secondary)',
                         margin: 0
                       }}>
                         {booking.serviceName}
@@ -334,18 +330,18 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', marginRight: 'var(--space-4)' }}>
+                <div style={{ textAlign: 'right', marginRight: '1rem' }}>
                   <p style={{ 
-                    fontWeight: 'var(--font-semibold)',
-                    color: 'var(--text-primary)',
+                    fontWeight: '600',
+                    color: 'var(--color-text-primary)',
                     margin: 0,
                     marginBottom: '4px'
                   }}>
                     {booking.startTime}
                   </p>
                   <p style={{ 
-                    fontSize: 'var(--text-sm)', 
-                    color: 'var(--text-secondary)',
+                    fontSize: '0.875rem', 
+                    color: 'var(--color-text-secondary)',
                     margin: 0
                   }}>
                     with {booking.staffName}

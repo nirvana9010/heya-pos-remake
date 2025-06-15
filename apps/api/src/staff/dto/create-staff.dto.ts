@@ -21,7 +21,7 @@ export class CreateStaffDto {
 
   @IsString()
   @MinLength(4)
-  @MaxLength(6)
+  @MaxLength(4)
   pin: string;
 
   @IsEnum(StaffRole)

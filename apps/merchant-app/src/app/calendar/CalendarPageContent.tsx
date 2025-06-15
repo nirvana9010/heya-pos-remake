@@ -45,6 +45,7 @@ import { Separator } from "@heya-pos/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { safeFormat, isValidDate, getSafeNavigationLabel } from "./calendar-safe";
+import { TimeDisplay, TimezoneIndicator } from "@/components/TimeDisplay";
 import { 
   format, 
   addDays, 
@@ -1710,7 +1711,8 @@ export default function CalendarPageContent() {
                                     </div>
                                     <div className="flex items-center gap-1 text-sm text-gray-500">
                                       <Clock className="h-3.5 w-3.5" />
-                                      {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                      <TimeDisplay date={booking.startTime} format="time" showTimezone={false} /> - 
+                                      <TimeDisplay date={booking.endTime} format="time" showTimezone={true} />
                                     </div>
                                     <div className="flex items-center gap-1 text-sm text-gray-500">
                                       <DollarSign className="h-3.5 w-3.5" />
@@ -1846,7 +1848,8 @@ export default function CalendarPageContent() {
                                 </div>
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
                                   <Clock className="h-3.5 w-3.5" />
-                                  {format(booking.startTime, 'h:mm a')} - {format(booking.endTime, 'h:mm a')}
+                                  <TimeDisplay date={booking.startTime} format="time" showTimezone={false} /> - 
+                                  <TimeDisplay date={booking.endTime} format="time" showTimezone={true} />
                                   <span className="text-gray-600 font-medium ml-1">({duration}m)</span>
                                 </div>
                                 <div className="flex items-center gap-1 text-sm text-gray-500">

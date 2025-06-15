@@ -86,12 +86,18 @@ export class MemoryLogger {
     let resultCount = 0;
     let resultSize = 0;
 
-    if (Array.isArray(result)) {
-      resultCount = result.length;
-      resultSize = JSON.stringify(result).length;
-    } else if (result && typeof result === 'object') {
-      resultCount = 1;
-      resultSize = JSON.stringify(result).length;
+    try {
+      if (Array.isArray(result)) {
+        resultCount = result.length;
+        resultSize = JSON.stringify(result).length;
+      } else if (result && typeof result === 'object') {
+        resultCount = 1;
+        // Safely stringify to avoid circular references or other issues
+        resultSize = JSON.stringify(result).length;
+      }
+    } catch (error) {
+      // If stringify fails, just estimate size
+      resultSize = 0;
     }
 
     this.logMemory(`DB:${operation}`, {

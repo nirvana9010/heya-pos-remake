@@ -224,8 +224,8 @@ class ApiClient {
     return result;
   }
 
-  async verifyPin(pin: string) {
-    const response = await this.axiosInstance.post('/auth/staff/verify-pin', { pin });
+  async verifyAction(pin: string, action: string) {
+    const response = await this.axiosInstance.post('/auth/verify-action', { pin, action });
     return response.data;
   }
 
@@ -460,6 +460,95 @@ class ApiClient {
   async updateLocationTimezone(id: string, timezone: string) {
     const response = await this.axiosInstance.patch(`/locations/${id}/timezone`, { timezone });
     return response.data;
+  }
+
+  // Generic HTTP methods
+  async get(url: string, config?: any) {
+    const response = await this.axiosInstance.get(url, config);
+    return response.data;
+  }
+
+  async post(url: string, data?: any, config?: any) {
+    const response = await this.axiosInstance.post(url, data, config);
+    return response.data;
+  }
+
+  async put(url: string, data?: any, config?: any) {
+    const response = await this.axiosInstance.put(url, data, config);
+    return response.data;
+  }
+
+  async patch(url: string, data?: any, config?: any) {
+    const response = await this.axiosInstance.patch(url, data, config);
+    return response.data;
+  }
+
+  async delete(url: string, config?: any) {
+    const response = await this.axiosInstance.delete(url, config);
+    return response.data;
+  }
+
+  // Payment and Order methods
+  async createOrder(data: { customerId?: string; bookingId?: string }) {
+    return this.post('/payments/orders', data);
+  }
+
+  async createOrderFromBooking(bookingId: string) {
+    return this.post(`/payments/orders/from-booking/${bookingId}`);
+  }
+
+  async getOrder(orderId: string) {
+    return this.get(`/payments/orders/${orderId}`);
+  }
+
+  async addOrderItems(orderId: string, items: any[]) {
+    return this.post(`/payments/orders/${orderId}/items`, { items });
+  }
+
+  async addOrderModifier(orderId: string, modifier: any) {
+    return this.post(`/payments/orders/${orderId}/modifiers`, modifier);
+  }
+
+  async updateOrderState(orderId: string, state: string) {
+    return this.post(`/payments/orders/${orderId}/state`, { state });
+  }
+
+  async processPayment(data: any) {
+    return this.post('/payments/process', data);
+  }
+
+  async processSplitPayment(data: any) {
+    return this.post('/payments/split', data);
+  }
+
+  async refundPayment(paymentId: string, amount: number, reason: string) {
+    return this.post('/payments/refund', { paymentId, amount, reason });
+  }
+
+  async voidPayment(paymentId: string) {
+    return this.post(`/payments/void/${paymentId}`);
+  }
+
+  async getPayments(params?: { page?: number; limit?: number; locationId?: string }) {
+    return this.get('/payments', params);
+  }
+
+  // Merchant settings
+  async getMerchantSettings() {
+    try {
+      return await this.get('/merchant/settings');
+    } catch (error: any) {
+      // Return default settings if endpoint doesn't exist
+      if (error.response?.status === 404) {
+        return {
+          settings: {
+            enableTips: true,
+            defaultTipPercentages: [10, 15, 20]
+          }
+        };
+      }
+      throw error;
+    }
   }
 }
 

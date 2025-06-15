@@ -710,7 +710,7 @@ export default function ServicesPageContent() {
                   resetForm();
                   setIsAddDialogOpen(true);
                 }} 
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-teal-600 hover:bg-teal-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Service
@@ -726,8 +726,8 @@ export default function ServicesPageContent() {
           // Empty state
           <div className="bg-white rounded-lg shadow-sm border p-12">
             <div className="text-center max-w-md mx-auto">
-              <div className="mx-auto w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-6">
-                <Scissors className="h-12 w-12 text-purple-600" />
+              <div className="mx-auto w-24 h-24 bg-teal-100 rounded-full flex items-center justify-center mb-6">
+                <Scissors className="h-12 w-12 text-teal-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 No services yet
@@ -740,7 +740,7 @@ export default function ServicesPageContent() {
                   resetForm();
                   setIsAddDialogOpen(true);
                 }}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Your First Service
@@ -954,7 +954,7 @@ export default function ServicesPageContent() {
                 <Button 
                   onClick={handleSaveService}
                   disabled={!formData.name.trim() || formData.price <= 0 || savingService}
-                  className="bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingService ? (
                     <>
@@ -1039,7 +1039,7 @@ export default function ServicesPageContent() {
             </Button>
             <Button 
               onClick={handleBulkPriceUpdate}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-indigo-600 hover:bg-indigo-700"
             >
               Update Prices
             </Button>

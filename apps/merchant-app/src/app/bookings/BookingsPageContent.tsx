@@ -9,6 +9,7 @@ import { Input } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
+import { PaymentDialog } from '@/components/PaymentDialog';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
 import { 
   DropdownMenu, 
@@ -79,6 +80,9 @@ export default function BookingsPageContent() {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
+  const [merchantSettings, setMerchantSettings] = useState<any>(null);
 
   useEffect(() => {
     console.log('[BookingsPage] useEffect triggered');
@@ -96,6 +100,7 @@ export default function BookingsPageContent() {
     console.log('[BookingsPage] Token found, calling loadBookings...');
     loadBookings();
     loadStaff();
+    loadMerchantSettings();
     
     // Load recent searches from localStorage
     const saved = localStorage.getItem('recentBookingSearches');
@@ -124,6 +129,15 @@ export default function BookingsPageContent() {
       setStaff(staffData);
     } catch (error) {
       console.error('Failed to load staff:', error);
+    }
+  };
+
+  const loadMerchantSettings = async () => {
+    try {
+      const settings = await apiClient.getMerchantSettings();
+      setMerchantSettings(settings);
+    } catch (error) {
+      console.error('Failed to load merchant settings:', error);
     }
   };
 
@@ -354,21 +368,50 @@ export default function BookingsPageContent() {
 
   const handleMarkPaid = async (bookingId: string, amount: number) => {
     try {
+      // Create order from booking if not exists
+      const order = await apiClient.createOrderFromBooking(bookingId);
+      
+      // Lock the order if it's in DRAFT state
+      if (order.state === 'DRAFT') {
+        await apiClient.updateOrderState(order.id, 'LOCKED');
+      }
+      
+      // Quick cash payment
       await apiClient.processPayment({
-        bookingId,
-        amount,
+        orderId: order.id,
+        amount: order.balanceDue,
         method: 'CASH',
-        status: 'COMPLETED'
+        metadata: {
+          cashReceived: order.balanceDue,
+        }
       });
+      
       toast({
         title: "Payment Recorded",
         description: "Payment has been recorded successfully.",
       });
       loadBookings();
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to record payment.";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProcessPayment = async (bookingId: string) => {
+    try {
+      // Create order from booking if not exists
+      const order = await apiClient.createOrderFromBooking(bookingId);
+      setSelectedOrderForPayment(order);
+      setPaymentDialogOpen(true);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to record payment.",
+        description: "Failed to create order for payment.",
         variant: "destructive",
       });
     }
@@ -767,8 +810,8 @@ export default function BookingsPageContent() {
                 <p className="text-2xl font-bold">{stats.todayCount}</p>
                 <p className="text-sm text-gray-500">{stats.todayCompleted} completed</p>
               </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-purple-600" />
+              <div className="h-12 w-12 bg-teal-100 rounded-full flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-teal-600" />
               </div>
             </div>
           </CardContent>
@@ -1045,7 +1088,7 @@ export default function BookingsPageContent() {
                             isPast && 'opacity-75',
                             booking.status?.toLowerCase() === 'cancelled' && 'opacity-60',
                             isStartingVerySoon && 'border-orange-400 border-2',
-                            selectedBookings.has(booking.id) && 'ring-2 ring-purple-500 ring-offset-2'
+                            selectedBookings.has(booking.id) && 'ring-2 ring-teal-500 ring-offset-2'
                           )}
                         >
                           {/* Progress bar for in-progress bookings */}
@@ -1053,7 +1096,7 @@ export default function BookingsPageContent() {
                             <div className="absolute inset-x-0 top-0 h-1">
                               <div className="h-1 rounded-t-lg bg-gray-200 overflow-hidden">
                               <div 
-                                className="h-full bg-purple-600 transition-all duration-300"
+                                className="h-full bg-teal-600 transition-all duration-300"
                                 style={{ width: `${progress}%` }}
                               />
                             </div>
@@ -1230,10 +1273,16 @@ export default function BookingsPageContent() {
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem 
-                                        onClick={() => handleMarkPaid(booking.id, booking.totalAmount || booking.price || 0)}
+                                        onClick={() => handleProcessPayment(booking.id)}
                                       >
                                         <CreditCard className="h-4 w-4 mr-2" />
-                                        Mark as Paid
+                                        Process Payment
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => handleMarkPaid(booking.id, booking.totalAmount || booking.price || 0)}
+                                      >
+                                        <DollarSign className="h-4 w-4 mr-2" />
+                                        Quick Cash Payment
                                       </DropdownMenuItem>
                                     </>
                                   )}
@@ -1254,6 +1303,21 @@ export default function BookingsPageContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      {selectedOrderForPayment && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          order={selectedOrderForPayment}
+          onPaymentComplete={(updatedOrder) => {
+            setSelectedOrderForPayment(null);
+            loadBookings(); // Refresh bookings
+          }}
+          enableTips={merchantSettings?.settings?.enableTips || false}
+          defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}
+        />
+      )}
     </div>
   );
 }

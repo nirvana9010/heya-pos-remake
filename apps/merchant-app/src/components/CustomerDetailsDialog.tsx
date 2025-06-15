@@ -113,7 +113,7 @@ export function CustomerDetailsDialog({
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
-                isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-purple-500 to-purple-700"
+                isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-teal-500 to-teal-700"
               )}>
                 {customer?.firstName?.charAt(0)}{customer?.lastName?.charAt(0)}
               </div>
@@ -156,8 +156,8 @@ export function CustomerDetailsDialog({
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3 px-6 pb-4">
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <Calendar className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+            <div className="text-center p-3 bg-teal-50 rounded-lg">
+              <Calendar className="h-5 w-5 text-teal-600 mx-auto mb-1" />
               <p className="text-lg font-semibold">{customer?.totalVisits || 0}</p>
               <p className="text-xs text-gray-600">Visits</p>
             </div>

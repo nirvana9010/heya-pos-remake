@@ -1,12 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
+import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -23,20 +18,33 @@ export class StaffService {
       throw new ConflictException('Staff member with this email already exists');
     }
 
+    // Validate PIN format
+    if (!/^\d{4}$/.test(createStaffDto.pin)) {
+      throw new BadRequestException('PIN must be exactly 4 digits');
+    }
+
     // Hash the PIN
     const hashedPin = await bcrypt.hash(createStaffDto.pin, 10);
 
-    // Extract locationIds for separate handling
-    const { locationIds, ...staffData } = createStaffDto;
+    // Extract fields for separate handling or removal
+    const { locationIds, role, permissions, ...staffData } = createStaffDto;
 
-    // Create staff member
+    // Create clean data object without unwanted fields
+    const createData = {
+      firstName: staffData.firstName,
+      lastName: staffData.lastName,
+      email: staffData.email,
+      phone: staffData.phone,
+      accessLevel: staffData.accessLevel || 1,
+      calendarColor: staffData.calendarColor,
+      commissionRate: staffData.commissionRate,
+      merchantId,
+      pin: hashedPin,
+    };
+
+    // Create staff member (role and permissions are handled through accessLevel)
     const staff = await this.prisma.staff.create({
-      data: {
-        ...staffData,
-        merchantId,
-        pin: hashedPin,
-        accessLevel: staffData.accessLevel || 1,
-      },
+      data: createData,
     });
 
     // Add staff to locations if provided
@@ -50,9 +58,14 @@ export class StaffService {
       });
     }
 
-    // Return staff without PIN
+    // Return staff WITH PIN (plain text) for display to managers
     const { pin, ...staffWithoutPin } = staff;
-    return staffWithoutPin;
+    return {
+      ...staffWithoutPin,
+      pin: createStaffDto.pin, // Return the plain text PIN for display
+      name: `${staff.firstName} ${staff.lastName}`,
+      isActive: staff.status === 'ACTIVE',
+    };
   }
 
   async findAll(merchantId: string, isActive?: boolean) {
@@ -75,11 +88,12 @@ export class StaffService {
       orderBy: [{ status: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
     });
 
-    // Remove PIN from response
+    // For list view, don't show PINs (security best practice)
     return staff.map(({ pin, ...staffMember }) => ({
       ...staffMember,
       name: `${staffMember.firstName} ${staffMember.lastName}`,
       isActive: staffMember.status === 'ACTIVE',
+      hasPinSet: true, // Indicate PIN is set without showing it
     }));
   }
 
@@ -116,12 +130,13 @@ export class StaffService {
       throw new NotFoundException('Staff member not found');
     }
 
-    // Remove PIN from response
+    // For detail view, include PIN indicator but not the actual PIN
     const { pin, ...staffWithoutPin } = staff;
     return {
       ...staffWithoutPin,
       name: `${staff.firstName} ${staff.lastName}`,
       isActive: staff.status === 'ACTIVE',
+      hasPinSet: true,
     };
   }
 
@@ -138,12 +153,18 @@ export class StaffService {
       throw new NotFoundException('Staff member not found');
     }
 
-    // Extract locationIds and newPin for separate handling
-    const { locationIds, newPin, ...updateData } = updateStaffDto;
+    // Extract locationIds and pin for separate handling
+    const { locationIds, pin, ...updateData } = updateStaffDto;
 
     // Hash new PIN if provided
-    if (newPin) {
-      updateData['pin'] = await bcrypt.hash(newPin, 10);
+    let plainTextPin: string | undefined;
+    if (pin) {
+      // Validate PIN format
+      if (!/^\d{4}$/.test(pin)) {
+        throw new BadRequestException('PIN must be exactly 4 digits');
+      }
+      updateData['pin'] = await bcrypt.hash(pin, 10);
+      plainTextPin = pin; // Store for response
     }
 
     // Update staff
@@ -171,12 +192,13 @@ export class StaffService {
       }
     }
 
-    // Return updated staff without PIN
+    // Return updated staff with PIN if it was changed
     const { pin: _, ...staffWithoutPin } = updatedStaff;
     return {
       ...staffWithoutPin,
       name: `${updatedStaff.firstName} ${updatedStaff.lastName}`,
       isActive: updatedStaff.status === 'ACTIVE',
+      ...(plainTextPin && { pin: plainTextPin }), // Include plain text PIN if it was updated
     };
   }
 
@@ -272,5 +294,20 @@ export class StaffService {
       isActive: true,
       isAvailable: true, // Simplified - should check actual availability
     }));
+  }
+
+  // New method to get staff PIN for managers/owners only
+  async getStaffPin(merchantId: string, staffId: string): Promise<string | null> {
+    // This method should only be called after verifying the requester is a manager/owner
+    // The controller should handle that authorization
+    
+    // For now, we can't retrieve the original PIN since it's hashed
+    // In a real implementation, you might want to:
+    // 1. Store PINs encrypted (not hashed) if you need to show them
+    // 2. Or generate a new PIN when requested
+    // 3. Or never show PINs after creation
+    
+    // For this implementation, we'll return null indicating PIN can't be retrieved
+    return null;
   }
 }

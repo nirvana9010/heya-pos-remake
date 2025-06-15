@@ -89,7 +89,7 @@ const stringToColor = (str: string) => {
   }
   
   const colors = [
-    'bg-purple-500',
+    'bg-indigo-500',
     'bg-blue-500',
     'bg-green-500',
     'bg-yellow-500',
@@ -619,8 +619,8 @@ export default function CustomersPage() {
                 <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-sm text-green-600">+{stats.newThisMonth} this month</p>
               </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Users className="h-6 w-6 text-purple-600" />
+              <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Users className="h-6 w-6 text-indigo-600" />
               </div>
             </div>
           </CardContent>
@@ -677,7 +677,7 @@ export default function CustomersPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">New This Month</p>
                 <p className="text-2xl font-bold">{stats.newThisMonth}</p>
-                <p className="text-sm text-purple-600">First-time visitors</p>
+                <p className="text-sm text-indigo-600">First-time visitors</p>
               </div>
               <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
                 <Star className="h-6 w-6 text-indigo-600" />
@@ -834,7 +834,7 @@ export default function CustomersPage() {
                                     <Crown className="h-4 w-4 text-yellow-600" title="VIP Customer" />
                                   )}
                                   {differenceInDays(new Date(), new Date(customer.createdAt)) <= 30 && (
-                                    <Star className="h-4 w-4 text-purple-600" title="New Customer" />
+                                    <Star className="h-4 w-4 text-indigo-600" title="New Customer" />
                                   )}
                                   {hasBirthday && (
                                     <Cake className="h-4 w-4 text-pink-600" title="Birthday this month" />
@@ -889,7 +889,7 @@ export default function CustomersPage() {
                                   </span>
                                 )}
                                 {(customer.totalVisits || 0) === 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
                                     New Customer
                                   </span>
                                 )}
@@ -925,7 +925,7 @@ export default function CustomersPage() {
                               ) : customer.upcomingBookings > 0 ? (
                                 <div className="text-sm text-gray-600">
                                   <span className="font-medium">No visits yet</span> • 
-                                  <span className="text-purple-600">
+                                  <span className="text-indigo-600">
                                     {customer.upcomingBookings} upcoming {customer.upcomingBookings === 1 ? 'booking' : 'bookings'}
                                   </span>
                                   {customer.pendingRevenue > 0 && (
@@ -945,8 +945,8 @@ export default function CustomersPage() {
                                   <div className="flex items-center gap-1.5">
                                     {Number(customer.loyaltyVisits) > 0 ? (
                                       <>
-                                        <Gift className="h-5 w-5 text-purple-600" />
-                                        <span className="text-base font-semibold text-purple-600">
+                                        <Gift className="h-5 w-5 text-indigo-600" />
+                                        <span className="text-base font-semibold text-indigo-600">
                                           {customer.loyaltyVisits} loyalty visits
                                         </span>
                                       </>

@@ -2,13 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { TyroTransactionDto, TyroTransactionResult } from './dto/tyro-transaction.dto';
-import { PaymentMethod, PaymentStatus, RefundStatus } from '../types/payment.types';
+import { IPaymentGateway, PaymentGatewayConfig, PaymentResult, RefundResult, PaymentMethod, PaymentStatus, RefundStatus } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
 import { toNumber, toDecimal, addDecimals, subtractDecimals, isGreaterThanOrEqual, isLessThanOrEqual } from '../utils/decimal';
 
 @Injectable()
-export class TyroPaymentService {
+export class TyroPaymentService implements IPaymentGateway {
   private readonly logger = new Logger(TyroPaymentService.name);
+  private config: PaymentGatewayConfig;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -249,5 +250,75 @@ export class TyroPaymentService {
         },
       });
     }
+  }
+
+  // IPaymentGateway implementation
+  async initialize(config: PaymentGatewayConfig): Promise<void> {
+    this.config = config;
+    this.logger.log('Tyro payment gateway initialized');
+    // In a real implementation, this would initialize the Tyro SDK
+  }
+
+  async createTerminalPayment(amount: number, orderId: string): Promise<string> {
+    // In a real implementation, this would initiate a payment on the Tyro terminal
+    // and return a reference ID that can be used to track the payment
+    const referenceId = `TYRO_${Date.now()}_${orderId}`;
+    this.logger.log(`Created terminal payment reference: ${referenceId}`);
+    return referenceId;
+  }
+
+  async getTerminalStatus(referenceId: string): Promise<PaymentResult> {
+    // In a real implementation, this would query the Tyro API for payment status
+    // For now, we'll simulate a successful payment
+    this.logger.log(`Checking status for reference: ${referenceId}`);
+    
+    // Simulate different results based on reference pattern
+    if (referenceId.includes('FAIL')) {
+      return {
+        success: false,
+        error: 'Payment declined by card issuer',
+        method: PaymentMethod.CARD_TYRO,
+        amount: 0,
+      };
+    }
+
+    return {
+      success: true,
+      paymentId: referenceId,
+      transactionId: `TXN_${referenceId}`,
+      amount: 100, // This would come from the actual transaction
+      method: PaymentMethod.CARD_TYRO,
+      gatewayResponse: {
+        authorisationCode: 'AUTH123',
+        result: 'APPROVED',
+      },
+    };
+  }
+
+  async refundPayment(paymentId: string, amount: number, reason?: string): Promise<RefundResult> {
+    // In a real implementation, this would call Tyro's refund API
+    this.logger.log(`Processing refund for payment ${paymentId}: $${amount}`);
+
+    return {
+      success: true,
+      refundId: `REFUND_${Date.now()}_${paymentId}`,
+      amount,
+    };
+  }
+
+  async voidPayment(paymentId: string): Promise<RefundResult> {
+    // In a real implementation, this would call Tyro's void API
+    this.logger.log(`Voiding payment ${paymentId}`);
+
+    return {
+      success: true,
+      refundId: `VOID_${Date.now()}_${paymentId}`,
+      amount: 0, // Full amount of original payment
+    };
+  }
+
+  async isConnected(): Promise<boolean> {
+    // In a real implementation, this would check connection to Tyro
+    return true;
   }
 }

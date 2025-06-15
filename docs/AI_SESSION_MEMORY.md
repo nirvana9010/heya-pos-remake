@@ -1,10 +1,11 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-06-06 9:00 PM
+> Last Updated: 2025-06-13 5:30 PM
 > 
 > **CRITICAL UPDATE**: Port management issues causing hours of debugging - SEE NEW SECTION BELOW
 > **NEW**: Screenshots are stored in `/home/nirvana9010/projects/heya-pos-remake/screenshots/` folder
+> **LATEST**: React Date rendering error pattern identified - SEE NEW SECTION
 
 ## 🚨 CRITICAL: Recurring Port/Service Management Problem
 
@@ -61,6 +62,229 @@ Repeated error pattern?
 ├─ Fix the root cause, don't work around it
 └─ If not here → Add it after fixing
 ```
+
+## 🚨 CRITICAL: React Date Object Rendering Error
+
+### The Error That Stumped Us
+**"Objects are not valid as a React child (found: [object Date])"** - This error can waste HOURS because:
+1. The stack trace line numbers don't match source files (transpiled code)
+2. The error happens on page load, not user interaction
+3. Standard debugging techniques fail to locate the issue
+
+### Root Cause Discovered
+The API transformation layer (`db-transforms.ts`) was automatically converting date strings to Date objects, which then got passed as props and eventually rendered as React children.
+
+### The Solution Pattern
+1. **DON'T auto-transform dates to Date objects in API responses**
+   ```typescript
+   // BAD - causes rendering errors
+   transformed[key] = value ? transformDate(value) : value;
+   
+   // GOOD - keep as strings
+   transformed[key] = value; // Let components handle conversion
+   ```
+
+2. **Convert to Date objects only where needed**
+   ```typescript
+   const startTime = booking.startTime instanceof Date 
+     ? booking.startTime 
+     : new Date(booking.startTime);
+   ```
+
+3. **Always format dates before rendering**
+   ```typescript
+   // Use safeFormat or format() from date-fns
+   {format(booking.startTime, 'HH:mm')}
+   ```
+
+### Common Culprits
+
+## 🗄️ Database Seeding Procedures
+
+### Quick Booking Seed Script (Copy & Modify)
+When you need to add bookings to the database, use this template:
+
+```typescript
+// Save as: apps/api/prisma/seed-bookings-quick.ts
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
+async function seedBookings() {
+  // 1. GET MERCHANT (adjust name as needed)
+  const merchant = await prisma.merchant.findFirst({
+    where: { name: 'Hamilton Beauty Spa' } // Change merchant name here
+  });
+  if (!merchant) throw new Error('Merchant not found');
+
+  // 2. GET REQUIRED DATA IN PARALLEL
+  const [location, staff, services, customers] = await Promise.all([
+    prisma.location.findFirst({ where: { merchantId: merchant.id }}),
+    prisma.staff.findMany({ where: { merchantId: merchant.id }}),
+    prisma.service.findMany({ where: { merchantId: merchant.id }}),
+    prisma.customer.findMany({ where: { merchantId: merchant.id }, take: 50 })
+  ]);
+
+  // 3. QUICK BOOKING CREATION (adjust parameters as needed)
+  const DAYS_PAST = 7;      // How many days of past bookings
+  const DAYS_FUTURE = 7;    // How many days of future bookings
+  const BOOKINGS_PER_DAY = 8; // Average bookings per day
+  
+  const now = new Date();
+  const bookings = [];
+
+  // Create bookings for date range
+  for (let day = -DAYS_PAST; day <= DAYS_FUTURE; day++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + day);
+    
+    for (let i = 0; i < BOOKINGS_PER_DAY; i++) {
+      const hour = 9 + Math.floor(Math.random() * 9); // 9am-5pm
+      date.setHours(hour, Math.random() < 0.5 ? 0 : 30, 0, 0);
+      
+      const booking = {
+        merchantId: merchant.id,
+        locationId: location.id,
+        customerId: customers[Math.floor(Math.random() * customers.length)].id,
+        bookingNumber: `BK${Date.now()}${Math.random().toString(36).substring(2, 5)}`.toUpperCase(),
+        status: day < 0 ? 'COMPLETED' : day === 0 ? 'CONFIRMED' : 'CONFIRMED',
+        startTime: new Date(date),
+        endTime: new Date(date.getTime() + 60 * 60000), // 60 min default
+        totalAmount: 100, // Default price
+        depositAmount: 20, // 20% deposit
+        source: 'ONLINE',
+        createdById: staff[0].id,
+        providerId: staff[Math.floor(Math.random() * staff.length)].id,
+        services: {
+          create: {
+            serviceId: services[Math.floor(Math.random() * services.length)].id,
+            price: 100,
+            duration: 60,
+            staffId: staff[Math.floor(Math.random() * staff.length)].id,
+          }
+        }
+      };
+      
+      bookings.push(booking);
+    }
+  }
+
+  // Batch create for speed
+  console.log(`Creating ${bookings.length} bookings...`);
+  for (const booking of bookings) {
+    await prisma.booking.create({ data: booking });
+  }
+  
+  console.log('✅ Done!');
+  await prisma.$disconnect();
+}
+
+seedBookings().catch(console.error);
+```
+
+### Running the Seed Script
+```bash
+# From project root
+cd apps/api
+npx ts-node prisma/seed-bookings-quick.ts
+
+# Or if you get path errors
+cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/api
+npx ts-node prisma/seed-bookings-quick.ts
+```
+
+### Common Customizations
+
+#### 1. Specific Date Range
+```typescript
+// Replace the date loop with:
+const startDate = new Date('2025-06-01');
+const endDate = new Date('2025-06-30');
+for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+  // Create bookings for date d
+}
+```
+
+#### 2. Specific Time Patterns
+```typescript
+// Morning rush (8-10am)
+const hour = 8 + Math.floor(Math.random() * 2);
+
+// Lunch appointments (12-2pm)
+const hour = 12 + Math.floor(Math.random() * 2);
+
+// Evening appointments (5-7pm)
+const hour = 17 + Math.floor(Math.random() * 2);
+```
+
+#### 3. Specific Service Types
+```typescript
+// Filter services first
+const facialServices = services.filter(s => s.categoryName === 'Facials');
+const massageServices = services.filter(s => s.categoryName === 'Massages');
+
+// Use filtered list
+serviceId: facialServices[Math.floor(Math.random() * facialServices.length)].id,
+```
+
+#### 4. Realistic Booking Patterns
+```typescript
+// Fewer bookings on Mondays
+const dayOfWeek = date.getDay();
+const bookingsToday = dayOfWeek === 1 ? 4 : BOOKINGS_PER_DAY;
+
+// No bookings on Sundays
+if (dayOfWeek === 0) continue;
+```
+
+#### 5. Testing Specific Statuses
+```typescript
+// Create various statuses for today
+const statuses = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+status: day === 0 ? statuses[i % statuses.length] : 'CONFIRMED',
+```
+
+### Quick Commands for Common Scenarios
+
+```bash
+# Clear all bookings first (if needed)
+npx prisma db execute --sql "DELETE FROM booking_services; DELETE FROM bookings;"
+
+# Run main seed (creates merchant, staff, services, customers)
+npx prisma db seed
+
+# Add bookings only
+npx ts-node prisma/seed-bookings-quick.ts
+
+# Check booking count
+curl -s http://localhost:3000/api/bookings -H "Authorization: Bearer $(cat ~/.heya-auth-token)" | jq '.meta.total'
+```
+
+### Troubleshooting
+
+1. **"Merchant not found"**: Check merchant name in database or run main seed first
+2. **Type errors with Decimal**: Use `Number(service.price)` for calculations
+3. **Slow execution**: Reduce date range or use `Promise.all` for parallel creation
+4. **Auth errors**: Login first with `curl -X POST http://localhost:3000/api/auth/merchant/login -H "Content-Type: application/json" -d '{"username": "HAMILTON", "password": "demo123"}' | jq -r '.token' > ~/.heya-auth-token`
+
+### Common Culprits
+- Tooltip/Popover components that spread props
+- Array.map() that includes Date objects
+- Console.log() statements with objects containing dates
+- Spread operators ({...booking}) where booking has Date properties
+- Third-party UI components that iterate over props
+
+### Debugging Techniques That Actually Work
+1. **Comment out console.logs** - They can cause the error in dev mode
+2. **Check API transformations** - Look for automatic Date conversions
+3. **Use error boundaries** - They'll catch and show where it happens
+4. **Search for date field names**: startTime, endTime, createdAt, etc.
+5. **Check all .map() calls** - Ensure no Date objects in rendered output
+
+### Prevention
+- Keep dates as ISO strings in API responses
+- Only convert to Date objects for calculations
+- Always format dates explicitly before rendering
+- Use TypeScript to catch potential issues
 
 ### Fixing API Issues Properly
 
@@ -661,3 +885,89 @@ When encountering import errors or "missing" components:
 - ❌ Using random probability for EACH staff member
 - ❌ Ignoring business hour constraints
 - ❌ Not checking existing data before seeding
+
+## 🎯 React Component Patterns and Focus Issues
+**Added**: 2025-06-13
+
+### Input Focus Loss - Component Re-creation Pattern
+
+#### The Problem:
+When defining component functions inside a parent component's render function, React recreates the component on every render, causing:
+- Input fields to lose focus after each keystroke
+- Form state to reset
+- Poor performance due to unnecessary re-renders
+
+#### Example of WRONG Pattern:
+```jsx
+export default function SettingsPage() {
+  const [value, setValue] = useState("");
+  
+  // ❌ BAD: Component defined inside parent
+  const MyTab = () => (
+    <div>
+      <input value={value} onChange={(e) => setValue(e.target.value)} />
+    </div>
+  );
+  
+  return <TabsContent><MyTab /></TabsContent>;
+}
+```
+
+#### The Solution - Two Approaches:
+
+**1. Inline JSX Directly (Preferred for Simple Cases):**
+```jsx
+export default function SettingsPage() {
+  const [value, setValue] = useState("");
+  
+  return (
+    <TabsContent>
+      {/* ✅ GOOD: JSX inlined directly */}
+      <div>
+        <input value={value} onChange={(e) => setValue(e.target.value)} />
+      </div>
+    </TabsContent>
+  );
+}
+```
+
+**2. Define Component Outside (For Complex Components):**
+```jsx
+// ✅ GOOD: Component defined outside
+const MyTab = ({ value, onChange }) => (
+  <div>
+    <input value={value} onChange={onChange} />
+  </div>
+);
+
+export default function SettingsPage() {
+  const [value, setValue] = useState("");
+  
+  return (
+    <TabsContent>
+      <MyTab value={value} onChange={(e) => setValue(e.target.value)} />
+    </TabsContent>
+  );
+}
+```
+
+#### Key Principles:
+1. **Never define components inside render functions** - They get recreated every render
+2. **For simple JSX, inline it directly** - No need for a component at all
+3. **For complex reusable logic, define outside** - True component pattern
+4. **Watch for hooks in nested functions** - Can cause "Rules of Hooks" violations
+
+#### Common Scenarios Where This Happens:
+- Tab content components in settings pages
+- Modal content components
+- Dynamically rendered form sections
+- List item components defined inline
+
+#### Performance Impact:
+- Every parent re-render = new component instance
+- React unmounts old component and mounts new one
+- DOM elements are destroyed and recreated
+- Focus, scroll position, and other state is lost
+
+#### Quick Diagnostic:
+If an input loses focus after each keystroke, check if its component is being defined inside another component's render function.
