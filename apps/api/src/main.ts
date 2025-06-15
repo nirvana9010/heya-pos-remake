@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
@@ -57,6 +57,13 @@ async function bootstrap() {
 
   // Set global prefix
   app.setGlobalPrefix('api');
+
+  // Enable API versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'v',
+    defaultVersion: '1', // Default to v1 for backward compatibility
+  });
 
   const port = process.env.PORT || 3000;
   const host = '0.0.0.0'; // Bind to all interfaces for Railway
