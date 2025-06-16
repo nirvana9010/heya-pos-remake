@@ -12,11 +12,15 @@ import {
   HttpCode,
   Inject,
 } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 import { CreateBookingHandler } from '../../application/commands/create-booking.handler';
 import { CreateBookingCommand } from '../../application/commands/create-booking.command';
 import { BookingUpdateService } from '../../application/services/booking-update.service';
 import { BookingAvailabilityService } from '../../application/services/booking-availability.service';
 import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
+import { GetBookingByIdQuery } from '../../application/queries/get-booking-by-id.query';
+import { GetBookingsListQuery } from '../../application/queries/get-bookings-list.query';
+import { GetCalendarViewQuery } from '../../application/queries/get-calendar-view.query';
 import { JwtAuthGuard } from '../../../../auth/guards/jwt-auth.guard';
 import { PinAuthGuard } from '../../../../auth/guards/pin-auth.guard';
 import { CurrentUser } from '../../../../auth/decorators/current-user.decorator';
@@ -90,6 +94,7 @@ class UpdateBookingV2Dto {
 @UseGuards(JwtAuthGuard, PinAuthGuard)
 export class BookingsV2Controller {
   constructor(
+    private readonly queryBus: QueryBus,
     private readonly createBookingHandler: CreateBookingHandler,
     private readonly bookingUpdateService: BookingUpdateService,
     private readonly bookingAvailabilityService: BookingAvailabilityService,
@@ -98,7 +103,7 @@ export class BookingsV2Controller {
   ) {}
 
   @Get()
-  @Permissions('booking.read')
+  // @Permissions('booking.read')
   async findAll(
     @CurrentUser() user: any,
     @Query('page') page: number = 1,
@@ -106,27 +111,56 @@ export class BookingsV2Controller {
     @Query('staffId') staffId?: string,
     @Query('customerId') customerId?: string,
     @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    const offset = (page - 1) * limit;
-    
-    const result = await this.bookingRepository.findMany({
+    const query = new GetBookingsListQuery({
       merchantId: user.merchantId,
-      staffId,
-      customerId,
-      status,
-      limit,
-      offset,
+      filters: {
+        staffId,
+        customerId,
+        status,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      },
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+      },
     });
 
+    const result = await this.queryBus.execute(query);
+
     return {
-      data: result.bookings.map(this.toDto),
+      data: result.items,
       meta: {
         total: result.total,
-        page,
-        limit,
-        totalPages: Math.ceil(result.total / limit),
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
       },
     };
+  }
+
+  @Get('calendar')
+  @Permissions('booking.read')
+  async getCalendarView(
+    @CurrentUser() user: any,
+    @Query('date') date: string,
+    @Query('view') view: 'day' | 'week' | 'month' = 'day',
+    @Query('staffIds') staffIds?: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    const query = new GetCalendarViewQuery({
+      merchantId: user.merchantId,
+      date: new Date(date),
+      view,
+      staffIds: staffIds ? staffIds.split(',') : undefined,
+      locationId,
+    });
+
+    const slots = await this.queryBus.execute(query);
+    return { slots };
   }
 
   @Get('availability')
@@ -169,13 +203,13 @@ export class BookingsV2Controller {
   @Get(':id')
   @Permissions('booking.read')
   async findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    const booking = await this.bookingRepository.findById(id, user.merchantId);
-    
-    if (!booking) {
-      throw new Error('Booking not found');
-    }
+    const query = new GetBookingByIdQuery({
+      bookingId: id,
+      merchantId: user.merchantId,
+    });
 
-    return this.toDto(booking);
+    const booking = await this.queryBus.execute(query);
+    return booking;
   }
 
   @Post()
