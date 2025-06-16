@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   transpilePackages: ['@heya-pos/ui', '@heya-pos/utils', '@heya-pos/types'],
   
   // Disable type checking during build for deployment

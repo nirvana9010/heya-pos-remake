@@ -5,8 +5,8 @@ A modern Point of Sale system built with Next.js, NestJS, and PostgreSQL.
 ## Architecture
 
 - **Frontend Apps**: 
-  - Merchant App (Port 3001) - Staff interface for managing bookings, customers, and services
-  - Booking App (Port 3002) - Customer-facing booking interface
+  - Merchant App (Port 3002) - Staff interface for managing bookings, customers, and services
+  - Booking App (Port 3001) - Customer-facing booking interface
   - Admin Dashboard (Port 3003) - System administration
   
 - **Backend**: NestJS API (Port 3000)
@@ -53,8 +53,8 @@ npm run dev
 
 This will start:
 - API server at http://localhost:3000
-- Merchant App at http://localhost:3001
-- Booking App at http://localhost:3002
+- Merchant App at http://localhost:3002
+- Booking App at http://localhost:3001
 - Admin Dashboard at http://localhost:3003
 
 ### Test Credentials
@@ -73,12 +73,25 @@ This will start:
 
 ### API Endpoints
 
-The API provides RESTful endpoints for:
-- Authentication (`/auth`)
-- Bookings (`/bookings`)
-- Customers (`/customers`)
-- Services (`/services`)
-- Service Categories (`/service-categories`)
+The API uses versioned endpoints:
+
+**V1 Endpoints** (Original implementation):
+- Authentication (`/api/v1/auth/*`)
+- Customers (`/api/v1/customers`)
+- Services (`/api/v1/services`)
+- Service Categories (`/api/v1/service-categories`)
+- Staff (`/api/v1/staff`)
+- Payments (`/api/v1/payments`)
+
+**V2 Endpoints** (CQRS/Bounded Context pattern):
+- Bookings (`/api/v2/bookings/*`)
+
+**Example Authentication**:
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "HAMILTON", "password": "demo123"}'
+```
 
 ### Database Management
 

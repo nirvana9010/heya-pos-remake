@@ -8,7 +8,7 @@ async function testNewBookingAPI() {
   // Step 1: Login as merchant
   console.log('1️⃣ Logging in as merchant...\n');
   
-  const loginRes = await fetch('http://localhost:3000/api/auth/merchant/login', {
+  const loginRes = await fetch('http://localhost:3000/api/v1/auth/merchant/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: 'HAMILTON', password: 'demo123' })
@@ -26,13 +26,13 @@ async function testNewBookingAPI() {
   // Step 2: Get test data through merchant API
   console.log('\n2️⃣ Getting test data...\n');
   
-  const staffRes = await fetch('http://localhost:3000/api/staff', {
+  const staffRes = await fetch('http://localhost:3000/api/v1/staff', {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const staffData = await staffRes.json();
   const testStaff = staffData.find(s => s.firstName === 'Test' && (s.lastName === 'Jane' || s.lastName === 'John'));
   
-  const servicesRes = await fetch('http://localhost:3000/api/services', {
+  const servicesRes = await fetch('http://localhost:3000/api/v1/services', {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const servicesData = await servicesRes.json();
@@ -59,7 +59,7 @@ async function testNewBookingAPI() {
   const dayAfter = new Date(tomorrow);
   dayAfter.setDate(dayAfter.getDate() + 1);
   
-  const availUrl = `http://localhost:3000/api/bookings/available-slots?staffId=${testStaff.id}&serviceId=${testService.id}&startDate=${tomorrow.toISOString()}&endDate=${dayAfter.toISOString()}`;
+  const availUrl = `http://localhost:3000/api/v2/bookings/availability?staffId=${testStaff.id}&serviceId=${testService.id}&startDate=${tomorrow.toISOString()}&endDate=${dayAfter.toISOString()}`;
   
   const availRes = await fetch(availUrl, {
     headers: { 'Authorization': `Bearer ${token}` }
@@ -99,7 +99,7 @@ async function testNewBookingAPI() {
     notes: 'Testing new booking API'
   };
   
-  const bookingRes = await fetch('http://localhost:3000/api/bookings/create-with-check', {
+  const bookingRes = await fetch('http://localhost:3000/api/v2/bookings', {
     method: 'POST',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -120,7 +120,7 @@ async function testNewBookingAPI() {
     // Step 5: Test double booking
     console.log('\n5️⃣ Testing double booking prevention...\n');
     
-    const conflictRes = await fetch('http://localhost:3000/api/bookings/create-with-check', {
+    const conflictRes = await fetch('http://localhost:3000/api/v2/bookings', {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
@@ -144,7 +144,7 @@ async function testNewBookingAPI() {
     // Create order and process payment
     console.log('\n6️⃣ Creating order and processing payment...\n');
     
-    const orderRes = await fetch(`http://localhost:3000/api/orders/from-booking/${bookingResult.id}`, {
+    const orderRes = await fetch(`http://localhost:3000/api/v1/payments/orders/from-booking/${bookingResult.id}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -154,7 +154,7 @@ async function testNewBookingAPI() {
       console.log(`✓ Order created: ${order.orderNumber}`);
       console.log(`  Total: $${order.totalAmount}`);
       
-      const paymentRes = await fetch(`http://localhost:3000/api/orders/${order.id}/payment`, {
+      const paymentRes = await fetch(`http://localhost:3000/api/v1/payments/process`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

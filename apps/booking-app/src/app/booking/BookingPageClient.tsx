@@ -13,6 +13,7 @@ import { Badge } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { RadioGroup, RadioGroupItem } from "@heya-pos/ui";
+import { Checkbox } from "@heya-pos/ui";
 import { Calendar as CalendarComponent } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
@@ -244,6 +245,34 @@ const CustomerFormComponent = React.memo(({
 
 CustomerFormComponent.displayName = 'CustomerFormComponent';
 
+// Component to show selected services summary
+const SelectedServicesSummary = ({ services }: { services: Service[] }) => {
+  if (services.length === 0) return null;
+  
+  const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+  const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+  
+  return (
+    <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+      <h4 className="text-sm font-semibold mb-2">Your Selected Services</h4>
+      <div className="space-y-1">
+        {services.map((service) => (
+          <div key={service.id} className="flex justify-between text-sm">
+            <span>{service.name}</span>
+            <span className="text-muted-foreground">{service.duration}min - ${service.price}</span>
+          </div>
+        ))}
+        {services.length > 1 && (
+          <div className="pt-2 mt-2 border-t flex justify-between font-semibold text-sm">
+            <span>Total</span>
+            <span>{totalDuration}min - ${totalPrice.toFixed(2)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function BookingPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -257,7 +286,9 @@ export default function BookingPageClient() {
   const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(null);
   
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<string | null>(searchParams.get("service"));
+  const [selectedServices, setSelectedServices] = useState<string[]>(
+    searchParams.get("service") ? [searchParams.get("service")!] : []
+  );
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -272,7 +303,7 @@ export default function BookingPageClient() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string | null>(null);
 
-  const service = services.find(s => s.id === selectedService);
+  const selectedServicesList = services.filter(s => selectedServices.includes(s.id));
   const selectedStaffMember = staff.find(s => s.id === selectedStaff);
 
   useEffect(() => {
@@ -280,10 +311,10 @@ export default function BookingPageClient() {
   }, []);
 
   useEffect(() => {
-    if (selectedDate && selectedService) {
+    if (selectedDate && selectedServices.length > 0) {
       loadAvailableSlots();
     }
-  }, [selectedDate, selectedService, selectedStaff]);
+  }, [selectedDate, selectedServices, selectedStaff]);
 
   const loadInitialData = async () => {
     try {
@@ -311,12 +342,12 @@ export default function BookingPageClient() {
   };
 
   const loadAvailableSlots = async () => {
-    if (!selectedDate || !selectedService) return;
+    if (!selectedDate || selectedServices.length === 0) return;
     
     try {
       const slots = await bookingApi.checkAvailability({
         date: format(selectedDate, 'yyyy-MM-dd'),
-        serviceId: selectedService,
+        services: selectedServices.map(id => ({ serviceId: id })),
         staffId: selectedStaff || undefined
       });
       setAvailableSlots(slots);
@@ -343,14 +374,14 @@ export default function BookingPageClient() {
   };
 
   const handleBookingSubmit = async () => {
-    if (!service || !selectedDate || !selectedTime) return;
+    if (selectedServices.length === 0 || !selectedDate || !selectedTime) return;
     
     // Create booking directly
     await createBooking({
       customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
       customerPhone: customerInfo.phone,
       customerEmail: customerInfo.email,
-      serviceId: service.id,
+      services: selectedServices.map(id => ({ serviceId: id })),
       staffId: selectedStaff || undefined,
       date: selectedDate,
       startTime: selectedTime,
@@ -390,7 +421,7 @@ export default function BookingPageClient() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return !!selectedService;
+        return selectedServices.length > 0;
       case 2:
         return !!selectedStaff;
       case 3:
@@ -562,7 +593,7 @@ export default function BookingPageClient() {
         )}
         
         {/* Services Display */}
-        <RadioGroup value={selectedService || ""} onValueChange={setSelectedService}>
+        <div>
           {viewMode === 'grid' ? (
             <div className="space-y-6">
               {Object.entries(groupedServices).map(([category, categoryServices]) => (
@@ -574,7 +605,7 @@ export default function BookingPageClient() {
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {categoryServices.map((service, index) => {
-                      const isSelected = selectedService === service.id;
+                      const isSelected = selectedServices.includes(service.id);
                       
                       return (
                         <motion.div
@@ -592,7 +623,13 @@ export default function BookingPageClient() {
                                 ? "border-primary bg-primary/5 shadow-md" 
                                 : "border-border bg-card hover:border-border/80"
                             )}
-                            onClick={() => setSelectedService(service.id)}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedServices(selectedServices.filter(id => id !== service.id));
+                              } else {
+                                setSelectedServices([...selectedServices, service.id]);
+                              }
+                            }}
                           >
                             <div className="p-4">
                               {/* Header */}
@@ -607,9 +644,10 @@ export default function BookingPageClient() {
                                     </Badge>
                                   )}
                                 </div>
-                                <RadioGroupItem 
-                                  value={service.id} 
-                                  className="mt-0.5 data-[state=checked]:border-primary data-[state=checked]:text-primary" 
+                                <Checkbox 
+                                  checked={isSelected}
+                                  className="mt-0.5" 
+                                  onClick={(e) => e.stopPropagation()}
                                 />
                               </div>
                               
@@ -644,7 +682,7 @@ export default function BookingPageClient() {
                   )}
                   <div className="space-y-1">
                     {categoryServices.map((service) => {
-                      const isSelected = selectedService === service.id;
+                      const isSelected = selectedServices.includes(service.id);
                       
                       return (
                         <div
@@ -655,11 +693,17 @@ export default function BookingPageClient() {
                               ? "bg-primary/5 border-2 border-primary" 
                               : "bg-card border-2 border-border hover:border-border/80"
                           )}
-                          onClick={() => setSelectedService(service.id)}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedServices(selectedServices.filter(id => id !== service.id));
+                            } else {
+                              setSelectedServices([...selectedServices, service.id]);
+                            }
+                          }}
                         >
-                          <RadioGroupItem 
-                            value={service.id} 
-                            className="data-[state=checked]:border-primary data-[state=checked]:text-primary" 
+                          <Checkbox 
+                            checked={isSelected}
+                            onClick={(e) => e.stopPropagation()}
                           />
                           <div className="flex-1">
                             <h4 className="font-medium text-sm">{service.name}</h4>
@@ -676,7 +720,44 @@ export default function BookingPageClient() {
               ))}
             </div>
           )}
-        </RadioGroup>
+        </div>
+        
+        {/* Selected Services Summary */}
+        {selectedServices.length > 0 && (
+          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <h3 className="font-semibold text-sm mb-3">Selected Services ({selectedServices.length})</h3>
+            <div className="space-y-2">
+              {selectedServicesList.map((service) => (
+                <div key={service.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{service.name}</span>
+                    <span className="text-xs text-muted-foreground">{service.duration}min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">${service.price}</span>
+                    <button
+                      onClick={() => setSelectedServices(selectedServices.filter(id => id !== service.id))}
+                      className="text-xs text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="pt-2 border-t mt-2">
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Total</span>
+                  <div className="text-right">
+                    <div>${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}</div>
+                    <div className="text-xs font-normal text-muted-foreground">
+                      {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {filteredServices.length === 0 && (
           <div className="text-center py-12">
@@ -688,8 +769,9 @@ export default function BookingPageClient() {
   };
 
   const StaffSelection = () => {
-    const availableStaff = service 
-      ? staff.filter(s => !s.services || s.services.length === 0 || s.services.includes(service.id))
+    const availableStaff = selectedServicesList.length > 0
+      ? staff.filter(s => !s.services || s.services.length === 0 || 
+          selectedServicesList.some(service => s.services.includes(service.id)))
       : staff;
 
     // Mock recommended staff (in real app, based on ratings/availability)
@@ -839,8 +921,9 @@ export default function BookingPageClient() {
     // Calculate appointment end time
     const getEndTime = (startTime: string) => {
       const [hours, minutes] = startTime.split(':').map(Number);
-      const endHours = Math.floor((hours * 60 + minutes + (service?.duration || 60)) / 60);
-      const endMinutes = (hours * 60 + minutes + (service?.duration || 60)) % 60;
+      const totalDuration = selectedServicesList.reduce((sum, s) => sum + s.duration, 0) || 60;
+      const endHours = Math.floor((hours * 60 + minutes + totalDuration) / 60);
+      const endMinutes = (hours * 60 + minutes + totalDuration) % 60;
       return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
     };
     
@@ -855,8 +938,12 @@ export default function BookingPageClient() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Selected Treatment</p>
-                <p className="font-display text-lg font-medium">{service?.name}</p>
+                <p className="text-sm text-muted-foreground mb-1">Selected Treatment{selectedServicesList.length > 1 ? 's' : ''}</p>
+                <p className="font-display text-lg font-medium">
+                  {selectedServicesList.length > 0 
+                    ? selectedServicesList.map(s => s.name).join(' + ')
+                    : 'No services selected'}
+                </p>
               </div>
               <div className="h-12 w-px bg-gray-300" />
               <div>
@@ -866,7 +953,9 @@ export default function BookingPageClient() {
               <div className="h-12 w-px bg-gray-300" />
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Duration</p>
-                <p className="font-medium">{service?.duration} minutes</p>
+                <p className="font-medium">
+                  {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                </p>
               </div>
             </div>
             {nextAvailable && !selectedTime && (
@@ -1141,11 +1230,14 @@ export default function BookingPageClient() {
     
     const handleAddToCalendar = () => {
       // Create calendar event details
+      const serviceNames = selectedServicesList.map(s => s.name).join(' + ');
+      const totalDuration = selectedServicesList.reduce((sum, s) => sum + s.duration, 0);
+      
       const eventDetails = {
-        text: `${service?.name} at ${merchantInfo?.name || 'Luxe Spa'}`,
+        text: `${serviceNames} at ${merchantInfo?.name || 'Luxe Spa'}`,
         dates: selectedDate && selectedTime ? 
           `${format(selectedDate, 'yyyyMMdd')}T${selectedTime.replace(':', '')}00/${format(selectedDate, 'yyyyMMdd')}T${selectedTime.replace(':', '')}00` : '',
-        details: `Booking ID: ${bookingId}\nStaff: ${selectedStaffMember?.name || 'Any Available'}\nDuration: ${service?.duration} minutes`,
+        details: `Booking ID: ${bookingId}\nStaff: ${selectedStaffMember?.name || 'Any Available'}\nDuration: ${totalDuration} minutes`,
         location: businessAddress
       };
       
@@ -1218,20 +1310,39 @@ export default function BookingPageClient() {
             <CardContent className="space-y-4">
               {/* Service Details */}
               <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Service</p>
-                    <p className="font-semibold text-lg">{service?.name}</p>
-                    <Badge variant="outline" className="mt-1">{service?.categoryName}</Badge>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">${service?.price}</p>
-                    {merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0 && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Deposit paid: ${Math.round(service.price * (merchantInfo.depositPercentage / 100) * 100) / 100}
-                      </p>
-                    )}
-                  </div>
+                <p className="text-sm text-muted-foreground mb-2">Services</p>
+                <div className="space-y-2">
+                  {selectedServicesList.map((svc, index) => (
+                    <div key={svc.id} className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold">{svc.name}</p>
+                        <p className="text-sm text-muted-foreground">{svc.duration} minutes</p>
+                      </div>
+                      <p className="font-semibold">${svc.price}</p>
+                    </div>
+                  ))}
+                  {selectedServicesList.length > 1 && (
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">Total</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">
+                            ${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}
+                          </p>
+                          {merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0 && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Deposit paid: ${Math.round(selectedServicesList.reduce((sum, s) => sum + s.price, 0) * (merchantInfo.depositPercentage / 100) * 100) / 100}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -1263,7 +1374,7 @@ export default function BookingPageClient() {
                 <User className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">{selectedStaffMember?.name || 'Any Available Specialist'}</p>
-                  <p className="text-sm text-muted-foreground">{service?.duration} minute session</p>
+                  <p className="text-sm text-muted-foreground">{selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minute session</p>
                 </div>
               </div>
               
@@ -1329,7 +1440,7 @@ export default function BookingPageClient() {
             onClick={() => {
               // Reset form
               setCurrentStep(1);
-              setSelectedService(null);
+              setSelectedServices([]);
               setSelectedStaff(null);
               setSelectedDate(undefined);
               setSelectedTime(null);
@@ -1475,11 +1586,14 @@ export default function BookingPageClient() {
               <CardContent>
                 {currentStep === 5 ? (
                   // No animation wrapper for the form to prevent focus loss
-                  <CustomerFormComponent 
-                    customerInfo={customerInfo} 
-                    onCustomerInfoChange={setCustomerInfo}
-                    isReturningCustomer={isReturningCustomer}
-                  />
+                  <>
+                    <SelectedServicesSummary services={selectedServicesList} />
+                    <CustomerFormComponent 
+                      customerInfo={customerInfo} 
+                      onCustomerInfoChange={setCustomerInfo}
+                      isReturningCustomer={isReturningCustomer}
+                    />
+                  </>
                 ) : (
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -1490,13 +1604,25 @@ export default function BookingPageClient() {
                       transition={{ duration: 0.3 }}
                     >
                       {currentStep === 1 && <ServiceSelection />}
-                      {currentStep === 2 && <StaffSelection />}
-                      {currentStep === 3 && <DateTimeSelection />}
+                      {currentStep === 2 && (
+                        <>
+                          <SelectedServicesSummary services={selectedServicesList} />
+                          <StaffSelection />
+                        </>
+                      )}
+                      {currentStep === 3 && (
+                        <>
+                          <SelectedServicesSummary services={selectedServicesList} />
+                          <DateTimeSelection />
+                        </>
+                      )}
                       {currentStep === 4 && (
-                        <CustomerIdentification
-                          onCustomerFound={(customer) => {
-                            setIsReturningCustomer(true);
-                            setCustomerInfo({
+                        <>
+                          <SelectedServicesSummary services={selectedServicesList} />
+                          <CustomerIdentification
+                            onCustomerFound={(customer) => {
+                              setIsReturningCustomer(true);
+                              setCustomerInfo({
                               firstName: customer.firstName,
                               lastName: customer.lastName,
                               email: customer.email,
@@ -1510,19 +1636,23 @@ export default function BookingPageClient() {
                             setCurrentStep(5);
                           }}
                         />
+                        </>
                       )}
-                      {currentStep === 6 && service && (
+                      {currentStep === 6 && selectedServicesList.length > 0 && (
+                        <>
+                          <SelectedServicesSummary services={selectedServicesList} />
                         <PaymentStep
-                          amount={Math.round(service.price * (merchantInfo?.depositPercentage || 0) / 100 * 100) / 100}
+                          amount={Math.round(selectedServicesList.reduce((sum, s) => sum + s.price, 0) * (merchantInfo?.depositPercentage || 0) / 100 * 100) / 100}
                           currency={merchantInfo?.currency || 'AUD'}
                           onPaymentSuccess={handleBookingSubmit}
                           onCancel={() => setCurrentStep(5)}
-                          service={service}
+                          service={selectedServicesList[0]}
                           date={selectedDate!}
                           time={selectedTime!}
                           staffName={selectedStaffMember?.name || 'Any Available'}
                           customerName={`${customerInfo.firstName} ${customerInfo.lastName}`}
                         />
+                        </>
                       )}
                       {currentStep === 7 && <Confirmation />}
                     </motion.div>

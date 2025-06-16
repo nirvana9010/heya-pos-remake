@@ -21,8 +21,14 @@ interface PublicCreateBookingDto {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  serviceId: string;
+  // Support both single service (backward compatibility) and multiple services
+  serviceId?: string;
   staffId?: string;
+  // New fields for multiple services
+  services?: Array<{
+    serviceId: string;
+    staffId?: string;
+  }>;
   date: string;
   startTime: string;
   notes?: string;
@@ -30,8 +36,14 @@ interface PublicCreateBookingDto {
 
 interface CheckAvailabilityDto {
   date: string;
-  serviceId: string;
+  // Support both single service (backward compatibility) and multiple services
+  serviceId?: string;
   staffId?: string;
+  // New fields for multiple services
+  services?: Array<{
+    serviceId: string;
+    staffId?: string;
+  }>;
 }
 
 @Controller('public')
