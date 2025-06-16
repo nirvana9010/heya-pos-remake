@@ -7,6 +7,7 @@ export interface BookingListItem {
   bookingNumber: string;
   customerName: string;
   customerPhone?: string;
+  staffId: string;  // Added for calendar display
   staffName: string;
   serviceName: string;
   startTime: Date;

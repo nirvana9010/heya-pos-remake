@@ -19,11 +19,21 @@ class ApiClient {
     };
   }
 
+  private addVersionPrefix(endpoint: string): string {
+    // Don't add version if already present or if it's an external URL
+    if (endpoint.startsWith('/v1/') || endpoint.startsWith('/v2/') || endpoint.startsWith('http')) {
+      return endpoint;
+    }
+    // Add v1 as default version
+    return `/v1${endpoint}`;
+  }
+
   private async request<T = any>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.config.baseURL}${endpoint}`;
+    const versionedEndpoint = this.addVersionPrefix(endpoint);
+    const url = `${this.config.baseURL}${versionedEndpoint}`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout!);

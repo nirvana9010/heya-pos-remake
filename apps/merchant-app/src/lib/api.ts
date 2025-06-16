@@ -40,30 +40,25 @@ export async function merchantLogin(username: string, password: string, remember
   }
 }
 
-export async function getDashboardStats(token: string) {
-  const response = await fetch(`${API_URL}/dashboard/stats`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch dashboard stats');
-  }
-
-  return response.json();
+export async function getDashboardStats() {
+  // Use the apiClient which has a fallback for 404
+  const { apiClient } = await import('./api-client');
+  return await apiClient.getDashboardStats();
 }
 
-export async function getTodayBookings(token: string) {
-  const response = await fetch(`${API_URL}/bookings/today`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+export async function getTodayBookings() {
+  // Use apiClient to get today's bookings with proper date filtering
+  const { apiClient } = await import('./api-client');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const response = await apiClient.getBookings({
+    startDate: today.toISOString(),
+    endDate: tomorrow.toISOString(),
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch bookings');
-  }
-
-  return response.json();
+  
+  // apiClient.getBookings returns the data array directly
+  return response;
 }

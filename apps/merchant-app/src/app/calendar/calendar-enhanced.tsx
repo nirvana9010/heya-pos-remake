@@ -98,6 +98,13 @@ export default function CalendarPageEnhanced() {
   const wsRef = useRef<WebSocket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper function to generate consistent colors for staff
+  const getStaffColor = (staffId: string) => {
+    const colors = ["#8B5CF6", "#EC4899", "#10B981", "#F59E0B", "#3B82F6", "#EF4444", "#06B6D4", "#6366F1"];
+    const index = staffId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
   // Mock staff data with loading state
   const mockStaff: Staff[] = [
     { id: "1", name: "Emma Wilson", color: "#8B5CF6", isVisible: true, isAvailable: true },
@@ -111,14 +118,22 @@ export default function CalendarPageEnhanced() {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Simulate API calls
-        await new Promise(resolve => setTimeout(resolve, 800));
         
-        setStaff(mockStaff);
-        // Load bookings would go here
-        setBookings([]);
+        // Load staff data
+        const staffData = await apiClient.getStaff();
+        setStaff(staffData.map((s: any) => ({
+          id: s.id,
+          name: `${s.firstName} ${s.lastName}`,
+          color: s.color || getStaffColor(s.id),
+          avatar: s.avatar,
+          isVisible: true,
+          isAvailable: s.status === 'ACTIVE'
+        })));
+        
+        // Load bookings will be done by loadBookingsForDate
         setLastUpdated(new Date());
       } catch (error) {
+        console.error('Failed to load calendar data:', error);
         toast({
           title: "Error loading calendar",
           description: "Please try refreshing the page",
@@ -142,27 +157,63 @@ export default function CalendarPageEnhanced() {
   const loadBookingsForDate = async () => {
     try {
       setSwitchingDate(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Would load actual bookings here
-      setBookings([
-        {
-          id: "1",
-          customerId: "1",
-          customerName: "Jane Smith",
-          customerPhone: "(555) 123-4567",
-          serviceName: "Deep Tissue Massage",
-          staffId: "1",
-          staffName: "Emma Wilson",
-          startTime: new Date(selectedDate.setHours(10, 0)),
-          endTime: new Date(selectedDate.setHours(11, 0)),
-          status: "confirmed",
-          price: 120
-        }
-      ]);
+      // Calculate date range based on view type
+      let startDate: Date;
+      let endDate: Date;
       
+      if (viewType === 'week') {
+        startDate = startOfWeek(selectedDate);
+        endDate = endOfWeek(selectedDate);
+      } else {
+        startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+      }
+      
+      // Fetch bookings for the date range
+      console.log('Loading bookings for date range:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      const bookingsData = await apiClient.getBookings({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        limit: 1000
+      });
+      
+      console.log('Loaded bookings:', bookingsData.length);
+      console.log('Sample booking:', bookingsData[0]);
+      
+      // Transform bookings to calendar format
+      const transformedBookings = bookingsData.map((booking: any) => ({
+        id: booking.id,
+        customerId: booking.customerId,
+        customerName: booking.customerName || 'Unknown Customer',
+        customerPhone: booking.customerPhone || '',
+        serviceName: booking.serviceName || 'Service',
+        staffId: booking.providerId || booking.staffId,
+        staffName: booking.staffName || 'Staff',
+        startTime: new Date(booking.startTime),
+        endTime: new Date(booking.endTime),
+        status: booking.status.toLowerCase(),
+        price: booking.totalAmount || 0
+      }));
+      
+      console.log('Transformed bookings:', transformedBookings);
+      console.log('First transformed booking:', transformedBookings[0]);
+      
+      setBookings(transformedBookings);
       setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
+      toast({
+        title: "Error loading bookings",
+        description: "Please try refreshing the page",
+        variant: "destructive"
+      });
     } finally {
       setSwitchingDate(false);
     }
@@ -173,11 +224,24 @@ export default function CalendarPageEnhanced() {
     try {
       setUpdatingBookingId(bookingId);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Use V2 specific status update methods
+      let updatedBooking;
+      switch (newStatus.toUpperCase()) {
+        case 'IN_PROGRESS':
+          updatedBooking = await apiClient.startBooking(bookingId);
+          break;
+        case 'COMPLETED':
+          updatedBooking = await apiClient.completeBooking(bookingId);
+          break;
+        case 'CANCELLED':
+          updatedBooking = await apiClient.cancelBooking(bookingId, 'Cancelled via calendar');
+          break;
+        default:
+          throw new Error(`Status "${newStatus}" update not supported`);
+      }
       
       setBookings(prev => prev.map(b => 
-        b.id === bookingId ? { ...b, status: newStatus as any } : b
+        b.id === bookingId ? { ...b, ...updatedBooking, status: newStatus as any } : b
       ));
       
       // Show success indicator
@@ -191,9 +255,10 @@ export default function CalendarPageEnhanced() {
       
       setLastUpdated(new Date());
     } catch (error) {
+      console.error('Failed to update booking status:', error);
       toast({
         title: "Update failed",
-        description: "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive"
       });
     } finally {
@@ -207,6 +272,8 @@ export default function CalendarPageEnhanced() {
     const startHour = 8;
     const endHour = 20;
     const interval = timeInterval;
+    
+    console.log('Generating time slots for interval:', interval);
 
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
@@ -378,17 +445,38 @@ export default function CalendarPageEnhanced() {
             </div>
 
             {/* Time Slots */}
+            {console.log('Rendering calendar with bookings:', bookings.length, 'Staff:', staff.length)}
             {timeSlots.map((slot, index) => (
               <div key={`${slot.hour}-${slot.minute}`} className="flex border-b">
                 <div className="w-24 border-r bg-gray-50 p-2 text-center">
                   <span className="text-sm text-gray-600">{slot.time}</span>
                 </div>
                 {staff.filter(s => s.isVisible).map(member => {
-                  const booking = bookings.find(b => 
-                    b.staffId === member.id &&
-                    b.startTime.getHours() === slot.hour &&
-                    b.startTime.getMinutes() === slot.minute
-                  );
+                  // Find bookings that overlap with this time slot
+                  const slotStart = new Date(selectedDate);
+                  slotStart.setHours(slot.hour, slot.minute, 0, 0);
+                  const slotEnd = new Date(slotStart);
+                  slotEnd.setMinutes(slotEnd.getMinutes() + timeInterval);
+                  
+                  const booking = bookings.find(b => {
+                    if (b.staffId !== member.id) return false;
+                    
+                    // Check if booking overlaps with this time slot
+                    const bookingStart = new Date(b.startTime);
+                    const bookingEnd = new Date(b.endTime);
+                    
+                    // For day view, only show bookings on the selected date
+                    if (viewType === 'day') {
+                      if (bookingStart.toDateString() !== selectedDate.toDateString()) {
+                        return false;
+                      }
+                    }
+                    
+                    // Check if this is the slot where the booking starts
+                    return bookingStart.getHours() === slot.hour && 
+                           bookingStart.getMinutes() >= slot.minute && 
+                           bookingStart.getMinutes() < slot.minute + timeInterval;
+                  });
 
                   return (
                     <div 

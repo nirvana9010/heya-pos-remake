@@ -255,7 +255,7 @@ export default function BookingsPageContent() {
   // Quick action handlers
   const handleCheckIn = async (bookingId: string) => {
     try {
-      await apiClient.updateBookingStatus(bookingId, 'IN_PROGRESS');
+      await apiClient.startBooking(bookingId);
       toast({
         title: "Checked In",
         description: "Customer has been checked in successfully.",

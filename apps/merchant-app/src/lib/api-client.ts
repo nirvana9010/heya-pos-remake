@@ -15,6 +15,43 @@ class ApiClient {
       },
     });
 
+    // Helper to add version prefix to URLs
+    const addVersionPrefix = (url: string) => {
+      // Don't add version if already present or if it's an external URL
+      if (url.startsWith('/v1/') || url.startsWith('/v2/') || url.startsWith('http')) {
+        return url;
+      }
+      // Use v2 for bookings endpoints, v1 for everything else
+      if (url.startsWith('/bookings')) {
+        return `/v2${url}`;
+      }
+      // Add v1 as default version for other endpoints
+      return `/v1${url}`;
+    };
+
+    // Override axios methods to add version prefix
+    const originalGet = this.axiosInstance.get;
+    const originalPost = this.axiosInstance.post;
+    const originalPut = this.axiosInstance.put;
+    const originalPatch = this.axiosInstance.patch;
+    const originalDelete = this.axiosInstance.delete;
+
+    this.axiosInstance.get = (url: string, ...args: any[]) => {
+      return originalGet.call(this.axiosInstance, addVersionPrefix(url), ...args);
+    };
+    this.axiosInstance.post = (url: string, ...args: any[]) => {
+      return originalPost.call(this.axiosInstance, addVersionPrefix(url), ...args);
+    };
+    this.axiosInstance.put = (url: string, ...args: any[]) => {
+      return originalPut.call(this.axiosInstance, addVersionPrefix(url), ...args);
+    };
+    this.axiosInstance.patch = (url: string, ...args: any[]) => {
+      return originalPatch.call(this.axiosInstance, addVersionPrefix(url), ...args);
+    };
+    this.axiosInstance.delete = (url: string, ...args: any[]) => {
+      return originalDelete.call(this.axiosInstance, addVersionPrefix(url), ...args);
+    };
+
     // Add request interceptor to add auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
@@ -139,7 +176,7 @@ class ApiClient {
   private async performTokenRefresh(refreshToken: string): Promise<void> {
     try {
       // Create a new axios instance without interceptors to avoid loops
-      const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      const response = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
         refreshToken
       });
 
@@ -351,9 +388,35 @@ class ApiClient {
   
   // Helper method to transform booking data
   private transformBooking(booking: any) {
-    // Get the first service name (for display)
-    const firstService = booking.services?.[0]?.service;
-    const serviceName = firstService?.name || 'Service';
+    // Handle both V1 (nested) and V2 (flat) response formats
+    
+    // Customer name - V2 provides it directly, V1 needs to be constructed
+    const customerName = booking.customerName || 
+      (booking.customer ? 
+        `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
+        'Unknown Customer');
+    
+    // Customer phone - V2 provides it directly, V1 has it nested
+    const customerPhone = booking.customerPhone || 
+      booking.customer?.mobile || 
+      booking.customer?.phone || 
+      '';
+    
+    // Customer email - handle both formats
+    const customerEmail = booking.customerEmail || 
+      booking.customer?.email || 
+      '';
+    
+    // Staff name - V2 provides it directly, V1 needs to be constructed
+    const staffName = booking.staffName || 
+      (booking.provider ? 
+        `${booking.provider.firstName} ${booking.provider.lastName}`.trim() : 
+        'Staff');
+    
+    // Service name - V2 provides it directly, V1 has it nested
+    const serviceName = booking.serviceName || 
+      booking.services?.[0]?.service?.name || 
+      'Service';
     
     // Calculate total amount from services if not set
     const totalAmount = Number(booking.totalAmount) || 
@@ -361,25 +424,49 @@ class ApiClient {
     
     return {
       ...booking,
-      customerName: booking.customer ? 
-        `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
-        'Unknown Customer',
-      customerPhone: booking.customer?.mobile || booking.customer?.phone || '',
-      customerEmail: booking.customer?.email || '',
-      serviceName: serviceName,
-      staffName: booking.provider ? 
-        `${booking.provider.firstName} ${booking.provider.lastName}`.trim() : 
-        'Staff',
+      customerName,
+      customerPhone,
+      customerEmail,
+      serviceName,
+      staffName,
       price: totalAmount,
       totalAmount: totalAmount,
-      duration: booking.services?.[0]?.duration || 0,
+      duration: booking.duration || booking.services?.[0]?.duration || 0,
       date: booking.startTime, // For backward compatibility
     };
   }
 
+  // V2 booking status update methods
+  async startBooking(id: string) {
+    const response = await this.axiosInstance.patch(`/bookings/${id}/start`);
+    return this.transformBooking(response.data);
+  }
+
+  async completeBooking(id: string) {
+    const response = await this.axiosInstance.patch(`/bookings/${id}/complete`);
+    return this.transformBooking(response.data);
+  }
+
+  async cancelBooking(id: string, reason: string) {
+    const response = await this.axiosInstance.patch(`/bookings/${id}/cancel`, { reason });
+    return this.transformBooking(response.data);
+  }
+
+  // @deprecated Use startBooking, completeBooking, or cancelBooking instead
   async updateBookingStatus(id: string, status: string) {
-    const response = await this.axiosInstance.patch(`/bookings/${id}/status`, { status });
-    return response.data;
+    console.warn('updateBookingStatus is deprecated. Use specific status methods instead.');
+    
+    // Map to specific V2 endpoints
+    switch (status.toUpperCase()) {
+      case 'IN_PROGRESS':
+        return this.startBooking(id);
+      case 'COMPLETED':
+        return this.completeBooking(id);
+      case 'CANCELLED':
+        return this.cancelBooking(id, 'Status update');
+      default:
+        throw new Error(`Status "${status}" update not supported. Use specific methods.`);
+    }
   }
 
   async checkAvailability(date: Date, serviceId: string, staffId?: string) {

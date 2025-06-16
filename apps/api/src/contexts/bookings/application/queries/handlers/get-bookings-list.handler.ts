@@ -17,8 +17,8 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
 
   async execute(query: GetBookingsListQuery): Promise<BookingsListResult> {
     const { merchantId, filters, pagination } = query;
-    const page = Number(pagination.page) || 1;
-    const limit = Number(pagination.limit) || 20;
+    const page = Math.max(1, Number(pagination?.page) || 1);
+    const limit = Math.max(1, Number(pagination?.limit) || 20);
     const offset = (page - 1) * limit;
 
     // Build where clause
@@ -69,6 +69,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           },
           provider: {
             select: {
+              id: true,
               firstName: true,
               lastName: true,
             },
@@ -104,6 +105,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
       bookingNumber: booking.bookingNumber,
       customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
       customerPhone: booking.customer.phone,
+      staffId: booking.provider.id,  // ADD THIS - critical for calendar!
       staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
       serviceName: booking.services[0]?.service.name || 'Unknown Service',
       startTime: booking.startTime,
