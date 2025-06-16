@@ -103,7 +103,7 @@ export class BookingsV2Controller {
   ) {}
 
   @Get()
-  // @Permissions('booking.read')
+  @Permissions('booking.read')
   async findAll(
     @CurrentUser() user: any,
     @Query('page') page: number = 1,

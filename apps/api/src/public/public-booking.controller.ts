@@ -273,4 +273,36 @@ export class PublicBookingController {
       updatedAt: booking.updatedAt.toISOString(),
     };
   }
+
+  @Get('service-categories')
+  async getServiceCategories() {
+    // Get the first active merchant for now (in production, this would be based on domain/subdomain)
+    const merchant = await this.prisma.merchant.findFirst({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (!merchant) {
+      throw new BadRequestException('No active merchant found');
+    }
+
+    const categories = await this.prisma.serviceCategory.findMany({
+      where: {
+        merchantId: merchant.id,
+        isActive: true,
+      },
+      orderBy: {
+        sortOrder: 'asc',
+      },
+    });
+
+    return {
+      data: categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        description: category.description,
+        displayOrder: category.sortOrder,
+        isActive: category.isActive,
+      })),
+    };
+  }
 }

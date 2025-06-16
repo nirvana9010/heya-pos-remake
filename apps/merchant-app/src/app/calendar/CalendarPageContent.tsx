@@ -629,6 +629,8 @@ const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval)
       
       slots.push({
         time,
+        hour,
+        minute,
         label: format(time, isHour ? "h a" : "h:mm"),
         isHour,
         isMinorInterval,
@@ -894,9 +896,16 @@ export default function CalendarPageContent() {
         // Pass date parameters based on view type
         let params: any = {};
         
+        console.log('Loading bookings for:', {
+          viewType,
+          currentDate: currentDate.toISOString(),
+          currentDateLocal: currentDate.toLocaleDateString()
+        });
+        
         if (viewType === 'day') {
           // For day view, get bookings for the specific date
           params.date = currentDate.toISOString().split('T')[0];
+          console.log('Day view params:', params);
         } else if (viewType === 'week') {
           // For week view, get bookings for the week
           const weekStart = startOfWeek(currentDate);
@@ -913,6 +922,17 @@ export default function CalendarPageContent() {
         
         const apiBookings = await apiClient.getBookings(params);
         
+        console.log('=== API BOOKINGS LOADED ===');
+        console.log('Number of bookings from API:', apiBookings.length);
+        if (apiBookings.length > 0) {
+          console.log('First booking from API:', apiBookings[0]);
+          console.log('Booking fields:', Object.keys(apiBookings[0]));
+          console.log('First booking startTime raw:', apiBookings[0].startTime);
+          console.log('First booking startTime as Date:', new Date(apiBookings[0].startTime));
+          console.log('User timezone offset:', new Date().getTimezoneOffset());
+        }
+        console.log('=== END API BOOKINGS ===');
+        
         // API client already transforms the data, just adjust for calendar view
         const transformedBookings = apiBookings.map((booking: any) => {
           // Ensure dates are Date objects (they might be strings from API)
@@ -927,7 +947,7 @@ export default function CalendarPageContent() {
             customerEmail: booking.customerEmail || booking.customer?.email || '',
             serviceName: booking.serviceName || 'Service',
             serviceIcon: 'scissors' as const, // Default icon
-            staffId: booking.providerId || booking.staffId || '1',
+            staffId: booking.staffId || booking.providerId || 'unknown',
             staffName: booking.staffName || 'Staff',
             startTime,
             endTime,
@@ -1087,15 +1107,56 @@ export default function CalendarPageContent() {
   const timeSlots = useMemo(() => {
     return generateTimeSlots(businessHours, timeInterval);
   }, [businessHours, timeInterval]);
-  const visibleStaff = staff.filter(s => filters.selectedStaffIds.includes(s.id));
+  
+  // If no staff are selected, show all staff. Otherwise show only selected staff.
+  const visibleStaff = filters.selectedStaffIds.length === 0 
+    ? staff 
+    : staff.filter(s => filters.selectedStaffIds.includes(s.id));
   
   const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
-      if (!filters.showCompleted && booking.status === "completed") return false;
-      if (!filters.showCancelled && booking.status === "cancelled") return false;
-      if (!filters.selectedStaffIds.includes(booking.staffId)) return false;
+    console.log('=== FILTERING BOOKINGS ===');
+    console.log('Total bookings to filter:', bookings.length);
+    console.log('Filter settings:', {
+      showCompleted: filters.showCompleted,
+      showCancelled: filters.showCancelled,
+      selectedStaffIds: filters.selectedStaffIds,
+      selectedStaffIdsLength: filters.selectedStaffIds.length
+    });
+    
+    const filtered = bookings.filter((booking, index) => {
+      // Log first 3 bookings in detail
+      if (index < 3) {
+        console.log(`Booking ${index}:`, {
+          id: booking.id,
+          staffId: booking.staffId,
+          status: booking.status,
+          customerName: booking.customerName
+        });
+      }
+      
+      if (!filters.showCompleted && booking.status === "completed") {
+        console.log(`Filtered out booking ${booking.id} - completed and showCompleted=false`);
+        return false;
+      }
+      if (!filters.showCancelled && booking.status === "cancelled") {
+        console.log(`Filtered out booking ${booking.id} - cancelled and showCancelled=false`);
+        return false;
+      }
+      // If no staff are selected (initial state), show all bookings
+      // Otherwise, filter by selected staff
+      if (filters.selectedStaffIds.length > 0 && !filters.selectedStaffIds.includes(booking.staffId)) {
+        if (index < 3) {
+          console.log(`Filtered out booking ${booking.id} - staffId ${booking.staffId} not in selected:`, filters.selectedStaffIds);
+        }
+        return false;
+      }
       return true;
     });
+    
+    console.log('Filtered bookings count:', filtered.length);
+    console.log('=== END FILTERING ===');
+    
+    return filtered;
   }, [filters, bookings]);
 
   // Navigation functions
@@ -1138,7 +1199,7 @@ export default function CalendarPageContent() {
     if (!filters.showCompleted) count++;
     if (filters.showCancelled) count++;
     if (filters.showBlocked) count++;
-    if (filters.selectedStaffIds.length < mockStaff.length) count++;
+    if (filters.selectedStaffIds.length < staff.length) count++;
     return count;
   }, [filters]);
 
@@ -1276,11 +1337,85 @@ export default function CalendarPageContent() {
 
                 {/* Staff cells for this time slot */}
                 {visibleStaff.map((staffMember) => {
+                  // Debug logging for first slot and first staff member
+                  if (slotIndex === 0 && staffMember === visibleStaff[0]) {
+                    const todayBookings = filteredBookings.filter(b => isSameDay(b.startTime, currentDate));
+                    
+                    // Log EVERYTHING to find the issue
+                    console.log('=== CALENDAR DEBUG ===');
+                    console.log('View Type:', viewType);
+                    console.log('Current Date:', currentDate.toDateString());
+                    console.log('Staff Info:', {
+                      totalStaff: staff.length,
+                      visibleStaffCount: visibleStaff.length,
+                      visibleStaffIds: visibleStaff.map(s => s.id),
+                      currentStaffId: staffMember.id,
+                      currentStaffName: staffMember.name
+                    });
+                    
+                    console.log('Booking Info:', {
+                      totalBookings: bookings.length,
+                      filteredBookings: filteredBookings.length,
+                      bookingsForToday: todayBookings.length,
+                      allBookingStaffIds: [...new Set(filteredBookings.map(b => b.staffId))],
+                      rawBookingsFirst3: bookings.slice(0, 3).map(b => ({
+                        id: b.id,
+                        staffId: b.staffId,
+                        status: b.status,
+                        startTime: b.startTime
+                      })),
+                      firstThreeBookings: filteredBookings.slice(0, 3).map(b => ({
+                        id: b.id,
+                        staffId: b.staffId,
+                        staffName: b.staffName,
+                        customerName: b.customerName,
+                        startTime: b.startTime,
+                        startTimeString: b.startTime?.toString(),
+                        status: b.status
+                      }))
+                    });
+                    
+                    console.log('Time Slot Info:', {
+                      slotTime: slot.time,
+                      slotHour: slot.hour,
+                      slotMinute: slot.minute,
+                      slotTimeString: slot.time?.toString()
+                    });
+                    
+                    // Check if ANY booking would match this slot
+                    const potentialMatches = filteredBookings.filter(b => {
+                      const sameStaff = b.staffId === staffMember.id;
+                      const sameDay = isSameDay(b.startTime, currentDate);
+                      const sameHour = b.startTime.getHours() === slot.hour;
+                      const sameMinute = b.startTime.getMinutes() === slot.minute;
+                      
+                      if (!sameStaff || !sameDay) return false;
+                      
+                      console.log('Checking booking match:', {
+                        bookingId: b.id,
+                        sameStaff,
+                        sameDay,
+                        sameHour,
+                        sameMinute,
+                        bookingHour: b.startTime.getHours(),
+                        slotHour: slot.hour,
+                        bookingMinute: b.startTime.getMinutes(),
+                        slotMinute: slot.minute
+                      });
+                      
+                      return true;
+                    });
+                    
+                    console.log('Potential matches for this staff today:', potentialMatches.length);
+                    console.log('=== END DEBUG ===');
+                  }
+                  
+                  // Find bookings that match this time slot
                   const slotBookings = filteredBookings.filter(b => 
                     b.staffId === staffMember.id &&
                     isSameDay(b.startTime, currentDate) &&
-                    b.startTime.getHours() === slot.time.getHours() &&
-                    b.startTime.getMinutes() === slot.time.getMinutes()
+                    b.startTime.getHours() === slot.hour &&
+                    b.startTime.getMinutes() === slot.minute
                   );
 
                   const conflicts = detectConflicts(filteredBookings, staffMember.id);
@@ -1298,7 +1433,7 @@ export default function CalendarPageContent() {
                       onClick={() => {
                         if (!staffMember.isAvailable) return;
                         const clickedTime = new Date(currentDate);
-                        clickedTime.setHours(slot.time.getHours(), slot.time.getMinutes(), 0, 0);
+                        clickedTime.setHours(slot.hour, slot.minute, 0, 0);
                         
                         setNewBookingData({
                           date: currentDate,
