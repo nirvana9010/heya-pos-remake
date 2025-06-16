@@ -39,8 +39,12 @@ export interface CreateBookingData {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  serviceId: string;
+  serviceId?: string; // For backward compatibility
   staffId?: string;
+  services?: Array<{
+    serviceId: string;
+    staffId?: string;
+  }>;
   date: Date;
   startTime: string;
   notes?: string;
@@ -52,8 +56,15 @@ export interface Booking {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  serviceId: string;
-  serviceName: string;
+  serviceId?: string; // For backward compatibility
+  serviceName?: string; // For backward compatibility
+  services?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+    staffId: string;
+  }>;
   staffId: string;
   staffName: string;
   date: string;
@@ -61,6 +72,7 @@ export interface Booking {
   endTime: string;
   duration: number;
   price: number;
+  totalPrice?: number;
   status: string;
   notes?: string;
   createdAt: string;
@@ -107,8 +119,12 @@ class BookingApi {
   // Check availability for a specific date/service/staff
   async checkAvailability(params: {
     date: string;
-    serviceId: string;
+    serviceId?: string; // For backward compatibility
     staffId?: string;
+    services?: Array<{
+      serviceId: string;
+      staffId?: string;
+    }>;
   }): Promise<TimeSlot[]> {
     const response = await apiClient.post<{ slots: TimeSlot[] }>(
       '/public/bookings/check-availability',

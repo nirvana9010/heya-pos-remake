@@ -7,6 +7,37 @@
 > **NEW**: Screenshots are stored in `/home/nirvana9010/projects/heya-pos-remake/screenshots/` folder
 > **LATEST**: React Date rendering error pattern identified - SEE NEW SECTION
 
+## 🚨 CRITICAL: API Versioning - All Endpoints Use v1/v2
+**Added**: 2025-06-16
+
+### The API Uses Versioned Endpoints
+The API now implements versioning. **All API calls must include the version number** (v1 or v2).
+
+### Correct Endpoint Patterns:
+- **Auth endpoints**: `/api/v1/auth/*` (login, logout, refresh, etc.)
+- **V1 endpoints**: `/api/v1/*` (staff, customers, services, payments)
+- **V2 endpoints**: `/api/v2/*` (new bookings API with CQRS pattern)
+- **Public endpoints**: `/api/v1/public/*` (no auth required)
+
+### Examples:
+```bash
+# ❌ WRONG - Returns 404
+curl http://localhost:3000/api/auth/merchant/login
+
+# ✅ CORRECT - Uses v1
+curl http://localhost:3000/api/v1/auth/merchant/login
+
+# ❌ WRONG - Returns 404
+curl http://localhost:3000/api/bookings
+
+# ✅ CORRECT - Uses v2 for new bookings API
+curl http://localhost:3000/api/v2/bookings
+```
+
+### Version Differences:
+- **V1**: Original API implementation
+- **V2**: New bounded context implementation with CQRS pattern (currently only bookings)
+
 ## 🚨 CRITICAL: Recurring Port/Service Management Problem
 
 ### The Problem That Keeps Happening
@@ -296,7 +327,7 @@ npx prisma db seed
 npx ts-node prisma/seed-bookings-quick.ts
 
 # Check booking count
-curl -s http://localhost:3000/api/bookings -H "Authorization: Bearer $(cat ~/.heya-auth-token)" | jq '.meta.total'
+curl -s http://localhost:3000/api/v2/bookings -H "Authorization: Bearer $(cat ~/.heya-auth-token)" | jq '.meta.total'
 ```
 
 ### Troubleshooting
@@ -304,7 +335,7 @@ curl -s http://localhost:3000/api/bookings -H "Authorization: Bearer $(cat ~/.he
 1. **"Merchant not found"**: Check merchant name in database or run main seed first
 2. **Type errors with Decimal**: Use `Number(service.price)` for calculations
 3. **Slow execution**: Reduce date range or use `Promise.all` for parallel creation
-4. **Auth errors**: Login first with `curl -X POST http://localhost:3000/api/auth/merchant/login -H "Content-Type: application/json" -d '{"username": "HAMILTON", "password": "demo123"}' | jq -r '.token' > ~/.heya-auth-token`
+4. **Auth errors**: Login first with `curl -X POST http://localhost:3000/api/v1/auth/merchant/login -H "Content-Type: application/json" -d '{"username": "HAMILTON", "password": "demo123"}' | jq -r '.token' > ~/.heya-auth-token`
 
 ### Common Culprits
 - Tooltip/Popover components that spread props
@@ -457,12 +488,12 @@ npm run dev:all      # Start both
 ### Debug Authentication Issues
 ```bash
 # Test login
-curl -X POST http://localhost:3000/api/auth/merchant/login \
+curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
   -H "Content-Type: application/json" \
   -d '{"username": "luxeadmin", "password": "testpassword123"}'
 
 # Test protected endpoint
-curl -H "Authorization: Bearer TOKEN" http://localhost:3000/api/debug/auth
+curl -H "Authorization: Bearer TOKEN" http://localhost:3000/api/v1/debug/auth
 ```
 
 ### Fix Common Problems

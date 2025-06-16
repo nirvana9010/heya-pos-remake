@@ -59,7 +59,15 @@ export function CustomerIdentification({
         }
         onCustomerFound(data.customer);
       } else {
-        setError('No booking found with this information. Please check and try again or book as a new customer.');
+        // Don't show an error - just clear the saved state and proceed as new customer
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('bookingCustomerId');
+          localStorage.removeItem('bookingCustomerEmail');
+        }
+        setShowSavedCustomer(false);
+        setIdentifier('');
+        // Automatically proceed as new customer
+        onNewCustomer();
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -76,23 +84,40 @@ export function CustomerIdentification({
 
   return (
     <div className="max-w-md mx-auto">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-medium mb-2">Let's Get Started</h3>
+        <p className="text-sm text-muted-foreground">
+          Have you booked with us before? Enter your details to check.
+        </p>
+      </div>
 
       <div className="space-y-6">
         {/* Show saved customer prompt if available */}
         {showSavedCustomer && identifier && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-green-800">
-              Welcome back! Is this you? <strong>{identifier}</strong>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              We remember you used <strong>{identifier}</strong> before. Is this still your email?
             </p>
-            <button
-              onClick={() => {
-                setShowSavedCustomer(false);
-                setIdentifier('');
-              }}
-              className="text-sm text-green-600 hover:text-green-800 underline mt-1"
-            >
-              Not me, use different details
-            </button>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={handleSearch}
+                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+              >
+                Yes, that's me
+              </button>
+              <button
+                onClick={() => {
+                  setShowSavedCustomer(false);
+                  setIdentifier('');
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('bookingCustomerEmail');
+                  }
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Use different email
+              </button>
+            </div>
           </div>
         )}
 
