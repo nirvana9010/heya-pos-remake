@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CqrsModule } from '@nestjs/cqrs';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { OutboxModule } from '../shared/outbox/outbox.module';
 
@@ -13,12 +14,14 @@ import { BookingCreationService } from './application/services/booking-creation.
 import { BookingUpdateService } from './application/services/booking-update.service';
 import { BookingAvailabilityService } from './application/services/booking-availability.service';
 import { PublicBookingService } from './application/services/public-booking.service';
+import { QueryHandlers } from './application/queries/handlers';
 
 // Domain services would go here
 
 @Module({
   imports: [
     PrismaModule,
+    CqrsModule,
     EventEmitterModule.forRoot(), // For domain events
     OutboxModule,
   ],
@@ -41,7 +44,8 @@ import { PublicBookingService } from './application/services/public-booking.serv
     // Command Handlers
     CreateBookingHandler,
     
-    // Query Handlers would go here
+    // Query Handlers
+    ...QueryHandlers,
     
     // Event Handlers would go here
   ],

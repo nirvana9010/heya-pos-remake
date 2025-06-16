@@ -51,6 +51,7 @@ model Merchant {
   orders             Order[]
   services           Service[]
   staff              Staff[]
+  bookings           Booking[]
   outboxEvents       OutboxEvent[]
 
   @@index([status])
@@ -268,6 +269,7 @@ model Booking {
   isOverride          Boolean              @default(false)
   overrideApprovedBy  String?
   overrideReason      String?
+  merchant            Merchant             @relation(fields: [merchantId], references: [id])
   createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   location            Location             @relation(fields: [locationId], references: [id])
