@@ -9,6 +9,9 @@ import { BookingsV2Controller } from './infrastructure/controllers/bookings.v2.c
 // Application
 import { CreateBookingHandler } from './application/commands/create-booking.handler';
 import { BookingCreationService } from './application/services/booking-creation.service';
+import { BookingUpdateService } from './application/services/booking-update.service';
+import { BookingAvailabilityService } from './application/services/booking-availability.service';
+import { PublicBookingService } from './application/services/public-booking.service';
 
 // Domain services would go here
 
@@ -29,6 +32,9 @@ import { BookingCreationService } from './application/services/booking-creation.
     
     // Application Services
     BookingCreationService,
+    BookingUpdateService,
+    BookingAvailabilityService,
+    PublicBookingService,
     
     // Command Handlers
     CreateBookingHandler,
@@ -41,6 +47,9 @@ import { BookingCreationService } from './application/services/booking-creation.
     'IBookingRepository',
     CreateBookingHandler,
     BookingCreationService,
+    BookingUpdateService,
+    BookingAvailabilityService,
+    PublicBookingService,
   ],
 })
 export class BookingsContextModule {}

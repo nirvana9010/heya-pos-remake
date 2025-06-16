@@ -43,7 +43,7 @@ export interface IBookingRepository {
   /**
    * Update a booking
    */
-  update(booking: Booking): Promise<Booking>;
+  update(booking: Booking, tx?: any): Promise<Booking>;
 
   /**
    * Delete a booking (soft delete)
