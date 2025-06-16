@@ -15,6 +15,9 @@ import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
 import { MerchantModule } from './merchant/merchant.module';
 
+// Bounded Contexts
+import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,7 +27,8 @@ import { MerchantModule } from './merchant/merchant.module';
     AuthModule, 
     ServicesModule, 
     CustomersModule, 
-    BookingsModule, 
+    BookingsModule, // Legacy v1 module
+    BookingsContextModule, // New bounded context v2 module
     PaymentsModule,
     StaffModule,
     LoyaltyModule,

@@ -210,10 +210,10 @@ model Service {
   maxAdvanceBooking Int              @default(90)
   minAdvanceBooking Int              @default(0)
   displayOrder      Int              @default(0)
-  paddingBefore     Int              @default(0) // Minutes before service
-  paddingAfter      Int              @default(0) // Minutes after service
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  paddingAfter      Int              @default(0)
+  paddingBefore     Int              @default(0)
   bookingServices   BookingService[]
   categoryModel     ServiceCategory? @relation(fields: [categoryId], references: [id])
   merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
@@ -262,11 +262,11 @@ model Booking {
   checkedInAt         DateTime?
   completedAt         DateTime?
   cancelledAt         DateTime?
-  isOverride          Boolean              @default(false)
-  overrideReason      String?
-  overrideApprovedBy  String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  isOverride          Boolean              @default(false)
+  overrideApprovedBy  String?
+  overrideReason      String?
   createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   location            Location             @relation(fields: [locationId], references: [id])
