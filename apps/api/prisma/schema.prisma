@@ -51,6 +51,7 @@ model Merchant {
   orders             Order[]
   services           Service[]
   staff              Staff[]
+  outboxEvents       OutboxEvent[]
 
   @@index([status])
   @@index([email])
@@ -618,4 +619,25 @@ model AuditLog {
   @@index([staffId])
   @@index([action])
   @@index([timestamp])
+}
+
+model OutboxEvent {
+  id           String    @id @default(uuid())
+  aggregateId  String
+  aggregateType String
+  eventType    String
+  eventData    Json
+  eventVersion Int       @default(1)
+  createdAt    DateTime  @default(now())
+  processedAt  DateTime?
+  retryCount   Int       @default(0)
+  lastError    String?
+  merchantId   String
+  
+  merchant     Merchant  @relation(fields: [merchantId], references: [id])
+
+  @@index([processedAt])
+  @@index([createdAt])
+  @@index([aggregateId, aggregateType])
+  @@index([merchantId])
 }

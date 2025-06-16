@@ -40,6 +40,8 @@
     "memory:heap": "NODE_OPTIONS='--max-old-space-size=4096' clinic heapprofiler -- node dist/main.js"
   },
   "dependencies": {
+    "@nestjs-cls/transactional": "^3.0.3",
+    "@nestjs-cls/transactional-adapter-prisma": "^1.2.24",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",

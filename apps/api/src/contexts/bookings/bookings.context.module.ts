@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { OutboxModule } from '../shared/outbox/outbox.module';
 
 // Infrastructure
 import { PrismaBookingRepository } from './infrastructure/persistence/prisma-booking.repository';
@@ -19,6 +20,7 @@ import { PublicBookingService } from './application/services/public-booking.serv
   imports: [
     PrismaModule,
     EventEmitterModule.forRoot(), // For domain events
+    OutboxModule,
   ],
   controllers: [
     BookingsV2Controller,
