@@ -192,10 +192,14 @@ export class PrismaBookingRepository implements IBookingRepository {
     return BookingMapper.toDomain(bookingWithRelations);
   }
 
-  async update(booking: Booking): Promise<Booking> {
+  async update(
+    booking: Booking,
+    tx?: Prisma.TransactionClient
+  ): Promise<Booking> {
+    const db = tx || this.prisma;
     const updateData = BookingMapper.toPersistenceUpdate(booking);
 
-    const updatedBooking = await this.prisma.booking.update({
+    const updatedBooking = await db.booking.update({
       where: {
         id: booking.id,
         merchantId: booking.merchantId,

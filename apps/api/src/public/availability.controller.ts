@@ -1,5 +1,6 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
-import { AvailabilityService } from '../bookings/availability.service';
+import { BookingAvailabilityService } from '../contexts/bookings/application/services/booking-availability.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { IsUUID, IsDateString, IsOptional, IsString } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -25,7 +26,10 @@ export class GetAvailabilityDto {
 @Controller('public/availability')
 @Public()
 export class AvailabilityController {
-  constructor(private readonly availabilityService: AvailabilityService) {}
+  constructor(
+    private readonly availabilityService: BookingAvailabilityService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   async getAvailability(@Query() query: GetAvailabilityDto) {
@@ -47,9 +51,19 @@ export class AvailabilityController {
       throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
     }
 
+    // Get the first active merchant for now
+    const merchant = await this.prisma.merchant.findFirst({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (!merchant) {
+      throw new BadRequestException('No active merchant found');
+    }
+
     const slots = await this.availabilityService.getAvailableSlots({
       staffId: query.staffId,
       serviceId: query.serviceId,
+      merchantId: merchant.id,
       startDate,
       endDate,
       timezone: query.timezone,

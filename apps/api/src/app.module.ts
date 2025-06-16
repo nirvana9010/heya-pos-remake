@@ -6,7 +6,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ServicesModule } from './services/services.module';
 import { CustomersModule } from './customers/customers.module';
-import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
@@ -27,7 +26,6 @@ import { BookingsContextModule } from './contexts/bookings/bookings.context.modu
     AuthModule, 
     ServicesModule, 
     CustomersModule, 
-    BookingsModule, // Legacy v1 module
     BookingsContextModule, // New bounded context v2 module
     PaymentsModule,
     StaffModule,
