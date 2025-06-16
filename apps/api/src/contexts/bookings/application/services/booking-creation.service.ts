@@ -6,6 +6,8 @@ import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { BookingStatusValue } from '../../domain/value-objects/booking-status.vo';
 import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
+import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
+import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 
 interface CreateBookingData {
   staffId: string;
@@ -33,6 +35,7 @@ export class BookingCreationService {
     private readonly prisma: PrismaService,
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
+    private readonly outboxRepository: OutboxEventRepository,
   ) {}
 
   /**
@@ -101,7 +104,33 @@ export class BookingCreationService {
       });
 
       // 6. Persist the booking
-      return await this.bookingRepository.save(booking, tx);
+      const savedBooking = await this.bookingRepository.save(booking, tx);
+
+      // 7. Save booking created event to outbox
+      const outboxEvent = OutboxEvent.create({
+        aggregateId: savedBooking.id,
+        aggregateType: 'Booking',
+        eventType: 'BookingCreated',
+        eventData: {
+          bookingId: savedBooking.id,
+          bookingNumber: savedBooking.bookingNumber,
+          customerId: savedBooking.customerId,
+          staffId: savedBooking.staffId,
+          serviceId: savedBooking.serviceId,
+          locationId: savedBooking.locationId,
+          startTime: savedBooking.timeSlot.start,
+          endTime: savedBooking.timeSlot.end,
+          status: savedBooking.status.value,
+          totalAmount: savedBooking.totalAmount,
+          source: savedBooking.source,
+        },
+        eventVersion: 1,
+        merchantId: savedBooking.merchantId,
+      });
+
+      await this.outboxRepository.save(outboxEvent, tx);
+
+      return savedBooking;
     }, {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,

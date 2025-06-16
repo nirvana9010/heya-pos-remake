@@ -6,7 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ServicesModule } from './services/services.module';
 import { CustomersModule } from './customers/customers.module';
-import { BookingsModule } from './bookings/bookings.module';
+import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
 import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
@@ -24,7 +24,7 @@ import { DebugModule } from './debug/debug.module';
     AuthModule, 
     ServicesModule, 
     CustomersModule, 
-    BookingsModule, 
+    BookingsContextModule, 
     PaymentsModule,
     StaffModule,
     LoyaltyModule,

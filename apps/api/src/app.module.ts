@@ -16,6 +16,7 @@ import { MerchantModule } from './merchant/merchant.module';
 
 // Bounded Contexts
 import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
+import { OutboxModule } from './contexts/shared/outbox/outbox.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { BookingsContextModule } from './contexts/bookings/bookings.context.modu
     AuthModule, 
     ServicesModule, 
     CustomersModule, 
+    OutboxModule, // Global outbox module for event publishing
     BookingsContextModule, // New bounded context v2 module
     PaymentsModule,
     StaffModule,

@@ -175,7 +175,7 @@ export class PublicBookingService {
         createdAt: completeBooking.createdAt.toISOString(),
         updatedAt: completeBooking.updatedAt.toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error.message && error.message.includes('conflicts')) {
         // Return a more user-friendly error for booking conflicts
         throw new ConflictException({

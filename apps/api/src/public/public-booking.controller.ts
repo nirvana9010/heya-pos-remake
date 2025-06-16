@@ -207,7 +207,7 @@ export class PublicBookingController {
   async checkAvailability(@Body() dto: CheckAvailabilityDto) {
     try {
       return await this.publicBookingService.checkAvailability(dto);
-    } catch (error) {
+    } catch (error: any) {
       throw new BadRequestException(error.message);
     }
   }
@@ -216,7 +216,7 @@ export class PublicBookingController {
   async createBooking(@Body() dto: PublicCreateBookingDto) {
     try {
       return await this.publicBookingService.createPublicBooking(dto);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ConflictException) {
         throw error;
       }
