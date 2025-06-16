@@ -47,6 +47,46 @@ npm run clean-start # Clean caches and start fresh
 - ❌ Kill processes without using the stop script
 - ❌ Debug for hours - use the scripts!
 
+## 🚨 NEW: Calendar Booking Display Bug (2025-06-16)
+
+### The Problem
+**User reported 3+ times**: "Bookings show in Bookings tab but NOT in Calendar view"
+**User frustration level**: VERY HIGH - explicitly asked to "consult zen and think harder"
+
+### Root Cause Analysis
+1. **Time Slot Bug**: Calendar generated time slots with `new Date()` (today's date)
+2. **Missing Properties**: Code expected `slot.hour` and `slot.minute` but only had `slot.time`
+3. **V2 API Missing Field**: `staffId` wasn't included in V2 response, causing all bookings to be filtered out
+
+### The Fix
+```javascript
+// 1. Added missing properties to time slots
+slots.push({
+  time,
+  hour,    // ADDED
+  minute,  // ADDED
+  // ... rest
+});
+
+// 2. Fixed comparisons
+// Before: slot.time.getHours() 
+// After: slot.hour
+
+// 3. Added staffId to V2 API response
+staffId: booking.provider.id  // Critical for calendar display
+```
+
+### Key Learnings
+1. **Listen to User Frustration**: When reported multiple times, STOP and analyze systematically
+2. **Debug What You See**: Use console logs extensively - they revealed the staffId mismatch
+3. **Check Data Flow**: Bookings → API → Transform → Filter → Display (check each step)
+4. **Don't Assume**: V2 "should" have all fields doesn't mean it does
+
+### Pattern to Remember
+- Same data works in one view but not another = Check filtering/matching logic
+- All items filtered out = Check if filter criteria match actual data
+- Time-based displays = Always check timezone and date object handling
+
 ## ⚡ Quick Decision Tree
 
 ```
