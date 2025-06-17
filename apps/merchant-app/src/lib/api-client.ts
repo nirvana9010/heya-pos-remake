@@ -21,7 +21,7 @@ class ApiClient {
       if (url.startsWith('/v1/') || url.startsWith('/v2/') || url.startsWith('http')) {
         return url;
       }
-      // Use v2 for bookings endpoints, v1 for everything else
+      // Use v2 for bookings endpoints (displayOrder issue has been resolved)
       if (url.startsWith('/bookings')) {
         return `/v2${url}`;
       }
@@ -56,6 +56,25 @@ class ApiClient {
     this.axiosInstance.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('access_token');
+        const debugInfo = {
+          url: config.url,
+          hasToken: !!token,
+          tokenPreview: token ? token.substring(0, 20) + '...' : null,
+        };
+        console.log('[API Client] Request interceptor:', debugInfo);
+        
+        // Log to file for debugging
+        if (typeof window !== 'undefined' && config.url?.includes('bookings')) {
+          fetch('/api/debug-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              timestamp: new Date().toISOString(),
+              event: 'api_request',
+              ...debugInfo,
+            }),
+          }).catch(() => {});
+        }
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -92,22 +111,51 @@ class ApiClient {
           isRetry: originalRequest?._retry
         });
 
-        // Only log detailed errors if they're not 404s (expected for missing endpoints)
-        if (error.response?.status !== 404) {
+        // Log all errors to debug file
+        if (typeof window !== 'undefined' && error.response?.status !== 404) {
           const errorDetails = {
             url: originalRequest?.url,
             method: originalRequest?.method,
             status: error.response?.status,
             statusText: error.response?.statusText,
             data: error.response?.data,
-            message: error.message
+            message: error.message,
+            hasToken: !!localStorage.getItem('access_token'),
+            headers: originalRequest?.headers
           };
+          
+          fetch('/api/debug-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              timestamp: new Date().toISOString(),
+              event: 'api_error',
+              ...errorDetails,
+            }),
+          }).catch(() => {});
+          
           console.error('[API Client] API Error Details:', errorDetails);
         }
         
         // Handle 401 errors
         if (error.response?.status === 401 && !originalRequest._retry) {
           console.log('[API Client] 401 Unauthorized detected!');
+          
+          // Log to file for debugging
+          if (typeof window !== 'undefined') {
+            fetch('/api/debug-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                timestamp: new Date().toISOString(),
+                event: 'api_401_error',
+                url: originalRequest?.url,
+                hasToken: !!localStorage.getItem('access_token'),
+                tokenPreview: localStorage.getItem('access_token')?.substring(0, 20) + '...',
+                errorData: error.response?.data,
+              }),
+            }).catch(() => {});
+          }
           
           // Don't attempt refresh for auth endpoints
           if (originalRequest.url?.includes('/auth/')) {
@@ -384,6 +432,34 @@ class ApiClient {
     
     // Transform the booking data to match the expected format
     return this.transformBooking(booking);
+  }
+
+  async rescheduleBooking(id: string, data: { startTime: string; staffId?: string }) {
+    console.log('[API Client] Rescheduling booking:', { id, data });
+    
+    // Use V2 API for rescheduling as it handles time updates better
+    const updateData: any = {
+      startTime: data.startTime,
+    };
+    
+    // Only include staffId if provided
+    if (data.staffId) {
+      updateData.staffId = data.staffId;
+    }
+    
+    const endpoint = `/bookings/${id}`;
+    console.log('[API Client] PATCH request to:', endpoint, 'with data:', updateData);
+    console.log('[API Client] (Will be transformed to /v2/bookings/[id] by interceptor)');
+    
+    try {
+      // The interceptor will automatically add /v2 prefix for bookings endpoints
+      const response = await this.axiosInstance.patch(endpoint, updateData);
+      console.log('[API Client] Reschedule response:', response.data);
+      return this.transformBooking(response.data);
+    } catch (error) {
+      console.error('[API Client] Reschedule failed:', error);
+      throw error;
+    }
   }
   
   // Helper method to transform booking data

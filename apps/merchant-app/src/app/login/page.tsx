@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya
 import { Alert, AlertDescription } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { merchantLogin } from '@/lib/api';
+import { DebugLogin } from './debug-login';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -127,6 +128,8 @@ export default function LoginPage() {
             <p className="text-sm text-blue-700">Username: HAMILTON</p>
             <p className="text-sm text-blue-700">Password: demo123</p>
           </div>
+          {/* Debug component - remove in production */}
+          {process.env.NODE_ENV === 'development' && <DebugLogin />}
         </CardContent>
       </Card>
     </div>

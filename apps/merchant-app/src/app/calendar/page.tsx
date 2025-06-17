@@ -58,8 +58,7 @@ class CalendarErrorBoundary extends React.Component<
 const CalendarPageContent = dynamic(
   () => import('./CalendarPageContent'),
   { 
-    loading: () => <PageLoader pageName="Calendar" />,
-    ssr: false // Disable SSR for faster client-side navigation
+    loading: () => <PageLoader pageName="Calendar" />
   }
 );
 

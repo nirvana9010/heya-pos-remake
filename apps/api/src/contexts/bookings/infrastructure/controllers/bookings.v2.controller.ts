@@ -235,6 +235,19 @@ export class BookingsV2Controller {
     @Param('id') id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
+    // Log to file for debugging
+    const fs = require('fs');
+    const logData = {
+      timestamp: new Date().toISOString(),
+      endpoint: 'PATCH /v2/bookings/:id',
+      bookingId: id,
+      dto: dto,
+      hasStaffId: !!dto.staffId,
+      staffId: dto.staffId,
+    };
+    fs.appendFileSync('/home/nirvana9010/projects/heya-pos-remake/heya-pos/logs/api-debug.log', 
+      JSON.stringify(logData, null, 2) + '\n---\n');
+    
     const updateData: any = {
       bookingId: id,
       merchantId: user.merchantId,
@@ -243,7 +256,11 @@ export class BookingsV2Controller {
     if (dto.startTime) updateData.startTime = new Date(dto.startTime);
     if (dto.endTime) updateData.endTime = new Date(dto.endTime);
     if (dto.notes !== undefined) updateData.notes = dto.notes;
-    if (dto.staffId) updateData.staffId = dto.staffId;
+    if (dto.staffId) {
+      updateData.staffId = dto.staffId;
+      // Log for debugging
+      console.log(`[BookingsV2Controller] Update request includes staffId: ${dto.staffId}`);
+    }
     if (dto.serviceId) updateData.serviceId = dto.serviceId;
     if (dto.locationId) updateData.locationId = dto.locationId;
 
