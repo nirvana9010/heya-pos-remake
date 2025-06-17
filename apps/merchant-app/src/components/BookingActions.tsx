@@ -1,0 +1,232 @@
+"use client";
+
+import { Button } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import {
+  PlayCircle,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  Calendar,
+  Edit2,
+  Trash2,
+  MessageSquare,
+  Mail,
+  CreditCard,
+  Clock,
+  AlertCircle
+} from "lucide-react";
+
+export interface BookingActionsProps {
+  booking: {
+    id: string;
+    status: string;
+    isPaid?: boolean;
+    paidAmount?: number;
+    totalAmount?: number;
+    totalPrice?: number;
+    customerPhone?: string;
+    customerEmail?: string;
+    startTime?: Date | string;
+  };
+  size?: "sm" | "default" | "lg";
+  variant?: "inline" | "stacked";
+  showEdit?: boolean;
+  showDelete?: boolean;
+  showReminder?: boolean;
+  showPayment?: boolean;
+  onStatusChange?: (bookingId: string, status: string) => void;
+  onPaymentToggle?: (bookingId: string) => void;
+  onProcessPayment?: (bookingId: string) => void;
+  onEdit?: (bookingId: string) => void;
+  onDelete?: (bookingId: string) => void;
+  onSendReminder?: (booking: any) => void;
+  onReschedule?: (bookingId: string) => void;
+}
+
+export function BookingActions({
+  booking,
+  size = "sm",
+  variant = "inline",
+  showEdit = true,
+  showDelete = true,
+  showReminder = true,
+  showPayment = true,
+  onStatusChange,
+  onPaymentToggle,
+  onProcessPayment,
+  onEdit,
+  onDelete,
+  onSendReminder,
+  onReschedule
+}: BookingActionsProps) {
+  const status = booking.status?.toLowerCase();
+  const isPaid = booking.isPaid || (booking.paidAmount && booking.paidAmount > 0);
+  const amount = booking.totalAmount || booking.totalPrice || 0;
+  
+  // Check if booking is upcoming
+  const isUpcoming = booking.startTime && new Date(booking.startTime) > new Date();
+  const isStartingSoon = isUpcoming && 
+    new Date(booking.startTime).getTime() - new Date().getTime() < 3600000; // Within 1 hour
+
+  const handleDelete = () => {
+    if (onDelete && window.confirm("Are you sure you want to delete this booking?")) {
+      onDelete(booking.id);
+    }
+  };
+
+  const containerClass = variant === "stacked" ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+
+  return (
+    <div className={containerClass}>
+      {/* Status Actions */}
+      {status === "pending" && onStatusChange && (
+        <Button
+          size={size}
+          variant="default"
+          onClick={() => onStatusChange(booking.id, "confirmed")}
+          className="flex items-center gap-1"
+        >
+          <CheckCircle className="h-4 w-4" />
+          Confirm
+        </Button>
+      )}
+      
+      {status === "confirmed" && onStatusChange && (
+        <>
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => onStatusChange(booking.id, "in-progress")}
+            className="flex items-center gap-1"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Start
+          </Button>
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => onStatusChange(booking.id, "cancelled")}
+            className="flex items-center gap-1 text-red-600 hover:text-red-700"
+          >
+            <XCircle className="h-4 w-4" />
+            Cancel
+          </Button>
+        </>
+      )}
+      
+      {status === "in-progress" && onStatusChange && (
+        <>
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => onStatusChange(booking.id, "completed")}
+            className="flex items-center gap-1"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Complete
+          </Button>
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => onStatusChange(booking.id, "cancelled")}
+            className="flex items-center gap-1 text-red-600 hover:text-red-700"
+          >
+            <XCircle className="h-4 w-4" />
+            Cancel
+          </Button>
+        </>
+      )}
+
+      {/* Payment Actions */}
+      {showPayment && status !== "cancelled" && status !== "no_show" && (
+        <>
+          {!isPaid && onProcessPayment && (
+            <Button
+              size={size}
+              variant="outline"
+              onClick={() => onProcessPayment(booking.id)}
+              className="flex items-center gap-1"
+            >
+              <CreditCard className="h-4 w-4" />
+              Process Payment
+            </Button>
+          )}
+          {onPaymentToggle && (
+            <Button
+              size={size}
+              variant={isPaid ? "default" : "outline"}
+              onClick={() => onPaymentToggle(booking.id)}
+              className={cn(
+                "flex items-center gap-1",
+                isPaid && "bg-green-600 hover:bg-green-700"
+              )}
+            >
+              <DollarSign className="h-4 w-4" />
+              {isPaid ? "Paid" : "Mark as Paid"}
+            </Button>
+          )}
+        </>
+      )}
+
+      {/* Communication Actions */}
+      {showReminder && isUpcoming && onSendReminder && (booking.customerPhone || booking.customerEmail) && (
+        <Button
+          size={size}
+          variant="outline"
+          onClick={() => onSendReminder(booking)}
+          className="flex items-center gap-1"
+        >
+          {booking.customerPhone ? (
+            <>
+              <MessageSquare className="h-4 w-4" />
+              SMS Reminder
+            </>
+          ) : (
+            <>
+              <Mail className="h-4 w-4" />
+              Email Reminder
+            </>
+          )}
+        </Button>
+      )}
+
+      {/* Edit Actions */}
+      {showEdit && onReschedule && status !== "completed" && status !== "cancelled" && (
+        <Button
+          size={size}
+          variant="outline"
+          onClick={() => onReschedule(booking.id)}
+          className="flex items-center gap-1"
+        >
+          <Calendar className="h-4 w-4" />
+          Reschedule
+        </Button>
+      )}
+      
+      {showEdit && onEdit && (
+        <Button
+          size={size}
+          variant="outline"
+          onClick={() => onEdit(booking.id)}
+          className="flex items-center gap-1"
+        >
+          <Edit2 className="h-4 w-4" />
+          Edit
+        </Button>
+      )}
+
+      {/* Delete Action */}
+      {showDelete && onDelete && status !== "completed" && (
+        <Button
+          size={size}
+          variant="outline"
+          onClick={handleDelete}
+          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+}

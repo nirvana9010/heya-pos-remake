@@ -78,11 +78,16 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
             select: {
               service: {
                 select: {
+                  id: true,
                   name: true,
+                  duration: true,
+                  price: true,
                 },
               },
             },
-            take: 1,
+            orderBy: {
+              displayOrder: 'asc',
+            },
           },
           location: {
             select: {
@@ -99,22 +104,40 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
       this.prisma.booking.count({ where }),
     ]);
 
-    // Map to read model
-    const items: BookingListItem[] = bookings.map(booking => ({
-      id: booking.id,
-      bookingNumber: booking.bookingNumber,
-      customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
-      customerPhone: booking.customer.phone,
-      staffId: booking.provider.id,  // ADD THIS - critical for calendar!
-      staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
-      serviceName: booking.services[0]?.service.name || 'Unknown Service',
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      status: booking.status,
-      totalAmount: booking.totalAmount.toNumber(),
-      locationName: booking.location.name,
-      createdAt: booking.createdAt,
-    }));
+    // Map to read model with proper multi-service support
+    const items: BookingListItem[] = bookings.map(booking => {
+      const services = booking.services.map(s => ({
+        id: s.service.id,
+        name: s.service.name,
+        duration: s.service.duration,
+        price: s.service.price.toNumber(),
+      }));
+      
+      const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+      
+      return {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        customerPhone: booking.customer.phone,
+        customerEmail: undefined, // Not included in list query for performance
+        staffId: booking.provider.id,
+        staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
+        serviceName: services.length > 1 
+          ? services.map(s => s.name).join(' + ')
+          : services[0]?.name || 'Unknown Service',
+        services,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status,
+        totalAmount: booking.totalAmount.toNumber(),
+        totalDuration,
+        locationName: booking.location.name,
+        createdAt: booking.createdAt,
+        isPaid: undefined, // Payment info not included in list query
+        paidAmount: undefined,
+      };
+    });
 
     return {
       items,

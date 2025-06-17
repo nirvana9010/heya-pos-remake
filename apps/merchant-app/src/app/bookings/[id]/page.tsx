@@ -111,8 +111,8 @@ export default function BookingDetailPage() {
 
             <div className="flex items-center space-x-2">
               <DollarSign className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-600">Price:</span>
-              <span className="font-medium">${booking.price.toFixed(2)}</span>
+              <span className="text-gray-600">Total Price:</span>
+              <span className="font-medium">${(booking.totalAmount || booking.price || 0).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -147,20 +147,59 @@ export default function BookingDetailPage() {
             <CardTitle>Service Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <span className="text-gray-600">Service:</span>
-              <p className="font-medium">{booking.serviceName}</p>
-            </div>
+            {booking.services && booking.services.length > 0 ? (
+              booking.services.map((service: any, index: number) => (
+                <div key={service.id} className={index > 0 ? "border-t pt-4" : ""}>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-gray-600">Service:</span>
+                      <p className="font-medium">{service.name}</p>
+                    </div>
 
-            <div>
-              <span className="text-gray-600">Duration:</span>
-              <p className="font-medium">{booking.duration} minutes</p>
-            </div>
+                    <div className="flex space-x-4">
+                      <div>
+                        <span className="text-gray-600">Duration:</span>
+                        <p className="font-medium">{service.duration} minutes</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Price:</span>
+                        <p className="font-medium">${service.price.toFixed(2)}</p>
+                      </div>
+                    </div>
 
-            <div>
-              <span className="text-gray-600">Staff:</span>
-              <p className="font-medium">{booking.staffName}</p>
-            </div>
+                    <div>
+                      <span className="text-gray-600">Staff:</span>
+                      <p className="font-medium">{service.staffName}</p>
+                    </div>
+
+                    {service.category && (
+                      <div>
+                        <span className="text-gray-600">Category:</span>
+                        <p className="font-medium">{service.category}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Fallback for old format
+              <div>
+                <div>
+                  <span className="text-gray-600">Service:</span>
+                  <p className="font-medium">{booking.serviceName}</p>
+                </div>
+
+                <div>
+                  <span className="text-gray-600">Duration:</span>
+                  <p className="font-medium">{booking.duration} minutes</p>
+                </div>
+
+                <div>
+                  <span className="text-gray-600">Staff:</span>
+                  <p className="font-medium">{booking.staffName}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -392,14 +392,15 @@ class ApiClient {
     
     // Customer name - V2 provides it directly, V1 needs to be constructed
     const customerName = booking.customerName || 
+      booking.customer?.name ||
       (booking.customer ? 
         `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
         'Unknown Customer');
     
     // Customer phone - V2 provides it directly, V1 has it nested
     const customerPhone = booking.customerPhone || 
+      booking.customer?.phone ||
       booking.customer?.mobile || 
-      booking.customer?.phone || 
       '';
     
     // Customer email - handle both formats
@@ -409,18 +410,27 @@ class ApiClient {
     
     // Staff name - V2 provides it directly, V1 needs to be constructed
     const staffName = booking.staffName || 
+      booking.staff?.name ||
       (booking.provider ? 
         `${booking.provider.firstName} ${booking.provider.lastName}`.trim() : 
         'Staff');
     
     // Service name - V2 provides it directly, V1 has it nested
+    // For multiple services, use the first one or concatenate names
     const serviceName = booking.serviceName || 
-      booking.services?.[0]?.service?.name || 
-      'Service';
+      (booking.services && Array.isArray(booking.services) && booking.services.length > 0 ? 
+        (booking.services.length === 1 ? 
+          booking.services[0].name || booking.services[0]?.service?.name : 
+          booking.services.map((s: any) => s.name || s.service?.name).join(', ')) :
+        'Service');
     
     // Calculate total amount from services if not set
     const totalAmount = Number(booking.totalAmount) || 
       (booking.services?.reduce((sum: number, s: any) => sum + (Number(s.price) || 0), 0) || 0);
+    
+    // Calculate total duration from all services
+    const duration = booking.duration || 
+      (booking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0);
     
     return {
       ...booking,
@@ -431,7 +441,7 @@ class ApiClient {
       staffName,
       price: totalAmount,
       totalAmount: totalAmount,
-      duration: booking.duration || booking.services?.[0]?.duration || 0,
+      duration,
       date: booking.startTime, // For backward compatibility
     };
   }
