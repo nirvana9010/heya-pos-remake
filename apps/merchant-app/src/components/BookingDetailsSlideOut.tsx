@@ -18,7 +18,8 @@ import {
   XCircle,
   AlertCircle,
   PlayCircle,
-  PauseCircle
+  PauseCircle,
+  Loader2
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -30,6 +31,15 @@ import { Separator } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
+import { BookingActions } from "./BookingActions";
+import { displayFormats } from "../lib/date-utils";
+
+interface BookingService {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+}
 
 interface BookingDetailsSlideOutProps {
   isOpen: boolean;
@@ -39,7 +49,8 @@ interface BookingDetailsSlideOutProps {
     customerName: string;
     customerPhone: string;
     customerEmail?: string;
-    serviceName: string;
+    serviceName: string; // Deprecated - kept for backward compatibility
+    services?: BookingService[]; // Array for multi-service bookings
     staffName: string;
     staffId: string;
     startTime: Date;
@@ -87,6 +98,25 @@ export function BookingDetailsSlideOut({
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
+  
+  // Calculate progress for in-progress bookings
+  const getBookingProgress = () => {
+    if (booking.status !== "in-progress") return 0;
+    
+    const now = new Date();
+    const start = new Date(booking.startTime);
+    const end = new Date(booking.endTime);
+    
+    if (now < start) return 0;
+    if (now > end) return 100;
+    
+    const totalDuration = end.getTime() - start.getTime();
+    const elapsed = now.getTime() - start.getTime();
+    
+    return Math.round((elapsed / totalDuration) * 100);
+  };
+  
+  const progress = getBookingProgress();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -143,68 +173,60 @@ export function BookingDetailsSlideOut({
 
   return (
     <SlideOutPanel isOpen={isOpen} onClose={onClose} title="Booking Details">
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full relative">
+        {/* Progress bar for in-progress bookings */}
+        {booking.status === "in-progress" && (
+          <div className="absolute inset-x-0 top-0 h-1 z-10">
+            <div className="h-1 bg-gray-200">
+              <div 
+                className="h-full bg-teal-600 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="px-6 py-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">{booking.customerName}</h2>
-              <p className="text-sm text-gray-600">{booking.serviceName}</p>
+              <p className="text-sm text-gray-600">
+                {booking.services && booking.services.length > 0
+                  ? booking.services.map(s => s.name).join(' + ')
+                  : booking.serviceName}
+              </p>
             </div>
             <Badge className={cn("flex items-center gap-1", getStatusColor(booking.status))}>
-              {getStatusIcon(booking.status)}
-              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+              {booking.status === "in-progress" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  In Progress
+                </>
+              ) : (
+                <>
+                  {getStatusIcon(booking.status)}
+                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                </>
+              )}
             </Badge>
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-2">
-            {booking.status === "confirmed" && (
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => handleStatusChange("in-progress")}
-                className="flex items-center gap-1"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Start
-              </Button>
-            )}
-            {booking.status === "in-progress" && (
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => handleStatusChange("completed")}
-                className="flex items-center gap-1"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Complete
-              </Button>
-            )}
-            {(booking.status === "confirmed" || booking.status === "in-progress") && (
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => handleStatusChange("cancelled")}
-                className="flex items-center gap-1 text-red-600 hover:text-red-700"
-              >
-                <XCircle className="h-4 w-4" />
-                Cancel
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant={booking.isPaid ? "default" : "outline"}
-              onClick={handlePaymentToggle}
-              className={cn(
-                "flex items-center gap-1",
-                booking.isPaid && "bg-green-600 hover:bg-green-700"
-              )}
-            >
-              <DollarSign className="h-4 w-4" />
-              {booking.isPaid ? "Paid" : "Mark as Paid"}
-            </Button>
-          </div>
+          <BookingActions
+            booking={{
+              ...booking,
+              totalPrice: booking.totalPrice,
+              customerPhone: booking.customerPhone,
+              customerEmail: booking.customerEmail
+            }}
+            size="sm"
+            variant="inline"
+            showEdit={false}
+            showDelete={false}
+            onStatusChange={onStatusChange}
+            onPaymentToggle={onPaymentStatusChange}
+          />
         </div>
 
         {/* Content */}
@@ -286,11 +308,11 @@ export function BookingDetailsSlideOut({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-gray-400" />
-                    <span>{format(booking.startTime, "EEEE, MMMM d, yyyy")}</span>
+                    <span>{displayFormats.date(booking.startTime)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-gray-400" />
-                    <span>{format(booking.startTime, "h:mm a")} - {format(booking.endTime, "h:mm a")}</span>
+                    <span>{displayFormats.time(booking.startTime)} - {displayFormats.time(booking.endTime)}</span>
                     <Badge variant="secondary" className="text-xs">{duration} min</Badge>
                   </div>
                 </div>
@@ -329,11 +351,34 @@ export function BookingDetailsSlideOut({
               <div>
                 <h3 className="font-medium text-sm text-gray-700 mb-2">Service Details</h3>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Scissors className="h-4 w-4 text-gray-400" />
-                    <span>{booking.serviceName}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
+                  {booking.services && booking.services.length > 0 ? (
+                    <>
+                      {booking.services.map((service, index) => (
+                        <div key={service.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Scissors className="h-4 w-4 text-gray-400" />
+                            <span>{service.name}</span>
+                            <span className="text-gray-500">({service.duration}min)</span>
+                          </div>
+                          <span className="font-medium">${service.price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {booking.services.length > 1 && (
+                        <div className="pt-2 border-t">
+                          <div className="flex items-center justify-between text-sm font-semibold">
+                            <span>Total</span>
+                            <span>${Number(booking.totalPrice).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Scissors className="h-4 w-4 text-gray-400" />
+                      <span>{booking.serviceName}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm mt-3">
                     <User className="h-4 w-4 text-gray-400" />
                     <span>with {booking.staffName}</span>
                     {selectedStaff && (
@@ -343,13 +388,12 @@ export function BookingDetailsSlideOut({
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                    <span className="font-semibold">${Number(booking.totalPrice).toFixed(2)}</span>
-                    {booking.isPaid && (
+                  {booking.isPaid && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="h-4 w-4 text-gray-400" />
                       <Badge variant="success" className="text-xs">Paid</Badge>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

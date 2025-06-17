@@ -11,6 +11,7 @@ import { Textarea } from '@heya-pos/ui';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { type Booking, type Service, type Staff } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
+import { toMerchantTime } from '@/lib/date-utils';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -46,11 +47,23 @@ export default function EditBookingPage() {
       setStaff(staffData);
       
       // Initialize form with booking data
+      // The date field is actually startTime from the API
+      const dateSource = bookingData.date || bookingData.startTime;
+      const bookingDate = toMerchantTime(dateSource);
+      
+      // Extract time from startTime in merchant timezone
+      let timeString = bookingData.startTime;
+      if (typeof bookingData.startTime === 'string' && bookingData.startTime.includes('T')) {
+        // If startTime is an ISO string, convert to merchant timezone and extract the time part
+        const startTimeDate = toMerchantTime(bookingData.startTime);
+        timeString = `${startTimeDate.getHours().toString().padStart(2, '0')}:${startTimeDate.getMinutes().toString().padStart(2, '0')}`;
+      }
+      
       setFormData({
         serviceId: bookingData.serviceId,
         staffId: bookingData.staffId,
-        date: bookingData.date.toISOString().split('T')[0],
-        startTime: bookingData.startTime,
+        date: bookingDate.toISOString().split('T')[0],
+        startTime: timeString,
         notes: bookingData.notes || ''
       });
     } catch (error) {

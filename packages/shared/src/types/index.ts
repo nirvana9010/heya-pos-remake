@@ -60,25 +60,39 @@ export interface Customer {
   avatar?: string;
 }
 
+export interface BookingService {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+  categoryName?: string;
+}
+
 export interface Booking {
   id: string;
+  bookingNumber?: string;
   customerId: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
-  serviceId: string;
-  serviceName: string;
+  serviceId: string; // Deprecated - kept for backward compatibility
+  serviceName: string; // Deprecated - kept for backward compatibility
+  services?: BookingService[]; // Array for multi-service bookings
   staffId: string;
   staffName: string;
   date: Date;
-  startTime: string;
-  endTime: string;
-  duration: number;
-  price: number;
+  startTime: string | Date;
+  endTime: string | Date;
+  duration: number; // Total duration for all services
+  price: number; // Deprecated - use totalAmount
+  totalAmount?: number; // Total price for all services
   status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  paidAmount?: number;
+  isPaid?: boolean;
+  locationName?: string;
 }
 
 export interface Payment {

@@ -25,6 +25,7 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
                 categoryModel: true,
               },
             },
+            staff: true,
           },
         },
         createdBy: true,
@@ -36,8 +37,6 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
     }
 
     // Map to read model
-    const service = booking.services[0]?.service;
-    
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -58,19 +57,17 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
         phone: booking.provider.phone,
       },
       
-      service: service ? {
-        id: service.id,
-        name: service.name,
-        category: service.categoryModel?.name || 'Uncategorized',
-        duration: service.duration,
-        price: service.price.toNumber(),
-      } : {
-        id: '',
-        name: 'Unknown Service',
-        category: 'Uncategorized',
-        duration: 60,
-        price: 0,
-      },
+      services: booking.services.map((bookingService: any) => ({
+        id: bookingService.service.id,
+        name: bookingService.service.name,
+        category: bookingService.service.categoryModel?.name || 'Uncategorized',
+        duration: bookingService.duration || bookingService.service.duration,
+        price: bookingService.price.toNumber(),
+        staffId: bookingService.staffId || booking.provider.id,
+        staffName: bookingService.staff ? 
+          `${bookingService.staff.firstName} ${bookingService.staff.lastName}` : 
+          `${booking.provider.firstName} ${booking.provider.lastName}`,
+      })),
       
       location: {
         id: booking.location.id,

@@ -56,6 +56,8 @@ import {
 } from 'date-fns';
 import { type Booking } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
+import { BookingActions } from '@/components/BookingActions';
+import { displayFormats, toMerchantTime } from '@/lib/date-utils';
 
 export default function BookingsPageContent() {
   console.log('[BookingsPage] Component rendering...');
@@ -662,7 +664,7 @@ export default function BookingsPageContent() {
           return (
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-gray-400" />
-              <span>{format(dateObj, 'MMM dd, yyyy')}</span>
+              <span>{displayFormats.date(dateObj)}</span>
             </div>
           );
         } catch (error) {
@@ -697,7 +699,7 @@ export default function BookingsPageContent() {
           return (
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-gray-400" />
-              <span>{format(dateObj, 'h:mm a')}</span>
+              <span>{displayFormats.time(dateObj)}</span>
             </div>
           );
         } catch (error) {
@@ -1117,11 +1119,11 @@ export default function BookingsPageContent() {
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-gray-400" />
                                   <span className="font-medium">
-                                    {format(bookingDate, 'h:mm a')}
+                                    {displayFormats.time(bookingDate)}
                                   </span>
-                                  {!isToday(bookingDate) && (
+                                  {!isToday(toMerchantTime(bookingDate)) && (
                                     <span className="text-sm text-gray-500">
-                                      {format(bookingDate, 'MMM d')}
+                                      {displayFormats.date(bookingDate)}
                                     </span>
                                   )}
                                 </div>
@@ -1153,10 +1155,24 @@ export default function BookingsPageContent() {
                                 </div>
                                 
                                 <div className="md:col-span-2">
-                                  <p className="text-gray-700">{booking.serviceName || 'Service'}</p>
-                                  <p className="text-sm text-gray-500">
-                                    with {booking.staffName || 'Staff'} • {booking.duration || 60} min
-                                  </p>
+                                  {booking.services && booking.services.length > 0 ? (
+                                    <div>
+                                      <p className="text-gray-700">
+                                        {booking.services.map(s => s.name).join(' + ')}
+                                      </p>
+                                      <p className="text-sm text-gray-500">
+                                        with {booking.staffName || 'Staff'} • {booking.duration || 60} min
+                                        {booking.services.length > 1 && ` • ${booking.services.length} services`}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <p className="text-gray-700">{booking.serviceName || 'Service'}</p>
+                                      <p className="text-sm text-gray-500">
+                                        with {booking.staffName || 'Staff'} • {booking.duration || 60} min
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                                 
                                 <div className="text-right">
@@ -1184,110 +1200,41 @@ export default function BookingsPageContent() {
                             </div>
                             
                             {/* Quick Actions */}
-                            <div className="flex items-center gap-2">
-                              {/* Quick action buttons for common actions */}
-                              {booking.status?.toLowerCase() === 'confirmed' && isUpcoming && (
-                                <>
-                                  {(bookingDate.getTime() - new Date().getTime()) < 3600000 && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCheckIn(booking.id);
-                                      }}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      Check In
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSendReminder(booking);
-                                    }}
-                                  >
-                                    <MessageSquare className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {!(booking.paidAmount > 0) && booking.status?.toLowerCase() !== 'cancelled' && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMarkPaid(booking.id, booking.totalAmount || booking.price || 0);
-                                  }}
-                                >
-                                  <CreditCard className="h-4 w-4" />
-                                </Button>
-                              )}
-                              
-                              {/* More actions dropdown */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={(e) => e.stopPropagation()}>
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => router.push(`/bookings/${booking.id}`)}>
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => router.push(`/bookings/${booking.id}/edit`)}>
-                                    <CalendarClock className="h-4 w-4 mr-2" />
-                                    Reschedule
-                                  </DropdownMenuItem>
-                                  {booking.customerPhone && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleSendReminder(booking)}>
-                                        <MessageSquare className="h-4 w-4 mr-2" />
-                                        Send SMS Reminder
-                                      </DropdownMenuItem>
-                                      {booking.customerEmail && (
-                                        <DropdownMenuItem onClick={() => handleSendReminder(booking)}>
-                                          <Mail className="h-4 w-4 mr-2" />
-                                          Send Email Reminder
-                                        </DropdownMenuItem>
-                                      )}
-                                    </>
-                                  )}
-                                  {booking.status?.toLowerCase() === 'confirmed' && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        onClick={() => handleCheckIn(booking.id)}
-                                        className="text-green-600"
-                                      >
-                                        <Check className="h-4 w-4 mr-2" />
-                                        Check In
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {!(booking.paidAmount > 0) && booking.status?.toLowerCase() !== 'cancelled' && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        onClick={() => handleProcessPayment(booking.id)}
-                                      >
-                                        <CreditCard className="h-4 w-4 mr-2" />
-                                        Process Payment
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        onClick={() => handleMarkPaid(booking.id, booking.totalAmount || booking.price || 0)}
-                                      >
-                                        <DollarSign className="h-4 w-4 mr-2" />
-                                        Quick Cash Payment
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <BookingActions
+                                booking={{
+                                  ...booking,
+                                  isPaid: booking.paidAmount > 0,
+                                  totalPrice: booking.totalAmount || booking.price
+                                }}
+                                size="sm"
+                                variant="inline"
+                                showEdit={false}
+                                showDelete={false}
+                                showReminder={isUpcoming}
+                                showPayment={booking.status?.toLowerCase() !== 'cancelled'}
+                                onStatusChange={(bookingId, status) => {
+                                  if (status === 'in-progress') {
+                                    handleCheckIn(bookingId);
+                                  } else {
+                                    // Handle other status changes
+                                    apiClient.updateBooking(bookingId, { status })
+                                      .then(() => loadBookings())
+                                      .catch(error => {
+                                        toast({
+                                          title: "Error",
+                                          description: "Failed to update booking status",
+                                          variant: "destructive",
+                                        });
+                                      });
+                                  }
+                                }}
+                                onPaymentToggle={(bookingId) => handleMarkPaid(bookingId, booking.totalAmount || booking.price || 0)}
+                                onProcessPayment={handleProcessPayment}
+                                onSendReminder={handleSendReminder}
+                                onReschedule={(bookingId) => router.push(`/bookings/${bookingId}/edit`)}
+                                onEdit={(bookingId) => router.push(`/bookings/${bookingId}`)}
+                              />
                             </div>
                               </div>
                             </div>

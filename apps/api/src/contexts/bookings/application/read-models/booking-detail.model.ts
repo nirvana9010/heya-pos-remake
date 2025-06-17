@@ -24,14 +24,16 @@ export interface BookingDetail {
     phone?: string;
   };
   
-  // Service info
-  service: {
+  // Services info - support multiple services
+  services: Array<{
     id: string;
     name: string;
     category: string;
     duration: number;
     price: number;
-  };
+    staffId: string;
+    staffName: string;
+  }>;
   
   // Location info
   location: {
