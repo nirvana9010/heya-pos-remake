@@ -4,6 +4,7 @@ import { IBookingRepository } from '../../domain/repositories/booking.repository
 import { Booking } from '../../domain/entities/booking.entity';
 import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { Prisma } from '@prisma/client';
+import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
 
 interface UpdateBookingData {
   bookingId: string;
@@ -35,12 +36,26 @@ export class BookingUpdateService {
    * Updates a booking with optional rescheduling
    */
   async updateBooking(data: UpdateBookingData): Promise<Booking> {
+    console.log('[BookingUpdateService] Updating booking:', {
+      bookingId: data.bookingId,
+      hasStaffChange: !!data.staffId,
+      newStaffId: data.staffId,
+      hasTimeChange: !!data.startTime,
+    });
+    
     return this.prisma.$transaction(async (tx) => {
       // 1. Get the existing booking
       const booking = await this.bookingRepository.findById(data.bookingId, data.merchantId);
       if (!booking) {
         throw new NotFoundException(`Booking not found: ${data.bookingId}`);
       }
+      
+      console.log('[BookingUpdateService] Current booking:', {
+        bookingId: booking.id,
+        currentStaffId: booking.staffId,
+        requestedStaffId: data.staffId,
+        needsStaffChange: data.staffId && data.staffId !== booking.staffId,
+      });
 
       // 2. Check if we're rescheduling (time change)
       const isRescheduling = data.startTime && (
@@ -84,14 +99,71 @@ export class BookingUpdateService {
         booking.reschedule(newTimeSlot);
       }
 
-      // 6. Update other fields
+      // 6. Update other fields that need direct database updates
+      const directUpdates: any = {};
       if (data.notes !== undefined) {
-        // For now, we'll need to add updateNotes method or handle this differently
-        // Since the entity might not have this method yet
+        directUpdates.notes = data.notes;
+      }
+      if (data.serviceId && data.serviceId !== booking.serviceId) {
+        directUpdates.serviceId = data.serviceId;
+      }
+      if (data.locationId && data.locationId !== booking.locationId) {
+        directUpdates.locationId = data.locationId;
       }
 
-      // 7. Save the updated booking
-      return await this.bookingRepository.update(booking, tx);
+      // 7. Handle staff change if needed
+      if (data.staffId && data.staffId !== booking.staffId) {
+        directUpdates.providerId = data.staffId;
+      }
+
+      // 8. Save the updated booking (for domain-level changes like time)
+      const updatedBooking = await this.bookingRepository.update(booking, tx);
+      
+      // 9. Apply any direct database updates AFTER the domain update
+      const hasDirectUpdates = Object.keys(directUpdates).length > 0;
+      if (hasDirectUpdates) {
+        console.log('[BookingUpdateService] Applying direct updates:', directUpdates);
+        await tx.booking.update({
+          where: {
+            id: booking.id,
+            merchantId: data.merchantId,
+          },
+          data: directUpdates,
+        });
+        
+        // Reload the booking within the transaction to get all the updated data
+        const reloadedBooking = await tx.booking.findUnique({
+          where: {
+            id: booking.id,
+            merchantId: data.merchantId,
+          },
+          include: {
+            services: {
+              include: {
+                service: true,
+                staff: true,
+              },
+            },
+            customer: true,
+            provider: true,
+            location: true,
+          },
+        });
+        
+        if (!reloadedBooking) {
+          throw new Error('Failed to reload booking after update');
+        }
+        
+        const domainBooking = BookingMapper.toDomain(reloadedBooking);
+        console.log('[BookingUpdateService] Reloaded booking after direct updates:', {
+          bookingId: domainBooking.id,
+          staffId: domainBooking.staffId,
+          directUpdatesApplied: directUpdates,
+        });
+        return domainBooking;
+      }
+      
+      return updatedBooking;
     }, {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,

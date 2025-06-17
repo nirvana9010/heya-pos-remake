@@ -82,11 +82,14 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
                   name: true,
                   duration: true,
                   price: true,
+                  displayOrder: true,
                 },
               },
             },
             orderBy: {
-              displayOrder: 'asc',
+              service: {
+                displayOrder: 'asc',
+              },
             },
           },
           location: {

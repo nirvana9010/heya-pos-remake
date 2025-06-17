@@ -33,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Payment widget */}
         <script src="/js/iclient-with-ui-v1.js"></script>
       </head>
       <body className={`${dmSans.variable} ${manrope.variable} font-sans`}>

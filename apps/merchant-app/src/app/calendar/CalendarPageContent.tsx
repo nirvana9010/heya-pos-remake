@@ -33,6 +33,11 @@ import {
   CheckSquare,
   Square
 } from "lucide-react";
+import { DndContext, DragStartEvent, DragEndEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor, KeyboardSensor } from '@dnd-kit/core';
+import { DraggableBooking } from '@/components/calendar/DraggableBooking';
+import { DroppableTimeSlot } from '@/components/calendar/DroppableTimeSlot';
+import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
+import { validateBookingDrop, detectTimeConflicts } from '@/lib/calendar-drag-utils';
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
@@ -44,8 +49,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
 import { safeFormat, isValidDate, getSafeNavigationLabel } from "./calendar-safe";
 import { TimeDisplay, TimezoneIndicator } from "@/components/TimeDisplay";
+import { initializeConsoleLogger } from "@/lib/console-logger";
 import { 
   format, 
   addDays, 
@@ -129,6 +136,7 @@ interface Booking {
   staffName: string;
   startTime: Date;
   endTime: Date;
+  duration?: number; // in minutes
   status: "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show";
   displayStartTime?: string;
   displayEndTime?: string;
@@ -136,6 +144,7 @@ interface Booking {
   isPaid: boolean;
   totalPrice: number;
   notes?: string;
+  services?: any[]; // for multi-service bookings
 }
 
 // Mock data
@@ -605,7 +614,7 @@ const mockCustomers = [
 ];
 
 // Helper functions
-const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval) => {
+const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval, baseDate: Date = new Date()) => {
   const slots = [];
   const [startHour, startMinute] = businessHours.start.split(':').map(Number);
   const [endHour, endMinute] = businessHours.end.split(':').map(Number);
@@ -615,7 +624,8 @@ const generateTimeSlots = (businessHours: BusinessHours, interval: TimeInterval)
     const minutes = interval === 60 ? [0] : interval === 30 ? [0, 30] : [0, 15, 30, 45];
     
     for (const minute of minutes) {
-      const time = new Date();
+      // Use the baseDate to ensure slots have the correct date
+      const time = new Date(baseDate);
       time.setHours(hour, minute, 0, 0);
       
       const isHour = minute === 0;
@@ -799,51 +809,12 @@ const calculateBookingLayout = (dayBookings: Booking[]) => {
   return { layoutMap, maxConcurrent, useCompactLayout };
 };
 
-class CalendarErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Calendar Error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-4 bg-red-50 text-red-600">
-          <h2>Something went wrong in the calendar.</h2>
-          <details className="mt-2">
-            <summary>Error details</summary>
-            <pre className="mt-2 text-xs">{this.state.error?.toString()}</pre>
-            {this.state.error?.stack && (
-              <pre className="mt-2 text-xs overflow-auto">{this.state.error.stack}</pre>
-            )}
-          </details>
-          <button 
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
-            onClick={() => window.location.reload()}
-          >
-            Reload Page
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 export default function CalendarPageContent() {
-  // Ensure initial date is valid
+  const { toast } = useToast();
+  
+  console.log('🔄 CalendarPageContent rendering at', new Date().toISOString());
+  
+  // Ensure initial date is valid 
   const [currentDate, setCurrentDate] = useState(() => {
     const date = new Date();
     if (!isValidDate(date)) {
@@ -872,11 +843,44 @@ export default function CalendarPageContent() {
     staffId?: string;
   }>({});
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>(() => {
+    console.log('📅 Initial bookings state: empty array');
+    return [];
+  });
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const weekHeaderRef = useRef<HTMLDivElement>(null);
+  
+  // Drag and drop state
+  const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOverSlot, setDragOverSlot] = useState<{
+    staffId: string;
+    staffName: string;
+    startTime: Date;
+    endTime: Date;
+  } | null>(null);
+  
+  // Configure drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3, // Small distance to start drag
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    })
+  );
+
+  // Initialize console logger
+  useEffect(() => {
+    initializeConsoleLogger();
+  }, []);
 
   // Update current time every minute
   useEffect(() => {
@@ -887,25 +891,274 @@ export default function CalendarPageContent() {
     return () => clearInterval(timer);
   }, []);
 
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const booking = bookings.find(b => b.id === active.id);
+    if (booking) {
+      setActiveBooking(booking);
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragOver = (event: any) => {
+    const { over } = event;
+    
+    if (over && over.data.current?.type === 'timeSlot') {
+      const targetSlot = over.data.current;
+      const staffMember = staff.find(s => s.id === targetSlot.staffId);
+      
+      setDragOverSlot({
+        staffId: targetSlot.staffId,
+        staffName: staffMember?.name || 'Staff',
+        startTime: targetSlot.startTime,
+        endTime: targetSlot.endTime,
+      });
+    } else {
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    console.log('Drag ended:', { active: active?.id, over: over?.id });
+    
+    // Quick debug - write to file
+    if (typeof window !== 'undefined') {
+      const debugInfo = {
+        timestamp: new Date().toISOString(),
+        event: 'drag_end',
+        activeId: active?.id,
+        overId: over?.id,
+        activeBooking: activeBooking ? {
+          id: activeBooking.id,
+          staffId: activeBooking.staffId,
+          staffName: activeBooking.staffName,
+        } : null,
+        targetSlot: over?.data?.current || null,
+      };
+      
+      fetch('/api/debug-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(debugInfo),
+      }).catch(() => {});
+    }
+    
+    setIsDragging(false);
+    setActiveBooking(null);
+    setDragOverSlot(null);
+    
+    if (!over || !activeBooking) {
+      console.log('No over target or active booking');
+      return;
+    }
+    
+    const targetSlot = over.data.current;
+    console.log('Target slot:', targetSlot);
+    
+    if (!targetSlot || targetSlot.type !== 'timeSlot') {
+      console.log('Invalid target slot type');
+      return;
+    }
+    
+    // Validate the drop
+    const validation = validateBookingDrop(
+      activeBooking,
+      {
+        staffId: targetSlot.staffId,
+        startTime: targetSlot.startTime,
+        endTime: targetSlot.endTime,
+      },
+      bookings,
+      {
+        start: parseInt(businessHours.start.split(':')[0]),
+        end: parseInt(businessHours.end.split(':')[0]),
+      }
+    );
+    
+    console.log('Validation result:', validation);
+    console.log('Active booking:', activeBooking);
+    
+    if (!validation.canDrop) {
+      toast({
+        title: "Cannot move booking",
+        description: validation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Optimistic update
+    const previousBookings = [...bookings];
+    console.log('Previous bookings count:', previousBookings.length);
+    
+    const updatedBooking = {
+      ...activeBooking,
+      staffId: targetSlot.staffId,
+      staffName: staff.find(s => s.id === targetSlot.staffId)?.name || activeBooking.staffName,
+      startTime: targetSlot.startTime,
+      endTime: new Date(targetSlot.startTime.getTime() + (activeBooking.duration || 60) * 60000),
+    };
+    
+    console.log('Updating booking:', {
+      id: activeBooking.id,
+      oldTime: activeBooking.startTime,
+      newTime: targetSlot.startTime
+    });
+    
+    const newBookings = bookings.map(b => b.id === activeBooking.id ? updatedBooking : b);
+    console.log('New bookings count:', newBookings.length);
+    
+    setBookings(newBookings);
+    
+    try {
+      // Call API to update booking
+      console.log('Calling API to reschedule booking:', {
+        bookingId: activeBooking.id,
+        oldStaffId: activeBooking.staffId,
+        newStaffId: targetSlot.staffId,
+        staffChanged: activeBooking.staffId !== targetSlot.staffId,
+        startTime: targetSlot.startTime.toISOString(),
+      });
+      
+      // Check if we're changing staff
+      const isChangingStaff = activeBooking.staffId !== targetSlot.staffId;
+      
+      let reschedulePromise;
+      
+      // V2 API now properly handles both time and staff updates together
+      console.log('Updating booking with V2 API - time and staff together');
+      reschedulePromise = apiClient.rescheduleBooking(activeBooking.id, {
+        startTime: targetSlot.startTime.toISOString(),
+        staffId: targetSlot.staffId, // V2 API accepts staffId directly
+      });
+      
+      // Add a timeout to detect if the API is hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('API timeout')), 10000)
+      );
+      
+      const result = await Promise.race([reschedulePromise, timeoutPromise]);
+      
+      console.log('Reschedule successful, result:', result);
+      
+      // Debug log the result
+      if (typeof window !== 'undefined') {
+        fetch('/api/debug-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            event: 'reschedule_success',
+            bookingId: activeBooking.id,
+            oldStaffId: activeBooking.staffId,
+            newStaffId: targetSlot.staffId,
+            resultStaffId: result?.staffId,
+            fullResult: result,
+          }),
+        }).catch(() => {});
+      }
+      
+      toast({
+        title: "Booking moved",
+        description: "The booking has been rescheduled successfully.",
+      });
+      
+      // Refresh bookings to get latest data
+      console.log('Refreshing bookings after successful reschedule...');
+      await loadBookings();
+    } catch (error: any) {
+      // Rollback on failure
+      console.error('Reschedule error:', error);
+      console.error('Error response:', error?.response);
+      console.error('Full error object:', {
+        message: error?.message,
+        stack: error?.stack,
+        config: error?.config,
+        code: error?.code
+      });
+      
+      // Log error to file
+      if (typeof window !== 'undefined') {
+        fetch('/api/debug-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            event: 'reschedule_error',
+            bookingId: activeBooking.id,
+            error: {
+              message: error?.message,
+              status: error?.response?.status,
+              statusText: error?.response?.statusText,
+              data: error?.response?.data,
+            },
+          }),
+        }).catch(() => {});
+      }
+      
+      console.log('Rolling back to previous bookings...');
+      console.log('Bookings before rollback:', bookings.length);
+      console.log('Rolling back to:', previousBookings.length);
+      
+      setBookings(previousBookings);
+      
+      // Double-check the booking wasn't lost
+      setTimeout(() => {
+        console.log('Bookings after rollback:', bookings.length);
+        if (bookings.length === 0 && previousBookings.length > 0) {
+          console.error('CRITICAL: Bookings were lost! Reloading...');
+          loadBookings();
+        }
+      }, 100);
+      
+      let errorMessage = "Failed to move booking";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Load bookings from API
-  useEffect(() => {
-    const loadBookings = async () => {
-      try {
-        setLoading(true);
-        
-        // Pass date parameters based on view type
-        let params: any = {};
-        
-        console.log('Loading bookings for:', {
-          viewType,
-          currentDate: currentDate.toISOString(),
-          currentDateLocal: currentDate.toLocaleDateString()
-        });
-        
-        if (viewType === 'day') {
-          // For day view, get bookings for the specific date
-          params.date = currentDate.toISOString().split('T')[0];
-          console.log('Day view params:', params);
+  const loadBookings = async () => {
+    console.log('📚 loadBookings called');
+    
+    // Check if we have a token
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.error('No access token found, redirecting to login...');
+      window.location.href = '/login';
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Pass date parameters based on view type
+      let params: any = {};
+      
+      console.log('Loading bookings for:', {
+        viewType,
+        currentDate: currentDate.toISOString(),
+        currentDateLocal: currentDate.toLocaleDateString()
+      });
+      
+      if (viewType === 'day') {
+        // For day view, get bookings for the specific date
+        params.date = currentDate.toISOString().split('T')[0];
+        console.log('Day view params:', params);
         } else if (viewType === 'week') {
           // For week view, get bookings for the week
           const weekStart = startOfWeek(currentDate);
@@ -920,10 +1173,12 @@ export default function CalendarPageContent() {
           params.endDate = monthEnd.toISOString().split('T')[0];
         }
         
+        console.log('🔍 Calling apiClient.getBookings with params:', params);
         const apiBookings = await apiClient.getBookings(params);
         
         console.log('=== API BOOKINGS LOADED ===');
         console.log('Number of bookings from API:', apiBookings.length);
+        console.log('API response:', apiBookings);
         if (apiBookings.length > 0) {
           console.log('First booking from API:', apiBookings[0]);
           console.log('Booking fields:', Object.keys(apiBookings[0]));
@@ -963,15 +1218,32 @@ export default function CalendarPageContent() {
         });
         
         setBookings(transformedBookings);
-      } catch (error) {
+        console.log('Successfully loaded', transformedBookings.length, 'bookings from API');
+      } catch (error: any) {
         console.error('Failed to load bookings:', error);
+        console.error('Error details:', {
+          message: error?.message,
+          response: error?.response,
+          status: error?.response?.status,
+          data: error?.response?.data
+        });
+        
+        // If it's a 401, redirect to login
+        if (error?.response?.status === 401) {
+          console.error('Authentication failed, redirecting to login...');
+          window.location.href = '/login';
+          return;
+        }
+        
+        console.warn('⚠️ Using MOCK bookings - drag and drop will not work with API!');
         // Fall back to mock data if API fails
         setBookings(mockBookings);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
+  useEffect(() => {
     loadBookings();
   }, [currentDate, viewType]); // Reload when date or view type changes
 
@@ -1105,8 +1377,8 @@ export default function CalendarPageContent() {
   }, [viewType, timeInterval, businessHours]);
 
   const timeSlots = useMemo(() => {
-    return generateTimeSlots(businessHours, timeInterval);
-  }, [businessHours, timeInterval]);
+    return generateTimeSlots(businessHours, timeInterval, currentDate);
+  }, [businessHours, timeInterval, currentDate]);
   
   // If no staff are selected, show all staff. Otherwise show only selected staff.
   const visibleStaff = filters.selectedStaffIds.length === 0 
@@ -1421,33 +1693,40 @@ export default function CalendarPageContent() {
                   const conflicts = detectConflicts(filteredBookings, staffMember.id);
                   
                   return (
-                    <div
+                    <DroppableTimeSlot
                       key={`${staffMember.id}-${slotIndex}`}
+                      id={`slot-${staffMember.id}-${slot.hour}-${slot.minute}`}
+                      staffId={staffMember.id}
+                      startTime={slot.time}
+                      endTime={new Date(slot.time.getTime() + timeInterval * 60000)}
+                      isDisabled={!staffMember.isAvailable || !slot.isBusinessHours}
                       className={cn(
                         "cursor-pointer relative group transition-colors",
                         slot.isHour ? "border-b border-gray-200" : slot.isMinorInterval ? "border-b border-gray-50" : "border-b border-gray-100",
                         "border-r border-gray-100 last:border-r-0",
                         !slot.isBusinessHours ? "bg-gray-50/30" : "bg-white hover:bg-gray-50/30"
                       )}
-                      style={{ height: `${slot.height}px` }}
-                      onClick={() => {
-                        if (!staffMember.isAvailable) return;
-                        const clickedTime = new Date(currentDate);
-                        clickedTime.setHours(slot.hour, slot.minute, 0, 0);
-                        
-                        setNewBookingData({
-                          date: currentDate,
-                          time: clickedTime,
-                          staffId: staffMember.id
-                        });
-                        setIsBookingOpen(true);
-                      }}
-                      onMouseEnter={() => {
-                        if (!staffMember.isAvailable) return;
-                        setHoveredSlot({ staffId: staffMember.id, time: slot.time });
-                      }}
-                      onMouseLeave={() => setHoveredSlot(null)}
                     >
+                      <div
+                        style={{ height: `${slot.height}px` }}
+                        onClick={() => {
+                          if (!staffMember.isAvailable) return;
+                          const clickedTime = new Date(currentDate);
+                          clickedTime.setHours(slot.hour, slot.minute, 0, 0);
+                          
+                          setNewBookingData({
+                            date: currentDate,
+                            time: clickedTime,
+                            staffId: staffMember.id
+                          });
+                          setIsBookingOpen(true);
+                        }}
+                        onMouseEnter={() => {
+                          if (!staffMember.isAvailable) return;
+                          setHoveredSlot({ staffId: staffMember.id, time: slot.time });
+                        }}
+                        onMouseLeave={() => setHoveredSlot(null)}
+                      >
                       {/* Non-business hours overlay */}
                       {!slot.isBusinessHours && (
                         <div className="absolute inset-0 bg-gray-900/3 pointer-events-none" />
@@ -1504,32 +1783,41 @@ export default function CalendarPageContent() {
                         }
                         
                         return (
-                          <div
+                          <DraggableBooking
                             key={booking.id}
-                            className={cn(
-                              "absolute top-0 left-0 right-0 rounded-md cursor-pointer text-xs",
-                              "transition-all duration-200 hover:scale-[1.02] hover:z-30",
-                              "shadow-sm hover:shadow-lg",
-                              booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
-                              booking.status === "cancelled" && "opacity-60",
-                              hasConflict && "ring-2 ring-red-500 ring-offset-1",
-                              textColor
-                            )}
-                            style={{
-                              left: bookingLeft,
-                              width: bookingWidth,
-                              height: `calc(${(duration / timeInterval) * slot.height}px - 4px)`,
-                              backgroundColor: hexToRgba(bgColor, bgOpacity),
-                              borderLeft: `${borderWidth} solid ${bgColor}`,
-                              zIndex: hoveredBooking === booking.id ? 40 : 15 + bookingIndex // Lift on hover
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedBooking(booking);
-                            }}
-                            onMouseEnter={() => setHoveredBooking(booking.id)}
-                            onMouseLeave={() => setHoveredBooking(null)}
+                            id={booking.id}
+                            isDisabled={booking.status === "completed" || booking.status === "cancelled" || isPast}
                           >
+                            <div
+                              className={cn(
+                                "absolute top-0 rounded-md text-xs",
+                                "transition-all duration-200 hover:scale-[1.02] hover:z-30",
+                                "shadow-sm hover:shadow-lg",
+                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
+                                booking.status === "cancelled" && "opacity-60",
+                                hasConflict && "ring-2 ring-red-500 ring-offset-1",
+                                textColor,
+                                isDragging && activeBooking?.id === booking.id && "opacity-50",
+                                !isPast && booking.status !== "completed" && booking.status !== "cancelled" && "cursor-grab active:cursor-grabbing"
+                              )}
+                              style={{
+                                left: bookingLeft,
+                                width: bookingWidth,
+                                height: `calc(${(duration / timeInterval) * slot.height}px - 4px)`,
+                                backgroundColor: hexToRgba(bgColor, bgOpacity),
+                                borderLeft: `${borderWidth} solid ${bgColor}`,
+                                zIndex: hoveredBooking === booking.id ? 40 : 15 + bookingIndex // Lift on hover
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Only open details if not dragging
+                                if (!isDragging) {
+                                  setSelectedBooking(booking);
+                                }
+                              }}
+                              onMouseEnter={() => setHoveredBooking(booking.id)}
+                              onMouseLeave={() => setHoveredBooking(null)}
+                            >
                             <div className="p-2 h-full flex flex-col relative overflow-hidden">
                               {/* Content with improved hierarchy */}
                               <div className="space-y-0.5">
@@ -1618,10 +1906,12 @@ export default function CalendarPageContent() {
                                 </div>
                               </div>
                             )}
-                          </div>
+                            </div>
+                          </DraggableBooking>
                           );
                         })}
-                    </div>
+                      </div>
+                    </DroppableTimeSlot>
                   );
                 })}
               </React.Fragment>
@@ -1814,7 +2104,10 @@ export default function CalendarPageContent() {
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedBooking(booking);
+                                // Only open details if not dragging
+                                if (!isDragging) {
+                                  setSelectedBooking(booking);
+                                }
                               }}
                               onMouseEnter={() => setHoveredBooking(booking.id)}
                               onMouseLeave={() => setHoveredBooking(null)}
@@ -1867,32 +2160,41 @@ export default function CalendarPageContent() {
 
                         // Normal layout (up to 4 columns)
                         return (
-                          <div
+                          <DraggableBooking
                             key={booking.id}
-                            className={cn(
-                              "absolute rounded-md cursor-pointer shadow-sm",
-                              "transition-all duration-200 hover:shadow-lg hover:scale-[1.01] hover:z-20",
-                              "text-xs",
-                              booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
-                              booking.status === "cancelled" && "opacity-60",
-                              layout.isOverflow && "ring-1 ring-orange-400",
-                              (booking.status === "completed" || isPast) ? "text-gray-700" : "text-white"
-                            )}
-                            style={{
-                              top: `${topPosition}px`,
-                              height: `${Math.max(height - 4, 20)}px`,
-                              left: `${layout.left}%`,
-                              width: `${layout.width}%`,
-                              borderLeft: `${borderWidth} solid ${staffColor}`,
-                              backgroundColor: hexToRgba(staffColor, bgOpacity)
-                            }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBooking(booking);
-                          }}
-                          onMouseEnter={() => setHoveredBooking(booking.id)}
-                          onMouseLeave={() => setHoveredBooking(null)}
-                        >
+                            id={booking.id}
+                            isDisabled={booking.status === "completed" || booking.status === "cancelled" || isPast}
+                          >
+                            <div
+                              className={cn(
+                                "absolute rounded-md shadow-sm",
+                                "transition-all duration-200 hover:shadow-lg hover:scale-[1.01] hover:z-20",
+                                "text-xs",
+                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-pulse",
+                                booking.status === "cancelled" && "opacity-60",
+                                layout.isOverflow && "ring-1 ring-orange-400",
+                                (booking.status === "completed" || isPast) ? "text-gray-700" : "text-white",
+                                isDragging && activeBooking?.id === booking.id && "opacity-50",
+                                !isPast && booking.status !== "completed" && booking.status !== "cancelled" && "cursor-grab active:cursor-grabbing"
+                              )}
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${Math.max(height - 4, 20)}px`,
+                                left: `${layout.left}%`,
+                                width: `${layout.width}%`,
+                                borderLeft: `${borderWidth} solid ${staffColor}`,
+                                backgroundColor: hexToRgba(staffColor, bgOpacity)
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Only open details if not dragging
+                                if (!isDragging) {
+                                  setSelectedBooking(booking);
+                                }
+                              }}
+                              onMouseEnter={() => setHoveredBooking(booking.id)}
+                              onMouseLeave={() => setHoveredBooking(null)}
+                            >
                           <div className="h-full flex flex-col p-2">
                             {/* For narrow columns, show minimal info */}
                             {layout.width < 35 ? (
@@ -2005,9 +2307,10 @@ export default function CalendarPageContent() {
                               </div>
                             </div>
                           )}
-                        </div>
-                      );
-                    });
+                            </div>
+                          </DraggableBooking>
+                        );
+                      });
                     })()}
 
                     {/* Current time line */}
@@ -2189,9 +2492,15 @@ export default function CalendarPageContent() {
   };
 
   // Wrap the entire component to catch any Date rendering issues
-  const content = (
-    <CalendarErrorBoundary>
-      <TooltipProvider>
+  return (
+    <TooltipProvider>
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
         <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
@@ -2506,10 +2815,14 @@ export default function CalendarPageContent() {
             }}
           />
         )}
+        
+        {/* Drag Overlay */}
+        <CalendarDragOverlay 
+          activeBooking={activeBooking} 
+          dragOverSlot={dragOverSlot}
+        />
       </div>
+      </DndContext>
     </TooltipProvider>
-    </CalendarErrorBoundary>
   );
-  
-  return content;
 }

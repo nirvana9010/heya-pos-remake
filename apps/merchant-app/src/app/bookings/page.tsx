@@ -7,8 +7,7 @@ import { TablePageLoader } from '@/components/PageLoader';
 const BookingsPageContent = dynamic(
   () => import('./BookingsPageContent'),
   { 
-    loading: () => <TablePageLoader />,
-    ssr: false // Disable SSR for faster client-side navigation
+    loading: () => <TablePageLoader />
   }
 );
 
