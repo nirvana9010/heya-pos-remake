@@ -2,38 +2,86 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock, MapPin, Phone, Star, Users, ChevronRight } from "lucide-react";
+import { Calendar, Clock, MapPin, Phone, Star, Users, ChevronRight, Sparkles, Heart, Leaf } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
+import { useMerchant } from "@/contexts/merchant-context";
+import { MerchantGuard } from "@/components/merchant-guard";
 
-const services = [
-  { id: "1", name: "Haircut & Style", price: 65, duration: 45, category: "Hair" },
-  { id: "2", name: "Hair Color", price: 150, duration: 120, category: "Hair" },
-  { id: "3", name: "Facial Treatment", price: 90, duration: 60, category: "Beauty" },
-  { id: "4", name: "Manicure", price: 45, duration: 30, category: "Nails" },
-  { id: "5", name: "Massage", price: 120, duration: 60, category: "Wellness" },
-  { id: "6", name: "Pedicure", price: 55, duration: 45, category: "Nails" },
-];
-
-const testimonials = [
-  { id: "1", name: "Sarah J.", rating: 5, text: "Amazing service! The staff is professional and friendly." },
-  { id: "2", name: "Michael C.", rating: 5, text: "Best salon experience I've had. Highly recommend!" },
-  { id: "3", name: "Emily B.", rating: 5, text: "Love the atmosphere and quality of service here." },
-];
+// Merchant-specific content
+const merchantContent = {
+  hamilton: {
+    hero: {
+      title: "Where Beauty Meets Excellence",
+      subtitle: "Sydney's premier beauty destination offering cutting-edge treatments and personalized care.",
+      gradient: "from-pink-500 to-purple-600",
+    },
+    services: [
+      { id: "1", name: "Signature Facial", price: 120, duration: 75, category: "Beauty", featured: true },
+      { id: "2", name: "Luxury Hair Treatment", price: 180, duration: 90, category: "Hair" },
+      { id: "3", name: "Gel Manicure", price: 65, duration: 45, category: "Nails" },
+      { id: "4", name: "Brow Lamination", price: 85, duration: 60, category: "Beauty" },
+      { id: "5", name: "Lash Extensions", price: 150, duration: 120, category: "Beauty" },
+      { id: "6", name: "Anti-Aging Treatment", price: 250, duration: 90, category: "Beauty", featured: true },
+    ],
+    testimonials: [
+      { id: "1", name: "Jessica M.", rating: 5, text: "The best beauty spa in Sydney! Their attention to detail is unmatched." },
+      { id: "2", name: "Amanda L.", rating: 5, text: "I've been coming here for years. Consistently excellent service!" },
+      { id: "3", name: "Sophie R.", rating: 5, text: "The staff is incredible and the results speak for themselves." },
+    ],
+    address: "123 Beauty Street, Sydney NSW 2000",
+    phone: "+61 2 9456 7890",
+    email: "hamilton@hamiltonbeauty.com",
+  },
+  "zen-wellness": {
+    hero: {
+      title: "Find Your Inner Peace",
+      subtitle: "Holistic wellness treatments that rejuvenate your body, mind, and soul in Melbourne's tranquil oasis.",
+      gradient: "from-green-500 to-teal-600",
+    },
+    services: [
+      { id: "1", name: "Deep Tissue Massage", price: 140, duration: 90, category: "Massage", featured: true },
+      { id: "2", name: "Hot Stone Therapy", price: 160, duration: 90, category: "Massage" },
+      { id: "3", name: "Reiki Healing", price: 120, duration: 60, category: "Wellness" },
+      { id: "4", name: "Aromatherapy Session", price: 110, duration: 75, category: "Wellness" },
+      { id: "5", name: "Couples Massage", price: 280, duration: 90, category: "Massage", featured: true },
+      { id: "6", name: "Meditation & Mindfulness", price: 80, duration: 60, category: "Wellness" },
+    ],
+    testimonials: [
+      { id: "1", name: "David K.", rating: 5, text: "The most relaxing experience I've ever had. Truly transformative!" },
+      { id: "2", name: "Maria G.", rating: 5, text: "Their holistic approach to wellness is exactly what I needed." },
+      { id: "3", name: "Tom H.", rating: 5, text: "I leave feeling refreshed and renewed every single time." },
+    ],
+    address: "456 Wellness Way, Melbourne VIC 3000",
+    phone: "+61 3 9876 5432",
+    email: "melbourne@zenwellness.com",
+  },
+};
 
 export default function Home() {
+  const { merchant, merchantSubdomain } = useMerchant();
+  
+  // Get merchant-specific content
+  const content = merchantContent[merchantSubdomain as keyof typeof merchantContent] || merchantContent.hamilton;
+  const isZen = merchantSubdomain === 'zen-wellness';
+  
   return (
-    <main className="min-h-screen">
+    <MerchantGuard>
+      <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary to-accent text-white">
+      <section className={`relative bg-gradient-to-br ${content.hero.gradient} text-white`}>
         <div className="container mx-auto px-4 py-24 md:py-32">
           <div className="max-w-3xl">
+            <div className="flex items-center gap-2 mb-4">
+              {isZen ? <Leaf className="h-8 w-8" /> : <Sparkles className="h-8 w-8" />}
+              <span className="text-lg font-semibold">{merchant?.name}</span>
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Welcome to Hamilton Beauty
+              {content.hero.title}
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-white/90">
-              Experience luxury beauty services with our expert team. Book your appointment online in just a few clicks.
+              {content.hero.subtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/booking">
@@ -62,8 +110,8 @@ export default function Home() {
                 <MapPin className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Location</h3>
                 <p className="text-muted-foreground">
-                  123 Beauty Street<br />
-                  Sydney NSW 2000
+                  {content.address.split(',')[0]}<br />
+                  {content.address.split(',').slice(1).join(',')}
                 </p>
               </CardContent>
             </Card>
@@ -72,8 +120,13 @@ export default function Home() {
                 <Clock className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Opening Hours</h3>
                 <p className="text-muted-foreground">
-                  Mon - Fri: 9:00 AM - 7:00 PM<br />
-                  Sat - Sun: 10:00 AM - 6:00 PM
+                  {isZen ? (
+                    <>Mon - Fri: 8:00 AM - 8:00 PM<br />
+                    Sat - Sun: 9:00 AM - 7:00 PM</>
+                  ) : (
+                    <>Mon - Fri: 9:00 AM - 7:00 PM<br />
+                    Sat - Sun: 10:00 AM - 6:00 PM</>
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -82,8 +135,8 @@ export default function Home() {
                 <Phone className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Contact</h3>
                 <p className="text-muted-foreground">
-                  (02) 9876 5432<br />
-                  info@hamiltonbeauty.com.au
+                  {content.phone}<br />
+                  {content.email}
                 </p>
               </CardContent>
             </Card>
@@ -101,8 +154,13 @@ export default function Home() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {services.slice(0, 6).map((service) => (
-              <Card key={service.id} className="hover:shadow-lg transition-shadow duration-200">
+            {content.services.slice(0, 6).map((service) => (
+              <Card key={service.id} className="hover:shadow-lg transition-shadow duration-200 relative overflow-hidden">
+                {service.featured && (
+                  <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-400 to-orange-400 text-white px-3 py-1 text-xs font-semibold">
+                    Popular
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -142,11 +200,11 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Clients Say</h2>
             <p className="text-lg text-muted-foreground">
-              Don&apos;t just take our word for it
+              {isZen ? 'Hear from our wellness community' : "Don't just take our word for it"}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
+            {content.testimonials.map((testimonial) => (
               <Card key={testimonial.id}>
                 <CardContent className="pt-6">
                   <div className="flex mb-4">
@@ -167,10 +225,13 @@ export default function Home() {
       <section className="py-16 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Look Your Best?
+            {isZen ? 'Begin Your Wellness Journey' : 'Ready to Look Your Best?'}
           </h2>
           <p className="text-xl mb-8 text-white/90">
-            Book your appointment today and experience the Hamilton Beauty difference
+            {isZen ? 
+              `Book your session today and discover the path to holistic wellness at ${merchant?.name}` :
+              `Book your appointment today and experience the ${merchant?.name} difference`
+            }
           </p>
           <Link href="/booking">
             <Button size="lg" variant="secondary">
@@ -181,5 +242,6 @@ export default function Home() {
         </div>
       </section>
     </main>
+    </MerchantGuard>
   )
 }

@@ -25,6 +25,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CustomerIdentification } from "../../components/CustomerIdentification";
 import { PaymentStep } from "../../components/PaymentStep";
 import { TimeDisplay, TimezoneIndicator } from "@/components/TimeDisplay";
+import { useMerchant } from "@/contexts/merchant-context";
+import { useApiClient } from "@/hooks/use-api-client";
 
 
 const steps = [
@@ -277,13 +279,15 @@ export default function BookingPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { merchantSubdomain, merchant: merchantFromContext } = useMerchant();
+  const apiClient = useApiClient();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
-  const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(null);
+  const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(merchantFromContext);
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedServices, setSelectedServices] = useState<string[]>(
@@ -307,8 +311,11 @@ export default function BookingPageClient() {
   const selectedStaffMember = staff.find(s => s.id === selectedStaff);
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    // Only load data once merchant subdomain is available
+    if (merchantSubdomain) {
+      loadInitialData();
+    }
+  }, [merchantSubdomain]);
 
   useEffect(() => {
     if (selectedDate && selectedServices.length > 0) {
@@ -325,8 +332,9 @@ export default function BookingPageClient() {
         bookingApi.getStaff()
       ]);
       
-      setMerchantInfo(merchantData);
-      console.log('Merchant timezone:', merchantData.timezone);
+      // Use merchant from context if available, otherwise use API response
+      setMerchantInfo(merchantFromContext || merchantData);
+      console.log('Merchant timezone:', merchantFromContext?.timezone || merchantData.timezone);
       setServices(servicesData.filter(s => s.isActive));
       setStaff(staffData.filter(s => s.isActive));
     } catch (error) {
@@ -1509,7 +1517,7 @@ export default function BookingPageClient() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground/90 tracking-tight">
-              {merchantInfo?.name || 'Serenity Spa'}
+              {merchantInfo?.name || merchantFromContext?.name || ''}
             </h1>
             <p className="text-lg md:text-xl text-foreground/70 font-light mb-12">
               Where luxury meets tranquility
@@ -1571,7 +1579,7 @@ export default function BookingPageClient() {
                   {currentStep === 4 && "Your Information"}
                   {currentStep === 5 && "Complete Your Booking"}
                   {currentStep === 6 && "Secure Payment"}
-                  {currentStep === 7 && `Welcome to ${merchantInfo?.name || 'Serenity'}`}
+                  {currentStep === 7 && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
                 </CardTitle>
                 <CardDescription className="text-lg text-foreground/60 max-w-2xl mx-auto">
                   {currentStep === 1 && "Indulge in our curated collection of rejuvenating treatments"}

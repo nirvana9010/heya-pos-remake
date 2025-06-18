@@ -4,6 +4,8 @@ import {
   Post,
   Body,
   Param,
+  Query,
+  Headers,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -56,11 +58,42 @@ export class PublicBookingController {
     private readonly prisma: PrismaService,
   ) {}
 
+  // Helper method to get merchant by subdomain
+  private async getMerchantBySubdomain(
+    subdomain?: string,
+    headerSubdomain?: string,
+  ) {
+    const merchantSubdomain = subdomain || headerSubdomain;
+    
+    if (!merchantSubdomain) {
+      throw new BadRequestException('Merchant subdomain is required');
+    }
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { 
+        subdomain: merchantSubdomain,
+        status: 'ACTIVE'
+      },
+    });
+
+    if (!merchant) {
+      throw new BadRequestException(`Merchant not found: ${merchantSubdomain}`);
+    }
+
+    return merchant;
+  }
+
   @Get('merchant-info')
-  async getMerchantInfo() {
-    // Get the first active merchant for now (in production, this would be based on domain/subdomain)
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
+  async getMerchantInfo(
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    // Use helper to get merchant (without locations)
+    const merchantBase = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+    
+    // Fetch merchant with locations
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantBase.id },
       include: {
         locations: {
           where: { isActive: true },
@@ -68,10 +101,6 @@ export class PublicBookingController {
         },
       },
     });
-
-    if (!merchant) {
-      throw new BadRequestException('No active merchant found');
-    }
 
     const location = merchant.locations[0];
     if (!location) {
@@ -94,15 +123,11 @@ export class PublicBookingController {
   }
 
   @Get('services')
-  async getServices() {
-    // Get the first active merchant for now (in production, this would be based on domain/subdomain)
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
-    });
-
-    if (!merchant) {
-      throw new BadRequestException('No active merchant found');
-    }
+  async getServices(
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
 
     const services = await this.prisma.service.findMany({
       where: {
@@ -135,15 +160,11 @@ export class PublicBookingController {
   }
 
   @Get('staff')
-  async getStaff() {
-    // Get the first active merchant for now
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
-    });
-
-    if (!merchant) {
-      throw new BadRequestException('No active merchant found');
-    }
+  async getStaff(
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
 
     const staff = await this.prisma.staff.findMany({
       where: {
@@ -170,16 +191,17 @@ export class PublicBookingController {
 
   @Post('customers/lookup')
   @HttpCode(HttpStatus.OK)
-  async lookupCustomer(@Body() dto: { email?: string; phone?: string }) {
+  async lookupCustomer(
+    @Body() dto: { email?: string; phone?: string },
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
     // Validate input - need at least one identifier
     if (!dto.email && !dto.phone) {
       throw new BadRequestException('Email or phone number is required');
     }
 
-    // Get the first active merchant for now
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
-    });
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
 
     if (!merchant) {
       throw new BadRequestException('No active merchant found');

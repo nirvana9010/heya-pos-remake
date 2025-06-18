@@ -1,42 +1,202 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-06-13 5:30 PM
+> Last Updated: 2025-06-17 8:00 PM
 > 
-> **CRITICAL UPDATE**: Port management issues causing hours of debugging - SEE NEW SECTION BELOW
-> **NEW**: Screenshots are stored in `/home/nirvana9010/projects/heya-pos-remake/screenshots/` folder
-> **LATEST**: React Date rendering error pattern identified - SEE NEW SECTION
+> **CRITICAL UPDATE**: V1/V2 API confusion causing major issues - SEE NEW SECTION BELOW
+> **NEW**: Drag-and-drop debugging revealed systemic workaround problem
+> **LATEST**: Timeline of failures from June 17 session documented
 
-## 🚨 CRITICAL: API Versioning - All Endpoints Use v1/v2
+## 🚨 CRITICAL: API Versioning - V1 vs V2 Confusion Pattern
 **Added**: 2025-06-16
+**Updated**: 2025-06-17 - Major lessons from drag-and-drop debugging
 
-### The API Uses Versioned Endpoints
-The API now implements versioning. **All API calls must include the version number** (v1 or v2).
+### The Problem: V1/V2 API Mix-ups
+We repeatedly create workarounds that mix V1 and V2 APIs, causing cascading failures. This session alone had THREE major V1/V2 confusion incidents:
 
-### Correct Endpoint Patterns:
-- **Auth endpoints**: `/api/v1/auth/*` (login, logout, refresh, etc.)
-- **V1 endpoints**: `/api/v1/*` (staff, customers, services, payments)
-- **V2 endpoints**: `/api/v2/*` (new bookings API with CQRS pattern)
-- **Public endpoints**: `/api/v1/public/*` (no auth required)
+1. **Custom endpoint calling wrong version**: Created `/api/update-booking-staff` that called V1 bookings (which don't exist)
+2. **API client hardcoded to wrong version**: Temporarily switched bookings to V1 "until V2 is fixed" instead of fixing V2
+3. **Wrong assumptions about endpoints**: Assumed V1 bookings still existed when they've been removed
 
-### Examples:
-```bash
-# ❌ WRONG - Returns 404
-curl http://localhost:3000/api/auth/merchant/login
+### Why This Keeps Happening:
+1. **No clear mental model**: Not understanding which features use which version
+2. **Copy-paste from old code**: Copying patterns that assume V1 everywhere
+3. **Workarounds instead of fixes**: Creating custom endpoints instead of fixing the real issue
+4. **Not reading the docs**: V1_VS_V2_ENDPOINT_GUIDE.md clearly states bookings are V2-only
 
-# ✅ CORRECT - Uses v1
-curl http://localhost:3000/api/v1/auth/merchant/login
+### The Correct Mental Model:
+```
+V1 (Traditional REST):
+├── /api/v1/auth/*        ← Authentication (stays V1)
+├── /api/v1/staff/*       ← Simple CRUD
+├── /api/v1/customers/*   ← Simple CRUD
+├── /api/v1/services/*    ← Simple CRUD
+└── /api/v1/payments/*    ← Traditional operations
 
-# ❌ WRONG - Returns 404
-curl http://localhost:3000/api/bookings
-
-# ✅ CORRECT - Uses v2 for new bookings API
-curl http://localhost:3000/api/v2/bookings
+V2 (CQRS/DDD Pattern):
+└── /api/v2/bookings/*    ← Complex domain logic ONLY
+    ├── GET /bookings     ← Query handlers
+    ├── POST /bookings    ← Command handlers
+    └── PATCH /bookings/:id ← Specific operations
 ```
 
-### Version Differences:
-- **V1**: Original API implementation
-- **V2**: New bounded context implementation with CQRS pattern (currently only bookings)
+### Red Flags to Watch For:
+1. **Creating custom endpoints** that proxy to API endpoints
+2. **"Temporary" version switches** in API client
+3. **404 errors** on booking operations (means using V1)
+4. **Manual database updates** instead of using the API
+5. **Comments like "TODO: switch back when fixed"** - FIX IT NOW!
+
+### Correct Approach:
+1. **Check docs first**: Read V1_VS_V2_ENDPOINT_GUIDE.md
+2. **Fix at the source**: If V2 has issues, fix V2, don't switch to V1
+3. **Use the API client**: It handles versioning automatically
+4. **No custom proxies**: The API should handle all operations directly
+
+### This Session's V1/V2 Failures:
+1. ❌ Created `/api/update-booking-staff` calling non-existent V1 endpoint
+2. ❌ Switched API client to use V1 for bookings "temporarily"
+3. ❌ Tried to workaround V2 issues instead of fixing them
+4. ✅ Finally fixed V2 displayOrder query issue at the source
+5. ✅ Removed all V1 workarounds and custom endpoints
+
+## 🚨 NEW: Drag-and-Drop Debugging Patterns
+**Added**: 2025-06-17
+
+### The Journey of Failures
+This session's drag-and-drop implementation revealed multiple anti-patterns:
+
+1. **Creating workarounds before understanding the problem**
+   - Created custom `/api/update-booking-staff` endpoint
+   - Should have checked why staff updates weren't working first
+
+2. **Not trusting the existing architecture**
+   - V2 API was designed to handle both time AND staff updates
+   - We created complexity assuming it couldn't
+
+3. **Cascading workarounds**
+   - First workaround: Custom endpoint for staff updates
+   - Second workaround: Switch to V1 API temporarily
+   - Third workaround: Separate API calls for time and staff
+   - Reality: V2 handled everything, just had a query bug
+
+### The Real Issue Was Simple
+```typescript
+// The ONLY actual bug - in get-bookings-list.handler.ts:
+orderBy: {
+  displayOrder: 'asc',  // ❌ WRONG - displayOrder doesn't exist on BookingService
+}
+
+// Should have been:
+orderBy: {
+  service: {
+    displayOrder: 'asc',  // ✅ CORRECT - access through relation
+  },
+}
+```
+
+### Lessons Learned:
+1. **Debug at the source**: When API returns 500, check the API logs first
+2. **Trust the architecture**: V2 was built to handle complex updates
+3. **Read error messages**: "Unknown argument `displayOrder`" told us exactly what was wrong
+4. **No temporary switches**: "Temporary" always becomes permanent
+5. **One source of truth**: API client should handle all versioning logic
+
+### Correct Debugging Sequence for API Errors:
+When you see an API error (404, 500, etc):
+1. **Check API logs first**: `tail -f logs/api.log`
+2. **Look for the actual error**: Not just "500" but the real error message
+3. **Check the endpoint version**: Is it calling V1 or V2?
+4. **Verify the endpoint exists**: Check the controller routes
+5. **Fix at the source**: Don't create workarounds
+
+### What NOT to Do:
+❌ Create a custom proxy endpoint
+❌ Switch API versions "temporarily"
+❌ Add manual database queries
+❌ Split operations that should be atomic
+❌ Assume the API can't do something without checking
+
+## Timeline of June 17 Session Failures
+**Added**: 2025-06-17
+
+This session perfectly illustrates how workarounds cascade:
+
+### 1. Initial Problem (Correct)
+- ✅ Fixed syntax error in CalendarPageContent.tsx
+- ✅ Fixed CSS loading issues
+- ✅ Fixed SSR issues with dynamic imports
+
+### 2. Where It Went Wrong
+**Problem**: Drag-and-drop wasn't updating staff assignments
+
+**Our Response Timeline**:
+1. **First assumption**: "V2 API probably doesn't support staff updates"
+2. **First workaround**: Created `/api/update-booking-staff` endpoint
+3. **Second problem**: That endpoint called V1 bookings (which don't exist)
+4. **Second workaround**: Tried to use V1 API "temporarily"
+5. **User pushback**: "We didn't start using v2 for no reason"
+6. **Finally checked**: V2 API logs showed simple query error
+7. **Actual fix**: One line change in query handler
+
+**Time wasted**: ~2 hours
+**Actual fix time**: ~5 minutes
+
+### The Pattern:
+```
+Problem occurs → Assume limitation → Create workaround → Workaround fails → 
+Create another workaround → User questions approach → Finally check logs → 
+Find simple fix → Delete all workarounds
+```
+
+### Key Quote from User:
+> "We didn't start using v2 for no reason; what's the point switching temporarily 
+> back to v1 without addressing the root cause"
+
+This should be our mantra: **ADDRESS THE ROOT CAUSE**
+
+## 📋 V1/V2 API Rules - NO EXCEPTIONS
+**Added**: 2025-06-17
+
+### Rule 1: Version Mapping is Sacred
+```
+Bookings → V2 ONLY (V1 removed)
+Auth → V1 ONLY
+Everything else → V1 (for now)
+```
+
+### Rule 2: When You See a 404 on Bookings
+1. You're using V1 - STOP
+2. Check the URL in the error
+3. It should be `/api/v2/bookings/*`
+4. If not, fix the API client, not the endpoint
+
+### Rule 3: When You See a 500 Error
+1. CHECK THE API LOGS FIRST
+2. Read the actual error message
+3. Fix the actual error
+4. Do NOT create workarounds
+
+### Rule 4: The API Client Handles Versioning
+- It automatically routes `/bookings/*` to V2
+- It routes everything else to V1
+- DO NOT override this logic
+- DO NOT create custom endpoints
+
+### Rule 5: No Temporary Fixes
+- "Temporary" is a lie
+- "TODO: fix later" means "never"
+- Fix it now or don't touch it
+
+### The Only Acceptable Pattern:
+```typescript
+// Using the API client (CORRECT)
+await apiClient.rescheduleBooking(id, { startTime, staffId });
+
+// NOT creating custom endpoints
+// NOT switching versions
+// NOT manual database updates
+```
 
 ## 🚨 CRITICAL: Recurring Port/Service Management Problem
 

@@ -13,6 +13,7 @@ import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
 import { MerchantModule } from './merchant/merchant.module';
+import { AdminModule } from './admin/admin.module';
 
 // Bounded Contexts
 import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
@@ -34,7 +35,8 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     LoyaltyModule,
     PublicModule,
     LocationsModule,
-    MerchantModule
+    MerchantModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [
