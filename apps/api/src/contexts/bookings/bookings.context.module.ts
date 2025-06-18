@@ -3,6 +3,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { OutboxModule } from '../shared/outbox/outbox.module';
+import { LoyaltyModule } from '../../loyalty/loyalty.module';
 
 // Infrastructure
 import { PrismaBookingRepository } from './infrastructure/persistence/prisma-booking.repository';
@@ -24,6 +25,7 @@ import { QueryHandlers } from './application/queries/handlers';
     CqrsModule,
     EventEmitterModule.forRoot(), // For domain events
     OutboxModule,
+    LoyaltyModule, // For loyalty points accrual
   ],
   controllers: [
     BookingsV2Controller,

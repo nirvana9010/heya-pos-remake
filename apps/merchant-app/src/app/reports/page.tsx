@@ -5,7 +5,6 @@ import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock,
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
-import { StatCard } from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import {
@@ -549,27 +548,50 @@ export default function ReportsPage() {
   const CustomersTab = () => (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title="Total Customers"
-          value={mockReportData.customers.total}
-          description="All time"
-          icon={<Users className="h-4 w-4" />}
-          trend="up"
-        />
-        <StatCard
-          title="New Customers"
-          value={mockReportData.customers.new}
-          description="This month"
-          icon={<Users className="h-4 w-4" />}
-          trend="up"
-        />
-        <StatCard
-          title="Loyalty Members"
-          value={mockReportData.customers.loyaltyMembers}
-          description={`${Math.round((mockReportData.customers.loyaltyMembers / mockReportData.customers.total) * 100)}% of total`}
-          icon={<Activity className="h-4 w-4" />}
-          trend="up"
-        />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockReportData.customers.total}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
+            <div className="flex items-center text-sm text-green-600 mt-2">
+              <TrendingUp className="mr-1 h-3 w-3" />
+              <span className="text-xs">+5.2%</span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">New Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockReportData.customers.new}</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="flex items-center text-sm text-green-600 mt-2">
+              <TrendingUp className="mr-1 h-3 w-3" />
+              <span className="text-xs">+10.5%</span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Loyalty Members</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockReportData.customers.loyaltyMembers}</div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round((mockReportData.customers.loyaltyMembers / mockReportData.customers.total) * 100)}% of total
+            </p>
+            <div className="flex items-center text-sm text-green-600 mt-2">
+              <TrendingUp className="mr-1 h-3 w-3" />
+              <span className="text-xs">+2.1%</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

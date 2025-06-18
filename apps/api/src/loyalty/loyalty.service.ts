@@ -72,12 +72,14 @@ export class LoyaltyService {
       return { alreadyEarned: true };
     }
     
-    // Increment visit count
+    // Increment visit count and update stats
     const customer = await this.prisma.customer.update({
       where: { id: booking.customerId },
       data: {
         loyaltyVisits: { increment: 1 },
-        lifetimeVisits: { increment: 1 }
+        lifetimeVisits: { increment: 1 },
+        visitCount: { increment: 1 },
+        totalSpent: { increment: booking.totalAmount || 0 }
       }
     });
 
@@ -131,11 +133,13 @@ export class LoyaltyService {
 
     if (pointsEarned === 0) return { pointsEarned: 0 };
 
-    // Add points
+    // Add points and update stats
     const updatedCustomer = await this.prisma.customer.update({
       where: { id: booking.customerId },
       data: {
-        loyaltyPoints: { increment: pointsEarned }
+        loyaltyPoints: { increment: pointsEarned },
+        visitCount: { increment: 1 },
+        totalSpent: { increment: booking.totalAmount || 0 }
       }
     });
 

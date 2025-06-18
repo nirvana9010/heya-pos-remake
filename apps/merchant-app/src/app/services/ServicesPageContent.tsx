@@ -66,6 +66,7 @@ export default function ServicesPageContent() {
   const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -129,22 +130,27 @@ export default function ServicesPageContent() {
 
   // Transform services for the table
   const tableData = useMemo(() => {
-    const data: ServiceRow[] = services.map(service => ({
+    let data: ServiceRow[] = services.map(service => ({
       ...service,
       staffCount: getStaffCount(service.id),
       categoryColor: categories.find(c => c.id === service.categoryId)?.color
     }));
 
+    // Filter by category
+    if (selectedCategoryFilter !== "all") {
+      data = data.filter(service => service.categoryId === selectedCategoryFilter);
+    }
+
     // Filter by search query
     if (debouncedSearchQuery) {
-      return data.filter(service =>
+      data = data.filter(service =>
         service.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         service.categoryName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
     return data;
-  }, [services, categories, debouncedSearchQuery]);
+  }, [services, categories, debouncedSearchQuery, selectedCategoryFilter]);
 
   // Handle row selection changes
   const handleRowSelectionChange = useCallback((rowSelection: Record<string, boolean>) => {
@@ -721,6 +727,57 @@ export default function ServicesPageContent() {
         </div>
       </div>
 
+      {/* Category Filters */}
+      {categories.length > 0 && (
+        <div className="bg-white border-b">
+          <div className="container max-w-7xl mx-auto px-6 py-3">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              <span className="text-sm font-medium text-gray-600 mr-2 flex-shrink-0">Filter by category:</span>
+              <Button
+                variant={selectedCategoryFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategoryFilter("all")}
+                className={cn(
+                  "flex-shrink-0",
+                  selectedCategoryFilter === "all" && "bg-teal-600 hover:bg-teal-700"
+                )}
+              >
+                All Services
+                <Badge variant="secondary" className="ml-2 bg-gray-100">
+                  {services.length}
+                </Badge>
+              </Button>
+              {categories.map((category) => {
+                const count = services.filter(s => s.categoryId === category.id).length;
+                if (count === 0) return null;
+                
+                return (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategoryFilter === category.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategoryFilter(category.id)}
+                    className={cn(
+                      "flex-shrink-0 gap-2",
+                      selectedCategoryFilter === category.id && "bg-teal-600 hover:bg-teal-700"
+                    )}
+                  >
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: category.color || '#6B7280' }}
+                    />
+                    {category.name}
+                    <Badge variant="secondary" className="ml-1 bg-gray-100">
+                      {count}
+                    </Badge>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="container max-w-7xl mx-auto p-6">
         {tableData.length === 0 && !searchQuery ? (
@@ -731,21 +788,68 @@ export default function ServicesPageContent() {
                 <Scissors className="h-12 w-12 text-teal-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No services yet
+                {selectedCategoryFilter === "all" ? "No services yet" : "No services in this category"}
               </h3>
               <p className="text-gray-600 mb-6">
-                Get started by adding your first service to build your service menu.
+                {selectedCategoryFilter === "all" 
+                  ? "Get started by adding your first service to build your service menu."
+                  : `Add services to the ${categories.find(c => c.id === selectedCategoryFilter)?.name} category.`}
               </p>
-              <Button 
-                onClick={() => {
-                  resetForm();
-                  setIsAddDialogOpen(true);
-                }}
-                className="bg-teal-600 hover:bg-teal-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Service
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button 
+                  onClick={() => {
+                    resetForm();
+                    if (selectedCategoryFilter !== "all") {
+                      setFormData(prev => ({ ...prev, categoryId: selectedCategoryFilter }));
+                    }
+                    setIsAddDialogOpen(true);
+                  }}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {selectedCategoryFilter === "all" ? "Add Your First Service" : "Add Service Here"}
+                </Button>
+                {selectedCategoryFilter !== "all" && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setSelectedCategoryFilter("all")}
+                  >
+                    View All Services
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : tableData.length === 0 && searchQuery ? (
+          // No search results
+          <div className="bg-white rounded-lg shadow-sm border p-12">
+            <div className="text-center max-w-md mx-auto">
+              <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No services found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                No services match "{searchQuery}"
+                {selectedCategoryFilter !== "all" && ` in ${categories.find(c => c.id === selectedCategoryFilter)?.name}`}
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear Search
+                </Button>
+                {selectedCategoryFilter !== "all" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedCategoryFilter("all")}
+                  >
+                    Search All Categories
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         ) : (
