@@ -1232,3 +1232,126 @@ export default function SettingsPage() {
 
 #### Quick Diagnostic:
 If an input loses focus after each keystroke, check if its component is being defined inside another component's render function.
+
+## 🚨 Debug Code for Development Only
+**Added**: 2025-06-18
+
+### The Problem
+Debug code (console logs, file writes, debug endpoints) keeps getting into production causing:
+- **File system errors**: Hardcoded paths don't exist in production
+- **Security issues**: Debug endpoints expose sensitive information
+- **Performance issues**: Excessive logging impacts performance
+- **Build failures**: Debug imports fail in production builds
+
+### Examples of Production Failures
+```javascript
+// ❌ FAILS IN PRODUCTION: Hardcoded file path
+fs.appendFileSync('/home/user/project/logs/debug.log', data);
+
+// ❌ FAILS IN PRODUCTION: Debug endpoint without auth
+@Public()
+@Get('debug/memory')
+getMemoryUsage() { return process.memoryUsage(); }
+
+// ❌ SECURITY RISK: Logging sensitive data
+console.log('User login:', { username, password, token });
+```
+
+### REQUIRED: Always Use Conditionals for Debug Code
+
+**1. Console Logging:**
+```javascript
+// ✅ GOOD: Conditional logging
+if (process.env.NODE_ENV === 'development') {
+  console.log('Debug info:', data);
+}
+
+// ✅ BETTER: Debug utility
+const debug = process.env.NODE_ENV === 'development' 
+  ? console.log.bind(console, '[DEBUG]')
+  : () => {};
+
+debug('This only logs in development');
+```
+
+**2. Debug Components:**
+```jsx
+// ✅ GOOD: Conditional import and render
+{process.env.NODE_ENV === 'development' && (
+  <DebugPanel data={debugData} />
+)}
+
+// ✅ BETTER: Lazy load debug components
+const DebugPanel = lazy(() => 
+  process.env.NODE_ENV === 'development' 
+    ? import('./DebugPanel')
+    : Promise.resolve({ default: () => null })
+);
+```
+
+**3. Debug API Endpoints:**
+```javascript
+// ✅ GOOD: Only register in development
+if (process.env.NODE_ENV === 'development') {
+  app.use('/debug', debugRouter);
+}
+
+// ✅ BETTER: Separate module file
+// app.module.dev.ts - Only used in development
+// app.module.ts - Used in production
+```
+
+**4. File System Operations:**
+```javascript
+// ❌ NEVER: Write to filesystem in production
+fs.writeFileSync('/logs/debug.log', data);
+
+// ✅ GOOD: Use proper logging service
+import { Logger } from '@nestjs/common';
+const logger = new Logger('MyModule');
+logger.debug('Debug info');
+
+// ✅ BETTER: Environment-based logging
+if (process.env.NODE_ENV === 'development') {
+  // Local file logging
+} else {
+  // Cloud logging service (CloudWatch, Datadog, etc.)
+}
+```
+
+### Debug Code Checklist
+Before committing debug code:
+- [ ] Is it wrapped in `NODE_ENV === 'development'` check?
+- [ ] No hardcoded file paths?
+- [ ] No sensitive data in logs?
+- [ ] Debug endpoints require authentication?
+- [ ] Can it be removed entirely?
+
+### Production Build Verification
+```bash
+# Run before deploying
+npm run build
+NODE_ENV=production npm start
+
+# Check for debug artifacts
+grep -r "console.log\|debug\|localhost" dist/
+```
+
+### Common Patterns to Avoid
+1. **Debug routes without auth**: Always require authentication
+2. **Hardcoded paths**: Use relative paths or env vars
+3. **Localhost URLs**: Use environment variables
+4. **Test pages in production**: Exclude from builds
+5. **console.log everywhere**: Use proper logging library
+
+### Tools for Production Safety
+```json
+// package.json scripts
+{
+  "build:prod": "NODE_ENV=production npm run build",
+  "check:prod": "./scripts/check-production-readiness.sh",
+  "strip:logs": "node scripts/remove-console-logs.js"
+}
+```
+
+Remember: **If it's debug code, it MUST be conditional!**

@@ -235,18 +235,6 @@ export class BookingsV2Controller {
     @Param('id') id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
-    // Log to file for debugging
-    const fs = require('fs');
-    const logData = {
-      timestamp: new Date().toISOString(),
-      endpoint: 'PATCH /v2/bookings/:id',
-      bookingId: id,
-      dto: dto,
-      hasStaffId: !!dto.staffId,
-      staffId: dto.staffId,
-    };
-    fs.appendFileSync('/home/nirvana9010/projects/heya-pos-remake/heya-pos/logs/api-debug.log', 
-      JSON.stringify(logData, null, 2) + '\n---\n');
     
     const updateData: any = {
       bookingId: id,
