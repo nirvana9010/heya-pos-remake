@@ -47,6 +47,36 @@ V2 (CQRS/DDD Pattern):
 4. **Manual database updates** instead of using the API
 5. **Comments like "TODO: switch back when fixed"** - FIX IT NOW!
 
+### 🚨 NEW RULE: ALWAYS Include Version Prefix in API Calls
+**Added**: 2025-06-18
+
+**THE PATTERN**: We constantly forget to add `/v1` or `/v2` prefix when making API calls:
+- ❌ WRONG: `apiClient.post('/admin/login')`
+- ✅ RIGHT: `apiClient.post('/v1/admin/login')`
+
+**ALL API ENDPOINTS REQUIRE VERSION PREFIX**:
+```javascript
+// ❌ NEVER DO THIS:
+await apiClient.get('/merchants')
+await apiClient.post('/admin/login')
+await apiClient.get('/bookings')
+
+// ✅ ALWAYS DO THIS:
+await apiClient.get('/v1/merchants')
+await apiClient.post('/v1/admin/login')
+await apiClient.get('/v2/bookings')
+```
+
+**QUICK REFERENCE**:
+- **V1**: Everything except bookings → `/api/v1/...`
+- **V2**: Only bookings → `/api/v2/bookings/...`
+- **NO EXCEPTIONS**: Even new endpoints need version prefix
+
+**Before creating any API call**:
+1. Check docs/V1_VS_V2_ENDPOINT_GUIDE.md for the exact endpoint
+2. ALWAYS include the version prefix
+3. Test the endpoint with curl first if unsure
+
 ### Correct Approach:
 1. **Check docs first**: Read V1_VS_V2_ENDPOINT_GUIDE.md
 2. **Fix at the source**: If V2 has issues, fix V2, don't switch to V1

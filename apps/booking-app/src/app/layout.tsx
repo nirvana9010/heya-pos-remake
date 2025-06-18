@@ -7,6 +7,7 @@ import { TimezoneProvider } from '@/contexts/timezone-context'
 import { MerchantProvider } from '@/contexts/merchant-context'
 import { MerchantTheme } from '@/components/merchant-theme'
 import { MerchantIndicator } from '@/components/merchant-indicator'
+import { MerchantHeader } from '@/components/merchant-header'
 import { headers } from 'next/headers'
 
 const dmSans = DM_Sans({
@@ -50,6 +51,7 @@ export default async function RootLayout({
           <MerchantProvider initialSubdomain={merchantSubdomain}>
             <MerchantTheme>
               <TimezoneProvider>
+                <MerchantHeader />
                 {children}
                 <Toaster />
                 <MerchantIndicator />

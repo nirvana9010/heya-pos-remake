@@ -82,6 +82,7 @@ export interface Booking {
 export interface MerchantInfo {
   id: string;
   name: string;
+  logo?: string | null;
   timezone: string;
   currency: string;
   address: string;
