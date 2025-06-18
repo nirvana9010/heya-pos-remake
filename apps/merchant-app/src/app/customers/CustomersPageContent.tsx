@@ -152,9 +152,11 @@ export default function CustomersPageContent() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
+      console.log('[CustomersPage] Starting to load customers...');
       
       // Load customers first (fast)
       const customersData = await apiClient.getCustomers();
+      console.log('[CustomersPage] Received customers data:', customersData);
       
       // Map the API response to include the stats from backend
       const mappedCustomers = customersData.map((customer: any) => ({
@@ -172,11 +174,12 @@ export default function CustomersPageContent() {
       // Then load bookings in the background for additional stats
       loadBookingsInBackground(mappedCustomers);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load customers:', error);
+      console.error('Error details:', error.response?.data || error.message);
       toast({
         title: "Error",
-        description: "Failed to load customers",
+        description: error.response?.data?.message || "Failed to load customers",
         variant: "destructive",
       });
       setLoading(false);
@@ -342,9 +345,7 @@ export default function CustomersPageContent() {
           case 'regular':
             return (customer.totalVisits || 0) >= 3 && (customer.totalVisits || 0) <= 10;
           case 'new':
-            const createdDate = new Date(customer.createdAt);
-            const daysSinceCreation = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-            return daysSinceCreation <= 30;
+            return (customer.totalVisits || 0) === 0;
           case 'inactive':
             const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : new Date(customer.createdAt);
             const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
@@ -378,11 +379,7 @@ export default function CustomersPageContent() {
     return {
       total: customers.length,
       vip: customers.filter(c => (c.totalSpent || 0) > 1000 || (c.totalVisits || 0) > 10).length,
-      newThisMonth: customers.filter(c => {
-        const createdDate = new Date(c.createdAt);
-        const now = new Date();
-        return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
-      }).length,
+      newThisMonth: customers.filter(c => (c.totalVisits || 0) === 0).length,
       totalRevenue: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0)
     };
   }, [customers]);
@@ -513,7 +510,7 @@ export default function CustomersPageContent() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${Number(stats.totalRevenue).toFixed(2)}</div>
+            <div className="text-2xl font-bold">${Number(stats.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <p className="text-xs text-muted-foreground">
               <Gift className="inline w-3 h-3 mr-1" />
               All time
@@ -587,7 +584,8 @@ export default function CustomersPageContent() {
             <div className="divide-y divide-gray-100">
               {paginatedCustomers.map((customer) => {
                 const isVIP = (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
-                const isNew = new Date(customer.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // New if created within last 7 days
+                const isNew = (customer.totalVisits || 0) === 0; // New if no visits yet
+                
                 const lastVisitDate = customer.updatedAt ? new Date(customer.updatedAt) : null;
                 const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
                 
@@ -647,7 +645,7 @@ export default function CustomersPageContent() {
                         <div className="text-right mr-2">
                           <p className="text-sm font-medium text-gray-900">
                             {customer.totalSpent && customer.totalSpent > 0 ? 
-                              `$${Number(customer.totalSpent).toFixed(0)}` : 
+                              `$${Number(customer.totalSpent).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 
                               '-'
                             }
                           </p>

@@ -5,6 +5,7 @@ import { Booking } from '../../domain/entities/booking.entity';
 import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { Prisma } from '@prisma/client';
 import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
+import { LoyaltyService } from '../../../../loyalty/loyalty.service';
 
 interface UpdateBookingData {
   bookingId: string;
@@ -30,6 +31,7 @@ export class BookingUpdateService {
     private readonly prisma: PrismaService,
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
 
   /**
@@ -193,7 +195,19 @@ export class BookingUpdateService {
     }
 
     booking.complete();
-    return await this.bookingRepository.update(booking);
+    const updatedBooking = await this.bookingRepository.update(booking);
+    
+    // Process loyalty points/visits accrual
+    try {
+      await this.loyaltyService.processBookingCompletion(bookingId);
+      console.log(`[BookingUpdateService] Loyalty processed for booking ${bookingId}`);
+    } catch (error) {
+      // Log error but don't fail the booking completion
+      console.error(`[BookingUpdateService] Failed to process loyalty for booking ${bookingId}:`, error);
+      // In production, this should be handled by a retry mechanism or event system
+    }
+    
+    return updatedBooking;
   }
 
   /**
