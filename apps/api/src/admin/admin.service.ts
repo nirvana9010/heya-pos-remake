@@ -273,15 +273,6 @@ export class AdminService {
     return !existing;
   }
 
-  async checkUsernameAvailability(username: string): Promise<boolean> {
-    if (!username) return false;
-    
-    const existing = await this.prisma.merchantAuth.findUnique({
-      where: { username: username.toUpperCase() },
-    });
-
-    return !existing;
-  }
 
   async getPackages() {
     const packages = await this.prisma.package.findMany({

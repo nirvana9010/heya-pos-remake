@@ -132,7 +132,7 @@ async function main() {
       phone: '+61 412 345 678',
       pin: await bcrypt.hash('1234', 10),
       accessLevel: 3, // owner
-      calendarColor: '#0066CC',
+      calendarColor: '#7C3AED', // Purple
       status: 'ACTIVE',
       commissionRate: 0.25,
     },
@@ -147,7 +147,7 @@ async function main() {
       phone: '+61 423 456 789',
       pin: await bcrypt.hash('5678', 10),
       accessLevel: 2, // manager
-      calendarColor: '#00D4AA',
+      calendarColor: '#14B8A6', // Teal
       status: 'ACTIVE',
       commissionRate: 0.20,
     },
@@ -162,7 +162,7 @@ async function main() {
       phone: '+61 434 567 890',
       pin: await bcrypt.hash('9012', 10),
       accessLevel: 1, // employee
-      calendarColor: '#FF6B6B',
+      calendarColor: '#F59E0B', // Amber
       status: 'ACTIVE',
       commissionRate: 0.15,
     },

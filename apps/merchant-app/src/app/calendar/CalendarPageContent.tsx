@@ -147,13 +147,13 @@ interface Booking {
   services?: any[]; // for multi-service bookings
 }
 
-// Mock data
-const mockStaff: Staff[] = [
+// Mock data - ONLY FOR DEVELOPMENT
+const mockStaff: Staff[] = process.env.NODE_ENV === 'development' ? [
   { id: "1", name: "Emma Wilson", color: "#7C3AED", isVisible: true, isAvailable: true },
   { id: "2", name: "James Brown", color: "#14B8A6", isVisible: true, isAvailable: true },
   { id: "3", name: "Sophie Chen", color: "#F59E0B", isVisible: true, isAvailable: false },
   { id: "4", name: "Michael Davis", color: "#EF4444", isVisible: true, isAvailable: true },
-];
+] : [];
 
 const mockBusinessHours: BusinessHours = {
   start: "09:00",
@@ -339,7 +339,7 @@ const generateMockBookings = (): Booking[] => {
   return bookings;
 };
 
-const mockBookings: Booking[] = generateMockBookings();
+const mockBookings: Booking[] = process.env.NODE_ENV === 'development' ? generateMockBookings() : [];
 
 // Log booking summary
 const bookingSummary = mockBookings.reduce((acc, booking) => {
@@ -1201,9 +1201,16 @@ export default function CalendarPageContent() {
           return;
         }
         
-        console.warn('⚠️ Using MOCK bookings - drag and drop will not work with API!');
-        // Fall back to mock data if API fails
-        setBookings(mockBookings);
+        toast({
+          title: "Error loading bookings",
+          description: "Unable to load booking data. Please check your connection and refresh.",
+          variant: "destructive",
+        });
+        // Only use mock data in development
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Using MOCK bookings - drag and drop will not work with API!');
+          setBookings(mockBookings);
+        }
       } finally {
         setLoading(false);
       }
@@ -1237,8 +1244,15 @@ export default function CalendarPageContent() {
         }));
       } catch (error) {
         console.error('Failed to load staff:', error);
-        // Fall back to mock data if API fails
-        setStaff(mockStaff);
+        toast({
+          title: "Error loading staff",
+          description: "Unable to load staff data. Please refresh the page.",
+          variant: "destructive",
+        });
+        // Don't use mock data in production
+        if (process.env.NODE_ENV === 'development') {
+          setStaff(mockStaff);
+        }
       }
     };
 
@@ -1730,20 +1744,20 @@ export default function CalendarPageContent() {
                         
                         // Determine colors and styles based on status
                         let bgColor = staffMember.color;
-                        let bgOpacity = 1; // Full opacity for better visibility
+                        let bgOpacity = 0.9; // High opacity for vibrant colors like mock calendar
                         let textColor = "text-white";
                         let borderWidth = "4px";
                         
                         if (booking.status === "completed" || isPast) {
-                          bgOpacity = 0.08;
+                          bgOpacity = 0.3; // More visible for completed bookings
                           textColor = "text-gray-700";
                           borderWidth = "3px";
                         } else if (booking.status === "cancelled") {
-                          bgOpacity = 0.05;
+                          bgOpacity = 0.2; // Still visible but clearly different
                           textColor = "text-gray-500";
                           borderWidth = "3px";
                         } else if (booking.status === "no-show") {
-                          bgOpacity = 0.05;
+                          bgOpacity = 0.2;
                           textColor = "text-gray-500";
                           borderWidth = "3px";
                         }
@@ -2039,16 +2053,16 @@ export default function CalendarPageContent() {
                         const isPast = booking.startTime < currentTime && booking.status !== "in-progress";
                         
                         // Consistent color scheme with day view
-                        let bgOpacity = 1;
+                        let bgOpacity = 0.9; // High opacity for vibrant colors
                         let borderWidth = "4px";
                         if (booking.status === "completed" || isPast) {
-                          bgOpacity = 0.08;
+                          bgOpacity = 0.3; // More visible for completed bookings
                           borderWidth = "3px";
                         } else if (booking.status === "cancelled") {
-                          bgOpacity = 0.05;
+                          bgOpacity = 0.2; // Still visible but clearly different
                           borderWidth = "3px";
                         } else if (booking.status === "no-show") {
-                          bgOpacity = 0.05;
+                          bgOpacity = 0.2;
                           borderWidth = "3px";
                         }
 

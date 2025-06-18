@@ -118,10 +118,6 @@ class AdminApi {
   }
 
   // Check username availability
-  async checkUsernameAvailability(username: string): Promise<{ available: boolean }> {
-    const response = await apiClient.get<{ available: boolean }>('/v1/admin/check-username', { username });
-    return response;
-  }
 
   // Get available packages
   async getPackages(): Promise<Package[]> {

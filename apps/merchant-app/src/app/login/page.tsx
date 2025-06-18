@@ -66,11 +66,11 @@ export default function LoginPage() {
             
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="HAMILTON"
+                id="email"
+                type="email"
+                placeholder="your@email.com"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
@@ -124,7 +124,7 @@ export default function LoginPage() {
         <CardContent className="space-y-4">
           <div>
             <p className="text-sm font-medium text-blue-900">Test Merchant Login:</p>
-            <p className="text-sm text-blue-700">Username: HAMILTON</p>
+            <p className="text-sm text-blue-700">Email: admin@hamiltonbeauty.com</p>
             <p className="text-sm text-blue-700">Password: demo123</p>
           </div>
         </CardContent>
