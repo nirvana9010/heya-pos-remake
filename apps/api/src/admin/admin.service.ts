@@ -9,6 +9,8 @@ interface CreateMerchantDto {
   subdomain: string;
   username: string;
   password: string;
+  packageId: string;
+  abn?: string;
   packageName?: string;
   address?: string;
   suburb?: string;
@@ -40,14 +42,21 @@ export class AdminService {
       throw new BadRequestException(`Username "${dto.username}" already exists`);
     }
 
-    // Get package
-    const packageName = dto.packageName || 'Starter';
-    const merchantPackage = await this.prisma.package.findUnique({
-      where: { name: packageName },
-    });
+    // Get package by ID or name
+    let merchantPackage;
+    if (dto.packageId) {
+      merchantPackage = await this.prisma.package.findUnique({
+        where: { id: dto.packageId },
+      });
+    } else {
+      const packageName = dto.packageName || 'Starter';
+      merchantPackage = await this.prisma.package.findUnique({
+        where: { name: packageName },
+      });
+    }
 
     if (!merchantPackage) {
-      throw new BadRequestException(`Package "${packageName}" not found`);
+      throw new BadRequestException(`Package not found`);
     }
 
     // Create merchant with auth and location in a transaction
@@ -59,6 +68,7 @@ export class AdminService {
           email: dto.email,
           phone: dto.phone,
           subdomain: dto.subdomain,
+          abn: dto.abn,
           packageId: merchantPackage.id,
           subscriptionStatus: 'TRIAL',
           trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
@@ -121,26 +131,30 @@ export class AdminService {
       return merchant;
     });
 
-    return {
-      merchant: result,
-      credentials: {
-        username: dto.username.toUpperCase(),
-        password: dto.password,
+    // Get the created merchant with package info
+    const merchantWithPackage = await this.prisma.merchant.findUnique({
+      where: { id: result.id },
+      include: {
+        package: true,
+        _count: {
+          select: {
+            locations: true,
+            staff: true,
+            services: true,
+            customers: true,
+            bookings: true,
+          },
+        },
       },
-      bookingUrl: `http://localhost:3001/${dto.subdomain}`,
-    };
+    });
+
+    return merchantWithPackage;
   }
 
   async listMerchants() {
     const merchants = await this.prisma.merchant.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        subdomain: true,
-        status: true,
-        subscriptionStatus: true,
-        createdAt: true,
+      include: {
+        package: true,
         _count: {
           select: {
             locations: true,
@@ -156,6 +170,129 @@ export class AdminService {
       },
     });
 
-    return merchants;
+    // Transform to match frontend expectations
+    return merchants.map(merchant => ({
+      ...merchant,
+      isActive: merchant.status === 'ACTIVE',
+      subscription: {
+        package: merchant.package,
+        status: merchant.subscriptionStatus,
+        endDate: merchant.subscriptionEnds || merchant.trialEndsAt,
+      },
+    }));
+  }
+
+  async getMerchant(id: string) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id },
+      include: {
+        package: true,
+        locations: true,
+        _count: {
+          select: {
+            locations: true,
+            staff: true,
+            customers: true,
+            services: true,
+            bookings: true,
+          },
+        },
+      },
+    });
+
+    if (!merchant) {
+      throw new BadRequestException('Merchant not found');
+    }
+
+    // Transform to match frontend expectations
+    return {
+      ...merchant,
+      isActive: merchant.status === 'ACTIVE',
+      subscription: {
+        package: merchant.package,
+        status: merchant.subscriptionStatus,
+        endDate: merchant.subscriptionEnds || merchant.trialEndsAt,
+      },
+    };
+  }
+
+  async updateMerchant(id: string, dto: Partial<CreateMerchantDto & { isActive?: boolean }>) {
+    const updateData: any = {};
+    
+    if (dto.name) updateData.name = dto.name;
+    if (dto.email) updateData.email = dto.email;
+    if (dto.phone) updateData.phone = dto.phone;
+    if (dto.abn) updateData.abn = dto.abn;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
+    // Update status if isActive is changed
+    if (dto.isActive !== undefined) {
+      updateData.status = dto.isActive ? 'ACTIVE' : 'INACTIVE';
+      delete updateData.isActive;
+    }
+
+    const merchant = await this.prisma.merchant.update({
+      where: { id },
+      data: updateData,
+      include: {
+        package: true,
+      },
+    });
+
+    // Transform to match frontend expectations
+    return {
+      ...merchant,
+      isActive: merchant.status === 'ACTIVE',
+      subscription: {
+        package: merchant.package,
+        status: merchant.subscriptionStatus,
+        endDate: merchant.subscriptionEnds || merchant.trialEndsAt,
+      },
+    };
+  }
+
+  async deleteMerchant(id: string) {
+    // In production, this should soft delete
+    await this.prisma.merchant.update({
+      where: { id },
+      data: {
+        status: 'DELETED',
+      },
+    });
+
+    return { success: true };
+  }
+
+  async checkSubdomainAvailability(subdomain: string): Promise<boolean> {
+    if (!subdomain) return false;
+    
+    const existing = await this.prisma.merchant.findUnique({
+      where: { subdomain: subdomain.toLowerCase() },
+    });
+
+    return !existing;
+  }
+
+  async checkUsernameAvailability(username: string): Promise<boolean> {
+    if (!username) return false;
+    
+    const existing = await this.prisma.merchantAuth.findUnique({
+      where: { username: username.toUpperCase() },
+    });
+
+    return !existing;
+  }
+
+  async getPackages() {
+    const packages = await this.prisma.package.findMany({
+      orderBy: { monthlyPrice: 'asc' },
+    });
+
+    // Add isActive field for compatibility
+    return packages.map(pkg => ({
+      ...pkg,
+      isActive: true,
+      monthlyPrice: Number(pkg.monthlyPrice),
+    }));
   }
 }

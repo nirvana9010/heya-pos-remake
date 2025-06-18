@@ -10,6 +10,7 @@ import { Button } from "@heya-pos/ui";
 import { DataTable } from "@heya-pos/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@heya-pos/ui";
 import { mockApi, type Merchant } from "@heya-pos/shared";
+import { ProtectedRoute } from "@/components/protected-route";
 
 const systemAlerts = [
   { id: "1", type: "warning", message: "High server load detected on API cluster 2", time: "5 minutes ago" },
@@ -76,7 +77,7 @@ const systemAlerts = [
     },
   ];
 
-export default function Home() {
+function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -251,7 +252,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               className="h-20 flex flex-col gap-2"
-              onClick={() => router.push('/merchants/new')}
+              onClick={() => router.push('/merchants')}
             >
               <Building2 className="h-5 w-5" />
               <span className="text-xs">Add Merchant</span>
@@ -284,5 +285,13 @@ export default function Home() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <ProtectedRoute>
+      <HomePage />
+    </ProtectedRoute>
   );
 }

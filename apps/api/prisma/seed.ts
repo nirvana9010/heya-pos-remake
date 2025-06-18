@@ -65,6 +65,7 @@ async function main() {
       subscriptionStatus: 'TRIAL',
       trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       website: 'https://hamiltonbeauty.com',
+      logo: 'https://via.placeholder.com/300x100/FF69B4/FFFFFF?text=Hamilton+Beauty',
       description: 'Premium beauty and wellness spa in Hamilton',
       settings: {
         currency: 'AUD',

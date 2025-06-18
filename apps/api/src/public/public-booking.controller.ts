@@ -112,6 +112,7 @@ export class PublicBookingController {
     return {
       id: merchant.id,
       name: merchant.name,
+      logo: merchant.logo,
       timezone: location.timezone,
       currency: settings?.currency || 'AUD',
       address: location.address,

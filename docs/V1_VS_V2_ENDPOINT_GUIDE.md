@@ -138,8 +138,26 @@ GET    /api/v1/public/bookings/:id
 GET    /api/v1/public/availability
 ```
 
-### Admin/Monitoring (V1 Only)
+### Admin Endpoints (V1 Only)
 ```
+# Authentication
+POST   /api/v1/admin/login          # Admin login (temporary hardcoded)
+
+# Merchant Management
+GET    /api/v1/admin/merchants      # List all merchants
+POST   /api/v1/admin/merchants      # Create new merchant
+GET    /api/v1/admin/merchants/:id  # Get merchant details
+PATCH  /api/v1/admin/merchants/:id  # Update merchant
+DELETE /api/v1/admin/merchants/:id  # Delete merchant
+
+# Validation Endpoints
+GET    /api/v1/admin/check-subdomain?subdomain=xxx  # Check subdomain availability
+GET    /api/v1/admin/check-username?username=xxx    # Check username availability
+
+# Package Management
+GET    /api/v1/admin/packages       # List all packages
+
+# Monitoring
 GET    /api/v1/admin/outbox/status
 GET    /api/v1/admin/outbox/unprocessed
 ```

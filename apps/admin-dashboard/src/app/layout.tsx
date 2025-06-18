@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans, Manrope } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@heya-pos/ui'
+import { AuthProvider } from '@/contexts/auth-context'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -30,8 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSans.variable} ${manrope.variable} font-sans`}>
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )

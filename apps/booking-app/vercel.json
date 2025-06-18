@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && npm run build --workspace=@heya-pos/ui && cd apps/booking-app && npm run build",
+  "buildCommand": "cd ../.. && npm run build --workspace=@heya-pos/types && npm run build --workspace=@heya-pos/utils && npm run build --workspace=@heya-pos/ui && npm run build --workspace=@heya-pos/shared && cd apps/booking-app && npm run build",
   "devCommand": "npm run dev",
   "installCommand": "cd ../.. && npm install",
   "outputDirectory": ".next"
