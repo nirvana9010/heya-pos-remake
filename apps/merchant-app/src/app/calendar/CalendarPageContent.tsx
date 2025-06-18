@@ -939,11 +939,7 @@ export default function CalendarPageContent() {
         targetSlot: over?.data?.current || null,
       };
       
-      fetch('/api/debug-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(debugInfo),
-      }).catch(() => {});
+      // Debug logging removed for production
     }
     
     setIsDragging(false);
@@ -1044,22 +1040,7 @@ export default function CalendarPageContent() {
       
       console.log('Reschedule successful, result:', result);
       
-      // Debug log the result
-      if (typeof window !== 'undefined') {
-        fetch('/api/debug-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            timestamp: new Date().toISOString(),
-            event: 'reschedule_success',
-            bookingId: activeBooking.id,
-            oldStaffId: activeBooking.staffId,
-            newStaffId: targetSlot.staffId,
-            resultStaffId: result?.staffId,
-            fullResult: result,
-          }),
-        }).catch(() => {});
-      }
+      // Debug logging removed for production
       
       toast({
         title: "Booking moved",
@@ -1080,22 +1061,7 @@ export default function CalendarPageContent() {
         code: error?.code
       });
       
-      // Log error to file
-      if (typeof window !== 'undefined') {
-        fetch('/api/debug-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            timestamp: new Date().toISOString(),
-            event: 'reschedule_error',
-            bookingId: activeBooking.id,
-            error: {
-              message: error?.message,
-              status: error?.response?.status,
-              statusText: error?.response?.statusText,
-              data: error?.response?.data,
-            },
-          }),
+      // Debug logging removed for production
         }).catch(() => {});
       }
       
