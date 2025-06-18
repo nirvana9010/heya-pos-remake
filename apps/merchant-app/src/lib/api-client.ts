@@ -21,10 +21,6 @@ class ApiClient {
       if (url.startsWith('/v1/') || url.startsWith('/v2/') || url.startsWith('http')) {
         return url;
       }
-      // Use v2 for bookings endpoints (displayOrder issue has been resolved)
-      if (url.startsWith('/bookings')) {
-        return `/v2${url}`;
-      }
       // Add v1 as default version for other endpoints
       return `/v1${url}`;
     };
@@ -281,7 +277,7 @@ class ApiClient {
 
   // Auth endpoints
   async login(username: string, password: string, rememberMe: boolean = false) {
-    const response = await this.axiosInstance.post('/auth/merchant/login', {
+    const response = await this.axiosInstance.post('/v1/auth/merchant/login', {
       username,
       password,
     });
@@ -310,12 +306,12 @@ class ApiClient {
   }
 
   async verifyAction(pin: string, action: string) {
-    const response = await this.axiosInstance.post('/auth/verify-action', { pin, action });
+    const response = await this.axiosInstance.post('/v1/auth/verify-action', { pin, action });
     return response.data;
   }
 
   async refreshToken(refreshToken: string) {
-    const response = await this.axiosInstance.post('/auth/refresh', { refreshToken });
+    const response = await this.axiosInstance.post('/v1/auth/refresh', { refreshToken });
     return response.data;
   }
 
@@ -391,7 +387,7 @@ class ApiClient {
       ...params
     };
     
-    const response = await this.axiosInstance.get('/bookings', { params: requestParams });
+    const response = await this.axiosInstance.get('/v2/bookings', { params: requestParams });
     
     // Debug pagination
     console.log('Bookings API raw response:', {
@@ -411,7 +407,7 @@ class ApiClient {
   }
 
   async getBooking(id: string) {
-    const response = await this.axiosInstance.get(`/bookings/${id}`);
+    const response = await this.axiosInstance.get(`/v2/bookings/${id}`);
     const booking = response.data;
     
     // Transform the booking data to match the expected format
@@ -419,7 +415,7 @@ class ApiClient {
   }
 
   async createBooking(data: any) {
-    const response = await this.axiosInstance.post('/bookings', data);
+    const response = await this.axiosInstance.post('/v2/bookings', data);
     const booking = response.data;
     
     // Transform the booking data to match the expected format
@@ -427,7 +423,7 @@ class ApiClient {
   }
 
   async updateBooking(id: string, data: any) {
-    const response = await this.axiosInstance.patch(`/bookings/${id}`, data);
+    const response = await this.axiosInstance.patch(`/v2/bookings/${id}`, data);
     const booking = response.data;
     
     // Transform the booking data to match the expected format
@@ -447,9 +443,8 @@ class ApiClient {
       updateData.staffId = data.staffId;
     }
     
-    const endpoint = `/bookings/${id}`;
+    const endpoint = `/v2/bookings/${id}`;
     console.log('[API Client] PATCH request to:', endpoint, 'with data:', updateData);
-    console.log('[API Client] (Will be transformed to /v2/bookings/[id] by interceptor)');
     
     try {
       // The interceptor will automatically add /v2 prefix for bookings endpoints
@@ -508,8 +503,14 @@ class ApiClient {
     const duration = booking.duration || 
       (booking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0);
     
+    // Transform status from uppercase to lowercase with hyphens
+    const status = booking.status ? 
+      booking.status.toLowerCase().replace(/_/g, '-') : 
+      'confirmed';
+    
     return {
       ...booking,
+      status,
       customerName,
       customerPhone,
       customerEmail,
@@ -524,17 +525,17 @@ class ApiClient {
 
   // V2 booking status update methods
   async startBooking(id: string) {
-    const response = await this.axiosInstance.patch(`/bookings/${id}/start`);
+    const response = await this.axiosInstance.patch(`/v2/bookings/${id}/start`);
     return this.transformBooking(response.data);
   }
 
   async completeBooking(id: string) {
-    const response = await this.axiosInstance.patch(`/bookings/${id}/complete`);
+    const response = await this.axiosInstance.patch(`/v2/bookings/${id}/complete`);
     return this.transformBooking(response.data);
   }
 
   async cancelBooking(id: string, reason: string) {
-    const response = await this.axiosInstance.patch(`/bookings/${id}/cancel`, { reason });
+    const response = await this.axiosInstance.patch(`/v2/bookings/${id}/cancel`, { reason });
     return this.transformBooking(response.data);
   }
 
@@ -556,7 +557,7 @@ class ApiClient {
   }
 
   async checkAvailability(date: Date, serviceId: string, staffId?: string) {
-    const response = await this.axiosInstance.post('/bookings/check-availability', {
+    const response = await this.axiosInstance.post('/v2/bookings/check-availability', {
       date: date.toISOString(),
       serviceId,
       staffId,

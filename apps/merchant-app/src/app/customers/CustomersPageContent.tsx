@@ -34,14 +34,14 @@ const TabsList = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mo
 const TabsTrigger = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.TabsTrigger })), { ssr: false });
 
 // Lazy load icons - only import the ones we need immediately
-import { Plus, Search, Users, TrendingUp, Gift, Clock } from 'lucide-react';
+import { Plus, Search, Users, TrendingUp, Gift, Clock, Crown } from 'lucide-react';
 
 // Lazy load other icons
 const LucideIcons = dynamic(() => import('./customer-icons'), { ssr: false });
 
 // Lazy load complex dialogs
 const LoyaltyDialog = dynamic(() => import('@/components/loyalty/LoyaltyDialog').then(mod => ({ default: mod.LoyaltyDialog })), { ssr: false });
-const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetailsDialog'), { ssr: false });
+const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetailsDialog').then(mod => ({ default: mod.CustomerDetailsDialog })), { ssr: false });
 
 // Import types
 interface Customer {
@@ -156,12 +156,21 @@ export default function CustomersPageContent() {
       // Load customers first (fast)
       const customersData = await apiClient.getCustomers();
       
-      // Show customers immediately
-      setCustomers(customersData);
+      // Map the API response to include the stats from backend
+      const mappedCustomers = customersData.map((customer: any) => ({
+        ...customer,
+        totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
+        totalSpent: parseFloat(customer.totalSpent || '0'),
+        loyaltyPoints: parseInt(customer.loyaltyPoints || '0'),
+        loyaltyVisits: customer.loyaltyVisits || 0,
+      }));
+      
+      // Show customers immediately with their stats
+      setCustomers(mappedCustomers);
       setLoading(false);
       
-      // Then load bookings in the background
-      loadBookingsInBackground(customersData);
+      // Then load bookings in the background for additional stats
+      loadBookingsInBackground(mappedCustomers);
       
     } catch (error) {
       console.error('Failed to load customers:', error);
@@ -176,12 +185,19 @@ export default function CustomersPageContent() {
 
   const loadBookingsInBackground = async (customersData: Customer[]) => {
     try {
-      // Load bookings with pagination
+      // Load ALL bookings including completed ones
       const bookingsData = await apiClient.getBookings({ 
-        limit: 500, // Start with a reasonable limit
+        limit: 1000, // Increase limit to get more bookings
         includeAll: true,
-        startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        // Get bookings from the last year to current + 3 months
+        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
         endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+      });
+      
+      console.log('[CustomersPage] Loaded bookings:', {
+        total: bookingsData.length,
+        completed: bookingsData.filter((b: any) => b.status === 'COMPLETED').length,
+        customers: customersData.length
       });
       
       // Process bookings in chunks to avoid blocking the UI
@@ -204,8 +220,19 @@ export default function CustomersPageContent() {
       const customerStats = new Map();
       
       chunk.forEach(booking => {
-        // Process booking stats
+        // Process booking stats - try to match customer by name if no ID
         let customerId = booking.customerId || booking.customer?.id;
+        
+        // If no customer ID, try to match by name
+        if (!customerId && booking.customerName) {
+          const matchingCustomer = customersData.find(c => 
+            `${c.firstName} ${c.lastName}`.toLowerCase() === booking.customerName.toLowerCase()
+          );
+          if (matchingCustomer) {
+            customerId = matchingCustomer.id;
+          }
+        }
+        
         if (!customerId) return;
         
         if (!customerStats.has(customerId)) {
@@ -462,8 +489,8 @@ export default function CustomersPageContent() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.vip}</div>
             <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline w-3 h-3 mr-1" />
-              High value
+              <Crown className="inline w-3 h-3 mr-1 text-yellow-600" />
+              $1000+ or 10+ visits
             </p>
           </CardContent>
         </Card>
@@ -538,51 +565,115 @@ export default function CustomersPageContent() {
       </div>
 
       {/* Customer List */}
-      <Card>
+      <Card className="overflow-hidden">
         <div className="p-6">
           {paginatedCustomers.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No customers found</h3>
-              <p className="text-muted-foreground">
+              <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">No customers found</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
                 {searchQuery ? 'Try adjusting your search criteria' : 'Add your first customer to get started'}
               </p>
+              {!searchQuery && (
+                <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add First Customer
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="space-y-4">
-              {paginatedCustomers.map((customer) => (
-                <div key={customer.id} className="flex items-center justify-between py-4 border-b last:border-0">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
-                      stringToColor(customer.firstName + customer.lastName)
-                    )}>
-                      {getInitials(customer.firstName, customer.lastName)}
-                    </div>
-                    <div>
-                      <p className="font-medium">{customer.firstName} {customer.lastName}</p>
-                      <p className="text-sm text-muted-foreground">{customer.email}</p>
+            <div className="divide-y divide-gray-100">
+              {paginatedCustomers.map((customer) => {
+                const isVIP = (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
+                const isNew = new Date(customer.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // New if created within last 7 days
+                const lastVisitDate = customer.updatedAt ? new Date(customer.updatedAt) : null;
+                const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                
+                return (
+                  <div key={customer.id} className="group hover:bg-gray-50 transition-colors duration-200">
+                    <div className="flex items-center justify-between py-4 px-4 -mx-4">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className={cn(
+                          "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold relative shadow-sm",
+                          isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : stringToColor(customer.firstName + customer.lastName)
+                        )}>
+                          {getInitials(customer.firstName, customer.lastName)}
+                          {isVIP && (
+                            <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                              <Crown className="h-3 w-3 text-yellow-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium text-gray-900">{customer.firstName} {customer.lastName}</p>
+                            <div className="flex items-center gap-1">
+                              {isNew && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 text-xs px-2 py-0">
+                                  New
+                                </Badge>
+                              )}
+                              {isVIP && (
+                                <Badge variant="default" className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-0 text-xs px-2 py-0">
+                                  VIP
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="truncate">{customer.email}</span>
+                            {customer.phone && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span>{customer.phone}</span>
+                              </>
+                            )}
+                            {daysSinceLastVisit !== null && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-xs">
+                                  Last visit: {daysSinceLastVisit === 0 ? 'Today' : 
+                                    daysSinceLastVisit === 1 ? 'Yesterday' : 
+                                    `${daysSinceLastVisit} days ago`}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right mr-2">
+                          <p className="text-sm font-medium text-gray-900">
+                            {customer.totalSpent && customer.totalSpent > 0 ? 
+                              `$${Number(customer.totalSpent).toFixed(0)}` : 
+                              '-'
+                            }
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {customer.totalVisits || 0} visits
+                          </p>
+                        </div>
+                        {customer.loyaltyPoints && customer.loyaltyPoints > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            <Gift className="h-3 w-3 mr-1" />
+                            {customer.loyaltyPoints} pts
+                          </Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setViewingCustomer(customer)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline">
-                      {customer.totalVisits || 0} visits
-                    </Badge>
-                    {customer.totalSpent && customer.totalSpent > 0 && (
-                      <span className="text-sm font-medium">
-                        ${Number(customer.totalSpent).toFixed(2)}
-                      </span>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setViewingCustomer(customer)}
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -697,22 +788,13 @@ export default function CustomersPageContent() {
         <Suspense fallback={null}>
           <CustomerDetailsDialog
             customer={viewingCustomer}
-            isOpen={!!viewingCustomer}
-            onClose={() => setViewingCustomer(null)}
-            onEdit={(customer) => {
-              setEditingCustomer(customer);
-              setFormData({
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-                email: customer.email,
-                phone: customer.phone,
-                notes: customer.notes || ''
-              });
-              setViewingCustomer(null);
+            open={!!viewingCustomer}
+            onOpenChange={(open) => {
+              if (!open) setViewingCustomer(null);
             }}
-            onOpenLoyalty={(customer) => {
-              setLoyaltyDialogCustomer(customer);
-              setViewingCustomer(null);
+            onUpdate={() => {
+              // Reload customers after update
+              loadCustomers();
             }}
           />
         </Suspense>

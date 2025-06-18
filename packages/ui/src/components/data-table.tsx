@@ -38,6 +38,9 @@ interface DataTableProps<TData, TValue> {
   showColumnVisibility?: boolean;
   showPagination?: boolean;
   pageSize?: number;
+  showRowSelection?: boolean;
+  onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void;
+  headerActions?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +50,9 @@ export function DataTable<TData, TValue>({
   showColumnVisibility = true,
   showPagination = true,
   pageSize = 10,
+  showRowSelection = false,
+  onRowSelectionChange,
+  headerActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -66,7 +72,14 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (updater) => {
+      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
+      setRowSelection(newSelection);
+      // Call the parent callback if provided
+      if (onRowSelectionChange) {
+        onRowSelectionChange(newSelection);
+      }
+    },
     state: {
       sorting,
       columnFilters,
@@ -82,21 +95,24 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4">
-        {searchKey && (
-          <Input
-            placeholder={`Search ${searchKey}...`}
-            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-        )}
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-4">
+          {searchKey && (
+            <Input
+              placeholder={`Search ${searchKey}...`}
+              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+              onChange={(event) =>
+                table.getColumn(searchKey)?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+          )}
+          {headerActions}
+        </div>
         {showColumnVisibility && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
+              <Button variant="outline">
                 Columns <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -173,10 +189,14 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {showPagination && (
-        <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex items-center justify-end space-x-2 p-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            {showRowSelection && Object.keys(rowSelection).length > 0 && (
+              <>
+                {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                {table.getFilteredRowModel().rows.length} row(s) selected.
+              </>
+            )}
           </div>
           <div className="space-x-2">
             <Button
