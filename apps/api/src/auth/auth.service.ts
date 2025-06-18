@@ -12,20 +12,50 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateMerchant(username: string, password: string) {
-    const merchantAuth = await this.prisma.merchantAuth.findUnique({
-      where: { username },
-      include: {
-        merchant: {
-          include: {
-            locations: {
-              where: { isActive: true },
-            },
-            package: true,
-          },
-        },
+  async validateMerchant(emailOrUsername: string, password: string) {
+    // First try to find merchant by email
+    const merchant = await this.prisma.merchant.findFirst({
+      where: { 
+        email: {
+          equals: emailOrUsername,
+          mode: 'insensitive' // Case insensitive search
+        }
       },
     });
+
+    let merchantAuth = null;
+
+    if (merchant) {
+      // Found merchant by email, get their auth record
+      merchantAuth = await this.prisma.merchantAuth.findUnique({
+        where: { merchantId: merchant.id },
+        include: {
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+              },
+              package: true,
+            },
+          },
+        },
+      });
+    } else {
+      // Fallback to username for backward compatibility
+      merchantAuth = await this.prisma.merchantAuth.findUnique({
+        where: { username: emailOrUsername },
+        include: {
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+              },
+              package: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!merchantAuth) {
       throw new UnauthorizedException('Invalid credentials');

@@ -102,11 +102,6 @@ export class AdminController {
     return { available };
   }
 
-  @Get('check-username')
-  async checkUsername(@Query('username') username: string) {
-    const available = await this.adminService.checkUsernameAvailability(username);
-    return { available };
-  }
 
   @Get('packages')
   async getPackages() {

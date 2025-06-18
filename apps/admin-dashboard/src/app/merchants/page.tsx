@@ -32,18 +32,15 @@ function MerchantsPage() {
     email: '',
     phone: '',
     subdomain: '',
-    username: '',
     password: '',
     packageId: '',
     abn: ''
   });
   const [checkingAvailability, setCheckingAvailability] = useState({
-    subdomain: false,
-    username: false
+    subdomain: false
   });
   const [availability, setAvailability] = useState({
-    subdomain: true,
-    username: true
+    subdomain: true
   });
 
   useEffect(() => {
@@ -85,20 +82,6 @@ function MerchantsPage() {
     }
   };
 
-  const checkUsernameAvailability = async (username: string) => {
-    if (!username || username.length < 3) return;
-    
-    setCheckingAvailability(prev => ({ ...prev, username: true }));
-    try {
-      const result = await adminApi.checkUsernameAvailability(username);
-      setAvailability(prev => ({ ...prev, username: result.available }));
-    } catch (error) {
-      console.error('Failed to check username:', error);
-    } finally {
-      setCheckingAvailability(prev => ({ ...prev, username: false }));
-    }
-  };
-
   const generateSubdomain = (name: string) => {
     return name.toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -106,6 +89,8 @@ function MerchantsPage() {
   };
 
   const generateUsername = (name: string) => {
+    // Auto-generate username from merchant name
+    // Remove special characters and spaces, convert to uppercase
     return name.toUpperCase()
       .replace(/[^A-Z0-9]+/g, '')
       .substring(0, 20);
@@ -114,16 +99,11 @@ function MerchantsPage() {
   const handleNameChange = (name: string) => {
     setFormData(prev => ({ ...prev, name }));
     
-    if (!formData.subdomain || formData.subdomain === generateSubdomain(prev => prev.name)) {
+    // Auto-generate subdomain if not manually edited
+    if (!formData.subdomain || formData.subdomain === generateSubdomain(formData.name)) {
       const subdomain = generateSubdomain(name);
       setFormData(prev => ({ ...prev, subdomain }));
       checkSubdomainAvailability(subdomain);
-    }
-    
-    if (!formData.username || formData.username === generateUsername(prev => prev.name)) {
-      const username = generateUsername(name);
-      setFormData(prev => ({ ...prev, username }));
-      checkUsernameAvailability(username);
     }
   };
 
@@ -136,26 +116,18 @@ function MerchantsPage() {
     checkSubdomainAvailability(cleaned);
   };
 
-  const handleUsernameChange = (username: string) => {
-    const cleaned = username.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    setFormData(prev => ({ ...prev, username: cleaned }));
-    checkUsernameAvailability(cleaned);
-  };
-
   const resetForm = () => {
     setFormData({
       name: '',
       email: '',
       phone: '',
       subdomain: '',
-      username: '',
       password: '',
       packageId: '',
       abn: ''
     });
     setAvailability({
-      subdomain: true,
-      username: true
+      subdomain: true
     });
     setShowCreateForm(false);
   };
@@ -163,7 +135,7 @@ function MerchantsPage() {
   const handleCreateMerchant = async () => {
     // Validate form
     if (!formData.name || !formData.email || !formData.phone || !formData.subdomain || 
-        !formData.username || !formData.password || !formData.packageId) {
+        !formData.password || !formData.packageId) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -173,10 +145,10 @@ function MerchantsPage() {
     }
 
     // Check availability
-    if (!availability.subdomain || !availability.username) {
+    if (!availability.subdomain) {
       toast({
         title: "Validation Error",
-        description: "Subdomain or username is not available",
+        description: "Subdomain is not available",
         variant: "destructive",
       });
       return;
@@ -184,7 +156,14 @@ function MerchantsPage() {
 
     try {
       setCreating(true);
-      const merchant = await adminApi.createMerchant(formData);
+      
+      // Auto-generate username from merchant name
+      const username = generateUsername(formData.name);
+      
+      const merchant = await adminApi.createMerchant({
+        ...formData,
+        username
+      });
       
       toast({
         title: "Success!",
@@ -198,7 +177,7 @@ Merchant created successfully!
 Booking URL: https://bookings.heya-pos.com/${merchant.subdomain}
 Merchant Login URL: https://merchant.heya-pos.com
 
-Username: ${formData.username}
+Login Email: ${formData.email}
 Password: ${formData.password}
 
 Please save these credentials securely.
@@ -444,25 +423,6 @@ Please save these credentials securely.
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="username">
-                    Username*
-                    {checkingAvailability.username && (
-                      <span className="ml-2 text-xs text-muted-foreground">Checking...</span>
-                    )}
-                  </Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => handleUsernameChange(e.target.value)}
-                    placeholder="HAMILTON"
-                    className={!availability.username && formData.username ? 'border-destructive' : ''}
-                  />
-                  {!availability.username && formData.username && (
-                    <p className="text-xs text-destructive">This username is already taken</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="password">Password*</Label>
                   <Input
                     id="password"
@@ -500,7 +460,7 @@ Please save these credentials securely.
               </Button>
               <Button 
                 onClick={handleCreateMerchant} 
-                disabled={creating || !availability.subdomain || !availability.username}
+                disabled={creating || !availability.subdomain}
               >
                 {creating ? (
                   <>
