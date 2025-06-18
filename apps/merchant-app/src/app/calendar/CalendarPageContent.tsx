@@ -677,7 +677,7 @@ const getStatusColor = (status: string, isPast: boolean = false) => {
   // Active colors for current/future appointments
   switch (status) {
     case "confirmed": return "bg-teal-600 text-white border border-teal-700 shadow-sm";
-    case "in-progress": return "bg-teal-600 text-white border-2 border-teal-400 shadow-md animate-pulse";
+    case "in-progress": return "bg-teal-600 text-white border-2 border-teal-400 shadow-md animate-[subtlePulse_8s_ease-in-out_infinite]";
     case "completed": return "bg-gray-500 text-white border border-gray-600";
     case "cancelled": return "bg-red-600/70 text-white line-through border border-red-700";
     case "no-show": return "bg-orange-500 text-white border border-orange-600";
@@ -1062,8 +1062,6 @@ export default function CalendarPageContent() {
       });
       
       // Debug logging removed for production
-        }).catch(() => {});
-      }
       
       console.log('Rolling back to previous bookings...');
       console.log('Bookings before rollback:', bookings.length);
@@ -1773,7 +1771,7 @@ export default function CalendarPageContent() {
                                 "absolute top-0 rounded-md text-xs",
                                 "transition-all duration-200 hover:scale-[1.02] hover:z-30",
                                 "shadow-sm hover:shadow-lg",
-                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-[subtlePulse_2s_ease-in-out_infinite]",
+                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-[subtlePulse_8s_ease-in-out_infinite]",
                                 booking.status === "cancelled" && "opacity-60",
                                 hasConflict && "ring-2 ring-red-500 ring-offset-1",
                                 textColor,
@@ -2150,7 +2148,7 @@ export default function CalendarPageContent() {
                                 "absolute rounded-md shadow-sm",
                                 "transition-all duration-200 hover:shadow-lg hover:scale-[1.01] hover:z-20",
                                 "text-xs",
-                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-[subtlePulse_2s_ease-in-out_infinite]",
+                                booking.status === "in-progress" && "ring-2 ring-teal-400 ring-opacity-50 animate-[subtlePulse_8s_ease-in-out_infinite]",
                                 booking.status === "cancelled" && "opacity-60",
                                 layout.isOverflow && "ring-1 ring-orange-400",
                                 (booking.status === "completed" || isPast) ? "text-gray-700" : "text-white",

@@ -308,8 +308,8 @@
     transform: scale(1);
   }
   50% { 
-    opacity: 0.95;
-    transform: scale(1.02);
+    opacity: 0.98;
+    transform: scale(1.005);
   }
 }
 

@@ -146,6 +146,16 @@ export default function ServicesPageContent() {
     return data;
   }, [services, categories, debouncedSearchQuery]);
 
+  // Handle row selection changes
+  const handleRowSelectionChange = useCallback((rowSelection: Record<string, boolean>) => {
+    // Convert row selection object to array of selected service IDs
+    const selectedIds = Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => tableData[parseInt(index)]?.id)
+      .filter(Boolean);
+    setSelectedServices(selectedIds);
+  }, [tableData]);
+
   // Format duration display
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -459,6 +469,10 @@ export default function ServicesPageContent() {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => {
+                  // Close any other dialogs first
+                  setIsAddDialogOpen(false);
+                  setEditingService(null);
+                  
                   setDeletingServiceId(service.id);
                   setIsDeleteDialogOpen(true);
                 }}
@@ -475,6 +489,12 @@ export default function ServicesPageContent() {
   ];
 
   const openEditDialog = (service: Service) => {
+    // Close ALL other dialogs first
+    setIsDeleteDialogOpen(false);
+    setDeletingServiceId(null);
+    setIsBulkEditOpen(false);
+    setIsCategoryDialogOpen(false);
+    
     setEditingService(service);
     setFormData({
       name: service.name,
@@ -687,35 +707,16 @@ export default function ServicesPageContent() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
-              {selectedServices.length > 0 && (
-                <>
-                  <span className="flex items-center text-sm text-gray-600 mr-2">
-                    {selectedServices.length} selected
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => {
-                      setIsBulkEditOpen(true);
-                    }}
-                  >
-                    <Percent className="h-4 w-4 mr-2" />
-                    Bulk Price Update
-                  </Button>
-                </>
-              )}
-              <Button 
-                onClick={() => {
-                  resetForm();
-                  setIsAddDialogOpen(true);
-                }} 
-                className="bg-teal-600 hover:bg-teal-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Service
-              </Button>
-            </div>
+            <Button 
+              onClick={() => {
+                resetForm();
+                setIsAddDialogOpen(true);
+              }} 
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Service
+            </Button>
           </div>
         </div>
       </div>
@@ -753,19 +754,34 @@ export default function ServicesPageContent() {
             <DataTable
               columns={columns}
               data={tableData}
-              searchValue=""
-              onSearchChange={() => {}} // Search handled by our own input
-              selectedRows={selectedServices}
-              onSelectedRowsChange={setSelectedServices}
-              getRowId={(row) => row.id}
-              pagination={{
-                pageSize: 50,
-                pageIndex: 0,
-              }}
-              enableSorting
-              enableColumnFilters
-              stickyHeader={false}
-              className="border-0"
+              showRowSelection={true}
+              onRowSelectionChange={handleRowSelectionChange}
+              headerActions={
+                selectedServices.length > 0 ? (
+                  <>
+                    <span className="flex items-center text-sm text-gray-600">
+                      {selectedServices.length} selected
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsBulkEditOpen(true);
+                      }}
+                    >
+                      <Percent className="h-4 w-4 mr-2" />
+                      Bulk Price Update
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedServices([])}
+                    >
+                      Clear
+                    </Button>
+                  </>
+                ) : null
+              }
             />
           </div>
         )}
@@ -981,6 +997,7 @@ export default function ServicesPageContent() {
         title="Bulk Price Update"
         subtitle={`Update prices for ${selectedServices.length} selected services`}
         width="narrow"
+        preserveState={false}
       >
         <div className="space-y-4">
           <div>
@@ -1057,6 +1074,7 @@ export default function ServicesPageContent() {
         title="Delete Service"
         subtitle="Are you sure you want to delete this service?"
         width="narrow"
+        preserveState={false}
       >
         <div className="space-y-4">
           <Alert className="border-orange-200 bg-orange-50">
