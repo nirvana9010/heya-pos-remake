@@ -2,10 +2,12 @@
 
 import { Suspense } from 'react';
 import BookingPageClient from './BookingPageClient';
+import { MerchantGuard } from '@/components/merchant-guard';
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={
+    <MerchantGuard>
+      <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -14,6 +16,7 @@ export default function BookingPage() {
       </div>
     }>
       <BookingPageClient />
-    </Suspense>
+      </Suspense>
+    </MerchantGuard>
   );
 }

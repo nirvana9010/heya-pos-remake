@@ -11,9 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { publicBookingApi } from "@/lib/booking-api";
 import type { Service, ServiceCategory } from "@heya-pos/types";
+import { useMerchant } from "@/contexts/merchant-context";
+import { useApiClient } from "@/hooks/use-api-client";
+import { MerchantGuard } from "@/components/merchant-guard";
 
 
 export default function ServicesPage() {
+  const { merchantSubdomain } = useMerchant();
+  const apiClient = useApiClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"name" | "price" | "duration">("name");
@@ -22,8 +27,11 @@ export default function ServicesPage() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    // Only load data once merchant subdomain is available
+    if (merchantSubdomain) {
+      loadData();
+    }
+  }, [merchantSubdomain]);
 
   const loadData = async () => {
     try {
@@ -75,7 +83,8 @@ export default function ServicesPage() {
   }
 
   return (
-    <main className="min-h-screen py-16">
+    <MerchantGuard>
+      <main className="min-h-screen py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Our Services</h1>
@@ -158,6 +167,7 @@ export default function ServicesPage() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </MerchantGuard>
   );
 }

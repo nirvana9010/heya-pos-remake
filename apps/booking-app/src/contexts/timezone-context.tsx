@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { bookingApi } from '@/lib/booking-api';
 import { TimezoneUtils } from '@heya-pos/utils';
+import { useMerchant } from './merchant-context';
 
 interface TimezoneContextType {
   merchantTimezone: string;
@@ -25,34 +25,26 @@ export const useTimezone = () => {
 };
 
 export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { merchant } = useMerchant();
   const [merchantTimezone, setMerchantTimezone] = useState('Australia/Sydney');
   const [userTimezone, setUserTimezone] = useState('Australia/Sydney');
   const [loading, setLoading] = useState(true);
 
-  // Load merchant timezone on mount
+  // Load timezone from merchant context
   useEffect(() => {
-    const loadTimezone = async () => {
-      try {
-        // Get merchant info which includes timezone
-        const merchantData = await bookingApi.getMerchantInfo();
-        if (merchantData?.timezone) {
-          setMerchantTimezone(merchantData.timezone);
-        }
+    // Update merchant timezone from context
+    if (merchant?.timezone) {
+      setMerchantTimezone(merchant.timezone);
+    }
 
-        // Detect user's browser timezone
-        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (userTz) {
-          setUserTimezone(userTz);
-        }
-      } catch (error) {
-        console.error('Failed to load timezone settings:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTimezone();
-  }, []);
+    // Detect user's browser timezone
+    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (userTz) {
+      setUserTimezone(userTz);
+    }
+    
+    setLoading(false);
+  }, [merchant]);
 
   const formatInMerchantTz = (date: Date | string, format?: string) => {
     return TimezoneUtils.formatInTimezone(date, merchantTimezone, format);

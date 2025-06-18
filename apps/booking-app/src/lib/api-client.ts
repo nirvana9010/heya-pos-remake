@@ -11,12 +11,17 @@ interface ApiResponse<T = any> {
 
 class ApiClient {
   private config: ApiConfig;
+  private merchantSubdomain: string | null = null;
 
   constructor(config: ApiConfig) {
     this.config = {
       timeout: 30000,
       ...config,
     };
+  }
+
+  setMerchantSubdomain(subdomain: string) {
+    this.merchantSubdomain = subdomain;
   }
 
   private addVersionPrefix(endpoint: string): string {
@@ -33,18 +38,37 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const versionedEndpoint = this.addVersionPrefix(endpoint);
-    const url = `${this.config.baseURL}${versionedEndpoint}`;
+    let url = `${this.config.baseURL}${versionedEndpoint}`;
+    
+    // Check if this is a public endpoint that requires merchant subdomain
+    const isPublicEndpoint = endpoint.includes('/public/');
+    if (isPublicEndpoint && !this.merchantSubdomain) {
+      throw new Error('Merchant subdomain is required');
+    }
+    
+    // Add merchant subdomain as query parameter if set
+    if (this.merchantSubdomain) {
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}subdomain=${this.merchantSubdomain}`;
+    }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout!);
 
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
+      
+      // Also add merchant subdomain as header
+      if (this.merchantSubdomain) {
+        headers['X-Merchant-Subdomain'] = this.merchantSubdomain;
+      }
+      
       const response = await fetch(url, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
         signal: controller.signal,
       });
 
