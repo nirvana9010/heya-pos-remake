@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/clients";
 import { 
   Search, Download, CreditCard, DollarSign, TrendingUp, RefreshCw, 
   CheckCircle, XCircle, Clock, RotateCcw, Banknote, Calendar,
   MoreVertical, FileText, Mail, Filter, ChevronDown, AlertCircle,
   ArrowUpRight, ArrowDownRight, Minus, CreditCard as CardIcon
 } from "lucide-react";
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
@@ -29,7 +32,6 @@ import { Checkbox } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { PinVerificationDialog } from "@heya-pos/ui";
 import { motion, AnimatePresence } from "framer-motion";
-import { apiClient } from "@/lib/api-client";
 import { useToast } from "@heya-pos/ui";
 
 interface Payment {
@@ -341,11 +343,80 @@ export default function PaymentsPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState<any>(null);
   const { toast } = useToast();
+  
+  // Fetch real payments data
+  const { data: paymentsResponse, isLoading: isLoadingPayments, refetch } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      const response = await apiClient.getPayments();
+      return response;
+    },
+  });
 
-  const todayTotal = 425.00;
-  const weekTotal = 2850.00;
-  const monthTotal = 12500.00;
-  const pendingAmount = 200.00;
+  // Transform API data to match the Payment interface
+  const payments = useMemo(() => {
+    if (!paymentsResponse?.payments) return [];
+    
+    return paymentsResponse.payments.map(payment => ({
+      id: payment.id,
+      invoiceNumber: payment.order?.orderNumber || `PAY-${payment.id.slice(0, 8)}`,
+      customerName: payment.order?.customer ? 
+        `${payment.order.customer.firstName} ${payment.order.customer.lastName}` : 
+        'Unknown Customer',
+      amount: parseFloat(payment.amount),
+      method: payment.paymentMethod === 'CASH' ? 'cash' : 'card-tyro',
+      status: payment.status.toLowerCase() as 'completed' | 'pending' | 'failed' | 'refunded',
+      processedAt: new Date(payment.processedAt),
+      type: payment.order?.bookingId ? 'booking' : 'product',
+      customerId: payment.order?.customerId,
+    }));
+  }, [paymentsResponse]);
+
+  // Calculate totals from real data
+  const { todayTotal, weekTotal, monthTotal, pendingAmount } = useMemo(() => {
+    if (!payments || payments.length === 0) {
+      return { todayTotal: 0, weekTotal: 0, monthTotal: 0, pendingAmount: 0 };
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const monthAgo = new Date(today);
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    
+    let todaySum = 0;
+    let weekSum = 0;
+    let monthSum = 0;
+    let pendingSum = 0;
+    
+    payments.forEach(payment => {
+      const paymentDate = new Date(payment.processedAt);
+      
+      if (payment.status === 'pending') {
+        pendingSum += payment.amount;
+      } else if (payment.status === 'completed') {
+        if (paymentDate >= today) {
+          todaySum += payment.amount;
+        }
+        if (paymentDate >= weekAgo) {
+          weekSum += payment.amount;
+        }
+        if (paymentDate >= monthAgo) {
+          monthSum += payment.amount;
+        }
+      }
+    });
+    
+    return {
+      todayTotal: todaySum,
+      weekTotal: weekSum,
+      monthTotal: monthSum,
+      pendingAmount: pendingSum,
+    };
+  }, [payments]);
 
   // Format currency with commas
   const formatCurrency = (amount: number) => {
@@ -579,7 +650,7 @@ export default function PaymentsPage() {
 
   // Filter payments based on all criteria
   const filteredPayments = useMemo(() => {
-    return mockPayments.filter(payment => {
+    return payments.filter(payment => {
       const matchesSearch = payment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            payment.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
@@ -609,7 +680,7 @@ export default function PaymentsPage() {
       
       return matchesSearch && matchesStatus && matchesMethod && matchesDate;
     });
-  }, [searchQuery, statusFilter, methodFilter, dateRange]);
+  }, [payments, searchQuery, statusFilter, methodFilter, dateRange]);
 
   // Enhanced refund dialog
   const RefundDialog = () => (
@@ -749,7 +820,8 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
+    <ErrorBoundary>
+      <div className="container max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -941,7 +1013,7 @@ export default function PaymentsPage() {
 
           {/* Table with loading state */}
           <AnimatePresence mode="wait">
-            {isLoading ? (
+            {isLoadingPayments ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -985,10 +1057,11 @@ export default function PaymentsPage() {
         actionDescription="Enter your PIN to authorize this refund"
         onVerify={async (pin) => {
           try {
-            const result = await apiClient.verifyAction(pin, 'refund_payment');
+            // TODO: Implement PIN verification with proper API client
+            // const result = await authClient.verifyPin(pin, 'refund_payment');
             return {
-              success: result.success,
-              staff: result.staff,
+              success: false,
+              error: 'PIN verification not yet implemented',
             };
           } catch (error: any) {
             return {
@@ -1007,5 +1080,6 @@ export default function PaymentsPage() {
         }}
       />
     </div>
+    </ErrorBoundary>
   );
 }
