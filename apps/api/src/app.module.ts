@@ -14,6 +14,14 @@ import { PublicModule } from './public/public.module';
 import { LocationsModule } from './locations/locations.module';
 import { MerchantModule } from './merchant/merchant.module';
 import { AdminModule } from './admin/admin.module';
+import { ReportsModule } from './reports/reports.module';
+import { HealthModule } from './health/health.module';
+
+// Common modules
+import { CacheModule } from './common/cache/cache.module';
+import { ValidationModule } from './common/validation/validation.module';
+import { CommonServicesModule } from './common/services/common-services.module';
+import { MonitoringModule } from './common/monitoring/monitoring.module';
 
 // Bounded Contexts
 import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
@@ -24,6 +32,10 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CacheModule, // Global cache module
+    ValidationModule, // Global validation module
+    CommonServicesModule, // Global common services
+    MonitoringModule, // Global monitoring
     PrismaModule, 
     AuthModule, 
     ServicesModule, 
@@ -36,7 +48,9 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     PublicModule,
     LocationsModule,
     MerchantModule,
-    AdminModule
+    AdminModule,
+    ReportsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

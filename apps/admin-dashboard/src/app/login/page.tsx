@@ -91,6 +91,28 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          {/* Dev only - Auto login button */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setUsername('admin');
+                  setPassword('admin123');
+                  // Auto submit after a short delay
+                  setTimeout(() => {
+                    document.querySelector('form')?.requestSubmit();
+                  }, 100);
+                }}
+                disabled={isLoading}
+              >
+                🚀 Quick Login (Dev Only)
+              </Button>
+            </div>
+          )}
           
           <div className="mt-4 text-sm text-gray-600 text-center">
             <p>Demo credentials:</p>

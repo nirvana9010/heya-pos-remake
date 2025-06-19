@@ -6,24 +6,30 @@ import { AuthGuard } from './AuthGuard';
 import { PrefetchManager } from './PrefetchManager';
 import { PerformanceMonitor } from './PerformanceMonitor';
 import { TimezoneProvider } from '@/contexts/timezone-context';
+import { AuthProvider } from '@/lib/auth/auth-provider';
+import { QueryProvider } from '@/lib/query/query-provider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login';
   const isTestPage = pathname.startsWith('/test');
 
-  // Only wrap protected routes in AuthGuard
-  if (isAuthPage || isTestPage) {
-    return <>{children}</>;
-  }
-
   return (
-    <AuthGuard>
-      <TimezoneProvider>
-        <PerformanceMonitor />
-        <PrefetchManager />
-        <DashboardLayout>{children}</DashboardLayout>
-      </TimezoneProvider>
-    </AuthGuard>
+    <QueryProvider>
+      <AuthProvider>
+        {/* Only wrap protected routes in AuthGuard and layout */}
+        {isAuthPage || isTestPage ? (
+          children
+        ) : (
+          <AuthGuard>
+            <TimezoneProvider>
+              <PerformanceMonitor />
+              <PrefetchManager />
+              <DashboardLayout>{children}</DashboardLayout>
+            </TimezoneProvider>
+          </AuthGuard>
+        )}
+      </AuthProvider>
+    </QueryProvider>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
@@ -8,42 +8,39 @@ import { Label } from '@heya-pos/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Alert, AlertDescription } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
-import { merchantLogin } from '@/lib/api';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { login, isAuthenticated, isLoading, error: authError, clearError } = useAuth();
+  
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Clear auth errors when component mounts
+  useEffect(() => {
+    clearError();
+  }, []); // Empty dependency array - only run once on mount
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
+    
     try {
-      const response = await merchantLogin(
-        formData.username,
-        formData.password,
-        rememberMe
-      );
-
-      // Store auth data - ensure the token field name matches what api-client expects
-      localStorage.setItem('access_token', response.token);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      localStorage.setItem('merchant', JSON.stringify(response.merchant || response.user));
-      localStorage.setItem('user', JSON.stringify(response.user));
-
-      // Redirect to dashboard
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
-    } finally {
-      setLoading(false);
+      await login(formData.username, formData.password, rememberMe);
+      // Auth provider will handle the redirect through the useEffect above
+    } catch (err) {
+      // Error is handled by the auth provider and available via authError
+      console.error('Login failed:', err);
     }
   };
 
@@ -58,9 +55,9 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {authError && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{authError}</AlertDescription>
               </Alert>
             )}
             
@@ -74,7 +71,7 @@ export default function LoginPage() {
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
 
@@ -86,7 +83,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
 
@@ -95,7 +92,7 @@ export default function LoginPage() {
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                disabled={loading}
+                disabled={isLoading}
               />
               <Label 
                 htmlFor="remember" 
@@ -108,11 +105,35 @@ export default function LoginPage() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
+
+          {/* Dev only - Auto login button */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setFormData({
+                    username: 'admin@hamiltonbeauty.com',
+                    password: 'demo123'
+                  });
+                  // Auto submit after a short delay
+                  setTimeout(() => {
+                    document.querySelector('form')?.requestSubmit();
+                  }, 100);
+                }}
+                disabled={isLoading}
+              >
+                🚀 Quick Login (Dev Only)
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       

@@ -3,6 +3,8 @@ import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
+import { TypeTransformationInterceptor } from './common/interceptors/type-transformation.interceptor';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import * as dotenv from 'dotenv';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -33,14 +35,22 @@ async function bootstrap() {
   // Enable global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());
   
-  // Enable global performance monitoring
-  app.useGlobalInterceptors(new PerformanceInterceptor());
+  // Enable global interceptors
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new PerformanceInterceptor(),
+    new TypeTransformationInterceptor(),
+  );
   
-  // Enable validation
+  // Enable validation with custom pipe
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
     forbidNonWhitelisted: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+    errorHttpStatusCode: 400,
   }));
 
   // Enable CORS

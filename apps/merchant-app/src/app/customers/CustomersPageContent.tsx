@@ -13,6 +13,7 @@ import { useToast } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
 import { apiClient } from '@/lib/api-client';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 // Lazy load heavy components
 const Dialog = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.Dialog })), { ssr: false });
@@ -163,7 +164,7 @@ export default function CustomersPageContent() {
         ...customer,
         totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
         totalSpent: parseFloat(customer.totalSpent || '0'),
-        loyaltyPoints: parseInt(customer.loyaltyPoints || '0'),
+        loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
         loyaltyVisits: customer.loyaltyVisits || 0,
       }));
       
@@ -295,8 +296,8 @@ export default function CustomersPageContent() {
           
           return {
             ...customer,
-            totalVisits: (customer.totalVisits || 0) + stats.totalVisits,
-            totalSpent: (customer.totalSpent || 0) + stats.totalSpent,
+            totalVisits: customer.totalVisits + stats.totalVisits,
+            totalSpent: customer.totalSpent + stats.totalSpent,
             updatedAt: stats.lastVisit ? stats.lastVisit.toISOString() : customer.updatedAt,
             topServices,
             nextAppointment: stats.nextAppointment || customer.nextAppointment,
@@ -323,15 +324,13 @@ export default function CustomersPageContent() {
 
     // Apply search filter
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(customer => {
-        const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.toLowerCase();
-        const email = (customer.email || '').toLowerCase();
-        const phone = customer.phone || '';
-        const query = searchQuery.toLowerCase();
+        const fullName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
         
         return fullName.includes(query) ||
-          email.includes(query) ||
-          phone.includes(searchQuery);
+          customer.email.toLowerCase().includes(query) ||
+          customer.phone.includes(searchQuery);
       });
     }
 
@@ -341,11 +340,11 @@ export default function CustomersPageContent() {
       filtered = filtered.filter(customer => {
         switch (selectedSegment) {
           case 'vip':
-            return (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
+            return customer.totalSpent > 1000 || customer.totalVisits > 10;
           case 'regular':
-            return (customer.totalVisits || 0) >= 3 && (customer.totalVisits || 0) <= 10;
+            return customer.totalVisits >= 3 && customer.totalVisits <= 10;
           case 'new':
-            return (customer.totalVisits || 0) === 0;
+            return customer.totalVisits === 0;
           case 'inactive':
             const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : new Date(customer.createdAt);
             const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
@@ -362,9 +361,9 @@ export default function CustomersPageContent() {
         case 'name':
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
         case 'spent':
-          return (b.totalSpent || 0) - (a.totalSpent || 0);
+          return b.totalSpent - a.totalSpent;
         case 'visits':
-          return (b.totalVisits || 0) - (a.totalVisits || 0);
+          return b.totalVisits - a.totalVisits;
         case 'recent':
         default:
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -378,9 +377,9 @@ export default function CustomersPageContent() {
   const stats = useMemo(() => {
     return {
       total: customers.length,
-      vip: customers.filter(c => (c.totalSpent || 0) > 1000 || (c.totalVisits || 0) > 10).length,
-      newThisMonth: customers.filter(c => (c.totalVisits || 0) === 0).length,
-      totalRevenue: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0)
+      vip: customers.filter(c => c.totalSpent > 1000 || c.totalVisits > 10).length,
+      newThisMonth: customers.filter(c => c.totalVisits === 0).length,
+      totalRevenue: customers.reduce((sum, c) => sum + c.totalSpent, 0)
     };
   }, [customers]);
 
@@ -451,7 +450,8 @@ export default function CustomersPageContent() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <ErrorBoundary>
+      <div className="container mx-auto py-8 px-4">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -583,10 +583,11 @@ export default function CustomersPageContent() {
           ) : (
             <div className="divide-y divide-gray-100">
               {paginatedCustomers.map((customer) => {
-                const isVIP = (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
-                const isNew = (customer.totalVisits || 0) === 0; // New if no visits yet
+                const isVIP = customer.totalSpent > 1000 || customer.totalVisits > 10;
+                const isNew = customer.totalVisits === 0;
                 
-                const lastVisitDate = customer.updatedAt ? new Date(customer.updatedAt) : null;
+                // Only show last visit if customer has actually visited
+                const lastVisitDate = customer.totalVisits > 0 && customer.updatedAt ? new Date(customer.updatedAt) : null;
                 const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
                 
                 return (
@@ -644,16 +645,19 @@ export default function CustomersPageContent() {
                       <div className="flex items-center gap-3">
                         <div className="text-right mr-2">
                           <p className="text-sm font-medium text-gray-900">
-                            {customer.totalSpent && customer.totalSpent > 0 ? 
-                              `$${Number(customer.totalSpent).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 
+                            {customer.totalSpent > 0 ? 
+                              `$${customer.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 
                               '-'
                             }
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {customer.totalVisits || 0} visits
-                          </p>
+                          {/* Show visits only if > 0 */}
+                          {customer.totalVisits > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {customer.totalVisits} {customer.totalVisits === 1 ? 'visit' : 'visits'}
+                            </p>
+                          )}
                         </div>
-                        {customer.loyaltyPoints && customer.loyaltyPoints > 0 && (
+                        {customer.loyaltyPoints > 0 && (
                           <Badge variant="outline" className="text-xs">
                             <Gift className="h-3 w-3 mr-1" />
                             {customer.loyaltyPoints} pts
@@ -809,5 +813,6 @@ export default function CustomersPageContent() {
         </Suspense>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

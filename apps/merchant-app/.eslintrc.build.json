@@ -1,0 +1,49 @@
+{
+  "extends": ["./.eslintrc.json"],
+  "rules": {
+    // Stricter rules for production builds
+    "no-console": "error",
+    "no-debugger": "error",
+    "no-alert": "error",
+    "no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-module-boundary-types": "warn",
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/rules-of-hooks": "error",
+    
+    // Security rules
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    
+    // Best practices
+    "eqeqeq": ["error", "always"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-template": "warn",
+    "no-throw-literal": "error",
+    
+    // React specific
+    "react/prop-types": "off", // Using TypeScript
+    "react/react-in-jsx-scope": "off", // Next.js handles this
+    "react/jsx-no-target-blank": "error",
+    "react/jsx-key": "error",
+    "react/no-array-index-key": "warn",
+    
+    // Accessibility
+    "jsx-a11y/alt-text": "warn",
+    "jsx-a11y/anchor-is-valid": "warn",
+    "jsx-a11y/aria-role": "warn"
+  },
+  "overrides": [
+    {
+      // Allow console in server-side code
+      "files": ["**/*.ts"],
+      "excludedFiles": ["**/*.tsx"],
+      "rules": {
+        "no-console": "warn"
+      }
+    }
+  ]
+}

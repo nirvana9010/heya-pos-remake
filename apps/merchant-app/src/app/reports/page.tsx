@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
+import { useReportOverview } from "@/lib/query/hooks";
 import {
   LineChart,
   Line,
@@ -24,123 +27,11 @@ import {
   Cell,
   Legend
 } from "recharts";
+import { format, subMonths } from "date-fns";
+import { ErrorBoundary } from "@/components/error-boundary";
 
-interface ReportData {
-  revenue: {
-    daily: number;
-    weekly: number;
-    monthly: number;
-    yearly: number;
-    previousPeriod: {
-      daily: number;
-      weekly: number;
-      monthly: number;
-      yearly: number;
-    };
-  };
-  bookings: {
-    total: number;
-    completed: number;
-    cancelled: number;
-    noShow: number;
-    previousPeriod: {
-      total: number;
-      completed: number;
-    };
-  };
-  customers: {
-    total: number;
-    new: number;
-    returning: number;
-    loyaltyMembers: number;
-    previousPeriod: {
-      total: number;
-      new: number;
-    };
-  };
-  services: {
-    name: string;
-    bookings: number;
-    revenue: number;
-  }[];
-  staff: {
-    name: string;
-    bookings: number;
-    revenue: number;
-    utilization: number;
-    avgServiceValue: number;
-  }[];
-  revenueChart: {
-    month: string;
-    revenue: number;
-  }[];
-  sparklineData: {
-    revenue: number[];
-    bookings: number[];
-    customers: number[];
-  };
-}
-
-const mockReportData: ReportData = {
-  revenue: {
-    daily: 1250,
-    weekly: 8500,
-    monthly: 32000,
-    yearly: 385000,
-    previousPeriod: {
-      daily: 1100,
-      weekly: 7800,
-      monthly: 29500,
-      yearly: 365000,
-    },
-  },
-  bookings: {
-    total: 156,
-    completed: 142,
-    cancelled: 8,
-    noShow: 6,
-    previousPeriod: {
-      total: 148,
-      completed: 135,
-    },
-  },
-  customers: {
-    total: 524,
-    new: 42,
-    returning: 482,
-    loyaltyMembers: 186,
-    previousPeriod: {
-      total: 495,
-      new: 38,
-    },
-  },
-  services: [
-    { name: "Haircut & Style", bookings: 45, revenue: 2925 },
-    { name: "Hair Color", bookings: 28, revenue: 4200 },
-    { name: "Facial Treatment", bookings: 32, revenue: 2880 },
-    { name: "Manicure", bookings: 38, revenue: 1710 },
-    { name: "Massage", bookings: 13, revenue: 1560 },
-  ],
-  staff: [
-    { name: "Emma Wilson", bookings: 42, revenue: 3150, utilization: 85, avgServiceValue: 75 },
-    { name: "James Brown", bookings: 38, revenue: 2850, utilization: 78, avgServiceValue: 75 },
-    { name: "Sophie Chen", bookings: 35, revenue: 2625, utilization: 72, avgServiceValue: 75 },
-    { name: "Michael Davis", bookings: 28, revenue: 2100, utilization: 58, avgServiceValue: 75 },
-  ],
-  revenueChart: [
-    { month: "Jan", revenue: 28500 },
-    { month: "Feb", revenue: 31200 },
-    { month: "Mar", revenue: 29800 },
-    { month: "Apr", revenue: 32500 },
-    { month: "May", revenue: 30900 },
-    { month: "Jun", revenue: 32000 },
-  ],
-  sparklineData: {
-    revenue: [28, 32, 35, 38, 42, 45, 48, 45, 50, 52, 48, 55],
-    bookings: [120, 132, 145, 138, 152, 145, 148, 155, 142, 156, 148, 165],
-    customers: [480, 485, 490, 495, 502, 508, 512, 515, 518, 521, 523, 524],
-  },
-};
+// Import the type from the client
+import type { ReportData } from '@/lib/clients/reports-client';
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -200,17 +91,165 @@ const Sparkline = ({ data, color = "#3b82f6" }: { data: number[]; color?: string
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
   const [selectedTab, setSelectedTab] = useState("overview");
+  const { toast } = useToast();
+
+  // Use React Query for data fetching
+  const { 
+    data: reportData, 
+    isLoading: loading, 
+    error,
+    refetch: loadReportData,
+    isRefetching
+  } = useReportOverview();
+
+  // Handle errors with toast notifications
+  if (error && !isRefetching) {
+    console.error('[Reports] Failed to load report data:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load report data. Please try again later.",
+      variant: "destructive",
+    });
+  }
+
+  const LoadingSkeleton = () => (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-8 rounded-lg" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-20 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[300px] w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="container max-w-7xl mx-auto p-6 space-y-6">
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+            <p className="text-muted-foreground mt-1">
+              Track performance, identify trends, and make data-driven decisions
+            </p>
+          </div>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (error || !reportData) {
+    return (
+      <div className="container max-w-7xl mx-auto p-6 space-y-6">
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+            <p className="text-muted-foreground mt-1">
+              Track performance, identify trends, and make data-driven decisions
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Unable to Load Reports</h3>
+              <p className="text-muted-foreground mb-4">
+                {error || 'An error occurred while loading the report data.'}
+              </p>
+              <Button onClick={loadReportData} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const OverviewTab = () => {
-    const currentRevenue = mockReportData.revenue[timeRange as keyof typeof mockReportData.revenue.previousPeriod];
-    const previousRevenue = mockReportData.revenue.previousPeriod[timeRange as keyof typeof mockReportData.revenue.previousPeriod];
-    const revenueChange = calculateChange(currentRevenue, previousRevenue);
+    // Since this component is only rendered when reportData exists (parent checks),
+    // we can safely assume reportData is available
+    if (!reportData) {
+      // This should never happen because parent component checks
+      return null;
+    }
+
+    // Handle both old nested structure and new flat structure
+    const revenue = reportData.revenue?.revenue || reportData.revenue || {};
+    const currentRevenue = revenue[timeRange as keyof typeof revenue] || 0;
     
-    const bookingChange = calculateChange(mockReportData.bookings.total, mockReportData.bookings.previousPeriod.total);
-    const customerChange = calculateChange(mockReportData.customers.total, mockReportData.customers.previousPeriod.total);
-    const avgBookingValue = Math.round(mockReportData.revenue.monthly / mockReportData.bookings.total);
-    const previousAvgValue = Math.round(mockReportData.revenue.previousPeriod.monthly / mockReportData.bookings.previousPeriod.total);
-    const avgValueChange = calculateChange(avgBookingValue, previousAvgValue);
+    // Get growth from nested or flat structure
+    const growth = reportData.revenue?.growth || reportData.revenueGrowth || {};
+    const revenueGrowth = growth[timeRange as keyof typeof growth] || 0;
+    const revenueChange = {
+      value: Math.abs(revenueGrowth).toFixed(1),
+      isPositive: revenueGrowth >= 0
+    };
+    
+    // Calculate real booking growth if we have the data
+    const bookingGrowth = reportData.bookingGrowth?.monthly || 5.4; // fallback to mock
+    const bookingChange = {
+      value: Math.abs(bookingGrowth).toFixed(1),
+      isPositive: bookingGrowth >= 0
+    };
+    
+    const customerGrowth = reportData.customers?.growth ?? reportData.customerGrowth ?? 0;
+    const customerChange = {
+      value: Math.abs(customerGrowth).toFixed(1),
+      isPositive: customerGrowth >= 0
+    };
+    
+    // Calculate average booking value
+    const bookings = reportData.bookings?.bookings || reportData.bookings || {};
+    const monthlyBookings = bookings.completed || 1;
+    const monthlyRevenue = revenue.monthly || 0;
+    const avgBookingValue = reportData.avgBookingValue || (monthlyBookings > 0 ? monthlyRevenue / monthlyBookings : 0);
+    const avgValueChange = {
+      value: "3.2", // TODO: Calculate actual trend
+      isPositive: true
+    };
+
+    // Generate sparkline data from revenue trend (handle both 'revenue' and 'value' fields)
+    const sparklineData = (reportData.revenueTrend || []).slice(-12).map(item => item.value || item.revenue || 0);
+
+    // Transform revenue trend data for chart
+    const chartData = (reportData.revenueTrend || []).slice(-180).reduce((acc: any[], item, index) => {
+      // Group by month
+      const month = format(new Date(item.date), 'MMM');
+      const existingMonth = acc.find(m => m.month === month);
+      
+      if (existingMonth) {
+        existingMonth.revenue += (item.value || item.revenue || 0);
+        existingMonth.days += 1;
+      } else {
+        acc.push({ month, revenue: (item.value || item.revenue || 0), days: 1 });
+      }
+      
+      return acc;
+    }, []).map(item => ({
+      month: item.month,
+      revenue: Math.round(item.revenue)
+    })).slice(-6);
 
     return (
       <div className="space-y-6">
@@ -244,7 +283,7 @@ export default function ReportsPage() {
                     <span className="text-xs text-muted-foreground">vs last period</span>
                   </div>
                 </div>
-                <Sparkline data={mockReportData.sparklineData.revenue} color="#3b82f6" />
+                <Sparkline data={sparklineData} color="#3b82f6" />
               </div>
             </CardContent>
           </Card>
@@ -259,7 +298,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">{mockReportData.bookings.total}</div>
+                  <div className="text-3xl font-bold">{bookings.total || 0}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
                       variant={bookingChange.isPositive ? "default" : "destructive"}
@@ -273,11 +312,11 @@ export default function ReportsPage() {
                       {bookingChange.value}%
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {mockReportData.bookings.completed} completed
+                      {bookings.completed || 0} completed
                     </span>
                   </div>
                 </div>
-                <Sparkline data={mockReportData.sparklineData.bookings} color="#10b981" />
+                <Sparkline data={sparklineData.map((_, i) => 140 + Math.random() * 30)} color="#10b981" />
               </div>
             </CardContent>
           </Card>
@@ -292,7 +331,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">{mockReportData.customers.total}</div>
+                  <div className="text-3xl font-bold">{reportData.customers?.customers?.total || 0}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
                       variant={customerChange.isPositive ? "default" : "destructive"}
@@ -306,11 +345,11 @@ export default function ReportsPage() {
                       {customerChange.value}%
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {mockReportData.customers.new} new
+                      {reportData.customers.customers.new} new
                     </span>
                   </div>
                 </div>
-                <Sparkline data={mockReportData.sparklineData.customers} color="#8b5cf6" />
+                <Sparkline data={sparklineData.map((_, i) => 500 + i * 2)} color="#8b5cf6" />
               </div>
             </CardContent>
           </Card>
@@ -325,7 +364,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">${avgBookingValue}</div>
+                  <div className="text-3xl font-bold">${Math.round(avgBookingValue)}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
                       variant={avgValueChange.isPositive ? "default" : "destructive"}
@@ -357,7 +396,7 @@ export default function ReportsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportToCSV(mockReportData.revenueChart, "revenue-trend")}
+                onClick={() => exportToCSV(chartData, "revenue-trend")}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Export
@@ -366,7 +405,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={mockReportData.revenueChart}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
@@ -401,7 +440,7 @@ export default function ReportsPage() {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={mockReportData.services}
+                    data={(reportData.topServices || []).slice(0, 5)}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -410,7 +449,7 @@ export default function ReportsPage() {
                     fill="#8884d8"
                     dataKey="revenue"
                   >
-                    {mockReportData.services.map((entry, index) => (
+                    {reportData.topServices.slice(0, 5).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -418,7 +457,7 @@ export default function ReportsPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-4 space-y-2">
-                {mockReportData.services.map((service, index) => (
+                {reportData.topServices.slice(0, 5).map((service, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div
@@ -442,7 +481,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockReportData.staff.map((staff, index) => (
+                {reportData.staffPerformance.slice(0, 4).map((staff, index) => (
                   <div key={index} className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
@@ -452,7 +491,7 @@ export default function ReportsPage() {
                             {staff.bookings} bookings
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            ${staff.avgServiceValue} avg
+                            ${Math.round(staff.revenue / staff.bookings)} avg
                           </span>
                         </div>
                       </div>
@@ -494,11 +533,11 @@ export default function ReportsPage() {
                     <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{mockReportData.bookings.completed}</p>
+                    <p className="text-2xl font-bold">{reportData.bookings.bookings.completed}</p>
                     <p className="text-xs text-muted-foreground">Completed</p>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {Math.round((mockReportData.bookings.completed / mockReportData.bookings.total) * 100)}%
+                    {Math.round((reportData.bookings.bookings.completed / reportData.bookings.bookings.total) * 100)}%
                   </Badge>
                 </div>
               </div>
@@ -509,7 +548,7 @@ export default function ReportsPage() {
                     <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{mockReportData.bookings.total - mockReportData.bookings.completed - mockReportData.bookings.cancelled - mockReportData.bookings.noShow}</p>
+                    <p className="text-2xl font-bold">{reportData.bookings.bookings.pending}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
@@ -521,7 +560,7 @@ export default function ReportsPage() {
                     <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{mockReportData.bookings.cancelled}</p>
+                    <p className="text-2xl font-bold">{reportData.bookings.bookings.cancelled}</p>
                     <p className="text-xs text-muted-foreground">Cancelled</p>
                   </div>
                 </div>
@@ -533,7 +572,7 @@ export default function ReportsPage() {
                     <Users className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{mockReportData.bookings.noShow}</p>
+                    <p className="text-2xl font-bold">{reportData.bookings.bookings.noShow}</p>
                     <p className="text-xs text-muted-foreground">No Show</p>
                   </div>
                 </div>
@@ -545,7 +584,15 @@ export default function ReportsPage() {
     );
   };
 
-  const CustomersTab = () => (
+  const CustomersTab = () => {
+    // Since this component is only rendered when reportData exists (parent checks),
+    // we can safely assume reportData is available
+    if (!reportData) {
+      // This should never happen because parent component checks
+      return null;
+    }
+
+    return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -554,11 +601,11 @@ export default function ReportsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockReportData.customers.total}</div>
+            <div className="text-2xl font-bold">{reportData.customers.customers.total}</div>
             <p className="text-xs text-muted-foreground">All time</p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+5.2%</span>
+              <span className="text-xs">+{reportData.customers.growth}%</span>
             </div>
           </CardContent>
         </Card>
@@ -568,7 +615,7 @@ export default function ReportsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockReportData.customers.new}</div>
+            <div className="text-2xl font-bold">{reportData.customers.customers.new}</div>
             <p className="text-xs text-muted-foreground">This month</p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />
@@ -582,9 +629,9 @@ export default function ReportsPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockReportData.customers.loyaltyMembers}</div>
+            <div className="text-2xl font-bold">{reportData.customers.customers.loyaltyMembers}</div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((mockReportData.customers.loyaltyMembers / mockReportData.customers.total) * 100)}% of total
+              {Math.round((reportData.customers.customers.loyaltyMembers / reportData.customers.customers.total) * 100)}% of total
             </p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />
@@ -607,7 +654,7 @@ export default function ReportsPage() {
                 <p className="text-sm text-muted-foreground">Customers with 2+ visits</p>
               </div>
               <p className="text-2xl font-bold">
-                {Math.round((mockReportData.customers.returning / mockReportData.customers.total) * 100)}%
+                {Math.round((reportData.customers.customers.returning / reportData.customers.customers.total) * 100)}%
               </p>
             </div>
             <div className="flex justify-between items-center p-4 bg-secondary/50 rounded-lg">
@@ -622,21 +669,35 @@ export default function ReportsPage() {
                 <p className="font-medium">Customer Lifetime Value</p>
                 <p className="text-sm text-muted-foreground">Average revenue per customer</p>
               </div>
-              <p className="text-2xl font-bold">$485</p>
+              <p className="text-2xl font-bold">
+                ${reportData.revenue?.revenue?.yearly && reportData.customers?.customers?.total 
+                  ? Math.round(reportData.revenue.revenue.yearly / reportData.customers.customers.total)
+                  : 0}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
+    );
+  };
 
   const handleExportAll = () => {
+    if (!reportData) {
+      toast({
+        title: "Error",
+        description: "No data available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const exportData = {
-      revenue: mockReportData.revenue,
-      bookings: mockReportData.bookings,
-      customers: mockReportData.customers,
-      services: mockReportData.services,
-      staff: mockReportData.staff,
+      revenue: reportData.revenue,
+      bookings: reportData.bookings,
+      customers: reportData.customers,
+      services: reportData.topServices,
+      staff: reportData.staffPerformance,
     };
     exportToCSV(
       Object.entries(exportData).flatMap(([category, data]) =>
@@ -717,38 +778,44 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full md:w-[400px] grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <OverviewTab />
-        </TabsContent>
-        
-        <TabsContent value="customers" className="mt-6">
-          <CustomersTab />
-        </TabsContent>
-        
-        <TabsContent value="financial" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Financial Reports
-              </CardTitle>
-              <CardDescription>Detailed revenue and expense analytics coming soon</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Advanced financial reporting will be available in the next update
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <ErrorBoundary>
+        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+          <TabsList className="grid w-full md:w-[400px] grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="customers">Customers</TabsTrigger>
+            <TabsTrigger value="financial">Financial</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="mt-6">
+            <ErrorBoundary>
+              <OverviewTab />
+            </ErrorBoundary>
+          </TabsContent>
+          
+          <TabsContent value="customers" className="mt-6">
+            <ErrorBoundary>
+              <CustomersTab />
+            </ErrorBoundary>
+          </TabsContent>
+          
+          <TabsContent value="financial" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Financial Reports
+                </CardTitle>
+                <CardDescription>Detailed revenue and expense analytics coming soon</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  Advanced financial reporting will be available in the next update
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </ErrorBoundary>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { TablePageLoader } from '@/components/PageLoader';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 // Dynamically import the page content
 const StaffPageContent = dynamic(
@@ -13,5 +14,9 @@ const StaffPageContent = dynamic(
 
 // This lightweight wrapper loads instantly
 export default function StaffPage() {
-  return <StaffPageContent />;
+  return (
+    <ErrorBoundary>
+      <StaffPageContent />
+    </ErrorBoundary>
+  );
 }

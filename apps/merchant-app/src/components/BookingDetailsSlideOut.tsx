@@ -61,10 +61,10 @@ interface BookingDetailsSlideOutProps {
     notes?: string;
   };
   staff: Array<{ id: string; name: string; color: string }>;
-  onSave?: (booking: any) => void;
-  onDelete?: (bookingId: string) => void;
-  onStatusChange?: (bookingId: string, status: string) => void;
-  onPaymentStatusChange?: (bookingId: string, isPaid: boolean) => void;
+  onSave: (booking: any) => void;
+  onDelete: (bookingId: string) => void;
+  onStatusChange: (bookingId: string, status: string) => void;
+  onPaymentStatusChange: (bookingId: string, isPaid: boolean) => void;
 }
 
 export function BookingDetailsSlideOut({
@@ -86,14 +86,12 @@ export function BookingDetailsSlideOut({
   });
 
   useEffect(() => {
-    if (booking) {
-      setFormData({
-        staffId: booking.staffId,
-        date: booking.startTime,
-        time: booking.startTime,
-        notes: booking.notes || ""
-      });
-    }
+    setFormData({
+      staffId: booking.staffId,
+      date: booking.startTime,
+      time: booking.startTime,
+      notes: booking.notes || ""
+    });
   }, [booking]);
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
@@ -141,34 +139,28 @@ export function BookingDetailsSlideOut({
   };
 
   const handleSave = () => {
-    if (onSave) {
-      onSave({
-        ...booking,
-        staffId: formData.staffId,
-        startTime: formData.time,
-        endTime: new Date(formData.time.getTime() + duration * 60000),
-        notes: formData.notes
-      });
-    }
+    onSave({
+      ...booking,
+      staffId: formData.staffId,
+      startTime: formData.time,
+      endTime: new Date(formData.time.getTime() + duration * 60000),
+      notes: formData.notes
+    });
     setIsEditing(false);
   };
 
   const handleDelete = () => {
-    if (onDelete && window.confirm("Are you sure you want to delete this booking?")) {
+    if (window.confirm("Are you sure you want to delete this booking?")) {
       onDelete(booking.id);
     }
   };
 
   const handleStatusChange = (newStatus: string) => {
-    if (onStatusChange) {
-      onStatusChange(booking.id, newStatus);
-    }
+    onStatusChange(booking.id, newStatus);
   };
 
   const handlePaymentToggle = () => {
-    if (onPaymentStatusChange) {
-      onPaymentStatusChange(booking.id, !booking.isPaid);
-    }
+    onPaymentStatusChange(booking.id, !booking.isPaid);
   };
 
   return (
@@ -192,7 +184,7 @@ export function BookingDetailsSlideOut({
             <div>
               <h2 className="text-lg font-semibold">{booking.customerName}</h2>
               <p className="text-sm text-gray-600">
-                {booking.services && booking.services.length > 0
+                {booking.services?.length > 0
                   ? booking.services.map(s => s.name).join(' + ')
                   : booking.serviceName}
               </p>
@@ -351,9 +343,9 @@ export function BookingDetailsSlideOut({
               <div>
                 <h3 className="font-medium text-sm text-gray-700 mb-2">Service Details</h3>
                 <div className="space-y-2">
-                  {booking.services && booking.services.length > 0 ? (
+                  {booking.services?.length > 0 ? (
                     <>
-                      {booking.services.map((service, index) => (
+                      {booking.services.map((service) => (
                         <div key={service.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <Scissors className="h-4 w-4 text-gray-400" />
@@ -367,7 +359,7 @@ export function BookingDetailsSlideOut({
                         <div className="pt-2 border-t">
                           <div className="flex items-center justify-between text-sm font-semibold">
                             <span>Total</span>
-                            <span>${Number(booking.totalPrice).toFixed(2)}</span>
+                            <span>${booking.totalPrice.toFixed(2)}</span>
                           </div>
                         </div>
                       )}

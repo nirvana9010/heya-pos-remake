@@ -415,7 +415,7 @@ export default function ServicesPageContent() {
             }}
             className="block w-full text-right font-medium text-gray-900 hover:text-gray-700 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
           >
-            ${Number(service.price).toFixed(2)}
+            ${service.price.toFixed(2)}
           </button>
         );
       },
@@ -633,7 +633,6 @@ export default function ServicesPageContent() {
     try {
       const updates = selectedServices.map(async (serviceId) => {
         const service = services.find(s => s.id === serviceId);
-        if (!service) return;
         
         let newPrice = service.price;
         if (priceAdjustment.type === 'percentage') {

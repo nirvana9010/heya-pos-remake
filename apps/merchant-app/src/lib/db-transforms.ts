@@ -100,7 +100,7 @@ function isMoneyField(fieldName: string): boolean {
     'commission',
     'commissionRate',
     'value',
-    'payment',
+    // 'payment', // REMOVED: This was causing 'payments' array to be treated as money!
     'refund',
     'credit',
     'debit',
@@ -118,6 +118,12 @@ function isMoneyField(fieldName: string): boolean {
   ];
   
   const fieldLower = fieldName.toLowerCase();
+  
+  // CRITICAL FIX: Exclude plural forms that are likely arrays
+  if (fieldLower === 'payments' || fieldLower === 'refunds' || fieldLower === 'credits') {
+    return false;
+  }
+  
   return moneyFields.some(field => 
     fieldLower.includes(field.toLowerCase()) ||
     fieldLower.endsWith('price') ||

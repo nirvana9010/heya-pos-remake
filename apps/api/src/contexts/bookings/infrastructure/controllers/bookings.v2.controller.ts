@@ -11,6 +11,8 @@ import {
   HttpStatus,
   HttpCode,
   Inject,
+  ParseUUIDPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { CreateBookingHandler } from '../../application/commands/create-booking.handler';
@@ -25,73 +27,17 @@ import { JwtAuthGuard } from '../../../../auth/guards/jwt-auth.guard';
 import { PinAuthGuard } from '../../../../auth/guards/pin-auth.guard';
 import { CurrentUser } from '../../../../auth/decorators/current-user.decorator';
 import { Permissions } from '../../../../auth/decorators/permissions.decorator';
-import { IsString, IsOptional, IsBoolean, IsNotEmpty, IsDateString } from 'class-validator';
-
-class CreateBookingV2Dto {
-  @IsString()
-  @IsNotEmpty()
-  customerId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  staffId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  serviceId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  locationId: string;
-
-  @IsDateString()
-  @IsNotEmpty()
-  startTime: string;
-
-  @IsString()
-  @IsOptional()
-  notes?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  isOverride?: boolean;
-
-  @IsString()
-  @IsOptional()
-  overrideReason?: string;
-}
-
-class UpdateBookingV2Dto {
-  @IsDateString()
-  @IsOptional()
-  startTime?: string;
-
-  @IsDateString()
-  @IsOptional()
-  endTime?: string;
-
-  @IsString()
-  @IsOptional()
-  notes?: string;
-
-  @IsString()
-  @IsOptional()
-  staffId?: string;
-
-  @IsString()
-  @IsOptional()
-  serviceId?: string;
-
-  @IsString()
-  @IsOptional()
-  locationId?: string;
-}
+import { CustomValidationPipe } from '../../../../common/validation/validation.pipe';
+import { CreateBookingV2Dto } from '../dto/create-booking-v2.dto';
+import { UpdateBookingV2Dto } from '../dto/update-booking-v2.dto';
+import { QueryBookingsDto, CalendarViewDto } from '../dto/query-bookings.dto';
 
 @Controller({
   path: 'bookings',
   version: '2', // This marks it as v2
 })
 @UseGuards(JwtAuthGuard, PinAuthGuard)
+@UsePipes(new CustomValidationPipe())
 export class BookingsV2Controller {
   constructor(
     private readonly queryBus: QueryBus,
@@ -106,26 +52,20 @@ export class BookingsV2Controller {
   @Permissions('booking.read')
   async findAll(
     @CurrentUser() user: any,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-    @Query('staffId') staffId?: string,
-    @Query('customerId') customerId?: string,
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query() queryDto: QueryBookingsDto,
   ) {
     const query = new GetBookingsListQuery({
       merchantId: user.merchantId,
       filters: {
-        staffId,
-        customerId,
-        status,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
+        staffId: queryDto.staffId,
+        customerId: queryDto.customerId,
+        status: queryDto.status,
+        startDate: queryDto.startDate ? new Date(queryDto.startDate) : undefined,
+        endDate: queryDto.endDate ? new Date(queryDto.endDate) : undefined,
       },
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: queryDto.page || 1,
+        limit: queryDto.limit || 20,
       },
     });
 
@@ -146,17 +86,14 @@ export class BookingsV2Controller {
   @Permissions('booking.read')
   async getCalendarView(
     @CurrentUser() user: any,
-    @Query('date') date: string,
-    @Query('view') view: 'day' | 'week' | 'month' = 'day',
-    @Query('staffIds') staffIds?: string,
-    @Query('locationId') locationId?: string,
+    @Query() queryDto: CalendarViewDto,
   ) {
     const query = new GetCalendarViewQuery({
       merchantId: user.merchantId,
-      date: new Date(date),
-      view,
-      staffIds: staffIds ? staffIds.split(',') : undefined,
-      locationId,
+      date: new Date(queryDto.startDate),
+      view: queryDto.view || 'week',
+      staffIds: queryDto.staffId ? [queryDto.staffId] : undefined,
+      locationId: queryDto.locationId,
     });
 
     const slots = await this.queryBus.execute(query);
@@ -215,12 +152,21 @@ export class BookingsV2Controller {
   @Post()
   @Permissions('booking.create')
   async create(@CurrentUser() user: any, @Body() dto: CreateBookingV2Dto) {
+    // For now, handle single service (first one) until we update the command to support multiple
+    const primaryService = dto.services[0];
+    
     const command = new CreateBookingCommand({
-      ...dto,
+      customerId: dto.customerId,
+      staffId: dto.staffId,
+      serviceId: primaryService.serviceId,
+      locationId: dto.locationId,
       startTime: new Date(dto.startTime),
       merchantId: user.merchantId,
-      source: 'MANUAL',
-      createdById: dto.staffId, // Use the staff member creating the booking
+      notes: dto.notes,
+      source: dto.source || 'MANUAL',
+      createdById: user.id,
+      isOverride: dto.isOverride,
+      overrideReason: dto.overrideReason,
     });
 
     const booking = await this.createBookingHandler.execute(command);
@@ -249,8 +195,12 @@ export class BookingsV2Controller {
       // Log for debugging
       console.log(`[BookingsV2Controller] Update request includes staffId: ${dto.staffId}`);
     }
-    if (dto.serviceId) updateData.serviceId = dto.serviceId;
-    if (dto.locationId) updateData.locationId = dto.locationId;
+    if (dto.services && dto.services.length > 0) {
+      // For now, handle single service update
+      updateData.serviceId = dto.services[0].serviceId;
+    }
+    if (dto.status) updateData.status = dto.status;
+    if (dto.cancellationReason) updateData.cancellationReason = dto.cancellationReason;
 
     const booking = await this.bookingUpdateService.updateBooking(updateData);
     return this.toDto(booking);
