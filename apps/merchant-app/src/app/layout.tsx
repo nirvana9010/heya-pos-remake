@@ -4,7 +4,9 @@ import './globals.css'
 import { Toaster } from '@heya-pos/ui'
 import { Providers } from '@/components/providers'
 import { TopLoadingBar } from '@/components/TopLoadingBar'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { Suspense } from 'react'
+import { ChunkErrorHandler } from '@/components/ChunkErrorHandler'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -37,17 +39,20 @@ export default function RootLayout({
         <script src="/js/iclient-with-ui-v1.js"></script>
       </head>
       <body className={`${dmSans.variable} ${manrope.variable} font-sans`}>
+        <ChunkErrorHandler />
         <Suspense fallback={null}>
           <TopLoadingBar />
         </Suspense>
         <Providers>
-          <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-            </div>
-          }>
-            {children}
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+              </div>
+            }>
+              {children}
+            </Suspense>
+          </ErrorBoundary>
         </Providers>
         <Toaster />
       </body>

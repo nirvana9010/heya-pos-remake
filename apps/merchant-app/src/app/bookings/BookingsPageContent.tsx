@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { PaymentDialog } from '@/components/PaymentDialog';
+import { ErrorBoundary } from '@/components/error-boundary';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
 import { 
   DropdownMenu, 
@@ -197,8 +198,9 @@ export default function BookingsPageContent() {
     setShowRecentSearches(false);
     
     // Save to recent searches if not empty and not already in list
-    if (query.trim() && !recentSearches.includes(query.trim())) {
-      const newSearches = [query.trim(), ...recentSearches].slice(0, 5); // Keep last 5
+    const trimmedQuery = query.trim();
+    if (trimmedQuery && !recentSearches.includes(trimmedQuery)) {
+      const newSearches = [trimmedQuery, ...recentSearches].slice(0, 5);
       setRecentSearches(newSearches);
       localStorage.setItem('recentBookingSearches', JSON.stringify(newSearches));
     }
@@ -210,46 +212,47 @@ export default function BookingsPageContent() {
   };
 
   const filterBookings = () => {
-    let filtered = [...bookings];
+    const query = searchQuery.toLowerCase();
+    
+    const filtered = bookings.filter(booking => {
+      // Search filter
+      if (searchQuery && !(
+        booking.customerName.toLowerCase().includes(query) ||
+        booking.serviceName.toLowerCase().includes(query) ||
+        booking.staffName.toLowerCase().includes(query) ||
+        booking.customerPhone.includes(searchQuery) ||
+        booking.id.toLowerCase().includes(query)
+      )) {
+        return false;
+      }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(booking =>
-        (booking.customerName || '').toLowerCase().includes(query) ||
-        (booking.serviceName || '').toLowerCase().includes(query) ||
-        (booking.staffName || '').toLowerCase().includes(query) ||
-        (booking.customerPhone || '').includes(searchQuery) ||
-        (booking.id || '').toLowerCase().includes(query)
-      );
-    }
+      // Status filter
+      if (statusFilter !== 'all' && booking.status.toLowerCase() !== statusFilter.toLowerCase()) {
+        return false;
+      }
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => 
-        booking.status?.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
+      // Staff filter
+      if (staffFilter !== 'all' && booking.staffId !== staffFilter && booking.staffName !== staffFilter) {
+        return false;
+      }
 
-    if (staffFilter !== 'all') {
-      filtered = filtered.filter(booking => 
-        booking.staffId === staffFilter || booking.staffName === staffFilter
-      );
-    }
+      // Payment filter
+      if (paymentFilter !== 'all') {
+        const isPaid = booking.paidAmount > 0;
+        if (paymentFilter === 'paid' ? !isPaid : isPaid) {
+          return false;
+        }
+      }
 
-    if (paymentFilter !== 'all') {
-      filtered = filtered.filter(booking => {
-        const isPaid = (booking.paidAmount || 0) > 0;
-        return paymentFilter === 'paid' ? isPaid : !isPaid;
-      });
-    }
-
-    if (dateRange.from || dateRange.to) {
-      filtered = filtered.filter(booking => {
+      // Date range filter
+      if (dateRange.from || dateRange.to) {
         const bookingDate = new Date(booking.startTime || booking.date);
         if (dateRange.from && bookingDate < dateRange.from) return false;
         if (dateRange.to && bookingDate > endOfDay(dateRange.to)) return false;
-        return true;
-      });
-    }
+      }
+
+      return true;
+    });
 
     setFilteredBookings(filtered);
   };
@@ -793,7 +796,8 @@ export default function BookingsPageContent() {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <ErrorBoundary>
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Bookings</h1>
         <Button onClick={() => router.push('/bookings/new')}>
@@ -1266,5 +1270,6 @@ export default function BookingsPageContent() {
         />
       )}
     </div>
+    </ErrorBoundary>
   );
 }

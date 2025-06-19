@@ -1,37 +1,70 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "tasks": {
+  "globalEnv": ["NODE_ENV", "NEXT_PUBLIC_API_URL"],
+  "globalDependencies": ["**/.env.*local"],
+  "pipeline": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "cache": true,
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "cache": true,
+      "outputs": []
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": ["coverage/**"]
     },
     "@heya-pos/shared#dev": {
       "cache": false,
       "persistent": true
     },
+    "@heya-pos/shared#build": {
+      "cache": true,
+      "outputs": ["dist/**"]
+    },
     "merchant-app#dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["@heya-pos/shared#build"]
+      "dependsOn": ["@heya-pos/shared#build", "@heya-pos/ui#build"],
+      "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
     },
     "booking-app#dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["@heya-pos/shared#build"]
+      "dependsOn": ["@heya-pos/shared#build", "@heya-pos/ui#build"],
+      "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
     },
     "admin-dashboard#dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["@heya-pos/shared#build"]
+      "dependsOn": ["@heya-pos/shared#build", "@heya-pos/ui#build"],
+      "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
+    },
+    "api#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["DATABASE_URL", "NODE_ENV", "JWT_SECRET"]
+    }
+  },
+  "experimental": {
+    "spaces": {
+      "enabled": true
     }
   }
 }

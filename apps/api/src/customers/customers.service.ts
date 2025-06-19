@@ -1,13 +1,23 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { SearchCustomersDto, CustomerSortBy } from './dto/search-customers.dto';
 import { Prisma } from '@prisma/client';
+import { CacheService } from '../common/cache/cache.service';
+import { 
+  ResourceNotFoundException,
+  DuplicateResourceException,
+  BusinessRuleViolationException 
+} from '../common/exceptions/business-exception';
+import { ErrorCodes } from '../common/exceptions/error-codes';
 
 @Injectable()
 export class CustomersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async create(merchantId: string, dto: CreateCustomerDto) {
     // Check if customer with email already exists for this merchant
@@ -20,7 +30,7 @@ export class CustomersService {
       });
 
       if (existing) {
-        throw new ConflictException('Customer with this email already exists');
+        throw new DuplicateResourceException('Customer', 'email', dto.email);
       }
     }
 
@@ -34,7 +44,7 @@ export class CustomersService {
       });
 
       if (existingMobile) {
-        throw new ConflictException('Customer with this mobile number already exists');
+        throw new DuplicateResourceException('Customer', 'mobile', dto.mobile);
       }
     }
 
@@ -63,6 +73,19 @@ export class CustomersService {
       page,
       limit,
     } = params;
+
+    // Generate cache key
+    const cacheKey = this.cacheService.generateKey(
+      merchantId,
+      'customers-list',
+      JSON.stringify(params),
+    );
+
+    // Try to get from cache first
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     // Build where clause for Prisma query
     const where: Prisma.CustomerWhereInput = {
@@ -147,7 +170,7 @@ export class CustomersService {
       this.prisma.customer.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: customers,
       meta: {
         total,
@@ -156,6 +179,11 @@ export class CustomersService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    // Cache the result for 2 minutes
+    await this.cacheService.set(cacheKey, result, 120000);
+
+    return result;
   }
 
   async findOne(merchantId: string, id: string) {
@@ -191,7 +219,7 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException('Customer not found');
+      throw new ResourceNotFoundException('Customer', id);
     }
 
     return customer;
@@ -211,7 +239,7 @@ export class CustomersService {
       });
 
       if (existing) {
-        throw new ConflictException('Customer with this email already exists');
+        throw new DuplicateResourceException('Customer', 'email', dto.email);
       }
     }
 
@@ -226,7 +254,7 @@ export class CustomersService {
       });
 
       if (existing) {
-        throw new ConflictException('Customer with this mobile number already exists');
+        throw new DuplicateResourceException('Customer', 'mobile', dto.mobile);
       }
     }
 
@@ -279,7 +307,10 @@ export class CustomersService {
 
   async importCustomers(merchantId: string, file: Express.Multer.File) {
     if (!file || !file.buffer) {
-      throw new BadRequestException('No file uploaded');
+      throw new BusinessRuleViolationException(
+        'FILE_REQUIRED',
+        'No file uploaded',
+      );
     }
 
     const customers = await this.parseCsvFile(file.buffer);
@@ -439,7 +470,10 @@ export class CustomersService {
 
       return records;
     } catch (error) {
-      throw new BadRequestException('Invalid CSV file format');
+      throw new BusinessRuleViolationException(
+        'INVALID_FILE_FORMAT',
+        'Invalid CSV file format',
+      );
     }
   }
 

@@ -26,8 +26,23 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
+interface CustomerProps {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  mobile?: string;
+  notes?: string;
+  totalSpent: number;
+  totalVisits: number;
+  loyaltyPoints: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 interface CustomerDetailsDialogProps {
-  customer: any;
+  customer: CustomerProps;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate?: () => void;
@@ -55,10 +70,10 @@ export function CustomerDetailsDialog({
   useEffect(() => {
     if (customer) {
       setFormData({
-        firstName: customer.firstName || '',
-        lastName: customer.lastName || '',
-        email: customer.email || '',
-        phone: customer.mobile || customer.phone || '',
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.mobile || customer.phone,
         notes: customer.notes || '',
       });
       setIsEditing(false);
@@ -89,18 +104,18 @@ export function CustomerDetailsDialog({
 
   const handleCancel = () => {
     setFormData({
-      firstName: customer.firstName || '',
-      lastName: customer.lastName || '',
-      email: customer.email || '',
-      phone: customer.phone || '',
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      email: customer.email,
+      phone: customer.phone,
       notes: customer.notes || '',
     });
     setIsEditing(false);
   };
 
-  const isVIP = (customer?.totalSpent || 0) > 1000 || (customer?.totalVisits || 0) > 10;
-  const lastVisit = customer?.updatedAt ? new Date(customer.updatedAt) : null;
-  const memberSince = customer?.createdAt ? formatDistanceToNow(parseISO(customer.createdAt), { addSuffix: true }) : '';
+  const isVIP = customer.totalSpent > 1000 || customer.totalVisits > 10;
+  const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : null;
+  const memberSince = formatDistanceToNow(parseISO(customer.createdAt), { addSuffix: true });
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -115,7 +130,7 @@ export function CustomerDetailsDialog({
                 "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
                 isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-teal-500 to-teal-700"
               )}>
-                {customer?.firstName?.charAt(0)}{customer?.lastName?.charAt(0)}
+                {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
               </div>
               <div>
                 <DialogPrimitive.Title className="text-lg font-semibold flex items-center gap-2">
@@ -136,7 +151,7 @@ export function CustomerDetailsDialog({
                     </div>
                   ) : (
                     <>
-                      {customer?.firstName} {customer?.lastName}
+                      {customer.firstName} {customer.lastName}
                       {isVIP && <Crown className="h-4 w-4 text-yellow-600" />}
                     </>
                   )}
@@ -155,22 +170,31 @@ export function CustomerDetailsDialog({
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-3 px-6 pb-4">
+          <div className={cn(
+            "grid gap-3 px-6 pb-4",
+            (customer?.loyaltyPoints || 0) > 0 ? "grid-cols-3" : "grid-cols-2"
+          )}>
             <div className="text-center p-3 bg-teal-50 rounded-lg">
               <Calendar className="h-5 w-5 text-teal-600 mx-auto mb-1" />
-              <p className="text-lg font-semibold">{customer?.totalVisits || 0}</p>
+              <p className="text-lg font-semibold">{customer.totalVisits}</p>
               <p className="text-xs text-gray-600">Visits</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <DollarSign className="h-5 w-5 text-green-600 mx-auto mb-1" />
-              <p className="text-lg font-semibold">${(customer?.totalSpent || 0).toFixed(0)}</p>
+              <p className="text-lg font-semibold">
+                ${customer.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
               <p className="text-xs text-gray-600">Spent</p>
             </div>
-            <div className="text-center p-3 bg-yellow-50 rounded-lg">
-              <Star className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
-              <p className="text-lg font-semibold">{customer?.loyaltyPoints || 0}</p>
-              <p className="text-xs text-gray-600">Points</p>
-            </div>
+            {customer.loyaltyPoints > 0 && (
+              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                <Star className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
+                <p className="text-lg font-semibold">
+                  {customer.loyaltyPoints.toLocaleString('en-US')}
+                </p>
+                <p className="text-xs text-gray-600">Points</p>
+              </div>
+            )}
           </div>
 
           {/* Contact Info */}
@@ -204,11 +228,11 @@ export function CustomerDetailsDialog({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <span>{customer?.email}</span>
+                    <span>{customer.email}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-gray-400" />
-                    <span>{customer?.mobile || customer?.phone}</span>
+                    <span>{customer.mobile || customer.phone}</span>
                   </div>
                   {lastVisit && (
                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -233,7 +257,7 @@ export function CustomerDetailsDialog({
                 />
               ) : (
                 <p className="text-sm text-gray-600 min-h-[60px] p-2 bg-gray-50 rounded">
-                  {customer?.notes || 'No notes yet'}
+                  {customer.notes || 'No notes yet'}
                 </p>
               )}
             </div>
@@ -244,7 +268,7 @@ export function CustomerDetailsDialog({
             <Button 
               variant="ghost" 
               onClick={() => {
-                router.push(`/customers/${customer?.id}`);
+                router.push(`/customers/${customer.id}`);
                 onOpenChange(false);
               }}
               className="gap-2"

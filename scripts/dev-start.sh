@@ -76,6 +76,8 @@ echo -e "${GREEN}✅ Database ready${NC}"
 
 # Step 4: Start API
 echo -e "\n${YELLOW}Step 4: Starting API on port $API_PORT...${NC}"
+# Create logs directory if it doesn't exist
+mkdir -p logs
 cd apps/api
 NODE_ENV=development PORT=$API_PORT npm run start:dev > ../../logs/api.log 2>&1 &
 API_PID=$!

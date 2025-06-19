@@ -1,4 +1,5 @@
-import { IsString, IsEmail, IsOptional, IsDateString, IsEnum, IsNotEmpty, Matches, IsBoolean, IsArray } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsDateString, IsEnum, IsNotEmpty, Matches, IsBoolean, IsArray, MaxLength, MinLength } from 'class-validator';
+import { IsValidPhone } from '../../common/validation/decorators';
 
 export enum Gender {
   MALE = 'MALE',
@@ -22,20 +23,24 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(50)
   firstName: string;
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(50)
   lastName: string;
 
   @IsString()
   @IsOptional()
-  @Matches(/^\+?[1-9]\d{1,14}$/, { message: 'Invalid phone number format' })
+  @IsValidPhone()
   phone?: string;
 
   @IsString()
   @IsOptional()
-  @Matches(/^\+?[1-9]\d{1,14}$/, { message: 'Invalid mobile number format' })
+  @IsValidPhone()
   mobile?: string;
 
   @IsDateString()
@@ -72,6 +77,7 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(1000)
   notes?: string;
 
   @IsArray()
@@ -81,6 +87,7 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(10)
   preferredLanguage?: string;
 
   @IsBoolean()

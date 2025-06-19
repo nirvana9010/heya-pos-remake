@@ -2,6 +2,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetBookingsListQuery } from '../get-bookings-list.query';
 import { BookingListItem } from '../../read-models/booking-list-item.model';
 import { PrismaService } from '../../../../../prisma/prisma.service';
+import { CacheService } from '../../../../../common/cache/cache.service';
 
 interface BookingsListResult {
   items: BookingListItem[];
@@ -13,13 +14,31 @@ interface BookingsListResult {
 
 @QueryHandler(GetBookingsListQuery)
 export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuery> {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async execute(query: GetBookingsListQuery): Promise<BookingsListResult> {
     const { merchantId, filters, pagination } = query;
     const page = Math.max(1, Number(pagination?.page) || 1);
     const limit = Math.max(1, Number(pagination?.limit) || 20);
     const offset = (page - 1) * limit;
+
+    // Generate cache key
+    const cacheKey = this.cacheService.generateKey(
+      merchantId,
+      'bookings-list',
+      JSON.stringify(filters),
+      page,
+      limit,
+    );
+
+    // Try to get from cache first
+    const cached = await this.cacheService.get<BookingsListResult>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     // Build where clause
     const where: any = {
@@ -142,12 +161,17 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
       };
     });
 
-    return {
+    const result = {
       items,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
     };
+
+    // Cache the result for 1 minute
+    await this.cacheService.set(cacheKey, result, 60000);
+
+    return result;
   }
 }

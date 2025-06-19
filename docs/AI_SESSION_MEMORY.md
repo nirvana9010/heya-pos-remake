@@ -7,6 +7,91 @@
 > **NEW**: Drag-and-drop debugging revealed systemic workaround problem
 > **LATEST**: Timeline of failures from June 17 session documented
 
+## 🚨 NEW: Debugging Without Browser Console - The "Array to 0" Pattern
+**Added**: 2025-06-19
+**Issue**: Payments page showed `payments: 0` instead of array, all revenue $0.00
+
+### The Symptom Pattern
+When you see:
+- UI shows "0 transactions" when API returns data
+- Numbers appear where arrays should be (e.g., `payments: 0`)
+- All calculated values show $0.00
+- No error messages or failed API calls
+
+### Root Cause: Response Transformation Bug
+The bug was in `db-transforms.ts`:
+```javascript
+// BUG: isMoneyField() used .includes() check
+moneyFields.includes('payment') // This made 'payments' match!
+fieldLower.includes(field.toLowerCase()) // 'payments'.includes('payment') = true
+
+// This caused: payments array → transformDecimal() → 0
+```
+
+### How to Debug WITHOUT Browser Console
+
+#### 1. Start with curl/API testing
+```bash
+# Test API directly - bypass all frontend code
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/v1/payments
+# If this returns data, backend is fine
+```
+
+#### 2. Add server-side logging
+```typescript
+// Log to server instead of console
+await fetch('/api/debug-log', { 
+  method: 'POST', 
+  body: JSON.stringify({ data: response }) 
+});
+```
+
+#### 3. Use debug UI elements
+```tsx
+// Temporary debug info in the UI itself
+<pre className="text-xs bg-gray-100 p-2">
+  {JSON.stringify({ 
+    type: typeof data?.payments,
+    isArray: Array.isArray(data?.payments),
+    value: data?.payments 
+  }, null, 2)}
+</pre>
+```
+
+#### 4. Binary search the data flow
+Work backwards from UI to API:
+- UI shows wrong data → Check transformed data
+- Transformed data wrong → Check raw response  
+- Raw response wrong → Check API client
+- API client wrong → Check interceptors/transformers
+
+#### 5. Look for transformation patterns
+Search for interceptors and transformers:
+```bash
+grep -r "interceptor\|transform" src/lib/
+grep -r "response\.data" src/lib/
+```
+
+### Key Debugging Insights
+
+1. **"Array becomes number" = transformation bug** (99% of the time)
+2. **Check field name matching** in transformers (includes vs exact match)
+3. **Plural field names** ('payments', 'bookings', 'items') should never be transformed as single values
+4. **Response interceptors** are the usual suspects
+
+### The Fix Pattern
+```javascript
+// Add explicit exclusions for array fields
+if (fieldLower === 'payments' || fieldLower === 'refunds' || fieldLower === 'credits') {
+  return false; // Don't transform arrays!
+}
+
+// Use exact match for dangerous patterns
+fieldLower === field.toLowerCase() // Instead of .includes()
+```
+
+### Time to Debug: ~10 minutes without console access
+
 ## 🚨 CRITICAL: API Versioning - V1 vs V2 Confusion Pattern
 **Added**: 2025-06-16
 **Updated**: 2025-06-17 - Major lessons from drag-and-drop debugging

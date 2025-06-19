@@ -78,7 +78,9 @@ export const prefetchManager = {
     setTimeout(() => {
       this.prefetchCustomers()
       this.prefetchServices()
-      this.prefetchBookings()
+      // Skip bookings prefetch for now due to V2 API issues
+      // TODO: Re-enable once V2 bookings endpoint is fixed
+      // this.prefetchBookings()
     }, 2000)
   },
   

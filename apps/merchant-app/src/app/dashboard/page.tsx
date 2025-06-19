@@ -1,51 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { StatCard } from '@heya-pos/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
 import { Calendar, Users, DollarSign, Clock, Plus, TrendingUp, Sparkles, Zap } from 'lucide-react';
-import { type Booking, type DashboardStats } from '@heya-pos/shared';
-import { apiClient } from '@/lib/api-client';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { useDashboardStats, useTodayBookings } from '@/lib/query/hooks';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "polling" | "disconnected">("connected");
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Use React Query hooks for data fetching
+  const { 
+    data: stats, 
+    isLoading: statsLoading, 
+    error: statsError,
+    isRefetching: statsRefetching
+  } = useDashboardStats();
+  
+  const { 
+    data: todayBookings = [], 
+    isLoading: bookingsLoading, 
+    error: bookingsError,
+    isRefetching: bookingsRefetching
+  } = useTodayBookings();
 
-  useEffect(() => {
-    // Load dashboard data immediately
-    loadDashboardData().finally(() => {
-      setIsInitialLoad(false);
-    });
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch dashboard stats and today's bookings in parallel
-      const [dashboardStats, bookings] = await Promise.all([
-        apiClient.getDashboardStats(),
-        apiClient.getBookings(new Date())
-      ]);
-      
-      setStats(dashboardStats);
-      setTodayBookings(bookings);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      setConnectionStatus("disconnected");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Determine overall loading state
+  const isInitialLoad = statsLoading || bookingsLoading;
+  const isRefreshing = statsRefetching || bookingsRefetching;
+  
+  // Handle errors gracefully - don't let bookings error crash the whole page
+  const hasStatsError = !!statsError;
+  const hasBookingsError = !!bookingsError;
+  
+  // Use empty array if bookings failed to load
+  const safeBookings = hasBookingsError ? [] : todayBookings;
 
   const quickActions = [
     { label: 'New Booking', icon: Plus, action: () => router.push('/bookings/new') },
@@ -55,7 +46,7 @@ export default function DashboardPage() {
   ];
 
   // Show skeleton during initial load
-  if (isInitialLoad && loading) {
+  if (isInitialLoad) {
     return (
       <div className="container animate-in fade-in-0 duration-300">
         {/* Header skeleton */}
@@ -111,62 +102,71 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 style={{ 
-            fontSize: '2.5rem', 
-            marginBottom: '0.5rem',
-            color: 'var(--color-text-primary)'
-          }}>
-            Welcome back!
-          </h1>
-          <p style={{ 
-            color: 'var(--color-text-secondary)', 
-            fontSize: '1.125rem'
-          }}>
-            Here's what's happening at your salon today
-          </p>
+    <ErrorBoundary>
+      <div className="container animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              marginBottom: '0.5rem',
+              color: 'var(--color-text-primary)'
+            }}>
+              Welcome back!
+            </h1>
+            <p style={{ 
+              color: 'var(--color-text-secondary)', 
+              fontSize: '1.125rem'
+            }}>
+              Here's what's happening at your salon today
+            </p>
+          </div>
+          <button 
+            className="btn btn-primary"
+            onClick={() => router.push('/bookings/new')}
+          >
+            <Plus size={18} />
+            New Booking
+          </button>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => router.push('/bookings/new')}
-        >
-          <Plus size={18} />
-          New Booking
-        </button>
-      </div>
 
       {/* Stats Grid */}
       <div className="dashboard-grid">
         {[
           { 
             title: "Today's Bookings", 
-            value: loading ? '-' : (stats?.todayBookings || 8).toString(),
+            value: isRefreshing ? '-' : (stats?.todayBookings || safeBookings.length || 0).toString(),
             icon: Calendar,
-            change: '+12%',
-            positive: true
+            change: stats?.bookingGrowth !== undefined 
+              ? `${stats.bookingGrowth >= 0 ? '+' : ''}${stats.bookingGrowth.toFixed(1)}%`
+              : '-',
+            positive: (stats?.bookingGrowth || 0) >= 0
           },
           { 
             title: "Today's Revenue", 
-            value: loading ? '-' : `$${Math.round(Number(stats?.todayRevenue) || 1240)}`,
+            value: isRefreshing ? '-' : `$${Math.round(Number(stats?.todayRevenue) || 0)}`,
             icon: DollarSign,
-            change: '+8.5%',
-            positive: true
+            change: stats?.revenueGrowth !== undefined
+              ? `${stats.revenueGrowth >= 0 ? '+' : ''}${stats.revenueGrowth.toFixed(1)}%`
+              : '-',
+            positive: (stats?.revenueGrowth || 0) >= 0
           },
           { 
             title: "New Customers", 
-            value: loading ? '-' : (stats?.newCustomers || 3).toString(),
+            value: isRefreshing ? '-' : (stats?.newCustomers || 0).toString(),
             icon: Users,
-            change: '+2',
-            positive: true
+            change: stats?.customerGrowth !== undefined
+              ? `${stats.customerGrowth >= 0 ? '+' : ''}${stats.customerGrowth.toFixed(1)}%`
+              : '-',
+            positive: (stats?.customerGrowth || 0) >= 0
           },
           { 
             title: "Pending Bookings", 
-            value: loading ? '-' : (stats?.pendingBookings || 2).toString(),
+            value: isRefreshing ? '-' : (stats?.pendingBookings || 0).toString(),
             icon: Clock,
-            change: 'Awaiting',
+            change: stats?.pendingBookings 
+              ? `${stats.pendingBookings} waiting`
+              : 'None',
             positive: false
           }
         ].map((stat, index) => (
@@ -245,7 +245,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex flex-col gap-4">
-          {loading ? (
+          {isRefreshing ? (
             <div className="text-center" style={{ 
               padding: '4rem', 
               color: 'var(--color-text-secondary)'
@@ -264,7 +264,20 @@ export default function DashboardPage() {
                 animation: 'pulse 1.5s ease-in-out infinite'
               }}></div>
             </div>
-          ) : todayBookings.length === 0 ? (
+          ) : hasBookingsError ? (
+            <div className="text-center" style={{ 
+              padding: '4rem', 
+              color: 'var(--color-text-secondary)'
+            }}>
+              <Calendar size={48} style={{ 
+                margin: '0 auto 1.5rem', 
+                color: 'var(--color-error)',
+                opacity: 0.5
+              }} />
+              <p>Unable to load today's bookings</p>
+              <p style={{ fontSize: '0.875rem' }}>There's an issue with the booking system. Please try again later.</p>
+            </div>
+          ) : safeBookings.length === 0 ? (
             <div className="text-center" style={{ 
               padding: '4rem', 
               color: 'var(--color-text-secondary)'
@@ -278,12 +291,8 @@ export default function DashboardPage() {
               <p style={{ fontSize: '0.875rem' }}>Time to relax or catch up on other tasks!</p>
             </div>
           ) : (
-            // Sample bookings for demo
-            [
-              { id: '1', customerName: 'Sarah Johnson', serviceName: 'Hair Cut & Color', startTime: '10:00 AM', staffName: 'Emma', status: 'confirmed' },
-              { id: '2', customerName: 'Michael Chen', serviceName: 'Beard Trim', startTime: '11:30 AM', staffName: 'Jake', status: 'in-progress' },
-              { id: '3', customerName: 'Lisa Williams', serviceName: 'Facial Treatment', startTime: '2:00 PM', staffName: 'Sophie', status: 'pending' }
-            ].map((booking, index) => (
+            // Use real booking data from React Query
+            safeBookings.map((booking, index) => (
               <div
                 key={booking.id}
                 className="card-interactive"
@@ -363,5 +372,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
