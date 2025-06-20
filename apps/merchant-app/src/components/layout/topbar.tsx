@@ -81,13 +81,13 @@ export function Topbar() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* Theme Toggle */}
-        <button
+        {/* Theme Toggle - Hidden for MVP */}
+        {/* <button
           onClick={toggleTheme}
           className="btn btn-ghost btn-sm"
         >
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+        </button> */}
 
         {/* Notifications */}
         <NotificationsDropdown />
