@@ -17,6 +17,7 @@ import {
   Menu,
   Sparkles,
   Gift,
+  Bell,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
 
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Loyalty', href: '/loyalty', icon: Gift },
   { name: 'Payments', href: '/payments', icon: DollarSign },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
