@@ -22,7 +22,7 @@ import {
 import { Button } from '@heya-pos/ui'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Hidden for MVP
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Bookings', href: '/bookings', icon: Calendar },
   { name: 'Customers', href: '/customers', icon: Users },

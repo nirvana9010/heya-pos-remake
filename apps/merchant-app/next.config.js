@@ -169,7 +169,7 @@ const nextConfig = {
     return [
       {
         source: '/',
-        destination: '/dashboard',
+        destination: '/calendar',
         permanent: false,
       },
     ];
