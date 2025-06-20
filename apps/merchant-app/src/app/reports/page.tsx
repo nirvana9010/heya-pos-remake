@@ -31,6 +31,7 @@ import { format, subMonths } from "date-fns";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { TrendBadge } from "@/components/TrendBadge";
 import { calculateTrend, calculateCurrencyTrend, calculateCountTrend } from "@heya-pos/utils";
+import { PinProtected } from "@/components/PinProtected";
 
 // Import the type from the client
 import type { ReportData } from '@/lib/clients/reports-client';
@@ -677,15 +678,16 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
-      {/* Enhanced Header with Prominent Date Range */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              Track performance, identify trends, and make data-driven decisions
-            </p>
+    <PinProtected feature="reports" title="Reports Access Required" description="Enter your PIN to view business reports">
+      <div className="container max-w-7xl mx-auto p-6 space-y-6">
+        {/* Enhanced Header with Prominent Date Range */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+              <p className="text-muted-foreground mt-1">
+                Track performance, identify trends, and make data-driven decisions
+              </p>
           </div>
           <Button variant="outline" onClick={handleExportAll}>
             <Download className="mr-2 h-4 w-4" />
@@ -786,5 +788,6 @@ export default function ReportsPage() {
         </Tabs>
       </ErrorBoundary>
     </div>
+    </PinProtected>
   );
 }
