@@ -64,7 +64,6 @@ export default function SettingsPage() {
         setRequirePinForRefunds(response.requirePinForRefunds ?? true);
         setRequirePinForCancellations(response.requirePinForCancellations ?? true);
         setRequirePinForReports(response.requirePinForReports ?? true);
-        setLoyaltyType(response.loyaltyType || "visit");
         setRequireDeposit(response.requireDeposit ?? false);
         setDepositPercentage(response.depositPercentage?.toString() || "30");
         setEnableTips(response.enableTips ?? false);
