@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Gift, Database, Globe } from "lucide-react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -22,7 +22,6 @@ export default function SettingsPage() {
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
   const [requirePinForCancellations, setRequirePinForCancellations] = useState(true);
   const [requirePinForReports, setRequirePinForReports] = useState(true);
-  const [loyaltyType, setLoyaltyType] = useState("visit");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
@@ -117,7 +116,6 @@ export default function SettingsPage() {
         cancellationHours: parseInt(cancellationHours),
         requirePinForRefunds,
         requirePinForCancellations,
-        loyaltyType,
         requireDeposit,
         depositPercentage: parseInt(depositPercentage),
         timezone: selectedTimezone,
@@ -158,11 +156,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="business">Business</TabsTrigger>
           <TabsTrigger value="booking">Booking</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="loyalty">Loyalty</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
 
@@ -552,100 +549,6 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-        <TabsContent value="loyalty">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5" />
-                Loyalty Program
-              </CardTitle>
-              <CardDescription>Configure customer loyalty rewards</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Loyalty Type</Label>
-                  <Select value={loyaltyType} onValueChange={setLoyaltyType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="visit">Points per Visit</SelectItem>
-                      <SelectItem value="spend">Points per Dollar Spent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {loyaltyType === "visit" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="points-per-visit">Points per Visit</Label>
-                    <Input id="points-per-visit" type="number" defaultValue="10" />
-                    <p className="text-sm text-muted-foreground">
-                      Points awarded for each completed appointment
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="points-per-dollar">Points per Dollar</Label>
-                    <Input id="points-per-dollar" type="number" defaultValue="1" step="0.1" />
-                    <p className="text-sm text-muted-foreground">
-                      Points awarded for every dollar spent
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="redemption-value">Point Redemption Value</Label>
-                  <div className="flex items-center gap-2">
-                    <Input id="redemption-points" type="number" defaultValue="100" className="w-24" />
-                    <span>points =</span>
-                    <Input id="redemption-value" type="number" defaultValue="10" className="w-24" />
-                    <span>dollars</span>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Loyalty Features</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Enable Loyalty Program</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Award points to customers for visits or purchases
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Birthday Rewards</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically send birthday rewards to customers
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Referral Rewards</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Award bonus points for customer referrals
-                      </p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button>Save Changes</Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
         <TabsContent value="notifications">
           <Card>
