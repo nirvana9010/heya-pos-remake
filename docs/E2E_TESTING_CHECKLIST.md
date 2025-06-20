@@ -82,11 +82,11 @@ Booking App:
 2. Enter invalid credentials
 3. Verify error message appears
 4. Enter valid credentials (HAMILTON/demo123)
-5. Verify redirect to dashboard
+5. Verify redirect to calendar (not dashboard)
 
 **Expected Results:**
 - [ ] Invalid login shows "Invalid credentials" error
-- [ ] Valid login redirects to dashboard within 2 seconds
+- [ ] Valid login redirects to calendar within 2 seconds
 - [ ] User info displays in header
 - [ ] Session persists on page refresh
 - [ ] "Remember me" checkbox works correctly
@@ -111,32 +111,41 @@ Booking App:
 
 ---
 
-### 2. Dashboard
+### 2. Notifications System
 
-#### 2.1 Dashboard Loading
+#### 2.1 Notification Bell
 **Steps:**
-1. Login and wait for dashboard to load
-2. Check all widgets load data
-3. Verify no console errors
+1. Check notification bell in top navigation
+2. Click bell to open dropdown
+3. Verify notification types displayed
+4. Mark notifications as read
+5. Clear all notifications
 
 **Expected Results:**
-- [ ] Today's appointments display correctly
-- [ ] Revenue statistics are accurate
-- [ ] Upcoming appointments show next 5
-- [ ] All charts render without errors
-- [ ] Page loads in < 3 seconds
+- [ ] Bell shows unread count badge
+- [ ] Dropdown displays only valid notifications:
+  - New bookings
+  - Booking modifications  
+  - Booking cancellations
+  - Payment refunds
+- [ ] No invalid notification types appear
+- [ ] Mark as read updates badge count
+- [ ] Clear all removes notifications
+- [ ] Notifications persist on page refresh
 
-#### 2.2 Dashboard Interactions
+#### 2.2 Real-time Notifications
 **Steps:**
-1. Click on appointment cards
-2. Change date range for statistics
-3. Interact with charts
+1. Create a new booking
+2. Modify an existing booking
+3. Cancel a booking
+4. Process a refund
 
 **Expected Results:**
-- [ ] Appointment cards link to booking details
-- [ ] Statistics update when date range changes
-- [ ] Charts show tooltips on hover
-- [ ] No UI glitches or layout breaks
+- [ ] New booking triggers notification
+- [ ] Booking modification triggers notification
+- [ ] Cancellation triggers notification
+- [ ] Refund triggers notification with PIN
+- [ ] Notifications appear without page refresh
 
 ---
 
@@ -224,15 +233,16 @@ Booking App:
 1. Navigate to Customers page
 2. View customer list
 3. Use search functionality
-4. Sort by different columns
-5. Filter by tags/status
+4. Check VIP customer badges
+5. View loyalty points display
 
 **Expected Results:**
-- [ ] List loads with pagination
-- [ ] Search works for name, email, phone
-- [ ] Sorting updates list correctly
-- [ ] Filters apply without page reload
-- [ ] VIP badges display correctly
+- [ ] List loads without pagination issues
+- [ ] Search works for name and phone
+- [ ] Real-time search updates as you type
+- [ ] VIP badges (crown icon) display correctly
+- [ ] Loyalty points show for each customer
+- [ ] Customer list updates immediately on changes
 
 #### 4.2 Customer Profile
 **Steps:**
@@ -406,7 +416,8 @@ Booking App:
 2. Update business information
 3. Change timezone
 4. Modify business hours
-5. Save changes
+5. Note: Loyalty settings removed (use dedicated Loyalty page)
+6. Save changes
 
 **Expected Results:**
 - [ ] All fields editable
@@ -414,6 +425,7 @@ Booking App:
 - [ ] Business hours update availability
 - [ ] Changes persist after refresh
 - [ ] Validation prevents invalid data
+- [ ] No loyalty tab appears in settings
 
 #### 9.2 Booking Rules
 **Steps:**
@@ -545,6 +557,34 @@ Booking App:
 - [ ] Cannot cancel if too late
 - [ ] Cancellation confirmation sent
 
+### 10. Loyalty Program
+
+#### 10.1 Loyalty Page Access
+**Steps:**
+1. Navigate to Loyalty page
+2. View loyalty settings
+3. Check customer loyalty stats
+
+**Expected Results:**
+- [ ] Loyalty page loads correctly
+- [ ] Settings display current configuration
+- [ ] Customer loyalty points visible
+- [ ] Accrual rules clearly shown
+- [ ] Redemption options available
+
+#### 10.2 Loyalty Points Accrual
+**Steps:**
+1. Complete a booking payment
+2. Check customer loyalty points update
+3. Verify points calculation
+
+**Expected Results:**
+- [ ] Points accrue based on spend
+- [ ] Points display immediately
+- [ ] Calculation follows rules
+- [ ] History shows transactions
+- [ ] No duplicate accruals
+
 ---
 
 ## Integration Tests
@@ -601,10 +641,10 @@ Booking App:
 #### 12.1 Page Load Times
 **Test each major page**
 - [ ] Login page: < 2 seconds
-- [ ] Dashboard: < 3 seconds
-- [ ] Calendar: < 3 seconds
+- [ ] Calendar (default page): < 3 seconds
 - [ ] Customer list: < 2 seconds
 - [ ] Reports: < 4 seconds
+- [ ] Settings: < 2 seconds
 - [ ] Booking app home: < 2 seconds
 
 #### 12.2 API Response Times
@@ -659,10 +699,10 @@ Booking App:
 #### 14.1 Merchant App Mobile
 **Test on phone/tablet**
 - [ ] Login works on mobile
-- [ ] Dashboard responsive
-- [ ] Calendar usable on touch
+- [ ] Calendar (default) responsive
+- [ ] Calendar drag-drop works on touch
 - [ ] Forms work properly
-- [ ] Navigation accessible
+- [ ] Navigation accessible (4-column grid)
 
 #### 14.2 Booking App Mobile
 **Primary mobile flow**
@@ -745,8 +785,22 @@ _____________________________________________________
 
 ## Appendix
 
-### A. Known Issues
-- List any known issues that are acceptable for launch
+### A. Recent Changes & Known Issues
+
+#### Recent MVP Changes:
+1. **Dashboard Hidden**: Login now redirects to Calendar instead of Dashboard (not providing value for MVP)
+2. **Theme Toggle Hidden**: Light/dark mode switch removed as non-functional
+3. **Loyalty Moved**: Loyalty settings removed from Settings page, use dedicated Loyalty page
+4. **Simplified Notifications**: Reduced from 13 types to 4 essential types:
+   - New bookings
+   - Booking modifications
+   - Booking cancellations
+   - Payment refunds
+5. **Navigation Grid**: Sidebar reduced from 5 to 4 columns after Dashboard removal
+
+#### Known Issues:
+- Old notification types may appear until localStorage is cleared
+- Console logs API may show occasional errors (non-critical)
 - Include workarounds if available
 
 ### B. Browser Compatibility
