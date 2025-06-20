@@ -36,6 +36,12 @@ export function NotificationsDropdown() {
 
   const renderNotification = (notification: any) => {
     const config = notificationConfig[notification.type as NotificationType];
+    
+    // Skip rendering if notification type doesn't exist in current config
+    if (!config) {
+      return null;
+    }
+    
     const Icon = iconMap[config.icon as keyof typeof iconMap];
 
     return (
@@ -101,13 +107,17 @@ export function NotificationsDropdown() {
   const renderGroup = (title: string, items: any[]) => {
     if (items.length === 0) return null;
     
+    // Filter out invalid notifications
+    const validNotifications = items.map(renderNotification).filter(Boolean);
+    if (validNotifications.length === 0) return null;
+    
     return (
       <>
         <div className="px-4 py-2 bg-muted/50">
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
         </div>
         <div className="group">
-          {items.map(renderNotification)}
+          {validNotifications}
         </div>
       </>
     );

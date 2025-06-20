@@ -20,22 +20,25 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // Initialize with mock data in development
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      setNotifications(generateMockNotifications());
-    }
-    
     // Load persisted notifications from localStorage
     const stored = localStorage.getItem('merchant-notifications');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setNotifications(parsed.map((n: any) => ({
+        // Filter out old notification types that no longer exist
+        const validTypes = ['booking_new', 'booking_cancelled', 'booking_modified', 'payment_refunded'];
+        const filteredNotifications = parsed.filter((n: any) => validTypes.includes(n.type));
+        
+        setNotifications(filteredNotifications.map((n: any) => ({
           ...n,
           timestamp: new Date(n.timestamp)
         })));
       } catch (e) {
         console.error('Failed to parse stored notifications:', e);
       }
+    } else if (process.env.NODE_ENV === 'development') {
+      // Only generate mock notifications if no stored ones exist
+      setNotifications(generateMockNotifications());
     }
   }, []);
 
