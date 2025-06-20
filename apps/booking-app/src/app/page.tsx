@@ -84,14 +84,14 @@ export default function Home() {
               {content.hero.subtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/booking">
+              <Link href={`/${merchantSubdomain}/booking`}>
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                   Book Appointment
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/services">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-white border-white hover:bg-white hover:text-primary">
+              <Link href={`/${merchantSubdomain}/services`}>
+                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent text-white border-white hover:bg-white hover:text-primary">
                   View Services
                 </Button>
               </Link>
@@ -174,7 +174,7 @@ export default function Home() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Link href="/booking">
+                  <Link href={`/${merchantSubdomain}/booking`}>
                     <Button className="w-full" variant="outline">
                       Book Now
                     </Button>
@@ -184,7 +184,7 @@ export default function Home() {
             ))}
           </div>
           <div className="text-center mt-8">
-            <Link href="/services">
+            <Link href={`/${merchantSubdomain}/services`}>
               <Button variant="outline" size="lg">
                 View All Services
                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -233,7 +233,7 @@ export default function Home() {
               `Book your appointment today and experience the ${merchant?.name} difference`
             }
           </p>
-          <Link href="/booking">
+          <Link href={`/${merchantSubdomain}/booking`}>
             <Button size="lg" variant="secondary">
               Book Your Appointment
               <Calendar className="ml-2 h-5 w-5" />

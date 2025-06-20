@@ -16,9 +16,12 @@ import {
   Input,
 } from '@heya-pos/ui'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const [searchQuery, setSearchQuery] = useState('')
+  const router = useRouter()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -26,11 +29,23 @@ export function Topbar() {
     document.documentElement.setAttribute('data-theme', newTheme)
   }
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // Navigate to bookings page with search query
+      router.push(`/bookings?search=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
+
+  const handleNewBooking = () => {
+    router.push('/bookings/new')
+  }
+
   return (
     <header className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
         {/* Enhanced Search */}
-        <div style={{ 
+        <form onSubmit={handleSearch} style={{ 
           maxWidth: '400px', 
           width: '100%',
           margin: 0,
@@ -51,15 +66,20 @@ export function Topbar() {
             type="search"
             placeholder="Search customers, bookings, services..."
             className="form-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{ 
               paddingLeft: '2.5rem'
             }}
           />
-        </div>
+        </form>
 
         {/* Quick Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button className="btn btn-secondary btn-sm">
+          <button 
+            className="btn btn-secondary btn-sm"
+            onClick={handleNewBooking}
+          >
             + New Booking
           </button>
         </div>
