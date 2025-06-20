@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { StatCard } from '@heya-pos/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
 import { Calendar, Users, DollarSign, Clock, Plus, TrendingUp, Sparkles, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useDashboardStats, useTodayBookings } from '@/lib/query/hooks';
+import { StatCard } from '@/components/StatCard';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -131,68 +131,42 @@ export default function DashboardPage() {
         </div>
 
       {/* Stats Grid */}
-      <div className="dashboard-grid">
-        {[
-          { 
-            title: "Today's Bookings", 
-            value: isRefreshing ? '-' : (stats?.todayBookings || safeBookings.length || 0).toString(),
-            icon: Calendar,
-            change: stats?.bookingGrowth !== undefined 
-              ? `${stats.bookingGrowth >= 0 ? '+' : ''}${stats.bookingGrowth.toFixed(1)}%`
-              : '-',
-            positive: (stats?.bookingGrowth || 0) >= 0
-          },
-          { 
-            title: "Today's Revenue", 
-            value: isRefreshing ? '-' : `$${Math.round(Number(stats?.todayRevenue) || 0)}`,
-            icon: DollarSign,
-            change: stats?.revenueGrowth !== undefined
-              ? `${stats.revenueGrowth >= 0 ? '+' : ''}${stats.revenueGrowth.toFixed(1)}%`
-              : '-',
-            positive: (stats?.revenueGrowth || 0) >= 0
-          },
-          { 
-            title: "New Customers", 
-            value: isRefreshing ? '-' : (stats?.newCustomers || 0).toString(),
-            icon: Users,
-            change: stats?.customerGrowth !== undefined
-              ? `${stats.customerGrowth >= 0 ? '+' : ''}${stats.customerGrowth.toFixed(1)}%`
-              : '-',
-            positive: (stats?.customerGrowth || 0) >= 0
-          },
-          { 
-            title: "Pending Bookings", 
-            value: isRefreshing ? '-' : (stats?.pendingBookings || 0).toString(),
-            icon: Clock,
-            change: stats?.pendingBookings 
-              ? `${stats.pendingBookings} waiting`
-              : 'None',
-            positive: false
-          }
-        ].map((stat, index) => (
-          <div key={stat.title} className="stat-card">
-            <div className="flex justify-between items-center mb-4">
-              <div style={{
-                background: 'var(--color-primary)',
-                padding: '0.5rem',
-                borderRadius: '0.5rem',
-                color: 'white',
-                opacity: 0.9
-              }}>
-                <stat.icon size={20} />
-              </div>
-              <span className={`stat-change ${stat.positive ? 'positive' : ''}`}>
-                {stat.change}
-              </span>
-            </div>
-            <div className="stat-value">
-              {stat.value}
-            </div>
-            <div className="stat-label">
-              {stat.title}
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Today's Bookings"
+          value={stats?.todayBookings || safeBookings.length || 0}
+          previousValue={stats?.bookingGrowth !== undefined ? 
+            (stats.todayBookings || 0) / (1 + stats.bookingGrowth / 100) : undefined}
+          icon={Calendar}
+          trendOptions={{ type: 'count' }}
+          loading={isInitialLoad || isRefreshing}
+        />
+        <StatCard
+          title="Today's Revenue"
+          value={`$${Math.round(Number(stats?.todayRevenue) || 0)}`}
+          previousValue={stats?.revenueGrowth !== undefined ?
+            (Number(stats?.todayRevenue) || 0) / (1 + stats.revenueGrowth / 100) : undefined}
+          icon={DollarSign}
+          trendOptions={{ type: 'currency' }}
+          loading={isInitialLoad || isRefreshing}
+        />
+        <StatCard
+          title="New Customers"
+          value={stats?.newCustomers || 0}
+          previousValue={stats?.customerGrowth !== undefined ?
+            (stats.newCustomers || 0) / (1 + stats.customerGrowth / 100) : undefined}
+          icon={Users}
+          trendOptions={{ type: 'count' }}
+          loading={isInitialLoad || isRefreshing}
+        />
+        <StatCard
+          title="Pending Bookings"
+          value={stats?.pendingBookings || 0}
+          icon={Clock}
+          iconColor="text-orange-600"
+          iconBgColor="bg-orange-100"
+          loading={isInitialLoad || isRefreshing}
+        />
       </div>
 
       {/* Quick Actions */}

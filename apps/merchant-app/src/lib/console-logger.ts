@@ -39,6 +39,26 @@ export function initializeConsoleLogger() {
       message: args.map(arg => {
         if (typeof arg === 'object') {
           try {
+            // Special handling for Error objects
+            if (arg instanceof Error) {
+              return JSON.stringify({
+                name: arg.name,
+                message: arg.message,
+                stack: arg.stack,
+                ...arg // Include any additional properties
+              }, null, 2);
+            }
+            // For Axios errors, extract relevant details
+            if (arg?.isAxiosError) {
+              return JSON.stringify({
+                message: arg.message,
+                status: arg.response?.status,
+                statusText: arg.response?.statusText,
+                data: arg.response?.data,
+                url: arg.config?.url,
+                method: arg.config?.method
+              }, null, 2);
+            }
             return JSON.stringify(arg, null, 2);
           } catch (e) {
             return String(arg);

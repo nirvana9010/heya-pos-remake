@@ -132,7 +132,9 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         id: s.service.id,
         name: s.service.name,
         duration: s.service.duration,
-        price: s.service.price.toNumber(),
+        price: typeof s.service.price === 'object' && s.service.price.toNumber
+          ? s.service.price.toNumber()
+          : Number(s.service.price),
       }));
       
       const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
@@ -152,7 +154,9 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         startTime: booking.startTime,
         endTime: booking.endTime,
         status: booking.status,
-        totalAmount: booking.totalAmount.toNumber(),
+        totalAmount: typeof booking.totalAmount === 'object' && booking.totalAmount.toNumber
+          ? booking.totalAmount.toNumber()
+          : Number(booking.totalAmount),
         totalDuration,
         locationName: booking.location.name,
         createdAt: booking.createdAt,

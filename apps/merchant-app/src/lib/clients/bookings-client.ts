@@ -45,45 +45,100 @@ export interface AvailabilityRequest {
 
 export class BookingsClient extends BaseApiClient {
   async getBookings(params?: any): Promise<Booking[]> {
-    // If a Date object is passed, convert to appropriate params
-    if (params instanceof Date) {
-      // V2 API doesn't accept 'date' parameter, use startDate/endDate instead
-      const startOfDay = new Date(params);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(params);
-      endOfDay.setHours(23, 59, 59, 999);
+    try {
+      // If a Date object is passed, convert to appropriate params
+      if (params instanceof Date) {
+        // V2 API doesn't accept 'date' parameter, use startDate/endDate instead
+        const startOfDay = new Date(params);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(params);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        params = {
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      }
       
-      params = {
-        startDate: startOfDay.toISOString(),
-        endDate: endOfDay.toISOString()
+      // If params contains 'date' property, convert it to startDate/endDate
+      if (params?.date) {
+        console.log('[BookingsClient] Converting date param to startDate/endDate:', params.date);
+        const dateStr = params.date;
+        delete params.date; // Remove the date param
+        
+        // Create proper start and end times for the full day
+        const startDate = new Date(dateStr);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(dateStr);
+        endDate.setHours(23, 59, 59, 999);
+        
+        params.startDate = startDate.toISOString();
+        params.endDate = endDate.toISOString();
+        console.log('[BookingsClient] Converted params:', params);
+      }
+      
+      // V2 API has a limit of 100
+      const requestParams = {
+        limit: 100,  // Maximum allowed by V2 API
+        ...params
       };
+      
+      console.log('[BookingsClient] Making request with params:', requestParams);
+      
+      const response = await this.get('/bookings', { params: requestParams }, 'v2');
+      
+      // Debug pagination
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Bookings API raw response:', {
+          hasData: !!response.data,
+          dataLength: response.data?.length || response.length,
+          total: response.total,
+          page: response.page,
+          limit: response.limit,
+          params: params
+        });
+      }
+      
+      // Real API returns paginated response, extract data
+      const bookings = response.data || response;
+      
+      if (!Array.isArray(bookings)) {
+        console.error('[BookingsClient] Invalid response format, expected array:', bookings);
+        throw new Error('Invalid response format from bookings API');
+      }
+      
+      // Transform each booking to match the expected format
+      return bookings.map((booking: any) => this.transformBooking(booking));
+    } catch (error: any) {
+      // Use direct console methods to bypass logger
+      if (typeof window !== 'undefined' && window.console) {
+        window.console.error('[BookingsClient] Error in getBookings:');
+        window.console.error('Error type:', error?.constructor?.name);
+        window.console.error('Error message:', error?.message);
+        window.console.error('Error stack:', error?.stack);
+        
+        if (error?.response) {
+          window.console.error('Response status:', error.response?.status);
+          window.console.error('Response data:', error.response?.data);
+          window.console.error('Response headers:', error.response?.headers);
+        }
+        
+        if (error?.config) {
+          window.console.error('Request URL:', error.config?.url);
+          window.console.error('Request method:', error.config?.method);
+          window.console.error('Request headers:', error.config?.headers);
+        }
+        
+        // Try to log the full error object
+        try {
+          window.console.error('Full error object:', JSON.parse(JSON.stringify(error)));
+        } catch (e) {
+          window.console.error('Could not serialize error object');
+        }
+      }
+      throw error;
     }
-    
-    // V2 API has a limit of 100
-    const requestParams = {
-      limit: 100,  // Maximum allowed by V2 API
-      ...params
-    };
-    
-    const response = await this.get('/bookings', { params: requestParams }, 'v2');
-    
-    // Debug pagination
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Bookings API raw response:', {
-        hasData: !!response.data,
-        dataLength: response.data?.length || response.length,
-        total: response.total,
-        page: response.page,
-        limit: response.limit,
-        params: params
-      });
-    }
-    
-    // Real API returns paginated response, extract data
-    const bookings = response.data || response;
-    
-    // Transform each booking to match the expected format
-    return bookings.map((booking: any) => this.transformBooking(booking));
   }
 
   async getBooking(id: string): Promise<Booking> {

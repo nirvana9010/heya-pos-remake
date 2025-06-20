@@ -7,3 +7,4 @@ export * from './booking';
 export * from './invoice';
 export * from './loyalty';
 export * from './timezone';
+export * from './trend';
