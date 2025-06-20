@@ -23,6 +23,8 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   
+  // Enable SWC minification
+  swcMinify: true,
   
   // Experimental features for better performance
   experimental: {
