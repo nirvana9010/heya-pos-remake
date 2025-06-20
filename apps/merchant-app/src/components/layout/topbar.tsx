@@ -18,10 +18,10 @@ import {
 import { useState } from 'react'
 import Link from 'next/link'
 import { NotificationsDropdown } from '@/components/notifications-dropdown'
+import { GlobalSearch } from '@/components/global-search'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const [searchQuery, setSearchQuery] = useState('')
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -29,46 +29,11 @@ export function Topbar() {
     document.documentElement.setAttribute('data-theme', newTheme)
   }
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // Use window.location for navigation to avoid webpack issues
-      window.location.href = `/bookings?search=${encodeURIComponent(searchQuery.trim())}`
-    }
-  }
-
   return (
     <header className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
-        {/* Enhanced Search */}
-        <form onSubmit={handleSearch} style={{ 
-          maxWidth: '400px', 
-          width: '100%',
-          margin: 0,
-          position: 'relative'
-        }}>
-          <Search 
-            size={18} 
-            style={{ 
-              position: 'absolute', 
-              left: '0.75rem', 
-              top: '50%', 
-              transform: 'translateY(-50%)', 
-              color: 'var(--color-text-secondary)',
-              zIndex: 1
-            }} 
-          />
-          <input
-            type="search"
-            placeholder="Search customers, bookings, services..."
-            className="form-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ 
-              paddingLeft: '2.5rem'
-            }}
-          />
-        </form>
+        {/* Global Search with Suggestions */}
+        <GlobalSearch />
 
         {/* Quick Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -153,6 +153,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('user', JSON.stringify(response.user));
       localStorage.setItem('merchant', JSON.stringify(response.merchant));
 
+      // Also set a cookie for middleware to check (httpOnly would be better but requires server-side)
+      const expiryDays = rememberMe ? 30 : 1;
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+      document.cookie = `authToken=${response.access_token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
+
       // Parse token expiration
       const payload = JSON.parse(atob(response.access_token.split('.')[1]));
       const expiresAt = new Date(payload.exp * 1000);
@@ -217,6 +223,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('access_token', response.token);
       localStorage.setItem('refresh_token', response.refreshToken);
       
+      // Update auth cookie
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 1); // 1 day default
+      document.cookie = `authToken=${response.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
+      
       if (response.user) {
         localStorage.setItem('user', JSON.stringify(response.user));
         localStorage.setItem('merchant', JSON.stringify(response.user));
@@ -276,6 +287,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('merchant');
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('session_only');
+
+    // Clear auth cookie
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
 
     setAuthState({
       user: null,
