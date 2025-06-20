@@ -6,7 +6,7 @@ import { useNotifications } from '@/contexts/notifications-context';
 import { notificationConfig, formatNotificationTime, NotificationType } from '@/lib/notifications';
 import { Calendar, DollarSign, XCircle, Edit, Clock, AlertCircle, RefreshCw, UserX, UserMinus, Star, Gift, AlertTriangle, TrendingUp, Check, Inbox, Filter, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { cn } from '@heya-pos/ui/lib/utils';
+import { cn } from '@heya-pos/ui';
 import { useState } from 'react';
 
 const iconMap = {

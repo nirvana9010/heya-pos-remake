@@ -15,7 +15,7 @@ import {
 import { useNotifications } from '@/contexts/notifications-context';
 import { notificationConfig, formatNotificationTime, groupNotificationsByDate, NotificationType } from '@/lib/notifications';
 import Link from 'next/link';
-import { cn } from '@heya-pos/ui/lib/utils';
+import { cn } from '@heya-pos/ui';
 
 const iconMap = {
   Calendar,

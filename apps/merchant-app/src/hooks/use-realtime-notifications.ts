@@ -11,9 +11,7 @@ export function useRealtimeNotifications() {
       try {
         // Get recent bookings
         const bookings = await apiClient.getBookings({ 
-          limit: 5,
-          orderBy: 'createdAt',
-          order: 'desc' 
+          limit: 5
         });
 
         // Check for new bookings created in the last minute
@@ -69,9 +67,7 @@ export function useRealtimeNotifications() {
 
         // Get recent payments
         const payments = await apiClient.getPayments({ 
-          limit: 5,
-          orderBy: 'createdAt',
-          order: 'desc' 
+          limit: 5
         });
 
         const newPayments = payments.filter((p: any) => 
