@@ -199,7 +199,7 @@ function NewBookingContent() {
                   <SelectContent>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name} - {(customer as any).mobile || customer.phone}
+                        {customer.firstName} {customer.lastName} - {(customer as any).mobile || customer.phone}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -210,7 +210,7 @@ function NewBookingContent() {
                 <div className="rounded-lg bg-muted p-4 space-y-2">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedCustomer.name}</span>
+                    <span className="font-medium">{selectedCustomer.firstName} {selectedCustomer.lastName}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                   <p className="text-sm text-muted-foreground">{(selectedCustomer as any).mobile || selectedCustomer.phone}</p>
