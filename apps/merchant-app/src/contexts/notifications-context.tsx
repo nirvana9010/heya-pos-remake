@@ -91,41 +91,19 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // Simulate real-time notifications in development
+  // DISABLED: Simulated notifications - not needed for MVP
+  // This was causing random notifications to appear every 30 seconds
+  /*
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;
     
     const interval = setInterval(() => {
-      // Random chance of new notification
-      if (Math.random() > 0.95) {
-        const types = ['booking_new', 'payment_received', 'booking_modified'] as const;
-        const type = types[Math.floor(Math.random() * types.length)];
-        
-        const messages = {
-          booking_new: {
-            title: 'New booking received',
-            message: `${['Anna Lee', 'John Smith', 'Maria Garcia'][Math.floor(Math.random() * 3)]} booked an appointment`,
-          },
-          payment_received: {
-            title: 'Payment completed',
-            message: `$${Math.floor(Math.random() * 200 + 50)} received via Square`,
-          },
-          booking_modified: {
-            title: 'Booking modified',
-            message: 'A customer changed their appointment time',
-          }
-        };
-        
-        addNotification({
-          type,
-          priority: 'important',
-          ...messages[type]
-        });
-      }
+      // Implementation disabled
     }, 30000); // Check every 30 seconds
     
     return () => clearInterval(interval);
   }, [addNotification]);
+  */
 
   const unreadCount = getUnreadCount(notifications);
 
