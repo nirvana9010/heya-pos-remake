@@ -16,12 +16,11 @@ import {
   Input,
 } from '@heya-pos/ui'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [searchQuery, setSearchQuery] = useState('')
-  const router = useRouter()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -32,13 +31,9 @@ export function Topbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      // Navigate to bookings page with search query
-      router.push(`/bookings?search=${encodeURIComponent(searchQuery.trim())}`)
+      // Use window.location for navigation to avoid webpack issues
+      window.location.href = `/bookings?search=${encodeURIComponent(searchQuery.trim())}`
     }
-  }
-
-  const handleNewBooking = () => {
-    router.push('/bookings/new')
   }
 
   return (
@@ -76,12 +71,11 @@ export function Topbar() {
 
         {/* Quick Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button 
-            className="btn btn-secondary btn-sm"
-            onClick={handleNewBooking}
-          >
-            + New Booking
-          </button>
+          <Link href="/bookings/new">
+            <button className="btn btn-secondary btn-sm">
+              + New Booking
+            </button>
+          </Link>
         </div>
       </div>
 
