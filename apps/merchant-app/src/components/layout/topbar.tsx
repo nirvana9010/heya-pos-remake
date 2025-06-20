@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Search, User, Moon, Sun, Palette } from 'lucide-react'
+import { Search, User, Moon, Sun, Palette } from 'lucide-react'
 import {
   Button,
   DropdownMenu,
@@ -17,6 +17,7 @@ import {
 } from '@heya-pos/ui'
 import { useState } from 'react'
 import Link from 'next/link'
+import { NotificationsDropdown } from '@/components/notifications-dropdown'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
@@ -89,110 +90,7 @@ export function Topbar() {
         </button>
 
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{
-                position: 'relative'
-              }}
-            >
-              <Bell size={18} />
-              <div className="badge badge-error" style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                minWidth: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                fontSize: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                3
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" style={{ 
-            width: '320px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '0.75rem'
-          }}>
-            <DropdownMenuLabel style={{ 
-              color: 'var(--color-text-primary)',
-              fontSize: '1.125rem',
-              padding: '1rem'
-            }}>
-              Notifications
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
-            
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <p style={{ 
-                  fontSize: '0.875rem', 
-                  fontWeight: '600',
-                  color: 'var(--color-text-primary)'
-                }}>
-                  New booking
-                </p>
-                <p style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'var(--color-text-secondary)'
-                }}>
-                  Sarah Johnson booked a hair appointment for tomorrow
-                </p>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <p style={{ 
-                  fontSize: '0.875rem', 
-                  fontWeight: '600',
-                  color: 'var(--color-text-primary)'
-                }}>
-                  Payment received
-                </p>
-                <p style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'var(--color-text-secondary)'
-                }}>
-                  $120 payment from Michael Chen via Tyro
-                </p>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <p style={{ 
-                  fontSize: '0.875rem', 
-                  fontWeight: '600',
-                  color: 'var(--color-text-primary)'
-                }}>
-                  Staff reminder
-                </p>
-                <p style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'var(--color-text-secondary)'
-                }}>
-                  Emma Wilson is on break in 15 minutes
-                </p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationsDropdown />
 
         {/* User Menu */}
         <DropdownMenu>

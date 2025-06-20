@@ -8,6 +8,7 @@ import { PerformanceMonitor } from './PerformanceMonitor';
 import { TimezoneProvider } from '@/contexts/timezone-context';
 import { AuthProvider } from '@/lib/auth/auth-provider';
 import { QueryProvider } from '@/lib/query/query-provider';
+import { NotificationsProvider } from '@/contexts/notifications-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,9 +24,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         ) : (
           <AuthGuard>
             <TimezoneProvider>
-              <PerformanceMonitor />
-              <PrefetchManager />
-              <DashboardLayout>{children}</DashboardLayout>
+              <NotificationsProvider>
+                <PerformanceMonitor />
+                <PrefetchManager />
+                <DashboardLayout>{children}</DashboardLayout>
+              </NotificationsProvider>
             </TimezoneProvider>
           </AuthGuard>
         )}
