@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [cancellationHours, setCancellationHours] = useState("24");
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
   const [requirePinForCancellations, setRequirePinForCancellations] = useState(true);
+  const [requirePinForReports, setRequirePinForReports] = useState(true);
   const [loyaltyType, setLoyaltyType] = useState("visit");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
@@ -63,6 +64,7 @@ export default function SettingsPage() {
         setCancellationHours(response.cancellationHours?.toString() || "24");
         setRequirePinForRefunds(response.requirePinForRefunds ?? true);
         setRequirePinForCancellations(response.requirePinForCancellations ?? true);
+        setRequirePinForReports(response.requirePinForReports ?? true);
         setLoyaltyType(response.loyaltyType || "visit");
         setRequireDeposit(response.requireDeposit ?? false);
         setDepositPercentage(response.depositPercentage?.toString() || "30");
@@ -486,26 +488,28 @@ export default function SettingsPage() {
                       Manager PIN required to access reports
                     </p>
                   </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Auto-logout Timeout</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically logout after inactivity
-                    </p>
-                  </div>
-                  <Select defaultValue="15">
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 min</SelectItem>
-                      <SelectItem value="15">15 min</SelectItem>
-                      <SelectItem value="30">30 min</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Switch 
+                    checked={requirePinForReports} 
+                    onCheckedChange={(checked) => {
+                      setRequirePinForReports(checked);
+                      // Note: This is now enforced! The Reports page will require PIN when enabled
+                      apiClient.put("/merchant/settings", { requirePinForReports: checked })
+                        .then(() => {
+                          toast({
+                            title: "Success",
+                            description: checked ? "PIN required for reports" : "PIN disabled for reports",
+                          });
+                        })
+                        .catch(err => {
+                          console.error("Failed to update PIN setting:", err);
+                          toast({
+                            title: "Error",
+                            description: "Failed to update PIN setting",
+                            variant: "destructive",
+                          });
+                        });
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>

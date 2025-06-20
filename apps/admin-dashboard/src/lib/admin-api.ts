@@ -73,6 +73,11 @@ export interface AdminAuthResponse {
 }
 
 class AdminApi {
+  // Method to set auth token (delegates to apiClient)
+  setAuthToken(token: string | null): void {
+    apiClient.setAuthToken(token);
+  }
+
   // Admin authentication
   async login(credentials: AdminLoginData): Promise<AdminAuthResponse> {
     const response = await apiClient.post<AdminAuthResponse>('/v1/admin/login', credentials);

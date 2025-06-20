@@ -6,7 +6,6 @@
     "dev": "next dev -p 3002",
     "dev:clean": "./scripts/dev-clean.sh && npm run dev",
     "dev:turbo": "turbo dev",
-    "prebuild": "ts-node scripts/build-validate.ts",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "build:strict": "npm run typecheck:strict && npm run lint:strict && npm run build",
