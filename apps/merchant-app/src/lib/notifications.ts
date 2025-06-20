@@ -2,16 +2,7 @@ export type NotificationType =
   | 'booking_new'
   | 'booking_cancelled'
   | 'booking_modified'
-  | 'booking_reminder'
-  | 'payment_received'
-  | 'payment_failed'
-  | 'payment_refunded'
-  | 'staff_late'
-  | 'staff_timeoff'
-  | 'customer_vip'
-  | 'customer_birthday'
-  | 'system_alert'
-  | 'business_insight';
+  | 'payment_refunded';
 
 export type NotificationPriority = 'urgent' | 'important' | 'info';
 
@@ -36,7 +27,7 @@ export interface Notification {
   };
 }
 
-// Notification type configurations
+// Notification type configurations - simplified to essential notifications only
 export const notificationConfig: Record<NotificationType, {
   icon: string;
   color: string;
@@ -45,19 +36,10 @@ export const notificationConfig: Record<NotificationType, {
   booking_new: { icon: 'Calendar', color: 'text-blue-600', priority: 'important' },
   booking_cancelled: { icon: 'XCircle', color: 'text-red-600', priority: 'urgent' },
   booking_modified: { icon: 'Edit', color: 'text-orange-600', priority: 'info' },
-  booking_reminder: { icon: 'Clock', color: 'text-purple-600', priority: 'info' },
-  payment_received: { icon: 'DollarSign', color: 'text-green-600', priority: 'info' },
-  payment_failed: { icon: 'AlertCircle', color: 'text-red-600', priority: 'urgent' },
   payment_refunded: { icon: 'RefreshCw', color: 'text-orange-600', priority: 'important' },
-  staff_late: { icon: 'UserX', color: 'text-orange-600', priority: 'urgent' },
-  staff_timeoff: { icon: 'UserMinus', color: 'text-blue-600', priority: 'important' },
-  customer_vip: { icon: 'Star', color: 'text-yellow-600', priority: 'info' },
-  customer_birthday: { icon: 'Gift', color: 'text-pink-600', priority: 'info' },
-  system_alert: { icon: 'AlertTriangle', color: 'text-red-600', priority: 'urgent' },
-  business_insight: { icon: 'TrendingUp', color: 'text-indigo-600', priority: 'info' },
 };
 
-// Mock notification generator for development
+// Mock notification generator for development - simplified to essential notifications
 export function generateMockNotifications(): Notification[] {
   const now = new Date();
   const notifications: Notification[] = [
@@ -80,23 +62,26 @@ export function generateMockNotifications(): Notification[] {
     },
     {
       id: '2',
-      type: 'payment_received',
+      type: 'booking_modified',
       priority: 'info',
-      title: 'Payment completed',
-      message: '$180 received from Michael Chen via Square',
+      title: 'Booking changed',
+      message: 'Michael Chen changed his appointment time to 4:00 PM',
       timestamp: new Date(now.getTime() - 15 * 60000), // 15 mins ago
       read: false,
+      actionUrl: '/bookings/modified-booking-456',
+      actionLabel: 'View changes',
       metadata: {
-        amount: 180,
-        customerName: 'Michael Chen'
+        bookingId: 'modified-booking-456',
+        customerName: 'Michael Chen',
+        time: '4:00 PM'
       }
     },
     {
       id: '3',
       type: 'booking_cancelled',
       priority: 'urgent',
-      title: 'Last-minute cancellation',
-      message: 'Sarah Williams cancelled her 3:30 PM appointment (in 1 hour)',
+      title: 'Booking cancelled',
+      message: 'Sarah Williams cancelled her 3:30 PM appointment',
       timestamp: new Date(now.getTime() - 30 * 60000), // 30 mins ago
       read: false,
       actionUrl: '/calendar',
@@ -108,42 +93,18 @@ export function generateMockNotifications(): Notification[] {
     },
     {
       id: '4',
-      type: 'customer_vip',
-      priority: 'info',
-      title: 'VIP customer booking',
-      message: 'Jessica Martinez (Gold member) just booked for next week',
+      type: 'payment_refunded',
+      priority: 'important',
+      title: 'Refund processed',
+      message: '$120 refunded to Jessica Martinez',
       timestamp: new Date(now.getTime() - 60 * 60000), // 1 hour ago
       read: true,
-      actionUrl: '/customers/vip-123',
+      actionUrl: '/payments',
+      actionLabel: 'View details',
       metadata: {
-        customerId: 'vip-123',
+        amount: 120,
         customerName: 'Jessica Martinez'
       }
-    },
-    {
-      id: '5',
-      type: 'staff_late',
-      priority: 'urgent',
-      title: 'Staff running late',
-      message: 'Emma Williams will be 15 minutes late - has 2 appointments affected',
-      timestamp: new Date(now.getTime() - 2 * 60 * 60000), // 2 hours ago
-      read: true,
-      actionUrl: '/calendar',
-      actionLabel: 'Reschedule',
-      metadata: {
-        staffId: 'staff-123'
-      }
-    },
-    {
-      id: '6',
-      type: 'business_insight',
-      priority: 'info',
-      title: 'Weekly summary ready',
-      message: 'Revenue up 15% from last week. View detailed insights.',
-      timestamp: new Date(now.getTime() - 24 * 60 * 60000), // Yesterday
-      read: true,
-      actionUrl: '/reports',
-      actionLabel: 'View report'
     }
   ];
 

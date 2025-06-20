@@ -30,39 +30,70 @@ export function useRealtimeNotifications() {
   }, [addNotification]);
   */
 
-  // Also listen for manual events from other parts of the app
+  // Listen for essential business events
   useEffect(() => {
     const handleBookingCreated = (event: CustomEvent) => {
-      const booking = event.detail;
+      const { id, customerName, serviceName, time } = event.detail;
       addNotification({
         type: 'booking_new',
         priority: 'important',
-        title: 'New booking created',
-        message: `Booking for ${booking.customerName} has been created`,
-        actionUrl: `/bookings/${booking.id}`,
-        actionLabel: 'View booking'
+        title: 'New booking received',
+        message: `${customerName} booked ${serviceName} for ${time}`,
+        actionUrl: `/bookings/${id}`,
+        actionLabel: 'View booking',
+        metadata: { bookingId: id, customerName, serviceName, time }
       });
     };
 
-    const handlePaymentProcessed = (event: CustomEvent) => {
-      const payment = event.detail;
+    const handleBookingModified = (event: CustomEvent) => {
+      const { id, customerName, changes } = event.detail;
       addNotification({
-        type: 'payment_received',
+        type: 'booking_modified',
         priority: 'info',
-        title: 'Payment processed',
-        message: `$${payment.amount} payment completed`,
-        metadata: {
-          amount: payment.amount
-        }
+        title: 'Booking changed',
+        message: `${customerName} ${changes}`,
+        actionUrl: `/bookings/${id}`,
+        actionLabel: 'View changes',
+        metadata: { bookingId: id, customerName }
+      });
+    };
+
+    const handleBookingCancelled = (event: CustomEvent) => {
+      const { id, customerName, serviceName, time } = event.detail;
+      addNotification({
+        type: 'booking_cancelled',
+        priority: 'urgent',
+        title: 'Booking cancelled',
+        message: `${customerName} cancelled ${serviceName} at ${time}`,
+        actionUrl: '/calendar',
+        actionLabel: 'Fill slot',
+        metadata: { bookingId: id, customerName, serviceName, time }
+      });
+    };
+
+    const handlePaymentRefunded = (event: CustomEvent) => {
+      const { paymentId, customerName, amount } = event.detail;
+      addNotification({
+        type: 'payment_refunded',
+        priority: 'important',
+        title: 'Refund processed',
+        message: `$${amount} refunded to ${customerName}`,
+        actionUrl: '/payments',
+        actionLabel: 'View details',
+        metadata: { paymentId, customerName, amount }
       });
     };
 
     window.addEventListener('booking:created', handleBookingCreated as EventListener);
-    window.addEventListener('payment:processed', handlePaymentProcessed as EventListener);
+    window.addEventListener('booking:modified', handleBookingModified as EventListener);
+    window.addEventListener('booking:cancelled', handleBookingCancelled as EventListener);
+    window.addEventListener('payment:refunded', handlePaymentRefunded as EventListener);
 
     return () => {
       window.removeEventListener('booking:created', handleBookingCreated as EventListener);
-      window.removeEventListener('payment:processed', handlePaymentProcessed as EventListener);
+      window.removeEventListener('booking:modified', handleBookingModified as EventListener);
+      window.removeEventListener('booking:cancelled', handleBookingCancelled as EventListener);
+      window.removeEventListener('payment:refunded', handlePaymentRefunded as EventListener);
     };
   }, [addNotification]);
 }

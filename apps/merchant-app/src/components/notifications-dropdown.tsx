@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Calendar, DollarSign, XCircle, Edit, Clock, AlertCircle, RefreshCw, UserX, UserMinus, Star, Gift, AlertTriangle, TrendingUp, Check, X, ExternalLink, Inbox } from 'lucide-react';
+import { Bell, Calendar, XCircle, Edit, RefreshCw, Check, X, ExternalLink, Inbox } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,16 +21,7 @@ const iconMap = {
   Calendar,
   XCircle,
   Edit,
-  Clock,
-  DollarSign,
-  AlertCircle,
   RefreshCw,
-  UserX,
-  UserMinus,
-  Star,
-  Gift,
-  AlertTriangle,
-  TrendingUp,
 };
 
 export function NotificationsDropdown() {
