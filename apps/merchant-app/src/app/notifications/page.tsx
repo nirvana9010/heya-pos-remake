@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
 import { useNotifications } from '@/contexts/notifications-context';
 import { notificationConfig, formatNotificationTime, NotificationType } from '@/lib/notifications';
-import { Calendar, DollarSign, XCircle, Edit, Clock, AlertCircle, RefreshCw, UserX, UserMinus, Star, Gift, AlertTriangle, TrendingUp, Check, Inbox, Filter, SlidersHorizontal } from 'lucide-react';
+import { Calendar, XCircle, Edit, RefreshCw, Check, Inbox, Filter, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@heya-pos/ui';
 import { useState } from 'react';
@@ -13,16 +13,7 @@ const iconMap = {
   Calendar,
   XCircle,
   Edit,
-  Clock,
-  DollarSign,
-  AlertCircle,
   RefreshCw,
-  UserX,
-  UserMinus,
-  Star,
-  Gift,
-  AlertTriangle,
-  TrendingUp,
 };
 
 export default function NotificationsPage() {
