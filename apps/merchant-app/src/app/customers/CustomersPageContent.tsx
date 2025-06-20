@@ -191,8 +191,7 @@ export default function CustomersPageContent() {
     try {
       // Load ALL bookings including completed ones
       const bookingsData = await apiClient.getBookings({ 
-        limit: 1000, // Increase limit to get more bookings
-        includeAll: true,
+        limit: 100, // V2 API max limit
         // Get bookings from the last year to current + 3 months
         startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
         endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
@@ -207,8 +206,17 @@ export default function CustomersPageContent() {
       // Process bookings in chunks to avoid blocking the UI
       processBookingsInChunks(customersData, bookingsData);
       
-    } catch (error) {
-      console.error('Failed to load bookings:', error);
+    } catch (error: any) {
+      // Log more details about the error
+      if (typeof window !== 'undefined' && window.console) {
+        window.console.error('[CustomersPage] Failed to load bookings:');
+        window.console.error('Error message:', error?.message);
+        window.console.error('Error response:', error?.response?.data);
+        window.console.error('Error status:', error?.response?.status);
+      }
+      
+      // Don't show error to user since this is background loading
+      // Customer data is already displayed with backend stats
     }
   };
 
@@ -329,8 +337,8 @@ export default function CustomersPageContent() {
         const fullName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
         
         return fullName.includes(query) ||
-          customer.email.toLowerCase().includes(query) ||
-          customer.phone.includes(searchQuery);
+          (customer.email && customer.email.toLowerCase().includes(query)) ||
+          (customer.phone && customer.phone.includes(searchQuery));
       });
     }
 
