@@ -3,7 +3,7 @@
   "ui": "tui",
   "globalEnv": ["NODE_ENV", "NEXT_PUBLIC_API_URL"],
   "globalDependencies": ["**/.env.*local"],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -60,11 +60,6 @@
       "cache": false,
       "persistent": true,
       "env": ["DATABASE_URL", "NODE_ENV", "JWT_SECRET"]
-    }
-  },
-  "experimental": {
-    "spaces": {
-      "enabled": true
     }
   }
 }

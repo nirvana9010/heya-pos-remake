@@ -29,6 +29,8 @@ import {
 } from "recharts";
 import { format, subMonths } from "date-fns";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { TrendBadge } from "@/components/TrendBadge";
+import { calculateTrend, calculateCurrencyTrend, calculateCountTrend } from "@heya-pos/utils";
 
 // Import the type from the client
 import type { ReportData } from '@/lib/clients/reports-client';
@@ -201,33 +203,36 @@ export default function ReportsPage() {
     // Get growth from nested or flat structure
     const growth = reportData.revenue?.growth || reportData.revenueGrowth || {};
     const revenueGrowth = growth[timeRange as keyof typeof growth] || 0;
-    const revenueChange = {
-      value: Math.abs(revenueGrowth).toFixed(1),
-      isPositive: revenueGrowth >= 0
-    };
+    
+    // Calculate trends using our utility functions
+    const revenueTrend = calculateCurrencyTrend(
+      currentRevenue,
+      currentRevenue / (1 + revenueGrowth / 100)
+    );
     
     // Calculate real booking growth if we have the data
-    const bookingGrowth = reportData.bookingGrowth?.monthly || 5.4; // fallback to mock
-    const bookingChange = {
-      value: Math.abs(bookingGrowth).toFixed(1),
-      isPositive: bookingGrowth >= 0
-    };
+    const bookingGrowth = reportData.bookingGrowth?.monthly || 0;
+    const bookings = reportData.bookings?.bookings || reportData.bookings || {};
+    const bookingTrend = calculateCountTrend(
+      bookings.total || 0,
+      (bookings.total || 0) / (1 + bookingGrowth / 100)
+    );
     
     const customerGrowth = reportData.customers?.growth ?? reportData.customerGrowth ?? 0;
-    const customerChange = {
-      value: Math.abs(customerGrowth).toFixed(1),
-      isPositive: customerGrowth >= 0
-    };
+    const totalCustomers = reportData.customers?.customers?.total || reportData.customers?.total || 0;
+    const customerTrend = calculateCountTrend(
+      totalCustomers,
+      totalCustomers / (1 + customerGrowth / 100)
+    );
     
     // Calculate average booking value
-    const bookings = reportData.bookings?.bookings || reportData.bookings || {};
     const monthlyBookings = bookings.completed || 1;
     const monthlyRevenue = revenue.monthly || 0;
     const avgBookingValue = reportData.avgBookingValue || (monthlyBookings > 0 ? monthlyRevenue / monthlyBookings : 0);
-    const avgValueChange = {
-      value: "3.2", // TODO: Calculate actual trend
-      isPositive: true
-    };
+    const avgValueTrend = calculateCurrencyTrend(
+      avgBookingValue,
+      avgBookingValue * 0.968 // Assume 3.2% growth for now
+    );
 
     // Generate sparkline data from revenue trend (handle both 'revenue' and 'value' fields)
     const sparklineData = (reportData.revenueTrend || []).slice(-12).map(item => item.value || item.revenue || 0);
@@ -269,17 +274,7 @@ export default function ReportsPage() {
                     ${currentRevenue.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant={revenueChange.isPositive ? "default" : "destructive"}
-                      className="gap-1 px-2 py-0.5 text-xs"
-                    >
-                      {revenueChange.isPositive ? (
-                        <ArrowUp className="h-3 w-3" />
-                      ) : (
-                        <ArrowDown className="h-3 w-3" />
-                      )}
-                      {revenueChange.value}%
-                    </Badge>
+                    <TrendBadge trend={revenueTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">vs last period</span>
                   </div>
                 </div>
@@ -300,17 +295,7 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <div className="text-3xl font-bold">{bookings.total || 0}</div>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant={bookingChange.isPositive ? "default" : "destructive"}
-                      className="gap-1 px-2 py-0.5 text-xs"
-                    >
-                      {bookingChange.isPositive ? (
-                        <ArrowUp className="h-3 w-3" />
-                      ) : (
-                        <ArrowDown className="h-3 w-3" />
-                      )}
-                      {bookingChange.value}%
-                    </Badge>
+                    <TrendBadge trend={bookingTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
                       {bookings.completed || 0} completed
                     </span>
@@ -333,19 +318,9 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <div className="text-3xl font-bold">{reportData.customers?.customers?.total || 0}</div>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant={customerChange.isPositive ? "default" : "destructive"}
-                      className="gap-1 px-2 py-0.5 text-xs"
-                    >
-                      {customerChange.isPositive ? (
-                        <ArrowUp className="h-3 w-3" />
-                      ) : (
-                        <ArrowDown className="h-3 w-3" />
-                      )}
-                      {customerChange.value}%
-                    </Badge>
+                    <TrendBadge trend={customerTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
-                      {reportData.customers.customers.new} new
+                      {reportData.customers?.customers?.new || reportData.customers?.new || 0} new
                     </span>
                   </div>
                 </div>
@@ -366,17 +341,7 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <div className="text-3xl font-bold">${Math.round(avgBookingValue)}</div>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant={avgValueChange.isPositive ? "default" : "destructive"}
-                      className="gap-1 px-2 py-0.5 text-xs"
-                    >
-                      {avgValueChange.isPositive ? (
-                        <ArrowUp className="h-3 w-3" />
-                      ) : (
-                        <ArrowDown className="h-3 w-3" />
-                      )}
-                      {avgValueChange.value}%
-                    </Badge>
+                    <TrendBadge trend={avgValueTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">vs last period</span>
                   </div>
                 </div>
@@ -533,11 +498,11 @@ export default function ReportsPage() {
                     <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{reportData.bookings.bookings.completed}</p>
+                    <p className="text-2xl font-bold">{bookings.completed || 0}</p>
                     <p className="text-xs text-muted-foreground">Completed</p>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {Math.round((reportData.bookings.bookings.completed / reportData.bookings.bookings.total) * 100)}%
+                    {bookings.total > 0 ? Math.round((bookings.completed / bookings.total) * 100) : 0}%
                   </Badge>
                 </div>
               </div>
@@ -548,7 +513,7 @@ export default function ReportsPage() {
                     <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{reportData.bookings.bookings.pending}</p>
+                    <p className="text-2xl font-bold">{bookings.pending || 0}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
@@ -560,7 +525,7 @@ export default function ReportsPage() {
                     <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{reportData.bookings.bookings.cancelled}</p>
+                    <p className="text-2xl font-bold">{bookings.cancelled || 0}</p>
                     <p className="text-xs text-muted-foreground">Cancelled</p>
                   </div>
                 </div>
@@ -572,7 +537,7 @@ export default function ReportsPage() {
                     <Users className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{reportData.bookings.bookings.noShow}</p>
+                    <p className="text-2xl font-bold">{bookings.noShow || 0}</p>
                     <p className="text-xs text-muted-foreground">No Show</p>
                   </div>
                 </div>
@@ -592,6 +557,10 @@ export default function ReportsPage() {
       return null;
     }
 
+    // Handle both nested and flat structures
+    const customers = reportData.customers?.customers || reportData.customers || {};
+    const customerGrowth = reportData.customers?.growth ?? reportData.customerGrowth ?? 0;
+
     return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
@@ -601,11 +570,11 @@ export default function ReportsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.customers.customers.total}</div>
+            <div className="text-2xl font-bold">{customers.total || 0}</div>
             <p className="text-xs text-muted-foreground">All time</p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+{reportData.customers.growth}%</span>
+              <span className="text-xs">+{customerGrowth}%</span>
             </div>
           </CardContent>
         </Card>
@@ -615,11 +584,11 @@ export default function ReportsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.customers.customers.new}</div>
+            <div className="text-2xl font-bold">{customers.new || 0}</div>
             <p className="text-xs text-muted-foreground">This month</p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+10.5%</span>
+              <span className="text-xs">+{customerGrowth}%</span>
             </div>
           </CardContent>
         </Card>
@@ -629,9 +598,9 @@ export default function ReportsPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.customers.customers.loyaltyMembers}</div>
+            <div className="text-2xl font-bold">{customers.loyaltyMembers || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((reportData.customers.customers.loyaltyMembers / reportData.customers.customers.total) * 100)}% of total
+              {customers.total > 0 ? Math.round(((customers.loyaltyMembers || 0) / customers.total) * 100) : 0}% of total
             </p>
             <div className="flex items-center text-sm text-green-600 mt-2">
               <TrendingUp className="mr-1 h-3 w-3" />

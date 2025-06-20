@@ -62,21 +62,31 @@ export class BaseApiClient {
         const originalRequest = error.config;
 
         // Log errors in development mode (but not 404s as they're expected)
-        // Also suppress V2 bookings errors for now due to backend issues
-        const isBookingsError = originalRequest?.url?.includes('/v2/bookings');
         const shouldLog = process.env.NODE_ENV === 'development' && 
-                         error.response?.status !== 404 &&
-                         !isBookingsError;
+                         error.response?.status !== 404;
                          
         if (shouldLog) {
-          console.error('[API Client] API Error:', {
+          const errorInfo = {
             url: originalRequest?.url,
             method: originalRequest?.method?.toUpperCase(),
             status: error.response?.status,
             message: error.response?.data?.message || error.message,
             errorCode: error.response?.data?.errorCode,
             details: error.response?.data
-          });
+          };
+          
+          // Log as separate items to avoid serialization issues
+          console.error('[API Client] API Error:');
+          console.error('  URL:', errorInfo.url);
+          console.error('  Method:', errorInfo.method);
+          console.error('  Status:', errorInfo.status);
+          console.error('  Message:', errorInfo.message);
+          if (errorInfo.errorCode) {
+            console.error('  Error Code:', errorInfo.errorCode);
+          }
+          if (errorInfo.details && Object.keys(errorInfo.details).length > 0) {
+            console.error('  Details:', errorInfo.details);
+          }
         }
 
         // Handle 401 errors with token refresh
