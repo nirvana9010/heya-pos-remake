@@ -173,10 +173,6 @@ export default function CalendarPageEnhanced() {
       }
       
       // Fetch bookings for the date range
-      console.log('Loading bookings for date range:', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
-      });
       
       const bookingsData = await apiClient.getBookings({
         startDate: startDate.toISOString(),
@@ -184,8 +180,6 @@ export default function CalendarPageEnhanced() {
         limit: 1000
       });
       
-      console.log('Loaded bookings:', bookingsData.length);
-      console.log('Sample booking:', bookingsData[0]);
       
       // Transform bookings to calendar format
       const transformedBookings = bookingsData.map((booking: any) => ({
@@ -202,8 +196,6 @@ export default function CalendarPageEnhanced() {
         price: booking.totalAmount || 0
       }));
       
-      console.log('Transformed bookings:', transformedBookings);
-      console.log('First transformed booking:', transformedBookings[0]);
       
       setBookings(transformedBookings);
       setLastUpdated(new Date());
@@ -273,7 +265,6 @@ export default function CalendarPageEnhanced() {
     const endHour = 20;
     const interval = timeInterval;
     
-    console.log('Generating time slots for interval:', interval);
 
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
@@ -445,7 +436,6 @@ export default function CalendarPageEnhanced() {
             </div>
 
             {/* Time Slots */}
-            {console.log('Rendering calendar with bookings:', bookings.length, 'Staff:', staff.length)}
             {timeSlots.map((slot, index) => (
               <div key={`${slot.hour}-${slot.minute}`} className="flex border-b">
                 <div className="w-24 border-r bg-gray-50 p-2 text-center">

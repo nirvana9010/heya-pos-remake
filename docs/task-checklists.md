@@ -47,6 +47,11 @@ Claude Code: "I'll use the DEBUGGING/FIXING CHECKLIST for this task.
 The first phase is 'Understand the Problem' where I'll read error messages, 
 check running services, and investigate the issue systematically.
 
+Before making ANY changes, I'll:
+1. Find all code that depends on staff availability
+2. Test current booking functionality to establish baseline
+3. Make minimal changes and test after each one
+
 Phase 1 checklist:
 - Read the complete error message
 - Identify error type  
@@ -55,6 +60,74 @@ Phase 1 checklist:
 
 Shall I proceed?"
 ```
+
+## 🚨 CRITICAL SAFETY RULES
+
+### Before EVERY Code Change:
+1. **FIND DEPENDENCIES**: `grep -r "WhatYoureChanging" --include="*.ts" --include="*.tsx"`
+2. **TEST BEFORE**: Verify current functionality works
+3. **CHANGE SMALL**: One file, one method at a time
+4. **TEST AFTER**: Re-run the same test from step 2
+5. **CHECK WIDELY**: If changing shared code, test 3+ features that use it
+
+### RED FLAGS - STOP and RECONSIDER:
+- About to change a model/schema used by multiple services
+- Modifying a base class or shared utility
+- Changing authentication/authorization logic
+- Altering API response structures
+- Updating database queries in shared services
+- Modifying anything with 10+ imports
+
+### When You See These Patterns:
+```typescript
+// If you see this in a file:
+export class BaseService { }  // STOP - this affects ALL services
+export interface User { }     // STOP - changing this breaks everywhere
+export const sharedUtil = {}  // STOP - used across the codebase
+
+// Instead, consider:
+- Extending rather than modifying
+- Creating new methods rather than changing existing
+- Adding optional parameters rather than changing signatures
+```
+
+## 🛡️ SAFE MODIFICATION PATTERNS
+
+### Instead of Breaking Changes:
+
+```typescript
+// ❌ BAD: Changing existing method signature
+async findUser(email: string) → async findUser(email: string, includeDeleted: boolean)
+
+// ✅ GOOD: Add optional parameter
+async findUser(email: string, includeDeleted?: boolean)
+
+// ❌ BAD: Modifying shared interface
+interface User {
+  name: string;  // Changing to firstName, lastName
+}
+
+// ✅ GOOD: Extend interface
+interface UserV2 extends User {
+  firstName: string;
+  lastName: string;
+}
+
+// ❌ BAD: Changing API response
+return { user: userData } → return { data: userData }
+
+// ✅ GOOD: Support both during transition
+return { 
+  user: userData,  // Keep for backward compatibility
+  data: userData   // New format
+}
+```
+
+### Before ANY Model/Schema Change:
+1. Count usages: `grep -r "ModelName" --include="*.ts" | wc -l`
+2. If > 5 usages, create new version instead
+3. Run ALL tests, not just related ones
+4. Check API responses still match frontend expectations
 
 ---
 
@@ -85,19 +158,34 @@ When asked to implement a new feature:
 - [ ] Identify potential conflicts or dependencies
 
 ### PHASE 3: IMPLEMENTATION
+- [ ] Before ANY change, identify what depends on this code: `grep -r "ClassName\|methodName" --include="*.ts"`
 - [ ] Create/modify database schema if needed
+- [ ] **Run `npx prisma generate` after schema changes**
+- [ ] **Check Prisma relations match actual usage**: Look for `include:` in existing queries
+- [ ] **Verify field names match between schema and code** (e.g., businessName vs name)
+- [ ] Check for breaking changes: Will existing queries still work?
+- [ ] **Check if required npm packages are installed**: `npm list package-name`
+- [ ] **Install missing dependencies BEFORE writing code**: `npm install package-name @types/package-name`
 - [ ] Implement service method with minimal logic
-- [ ] Add controller endpoint
-- [ ] Test with curl/simple request: `curl http://localhost:3000/api/endpoint`
-- [ ] Verify response structure
+- [ ] Add controller endpoint WITHOUT modifying existing ones
+- [ ] **If adding to app.module.ts, check for import order issues**
+- [ ] **For event-driven features, verify EventEmitter is configured**
+- [ ] Test NEW functionality works: `curl http://localhost:3000/api/endpoint`
+- [ ] Test EXISTING functionality still works (run existing test or manual check)
 - [ ] Add validation/error handling
+- [ ] **Type all error catches**: `catch (error) { ... (error as Error).message ... }`
 - [ ] Add complete business logic
 - [ ] Test edge cases
+- [ ] Run one more test of existing functionality to ensure nothing broke
 
 ### PHASE 4: VERIFICATION
 - [ ] Test happy path
 - [ ] Test error cases
+- [ ] **Get valid test data from existing records**: `curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/v1/resource | jq '.'`
+- [ ] **Use actual IDs from database, not hardcoded UUIDs**
+- [ ] **Test with V1 vs V2 endpoints correctly** (check endpoint versioning)
 - [ ] Check logs for warnings: `tail -50 logs/api.log | grep -i "warn\|error"`
+- [ ] **If API won't start, check port conflicts**: `lsof -ti:3000`
 - [ ] Ensure no existing functionality broken
 ```
 
@@ -115,13 +203,20 @@ When something isn't working:
 ### PHASE 2: INVESTIGATE
 - [ ] Check recent changes: `git status` and `git diff`
 - [ ] Look for similar working code: How does it handle this?
+- [ ] Find all code that calls the broken functionality: `grep -r "methodName\|endpoint" --include="*.ts"`
+- [ ] Test a WORKING feature first to establish baseline
 - [ ] Verify assumptions: "Does this model/endpoint/service actually exist?"
 - [ ] Check logs for additional context: `tail -100 logs/api.log`
+- [ ] Document what currently works vs what's broken
 
 ### PHASE 3: MINIMAL FIX
+- [ ] Identify ALL places that use the code you're about to change
 - [ ] Fix ONLY the immediate issue (no refactoring yet)
 - [ ] Test the specific failing case
+- [ ] Test at least 2 other features that use the same code
+- [ ] Check for TypeScript errors: `npm run type-check` or `tsc --noEmit`
 - [ ] Verify fix doesn't break other things
+- [ ] If fix affects shared code (models, utils), test EVERYTHING that imports it
 - [ ] If still broken after 2 attempts, try different approach
 
 ### PHASE 4: VERIFY & CLEANUP
@@ -297,13 +392,16 @@ When everything is broken:
 
 Apply these to EVERY task:
 
-1. **ONE CHANGE AT A TIME**: Never modify multiple things simultaneously
-2. **TEST AFTER EACH STEP**: Verify still working before proceeding
-3. **READ ERRORS COMPLETELY**: The solution is often in the error message
-4. **USE EXISTING PATTERNS**: The codebase already shows the way
-5. **SIMPLE BEFORE COMPLEX**: Get basic version working first
-6. **LOG EVERYTHING**: Clear console output at each step
-7. **FAIL FAST**: If stuck after 2 attempts, try different approach
+1. **CHECK DEPENDENCIES FIRST**: Before changing ANYTHING, find what uses it
+2. **ONE CHANGE AT A TIME**: Never modify multiple things simultaneously
+3. **TEST BEFORE AND AFTER**: Verify functionality before changing, test again after
+4. **READ ERRORS COMPLETELY**: The solution is often in the error message
+5. **USE EXISTING PATTERNS**: The codebase already shows the way
+6. **SIMPLE BEFORE COMPLEX**: Get basic version working first
+7. **LOG EVERYTHING**: Clear console output at each step
+8. **FAIL FAST**: If stuck after 2 attempts, try different approach
+9. **PRESERVE WORKING CODE**: Never break existing functionality for new features
+10. **EXTEND, DON'T MODIFY**: Add new rather than change existing when possible
 
 ## 🎯 COMPLETION CRITERIA
 

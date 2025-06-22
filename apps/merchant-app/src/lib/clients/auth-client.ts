@@ -21,11 +21,24 @@ export class AuthClient extends BaseApiClient {
     }, undefined, 'v1');
     
     // Normalize the response to match what the frontend expects
+    // The API returns user data with embedded merchant info
     const result = {
       access_token: response.token,
       refresh_token: response.refreshToken,
-      user: response.user,
-      merchant: response.user, // The API returns user info that includes merchant data
+      user: {
+        id: response.user.id,
+        username: response.user.email, // Use email as username
+        role: response.user.role,
+        firstName: response.user.firstName,
+        lastName: response.user.lastName,
+        email: response.user.email
+      },
+      merchant: {
+        id: response.merchantId,
+        name: response.user.firstName, // In this system, firstName holds the merchant name
+        email: response.user.email,
+        subdomain: 'hamilton' // Default subdomain, update if needed
+      },
       expiresAt: response.expiresAt
     };
 
@@ -65,16 +78,13 @@ export class AuthClient extends BaseApiClient {
     const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
     
     if (refreshTime > 0) {
-      console.log(`[Auth Client] Scheduling token refresh in ${Math.round(refreshTime / 1000 / 60)} minutes`);
       
       (window as any).tokenRefreshTimeout = setTimeout(async () => {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          console.log('[Auth Client] Proactive token refresh triggered');
           try {
             await this.refreshToken(refreshToken);
           } catch (error) {
-            console.error('[Auth Client] Proactive refresh failed:', error);
           }
         }
       }, refreshTime);

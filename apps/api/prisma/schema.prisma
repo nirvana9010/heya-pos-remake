@@ -53,6 +53,7 @@ model Merchant {
   staff              Staff[]
   bookings           Booking[]
   outboxEvents       OutboxEvent[]
+  notificationLogs   NotificationLog[]
 
   @@index([status])
   @@index([email])
@@ -171,6 +172,9 @@ model Customer {
   tags                Json                 @default("[]")
   preferredLanguage   String               @default("en")
   marketingConsent    Boolean              @default(false)
+  emailNotifications  Boolean              @default(true)
+  smsNotifications    Boolean              @default(true)
+  notificationPreference String            @default("both")
   status              String               @default("ACTIVE")
   source              String               @default("WALK_IN")
   loyaltyPoints       Decimal              @default(0) @db.Decimal(10, 2)
@@ -186,6 +190,7 @@ model Customer {
   loyaltyCards        LoyaltyCard[]
   loyaltyTransactions LoyaltyTransaction[]
   orders              Order[]
+  notificationLogs    NotificationLog[]
 
   @@unique([merchantId, email])
   @@unique([merchantId, mobile])
@@ -258,7 +263,7 @@ model Booking {
   cancellationReason  String?
   source              String               @default("ONLINE")
   createdById         String
-  providerId          String
+  providerId          String?
   reminderSent        Boolean              @default(false)
   confirmedAt         DateTime?
   checkedInAt         DateTime?
@@ -273,11 +278,13 @@ model Booking {
   createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   location            Location             @relation(fields: [locationId], references: [id])
-  provider            Staff                @relation("BookingProvider", fields: [providerId], references: [id])
+  provider            Staff?               @relation("BookingProvider", fields: [providerId], references: [id])
   services            BookingService[]
   invoice             Invoice?
   loyaltyTransactions LoyaltyTransaction[]
   order               Order?
+  notificationLogs    NotificationLog[]
+  scheduledNotifications ScheduledNotification[]
 
   @@index([merchantId])
   @@index([locationId])
@@ -642,4 +649,47 @@ model OutboxEvent {
   @@index([createdAt])
   @@index([aggregateId, aggregateType])
   @@index([merchantId])
+}
+
+model NotificationLog {
+  id          String   @id @default(uuid())
+  merchantId  String
+  customerId  String
+  bookingId   String?
+  type        String
+  channel     String
+  recipient   String
+  status      String
+  messageId   String?
+  error       String?
+  sentAt      DateTime @default(now())
+  
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  customer    Customer @relation(fields: [customerId], references: [id])
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+  
+  @@index([merchantId])
+  @@index([customerId])
+  @@index([bookingId])
+  @@index([type])
+  @@index([status])
+  @@index([sentAt])
+}
+
+model ScheduledNotification {
+  id          String   @id @default(uuid())
+  bookingId   String
+  type        String
+  scheduledFor DateTime
+  status      String   @default("pending")
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  
+  @@index([bookingId])
+  @@index([status])
+  @@index([scheduledFor])
 }

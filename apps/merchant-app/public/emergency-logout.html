@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Logout</title>
+</head>
+<body>
+    <h1>Emergency Logout - Breaking the redirect loop</h1>
+    <p>Click the button below to clear all authentication data and break out of the redirect loop.</p>
+    <button onclick="emergencyLogout()">Emergency Logout</button>
+    
+    <script>
+        function emergencyLogout() {
+            // Clear all localStorage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Clear all cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Additional cookie clearing for common names
+            const cookieNames = ['authToken', 'auth-token', 'access_token', 'refresh_token'];
+            cookieNames.forEach(name => {
+                document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = name + '=; Path=/; Domain=' + window.location.hostname + '; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            });
+            
+            alert('All authentication data cleared! Redirecting to login...');
+            window.location.href = '/login';
+        }
+        
+        // Auto-run on page load
+        emergencyLogout();
+    </script>
+</body>
+</html>

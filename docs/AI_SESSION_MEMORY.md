@@ -353,6 +353,19 @@ npm run clean-start # Clean caches and start fresh
 - ❌ Kill processes without using the stop script
 - ❌ Debug for hours - use the scripts!
 
+### 🚨 CRITICAL: NEVER USE THESE KILL COMMANDS (they kill Claude Code):
+- ❌ **`pkill -f "npm"`** - TOO BROAD, kills Claude Code itself!
+- ❌ **`pkill -f "npm run"`** - TOO BROAD, kills Claude Code itself!
+- ❌ **`killall npm`** - TOO BROAD, kills Claude Code itself!
+- ❌ **`pkill -f "node"`** - TOO BROAD, can kill system processes!
+
+### ✅ SAFE PROCESS MANAGEMENT COMMANDS:
+- ✅ **`lsof -ti:3000 | xargs kill -9`** - Kill by specific port
+- ✅ **`pkill -f "nest start"`** - Kill specific NestJS process
+- ✅ **`pkill -f "tsx watch src/main"`** - Kill specific pattern
+- ✅ **`pkill -f "next dev.*3002"`** - Kill specific Next.js dev server
+- ✅ **`npm run stop`** - Use the project's stop script (preferred)
+
 ## 🚨 NEW: Calendar Booking Display Bug (2025-06-16)
 
 ### The Problem

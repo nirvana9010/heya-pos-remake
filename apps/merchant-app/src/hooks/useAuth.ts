@@ -50,10 +50,17 @@ export function useAuth() {
   }, [router]);
 
   const logout = () => {
+    // Clear all auth data from localStorage
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('merchant');
     localStorage.removeItem('user');
+    
+    // Clear the auth cookie to prevent middleware redirect loop
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+    
+    // Redirect to login
     router.push('/login');
   };
 

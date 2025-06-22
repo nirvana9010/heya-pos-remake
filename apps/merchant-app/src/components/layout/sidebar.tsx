@@ -40,7 +40,7 @@ interface SidebarProps {
   onToggle: (collapsed: boolean) => void
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<SidebarProps>) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -68,7 +68,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }, [pathname])
 
   return (
-    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <div 
+      className={`sidebar ${collapsed ? 'collapsed' : ''}`}
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: collapsed ? '60px' : '240px',
+        backgroundColor: '#f3f4f6',
+        borderRight: '1px solid #e5e7eb',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 40,
+        transition: 'width 0.3s ease-in-out'
+      }}>
       {/* Logo Section */}
       <div style={{ 
         display: 'flex', 

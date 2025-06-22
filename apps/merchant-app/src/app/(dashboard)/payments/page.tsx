@@ -611,7 +611,7 @@ export default function PaymentsPage() {
         <Button
           variant="link"
           className="p-0 h-auto font-medium hover:underline"
-          onClick={() => console.log(`Navigate to customer ${row.original.customerId}`)}
+          onClick={() => {}}
         >
           {row.original.customerName}
         </Button>
@@ -909,8 +909,6 @@ export default function PaymentsPage() {
               setIsLoading(true);
               try {
                 // Process the refund with verified staff info
-                console.log('Processing refund for:', selectedPayment);
-                console.log('Authorized by:', verifiedStaff);
                 
                 // TODO: Call actual refund API endpoint here
                 // await apiClient.processRefund(selectedPayment.id, refundAmount, verifiedStaff.id);

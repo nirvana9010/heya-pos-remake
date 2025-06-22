@@ -14,25 +14,26 @@ import { cn } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
 import { apiClient } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { prefetchManager } from '@/lib/prefetch';
 
-// Lazy load heavy components
-const Dialog = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.Dialog })), { ssr: false });
-const DialogContent = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.DialogContent })), { ssr: false });
-const DialogHeader = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.DialogHeader })), { ssr: false });
-const DialogTitle = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.DialogTitle })), { ssr: false });
-const DialogDescription = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.DialogDescription })), { ssr: false });
-const DialogFooter = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.DialogFooter })), { ssr: false });
-
-const Select = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.Select })), { ssr: false });
-const SelectContent = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.SelectContent })), { ssr: false });
-const SelectItem = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.SelectItem })), { ssr: false });
-const SelectTrigger = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.SelectTrigger })), { ssr: false });
-const SelectValue = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.SelectValue })), { ssr: false });
-
-const Tabs = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.Tabs })), { ssr: false });
-const TabsContent = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.TabsContent })), { ssr: false });
-const TabsList = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.TabsList })), { ssr: false });
-const TabsTrigger = dynamic(() => import('@heya-pos/ui').then(mod => ({ default: mod.TabsTrigger })), { ssr: false });
+// Import UI components normally - they're already optimized
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@heya-pos/ui';
 
 // Lazy load icons - only import the ones we need immediately
 import { Plus, Search, Users, TrendingUp, Gift, Clock, Crown } from 'lucide-react';
@@ -40,9 +41,15 @@ import { Plus, Search, Users, TrendingUp, Gift, Clock, Crown } from 'lucide-reac
 // Lazy load other icons
 const LucideIcons = dynamic(() => import('./customer-icons'), { ssr: false });
 
-// Lazy load complex dialogs
-const LoyaltyDialog = dynamic(() => import('@/components/loyalty/LoyaltyDialog').then(mod => ({ default: mod.LoyaltyDialog })), { ssr: false });
-const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetailsDialog').then(mod => ({ default: mod.CustomerDetailsDialog })), { ssr: false });
+// Only lazy load truly heavy components
+const LoyaltyDialog = dynamic(() => import('@/components/loyalty/LoyaltyDialog').then(mod => ({ default: mod.LoyaltyDialog })), { 
+  loading: () => null,
+  ssr: false 
+});
+const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetailsDialog').then(mod => ({ default: mod.CustomerDetailsDialog })), { 
+  loading: () => null,
+  ssr: false 
+});
 
 // Import types
 interface Customer {
@@ -153,11 +160,38 @@ export default function CustomersPageContent() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      console.log('[CustomersPage] Starting to load customers...');
       
-      // Load customers first (fast)
+      // Check cache first
+      const cachedData = prefetchManager.getCached('customers');
+      if (cachedData) {
+        // Use cached data immediately
+        const mappedCustomers = cachedData.map((customer: any) => ({
+          ...customer,
+          totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
+          totalSpent: parseFloat(customer.totalSpent || '0'),
+          loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
+          loyaltyVisits: customer.loyaltyVisits || 0,
+        }));
+        setCustomers(mappedCustomers);
+        setLoading(false);
+        
+        // Still fetch fresh data in background
+        apiClient.getCustomers().then(freshData => {
+          const mappedFresh = freshData.map((customer: any) => ({
+            ...customer,
+            totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
+            totalSpent: parseFloat(customer.totalSpent || '0'),
+            loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
+            loyaltyVisits: customer.loyaltyVisits || 0,
+          }));
+          setCustomers(mappedFresh);
+        });
+        
+        return;
+      }
+      
+      // No cache, load customers from API
       const customersData = await apiClient.getCustomers();
-      console.log('[CustomersPage] Received customers data:', customersData);
       
       // Map the API response to include the stats from backend
       const mappedCustomers = customersData.map((customer: any) => ({
@@ -168,16 +202,14 @@ export default function CustomersPageContent() {
         loyaltyVisits: customer.loyaltyVisits || 0,
       }));
       
-      // Show customers immediately with their stats
+      // Show customers immediately with their stats from backend
       setCustomers(mappedCustomers);
       setLoading(false);
       
-      // Then load bookings in the background for additional stats
-      loadBookingsInBackground(mappedCustomers);
+      // Backend already provides all necessary stats (totalVisits, totalSpent, etc)
+      // No need to load bookings separately
       
     } catch (error: any) {
-      console.error('Failed to load customers:', error);
-      console.error('Error details:', error.response?.data || error.message);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to load customers",
@@ -187,38 +219,8 @@ export default function CustomersPageContent() {
     }
   };
 
-  const loadBookingsInBackground = async (customersData: Customer[]) => {
-    try {
-      // Load ALL bookings including completed ones
-      const bookingsData = await apiClient.getBookings({ 
-        limit: 100, // V2 API max limit
-        // Get bookings from the last year to current + 3 months
-        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-      });
-      
-      console.log('[CustomersPage] Loaded bookings:', {
-        total: bookingsData.length,
-        completed: bookingsData.filter((b: any) => b.status === 'COMPLETED').length,
-        customers: customersData.length
-      });
-      
-      // Process bookings in chunks to avoid blocking the UI
-      processBookingsInChunks(customersData, bookingsData);
-      
-    } catch (error: any) {
-      // Log more details about the error
-      if (typeof window !== 'undefined' && window.console) {
-        window.console.error('[CustomersPage] Failed to load bookings:');
-        window.console.error('Error message:', error?.message);
-        window.console.error('Error response:', error?.response?.data);
-        window.console.error('Error status:', error?.response?.status);
-      }
-      
-      // Don't show error to user since this is background loading
-      // Customer data is already displayed with backend stats
-    }
-  };
+  // Removed loadBookingsInBackground - backend already provides all stats
+  // If real-time updates needed in future, use WebSocket or refresh button
 
   const processBookingsInChunks = (customersData: Customer[], bookingsData: any[]) => {
     const CHUNK_SIZE = 100;

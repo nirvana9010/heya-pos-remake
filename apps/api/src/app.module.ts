@@ -16,6 +16,7 @@ import { MerchantModule } from './merchant/merchant.module';
 import { AdminModule } from './admin/admin.module';
 import { ReportsModule } from './reports/reports.module';
 import { HealthModule } from './health/health.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 // Common modules
 import { CacheModule } from './common/cache/cache.module';
@@ -51,6 +52,7 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     AdminModule,
     ReportsModule,
     HealthModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

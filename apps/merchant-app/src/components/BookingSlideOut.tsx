@@ -11,7 +11,8 @@ import {
   Phone,
   Mail,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Users
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -19,6 +20,7 @@ import { Label } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
+import { Separator } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
@@ -243,13 +245,20 @@ export function BookingSlideOut({
             <div>
               <Label>Staff Member</Label>
               <Select
-                value={formData.staffId}
-                onValueChange={(value) => setFormData({ ...formData, staffId: value })}
+                value={formData.staffId || 'next-available'}
+                onValueChange={(value) => setFormData({ ...formData, staffId: value === 'next-available' ? undefined : value })}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select staff member" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="next-available">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-600" />
+                      <span>Next Available</span>
+                    </div>
+                  </SelectItem>
+                  <Separator className="my-1" />
                   {staff.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       <div className="flex items-center gap-2">

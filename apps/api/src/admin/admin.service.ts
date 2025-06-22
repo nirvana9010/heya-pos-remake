@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { DEFAULT_MERCHANT_SETTINGS } from '../merchant/merchant.constants';
 
 interface CreateMerchantDto {
   name: string;
@@ -72,19 +73,7 @@ export class AdminService {
           packageId: merchantPackage.id,
           subscriptionStatus: 'TRIAL',
           trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-          settings: {
-            currency: 'AUD',
-            timezone: 'Australia/Sydney',
-            bookingBuffer: 15,
-            cancellationHours: 24,
-            bookingAdvanceHours: 168, // 7 days
-            requirePinForRefunds: true,
-            requirePinForCancellations: true,
-            dateFormat: 'DD/MM/YYYY',
-            timeFormat: '12h',
-            requireDeposit: false,
-            depositPercentage: 0,
-          },
+          settings: DEFAULT_MERCHANT_SETTINGS as any,
         },
       });
 

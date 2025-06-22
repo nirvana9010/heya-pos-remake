@@ -40,9 +40,9 @@ export class CreateBookingV2Dto {
   @IsNotEmpty()
   customerId: string;
 
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  staffId: string;
+  staffId?: string;
 
   @IsUUID()
   @IsNotEmpty()

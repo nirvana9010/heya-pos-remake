@@ -28,7 +28,7 @@ export class BookingMapper {
    * Convert Prisma booking to domain entity
    */
   static toDomain(prismaBooking: PrismaBookingWithRelations): Booking {
-    if (!prismaBooking.customer || !prismaBooking.provider || !prismaBooking.location) {
+    if (!prismaBooking.customer || !prismaBooking.location) {
       throw new Error('Booking mapping failed: missing required relations');
     }
 

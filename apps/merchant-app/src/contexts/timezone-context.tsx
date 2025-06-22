@@ -36,26 +36,34 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Load merchant and location timezone on mount
   useEffect(() => {
     const loadTimezones = async () => {
+      // Always detect user's browser timezone first
+      const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (userTz) {
+        setUserTimezone(userTz);
+      }
+
       try {
-        // Get merchant settings
-        const settings = await apiClient.get('/merchant/settings');
-        if (settings?.timezone) {
-          setMerchantTimezone(settings.timezone);
+        // Try to get merchant settings
+        try {
+          const settings = await apiClient.get('/merchant/settings');
+          if (settings?.timezone) {
+            setMerchantTimezone(settings.timezone);
+          }
+        } catch (err) {
+          // Merchant settings failed, use default
         }
 
-        // Get first location
-        const locations = await apiClient.getLocations();
-        if (locations?.length > 0 && locations[0].timezone) {
-          setLocationTimezone(locations[0].timezone);
-        }
-
-        // Detect user's browser timezone
-        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (userTz) {
-          setUserTimezone(userTz);
+        // Try to get first location
+        try {
+          const locations = await apiClient.getLocations();
+          if (locations?.length > 0 && locations[0].timezone) {
+            setLocationTimezone(locations[0].timezone);
+          }
+        } catch (err) {
+          // Location fetch failed, that's ok
         }
       } catch (error) {
-        console.error('Failed to load timezone settings:', error);
+        // Silently handle errors - we have defaults
       } finally {
         setLoading(false);
       }

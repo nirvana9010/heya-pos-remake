@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Import UI Verification</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Service Import UI Verification</h1>
+  
+  <div class="section">
+    <h2>Checking Service Import Section...</h2>
+    <p>This page verifies that the service import UI is properly displayed in the Settings page.</p>
+    
+    <h3>Expected UI Elements:</h3>
+    <ul>
+      <li>✓ File upload area with "Choose CSV file" label</li>
+      <li>✓ Download Template button</li>
+      <li>✓ Import Services button</li>
+      <li>✓ CSV format instructions (without "Coming Soon")</li>
+    </ul>
+    
+    <h3>What you should see:</h3>
+    <ol>
+      <li>Navigate to Settings → Import tab</li>
+      <li>In the Service Import section, you should see:
+        <ul>
+          <li>An upload icon</li>
+          <li>"Choose CSV file" clickable text</li>
+          <li>Two buttons: "Download Template" and "Import Services"</li>
+          <li>The Import Services button should be disabled until a file is selected</li>
+          <li>Instructions should NOT say "Coming Soon"</li>
+        </ul>
+      </li>
+    </ol>
+    
+    <h3>How to test:</h3>
+    <ol>
+      <li>Click "Download Template" - should download a CSV file</li>
+      <li>Click "Choose CSV file" - should open file picker</li>
+      <li>Select any CSV file - the filename should appear</li>
+      <li>Click "Import Services" - should show preview dialog</li>
+    </ol>
+  </div>
+  
+  <div class="section">
+    <h2>Troubleshooting:</h2>
+    <p>If you're not seeing the updated UI:</p>
+    <ol>
+      <li>Hard refresh the page (Ctrl+F5 or Cmd+Shift+R)</li>
+      <li>Clear browser cache</li>
+      <li>Check browser console for errors</li>
+      <li>Verify you're on the Import tab in Settings</li>
+    </ol>
+  </div>
+</body>
+</html>

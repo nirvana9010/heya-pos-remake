@@ -35,14 +35,6 @@ export class BaseApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Only log in development mode
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[API Client] Request:', {
-            url: config.url,
-            method: config.method?.toUpperCase(),
-            hasToken: !!token,
-          });
-        }
         
         return config;
       },
@@ -75,18 +67,6 @@ export class BaseApiClient {
             details: error.response?.data
           };
           
-          // Log as separate items to avoid serialization issues
-          console.error('[API Client] API Error:');
-          console.error('  URL:', errorInfo.url);
-          console.error('  Method:', errorInfo.method);
-          console.error('  Status:', errorInfo.status);
-          console.error('  Message:', errorInfo.message);
-          if (errorInfo.errorCode) {
-            console.error('  Error Code:', errorInfo.errorCode);
-          }
-          if (errorInfo.details && Object.keys(errorInfo.details).length > 0) {
-            console.error('  Details:', errorInfo.details);
-          }
         }
 
         // Handle 401 errors with token refresh
@@ -153,10 +133,8 @@ export class BaseApiClient {
         localStorage.setItem('merchant', JSON.stringify(user));
       }
 
-      console.log('[API Client] Token refresh successful');
       this.scheduleTokenRefresh(expiresAt);
     } catch (error) {
-      console.error('[API Client] Token refresh failed:', error);
       throw error;
     }
   }
@@ -175,16 +153,13 @@ export class BaseApiClient {
     const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
     
     if (refreshTime > 0) {
-      console.log(`[API Client] Scheduling token refresh in ${Math.round(refreshTime / 1000 / 60)} minutes`);
       
       (window as any).tokenRefreshTimeout = setTimeout(async () => {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          console.log('[API Client] Proactive token refresh triggered');
           try {
             await this.performTokenRefresh(refreshToken);
           } catch (error) {
-            console.error('[API Client] Proactive refresh failed:', error);
           }
         }
       }, refreshTime);
@@ -196,6 +171,9 @@ export class BaseApiClient {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('merchant');
     localStorage.removeItem('user');
+    
+    // Also clear the auth cookie for middleware
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
   }
 
   private redirectToLogin() {
@@ -254,12 +232,10 @@ export class BaseApiClient {
     const cached = memoryCache.get(cacheKey);
     if (cached) {
       if (!cached.isStale) {
-        console.log('[Cache] Hit:', cacheKey);
         return cached.data;
       }
       
       // Stale-while-revalidate: return stale data and fetch in background
-      console.log('[Cache] Stale, revalidating:', cacheKey);
       this.revalidateInBackground(versionedUrl, config, version, responseSchema, cacheKey);
       return cached.data;
     }
@@ -301,7 +277,6 @@ export class BaseApiClient {
       }
     } catch (error) {
       // Ignore errors in background revalidation
-      console.warn('[Cache] Background revalidation failed:', error);
     }
   }
 
@@ -405,12 +380,10 @@ export class BaseApiClient {
   // Cache management methods
   protected invalidateCache(pattern: string) {
     memoryCache.delete(pattern);
-    console.log('[Cache] Invalidated:', pattern);
   }
   
   protected clearAllCache() {
     memoryCache.clear();
-    console.log('[Cache] Cleared all cache');
   }
   
   private invalidateCacheForMutation(url: string) {

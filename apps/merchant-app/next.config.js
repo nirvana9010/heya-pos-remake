@@ -23,8 +23,6 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   
-  // Enable SWC minification
-  swcMinify: true,
   
   // Experimental features for better performance
   experimental: {
@@ -58,6 +56,10 @@ const nextConfig = {
   
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
+    // Fix for ChunkLoadError
+    if (!isServer) {
+      config.output.publicPath = '/_next/';
+    }
     // Resolve @heya-pos/ui to its dist folder
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -67,9 +69,9 @@ const nextConfig = {
     // Development optimizations
     if (dev) {
       config.watchOptions = {
-        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
-        aggregateTimeout: 300,
-        poll: 1000,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**', '**/logs/**', '**/*.log'],
+        aggregateTimeout: 500,
+        poll: false, // Disable polling to prevent false restarts
       };
       
       // Faster rebuilds in development

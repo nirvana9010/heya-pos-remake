@@ -132,7 +132,7 @@ interface Booking {
   customerEmail?: string;
   serviceName: string;
   serviceIcon: "scissors" | "sparkles" | "hand" | "palette";
-  staffId: string;
+  staffId: string | null;
   staffName: string;
   startTime: Date;
   endTime: Date;
@@ -147,13 +147,7 @@ interface Booking {
   services?: any[]; // for multi-service bookings
 }
 
-// Mock data - ONLY FOR DEVELOPMENT
-const mockStaff: Staff[] = process.env.NODE_ENV === 'development' ? [
-  { id: "1", name: "Emma Wilson", color: "#7C3AED", isVisible: true, isAvailable: true },
-  { id: "2", name: "James Brown", color: "#14B8A6", isVisible: true, isAvailable: true },
-  { id: "3", name: "Sophie Chen", color: "#F59E0B", isVisible: true, isAvailable: false },
-  { id: "4", name: "Michael Davis", color: "#EF4444", isVisible: true, isAvailable: true },
-] : [];
+// No mock data - always use real data from API
 
 const mockBusinessHours: BusinessHours = {
   start: "09:00",
@@ -849,6 +843,7 @@ export default function CalendarPageContent() {
   });
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(false);
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const weekHeaderRef = useRef<HTMLDivElement>(null);
   
@@ -992,8 +987,8 @@ export default function CalendarPageContent() {
     
     const updatedBooking = {
       ...activeBooking,
-      staffId: targetSlot.staffId,
-      staffName: staff.find(s => s.id === targetSlot.staffId)?.name || activeBooking.staffName,
+      staffId: targetSlot.staffId === 'unassigned' ? null : targetSlot.staffId,
+      staffName: targetSlot.staffId === 'unassigned' ? 'Unassigned' : (staff.find(s => s.id === targetSlot.staffId)?.name || activeBooking.staffName),
       startTime: targetSlot.startTime,
       endTime: new Date(targetSlot.startTime.getTime() + (activeBooking.duration || 60) * 60000),
     };
@@ -1099,13 +1094,8 @@ export default function CalendarPageContent() {
   const loadBookings = async () => {
     console.log('📚 loadBookings called');
     
-    // Check if we have a token
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      console.error('No access token found, redirecting to login...');
-      window.location.href = '/login';
-      return;
-    }
+    // Remove local token check - AuthGuard handles authentication
+    // The apiClient will use the token from localStorage automatically
     
     try {
       setLoading(true);
@@ -1192,10 +1182,9 @@ export default function CalendarPageContent() {
           data: error?.response?.data
         });
         
-        // If it's a 401, redirect to login
+        // If it's a 401, the auth interceptor will handle it
         if (error?.response?.status === 401) {
-          console.error('Authentication failed, redirecting to login...');
-          window.location.href = '/login';
+          console.error('Authentication failed - auth provider will handle redirect');
           return;
         }
         
@@ -1217,6 +1206,22 @@ export default function CalendarPageContent() {
   useEffect(() => {
     loadBookings();
   }, [currentDate, viewType]); // Reload when date or view type changes
+
+  // Load merchant settings
+  useEffect(() => {
+    const loadMerchantSettings = async () => {
+      try {
+        const settings = await apiClient.getMerchantSettings();
+        if (settings && settings.showUnassignedColumn !== undefined) {
+          setShowUnassignedColumn(settings.showUnassignedColumn);
+        }
+      } catch (error) {
+        console.error('Failed to load merchant settings:', error);
+      }
+    };
+
+    loadMerchantSettings();
+  }, []);
 
   // Load staff from API
   useEffect(() => {
@@ -1242,15 +1247,32 @@ export default function CalendarPageContent() {
         }));
       } catch (error) {
         console.error('Failed to load staff:', error);
+        
+        // Provide specific error messages based on the error type
+        let errorMessage = "Unable to load staff data. Please try again.";
+        if (error instanceof Error) {
+          if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+            errorMessage = "Your session has expired. Please log in again.";
+          } else if (error.message.includes('Network')) {
+            errorMessage = "Network error. Please check your connection.";
+          } else if (error.message.includes('500')) {
+            errorMessage = "Server error. Please try again later or contact support.";
+          }
+        }
+        
         toast({
-          title: "Error loading staff",
-          description: "Unable to load staff data. Please refresh the page.",
+          title: "Unable to Load Staff",
+          description: errorMessage,
           variant: "destructive",
         });
-        // Don't use mock data in production
-        if (process.env.NODE_ENV === 'development') {
-          setStaff(mockStaff);
-        }
+        
+        // Set empty staff array to show proper empty state
+        setStaff([]);
+        // Disable all filters when no staff available
+        setFilters(prev => ({
+          ...prev,
+          selectedStaffIds: []
+        }));
       }
     };
 
@@ -1500,8 +1522,9 @@ export default function CalendarPageContent() {
 
   // Render different views
   const renderDayView = () => {
-    // Create grid template columns based on staff count
-    const gridColumns = `80px repeat(${visibleStaff.length}, minmax(150px, 1fr))`;
+    // Create grid template columns based on staff count and unassigned column
+    const columnCount = showUnassignedColumn ? visibleStaff.length + 1 : visibleStaff.length;
+    const gridColumns = `80px repeat(${columnCount}, minmax(150px, 1fr))`;
     
     return (
       <div className="flex flex-col h-full overflow-hidden">
@@ -1511,6 +1534,28 @@ export default function CalendarPageContent() {
           style={{ gridTemplateColumns: gridColumns }}
         >
           <div className="h-16 border-r border-gray-100 bg-gray-50" /> {/* Time column header */}
+          
+          {/* Unassigned column header */}
+          {showUnassignedColumn && (
+            <div className="h-16 px-4 flex items-center justify-between border-r border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm shadow-sm bg-gray-200">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-gray-700">Unassigned</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-gray-600 font-medium">
+                      {filteredBookings.filter(b => !b.staffId && isSameDay(b.startTime, currentDate)).length} bookings
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {visibleStaff.map((staffMember) => {
             const todayBookings = filteredBookings.filter(b => 
               b.staffId === staffMember.id && 
@@ -1584,6 +1629,65 @@ export default function CalendarPageContent() {
                     </span>
                   )}
                 </div>
+
+                {/* Unassigned column cell */}
+                {showUnassignedColumn && (
+                  <DroppableTimeSlot
+                    key={`unassigned-${slotIndex}`}
+                    staffId="unassigned"
+                    staffName="Unassigned"
+                    startTime={slot.time}
+                    slotIndex={slotIndex}
+                    className={cn(
+                      "relative group transition-colors duration-100",
+                      slot.isHour ? "border-b border-gray-200" : slot.isMinorInterval ? "border-b border-gray-50" : "border-b border-gray-100",
+                      "border-r border-gray-100",
+                      !slot.isBusinessHours && "bg-gray-50/30",
+                      slot.isBusinessHours && "hover:bg-gray-50/50"
+                    )}
+                    style={{ height: `${slot.height}px` }}
+                    isDraggedOver={isDragging && dragOverSlot?.staffId === 'unassigned' && dragOverSlot?.startTime?.getTime() === slot.time.getTime()}
+                  >
+                    {/* Unassigned bookings for this time slot */}
+                    {filteredBookings
+                      .filter(booking => 
+                        !booking.staffId &&
+                        isSameDay(booking.startTime, currentDate) &&
+                        booking.startTime.getHours() === slot.hour &&
+                        booking.startTime.getMinutes() === slot.minute
+                      )
+                      .map(booking => {
+                        const { layoutMap } = analyzeSlotConflicts(
+                          filteredBookings.filter(b => !b.staffId && isSameDay(b.startTime, currentDate)),
+                          booking.startTime,
+                          booking.endTime
+                        );
+                        const layout = layoutMap.get(booking.id);
+                        
+                        return (
+                          <DraggableBooking
+                            key={booking.id}
+                            booking={booking}
+                            onSelect={() => setSelectedBooking(booking)}
+                            isSelected={selectedBooking?.id === booking.id}
+                            onHoverChange={setHoveredBooking}
+                            className={cn(
+                              "absolute z-10",
+                              layout?.isCompact && "text-xs"
+                            )}
+                            style={{
+                              top: 0,
+                              left: layout ? `${layout.left}%` : '0%',
+                              width: layout ? `${layout.width}%` : '100%',
+                              height: `${calculateBookingHeight(booking.startTime, booking.endTime, pixelsPerMinute)}px`,
+                              minHeight: '30px'
+                            }}
+                          />
+                        );
+                      })
+                    }
+                  </DroppableTimeSlot>
+                )}
 
                 {/* Staff cells for this time slot */}
                 {visibleStaff.map((staffMember) => {
@@ -2659,24 +2763,31 @@ export default function CalendarPageContent() {
                         </button>
                       </div>
                       <div className="space-y-2">
-                        {staff.map((member) => (
-                          <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                            <Checkbox
-                              checked={filters.selectedStaffIds.includes(member.id)}
-                              onCheckedChange={() => toggleStaff(member.id)}
-                            />
-                            <div 
-                              className="w-3 h-3 rounded-full flex-shrink-0" 
-                              style={{ backgroundColor: member.color }}
-                            />
-                            <span className="flex-1">{member.name}</span>
-                            {!member.isAvailable && (
-                              <Badge variant="secondary" className="text-xs bg-gray-100">
-                                Unavailable
-                              </Badge>
-                            )}
-                          </label>
-                        ))}
+                        {staff.length === 0 ? (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-gray-500">No staff members found</p>
+                            <p className="text-xs text-gray-400 mt-1">Please add staff members in the Staff section</p>
+                          </div>
+                        ) : (
+                          staff.map((member) => (
+                            <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                              <Checkbox
+                                checked={filters.selectedStaffIds.includes(member.id)}
+                                onCheckedChange={() => toggleStaff(member.id)}
+                              />
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                style={{ backgroundColor: member.color }}
+                              />
+                              <span className="flex-1">{member.name}</span>
+                              {!member.isAvailable && (
+                                <Badge variant="secondary" className="text-xs bg-gray-100">
+                                  Unavailable
+                                </Badge>
+                              )}
+                            </label>
+                          ))
+                        )}
                       </div>
                     </div>
                     

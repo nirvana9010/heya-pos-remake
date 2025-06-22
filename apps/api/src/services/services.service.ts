@@ -3,11 +3,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
-import { ImportServicesDto, ServiceImportItem } from './dto/import-services.dto';
+import { ImportOptionsDto, ImportPreviewRow, ImportPreviewDto, ImportResult, DuplicateAction, ImportServicesDto, ServiceImportItem } from './dto/import-services.dto';
 import { CreateServiceCategoryDto } from './dto/create-category.dto';
 import { UpdateServiceCategoryDto } from './dto/update-category.dto';
 import { Service, ServiceCategory, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '../types';
+import { CsvParserService } from './csv-parser.service';
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {
@@ -17,7 +18,10 @@ type ServiceWithCategoryName = Service & {
 
 @Injectable()
 export class ServicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private csvParser: CsvParserService,
+  ) {}
 
   // ============= SERVICE CRUD =============
 
@@ -352,7 +356,7 @@ export class ServicesService {
       const uniqueCategories = [...new Set(dto.services.map(s => s.Category))];
       for (const categoryName of uniqueCategories) {
         if (categoryName) {
-          await this.findOrCreateCategory(merchantId, categoryName);
+          await this.findOrCreateCategory(merchantId, categoryName as string);
         }
       }
     }
@@ -404,21 +408,6 @@ export class ServicesService {
     return results;
   }
 
-  async parseCsvFile(buffer: Buffer): Promise<ServiceImportItem[]> {
-    const { parse } = await import('csv-parse/sync');
-    
-    try {
-      const records = parse(buffer, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-      });
-
-      return records;
-    } catch (error) {
-      throw new BadRequestException('Invalid CSV file format');
-    }
-  }
 
   // ============= HELPER METHODS =============
 
@@ -531,6 +520,245 @@ export class ServicesService {
         merchantId,
       },
       data: { isActive },
+    });
+  }
+
+  // ============= NEW CSV IMPORT METHODS =============
+
+  async previewImport(
+    merchantId: string,
+    file: Buffer,
+    options: ImportOptionsDto
+  ): Promise<ImportPreviewDto> {
+    // Parse CSV file
+    const rawRows = await this.csvParser.parseCsvFile(file);
+    
+    if (rawRows.length === 0) {
+      throw new BadRequestException('CSV file is empty');
+    }
+
+    const rows: ImportPreviewRow[] = [];
+    const summary = {
+      total: rawRows.length,
+      valid: 0,
+      invalid: 0,
+      duplicates: 0,
+      toCreate: 0,
+      toUpdate: 0,
+      toSkip: 0,
+    };
+
+    // Process each row
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowNumber = i + 2; // Account for header row
+      const rawRow = rawRows[i];
+      
+      // Validate row
+      const validation = this.csvParser.validateRow(rawRow, rowNumber);
+      
+      // Transform row
+      const data = this.csvParser.transformRow(rawRow);
+      
+      // Check for existing service
+      let action: 'create' | 'update' | 'skip' = 'create';
+      let existingServiceId: string | undefined;
+      
+      if (validation.isValid) {
+        const existing = await this.prisma.service.findFirst({
+          where: {
+            merchantId,
+            name: data.name,
+          },
+        });
+
+        if (existing) {
+          summary.duplicates++;
+          existingServiceId = existing.id;
+          
+          switch (options.duplicateAction) {
+            case DuplicateAction.UPDATE:
+              action = 'update';
+              summary.toUpdate++;
+              break;
+            case DuplicateAction.SKIP:
+              action = 'skip';
+              summary.toSkip++;
+              break;
+            case DuplicateAction.CREATE_NEW:
+              // Will append number to name during import
+              action = 'create';
+              summary.toCreate++;
+              validation.warnings.push('Will create with modified name');
+              break;
+          }
+        } else {
+          summary.toCreate++;
+        }
+        summary.valid++;
+      } else {
+        summary.invalid++;
+        if (options.skipInvalidRows) {
+          action = 'skip';
+          summary.toSkip++;
+        }
+      }
+
+      rows.push({
+        rowNumber,
+        data,
+        validation,
+        action,
+        existingServiceId,
+      });
+    }
+
+    return { rows, summary };
+  }
+
+  async executeImport(
+    merchantId: string,
+    rows: ImportPreviewRow[],
+    options: ImportOptionsDto
+  ): Promise<ImportResult> {
+    const result: ImportResult = {
+      success: true,
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    // Use transaction for data integrity
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        if (row.action === 'skip' || !row.validation.isValid) {
+          result.skipped++;
+          continue;
+        }
+
+        try {
+          const { data } = row;
+          
+          // Parse duration to minutes
+          const duration = this.csvParser.parseDuration(data.duration);
+          
+          // Find or create category if specified
+          let categoryId: string | undefined;
+          if (data.category && options.createCategories) {
+            const category = await this.findOrCreateCategoryInTx(
+              tx,
+              merchantId,
+              data.category
+            );
+            categoryId = category.id;
+          }
+
+          // Prepare service data
+          const serviceData = {
+            name: data.name,
+            description: data.description,
+            duration,
+            price: data.price,
+            currency: 'AUD',
+            taxRate: data.tax_rate ?? 0.1,
+            isActive: data.active ?? true,
+            requiresDeposit: data.deposit_required ?? false,
+            depositAmount: data.deposit_amount,
+            maxAdvanceBooking: data.max_advance_days ?? 90,
+            minAdvanceBooking: data.min_advance_hours ?? 0,
+            displayOrder: 0,
+            merchantId,
+            categoryId,
+          };
+
+          if (row.action === 'update' && row.existingServiceId) {
+            // Update existing service
+            await tx.service.update({
+              where: { id: row.existingServiceId },
+              data: serviceData,
+            });
+            result.updated++;
+          } else if (row.action === 'create') {
+            // Handle duplicate names if creating new
+            let finalName = serviceData.name;
+            if (row.existingServiceId && options.duplicateAction === DuplicateAction.CREATE_NEW) {
+              // Find a unique name by appending a number
+              let counter = 2;
+              let nameExists = true;
+              while (nameExists) {
+                finalName = `${serviceData.name} (${counter})`;
+                const existing = await tx.service.findFirst({
+                  where: {
+                    merchantId,
+                    name: finalName,
+                  },
+                });
+                nameExists = !!existing;
+                counter++;
+              }
+            }
+
+            // Create new service
+            await tx.service.create({
+              data: {
+                ...serviceData,
+                name: finalName,
+              },
+            });
+            result.imported++;
+          }
+        } catch (error) {
+          result.failed++;
+          result.errors.push({
+            row: row.rowNumber,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          
+          // If not skipping invalid rows, throw to rollback transaction
+          if (!options.skipInvalidRows) {
+            throw error;
+          }
+        }
+      }
+    });
+
+    result.success = result.failed === 0 || options.skipInvalidRows;
+    return result;
+  }
+
+  private async findOrCreateCategoryInTx(
+    tx: any,
+    merchantId: string,
+    categoryName: string
+  ): Promise<ServiceCategory> {
+    // Check if category exists (case-insensitive)
+    const existing = await tx.serviceCategory.findFirst({
+      where: {
+        merchantId,
+        name: {
+          equals: categoryName,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    // Create new category
+    const categoryCount = await tx.serviceCategory.count({
+      where: { merchantId },
+    });
+
+    return await tx.serviceCategory.create({
+      data: {
+        merchantId,
+        name: categoryName,
+        sortOrder: categoryCount,
+        isActive: true,
+      },
     });
   }
 }

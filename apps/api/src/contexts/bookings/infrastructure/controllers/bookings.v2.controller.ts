@@ -192,8 +192,6 @@ export class BookingsV2Controller {
     if (dto.notes !== undefined) updateData.notes = dto.notes;
     if (dto.staffId) {
       updateData.staffId = dto.staffId;
-      // Log for debugging
-      console.log(`[BookingsV2Controller] Update request includes staffId: ${dto.staffId}`);
     }
     if (dto.services && dto.services.length > 0) {
       // For now, handle single service update

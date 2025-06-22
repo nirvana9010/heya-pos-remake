@@ -58,6 +58,13 @@ export function CustomerDetailsDialog({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyDateRange, setHistoryDateRange] = useState({
+    start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+    end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days future
+  });
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -112,6 +119,34 @@ export function CustomerDetailsDialog({
     });
     setIsEditing(false);
   };
+
+  const loadBookingHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const response = await apiClient.getBookings({
+        customerId: customer.id,
+        startDate: historyDateRange.start.toISOString(),
+        endDate: historyDateRange.end.toISOString(),
+        limit: 100
+      });
+      setBookings(response);
+    } catch (error) {
+      console.error('Failed to load booking history:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load booking history',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showHistory && customer) {
+      loadBookingHistory();
+    }
+  }, [showHistory, customer?.id]);
 
   const isVIP = customer.totalSpent > 1000 || customer.totalVisits > 10;
   const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : null;
@@ -261,6 +296,73 @@ export function CustomerDetailsDialog({
                 </p>
               )}
             </div>
+
+            {/* Booking History */}
+            {!isEditing && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="w-full gap-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  {showHistory ? 'Hide History' : 'View Full History'}
+                </Button>
+                
+                {showHistory && (
+                  <div className="mt-4 space-y-2">
+                    {loadingHistory ? (
+                      <div className="text-center py-4 text-sm text-gray-500">
+                        Loading booking history...
+                      </div>
+                    ) : bookings.length > 0 ? (
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Showing {bookings.length} bookings from last 90 days
+                        </p>
+                        {bookings.map((booking: any) => (
+                          <div key={booking.id} className="p-2 bg-gray-50 rounded text-sm">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">{booking.serviceName || 'Service'}</p>
+                                <p className="text-xs text-gray-500">
+                                  {format(new Date(booking.startTime || booking.date), 'MMM d, yyyy h:mm a')}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">${booking.totalAmount || booking.price || 0}</p>
+                                <Badge 
+                                  variant={booking.status === 'completed' ? 'default' : 'secondary'} 
+                                  className="text-xs"
+                                >
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => {
+                            router.push(`/customers/${customer.id}`);
+                            onOpenChange(false);
+                          }}
+                          className="w-full mt-2"
+                        >
+                          View Complete History →
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-center py-4 text-sm text-gray-500">
+                        No bookings found in the selected date range
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

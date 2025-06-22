@@ -32,7 +32,7 @@ export const prefetchManager = {
       const data = await apiClient.getCustomers()
       this.cache.set(key, { data, timestamp: Date.now() })
     } catch (error) {
-      console.error('Failed to prefetch customers:', error)
+      // Silently fail - prefetching is optional
     }
   },
   
@@ -51,7 +51,7 @@ export const prefetchManager = {
         timestamp: Date.now() 
       })
     } catch (error) {
-      console.error('Failed to prefetch services:', error)
+      // Silently fail - prefetching is optional
     }
   },
   
@@ -64,7 +64,7 @@ export const prefetchManager = {
       const data = await apiClient.getBookings(new Date())
       this.cache.set(key, { data, timestamp: Date.now() })
     } catch (error) {
-      console.error('Failed to prefetch bookings:', error)
+      // Silently fail - prefetching is optional
     }
   },
   
