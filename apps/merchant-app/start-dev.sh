@@ -1,11 +1,15 @@
 #!/bin/bash
 
-# Start merchant app with auto-restart on crash
+# Auto-restart script for Next.js merchant app
+echo "Starting merchant app with auto-restart..."
+
 while true; do
-  echo "Starting merchant app on port 3002..."
-  npm run dev
+  echo "[$(date)] Starting Next.js dev server on port 3002..."
   
-  # If the app exits, wait a bit before restarting
-  echo "Merchant app crashed or exited. Restarting in 5 seconds..."
+  # Run the dev server directly
+  npm run dev:direct
+  
+  # If it exits, wait a bit before restarting
+  echo "[$(date)] Dev server stopped. Restarting in 5 seconds..."
   sleep 5
 done

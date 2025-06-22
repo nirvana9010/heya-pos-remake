@@ -1,50 +1,71 @@
 'use client';
 
-import { useEffect, useState, useLayoutEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-// Check auth synchronously on mount to avoid flash
-function checkAuthSync() {
-  if (typeof window === 'undefined') return true;
-  const token = localStorage.getItem('access_token');
-  return !!token;
-}
-
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  // Initialize with sync check to avoid flash
-  const [isAuthenticated, setIsAuthenticated] = useState(checkAuthSync);
-  const [hasChecked, setHasChecked] = useState(false);
+  const { isAuthenticated, isLoading, tokenExpiresAt } = useAuth();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
-  // Use useLayoutEffect for faster auth check
-  useLayoutEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const authenticated = !!token;
-    
-    setIsAuthenticated(authenticated);
-    setHasChecked(true);
-    
-    if (!authenticated && pathname !== '/login') {
-      router.replace('/login');
+  useEffect(() => {
+    // Don't check while loading
+    if (isLoading) {
+      return;
     }
-  }, [pathname, router]);
 
-  // If we haven't checked yet but initial sync check passed, render immediately
-  // This prevents the loading state for authenticated users
-  if (!hasChecked && isAuthenticated) {
-    return <>{children}</>;
+    // Mark that we've checked auth
+    setHasCheckedAuth(true);
+
+    // Check if token is expired
+    const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
+    
+    // If not authenticated or token expired, redirect to login
+    if (!isAuthenticated || isTokenExpired) {
+      console.log('[AuthGuard] Auth check failed:', { 
+        isAuthenticated, 
+        isTokenExpired,
+        tokenExpiresAt,
+        pathname 
+      });
+      
+      // Only redirect if not already on login page
+      if (pathname !== '/login') {
+        // Use replace to prevent back button issues
+        router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      }
+    }
+  }, [isAuthenticated, isLoading, tokenExpiresAt, pathname, router]);
+
+  // Show loading state while auth is initializing
+  if (isLoading || !hasCheckedAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
   }
 
-  // If not authenticated after checking, show nothing
-  if (hasChecked && !isAuthenticated) {
-    return null;
+  // Check token expiration on render as well
+  const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
+  
+  // If not authenticated or token expired after check, show redirect message
+  if (!isAuthenticated || isTokenExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Render children if authenticated
+  // Render children if authenticated with valid token
   return <>{children}</>;
 }

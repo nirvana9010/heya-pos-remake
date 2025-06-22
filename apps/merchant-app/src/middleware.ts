@@ -1,10 +1,24 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
 
 // Public routes that don't require authentication
-const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/api']
+const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/api', '/emergency-logout.html']
 
-export function middleware(request: NextRequest) {
+// Get JWT secret - same as API uses
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-at-least-32-characters-long'
+
+async function verifyToken(token: string) {
+  try {
+    const secret = new TextEncoder().encode(JWT_SECRET)
+    const { payload } = await jwtVerify(token, secret)
+    return payload
+  } catch (error) {
+    return null
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
   // Skip auth check for public routes
@@ -22,8 +36,39 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
     
-    // TODO: Optionally validate token expiry here
-    // For now, we'll let the API handle token validation
+    // Validate token with proper signature verification
+    const payload = await verifyToken(token)
+    
+    if (!payload) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      
+      // Clear the invalid cookie
+      const response = NextResponse.redirect(loginUrl)
+      response.cookies.delete('authToken')
+      response.cookies.delete('auth-token')
+      return response
+    }
+    
+    // Check token expiration
+    const now = Date.now() / 1000 // Convert to seconds
+    if (payload.exp && payload.exp < now) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      
+      // Clear the expired cookie
+      const response = NextResponse.redirect(loginUrl)
+      response.cookies.delete('authToken')
+      response.cookies.delete('auth-token')
+      return response
+    }
+    
+    // Token is valid, pass user data to the request via headers
+    const response = NextResponse.next()
+    response.headers.set('x-user-id', payload.sub as string)
+    response.headers.set('x-merchant-id', payload.merchantId as string)
+    response.headers.set('x-user-type', payload.type as string)
+    return response
   }
   
   // For login page, redirect to calendar if already authenticated
@@ -32,18 +77,31 @@ export function middleware(request: NextRequest) {
                   request.cookies.get('auth-token')?.value
     
     if (token) {
-      return NextResponse.redirect(new URL('/calendar', request.url))
+      try {
+        const payload = await verifyToken(token)
+        
+        // Only redirect if token is valid and not expired
+        if (payload && payload.exp && payload.exp > Date.now() / 1000) {
+          return NextResponse.redirect(new URL('/calendar', request.url))
+        } else {
+          // Token is expired, clear the cookie
+          const response = NextResponse.next()
+          response.cookies.delete('authToken')
+          response.cookies.delete('auth-token')
+          return response
+        }
+      } catch (error) {
+        // Invalid token, clear the cookie
+        const response = NextResponse.next()
+        response.cookies.delete('authToken')
+        response.cookies.delete('auth-token')
+        return response
+      }
     }
   }
   
   // Continue with the request
-  const response = NextResponse.next()
-  
-  // Add timing headers for debugging
-  response.headers.set('x-pathname', pathname)
-  response.headers.set('x-middleware-start', Date.now().toString())
-  
-  return response
+  return NextResponse.next()
 }
 
 // Only run middleware on app routes, not on static files

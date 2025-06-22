@@ -13,24 +13,31 @@ import {
   BadRequestException,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
-import { ImportServicesDto } from './dto/import-services.dto';
+import { ImportOptionsDto, ExecuteImportDto } from './dto/import-services.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PinAuthGuard } from '../auth/guards/pin-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Service } from '@prisma/client';
 import { PaginatedResponse } from '../types';
+import { CsvParserService } from './csv-parser.service';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(
+    private readonly servicesService: ServicesService,
+    private readonly csvParser: CsvParserService,
+  ) {}
 
   @Post()
   @RequirePermissions('service.create')
@@ -79,42 +86,6 @@ export class ServicesController {
     return this.servicesService.remove(id, user.merchantId);
   }
 
-  @Post('import')
-  @RequirePermissions('service.create')
-  async importServices(
-    @Body() importDto: ImportServicesDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.servicesService.importServices(user.merchantId, importDto);
-  }
-
-  @Post('import/csv')
-  @RequirePermissions('service.create')
-  @UseInterceptors(FileInterceptor('file'))
-  async importCsv(
-    @UploadedFile() file: Express.Multer.File,
-    @Query('updateExisting') updateExisting: string,
-    @Query('createCategories') createCategories: string,
-    @CurrentUser() user: any,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    if (!file.mimetype.includes('csv') && !file.originalname.endsWith('.csv')) {
-      throw new BadRequestException('File must be CSV format');
-    }
-
-    const services = await this.servicesService.parseCsvFile(file.buffer);
-
-    const importDto: ImportServicesDto = {
-      services,
-      updateExisting: updateExisting === 'true',
-      createCategories: createCategories !== 'false', // Default true
-    };
-
-    return this.servicesService.importServices(user.merchantId, importDto);
-  }
 
   @Patch('reorder')
   @RequirePermissions('service.update')
@@ -138,5 +109,59 @@ export class ServicesController {
       body.serviceIds,
       body.isActive,
     );
+  }
+
+  // ============= NEW CSV IMPORT ENDPOINTS =============
+
+  @Post('import/preview')
+  @UseGuards(PinAuthGuard)
+  @RequirePermissions('service.create')
+  @UseInterceptors(FileInterceptor('file'))
+  async previewImport(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() options: ImportOptionsDto,
+    @CurrentUser() user: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.includes('csv') && !file.originalname.endsWith('.csv')) {
+      throw new BadRequestException('File must be CSV format');
+    }
+
+    // File size limit: 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+
+    return this.servicesService.previewImport(
+      user.merchantId,
+      file.buffer,
+      options
+    );
+  }
+
+  @Post('import/execute')
+  @UseGuards(PinAuthGuard)
+  @RequirePermissions('service.create')
+  async executeImport(
+    @Body() body: ExecuteImportDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.servicesService.executeImport(
+      user.merchantId,
+      body.rows,
+      body.options
+    );
+  }
+
+  @Get('import/template')
+  async downloadTemplate(@Res() response: Response) {
+    const csv = this.csvParser.generateTemplate();
+    
+    response.header('Content-Type', 'text/csv');
+    response.header('Content-Disposition', 'attachment; filename="service-import-template.csv"');
+    response.send(csv);
   }
 }

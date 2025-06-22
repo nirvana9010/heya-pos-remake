@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe } from "lucide-react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -14,6 +14,7 @@ import { Badge } from "@heya-pos/ui";
 import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
+import { ImportPreviewDialog } from "@/components/services/import-preview-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -32,6 +33,15 @@ export default function SettingsPage() {
   const [enableTips, setEnableTips] = useState(false);
   const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>([10, 15, 20]);
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(false);
+  
+  // Import states
+  const [customerFile, setCustomerFile] = useState<File | null>(null);
+  const [serviceFile, setServiceFile] = useState<File | null>(null);
+  const [importingCustomers, setImportingCustomers] = useState(false);
+  const [importingServices, setImportingServices] = useState(false);
+  const [serviceImportPreview, setServiceImportPreview] = useState<any>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   // Load location data on mount
   useEffect(() => {
@@ -69,6 +79,7 @@ export default function SettingsPage() {
         setEnableTips(response.enableTips ?? false);
         setDefaultTipPercentages(response.defaultTipPercentages || [10, 15, 20]);
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
+        setShowUnassignedColumn(response.showUnassignedColumn ?? false);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
@@ -121,6 +132,7 @@ export default function SettingsPage() {
         enableTips,
         defaultTipPercentages,
         allowCustomTipAmount,
+        showUnassignedColumn,
       });
       
       toast({
@@ -147,6 +159,147 @@ export default function SettingsPage() {
 
   // Removed NotificationsTab component definition to prevent re-rendering issues
 
+  // Import functions
+  const handleCustomerImport = async () => {
+    if (!customerFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportingCustomers(true);
+    const formData = new FormData();
+    formData.append('file', customerFile);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/v1/customers/import`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Import successful",
+          description: `Imported: ${result.imported}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
+        });
+        setCustomerFile(null);
+      } else {
+        toast({
+          title: "Import failed",
+          description: result.message || "Please check your CSV format",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Import error",
+        description: "Failed to import customers",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingCustomers(false);
+    }
+  };
+
+  const downloadCustomerTemplate = () => {
+    const csv = `name,email,mobile,phone,address,notes,tags,loyaltyPoints,vip
+"John Smith","john@email.com","+61412345678","0298765432","123 Main St, Sydney","Regular customer","vip,loyal",100,true
+"Jane Doe","jane@email.com","+61423456789",,"456 Queen St, Melbourne","New customer","",0,false`;
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'customer-import-template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadServiceTemplate = async () => {
+    try {
+      await apiClient.services.downloadServiceTemplate();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleServiceImport = async () => {
+    if (!serviceFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportingServices(true);
+    try {
+      const preview = await apiClient.services.previewServiceImport(serviceFile, {
+        duplicateAction: 'skip',
+        createCategories: true,
+        skipInvalidRows: false,
+      });
+      
+      setServiceImportPreview(preview);
+      setShowPreviewDialog(true);
+    } catch (error) {
+      toast({
+        title: "Import error",
+        description: error instanceof Error ? error.message : "Failed to preview import",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingServices(false);
+    }
+  };
+
+  const executeServiceImport = async () => {
+    if (!serviceImportPreview) return;
+
+    setImportingServices(true);
+    try {
+      const result = await apiClient.services.executeServiceImport(
+        serviceImportPreview.rows,
+        {
+          duplicateAction: 'skip',
+          createCategories: true,
+          skipInvalidRows: false,
+        }
+      );
+
+      toast({
+        title: "Import successful",
+        description: `Imported: ${result.imported}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
+      });
+
+      // Reset state
+      setServiceFile(null);
+      setServiceImportPreview(null);
+      setShowPreviewDialog(false);
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Failed to import services",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingServices(false);
+    }
+  };
+
   return (
     <div className="container max-w-5xl mx-auto p-6 space-y-6">
       <div>
@@ -155,11 +308,12 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="business">Business</TabsTrigger>
           <TabsTrigger value="booking">Booking</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business">
@@ -343,6 +497,18 @@ export default function SettingsPage() {
                       <SelectItem value="30">30 min</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Show Unassigned Column</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Display an "Unassigned" column in the calendar for bookings without a specific staff member
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={showUnassignedColumn} 
+                    onCheckedChange={setShowUnassignedColumn}
+                  />
                 </div>
               </div>
 
@@ -643,12 +809,187 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button>Save Changes</Button>
+                <Button onClick={async () => {
+                  setLoading(true);
+                  try {
+                    await apiClient.put("/merchant/settings", {
+                      emailNotifications,
+                      smsNotifications,
+                    });
+                    toast({
+                      title: "Success",
+                      description: "Notification settings updated successfully",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to update notification settings",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }} disabled={loading}>
+                  {loading ? "Saving..." : "Save Changes"}
+                </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="import">
+          <div className="space-y-6">
+            {/* Customer Import */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Import Customers
+                </CardTitle>
+                <CardDescription>
+                  Bulk import customers from a CSV file. Download the template to see the required format.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="border-2 border-dashed rounded-lg p-6 space-y-4">
+                  <div className="text-center space-y-2">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="customer-file" className="cursor-pointer text-primary hover:underline">
+                        Choose CSV file
+                      </Label>
+                      <Input
+                        id="customer-file"
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={(e) => setCustomerFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    {customerFile && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: {customerFile.name}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-center gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={downloadCustomerTemplate}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Template
+                    </Button>
+                    <Button
+                      onClick={handleCustomerImport}
+                      disabled={!customerFile || importingCustomers}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {importingCustomers ? "Importing..." : "Import Customers"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    CSV Format Instructions
+                  </h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Required fields: name</li>
+                    <li>• Optional fields: email, mobile, phone, address, notes, tags, loyaltyPoints, vip</li>
+                    <li>• Use comma-separated values for tags (e.g., "vip,loyal")</li>
+                    <li>• Set vip to "true" or "false"</li>
+                    <li>• Duplicate customers (same email/mobile) will be updated</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Service Import */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Import Services
+                </CardTitle>
+                <CardDescription>
+                  Bulk import services from a CSV file. Download the template to see the required format.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="border-2 border-dashed rounded-lg p-6 space-y-4">
+                  <div className="text-center space-y-2">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="service-file" className="cursor-pointer text-primary hover:underline">
+                        Choose CSV file
+                      </Label>
+                      <Input
+                        id="service-file"
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={(e) => setServiceFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    {serviceFile && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: {serviceFile.name}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-center gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={downloadServiceTemplate}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Template
+                    </Button>
+                    <Button
+                      onClick={handleServiceImport}
+                      disabled={!serviceFile || importingServices}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {importingServices ? "Processing..." : "Import Services"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    CSV Format Instructions
+                  </h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Required fields: name, duration, price</li>
+                    <li>• Duration formats: 60, 90, 1h, 1.5h, 1h30m, "90 min"</li>
+                    <li>• Categories will be created automatically if they don't exist</li>
+                    <li>• Tax rate as decimal (0.1 for 10%)</li>
+                    <li>• Set active to "true" or "false"</li>
+                    <li>• Duplicate services will be skipped by default</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {/* Import Preview Dialog */}
+      <ImportPreviewDialog
+        open={showPreviewDialog}
+        onClose={() => {
+          setShowPreviewDialog(false);
+          setServiceImportPreview(null);
+        }}
+        preview={serviceImportPreview}
+        onConfirm={executeServiceImport}
+        importing={importingServices}
+      />
     </div>
   );
 }

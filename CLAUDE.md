@@ -53,6 +53,18 @@ Before attempting ANY task, follow this systematic approach:
 pkill -f "nest start" && sleep 3 && cd apps/api && npm run start:dev
 ```
 
+### 🚨 CRITICAL: NEVER USE THESE KILL COMMANDS (they kill Claude Code):
+- ❌ `pkill -f "npm"` - TOO BROAD, kills Claude Code!
+- ❌ `pkill -f "npm run"` - TOO BROAD, kills Claude Code!
+- ❌ `killall npm` - TOO BROAD, kills Claude Code!
+- ❌ `pkill -f "node"` - TOO BROAD, can kill system processes!
+
+### ✅ SAFE RESTART COMMANDS:
+- ✅ `lsof -ti:3000 | xargs kill -9` - Kill by specific port
+- ✅ `pkill -f "nest start"` - Kill specific NestJS process
+- ✅ `pkill -f "tsx watch src/main"` - Kill specific pattern
+- ✅ `pkill -f "next dev.*3002"` - Kill specific Next.js dev server
+
 ### When NOT to restart:
 - TypeScript changes (auto-reloads)
 - Adding new endpoints (auto-reloads)

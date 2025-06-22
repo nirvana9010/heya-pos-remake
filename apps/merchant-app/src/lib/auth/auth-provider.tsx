@@ -68,6 +68,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     tokenExpiresAt: null,
   });
 
+  // Define clearAuthData early so it can be used in initializeAuth
+  const clearAuthData = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('merchant');
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('session_only');
+
+    // Clear auth cookie
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+
+    setAuthState({
+      user: null,
+      merchant: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      tokenExpiresAt: null,
+    });
+  }, []);
+
   // Initialize auth state from stored tokens
   useEffect(() => {
     initializeAuth();
@@ -93,13 +115,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const merchantStr = localStorage.getItem('merchant');
 
       if (!token || !refreshToken) {
+        // If no localStorage tokens, also clear any stale cookies to prevent redirect loops
+        const cookiesToClear = ['authToken', 'auth-token'];
+        cookiesToClear.forEach(cookieName => {
+          document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict`;
+        });
+        
         setAuthState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
       // Parse stored user and merchant data
-      const user = userStr ? JSON.parse(userStr) : null;
-      const merchant = merchantStr ? JSON.parse(merchantStr) : null;
+      let user = null;
+      let merchant = null;
+      
+      try {
+        user = userStr ? JSON.parse(userStr) : null;
+        merchant = merchantStr ? JSON.parse(merchantStr) : null;
+        
+        // Validate that user and merchant have required fields
+        if (user && (!user.id || !user.email)) {
+          console.warn('[Auth Provider] Invalid user data format, clearing auth');
+          clearAuthData();
+          return;
+        }
+        
+        if (merchant && (!merchant.id || !merchant.name)) {
+          console.warn('[Auth Provider] Invalid merchant data format, clearing auth');
+          clearAuthData();
+          return;
+        }
+      } catch (e) {
+        console.error('[Auth Provider] Failed to parse stored auth data', e);
+        clearAuthData();
+        return;
+      }
 
       // Check token expiration
       try {
@@ -107,12 +157,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const expiresAt = new Date(payload.exp * 1000);
         const now = new Date();
 
-        // If token is expired or expires in less than 5 minutes, refresh it
+        // Check if token is already expired
+        if (expiresAt < now) {
+          clearAuthData();
+          return;
+        }
+        
+        // If token expires in less than 5 minutes, refresh it
         if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-          console.log('[Auth Provider] Token expiring soon, refreshing...');
-          await performTokenRefresh(refreshToken);
+          try {
+            await performTokenRefresh(refreshToken);
+          } catch (error) {
+            clearAuthData();
+            return;
+          }
         } else {
           // Token is still valid
+          // Ensure cookie is also set for middleware
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 1); // 1 day default
+          document.cookie = `authToken=${token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
+          
           setAuthState(prev => ({
             ...prev,
             user,
@@ -123,12 +188,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }));
         }
       } catch (error) {
-        console.error('[Auth Provider] Failed to parse token:', error);
         // Invalid token, clear auth data
         clearAuthData();
       }
     } catch (error) {
-      console.error('[Auth Provider] Failed to initialize auth:', error);
       setAuthState(prev => ({ 
         ...prev, 
         isLoading: false, 
@@ -173,9 +236,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         tokenExpiresAt: expiresAt,
       }));
 
-      console.log('[Auth Provider] Login successful');
     } catch (error: any) {
-      console.error('[Auth Provider] Login failed:', error);
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
@@ -185,37 +246,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // clearAuthData is now defined at the top of the component
+
   const logout = useCallback(() => {
-    console.log('[Auth Provider] Logging out...');
-    clearAuthData();
     
-    // Clear any scheduled refresh
+    // Clear any scheduled refresh first
     if ((window as any).authTokenRefreshTimeout) {
       clearTimeout((window as any).authTokenRefreshTimeout);
     }
     
-    // Redirect to login page
+    // Clear auth data (this updates state and localStorage)
+    clearAuthData();
+    
+    // Force clear all possible cookie variations to ensure middleware doesn't find them
+    const cookiesToClear = ['authToken', 'auth-token'];
+    const domains = [window.location.hostname, `.${window.location.hostname}`, ''];
+    const paths = ['/', '/apps', '/apps/merchant-app'];
+    
+    cookiesToClear.forEach(cookieName => {
+      domains.forEach(domain => {
+        paths.forEach(path => {
+          // Clear with different combinations
+          document.cookie = `${cookieName}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict${domain ? `; domain=${domain}` : ''}`;
+          document.cookie = `${cookieName}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 UTC${domain ? `; domain=${domain}` : ''}`;
+        });
+      });
+    });
+    
+    // Use router.replace instead of window.location to ensure React state is preserved
     if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
+      // Small delay to ensure cookies are cleared before navigation
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
     }
-  }, []);
+  }, [clearAuthData]);
 
   const clearError = useCallback(() => {
     setAuthState(prev => ({ ...prev, error: null }));
   }, []);
 
-  const refreshToken = useCallback(async () => {
-    const refreshTokenStr = localStorage.getItem('refresh_token');
-    if (!refreshTokenStr) {
-      throw new Error('No refresh token available');
-    }
-
-    await performTokenRefresh(refreshTokenStr);
-  }, []);
-
   const performTokenRefresh = useCallback(async (refreshTokenStr: string) => {
     try {
-      console.log('[Auth Provider] Performing token refresh...');
       
       const response = await apiClient.auth.refreshToken(refreshTokenStr);
 
@@ -243,14 +315,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading: false,
       }));
 
-      console.log('[Auth Provider] Token refresh successful');
+      return true;
     } catch (error) {
-      console.error('[Auth Provider] Token refresh failed:', error);
-      // Refresh failed, logout user
-      logout();
+      // Don't call logout here to avoid circular dependency
+      // Instead, clear auth data and redirect
+      clearAuthData();
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
       throw error;
     }
-  }, [logout]);
+  }, [clearAuthData]);
+
+  const refreshToken = useCallback(async () => {
+    const refreshTokenStr = localStorage.getItem('refresh_token');
+    if (!refreshTokenStr) {
+      throw new Error('No refresh token available');
+    }
+
+    await performTokenRefresh(refreshTokenStr);
+  }, [performTokenRefresh]);
 
   const scheduleTokenRefresh = (expiresAt: Date) => {
     // Clear any existing timeout
@@ -265,7 +349,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
     
     if (refreshTime > 0) {
-      console.log(`[Auth Provider] Scheduling token refresh in ${Math.round(refreshTime / 1000 / 60)} minutes`);
       
       (window as any).authTokenRefreshTimeout = setTimeout(async () => {
         const refreshTokenStr = localStorage.getItem('refresh_token');
@@ -273,33 +356,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             await performTokenRefresh(refreshTokenStr);
           } catch (error) {
-            console.error('[Auth Provider] Scheduled refresh failed:', error);
           }
         }
       }, refreshTime);
     }
   };
 
-  const clearAuthData = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('merchant');
-    localStorage.removeItem('remember_me');
-    sessionStorage.removeItem('session_only');
-
-    // Clear auth cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
-
-    setAuthState({
-      user: null,
-      merchant: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-      tokenExpiresAt: null,
-    });
-  }, []);
 
   const verifyAction = useCallback(async (pin: string, action: string) => {
     return apiClient.auth.verifyAction(pin, action);

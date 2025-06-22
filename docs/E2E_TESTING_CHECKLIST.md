@@ -1,277 +1,273 @@
-# End-to-End Testing Checklist - Heya POS System
+# Testing Guide - Heya POS System
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Test Environment Setup](#test-environment-setup)
-3. [Merchant App Tests](#merchant-app-tests)
-4. [Booking App Tests](#booking-app-tests)
-5. [Integration Tests](#integration-tests)
-6. [Performance Tests](#performance-tests)
-7. [Security Tests](#security-tests)
-8. [Mobile Responsiveness](#mobile-responsiveness)
-9. [Post-Deployment Verification](#post-deployment-verification)
+## Quick Links
+1. [Getting Started](#getting-started)
+2. [Business Owner Tests](#business-owner-tests)
+3. [Customer Booking Tests](#customer-booking-tests)
+4. [Making Sure Everything Works Together](#making-sure-everything-works-together)
+5. [Speed Tests](#speed-tests)
+6. [Security Checks](#security-checks)
+7. [Mobile Phone Testing](#mobile-phone-testing)
+8. [Final Checks](#final-checks)
 
 ---
 
-## Overview
+## Getting Started
 
-### Purpose
-This comprehensive testing checklist ensures all critical workflows function correctly before production deployment. All tests will be performed using the Hamilton Beauty Spa test merchant.
+### What You'll Need
+This guide helps you test the Heya POS system to make sure everything works properly for your beauty salon.
 
-### Test Credentials
+### Website Links & Login Details
 ```
-Merchant Login:
-- URL: http://localhost:3002 (Merchant App)
+For Business Owners:
+- Website: https://heya-pos-remake-merchant-app.vercel.app/login
 - Username: HAMILTON
 - Password: demo123
 
-Staff PINs:
+Staff PIN Numbers:
 - Sarah Johnson (Owner): 1234
 - Emma Williams (Manager): 5678
 - Olivia Brown (Employee): 9012
 
-Booking App:
-- URL: http://localhost:3001/hamilton
+For Customers:
+- Website: https://heya-pos-remake-booking-app.vercel.app/hamilton
 - Test Phone: +61 400 000 001
 - Test Email: test@example.com
 ```
 
-### Pass Criteria
-- ✅ **PASS**: Feature works as expected with no errors
-- ⚠️ **PARTIAL**: Feature works but with minor issues
-- ❌ **FAIL**: Feature doesn't work or has critical issues
+### How to Mark Your Tests
+- ✅ **WORKS**: Everything works perfectly
+- ⚠️ **MOSTLY WORKS**: Works but has small issues
+- ❌ **DOESN'T WORK**: Has problems that need fixing
 
-### Test Data Requirements
-- At least 10 active services across different categories
-- Minimum 5 test customers with booking history
-- Current week should have some existing bookings
-- At least 3 active staff members with different roles
-
----
-
-## Test Environment Setup
-
-### Pre-Test Checklist
-- [ ] All services running (API, Merchant App, Booking App)
-- [ ] Database seeded with test data
-- [ ] Browser console open for error monitoring
-- [ ] Network tab open for API monitoring
-- [ ] Test in Chrome, Firefox, and Safari
-- [ ] Clear browser cache before testing
-
-### Environment Verification
-1. **API Health Check**
-   - [ ] Navigate to http://localhost:3000/api/v1/health
-   - [ ] Response shows "OK" status
-   - [ ] Response time < 500ms
-
-2. **Database Connection**
-   - [ ] Merchant app loads without database errors
-   - [ ] Can retrieve merchant settings
-   - [ ] Booking data loads correctly
+### Before You Start
+Make sure you have some test data ready:
+- A few test services (like "Facial" or "Massage")
+- Some test customers
+- A few bookings for this week
+- At least 3 staff members set up
 
 ---
 
-## Merchant App Tests
+## Getting Ready to Test
 
-### 1. Authentication & Authorization
+### Things to Do First
+- [ ] Open the business owner website in your browser
+- [ ] Use a modern browser like Chrome, Firefox, or Safari
+- [ ] Clear your browser history (ask for help if needed)
+- [ ] Have a notepad ready to write down any issues
 
-#### 1.1 Login Flow
-**Steps:**
-1. Navigate to merchant app login page
-2. Enter invalid credentials
-3. Verify error message appears
-4. Enter valid credentials (HAMILTON/demo123)
-5. Verify redirect to calendar (not dashboard)
+### Making Sure Everything is Working
+1. **Check the Business Website**
+   - [ ] Go to the business owner website
+   - [ ] The login page should appear quickly
+   - [ ] No error messages should show up
 
-**Expected Results:**
-- [ ] Invalid login shows "Invalid credentials" error
-- [ ] Valid login redirects to calendar within 2 seconds
-- [ ] User info displays in header
-- [ ] Session persists on page refresh
-- [ ] "Remember me" checkbox works correctly
-
-#### 1.2 Logout Flow
-**Steps:**
-1. Click user menu in header
-2. Select "Logout"
-3. Verify redirect to login page
-4. Try accessing dashboard directly via URL
-
-**Expected Results:**
-- [ ] Logout clears session immediately
-- [ ] Direct URL access redirects to login
-- [ ] No authenticated API calls after logout
-
-#### 1.3 Role-Based Access
-**Test each with different staff roles**
-- [ ] Owner (Sarah) - Full access to all features
-- [ ] Manager (Emma) - No access to critical settings
-- [ ] Employee (Olivia) - Limited to bookings and customers
+2. **Check the Customer Website**
+   - [ ] Go to the customer booking website
+   - [ ] You should see Hamilton Beauty Spa's page
+   - [ ] Services and booking options should be visible
 
 ---
 
-### 2. Notifications System
+## Business Owner Tests
 
-#### 2.1 Notification Bell
-**Steps:**
-1. Check notification bell in top navigation
-2. Click bell to open dropdown
-3. Verify notification types displayed
-4. Mark notifications as read
-5. Clear all notifications
+### 1. Logging In and Out
 
-**Expected Results:**
-- [ ] Bell shows unread count badge
-- [ ] Dropdown displays only valid notifications:
-  - New bookings
-  - Booking modifications  
-  - Booking cancellations
-  - Payment refunds
-- [ ] No invalid notification types appear
-- [ ] Mark as read updates badge count
-- [ ] Clear all removes notifications
-- [ ] Notifications persist on page refresh
+#### 1.1 How to Log In
+**What to do:**
+1. Go to https://heya-pos-remake-merchant-app.vercel.app/login
+2. First, try typing wrong username or password
+3. You should see an error message
+4. Now type the correct username: HAMILTON and password: demo123
+5. Click the login button
 
-#### 2.2 Real-time Notifications
-**Steps:**
-1. Create a new booking
-2. Modify an existing booking
+**What should happen:**
+- [ ] Wrong password shows an error message
+- [ ] Correct login takes you to the calendar page
+- [ ] Your business name appears at the top right
+- [ ] If you refresh the page, you stay logged in
+- [ ] The "Remember me" box keeps you logged in longer
+
+#### 1.2 How to Log Out
+**What to do:**
+1. Click on your profile circle (top right, says "HB")
+2. Click "Log out"
+3. You should go back to the login page
+4. Try to go back to the calendar without logging in
+
+**What should happen:**
+- [ ] Clicking logout takes you to the login page
+- [ ] You can't see the calendar without logging in again
+- [ ] You need to log in again to use the system
+
+#### 1.3 Different Staff Access
+**Check what each staff member can see:**
+- [ ] Owner (Sarah) - Can see and change everything
+- [ ] Manager (Emma) - Can't change important settings
+- [ ] Employee (Olivia) - Can only see bookings and customers
+
+---
+
+### 2. Notifications
+
+#### 2.1 Checking Your Notifications
+**What to do:**
+1. Look for the bell icon at the top of the page
+2. Click on the bell
+3. Look at the notifications that appear
+4. Click on a notification to mark it as read
+5. Click "Clear all" to remove all notifications
+
+**What should happen:**
+- [ ] The bell shows a red number if you have new notifications
+- [ ] You should only see these types of notifications:
+  - New bookings from customers
+  - Changes to existing bookings  
+  - Cancelled bookings
+  - Refunds given to customers
+- [ ] Clicking a notification removes the red dot
+- [ ] "Clear all" removes all notifications
+- [ ] Notifications stay even if you refresh the page
+
+#### 2.2 Getting New Notifications
+**What to do:**
+1. Create a new booking for a customer
+2. Change an existing booking time
 3. Cancel a booking
-4. Process a refund
+4. Give a customer a refund
 
-**Expected Results:**
-- [ ] New booking triggers notification
-- [ ] Booking modification triggers notification
-- [ ] Cancellation triggers notification
-- [ ] Refund triggers notification with PIN
-- [ ] Notifications appear without page refresh
+**What should happen:**
+- [ ] New booking creates a notification
+- [ ] Changing a booking creates a notification
+- [ ] Cancelling creates a notification
+- [ ] Refund creates a notification (needs PIN)
+- [ ] Notifications appear instantly
 
 ---
 
-### 3. Calendar & Scheduling
+### 3. Using the Calendar
 
-#### 3.1 Calendar View
-**Steps:**
-1. Navigate to Calendar page
-2. Switch between Day/Week/Month views
-3. Navigate between dates using arrows
-4. Click "Today" button
+#### 3.1 Looking at Your Calendar
+**What to do:**
+1. Click on "Calendar" in the menu
+2. Try the different view buttons: Day, Week, Month
+3. Use the arrow buttons to go to different dates
+4. Click the "Today" button
 
-**Expected Results:**
-- [ ] All views render correctly
-- [ ] Navigation updates URL and view
-- [ ] Today button returns to current date
-- [ ] Existing bookings display in correct time slots
-- [ ] Staff filter works correctly
+**What should happen:**
+- [ ] You can see all three calendar views
+- [ ] Arrow buttons move to previous/next dates
+- [ ] "Today" button takes you back to today
+- [ ] You can see all your bookings
+- [ ] You can filter by staff member
 
-#### 3.2 Create Booking (Walk-in)
-**Steps:**
-1. Click empty time slot or "New Booking" button
-2. Search and select customer (or create new)
-3. Select service(s)
-4. Choose date and time
-5. Select staff member
-6. Add notes (optional)
-7. Save booking
+#### 3.2 Making a New Booking
+**What to do:**
+1. Click on an empty time slot or "New Booking" button
+2. Type a customer name or phone to find them (or add new)
+3. Pick which service they want
+4. Choose the date and time
+5. Pick which staff member
+6. Add any special notes
+7. Click "Save"
 
-**Expected Results:**
-- [ ] Customer search works (name, phone, email)
-- [ ] Service selection updates duration and price
-- [ ] Only available time slots shown
-- [ ] Staff availability reflects schedule
-- [ ] Booking saves and appears on calendar
-- [ ] Confirmation message displays
+**What should happen:**
+- [ ] You can search customers by name or phone
+- [ ] Picking a service shows the price and how long it takes
+- [ ] Only available times are shown
+- [ ] Only available staff are shown
+- [ ] The booking appears on the calendar after saving
+- [ ] You see a success message
 
-#### 3.3 Edit Booking
-**Steps:**
-1. Click existing booking
-2. Modify service, time, or staff
-3. Save changes
-4. Verify calendar updates
+#### 3.3 Changing a Booking
+**What to do:**
+1. Click on an existing booking
+2. Change the service, time, or staff member
+3. Click "Save changes"
+4. Check the calendar updated
 
-**Expected Results:**
-- [ ] Booking details load correctly
-- [ ] Can change all editable fields
-- [ ] Validation prevents double-booking
-- [ ] Changes reflect immediately on calendar
-- [ ] Audit log shows modification
+**What should happen:**
+- [ ] All booking details appear correctly
+- [ ] You can change any detail
+- [ ] System prevents double-booking
+- [ ] Calendar shows the changes right away
+- [ ] System keeps track of who made changes
 
-#### 3.4 Cancel Booking
-**Steps:**
-1. Open booking details
+#### 3.4 Cancelling a Booking
+**What to do:**
+1. Click on a booking
 2. Click "Cancel Booking"
-3. Select cancellation reason
-4. Confirm cancellation
+3. Pick a reason for cancelling
+4. Click "Confirm"
 
-**Expected Results:**
-- [ ] Cancellation reason required
-- [ ] Booking status updates to "Cancelled"
-- [ ] Time slot becomes available
-- [ ] Customer receives notification (if enabled)
-- [ ] Cannot cancel past bookings
+**What should happen:**
+- [ ] You must give a reason to cancel
+- [ ] Booking shows as "Cancelled"
+- [ ] That time becomes available again
+- [ ] Customer gets notified (if turned on)
+- [ ] You can't cancel bookings that already happened
 
-#### 3.5 Drag & Drop Rescheduling
-**Steps:**
-1. Drag booking to new time slot
-2. Drag to different staff column
-3. Drag to unavailable slot
+#### 3.5 Moving Bookings by Dragging
+**What to do:**
+1. Click and drag a booking to a new time
+2. Try dragging to a different staff member
+3. Try dragging to a time that's not available
 
-**Expected Results:**
-- [ ] Smooth drag animation
-- [ ] Valid slots highlighted
-- [ ] Invalid slots show red indicator
-- [ ] Booking updates on drop
-- [ ] Undo option available
+**What should happen:**
+- [ ] Booking moves smoothly when you drag
+- [ ] Available times light up green
+- [ ] Unavailable times show red
+- [ ] Booking moves when you let go
+- [ ] You can undo if you make a mistake
 
 ---
 
-### 4. Customer Management
+### 4. Managing Customers
 
-#### 4.1 Customer List
-**Steps:**
-1. Navigate to Customers page
-2. View customer list
-3. Use search functionality
-4. Check VIP customer badges
-5. View loyalty points display
+#### 4.1 Finding Customers
+**What to do:**
+1. Click "Customers" in the menu
+2. Look at your customer list
+3. Type a name or phone number in the search box
+4. Look for the crown icon on VIP customers
+5. Check the loyalty points shown
 
-**Expected Results:**
-- [ ] List loads without pagination issues
-- [ ] Search works for name and phone
-- [ ] Real-time search updates as you type
-- [ ] VIP badges (crown icon) display correctly
-- [ ] Loyalty points show for each customer
-- [ ] Customer list updates immediately on changes
+**What should happen:**
+- [ ] Customer list loads quickly
+- [ ] Search finds customers as you type
+- [ ] VIP customers have a crown icon
+- [ ] Each customer shows their loyalty points
+- [ ] List updates when you add or change customers
 
-#### 4.2 Customer Profile
-**Steps:**
-1. Click on customer name
-2. View profile information
-3. Check booking history
-4. Review loyalty points
-5. View notes and preferences
+#### 4.2 Looking at Customer Details
+**What to do:**
+1. Click on any customer's name
+2. Look at their information
+3. Check their past bookings
+4. Look at their loyalty points
+5. Read any notes about them
 
-**Expected Results:**
-- [ ] All customer data displays
-- [ ] Booking history shows chronologically
-- [ ] Loyalty points calculate correctly
-- [ ] Can add/edit notes
-- [ ] Contact information is editable
+**What should happen:**
+- [ ] All customer info is shown
+- [ ] Past bookings are listed newest first
+- [ ] Loyalty points are calculated correctly
+- [ ] You can add notes about the customer
+- [ ] You can update their phone or email
 
-#### 4.3 Create New Customer
-**Steps:**
+#### 4.3 Adding a New Customer
+**What to do:**
 1. Click "Add Customer" button
-2. Fill in required fields
-3. Add optional information
-4. Save customer
+2. Fill in their name and phone number
+3. Add their email (optional)
+4. Click "Save"
 
-**Expected Results:**
-- [ ] Form validation works properly
-- [ ] Email validation checks format
-- [ ] Phone number formats correctly
-- [ ] Duplicate email/phone warning
-- [ ] Success message on save
+**What should happen:**
+- [ ] Form tells you if something is missing
+- [ ] Email format is checked (needs @ symbol)
+- [ ] Phone number looks correct
+- [ ] Warning if customer already exists
+- [ ] Success message when saved
 
 ---
 
@@ -457,50 +453,51 @@ Booking App:
 
 ---
 
-## Booking App Tests
+## Customer Booking Tests
 
-### 10. Customer Booking Flow
+### 10. How Customers Book Online
 
-#### 10.1 Merchant Access
-**Steps:**
-1. Navigate to http://localhost:3001/hamilton
-2. Verify merchant theme loads
-3. Check business information display
+#### 10.1 Opening the Booking Website
+**What to do:**
+1. Go to https://heya-pos-remake-booking-app.vercel.app/hamilton
+2. Look at the page that loads
+3. Check the business name and colors
 
-**Expected Results:**
-- [ ] Hamilton branding appears
-- [ ] Correct theme colors (pink/purple)
-- [ ] Business info accurate
-- [ ] Navigation links include /hamilton prefix
-- [ ] No merchant detection errors
+**What should happen:**
+- [ ] You see "Hamilton Beauty Spa"
+- [ ] The colors are pink and purple
+- [ ] Business information is correct
+- [ ] Everything looks professional
+- [ ] Page loads without errors
 
-#### 10.2 Service Selection
-**Steps:**
-1. Click "Book Appointment"
-2. Browse service categories
-3. Select multiple services
-4. View service details
+#### 10.2 Choosing Services
+**What to do:**
+1. Click "Book Appointment" 
+2. Look through the service categories
+3. Click on a service to select it
+4. Try selecting multiple services
+5. Check the total price
 
-**Expected Results:**
-- [ ] All active services display
-- [ ] Categories organize correctly
-- [ ] Prices and duration visible
-- [ ] Multiple selection works
-- [ ] Total price calculates correctly
+**What should happen:**
+- [ ] All services are shown with pictures
+- [ ] Services are organized by type
+- [ ] Each service shows price and time
+- [ ] You can pick multiple services
+- [ ] Total price adds up correctly
 
-#### 10.3 Date & Time Selection
-**Steps:**
-1. View calendar
-2. Select available date
-3. Choose from available times
-4. Try selecting unavailable slot
+#### 10.3 Picking a Date and Time
+**What to do:**
+1. Look at the calendar
+2. Click on a future date
+3. Look at available times
+4. Try clicking a time that's taken
 
-**Expected Results:**
-- [ ] Only future dates selectable
-- [ ] Available slots show clearly
-- [ ] Unavailable times are disabled
-- [ ] Advance booking rules apply
-- [ ] Time slots match service duration
+**What should happen:**
+- [ ] Can't pick dates in the past
+- [ ] Available times are clearly shown
+- [ ] Busy times are grayed out
+- [ ] Can't book too far in advance
+- [ ] Time slots are the right length for your service
 
 #### 10.4 Staff Selection
 **Steps:**
@@ -634,34 +631,34 @@ Booking App:
 
 ---
 
-## Performance Tests
+## Speed Tests
 
-### 12. Load Time Requirements
+### 12. Making Sure Everything is Fast
 
-#### 12.1 Page Load Times
-**Test each major page**
-- [ ] Login page: < 2 seconds
-- [ ] Calendar (default page): < 3 seconds
-- [ ] Customer list: < 2 seconds
-- [ ] Reports: < 4 seconds
-- [ ] Settings: < 2 seconds
-- [ ] Booking app home: < 2 seconds
+#### 12.1 How Fast Pages Should Load
+**Check each page loads quickly:**
+- [ ] Login page: Opens in 2 seconds or less
+- [ ] Calendar: Opens in 3 seconds or less
+- [ ] Customer list: Opens in 2 seconds or less
+- [ ] Reports: Opens in 4 seconds or less
+- [ ] Settings: Opens in 2 seconds or less
+- [ ] Customer booking site: Opens in 2 seconds or less
 
-#### 12.2 API Response Times
-**Monitor network tab**
-- [ ] Login: < 500ms
-- [ ] Booking creation: < 1 second
-- [ ] Search operations: < 500ms
-- [ ] Report generation: < 3 seconds
-- [ ] Calendar data: < 1 second
+#### 12.2 How Fast Things Should Work
+**Time these actions:**
+- [ ] Logging in: Takes less than 1 second
+- [ ] Creating a booking: Takes less than 1 second
+- [ ] Searching for customers: Results appear instantly
+- [ ] Creating reports: Takes less than 3 seconds
+- [ ] Loading the calendar: Takes less than 1 second
 
-#### 12.3 Concurrent Users
-**Test with multiple browsers**
-- [ ] 5 concurrent merchant users
-- [ ] 10 concurrent customers booking
-- [ ] No performance degradation
-- [ ] No data conflicts
-- [ ] Proper error handling
+#### 12.3 Multiple People Using at Once
+**Test with several people:**
+- [ ] 5 staff using the system at once
+- [ ] 10 customers booking at the same time
+- [ ] Everything still works fast
+- [ ] No bookings get mixed up
+- [ ] No error messages appear
 
 ---
 
@@ -692,132 +689,93 @@ Booking App:
 
 ---
 
-## Mobile Responsiveness
+## Mobile Phone Testing
 
-### 14. Mobile Testing
+### 14. Testing on Phones and Tablets
 
-#### 14.1 Merchant App Mobile
-**Test on phone/tablet**
-- [ ] Login works on mobile
-- [ ] Calendar (default) responsive
-- [ ] Calendar drag-drop works on touch
-- [ ] Forms work properly
-- [ ] Navigation accessible (4-column grid)
+#### 14.1 Business Owner App on Mobile
+**Test on your phone:**
+- [ ] You can log in on your phone
+- [ ] Calendar looks good and works properly
+- [ ] You can drag bookings with your finger
+- [ ] Forms are easy to fill out
+- [ ] Menu buttons are easy to tap
 
-#### 14.2 Booking App Mobile
-**Primary mobile flow**
-- [ ] Homepage responsive
-- [ ] Service selection works
-- [ ] Calendar touch-friendly
-- [ ] Forms easy to complete
-- [ ] Confirmation displays well
+#### 14.2 Customer Booking on Mobile
+**Most customers book on phones:**
+- [ ] Website looks good on phones
+- [ ] Easy to pick services with fingers
+- [ ] Calendar is easy to use by touch
+- [ ] Forms are simple to complete
+- [ ] Booking confirmation is clear
 
-#### 14.3 Critical Mobile Features
-- [ ] Phone number input with keypad
-- [ ] Date picker works on touch
-- [ ] Buttons large enough to tap
-- [ ] Text readable without zoom
-- [ ] No horizontal scrolling
-
----
-
-## Post-Deployment Verification
-
-### 15. Production Checklist
-
-#### 15.1 Environment Configuration
-- [ ] Environment variables set
-- [ ] Database migrations complete
-- [ ] SSL certificates active
-- [ ] Error logging configured
-- [ ] Monitoring tools active
-
-#### 15.2 First User Tests
-- [ ] Create merchant account
-- [ ] Complete full booking cycle
-- [ ] Process payment
-- [ ] Generate reports
-- [ ] Test email notifications
-
-#### 15.3 Production Monitoring
-- [ ] Error rates < 0.1%
-- [ ] Page load times normal
-- [ ] Database queries optimized
-- [ ] No memory leaks
-- [ ] Backup systems working
+#### 14.3 Important Mobile Features
+- [ ] Phone number keypad pops up automatically
+- [ ] Date picker is finger-friendly
+- [ ] Buttons are big enough to tap easily
+- [ ] Text is readable without zooming
+- [ ] No need to scroll sideways
 
 ---
 
-## Test Result Summary
+## Final Checks
 
-### Overall Results
-- **Total Tests**: ___
-- **Passed**: ___
-- **Partial**: ___
-- **Failed**: ___
-- **Pass Rate**: ___%
+### 15. After Everything is Live
 
-### Critical Issues
-1. _________________________________
-2. _________________________________
-3. _________________________________
+#### 15.1 Making Sure It's Working
+**Check these things:**
+- [ ] Real customers can book appointments
+- [ ] Staff can log in and see bookings
+- [ ] Payments work correctly
+- [ ] Email confirmations are sent
+- [ ] Everything loads quickly
 
-### Non-Critical Issues
-1. _________________________________
-2. _________________________________
-3. _________________________________
-
-### Sign-off
-
-| Role | Name | Signature | Date |
-|------|------|-----------|------|
-| QA Lead | | | |
-| Product Owner | | | |
-| Tech Lead | | | |
-| Business Owner | | | |
-
-### Notes
-_____________________________________________________
-_____________________________________________________
-_____________________________________________________
+#### 15.2 First Real Customer Test
+**Do a complete test:**
+- [ ] Have someone book online
+- [ ] Check it appears in your calendar
+- [ ] Process their payment
+- [ ] Send them a receipt
+- [ ] Make sure they're happy
 
 ---
 
-## Appendix
+## Test Results
 
-### A. Recent Changes & Known Issues
+### How Did It Go?
+Write down your results here:
 
-#### Recent MVP Changes:
-1. **Dashboard Hidden**: Login now redirects to Calendar instead of Dashboard (not providing value for MVP)
-2. **Theme Toggle Hidden**: Light/dark mode switch removed as non-functional
-3. **Loyalty Moved**: Loyalty settings removed from Settings page, use dedicated Loyalty page
-4. **Simplified Notifications**: Reduced from 13 types to 4 essential types:
-   - New bookings
-   - Booking modifications
-   - Booking cancellations
-   - Payment refunds
-5. **Navigation Grid**: Sidebar reduced from 5 to 4 columns after Dashboard removal
+**What Worked Well:**
+_____________________________________________________
+_____________________________________________________
 
-#### Known Issues:
-- Old notification types may appear until localStorage is cleared
-- Console logs API may show occasional errors (non-critical)
-- Include workarounds if available
+**What Had Problems:**
+_____________________________________________________
+_____________________________________________________
 
-### B. Browser Compatibility
-- Chrome 90+ ✅
-- Firefox 88+ ✅
-- Safari 14+ ✅
-- Edge 90+ ✅
+**What Needs Fixing:**
+_____________________________________________________
+_____________________________________________________
 
-### C. Device Testing
-- Desktop (1920x1080) ✅
-- Laptop (1366x768) ✅
-- Tablet (768x1024) ✅
-- Mobile (375x667) ✅
+### Important Notes
 
-### D. Test Data Cleanup
-- [ ] Remove test bookings
-- [ ] Reset customer data
-- [ ] Clear test payments
-- [ ] Reset staff schedules
-- [ ] Clean audit logs
+#### Recent Changes:
+1. **Calendar is now the home page** (not Dashboard)
+2. **Light/dark mode is hidden** (coming later)
+3. **Loyalty program has its own page** (not in Settings)
+4. **Simpler notifications** - only 4 types now
+5. **Cleaner navigation menu**
+
+#### Tips:
+- Test on different web browsers (Chrome, Safari, Firefox)
+- Test on both computers and phones
+- Ask a friend to try booking as a customer
+- Write down any confusing parts
+
+### Getting Help
+If something doesn't work, write down:
+1. What you were trying to do
+2. What went wrong
+3. Any error messages you saw
+
+Then contact support with this information.

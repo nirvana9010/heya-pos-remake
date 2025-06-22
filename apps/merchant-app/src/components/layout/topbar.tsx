@@ -19,9 +19,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { NotificationsDropdown } from '@/components/notifications-dropdown'
 import { GlobalSearch } from '@/components/global-search'
+import { useAuth } from '@/lib/auth/auth-provider'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const { logout } = useAuth()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -30,7 +32,20 @@ export function Topbar() {
   }
 
   return (
-    <header className="topbar">
+    <header 
+      className="topbar"
+      style={{
+        position: 'sticky',
+        top: 0,
+        height: '64px',
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '0 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 30
+      }}>
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
         {/* Global Search with Suggestions */}
         <GlobalSearch />
@@ -85,62 +100,36 @@ export function Topbar() {
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" style={{ 
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)'
-          }}>
-            <DropdownMenuLabel style={{ 
-              color: 'var(--text-primary)',
-              padding: 'var(--space-4)'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <p style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--font-semibold)'
-                }}>
-                  Hamilton Beauty
-                </p>
-                <p style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'var(--color-text-secondary)'
-                }}>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">Hamilton Beauty</p>
+                <p className="text-xs leading-none text-muted-foreground">
                   admin@hamiltonbeauty.com
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
+            <DropdownMenuSeparator />
             
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <User size={16} />
-              <span style={{ color: 'var(--text-primary)' }}>Profile</span>
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </DropdownMenuItem>
 
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <Palette size={16} />
-              <span style={{ color: 'var(--text-primary)' }}>Appearance</span>
+            <DropdownMenuItem>
+              <Palette className="mr-2 h-4 w-4" />
+              <span>Appearance</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator style={{ background: 'var(--color-border)' }} />
+            <DropdownMenuSeparator />
             
-            <DropdownMenuItem style={{ 
-              padding: '1rem',
-              margin: '0.25rem',
-              color: 'var(--color-error)'
-            }}>
-              Log out
+            <DropdownMenuItem 
+              className="text-red-600 cursor-pointer"
+              onClick={() => logout()}
+            >
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

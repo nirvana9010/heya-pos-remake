@@ -27,14 +27,15 @@ import { SlideOutPanel } from '@/components/SlideOutPanel';
 import CategoryDialog from '@/components/CategoryDialog';
 import { ColumnDef } from "@tanstack/react-table";
 import { debounce } from "lodash";
-
-// Mock staff data
-const mockStaff = [
-  { id: "1", name: "Emma Wilson", services: ["1", "3", "5"] },
-  { id: "2", name: "James Brown", services: ["2", "4", "6"] },
-  { id: "3", name: "Sophie Chen", services: ["1", "2", "3", "4"] },
-  { id: "4", name: "Michael Davis", services: ["5", "6"] },
-];
+import { 
+  useServicesData, 
+  useCreateService, 
+  useUpdateService, 
+  useDeleteService,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory 
+} from '@/hooks/use-services';
 
 interface ServiceRow extends Service {
   staffCount: number;
@@ -43,6 +44,14 @@ interface ServiceRow extends Service {
 
 export default function ServicesPageContent() {
   const { toast } = useToast();
+  const { services, categories, isLoading, refetch } = useServicesData();
+  const createService = useCreateService();
+  const updateService = useUpdateService();
+  const deleteService = useDeleteService();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -50,22 +59,18 @@ export default function ServicesPageContent() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [priceAdjustment, setPriceAdjustment] = useState({ type: 'percentage', value: 10 });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [savingService, setSavingService] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'price' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [savingInline, setSavingInline] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     name: '',
@@ -94,38 +99,17 @@ export default function ServicesPageContent() {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
 
+  // Update expanded categories when categories change
   useEffect(() => {
-    loadData().finally(() => {
-      setIsInitialLoad(false);
-    });
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [servicesData, categoriesData] = await Promise.all([
-        apiClient.getServices(),
-        apiClient.getCategories()
-      ]);
-      setServices(servicesData);
-      setCategories(categoriesData);
-      // Expand all categories by default
-      setExpandedCategories(categoriesData.map(c => c.id));
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load services",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (categories.length > 0 && expandedCategories.length === 0) {
+      setExpandedCategories(categories.map(c => c.id));
     }
-  };
+  }, [categories]);
 
-  // Get staff count for a service
+  // Get staff count for a service - TODO: Replace with real staff assignments from API
   const getStaffCount = (serviceId: string) => {
-    return mockStaff.filter(staff => staff.services.includes(serviceId)).length;
+    // Placeholder - in production this should come from the API
+    return 0;
   };
 
   // Transform services for the table
@@ -227,7 +211,7 @@ export default function ServicesPageContent() {
       setTimeout(() => setInlineSuccess(null), 2000);
       
       // Reload data in background
-      loadData();
+      refetch();
     } catch (error) {
       setInlineError(editingCell.id);
       toast({
@@ -533,7 +517,7 @@ export default function ServicesPageContent() {
         description: "Service duplicated successfully",
       });
       
-      await loadData();
+      await refetch();
     } catch (error) {
       toast({
         title: "Error",
@@ -547,12 +531,7 @@ export default function ServicesPageContent() {
     if (!deletingServiceId) return;
     
     try {
-      await apiClient.deleteService(deletingServiceId);
-      toast({
-        title: "Success",
-        description: "Service deleted successfully",
-      });
-      await loadData();
+      await deleteService.mutateAsync(deletingServiceId);
     } catch (error) {
       toast({
         title: "Error",
@@ -587,19 +566,10 @@ export default function ServicesPageContent() {
       };
 
       if (editingService) {
-        await apiClient.updateService(editingService.id, serviceData);
-        toast({
-          title: "Success",
-          description: "Service updated successfully",
-        });
+        await updateService.mutateAsync({ id: editingService.id, data: serviceData });
       } else {
-        await apiClient.createService(serviceData);
-        toast({
-          title: "Success",
-          description: "Service created successfully",
-        });
+        await createService.mutateAsync(serviceData);
       }
-      await loadData();
       setIsAddDialogOpen(false);
       setEditingService(null);
       resetForm();
@@ -651,7 +621,7 @@ export default function ServicesPageContent() {
         description: `Updated prices for ${selectedServices.length} services`,
       });
       
-      await loadData();
+      await refetch();
       setSelectedServices([]);
       setIsBulkEditOpen(false);
     } catch (error) {
@@ -663,7 +633,7 @@ export default function ServicesPageContent() {
     }
   };
 
-  if (isInitialLoad && loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 animate-in fade-in-0 duration-300">
         {/* Header skeleton */}

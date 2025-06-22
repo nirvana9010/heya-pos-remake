@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcrypt';
 import { addDays, addHours, setHours, setMinutes } from 'date-fns';
+import { DEFAULT_MERCHANT_SETTINGS } from '../../merchant/merchant.constants';
 
 export interface TestDataOptions {
   merchantName?: string;
@@ -101,17 +102,7 @@ export class TestDataFactory {
         subdomain: merchantName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         packageId: defaultPackage.id,
         subscriptionStatus: 'ACTIVE',
-        settings: {
-          timezone: 'Australia/Sydney',
-          currency: 'AUD',
-          taxRate: 10,
-          bookingRules: {
-            allowOnlineBooking: true,
-            requireDeposit: false,
-            cancellationHours: 24,
-            maxAdvanceBookingDays: 90,
-          },
-        },
+        settings: DEFAULT_MERCHANT_SETTINGS as any,
       },
     });
 

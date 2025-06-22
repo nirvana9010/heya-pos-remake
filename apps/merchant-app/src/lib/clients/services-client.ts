@@ -52,6 +52,50 @@ export interface UpdateCategoryRequest {
   isActive?: boolean;
 }
 
+// Import types
+export interface ImportOptions {
+  duplicateAction: 'skip' | 'update' | 'create_new';
+  createCategories: boolean;
+  skipInvalidRows: boolean;
+}
+
+export interface ImportPreviewRow {
+  rowNumber: number;
+  data: any;
+  validation: {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  };
+  action: 'create' | 'update' | 'skip';
+  existingServiceId?: string;
+}
+
+export interface ImportPreview {
+  rows: ImportPreviewRow[];
+  summary: {
+    total: number;
+    valid: number;
+    invalid: number;
+    duplicates: number;
+    toCreate: number;
+    toUpdate: number;
+    toSkip: number;
+  };
+}
+
+export interface ImportResult {
+  success: boolean;
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{
+    row: number;
+    error: string;
+  }>;
+}
+
 export class ServicesClient extends BaseApiClient {
   // Services
   async getServices(): Promise<Service[]> {
@@ -95,5 +139,56 @@ export class ServicesClient extends BaseApiClient {
 
   async deleteCategory(id: string): Promise<void> {
     return this.delete(`/service-categories/${id}`, undefined, 'v1');
+  }
+
+  // Import methods
+  async previewServiceImport(file: File, options: ImportOptions): Promise<ImportPreview> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Add options to formData
+    Object.entries(options).forEach(([key, value]) => {
+      formData.append(key, value.toString());
+    });
+
+    const response = await fetch(`${this.baseUrl}/v1/services/import/preview`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to preview import');
+    }
+
+    return response.json();
+  }
+
+  async executeServiceImport(rows: ImportPreviewRow[], options: ImportOptions): Promise<ImportResult> {
+    return this.post('/services/import/execute', { rows, options }, undefined, 'v1');
+  }
+
+  async downloadServiceTemplate(): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/v1/services/import/template`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download template');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'service-import-template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 }

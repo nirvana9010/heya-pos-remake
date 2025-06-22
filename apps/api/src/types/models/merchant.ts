@@ -34,6 +34,8 @@ export interface MerchantSettings {
   // Payment settings
   requireDeposit: boolean;
   depositPercentage: number; // 1-100
+  // Unassigned column settings
+  showUnassignedColumn: boolean;
 }
 
 export enum MerchantStatus {

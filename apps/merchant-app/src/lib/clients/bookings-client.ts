@@ -62,7 +62,6 @@ export class BookingsClient extends BaseApiClient {
       
       // If params contains 'date' property, convert it to startDate/endDate
       if (params?.date) {
-        console.log('[BookingsClient] Converting date param to startDate/endDate:', params.date);
         const dateStr = params.date;
         delete params.date; // Remove the date param
         
@@ -75,7 +74,6 @@ export class BookingsClient extends BaseApiClient {
         
         params.startDate = startDate.toISOString();
         params.endDate = endDate.toISOString();
-        console.log('[BookingsClient] Converted params:', params);
       }
       
       // V2 API has a limit of 100
@@ -84,59 +82,20 @@ export class BookingsClient extends BaseApiClient {
         ...params
       };
       
-      console.log('[BookingsClient] Making request with params:', requestParams);
       
       const response = await this.get('/bookings', { params: requestParams }, 'v2');
       
-      // Debug pagination
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Bookings API raw response:', {
-          hasData: !!response.data,
-          dataLength: response.data?.length || response.length,
-          total: response.total,
-          page: response.page,
-          limit: response.limit,
-          params: params
-        });
-      }
       
       // Real API returns paginated response, extract data
       const bookings = response.data || response;
       
       if (!Array.isArray(bookings)) {
-        console.error('[BookingsClient] Invalid response format, expected array:', bookings);
         throw new Error('Invalid response format from bookings API');
       }
       
       // Transform each booking to match the expected format
       return bookings.map((booking: any) => this.transformBooking(booking));
     } catch (error: any) {
-      // Use direct console methods to bypass logger
-      if (typeof window !== 'undefined' && window.console) {
-        window.console.error('[BookingsClient] Error in getBookings:');
-        window.console.error('Error type:', error?.constructor?.name);
-        window.console.error('Error message:', error?.message);
-        window.console.error('Error stack:', error?.stack);
-        
-        if (error?.response) {
-          window.console.error('Response status:', error.response?.status);
-          window.console.error('Response data:', error.response?.data);
-          window.console.error('Response headers:', error.response?.headers);
-        }
-        
-        if (error?.config) {
-          window.console.error('Request URL:', error.config?.url);
-          window.console.error('Request method:', error.config?.method);
-          window.console.error('Request headers:', error.config?.headers);
-        }
-        
-        // Try to log the full error object
-        try {
-          window.console.error('Full error object:', JSON.parse(JSON.stringify(error)));
-        } catch (e) {
-          window.console.error('Could not serialize error object');
-        }
-      }
       throw error;
     }
   }
@@ -171,7 +130,6 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async rescheduleBooking(id: string, data: RescheduleBookingRequest): Promise<Booking> {
-    console.log('[Bookings Client] Rescheduling booking:', { id, data });
     
     // Use V2 API for rescheduling as it handles time updates better
     const updateData: any = {
@@ -183,14 +141,11 @@ export class BookingsClient extends BaseApiClient {
       updateData.staffId = data.staffId;
     }
     
-    console.log('[Bookings Client] PATCH request data:', updateData);
     
     try {
       const booking = await this.patch(`/bookings/${id}`, updateData, undefined, 'v2');
-      console.log('[Bookings Client] Reschedule response:', booking);
       return this.transformBooking(booking);
     } catch (error) {
-      console.error('[Bookings Client] Reschedule failed:', error);
       throw error;
     }
   }
