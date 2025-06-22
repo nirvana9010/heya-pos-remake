@@ -133,15 +133,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user = userStr ? JSON.parse(userStr) : null;
         merchant = merchantStr ? JSON.parse(merchantStr) : null;
         
-        // Validate that user and merchant have required fields
-        if (user && (!user.id || !user.email)) {
-          console.warn('[Auth Provider] Invalid user data format, clearing auth');
+        // Validate that we have BOTH user and merchant data
+        if (!user || !user.id || !user.email) {
+          console.warn('[Auth Provider] Missing or invalid user data, clearing auth');
           clearAuthData();
           return;
         }
         
-        if (merchant && (!merchant.id || !merchant.name)) {
-          console.warn('[Auth Provider] Invalid merchant data format, clearing auth');
+        if (!merchant || !merchant.id || !merchant.name) {
+          console.warn('[Auth Provider] Missing or invalid merchant data, clearing auth');
           clearAuthData();
           return;
         }

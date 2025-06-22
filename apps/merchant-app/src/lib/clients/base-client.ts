@@ -9,6 +9,8 @@ export interface ApiError {
   message: string;
   status?: number;
   code?: string;
+  data?: any;
+  originalError?: any;
 }
 
 export class BaseApiClient {
@@ -72,6 +74,14 @@ export class BaseApiClient {
         // Handle 401 errors with token refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
           return this.handleAuthError(error, originalRequest);
+        }
+
+        // Handle 403 errors - likely corrupted auth state
+        if (error.response?.status === 403 && !originalRequest._retry) {
+          console.warn('[BaseClient] 403 Forbidden - auth state may be corrupted, clearing and redirecting to login');
+          this.clearAuthData();
+          this.redirectToLogin();
+          return Promise.reject(error);
         }
 
         return Promise.reject(this.transformError(error));
@@ -195,12 +205,15 @@ export class BaseApiClient {
       return {
         message: error.response.data?.message || error.message,
         status: error.response.status,
-        code: error.response.data?.code,
+        code: error.response.data?.code || error.response.data?.errorCode,
+        data: error.response.data,
+        originalError: error
       };
     }
     
     return {
       message: error.message || 'An unexpected error occurred',
+      originalError: error
     };
   }
 

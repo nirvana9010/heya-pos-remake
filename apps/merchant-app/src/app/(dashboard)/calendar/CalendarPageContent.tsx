@@ -1175,22 +1175,32 @@ export default function CalendarPageContent() {
         console.log('Successfully loaded', transformedBookings.length, 'bookings from API');
       } catch (error: any) {
         console.error('Failed to load bookings:', error);
+        console.error('Error type:', Object.prototype.toString.call(error));
+        console.error('Error keys:', Object.keys(error || {}));
         console.error('Error details:', {
           message: error?.message,
           response: error?.response,
           status: error?.response?.status,
-          data: error?.response?.data
+          data: error?.response?.data,
+          stack: error?.stack
         });
         
         // If it's a 401, the auth interceptor will handle it
-        if (error?.response?.status === 401) {
+        if (error?.response?.status === 401 || error?.status === 401) {
           console.error('Authentication failed - auth provider will handle redirect');
           return;
         }
         
+        // Extract error message from transformed error object
+        const errorMessage = error?.message || 
+                           error?.data?.message || 
+                           (error && typeof error === 'object' && Object.keys(error).length === 0 
+                             ? "Authentication may have expired. Please refresh the page." 
+                             : "Unable to load booking data. Please check your connection and refresh.");
+        
         toast({
           title: "Error loading bookings",
-          description: "Unable to load booking data. Please check your connection and refresh.",
+          description: errorMessage,
           variant: "destructive",
         });
         // Only use mock data in development
