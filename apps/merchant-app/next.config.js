@@ -43,6 +43,19 @@ const nextConfig = {
         ]
       },
       {
+        source: '/js/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          }
+        ]
+      },
+      {
         source: '/static/:path*',
         headers: [
           {

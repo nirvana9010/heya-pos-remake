@@ -14,9 +14,9 @@ export interface VerifyActionRequest {
 }
 
 export class AuthClient extends BaseApiClient {
-  async login(username: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
+  async login(email: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
     const response = await this.post('/auth/merchant/login', {
-      username,
+      username: email, // Backend accepts email in username field
       password,
     }, undefined, 'v1');
     
