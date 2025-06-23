@@ -36,11 +36,7 @@ export class BaseApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
-        // Debug log in production
-        if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-          console.log('[API Request]', config.method?.toUpperCase(), config.url);
-        }
+
         
         return config;
       },
