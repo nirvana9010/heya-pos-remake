@@ -7,11 +7,13 @@ import { SmsTemplateService } from './templates/sms-template.service';
 import { NotificationEventHandler } from './handlers/notification-event.handler';
 import { SimpleSchedulerService } from './simple-scheduler.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TestNotificationsController } from './test-notifications.controller';
 
 @Module({
   imports: [
     PrismaModule,
   ],
+  controllers: process.env.NODE_ENV !== 'production' ? [TestNotificationsController] : [],
   providers: [
     NotificationsService,
     EmailService,
