@@ -14,14 +14,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login';
   const isTestPage = pathname.startsWith('/test');
+  const needsNotifications = pathname === '/test-notifications';
 
   return (
     <QueryProvider>
       <ClearCorruptedAuth />
       <AuthProvider>
         {/* Only wrap protected routes in AuthGuard and layout */}
-        {isAuthPage || isTestPage ? (
+        {isAuthPage ? (
           children
+        ) : isTestPage ? (
+          // Test pages may need notifications context
+          needsNotifications ? (
+            <NotificationsProvider>
+              {children}
+            </NotificationsProvider>
+          ) : (
+            children
+          )
         ) : (
           <AuthGuard>
             <TimezoneProvider>
