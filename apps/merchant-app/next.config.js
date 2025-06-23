@@ -189,6 +189,20 @@ const nextConfig = {
       },
     ];
   },
+  
+  // Rewrites for API proxy
+  async rewrites() {
+    // In production, proxy API calls to the backend
+    // Remove /api from the env var since we're appending it
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${API_URL}/api/:path*`,
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig
