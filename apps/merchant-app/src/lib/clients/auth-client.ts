@@ -15,10 +15,16 @@ export interface VerifyActionRequest {
 
 export class AuthClient extends BaseApiClient {
   async login(email: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
-    const response = await this.post('/auth/merchant/login', {
+    console.log('[Auth Client] Login attempt with:', { email, passwordLength: password.length });
+    
+    const payload = {
       username: email, // Backend accepts email in username field
       password,
-    }, undefined, 'v1');
+    };
+    
+    console.log('[Auth Client] Sending payload:', { username: payload.username, passwordLength: payload.password.length });
+    
+    const response = await this.post('/auth/merchant/login', payload, undefined, 'v1');
     
     // Normalize the response to match what the frontend expects
     // The API returns user data with embedded merchant info

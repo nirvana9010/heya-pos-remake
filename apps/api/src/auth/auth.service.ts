@@ -13,6 +13,8 @@ export class AuthService {
   ) {}
 
   async validateMerchant(emailOrUsername: string, password: string) {
+    console.log('[Auth Debug] validateMerchant called with:', emailOrUsername);
+    
     // First try to find merchant by email
     const merchant = await this.prisma.merchant.findFirst({
       where: { 
@@ -22,6 +24,8 @@ export class AuthService {
         }
       },
     });
+    
+    console.log('[Auth Debug] Found merchant by email:', merchant?.id);
 
     let merchantAuth = null;
 
@@ -42,6 +46,7 @@ export class AuthService {
       });
     } else {
       // Fallback to username for backward compatibility
+      console.log('[Auth Debug] No merchant found by email, trying username fallback');
       merchantAuth = await this.prisma.merchantAuth.findUnique({
         where: { username: emailOrUsername },
         include: {
@@ -58,8 +63,11 @@ export class AuthService {
     }
 
     if (!merchantAuth) {
+      console.log('[Auth Debug] No merchantAuth found, throwing error');
       throw new UnauthorizedException('Invalid credentials');
     }
+    
+    console.log('[Auth Debug] Found merchantAuth for merchant:', merchantAuth.merchant.name);
 
     const isValidPassword = await bcrypt.compare(password, merchantAuth.passwordHash);
     if (!isValidPassword) {
