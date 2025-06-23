@@ -78,7 +78,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     sessionStorage.removeItem('session_only');
 
     // Clear auth cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+    // Clear auth cookie with same settings as when setting
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clearCookieOptions = [
+      'authToken=',
+      'path=/',
+      'expires=Thu, 01 Jan 1970 00:00:00 UTC',
+      'SameSite=Lax',
+      isProduction ? 'Secure' : '',
+    ].filter(Boolean).join('; ');
+    
+    document.cookie = clearCookieOptions;
 
     setAuthState({
       user: null,
@@ -220,7 +230,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const expiryDays = rememberMe ? 30 : 1;
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + expiryDays);
-      document.cookie = `authToken=${response.access_token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
+      // Set cookie with proper domain for production
+      const isProduction = process.env.NODE_ENV === 'production';
+      const cookieOptions = [
+        `authToken=${response.access_token}`,
+        'path=/',
+        `expires=${expiryDate.toUTCString()}`,
+        'SameSite=Lax', // Changed from Strict to Lax for better redirect handling
+        isProduction ? 'Secure' : '', // Secure flag for HTTPS in production
+      ].filter(Boolean).join('; ');
+      
+      document.cookie = cookieOptions;
 
       // Parse token expiration
       const payload = JSON.parse(atob(response.access_token.split('.')[1]));

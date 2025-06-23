@@ -1,0 +1,65 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging]
+  pull_request:
+    branches: [staging]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Type check
+        run: npm run typecheck
+        
+      - name: Lint
+        run: npm run lint
+        
+      - name: Build
+        run: npm run build
+        
+      - name: Run auth middleware tests
+        run: |
+          cd apps/merchant-app
+          npm install --no-save axios chalk
+          node scripts/test-auth-middleware.js
+        env:
+          TEST_URL: http://localhost:3002
+
+  staging-tests:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Wait for Vercel deployment
+        run: sleep 60  # Wait for auto-deployment
+        
+      - name: Test staging deployment
+        run: |
+          cd apps/merchant-app
+          npm install --no-save axios chalk
+          TEST_URL=https://heya-pos-staging-merchant-app.vercel.app node scripts/test-auth-middleware.js
+        
+      - name: Notify on success
+        if: success()
+        run: echo "Staging deployment tests passed!"
+        
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Staging deployment tests failed!"
+          exit 1

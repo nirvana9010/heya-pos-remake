@@ -34,7 +34,11 @@
     "stop": "./scripts/dev-stop.sh",
     "status": "./scripts/dev-status.sh",
     "restart": "./scripts/dev-stop.sh && ./scripts/dev-start.sh",
-    "clean-start": "./scripts/dev-start.sh --clean"
+    "clean-start": "./scripts/dev-start.sh --clean",
+    "test:staging": "node scripts/test-staging.js",
+    "test:auth": "cd apps/merchant-app && node scripts/test-auth-middleware.js",
+    "deploy:staging": "git push origin staging",
+    "promote:production": "git checkout main && git merge staging && git push origin main"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
