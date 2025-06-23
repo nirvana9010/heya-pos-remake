@@ -3,7 +3,7 @@ import { transformApiResponse } from '../db-transforms';
 import { validateRequest, validateResponse, ApiValidationError } from './validation';
 import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '../cache-config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface ApiError {
   message: string;
@@ -37,6 +37,10 @@ export class BaseApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
+        // Debug log in production
+        if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+          console.log('[API Request]', config.method?.toUpperCase(), config.url);
+        }
         
         return config;
       },
@@ -55,9 +59,8 @@ export class BaseApiClient {
       async (error) => {
         const originalRequest = error.config;
 
-        // Log errors in development mode (but not 404s as they're expected)
-        const shouldLog = process.env.NODE_ENV === 'development' && 
-                         error.response?.status !== 404;
+        // Log errors (but not 404s as they're expected)
+        const shouldLog = error.response?.status !== 404;
                          
         if (shouldLog) {
           const errorInfo = {
@@ -69,6 +72,7 @@ export class BaseApiClient {
             details: error.response?.data
           };
           
+          console.error('[API Error]', errorInfo);
         }
 
         // Handle 401 errors with token refresh
@@ -182,8 +186,8 @@ export class BaseApiClient {
     localStorage.removeItem('merchant');
     localStorage.removeItem('user');
     
-    // Also clear the auth cookie for middleware
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict';
+    // Clear the auth cookie with the same settings used when setting it
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
   }
 
   private redirectToLogin() {

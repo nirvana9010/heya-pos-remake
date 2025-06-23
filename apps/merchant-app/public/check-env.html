@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Check</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .item { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Environment Check</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        // Check window location
+        results.innerHTML += `<div class="item">Window Location: ${window.location.href}</div>`;
+        results.innerHTML += `<div class="item">Hostname: ${window.location.hostname}</div>`;
+        results.innerHTML += `<div class="item">Protocol: ${window.location.protocol}</div>`;
+        
+        // Try to fetch the Next.js config
+        fetch('/_next/static/chunks/pages/_app.js')
+            .then(response => response.text())
+            .then(text => {
+                // Look for NEXT_PUBLIC_API_URL in the built files
+                const apiUrlMatch = text.match(/NEXT_PUBLIC_API_URL[^"]*"([^"]*)"/);
+                if (apiUrlMatch) {
+                    results.innerHTML += `<div class="item">Found API URL in build: ${apiUrlMatch[1]}</div>`;
+                } else {
+                    results.innerHTML += `<div class="item">API URL not found in build files</div>`;
+                }
+            })
+            .catch(err => {
+                results.innerHTML += `<div class="item">Error checking build: ${err.message}</div>`;
+            });
+            
+        // Check if we can access the API
+        const apiUrls = [
+            'https://heya-pos-remake-production.up.railway.app/api/v1/auth/health',
+            '/api/v1/auth/health'
+        ];
+        
+        apiUrls.forEach(url => {
+            fetch(url)
+                .then(response => {
+                    results.innerHTML += `<div class="item">${url}: ${response.status} ${response.statusText}</div>`;
+                })
+                .catch(err => {
+                    results.innerHTML += `<div class="item">${url}: ERROR - ${err.message}</div>`;
+                });
+        });
+    </script>
+</body>
+</html>
