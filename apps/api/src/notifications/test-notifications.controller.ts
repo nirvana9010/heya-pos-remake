@@ -10,8 +10,8 @@ import {
 } from '@nestjs/common';
 // Swagger imports removed - not installed in this project
 import { NotificationsService } from './notifications.service';
-import { EmailService } from './email/email.service';
-import { SmsService } from './sms/sms.service';
+import { EmailProviderFactory } from './email/email-provider.factory';
+import { SmsProviderFactory } from './sms/sms-provider.factory';
 import { NotificationType, NotificationContext } from './interfaces/notification.interface';
 import { NotificationDashboard } from './mocks/notification-mocks';
 
@@ -26,8 +26,8 @@ export class TestNotificationsController {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
+    private readonly emailProviderFactory: EmailProviderFactory,
+    private readonly smsProviderFactory: SmsProviderFactory,
   ) {
     this.dashboard = NotificationDashboard.getInstance();
   }
