@@ -200,7 +200,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const login = useCallback(async (username: string, password: string, rememberMe: boolean = false) => {
+  const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       setAuthState(prev => ({ 
         ...prev, 
@@ -208,7 +208,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: null 
       }));
 
-      const response: LoginResponse = await apiClient.auth.login(username, password, rememberMe);
+      const response: LoginResponse = await apiClient.auth.login(email, password, rememberMe);
 
       // Store tokens and user data
       localStorage.setItem('access_token', response.access_token);

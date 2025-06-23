@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
     
     setIsSubmitting(true);
     try {
-      await login(formData.username, formData.password, rememberMe);
+      await login(formData.email, formData.password, rememberMe);
       // Auth provider will handle the redirect through the useEffect above
     } catch (err) {
       // Error is handled by the auth provider and available via authError
@@ -82,15 +82,17 @@ export default function LoginPage() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 autoFocus
+                autoComplete="email"
                 disabled={isSubmitting}
               />
             </div>
@@ -99,11 +101,13 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
+                autoComplete="current-password"
                 disabled={isSubmitting}
               />
             </div>
@@ -146,7 +150,7 @@ export default function LoginPage() {
           </form>
           
           <div className="mt-6 text-center text-sm text-gray-600">
-            Demo credentials: Username: <code className="bg-gray-100 px-1 py-0.5 rounded">HAMILTON</code>, 
+            Demo credentials: Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@hamiltonbeauty.com</code>, 
             Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
           </div>
           
@@ -158,7 +162,7 @@ export default function LoginPage() {
               className="w-full"
               onClick={() => {
                 setFormData({
-                  username: 'HAMILTON',
+                  email: 'admin@hamiltonbeauty.com',
                   password: 'demo123'
                 });
                 // Auto submit after a short delay

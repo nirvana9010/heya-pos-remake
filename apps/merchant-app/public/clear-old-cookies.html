@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Old Auth Cookies - Heya POS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #4F46E5;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background: #4338CA;
+        }
+        .success {
+            color: #10B981;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #EFF6FF;
+            border: 1px solid #DBEAFE;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clear Old Authentication Cookies</h1>
+        <p>If you're experiencing login issues, click the button below to clear old authentication cookies.</p>
+        
+        <button class="button" onclick="clearOldCookies()">Clear Old Cookies</button>
+        
+        <div class="success" id="success">
+            ✓ Old cookies cleared successfully! You can now <a href="/login">login again</a>.
+        </div>
+        
+        <div class="info">
+            <strong>Why is this needed?</strong><br>
+            We've updated our authentication system for better security and reliability. 
+            This one-time cleanup ensures you don't have conflicts with old cookie formats.
+        </div>
+    </div>
+    
+    <script>
+        function clearOldCookies() {
+            // Clear all variations of auth cookies
+            const cookieNames = ['authToken', 'auth-token', 'auth_token'];
+            const domains = [window.location.hostname, `.${window.location.hostname}`];
+            const paths = ['/', '/login', '/calendar'];
+            
+            cookieNames.forEach(name => {
+                // Clear for current domain
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                
+                // Clear for all possible domain/path combinations
+                domains.forEach(domain => {
+                    paths.forEach(path => {
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; domain=${domain};`;
+                    });
+                });
+            });
+            
+            // Show success message
+            document.getElementById('success').style.display = 'block';
+            
+            // Redirect to login after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
