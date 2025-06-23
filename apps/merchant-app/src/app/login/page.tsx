@@ -152,7 +152,7 @@ export default function LoginPage() {
           </form>
           
           <div className="mt-6 text-center text-sm text-gray-600">
-            Demo credentials: Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@hamiltonbeauty.com</code>, 
+            Demo credentials: Username: <code className="bg-gray-100 px-1 py-0.5 rounded">HAMILTON</code>, 
             Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
           </div>
           
@@ -164,7 +164,7 @@ export default function LoginPage() {
               className="w-full"
               onClick={() => {
                 setFormData({
-                  email: 'admin@hamiltonbeauty.com',
+                  email: 'HAMILTON',
                   password: 'demo123'
                 });
                 // Auto submit after a short delay
