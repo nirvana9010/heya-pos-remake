@@ -150,7 +150,20 @@
             testDiv.innerHTML = '<div class="item warning">Testing login...</div>';
             
             try {
-                const response = await fetch('/api/v1/auth/merchant/login', {
+                // In production, the API is on a different domain (Railway)
+                // In development, the API is on port 3000
+                let apiUrl;
+                if (window.location.hostname === 'localhost') {
+                    apiUrl = 'http://localhost:3000/api/v1/auth/merchant/login';
+                } else if (window.location.hostname.includes('vercel.app')) {
+                    // Production on Vercel, API on Railway
+                    apiUrl = 'https://heya-pos-api-production.up.railway.app/api/v1/auth/merchant/login';
+                } else {
+                    // Fallback to relative URL (will use Next.js proxy)
+                    apiUrl = '/api/v1/auth/merchant/login';
+                }
+                    
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
