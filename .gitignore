@@ -76,6 +76,10 @@ packages/*/dist/
 *.key
 secrets/
 
+# Serena AI assistant files
+.serena/
+handoff.md
+
 # Cache
 .turbo/
 .cache/
