@@ -1,21 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// In-memory storage for demo purposes
+let dashboardData = {
+  totalSent: 0,
+  emailSent: 0,
+  smsSent: 0,
+  recentNotifications: [] as any[]
+};
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${API_BASE_URL}/test-notifications/dashboard`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    return NextResponse.json({
+      success: true,
+      ...dashboardData,
+      lastUpdated: new Date().toISOString()
     });
-
-    const data = await response.json();
-    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch dashboard' },
+      { success: false, error: error.message || 'Failed to fetch dashboard' },
+      { status: 500 }
+    );
+  }
+}
+
+// Update dashboard data when notifications are sent
+export async function POST(request: NextRequest) {
+  try {
+    const { type, channel } = await request.json();
+    
+    dashboardData.totalSent++;
+    if (channel === 'email') dashboardData.emailSent++;
+    if (channel === 'sms') dashboardData.smsSent++;
+    
+    dashboardData.recentNotifications.unshift({
+      type,
+      channel,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Keep only last 20 notifications
+    dashboardData.recentNotifications = dashboardData.recentNotifications.slice(0, 20);
+    
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
