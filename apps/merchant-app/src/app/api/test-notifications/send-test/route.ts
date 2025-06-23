@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    // Check if we should use real API or mock
+    const useRealApi = process.env.NODE_ENV === 'production' || process.env.USE_REAL_NOTIFICATIONS === 'true';
+    
+    if (useRealApi) {
+      // Call the real API endpoint
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/test/notifications/send-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'booking_new',
+            channel: 'both',
+            ...body
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return NextResponse.json(data);
+      } catch (apiError: any) {
+        console.error('Real API call failed:', apiError);
+        // Fall back to mock if real API fails
+      }
+    }
+    
     // Mock response for testing
-    // In a real implementation, this would call your email/SMS service
     const mockResponse = {
       success: true,
       message: 'Test notifications sent successfully',

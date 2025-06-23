@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EmailService } from './email/email.service';
-import { SmsService } from './sms/sms.service';
+import { EmailProviderFactory } from './email/email-provider.factory';
+import { SmsProviderFactory } from './sms/sms-provider.factory';
 import { NotificationContext, NotificationResult, NotificationType } from './interfaces/notification.interface';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -9,8 +9,8 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
-    private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
+    private readonly emailProviderFactory: EmailProviderFactory,
+    private readonly smsProviderFactory: SmsProviderFactory,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -26,7 +26,8 @@ export class NotificationsService {
     // Send via email if enabled
     if (channels.email && context.customer.email) {
       try {
-        results.email = await this.emailService.sendNotification(type, context);
+        const emailProvider = this.emailProviderFactory.getProvider();
+        results.email = await emailProvider.sendNotification(type, context);
         
         // Log notification in database
         await this.logNotification({
@@ -53,7 +54,8 @@ export class NotificationsService {
     // Send via SMS if enabled
     if (channels.sms && context.customer.phone) {
       try {
-        results.sms = await this.smsService.sendNotification(type, context);
+        const smsProvider = this.smsProviderFactory.getProvider();
+        results.sms = await smsProvider.sendNotification(type, context);
         
         // Log notification in database
         await this.logNotification({

@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { EmailService } from './email/email.service';
 import { SmsService } from './sms/sms.service';
+import { SendGridEmailService } from './email/sendgrid-email.service';
+import { TwilioSmsService } from './sms/twilio-sms.service';
+import { EmailProviderFactory } from './email/email-provider.factory';
+import { SmsProviderFactory } from './sms/sms-provider.factory';
 import { EmailTemplateService } from './templates/email-template.service';
 import { SmsTemplateService } from './templates/sms-template.service';
 import { NotificationEventHandler } from './handlers/notification-event.handler';
@@ -18,6 +22,10 @@ import { TestNotificationsController } from './test-notifications.controller';
     NotificationsService,
     EmailService,
     SmsService,
+    SendGridEmailService,
+    TwilioSmsService,
+    EmailProviderFactory,
+    SmsProviderFactory,
     EmailTemplateService,
     SmsTemplateService,
     NotificationEventHandler,
