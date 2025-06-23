@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Debug - Heya POS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #4F46E5;
+        }
+        .item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            color: #10B981;
+        }
+        .error {
+            color: #EF4444;
+        }
+        .warning {
+            color: #F59E0B;
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+        .actions {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Auth Debug Tool</h1>
+        
+        <div class="section">
+            <h2>Cookies</h2>
+            <div id="cookies"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Local Storage</h2>
+            <div id="localStorage"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Session Storage</h2>
+            <div id="sessionStorage"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Environment</h2>
+            <div id="environment"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Auth Test</h2>
+            <div id="authTest"></div>
+        </div>
+        
+        <div class="actions">
+            <button onclick="refreshDebug()">🔄 Refresh</button>
+            <button onclick="testLogin()">🔐 Test Login</button>
+            <button onclick="clearAll()">🗑️ Clear All Auth Data</button>
+            <button onclick="window.location.href='/login'">↩️ Back to Login</button>
+        </div>
+    </div>
+    
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+        
+        function displayDebugInfo() {
+            // Cookies
+            const authToken = getCookie('authToken');
+            const cookies = document.cookie.split(';').filter(c => c.trim());
+            document.getElementById('cookies').innerHTML = 
+                `<div class="item ${authToken ? 'success' : 'error'}">authToken: ${authToken ? '✓ Present (' + authToken.substring(0, 20) + '...)' : '✗ Missing'}</div>` +
+                `<div class="item">All cookies: ${cookies.length > 0 ? cookies.join('<br>') : 'None'}</div>`;
+            
+            // Local Storage
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const user = localStorage.getItem('user');
+            const merchant = localStorage.getItem('merchant');
+            
+            document.getElementById('localStorage').innerHTML = 
+                `<div class="item ${accessToken ? 'success' : 'error'}">access_token: ${accessToken ? '✓ Present' : '✗ Missing'}</div>` +
+                `<div class="item ${refreshToken ? 'success' : 'error'}">refresh_token: ${refreshToken ? '✓ Present' : '✗ Missing'}</div>` +
+                `<div class="item ${user ? 'success' : 'error'}">user: ${user ? '✓ Present' : '✗ Missing'}</div>` +
+                `<div class="item ${merchant ? 'success' : 'error'}">merchant: ${merchant ? '✓ Present' : '✗ Missing'}</div>`;
+            
+            // Session Storage
+            const sessionOnly = sessionStorage.getItem('session_only');
+            document.getElementById('sessionStorage').innerHTML = 
+                `<div class="item">session_only: ${sessionOnly || 'Not set'}</div>`;
+            
+            // Environment
+            document.getElementById('environment').innerHTML = 
+                `<div class="item">URL: ${window.location.href}</div>` +
+                `<div class="item">Protocol: ${window.location.protocol}</div>` +
+                `<div class="item">Hostname: ${window.location.hostname}</div>` +
+                `<div class="item">User Agent: ${navigator.userAgent}</div>`;
+        }
+        
+        async function testLogin() {
+            const testDiv = document.getElementById('authTest');
+            testDiv.innerHTML = '<div class="item warning">Testing login...</div>';
+            
+            try {
+                const response = await fetch('/api/v1/auth/merchant/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin@hamiltonbeauty.com',
+                        password: 'demo123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    testDiv.innerHTML = 
+                        '<div class="item success">✓ Login API works!</div>' +
+                        '<div class="item">Token received: ' + (data.token ? 'Yes' : 'No') + '</div>';
+                } else {
+                    testDiv.innerHTML = 
+                        '<div class="item error">✗ Login failed: ' + response.status + '</div>' +
+                        '<div class="item">Error: ' + JSON.stringify(data) + '</div>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = 
+                    '<div class="item error">✗ Network error</div>' +
+                    '<div class="item">Error: ' + error.message + '</div>';
+            }
+            
+            setTimeout(refreshDebug, 1000);
+        }
+        
+        function clearAll() {
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Clear storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            alert('All auth data cleared!');
+            refreshDebug();
+        }
+        
+        function refreshDebug() {
+            displayDebugInfo();
+        }
+        
+        // Initial load
+        displayDebugInfo();
+        
+        // Auto refresh every 5 seconds
+        setInterval(refreshDebug, 5000);
+    </script>
+</body>
+</html>

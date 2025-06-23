@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
@@ -13,6 +13,7 @@ import { Building2, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, isLoading, error: authError, clearError } = useAuth();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,9 +26,10 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      router.push('/calendar');
+      const from = searchParams.get('from') || '/calendar';
+      router.push(from);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, searchParams]);
 
   // Clear auth errors when component mounts
   useEffect(() => {
