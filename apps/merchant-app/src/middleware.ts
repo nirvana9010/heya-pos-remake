@@ -107,18 +107,27 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
-// CRITICAL: Properly exclude all static assets and public files
+// Match only the routes that need authentication
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, robots.txt, sitemap.xml (metadata files)
-     * - js, css, images, fonts folders (public assets)
-     * - public folder
-     * - files with extensions (e.g., .png, .jpg, .js, .css)
+     * Match only app routes that need auth checking:
+     * - All main app pages
+     * - Exclude API routes (they have their own auth)
+     * - Exclude static files automatically
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|js/|css/|images/|fonts/|public/|.*\\..*$).*)',
+    '/',
+    '/calendar/:path*',
+    '/settings/:path*', 
+    '/bookings/:path*',
+    '/services/:path*',
+    '/staff/:path*',
+    '/customers/:path*',
+    '/reports/:path*',
+    '/analytics/:path*',
+    '/pos/:path*',
+    '/login',
+    '/forgot-password',
+    '/reset-password',
   ],
 }
