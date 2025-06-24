@@ -127,25 +127,48 @@ export default function BookingsPageContent() {
   }, [dateFilter]);
 
   const loadStaff = async () => {
+    // Check if redirect is in progress
+    if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+      return;
+    }
+    
     try {
       const staffData = await apiClient.getStaff();
       setStaff(staffData);
-    } catch (error) {
-      console.error('Failed to load staff:', error);
+    } catch (error: any) {
+      // Ignore auth errors as they'll be handled by the interceptor
+      if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
+        console.error('Failed to load staff:', error);
+      }
     }
   };
 
   const loadMerchantSettings = async () => {
+    // Check if redirect is in progress
+    if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+      return;
+    }
+    
     try {
       const settings = await apiClient.getMerchantSettings();
       setMerchantSettings(settings);
-    } catch (error) {
-      console.error('Failed to load merchant settings:', error);
+    } catch (error: any) {
+      // Ignore auth errors as they'll be handled by the interceptor
+      if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
+        console.error('Failed to load merchant settings:', error);
+      }
     }
   };
 
   const loadBookings = async () => {
     console.log('[BookingsPage] loadBookings called with dateFilter:', dateFilter);
+    
+    // Check if redirect is in progress
+    if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+      console.log('[BookingsPage] Auth redirect in progress, aborting API call');
+      return;
+    }
+    
     try {
       setLoading(true);
       console.log('[BookingsPage] Calling apiClient.getBookings()...');
@@ -177,7 +200,7 @@ export default function BookingsPageContent() {
       }
       
       // Don't log 401 errors as they will trigger a redirect
-      if (error?.response?.status !== 401) {
+      if (error?.response?.status !== 401 && error?.status !== 401) {
         console.error('[BookingsPage] Non-401 error, showing toast...');
         toast({
           title: "Error",
@@ -188,8 +211,11 @@ export default function BookingsPageContent() {
         console.log('[BookingsPage] 401 error caught, should be redirecting...');
       }
     } finally {
-      console.log('[BookingsPage] Setting loading to false');
-      setLoading(false);
+      // Only set loading to false if not redirecting
+      if (!(window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+        console.log('[BookingsPage] Setting loading to false');
+        setLoading(false);
+      }
     }
   };
 

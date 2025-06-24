@@ -34,6 +34,10 @@ export default function LoginPage() {
   // Clear auth errors when component mounts
   useEffect(() => {
     clearError();
+    // Clear the redirect flag when login page loads
+    if (typeof window !== 'undefined') {
+      (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = false;
+    }
   }, [clearError]);
 
   const handleSubmit = async (e: React.FormEvent) => {

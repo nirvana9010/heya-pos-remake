@@ -301,11 +301,11 @@ model BookingService {
   serviceId String
   price     Decimal  @db.Decimal(10, 2)
   duration  Int
-  staffId   String
+  staffId   String?
   createdAt DateTime @default(now())
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   service   Service  @relation(fields: [serviceId], references: [id])
-  staff     Staff    @relation(fields: [staffId], references: [id])
+  staff     Staff?   @relation(fields: [staffId], references: [id])
 
   @@index([bookingId])
   @@index([serviceId])
