@@ -13,6 +13,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, tokenExpiresAt } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     // Don't check while loading
@@ -36,12 +37,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
       });
       
       // Only redirect if not already on login page
-      if (pathname !== '/login') {
+      if (pathname !== '/login' && !isRedirecting) {
+        setIsRedirecting(true);
+        // Set global flag to prevent API calls
+        (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
         // Use replace to prevent back button issues
         router.replace(`/login?from=${encodeURIComponent(pathname)}`);
       }
     }
-  }, [isAuthenticated, isLoading, tokenExpiresAt, pathname, router]);
+  }, [isAuthenticated, isLoading, tokenExpiresAt, pathname, router, isRedirecting]);
 
   // Show loading state while auth is initializing
   if (isLoading || !hasCheckedAuth) {
@@ -56,7 +60,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
   
   // If not authenticated or token expired after check, show redirect message
-  if (!isAuthenticated || isTokenExpired) {
+  if (!isAuthenticated || isTokenExpired || isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -32,6 +32,11 @@ export class BaseApiClient {
     // Request interceptor for auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
+        // Check if redirect is in progress
+        if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+          return Promise.reject(new Error('UNAUTHORIZED_REDIRECT'));
+        }
+        
         const token = localStorage.getItem('access_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -188,7 +193,14 @@ export class BaseApiClient {
 
   private redirectToLogin() {
     if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
+      // Set a flag to prevent further API calls
+      (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
+      
+      // Use replace to prevent back button issues and redirect immediately
+      window.location.replace('/login');
+      
+      // Throw a special error to stop execution
+      throw new Error('UNAUTHORIZED_REDIRECT');
     }
   }
 

@@ -1156,7 +1156,7 @@ export default function CalendarPageContent() {
             customerEmail: booking.customerEmail || booking.customer?.email || '',
             serviceName: booking.serviceName || 'Service',
             serviceIcon: 'scissors' as const, // Default icon
-            staffId: booking.staffId || booking.providerId || 'unknown',
+            staffId: booking.staffId || booking.providerId || null,
             staffName: booking.staffName || 'Staff',
             startTime,
             endTime,

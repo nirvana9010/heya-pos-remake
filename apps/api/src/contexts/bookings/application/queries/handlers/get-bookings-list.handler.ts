@@ -145,8 +145,10 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
         customerPhone: booking.customer.phone,
         customerEmail: undefined, // Not included in list query for performance
-        staffId: booking.provider.id,
-        staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
+        staffId: booking.provider?.id || null,
+        staffName: booking.provider 
+          ? `${booking.provider.firstName} ${booking.provider.lastName}`
+          : 'Unassigned',
         serviceName: services.length > 1 
           ? services.map(s => s.name).join(' + ')
           : services[0]?.name || 'Unknown Service',
