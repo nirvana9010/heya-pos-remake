@@ -95,3 +95,13 @@ apps/merchant-app/public/test-*.html
 apps/merchant-app/src/app/*/debug-*.tsx
 **/test-*.tsx
 **/debug-*.tsx
+
+# Temporary debug scripts
+scripts/debug-*.js
+scripts/test-*.js
+scripts/check-*.js
+scripts/check-*.sh
+scripts/test-*.md
+apps/api/check-*.js
+apps/api/scripts/test-*.ts
+apps/api/scripts/check-*.js
