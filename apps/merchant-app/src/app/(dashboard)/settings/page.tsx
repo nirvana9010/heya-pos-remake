@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const [enableTips, setEnableTips] = useState(false);
   const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>([10, 15, 20]);
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
-  const [showUnassignedColumn, setShowUnassignedColumn] = useState(false);
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(true);
   
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
@@ -79,7 +79,7 @@ export default function SettingsPage() {
         setEnableTips(response.enableTips ?? false);
         setDefaultTipPercentages(response.defaultTipPercentages || [10, 15, 20]);
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
-        setShowUnassignedColumn(response.showUnassignedColumn ?? false);
+        setShowUnassignedColumn(response.showUnassignedColumn ?? true);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);

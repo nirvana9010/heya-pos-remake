@@ -431,7 +431,7 @@ export default function BookingPageClient() {
       case 1:
         return selectedServices.length > 0;
       case 2:
-        return !!selectedStaff;
+        return selectedStaff !== null && selectedStaff !== undefined;
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:

@@ -13,5 +13,5 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   timeFormat: '12h',
   requireDeposit: false,
   depositPercentage: 0,
-  showUnassignedColumn: false, // Default to false, will be set to true for single-staff merchants
+  showUnassignedColumn: true, // Default to true to support "Any Available" bookings
 };
