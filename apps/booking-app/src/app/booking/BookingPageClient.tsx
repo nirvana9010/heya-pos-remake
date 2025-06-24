@@ -408,11 +408,11 @@ export default function BookingPageClient() {
       setCurrentStep(7); // Go to confirmation step
       
       // Don't show toast - we're showing the confirmation page instead
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create booking:', error);
       toast({
         title: "Error",
-        description: "Failed to create booking. Please try again.",
+        description: error.message || "Failed to create booking. Please try again.",
         variant: "destructive",
       });
     } finally {

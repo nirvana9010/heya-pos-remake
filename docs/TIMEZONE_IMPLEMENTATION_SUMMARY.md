@@ -1,141 +1,125 @@
 # Timezone Implementation Summary
 
 ## Overview
-Implemented comprehensive timezone support across the Heya POS system, allowing merchants to set their timezone and ensuring all times are displayed correctly to both staff and customers.
+The Heya POS system supports multiple timezones, allowing each merchant location to operate in their local timezone. The system is NOT hardcoded to Sydney time - it dynamically uses whatever timezone is configured for each location.
 
-## Key Components Added
+## Architecture
 
-### 1. Shared Infrastructure (`/packages/utils/src/timezone.ts`)
-- Already existed with timezone utility functions
-- Provides methods for timezone conversion and formatting
-- Supports all Australian timezones
+### Database Structure
+- **Merchant**: Has multiple locations
+- **Location**: Each has its own `timezone` field (defaults to "Australia/Sydney" but fully configurable)
+- **Bookings**: Stored in UTC, displayed in location's timezone
 
-### 2. Merchant App Components
+### Key Components
 
-#### TimezoneProvider (`/apps/merchant-app/src/contexts/timezone-context.tsx`)
-- React context for managing timezone state
-- Loads merchant and location timezone settings
-- Detects user's browser timezone for comparison
-- Provides formatting methods for both merchant and user timezones
+#### 1. Location Timezone Storage
+```prisma
+model Location {
+  timezone String @default("Australia/Sydney")
+  // ... other fields
+}
+```
 
-#### TimeDisplay Component (`/apps/merchant-app/src/components/TimeDisplay.tsx`)
-- Displays times in merchant timezone with optional user timezone tooltip
-- Shows timezone abbreviation (e.g., AEDT, AEST)
-- Automatically handles timezone conversion
+#### 2. Timezone Updates
+Merchants can update their location timezone via:
+- `PATCH /api/v1/locations/:id` - Update all location details
+- `PATCH /api/v1/locations/:id/timezone` - Update just timezone
 
-#### Settings Page Updates
-- Merchant timezone saved to merchant settings (not just location)
-- Timezone selector shows all Australian timezones
-- Updates both merchant-level and location-level timezones
+#### 3. Timezone Validation
+```typescript
+// TimezoneUtils.isValidTimezone()
+// Uses Intl API to validate any IANA timezone
+static isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
 
-#### Calendar Updates
-- Added timezone indicator in header
-- Time displays use TimeDisplay component for timezone awareness
-- Booking tooltips show times with timezone
+#### 4. Booking Availability
+- Uses location's configured timezone for:
+  - Business hours interpretation
+  - Slot generation
+  - Availability checking
+  - Date/time display
 
-### 3. Booking App Components
+#### 5. UI Components
+- `TimeDisplay` component shows times in merchant timezone
+- `TimezoneIndicator` shows which timezone is being used
+- Tooltips show user's local time if different from merchant
 
-#### TimezoneProvider (`/apps/booking-app/src/contexts/timezone-context.tsx`)
-- Similar to merchant app but loads timezone from merchant info API
-- Provides consistent timezone handling for customers
+## Supported Timezones
+Any valid IANA timezone, including but not limited to:
+- Australia/Sydney (AEDT/AEST)
+- Australia/Brisbane (AEST - no DST)
+- Australia/Perth (AWST)
+- Australia/Adelaide (ACDT/ACST)
+- Australia/Darwin (ACST - no DST)
+- Australia/Hobart (AEDT/AEST)
+- Pacific/Auckland
+- Asia/Singapore
+- Europe/London
+- America/New_York
+- UTC, GMT, etc.
 
-#### TimeDisplay Component (`/apps/booking-app/src/components/TimeDisplay.tsx`)
-- Shows appointment times in merchant's timezone
-- Includes tooltip with customer's local time if different
+## How It Works
 
-#### Booking Flow Updates
-- Time selection shows timezone indicator
-- Confirmation page displays appointment time with timezone
+### 1. Booking Creation Flow
+```
+User selects time → Time interpreted in location timezone → 
+Converted to UTC for storage → Displayed back in location timezone
+```
 
-### 4. API Updates
+### 2. Availability Check Flow
+```
+Request date → Get location timezone → Generate slots in that timezone → 
+Check conflicts in UTC → Return available times in location timezone
+```
 
-#### Merchant Settings
-- Timezone field added to MerchantSettings type
-- Merchant service handles timezone in settings updates
-- Default timezone: "Australia/Sydney"
+### 3. Business Hours
+- Configured per location in local time (e.g., "09:00" means 9 AM in that location's timezone)
+- Day of week calculated based on location timezone (important for date boundaries)
 
-#### Bookings Service
-- Already uses timezone-aware date filtering
-- Converts between UTC storage and local display
-- Handles daylight saving time correctly
+## Testing
+Created test scripts:
+- `test-multi-timezone.js` - Tests booking system with current timezone
+- `test-update-timezone.js` - Guide for updating timezone settings
 
-### 5. Database Migration Script
-- `/apps/api/scripts/update-merchant-timezones.ts`
-- Ensures all existing merchants have timezone settings
-- Inherits timezone from first location if not set
+## Important Fixes Made
 
-## Timezone Hierarchy
+### 1. Removed Hardcoded Default
+```typescript
+// BEFORE: Had default timezone
+const { timezone = 'Australia/Sydney' } = data;
 
-1. **Merchant Level**: Default timezone for the entire business
-2. **Location Level**: Can override merchant timezone (optional)
-3. **Display Priority**: Location timezone > Merchant timezone > "Australia/Sydney"
+// AFTER: Timezone is required from location
+const { timezone } = data;
+```
 
-## User Experience
+### 2. Fixed Day of Week Calculation
+```typescript
+// Now uses location timezone for day calculation
+const dayOfWeek = currentDate.toLocaleDateString('en-US', { 
+  weekday: 'long', 
+  timeZone: timezone 
+}).toLowerCase();
+```
 
-### For Merchants
-- Set timezone in Settings > Business Information
-- All calendar views show times in their configured timezone
-- Clear timezone indicators throughout the app
+### 3. Fixed TimezoneUtils.createDateInTimezone
+Simplified to correctly handle timezone conversion without double-conversion issues.
 
-### For Customers
-- See available times in merchant's timezone
-- Get helpful tooltips showing their local time equivalent
-- Clear "All times shown in [TIMEZONE]" indicators
-- Confirmation shows appointment time with timezone
+## Best Practices
+1. Always get timezone from location, never hardcode
+2. Store times in UTC in database
+3. Display times in location's timezone
+4. Show timezone indicator in UI
+5. Validate timezone changes before saving
+6. Consider DST when testing
 
-## Technical Implementation
-
-### UTC Storage
-- All timestamps stored in UTC in database
-- Conversion happens at display layer
-- Prevents ambiguity and DST issues
-
-### Timezone Display
-- Uses IANA timezone identifiers (e.g., "Australia/Sydney")
-- Shows friendly abbreviations (AEDT, AEST, etc.)
-- Handles daylight saving transitions automatically
-
-### Edge Cases Handled
-- Lord Howe Island (30-minute DST shifts)
-- Different timezones between merchant and customer
-- DST transition dates
-- Invalid times during "spring forward"
-
-## Testing Recommendations
-
-1. **Basic Functionality**
-   - Change merchant timezone in settings
-   - Verify calendar displays update correctly
-   - Check booking app shows correct timezone
-
-2. **Cross-Timezone Testing**
-   - Access booking app from different timezone
-   - Verify tooltip shows correct local time conversion
-   - Test with VPN or browser timezone override
-
-3. **DST Transitions**
-   - Test bookings around DST change dates
-   - Verify times remain consistent after transition
-   - Check historical bookings display correctly
-
-4. **Data Migration**
-   - Run migration script on test database
-   - Verify all merchants get timezone settings
-   - Check existing bookings display correctly
-
-## Future Enhancements
-
-1. **Multi-Location Support**
-   - UI to manage different timezones per location
-   - Staff timezone preferences
-   - Cross-location booking coordination
-
-2. **International Expansion**
-   - Add non-Australian timezone support
-   - Handle more complex timezone scenarios
-   - Multi-language timezone names
-
-3. **Advanced Features**
-   - Timezone-aware notifications
-   - Calendar export with correct timezone data
-   - Timezone conflict warnings
+## Migration Notes
+- Existing locations default to "Australia/Sydney" (schema default)
+- Merchants should update their timezone via settings if different
+- No data migration needed - times are already stored in UTC

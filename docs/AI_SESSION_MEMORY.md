@@ -1,11 +1,11 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-06-17 8:00 PM
+> Last Updated: 2025-06-24
 > 
 > **CRITICAL UPDATE**: V1/V2 API confusion causing major issues - SEE NEW SECTION BELOW
-> **NEW**: Drag-and-drop debugging revealed systemic workaround problem
-> **LATEST**: Timeline of failures from June 17 session documented
+> **NEW**: Timezone handling in booking system - major debugging session
+> **LATEST**: Database sync issues and availability display bugs fixed
 
 ## 🚨 NEW: Debugging Without Browser Console - The "Array to 0" Pattern
 **Added**: 2025-06-19
@@ -1453,3 +1453,120 @@ grep -r "console.log\|debug\|localhost" dist/
 ```
 
 Remember: **If it's debug code, it MUST be conditional!**
+
+## 🚨 NEW: Timezone Handling & Booking System Issues
+**Added**: 2025-06-24
+**Issues**: Multiple cascading failures in booking availability system
+
+### The Symptom Cascade
+1. **Initial**: "The column Customer.emailNotifications does not exist"
+   - Database wasn't synced after schema changes
+   
+2. **Then**: "This time slot is no longer available" but slot shows as available in UI
+   - Availability check was broken
+   - Error messages weren't displayed properly
+   
+3. **Deep Issue**: Slots showing at wrong times (24:00, 00:15, etc)
+   - Timezone handling was completely broken
+
+### Root Causes Found
+
+#### 1. Database Date Range Query Bug
+```typescript
+// BUG: This query was wrong
+endTime: {
+  gte: startDate,
+  lte: endDate,
+}
+
+// FIX: Proper overlap detection
+startTime: {
+  lt: endDate,
+},
+endTime: {
+  gt: startDate,
+}
+```
+
+#### 2. Timezone Day-of-Week Bug
+```typescript
+// BUG: format() uses UTC by default!
+const dayOfWeek = format(currentDate, 'EEEE').toLowerCase();
+// June 15 00:00 Sydney = June 14 14:00 UTC = "Sunday" not "Monday"!
+
+// FIX: Use timezone-aware formatting
+const dayOfWeek = currentDate.toLocaleDateString('en-US', { 
+  weekday: 'long', 
+  timeZone: timezone 
+}).toLowerCase();
+```
+
+#### 3. TimezoneUtils.createDateInTimezone Was Broken
+- Was applying double timezone conversion
+- Made 9:00 AM Sydney become 11:00 PM previous day
+- Completely rewrote the method
+
+#### 4. Time Formatting Bug
+```typescript
+// BUG: toLocaleTimeString returns "24:00" for midnight
+// FIX: Handle 24:xx times
+if (time.startsWith('24:')) {
+  time = '00:' + time.substring(3);
+}
+```
+
+### Debugging Approach That Worked
+
+1. **Created minimal test scripts** - Isolated each component
+2. **Traced timezone conversions step-by-step** - Found where dates went wrong
+3. **Tested with and without staff ID** - Revealed different code paths
+4. **Used database queries directly** - Bypassed API layers
+
+### Key Lessons
+
+#### Always Test Timezone Code Thoroughly
+```javascript
+// Test checklist for timezone features:
+- [ ] Test at timezone boundaries (11pm, midnight, 1am)
+- [ ] Test with DST transitions
+- [ ] Test day-of-week at date boundaries
+- [ ] Test formatting in different locales
+- [ ] Log UTC vs local times during debugging
+```
+
+#### Database Sync Must Be Automatic
+```bash
+# Add to pre-commit or CI:
+npx prisma migrate diff --exit-code
+```
+
+#### Error Messages Must Reach Users
+```typescript
+// ALWAYS propagate actual errors
+description: error.message || "Generic fallback message"
+```
+
+### Test Scripts Created
+- `test-booking-real.js` - Full booking flow
+- `test-availability-fix.js` - Availability checking
+- `debug-timezone-creation.js` - Timezone conversion testing
+- `test-simple-availability.js` - Minimal reproduction
+- `debug-staff-location.js` - Direct database queries
+
+### Warning Signs to Watch For
+1. Times showing as "24:00" instead of "00:00"
+2. Slots starting at midnight when business opens at 9am
+3. Day of week being off by one
+4. "Invalid time value" errors
+5. Bookings conflicting when they shouldn't
+
+### The Fix Verification Pattern
+```bash
+# 1. Test without staff (generic slots)
+# 2. Test with staff (specific availability)
+# 3. Create a booking
+# 4. Verify slot becomes unavailable
+# 5. Try double-booking (should fail with proper error)
+```
+
+**Remember**: When debugging timezone issues, ALWAYS log both UTC and local times!

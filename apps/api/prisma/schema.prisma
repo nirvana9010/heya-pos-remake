@@ -23,37 +23,37 @@ model Package {
 }
 
 model Merchant {
-  id                 String          @id @default(uuid())
+  id                 String            @id @default(uuid())
   name               String
-  email              String          @unique
+  email              String            @unique
   phone              String?
   abn                String?
-  subdomain          String          @unique
+  subdomain          String            @unique
   packageId          String
-  subscriptionStatus String          @default("TRIAL")
+  subscriptionStatus String            @default("TRIAL")
   subscriptionEnds   DateTime?
   trialEndsAt        DateTime?
   stripeCustomerId   String?
   website            String?
   logo               String?
   description        String?
-  status             String          @default("ACTIVE")
+  status             String            @default("ACTIVE")
   settings           Json
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   auditLogs          AuditLog[]
+  bookings           Booking[]
   customers          Customer[]
   invoices           Invoice[]
   locations          Location[]
   loyaltyPrograms    LoyaltyProgram?
-  package            Package         @relation(fields: [packageId], references: [id])
+  package            Package           @relation(fields: [packageId], references: [id])
   merchantAuth       MerchantAuth?
+  notificationLogs   NotificationLog[]
   orders             Order[]
+  outboxEvents       OutboxEvent[]
   services           Service[]
   staff              Staff[]
-  bookings           Booking[]
-  outboxEvents       OutboxEvent[]
-  notificationLogs   NotificationLog[]
 
   @@index([status])
   @@index([email])
@@ -153,44 +153,44 @@ model StaffLocation {
 }
 
 model Customer {
-  id                  String               @id @default(uuid())
-  merchantId          String
-  email               String?
-  firstName           String
-  lastName            String
-  phone               String?
-  mobile              String?
-  dateOfBirth         DateTime?
-  gender              String?
-  address             String?
-  suburb              String?
-  city                String?
-  state               String?
-  country             String?
-  postalCode          String?
-  notes               String?
-  tags                Json                 @default("[]")
-  preferredLanguage   String               @default("en")
-  marketingConsent    Boolean              @default(false)
-  emailNotifications  Boolean              @default(true)
-  smsNotifications    Boolean              @default(true)
-  notificationPreference String            @default("both")
-  status              String               @default("ACTIVE")
-  source              String               @default("WALK_IN")
-  loyaltyPoints       Decimal              @default(0) @db.Decimal(10, 2)
-  visitCount          Int                  @default(0)
-  totalSpent          Decimal              @default(0) @db.Decimal(10, 2)
-  loyaltyVisits       Int                  @default(0)
-  lifetimeVisits      Int                  @default(0)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  bookings            Booking[]
-  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  invoices            Invoice[]
-  loyaltyCards        LoyaltyCard[]
-  loyaltyTransactions LoyaltyTransaction[]
-  orders              Order[]
-  notificationLogs    NotificationLog[]
+  id                     String               @id @default(uuid())
+  merchantId             String
+  email                  String?
+  firstName              String
+  lastName               String
+  phone                  String?
+  mobile                 String?
+  dateOfBirth            DateTime?
+  gender                 String?
+  address                String?
+  suburb                 String?
+  city                   String?
+  state                  String?
+  country                String?
+  postalCode             String?
+  notes                  String?
+  tags                   Json                 @default("[]")
+  preferredLanguage      String               @default("en")
+  marketingConsent       Boolean              @default(false)
+  status                 String               @default("ACTIVE")
+  source                 String               @default("WALK_IN")
+  loyaltyPoints          Decimal              @default(0) @db.Decimal(10, 2)
+  visitCount             Int                  @default(0)
+  totalSpent             Decimal              @default(0) @db.Decimal(10, 2)
+  loyaltyVisits          Int                  @default(0)
+  lifetimeVisits         Int                  @default(0)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  emailNotifications     Boolean              @default(true)
+  notificationPreference String               @default("both")
+  smsNotifications       Boolean              @default(true)
+  bookings               Booking[]
+  merchant               Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invoices               Invoice[]
+  loyaltyCards           LoyaltyCard[]
+  loyaltyTransactions    LoyaltyTransaction[]
+  notificationLogs       NotificationLog[]
+  orders                 Order[]
 
   @@unique([merchantId, email])
   @@unique([merchantId, mobile])
@@ -219,8 +219,8 @@ model Service {
   displayOrder      Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
-  paddingAfter      Int              @default(0)
   paddingBefore     Int              @default(0)
+  paddingAfter      Int              @default(0)
   bookingServices   BookingService[]
   categoryModel     ServiceCategory? @relation(fields: [categoryId], references: [id])
   merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
@@ -249,41 +249,41 @@ model ServiceCategory {
 }
 
 model Booking {
-  id                  String               @id @default(uuid())
-  merchantId          String
-  locationId          String
-  customerId          String
-  bookingNumber       String               @unique
-  status              String               @default("PENDING")
-  startTime           DateTime
-  endTime             DateTime
-  totalAmount         Decimal              @db.Decimal(10, 2)
-  depositAmount       Decimal              @default(0) @db.Decimal(10, 2)
-  notes               String?
-  cancellationReason  String?
-  source              String               @default("ONLINE")
-  createdById         String
-  providerId          String?
-  reminderSent        Boolean              @default(false)
-  confirmedAt         DateTime?
-  checkedInAt         DateTime?
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  isOverride          Boolean              @default(false)
-  overrideApprovedBy  String?
-  overrideReason      String?
-  merchant            Merchant             @relation(fields: [merchantId], references: [id])
-  createdBy           Staff                @relation("BookingCreator", fields: [createdById], references: [id])
-  customer            Customer             @relation(fields: [customerId], references: [id])
-  location            Location             @relation(fields: [locationId], references: [id])
-  provider            Staff?               @relation("BookingProvider", fields: [providerId], references: [id])
-  services            BookingService[]
-  invoice             Invoice?
-  loyaltyTransactions LoyaltyTransaction[]
-  order               Order?
-  notificationLogs    NotificationLog[]
+  id                     String                  @id @default(uuid())
+  merchantId             String
+  locationId             String
+  customerId             String
+  bookingNumber          String                  @unique
+  status                 String                  @default("PENDING")
+  startTime              DateTime
+  endTime                DateTime
+  totalAmount            Decimal                 @db.Decimal(10, 2)
+  depositAmount          Decimal                 @default(0) @db.Decimal(10, 2)
+  notes                  String?
+  cancellationReason     String?
+  source                 String                  @default("ONLINE")
+  createdById            String
+  providerId             String?
+  reminderSent           Boolean                 @default(false)
+  confirmedAt            DateTime?
+  checkedInAt            DateTime?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  isOverride             Boolean                 @default(false)
+  overrideReason         String?
+  overrideApprovedBy     String?
+  createdBy              Staff                   @relation("BookingCreator", fields: [createdById], references: [id])
+  customer               Customer                @relation(fields: [customerId], references: [id])
+  location               Location                @relation(fields: [locationId], references: [id])
+  merchant               Merchant                @relation(fields: [merchantId], references: [id])
+  provider               Staff?                  @relation("BookingProvider", fields: [providerId], references: [id])
+  services               BookingService[]
+  invoice                Invoice?
+  loyaltyTransactions    LoyaltyTransaction[]
+  notificationLogs       NotificationLog[]
+  order                  Order?
   scheduledNotifications ScheduledNotification[]
 
   @@index([merchantId])
@@ -372,32 +372,32 @@ model OrderModifier {
   value       Decimal  @db.Decimal(10, 2)
   amount      Decimal  @db.Decimal(10, 2)
   description String?  @db.VarChar(255)
-  appliesTo   String[]
+  metadata    Json?
   createdAt   DateTime @default(now()) @db.Timestamp(6)
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
-  metadata    Json?
+  appliesTo   String[]
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderPayment {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(255)
   orderId         String          @db.VarChar(255)
+  paymentMethod   String          @db.VarChar(255)
   amount          Decimal         @db.Decimal(10, 2)
   tipAmount       Decimal         @default(0) @db.Decimal(10, 2)
-  paymentMethod   String          @db.VarChar(255)
   status          String          @default("PENDING") @db.VarChar(255)
   reference       String?         @db.VarChar(255)
-  metadata        Json?
-  processedAt     DateTime?       @db.Timestamp(6)
-  refundedAmount  Decimal?        @default(0) @db.Decimal(10, 2)
-  refundedAt      DateTime?       @db.Timestamp(6)
-  refundReason    String?
-  createdAt       DateTime        @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime        @default(now()) @updatedAt @db.Timestamp(6)
   gatewayResponse Json?
   processedById   String?         @db.VarChar(255)
+  processedAt     DateTime?       @db.Timestamp(6)
   failedAt        DateTime?       @db.Timestamp(6)
   failureReason   String?
+  createdAt       DateTime        @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  metadata        Json?
+  refundReason    String?
+  refundedAmount  Decimal?        @default(0) @db.Decimal(10, 2)
+  refundedAt      DateTime?       @db.Timestamp(6)
   order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   processedBy     Staff?          @relation(fields: [processedById], references: [id])
   tipAllocations  TipAllocation[]
@@ -631,19 +631,18 @@ model AuditLog {
 }
 
 model OutboxEvent {
-  id           String    @id @default(uuid())
-  aggregateId  String
+  id            String    @id @default(uuid())
+  aggregateId   String
   aggregateType String
-  eventType    String
-  eventData    Json
-  eventVersion Int       @default(1)
-  createdAt    DateTime  @default(now())
-  processedAt  DateTime?
-  retryCount   Int       @default(0)
-  lastError    String?
-  merchantId   String
-  
-  merchant     Merchant  @relation(fields: [merchantId], references: [id])
+  eventType     String
+  eventData     Json
+  eventVersion  Int       @default(1)
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+  retryCount    Int       @default(0)
+  lastError     String?
+  merchantId    String
+  merchant      Merchant  @relation(fields: [merchantId], references: [id])
 
   @@index([processedAt])
   @@index([createdAt])
@@ -652,22 +651,21 @@ model OutboxEvent {
 }
 
 model NotificationLog {
-  id          String   @id @default(uuid())
-  merchantId  String
-  customerId  String
-  bookingId   String?
-  type        String
-  channel     String
-  recipient   String
-  status      String
-  messageId   String?
-  error       String?
-  sentAt      DateTime @default(now())
-  
-  merchant    Merchant @relation(fields: [merchantId], references: [id])
-  customer    Customer @relation(fields: [customerId], references: [id])
-  booking     Booking? @relation(fields: [bookingId], references: [id])
-  
+  id         String   @id @default(uuid())
+  merchantId String
+  customerId String
+  bookingId  String?
+  type       String
+  channel    String
+  recipient  String
+  status     String
+  messageId  String?
+  error      String?
+  sentAt     DateTime @default(now())
+  booking    Booking? @relation(fields: [bookingId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+
   @@index([merchantId])
   @@index([customerId])
   @@index([bookingId])
@@ -677,18 +675,17 @@ model NotificationLog {
 }
 
 model ScheduledNotification {
-  id          String   @id @default(uuid())
-  bookingId   String
-  type        String
+  id           String    @id @default(uuid())
+  bookingId    String
+  type         String
   scheduledFor DateTime
-  status      String   @default("pending")
-  sentAt      DateTime?
-  error       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  booking     Booking  @relation(fields: [bookingId], references: [id])
-  
+  status       String    @default("pending")
+  sentAt       DateTime?
+  error        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  booking      Booking   @relation(fields: [bookingId], references: [id])
+
   @@index([bookingId])
   @@index([status])
   @@index([scheduledFor])
