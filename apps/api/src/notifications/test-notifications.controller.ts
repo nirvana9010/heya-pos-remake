@@ -80,7 +80,8 @@ export class TestNotificationsController {
     // Send email if requested
     if (channel === 'email' || channel === 'both') {
       try {
-        results.email = await this.emailService.sendNotification(body.type, testContext);
+        const emailService = this.emailProviderFactory.getProvider();
+        results.email = await emailService.sendNotification(body.type, testContext);
       } catch (error: any) {
         results.email = {
           success: false,
@@ -93,7 +94,8 @@ export class TestNotificationsController {
     // Send SMS if requested
     if (channel === 'sms' || channel === 'both') {
       try {
-        results.sms = await this.smsService.sendNotification(body.type, testContext);
+        const smsService = this.smsProviderFactory.getProvider();
+        results.sms = await smsService.sendNotification(body.type, testContext);
       } catch (error: any) {
         results.sms = {
           success: false,
@@ -203,7 +205,8 @@ export class TestNotificationsController {
 
   @Get('verify-connections')
   async verifyConnections() {
-    const emailConnection = await this.emailService.verifyConnection();
+    const emailService = this.emailProviderFactory.getProvider();
+    const emailConnection = await emailService.verifyConnection();
     const smsConnection = true; // SMS mock always returns true
 
     return {
@@ -293,12 +296,14 @@ export class TestNotificationsController {
     let result;
     try {
       if (testScenario.channel === 'email') {
-        result = await this.emailService.sendNotification(
+        const emailService = this.emailProviderFactory.getProvider();
+        result = await emailService.sendNotification(
           testScenario.type,
           testScenario.context,
         );
       } else {
-        result = await this.smsService.sendNotification(
+        const smsService = this.smsProviderFactory.getProvider();
+        result = await smsService.sendNotification(
           testScenario.type,
           testScenario.context,
         );

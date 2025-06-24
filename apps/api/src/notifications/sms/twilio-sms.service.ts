@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as twilio from 'twilio';
+const twilio = require('twilio');
 import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
 import { SmsTemplateService } from '../templates/sms-template.service';
 
 @Injectable()
 export class TwilioSmsService {
   private readonly logger = new Logger(TwilioSmsService.name);
-  private readonly client: twilio.Twilio | null;
+  private readonly client: any;
   private readonly isEnabled: boolean;
   private readonly fromNumber: string;
 
@@ -69,7 +69,6 @@ export class TwilioSmsService {
         success: true,
         messageId: result.sid,
         channel: 'sms',
-        provider: 'twilio',
       };
     } catch (error: any) {
       this.logger.error('Failed to send Twilio SMS', error);
@@ -87,7 +86,6 @@ export class TwilioSmsService {
         success: false,
         error: errorMessage,
         channel: 'sms',
-        provider: 'twilio',
       };
     }
   }

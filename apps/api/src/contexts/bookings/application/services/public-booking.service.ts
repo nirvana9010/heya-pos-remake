@@ -44,6 +44,8 @@ export class PublicBookingService {
       throw new Error('No active merchant found');
     }
 
+    console.log('Processing booking for merchant:', merchant.id, merchant.name);
+
     // Normalize input to support both single and multiple services
     const serviceRequests = dto.services || [
       { serviceId: dto.serviceId!, staffId: dto.staffId },
@@ -115,27 +117,44 @@ export class PublicBookingService {
       });
     }
 
-    // For multiple services, we'll use the same staff for all services for now
-    // In future, we can support different staff per service
-    const defaultStaff = await this.prisma.staff.findFirst({
+    // Use provided staff or leave unassigned (null) if not specified
+    const staffId = dto.staffId || serviceRequests[0].staffId || null;
+    
+    // For the createdBy field (which is required), we need any active staff
+    // This doesn't mean the booking is assigned to them - it's just for audit purposes
+    const anyActiveStaff = await this.prisma.staff.findFirst({
       where: {
         merchantId: merchant.id,
         status: 'ACTIVE',
+        // Exclude the unassigned user if it exists
+        NOT: {
+          firstName: 'Unassigned',
+        },
+      },
+      orderBy: {
+        createdAt: 'asc', // Use the oldest staff member (likely the owner)
       },
     });
 
-    if (!defaultStaff) {
-      throw new Error('No staff available');
+    if (!anyActiveStaff) {
+      // Log for debugging
+      const allStaff = await this.prisma.staff.findMany({
+        where: { merchantId: merchant.id },
+        select: { id: true, firstName: true, status: true },
+      });
+      console.error('No active staff found. All staff:', allStaff);
+      throw new Error('No active staff available in the system');
     }
 
-    // Use provided staff or default for all services
-    const staffId = dto.staffId || serviceRequests[0].staffId || defaultStaff.id;
+    // Store the creator ID to use in the transaction
+    const creatorStaffId = anyActiveStaff.id;
+    console.log('Using creator staff ID:', creatorStaffId);
 
     try {
       // For multiple services, create booking directly with transaction
       const booking = await this.prisma.$transaction(async (tx) => {
-        // Check for conflicts
-        const conflicts = await tx.booking.findMany({
+        // Check for conflicts only if a staff member is assigned
+        const conflicts = staffId ? await tx.booking.findMany({
           where: {
             merchantId: merchant.id,
             providerId: staffId,
@@ -161,7 +180,7 @@ export class PublicBookingService {
               },
             ],
           },
-        });
+        }) : [];
 
         if (conflicts.length > 0) {
           throw new ConflictException({
@@ -179,22 +198,32 @@ export class PublicBookingService {
         const bookingNumber = `BK${Date.now()}${Math.random().toString(36).substring(2, 5)}`.toUpperCase();
 
         // Create the booking
+        const bookingData: any = {
+          merchantId: merchant.id,
+          locationId: location.id,
+          customerId: customer.id,
+          bookingNumber,
+          status: 'CONFIRMED',
+          startTime,
+          endTime,
+          totalAmount: totalPrice,
+          depositAmount: 0,
+          source: 'ONLINE',
+          notes: dto.notes,
+        };
+        
+        // For online bookings, we need a creator even if no staff is assigned
+        // Use the provided staff ID, or use any active staff as creator (for audit purposes only)
+        console.log('Staff assignment:', { staffId, creatorStaffId });
+        bookingData.createdById = staffId || creatorStaffId;
+        
+        // Only set provider if staffId is provided (can be null for unassigned)
+        if (staffId) {
+          bookingData.providerId = staffId;
+        }
+        
         const newBooking = await tx.booking.create({
-          data: {
-            merchantId: merchant.id,
-            locationId: location.id,
-            customerId: customer.id,
-            bookingNumber,
-            status: 'CONFIRMED',
-            startTime,
-            endTime,
-            totalAmount: totalPrice,
-            depositAmount: 0,
-            source: 'ONLINE',
-            createdById: staffId,
-            providerId: staffId,
-            notes: dto.notes,
-          },
+          data: bookingData,
         });
 
         // Create booking services
@@ -262,7 +291,9 @@ export class PublicBookingService {
           staffId: bs.staffId,
         })),
         staffId: completeBooking.providerId,
-        staffName: `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`,
+        staffName: completeBooking.provider 
+          ? `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`
+          : 'Unassigned',
         date: startTimeDisplay.date.split('/')[2] + '-' + 
               startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 
               startTimeDisplay.date.split('/')[0].padStart(2, '0'), // Convert DD/MM/YYYY to YYYY-MM-DD
@@ -373,14 +404,27 @@ export class PublicBookingService {
       };
     }
 
-    // If no staff specified, return generic availability
+    // If no staff specified, check availability across all staff
     // Get existing bookings for the date using timezone-aware boundaries
     const startOfDay = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
     const endOfDay = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
 
+    // Get all active staff members
+    // TODO: Add filtering for staff who can provide this specific service
+    const activeStaff = await this.prisma.staff.findMany({
+      where: {
+        merchantId: merchant.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    // Get all bookings for these staff members on this date
     const existingBookings = await this.prisma.booking.findMany({
       where: {
         merchantId: merchant.id,
+        providerId: {
+          in: activeStaff.map(s => s.id),
+        },
         startTime: {
           gte: startOfDay,
           lte: endOfDay,
@@ -413,16 +457,26 @@ export class PublicBookingService {
         const slotEnd = new Date(slotStart);
         slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
         
-        const hasConflict = existingBookings.some(booking => {
+        // Check which staff are busy during this slot
+        const busyStaffIds = new Set<string>();
+        existingBookings.forEach(booking => {
           const bookingStart = new Date(booking.startTime);
           const bookingEnd = new Date(booking.endTime);
           
-          return (
+          const conflicts = (
             (slotStart >= bookingStart && slotStart < bookingEnd) ||
             (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
             (slotStart <= bookingStart && slotEnd >= bookingEnd)
           );
+          
+          if (conflicts && booking.providerId) {
+            busyStaffIds.add(booking.providerId);
+          }
         });
+        
+        // Slot is available if at least one staff member is free
+        const availableStaffCount = activeStaff.length - busyStaffIds.size;
+        const isAvailable = availableStaffCount > 0;
         
         // Check if slot would run past closing time in the location's timezone
         const slotEndDisplay = TimezoneUtils.toTimezoneDisplay(slotEnd, location.timezone);
@@ -432,7 +486,7 @@ export class PublicBookingService {
         if (slotEndHour < endHour || (slotEndHour === endHour && slotEnd.getMinutes() === 0)) {
           slots.push({
             time,
-            available: !hasConflict,
+            available: isAvailable,
           });
         }
       }

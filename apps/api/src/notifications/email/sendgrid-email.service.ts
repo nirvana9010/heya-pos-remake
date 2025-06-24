@@ -70,7 +70,6 @@ export class SendGridEmailService {
         success: true,
         messageId,
         channel: 'email',
-        provider: 'sendgrid',
       };
     } catch (error: any) {
       this.logger.error('Failed to send SendGrid email', error);
@@ -87,7 +86,6 @@ export class SendGridEmailService {
         success: false,
         error: errorMessage,
         channel: 'email',
-        provider: 'sendgrid',
       };
     }
   }

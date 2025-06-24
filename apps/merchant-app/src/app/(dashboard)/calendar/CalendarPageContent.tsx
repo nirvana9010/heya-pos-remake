@@ -843,7 +843,7 @@ export default function CalendarPageContent() {
   });
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showUnassignedColumn, setShowUnassignedColumn] = useState(false);
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(true);
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const weekHeaderRef = useRef<HTMLDivElement>(null);
   
