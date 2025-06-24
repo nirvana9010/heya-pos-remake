@@ -36,7 +36,7 @@ export function middleware(request: NextRequest) {
     const pathSegments = url.pathname.split('/').filter(Boolean);
     
     // Check if first segment could be a merchant subdomain
-    if (pathSegments[0] && !['_next', 'public', 'api'].includes(pathSegments[0])) {
+    if (pathSegments[0] && !['_next', 'public', 'api', 'booking-test'].includes(pathSegments[0])) {
       // Check if this looks like a merchant subdomain (alphanumeric and hyphens only)
       if (/^[a-z0-9-]+$/.test(pathSegments[0])) {
         merchantSubdomain = pathSegments[0];
@@ -53,6 +53,7 @@ export function middleware(request: NextRequest) {
         
         // Add merchant as header for the app to read
         response.headers.set('x-merchant-subdomain', merchantSubdomain);
+        response.headers.set('x-pathname', newPath);
         
         return response;
       }
@@ -76,6 +77,9 @@ export function middleware(request: NextRequest) {
   if (merchantSubdomain) {
     response.headers.set('x-merchant-subdomain', merchantSubdomain);
   }
+  
+  // Add pathname for layout to detect test pages
+  response.headers.set('x-pathname', url.pathname);
   
   return response;
 }
