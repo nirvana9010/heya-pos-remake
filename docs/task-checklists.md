@@ -1,5 +1,30 @@
 # CLAUDE CODE MANDATORY TASK CHECKLISTS
 
+## 🚨 QUICK FIX: Common Prisma Database Errors
+
+### "Column does not exist" Error
+```bash
+# This means schema.prisma and database are out of sync
+cd apps/api
+npx prisma db push  # Quick fix for development
+# OR
+npx prisma migrate dev --name fix_missing_columns  # Proper fix with migration
+```
+
+### "Table does not exist" Error
+```bash
+# Database is missing tables entirely
+cd apps/api
+npx prisma migrate deploy  # Apply all migrations
+# OR if corrupted:
+npx prisma migrate reset  # ⚠️ DELETES ALL DATA
+```
+
+### After ANY schema.prisma change:
+1. `npx prisma generate` - Update TypeScript types
+2. `npx prisma migrate dev --name what_changed` - Update database
+3. Restart API if needed
+
 ## 🚨 MANDATORY FIRST STEP FOR EVERY TASK
 
 Before doing ANYTHING else:
@@ -161,19 +186,14 @@ When asked to implement a new feature:
 - [ ] Before ANY change, identify what depends on this code: `grep -r "ClassName\|methodName" --include="*.ts"`
 - [ ] Create/modify database schema if needed
 - [ ] **Run `npx prisma generate` after schema changes**
-- [ ] **Check Prisma relations match actual usage**: Look for `include:` in existing queries
-- [ ] **Verify field names match between schema and code** (e.g., businessName vs name)
+- [ ] **Run `npx prisma migrate dev --name descriptive_name` to sync database**
+- [ ] **Verify migration succeeded before proceeding**
 - [ ] Check for breaking changes: Will existing queries still work?
-- [ ] **Check if required npm packages are installed**: `npm list package-name`
-- [ ] **Install missing dependencies BEFORE writing code**: `npm install package-name @types/package-name`
 - [ ] Implement service method with minimal logic
 - [ ] Add controller endpoint WITHOUT modifying existing ones
-- [ ] **If adding to app.module.ts, check for import order issues**
-- [ ] **For event-driven features, verify EventEmitter is configured**
 - [ ] Test NEW functionality works: `curl http://localhost:3000/api/endpoint`
 - [ ] Test EXISTING functionality still works (run existing test or manual check)
 - [ ] Add validation/error handling
-- [ ] **Type all error catches**: `catch (error) { ... (error as Error).message ... }`
 - [ ] Add complete business logic
 - [ ] Test edge cases
 - [ ] Run one more test of existing functionality to ensure nothing broke
@@ -181,11 +201,7 @@ When asked to implement a new feature:
 ### PHASE 4: VERIFICATION
 - [ ] Test happy path
 - [ ] Test error cases
-- [ ] **Get valid test data from existing records**: `curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/v1/resource | jq '.'`
-- [ ] **Use actual IDs from database, not hardcoded UUIDs**
-- [ ] **Test with V1 vs V2 endpoints correctly** (check endpoint versioning)
 - [ ] Check logs for warnings: `tail -50 logs/api.log | grep -i "warn\|error"`
-- [ ] **If API won't start, check port conflicts**: `lsof -ti:3000`
 - [ ] Ensure no existing functionality broken
 ```
 
@@ -202,6 +218,10 @@ When something isn't working:
 
 ### PHASE 2: INVESTIGATE
 - [ ] Check recent changes: `git status` and `git diff`
+- [ ] **If database error: Check if schema and database are in sync**
+  - [ ] Compare schema.prisma with actual database
+  - [ ] Run `npx prisma migrate status` to check migration state
+  - [ ] If "column does not exist": Run `npx prisma db push` or create migration
 - [ ] Look for similar working code: How does it handle this?
 - [ ] Find all code that calls the broken functionality: `grep -r "methodName\|endpoint" --include="*.ts"`
 - [ ] Test a WORKING feature first to establish baseline

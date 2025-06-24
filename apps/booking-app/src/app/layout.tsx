@@ -42,7 +42,13 @@ export default async function RootLayout({
 }) {
   // Get the merchant subdomain from the middleware header
   const headersList = await headers()
-  const merchantSubdomain = headersList.get('x-merchant-subdomain')
+  let merchantSubdomain = headersList.get('x-merchant-subdomain')
+  
+  // For booking-test page, always use hamilton
+  const pathname = headersList.get('x-pathname')
+  if (pathname === '/booking-test') {
+    merchantSubdomain = 'hamilton'
+  }
   
   return (
     <html lang="en">

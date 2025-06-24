@@ -352,15 +352,24 @@ export class PublicBookingService {
 
       // Convert to simple time slots for public API
       return {
-        slots: slots.map(slot => ({
-          time: new Date(slot.startTime).toLocaleTimeString('en-US', {
+        slots: slots.map(slot => {
+          let time = slot.startTime.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
             timeZone: location.timezone,
-          }),
-          available: slot.available,
-        })),
+          });
+          
+          // Fix the "24:xx" issue - convert to "00:xx"
+          if (time.startsWith('24:')) {
+            time = '00:' + time.substring(3);
+          }
+          
+          return {
+            time,
+            available: slot.available,
+          };
+        }),
       };
     }
 
