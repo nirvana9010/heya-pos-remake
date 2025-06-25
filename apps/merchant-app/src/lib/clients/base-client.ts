@@ -70,10 +70,17 @@ export class BaseApiClient {
             status: error.response?.status,
             message: error.response?.data?.message || error.message,
             errorCode: error.response?.data?.errorCode,
-            details: error.response?.data
+            details: error.response?.data,
+            requestData: originalRequest?.data
           };
           
-          console.error('[API Error]', errorInfo);
+          // Log with full details for debugging
+          console.error('[API Error]', JSON.stringify(errorInfo, null, 2));
+          
+          // Also log the raw error for additional context
+          if (error.response?.data) {
+            console.error('[API Error Details]', error.response.data);
+          }
         }
 
         // Handle 401 errors with token refresh

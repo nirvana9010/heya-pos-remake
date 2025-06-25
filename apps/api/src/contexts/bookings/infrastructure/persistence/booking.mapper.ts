@@ -54,8 +54,12 @@ export class BookingMapper {
       locationId: prismaBooking.locationId,
       merchantId: prismaBooking.merchantId,
       notes: prismaBooking.notes || undefined,
-      totalAmount: prismaBooking.totalAmount.toNumber(),
-      depositAmount: prismaBooking.depositAmount.toNumber(),
+      totalAmount: typeof prismaBooking.totalAmount === 'object' && prismaBooking.totalAmount.toNumber 
+        ? prismaBooking.totalAmount.toNumber()
+        : Number(prismaBooking.totalAmount),
+      depositAmount: typeof prismaBooking.depositAmount === 'object' && prismaBooking.depositAmount.toNumber
+        ? prismaBooking.depositAmount.toNumber()
+        : Number(prismaBooking.depositAmount),
       isOverride: prismaBooking.isOverride || false,
       overrideReason: prismaBooking.overrideReason || undefined,
       source: prismaBooking.source,

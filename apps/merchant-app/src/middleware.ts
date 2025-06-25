@@ -118,6 +118,7 @@ export const config = {
      */
     '/',
     '/calendar/:path*',
+    '/calendar-new/:path*',
     '/settings/:path*', 
     '/bookings/:path*',
     '/services/:path*',

@@ -390,7 +390,7 @@ export default function BookingPageClient() {
       customerPhone: customerInfo.phone,
       customerEmail: customerInfo.email,
       services: selectedServices.map(id => ({ serviceId: id })),
-      staffId: selectedStaff || undefined,
+      staffId: selectedStaff === "" ? null : selectedStaff || undefined,
       date: selectedDate,
       startTime: selectedTime,
       notes: customerInfo.notes
@@ -431,6 +431,7 @@ export default function BookingPageClient() {
       case 1:
         return selectedServices.length > 0;
       case 2:
+        // Allow empty string (Any Available) as well as specific staff selection
         return selectedStaff !== null && selectedStaff !== undefined;
       case 3:
         return !!selectedDate && !!selectedTime;
@@ -786,19 +787,22 @@ export default function BookingPageClient() {
     const recommendedStaffId = availableStaff[0]?.id;
 
     return (
-      <RadioGroup value={selectedStaff || ""} onValueChange={setSelectedStaff}>
+      <RadioGroup 
+        value={selectedStaff || ""} 
+        onValueChange={setSelectedStaff}
+      >
         <div className="grid md:grid-cols-2 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0 }}
           >
-            <Card
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
-                selectedStaff === "" && "ring-2 ring-primary shadow-lg"
-              )}
-              onClick={() => setSelectedStaff("")}
+            <label htmlFor="any-available-radio">
+              <Card
+                className={cn(
+                  "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+                  selectedStaff === "" && "ring-2 ring-primary shadow-lg"
+                )}
             >
               <CardHeader>
                 <div className="flex items-center gap-4">
@@ -822,11 +826,12 @@ export default function BookingPageClient() {
                     animate={selectedStaff === "" ? { scale: [1, 1.2, 1] } : {}}
                     transition={{ duration: 0.3 }}
                   >
-                    <RadioGroupItem value="" className="data-[state=checked]:border-primary" />
+                    <RadioGroupItem id="any-available-radio" value="" className="data-[state=checked]:border-primary" />
                   </motion.div>
                 </div>
               </CardHeader>
             </Card>
+            </label>
           </motion.div>
           
           {availableStaff.map((member, index) => {
@@ -844,12 +849,12 @@ export default function BookingPageClient() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index + 1) * 0.1 }}
               >
-                <Card
-                  className={cn(
-                    "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative",
-                    isSelected && "ring-2 ring-primary shadow-lg"
-                  )}
-                  onClick={() => setSelectedStaff(member.id)}
+                <label htmlFor={`staff-${member.id}`}>
+                  <Card
+                    className={cn(
+                      "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative",
+                      isSelected && "ring-2 ring-primary shadow-lg"
+                    )}
                 >
                   {isRecommended && (
                     <div className="absolute -top-2 -right-2 z-10">
@@ -884,11 +889,12 @@ export default function BookingPageClient() {
                         animate={isSelected ? { scale: [1, 1.2, 1] } : {}}
                         transition={{ duration: 0.3 }}
                       >
-                        <RadioGroupItem value={member.id} className="data-[state=checked]:border-primary" />
+                        <RadioGroupItem id={`staff-${member.id}`} value={member.id} className="data-[state=checked]:border-primary" />
                       </motion.div>
                     </div>
                   </CardHeader>
                 </Card>
+                </label>
               </motion.div>
             );
           })}

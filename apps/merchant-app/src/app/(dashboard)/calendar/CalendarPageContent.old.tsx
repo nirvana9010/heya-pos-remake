@@ -1148,6 +1148,20 @@ export default function CalendarPageContent() {
           const startTime = booking.startTime instanceof Date ? booking.startTime : new Date(booking.startTime);
           const endTime = booking.endTime instanceof Date ? booking.endTime : new Date(booking.endTime);
           
+          // Debug unassigned bookings (commented out to reduce console noise)
+          // if (booking.staffName === 'Unassigned' || (!booking.staffId && !booking.providerId)) {
+          //   console.log('[DEBUG] Unassigned booking detected:', {
+          //     id: booking.id,
+          //     staffId: booking.staffId,
+          //     providerId: booking.providerId,
+          //     staffName: booking.staffName
+          //   });
+          // }
+          
+          // For unassigned bookings, ensure staffId is null
+          const isUnassigned = booking.staffName === 'Unassigned' || (!booking.staffId && !booking.providerId);
+          const finalStaffId = isUnassigned ? null : (booking.staffId || booking.providerId || null);
+          
           return {
             id: booking.id,
             customerId: booking.customerId,
@@ -1156,7 +1170,7 @@ export default function CalendarPageContent() {
             customerEmail: booking.customerEmail || booking.customer?.email || '',
             serviceName: booking.serviceName || 'Service',
             serviceIcon: 'scissors' as const, // Default icon
-            staffId: booking.staffId || booking.providerId || null,
+            staffId: finalStaffId,
             staffName: booking.staffName || 'Staff',
             startTime,
             endTime,
@@ -1173,6 +1187,20 @@ export default function CalendarPageContent() {
         
         setBookings(transformedBookings);
         console.log('Successfully loaded', transformedBookings.length, 'bookings from API');
+        
+        // Debug Daily view specifically
+        if (viewType === 'day') {
+          console.log('[DEBUG] Daily View - currentDate:', currentDate);
+          console.log('[DEBUG] Daily View - currentDate ISO:', currentDate.toISOString());
+          const todayBookings = transformedBookings.filter(b => {
+            const sameDay = isSameDay(b.startTime, currentDate);
+            if (transformedBookings.length < 5) { // Only log first few to avoid spam
+              console.log(`Booking ${b.id}: startTime=${b.startTime}, startTime ISO=${b.startTime.toISOString()}, sameDay=${sameDay}`);
+            }
+            return sameDay;
+          });
+          console.log('[DEBUG] Daily View - bookings for today:', todayBookings.length);
+        }
       } catch (error: any) {
         console.error('Failed to load bookings:', error);
         console.error('Error type:', Object.prototype.toString.call(error));
@@ -1426,11 +1454,19 @@ export default function CalendarPageContent() {
       }
       // If no staff are selected (initial state), show all bookings
       // Otherwise, filter by selected staff
-      if (filters.selectedStaffIds.length > 0 && !filters.selectedStaffIds.includes(booking.staffId)) {
-        if (index < 3) {
-          console.log(`Filtered out booking ${booking.id} - staffId ${booking.staffId} not in selected:`, filters.selectedStaffIds);
+      // Include unassigned bookings (staffId is null) when showing unassigned column
+      if (filters.selectedStaffIds.length > 0) {
+        // For unassigned bookings, always show them if unassigned column is visible
+        if (booking.staffId === null) {
+          return showUnassignedColumn;
         }
-        return false;
+        // For assigned bookings, check if staff is selected
+        if (!filters.selectedStaffIds.includes(booking.staffId)) {
+          if (index < 3) {
+            console.log(`Filtered out booking ${booking.id} - staffId ${booking.staffId} not in selected:`, filters.selectedStaffIds);
+          }
+          return false;
+        }
       }
       return true;
     });

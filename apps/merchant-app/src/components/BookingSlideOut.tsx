@@ -246,7 +246,7 @@ export function BookingSlideOut({
               <Label>Staff Member</Label>
               <Select
                 value={formData.staffId || 'next-available'}
-                onValueChange={(value) => setFormData({ ...formData, staffId: value === 'next-available' ? undefined : value })}
+                onValueChange={(value) => setFormData({ ...formData, staffId: value === 'next-available' ? null : value })}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select staff member" />
