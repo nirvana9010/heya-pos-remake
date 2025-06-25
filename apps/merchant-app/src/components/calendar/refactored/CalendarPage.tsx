@@ -75,6 +75,51 @@ function CalendarContent() {
   // Filter popover state
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   
+  // Booking slide out data
+  const [bookingSlideOutData, setBookingSlideOutData] = React.useState<{
+    date: Date;
+    time: string;
+    staffId: string | null;
+  } | null>(null);
+  
+  // Memoize the initial time to prevent infinite renders
+  const initialTime = React.useMemo(() => {
+    if (!bookingSlideOutData?.time) return undefined;
+    const [hours, minutes] = bookingSlideOutData.time.split(':').map(Number);
+    const time = new Date(bookingSlideOutData.date);
+    time.setHours(hours, minutes, 0, 0);
+    return time;
+  }, [bookingSlideOutData?.date, bookingSlideOutData?.time]);
+  
+  // Memoize transformed data to prevent infinite renders
+  const memoizedStaff = React.useMemo(() => 
+    state.staff.map(s => ({
+      id: s.id,
+      name: s.name,
+      color: s.color,
+    })), [state.staff]
+  );
+  
+  const memoizedServices = React.useMemo(() => 
+    state.services.map(s => ({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      categoryName: s.categoryName,
+    })), [state.services]
+  );
+  
+  const memoizedCustomers = React.useMemo(() => 
+    state.customers.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone || c.mobile || '',
+      mobile: c.mobile,
+      email: c.email,
+    })), [state.customers]
+  );
+  
   // Calculate active filter count
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
@@ -103,9 +148,61 @@ function CalendarContent() {
   
   // Handle time slot click
   const handleTimeSlotClick = useCallback((date: Date, time: string, staffId: string | null) => {
-    // Open booking slide out with pre-filled data
+    // Set booking slide out data before opening
+    setBookingSlideOutData({
+      date,
+      time,
+      staffId
+    });
     actions.openBookingSlideOut();
-    // You might want to pass this data to the slide out somehow
+  }, [actions]);
+  
+  // Memoize booking slide out callbacks to prevent infinite loops
+  const handleBookingSlideOutClose = useCallback(() => {
+    actions.closeBookingSlideOut();
+    setBookingSlideOutData(null);
+  }, [actions]);
+  
+  const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
+    try {
+      // Create booking via API
+      const newBooking = await apiClient.createBooking({
+        customerId: bookingData.customerId,
+        serviceId: bookingData.serviceId,
+        staffId: bookingData.staffId || null,
+        startTime: bookingData.startTime.toISOString(),
+        notes: bookingData.notes,
+      });
+      
+      // Transform and add to local state
+      const startTime = new Date(newBooking.startTime);
+      const transformedBooking = {
+        id: newBooking.id,
+        date: format(startTime, 'yyyy-MM-dd'),
+        time: format(startTime, 'HH:mm'),
+        duration: newBooking.duration,
+        status: newBooking.status as BookingStatus,
+        customerId: newBooking.customerId,
+        customerName: newBooking.customerName,
+        customerPhone: newBooking.customerPhone,
+        customerEmail: newBooking.customerEmail,
+        serviceId: bookingData.serviceId,
+        serviceName: newBooking.serviceName || 'Service',
+        servicePrice: newBooking.price || newBooking.totalAmount || 0,
+        staffId: (bookingData.staffId && bookingData.staffId !== '') ? bookingData.staffId : null,
+        staffName: newBooking.staffName || 'Unassigned',
+        notes: bookingData.notes,
+        paymentStatus: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      actions.addBooking(transformedBooking);
+      actions.closeBookingSlideOut();
+    } catch (error) {
+      console.error('Failed to create booking:', error);
+      // Show error toast
+    }
   }, [actions]);
   
   // Drag and drop handlers
@@ -543,67 +640,14 @@ function CalendarContent() {
       {/* Slide outs */}
       <BookingSlideOut
         isOpen={state.isBookingSlideOutOpen}
-        onClose={() => actions.closeBookingSlideOut()}
-        staff={state.staff.map(s => ({
-          id: s.id,
-          name: s.name,
-          color: s.color,
-        }))}
-        services={state.services.map(s => ({
-          id: s.id,
-          name: s.name,
-          price: s.price,
-          duration: s.duration,
-          categoryName: s.categoryName,
-        }))}
-        customers={state.customers.map(c => ({
-          id: c.id,
-          name: c.name,
-          phone: c.phone || c.mobile || '',
-          mobile: c.mobile,
-          email: c.email,
-        }))}
-        onSave={async (bookingData) => {
-          try {
-            // Create booking via API
-            const newBooking = await apiClient.createBooking({
-              customerId: bookingData.customerId,
-              serviceId: bookingData.serviceId,
-              staffId: bookingData.staffId,
-              startTime: bookingData.startTime.toISOString(),
-              notes: bookingData.notes,
-            });
-            
-            // Transform and add to local state
-            const startTime = new Date(newBooking.startTime);
-            const transformedBooking = {
-              id: newBooking.id,
-              date: format(startTime, 'yyyy-MM-dd'),
-              time: format(startTime, 'HH:mm'),
-              duration: newBooking.duration,
-              status: newBooking.status as BookingStatus,
-              customerId: newBooking.customerId,
-              customerName: newBooking.customerName,
-              customerPhone: newBooking.customerPhone,
-              customerEmail: newBooking.customerEmail,
-              serviceId: bookingData.serviceId,
-              serviceName: newBooking.serviceName || 'Service',
-              servicePrice: newBooking.price || newBooking.totalAmount || 0,
-              staffId: bookingData.staffId || null,
-              staffName: newBooking.staffName || 'Unassigned',
-              notes: bookingData.notes,
-              paymentStatus: 'pending',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            
-            actions.addBooking(transformedBooking);
-            actions.closeBookingSlideOut();
-          } catch (error) {
-            console.error('Failed to create booking:', error);
-            // Show error toast
-          }
-        }}
+        onClose={handleBookingSlideOutClose}
+        initialDate={bookingSlideOutData?.date}
+        initialTime={initialTime}
+        initialStaffId={bookingSlideOutData?.staffId || ''}
+        staff={memoizedStaff}
+        services={memoizedServices}
+        customers={memoizedCustomers}
+        onSave={handleBookingSlideOutSave}
       />
       
       {state.isDetailsSlideOutOpen && state.detailsBookingId && (() => {
@@ -629,11 +673,7 @@ function CalendarContent() {
               totalPrice: booking.servicePrice,
               notes: booking.notes,
             }}
-            staff={state.staff.map(s => ({
-              id: s.id,
-              name: s.name,
-              color: s.color,
-            }))}
+            staff={memoizedStaff}
             onSave={(updatedBooking) => {
               // Handle booking update
               actions.updateBooking(state.detailsBookingId!, updatedBooking);

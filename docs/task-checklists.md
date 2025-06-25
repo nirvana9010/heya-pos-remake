@@ -222,6 +222,12 @@ When something isn't working:
   - [ ] Compare schema.prisma with actual database
   - [ ] Run `npx prisma migrate status` to check migration state
   - [ ] If "column does not exist": Run `npx prisma db push` or create migration
+- [ ] **If React "Maximum update depth exceeded" error:**
+  - [ ] Check PARENT component for unstable props (inline functions, new objects)
+  - [ ] Look for `() => {}` callbacks, `.map()` calls, `new Date()` in props
+  - [ ] Verify all callbacks are wrapped in `useCallback`
+  - [ ] Ensure all derived arrays/objects use `useMemo`
+  - [ ] Remember: Error location is often the victim, not the culprit!
 - [ ] Look for similar working code: How does it handle this?
 - [ ] Find all code that calls the broken functionality: `grep -r "methodName\|endpoint" --include="*.ts"`
 - [ ] Test a WORKING feature first to establish baseline
@@ -388,6 +394,48 @@ When addressing performance problems:
 - [ ] Test with realistic data volume
 - [ ] Check memory usage
 - [ ] Document optimization made
+```
+
+## ⚛️ REACT INFINITE LOOP CHECKLIST
+
+When encountering "Maximum update depth exceeded" or performance issues:
+
+```markdown
+### PHASE 1: IDENTIFY THE REAL CULPRIT
+- [ ] Note which component the error appears in (this is often NOT the cause)
+- [ ] Find the PARENT component that renders the erroring component
+- [ ] Look for unstable prop references in the parent:
+  - [ ] Inline arrow functions: `onClick={() => doSomething()}`
+  - [ ] Inline object creation: `style={{ color: 'red' }}`
+  - [ ] Array mapping in props: `items={data.map(item => ({...}))}`
+  - [ ] Default parameters with objects: `function Component({ data = [] })`
+  - [ ] `new Date()` anywhere in render or as default prop
+
+### PHASE 2: STABILIZE REFERENCES
+- [ ] Wrap all callback props with `useCallback`:
+  ```typescript
+  const handleClick = useCallback(() => {
+    // handler logic
+  }, [dependencies]);
+  ```
+- [ ] Memoize derived data with `useMemo`:
+  ```typescript
+  const processedData = useMemo(() => 
+    data.map(item => ({ ...item, processed: true })),
+    [data]
+  );
+  ```
+- [ ] Move default values outside component or use `useState`:
+  ```typescript
+  // Bad: initialData = new Date()
+  // Good: const [defaultDate] = useState(() => new Date());
+  ```
+
+### PHASE 3: VERIFY THE FIX
+- [ ] Test the exact scenario that caused the error
+- [ ] Check React DevTools Profiler for excessive renders
+- [ ] Ensure no new performance issues introduced
+- [ ] Test related functionality still works
 ```
 
 ## 🚨 EMERGENCY CHECKLIST
