@@ -7,7 +7,16 @@ import { cn } from '@heya-pos/ui';
 import { displayFormats } from '@/lib/date-utils';
 
 interface CalendarDragOverlayProps {
-  activeBooking: any | null;
+  activeBooking: {
+    id: string;
+    date: string;
+    time: string;
+    customerName: string;
+    serviceName?: string;
+    services?: Array<{ name: string }>;
+    staffId: string | null;
+    staffName: string;
+  } | null;
   dragOverSlot?: {
     staffId: string;
     staffName: string;
@@ -44,7 +53,16 @@ export function CalendarDragOverlay({ activeBooking, dragOverSlot }: CalendarDra
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                <span>{displayFormats.time(activeBooking.startTime)}</span>
+                <span>{(() => {
+                  try {
+                    // Construct Date from booking date and time strings
+                    const startTime = new Date(`${activeBooking.date}T${activeBooking.time}:00`);
+                    return displayFormats.time(startTime);
+                  } catch (error) {
+                    console.error('Error formatting booking time:', error, activeBooking);
+                    return activeBooking.time || 'N/A';
+                  }
+                })()}</span>
               </div>
               
               <div className="flex items-center gap-1">

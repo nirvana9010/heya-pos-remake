@@ -30,7 +30,7 @@ const initialState: CalendarState = {
   selectedBookingId: null,
   selectedStaffIds: [],
   selectedServiceIds: [],
-  selectedStatusFilters: [],
+  selectedStatusFilters: ['confirmed', 'in-progress'], // Default: hide completed and cancelled
   searchQuery: '',
   
   // Feature flags
@@ -119,7 +119,9 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         ...state,
         staff: action.payload,
         // Auto-select all staff when loaded
-        selectedStaffIds: action.payload.map(s => s.id),
+        selectedStaffIds: state.selectedStaffIds.length === 0 
+          ? action.payload.map(s => s.id)
+          : state.selectedStaffIds.filter(id => action.payload.some(s => s.id === id)),
       };
     
     case 'SET_SERVICES':

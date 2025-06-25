@@ -17,6 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@heya-pos/ui';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
+import { Badge } from '@heya-pos/ui';
+import { Checkbox } from '@heya-pos/ui';
+import { Popover, PopoverContent, PopoverTrigger } from '@heya-pos/ui';
+import { Separator } from '@heya-pos/ui';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -67,6 +71,30 @@ function CalendarContent() {
     startTime: Date;
     endTime: Date;
   } | null>(null);
+  
+  // Filter popover state
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  
+  // Calculate active filter count
+  const activeFilterCount = React.useMemo(() => {
+    let count = 0;
+    
+    // Check if we're filtering out completed/cancelled (default is to hide them)
+    const showingCompleted = state.selectedStatusFilters.includes('completed');
+    const showingCancelled = state.selectedStatusFilters.includes('cancelled');
+    const showingNoShow = state.selectedStatusFilters.includes('no-show');
+    
+    if (showingCompleted) count++;
+    if (showingCancelled) count++;
+    if (showingNoShow) count++;
+    
+    // Check staff filter
+    if (state.selectedStaffIds.length < state.staff.length && state.selectedStaffIds.length > 0) {
+      count++;
+    }
+    
+    return count;
+  }, [state.selectedStatusFilters, state.selectedStaffIds, state.staff]);
   
   // Handle booking click
   const handleBookingClick = useCallback((booking: Booking) => {
@@ -314,6 +342,123 @@ function CalendarContent() {
                 {state.selectedStaffIds.length}/{state.staff.length} staff
               </span>
             </div>
+            
+            {/* Filter button */}
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="ml-1 px-1.5 min-w-[20px]">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
+                <div className="p-4 space-y-4">
+                  {/* Display Options */}
+                  <div>
+                    <h4 className="font-semibold text-sm text-gray-900 mb-3">Display Options</h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                        <Checkbox
+                          checked={state.selectedStatusFilters.includes('completed')}
+                          onCheckedChange={(checked) => {
+                            const newFilters = checked 
+                              ? [...state.selectedStatusFilters, 'completed']
+                              : state.selectedStatusFilters.filter(s => s !== 'completed');
+                            actions.setStatusFilter(newFilters);
+                          }}
+                        />
+                        <span className="flex-1">Show completed bookings</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {state.bookings.filter(b => b.status === 'completed').length}
+                        </Badge>
+                      </label>
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                        <Checkbox
+                          checked={state.selectedStatusFilters.includes('cancelled')}
+                          onCheckedChange={(checked) => {
+                            const newFilters = checked 
+                              ? [...state.selectedStatusFilters, 'cancelled']
+                              : state.selectedStatusFilters.filter(s => s !== 'cancelled');
+                            actions.setStatusFilter(newFilters);
+                          }}
+                        />
+                        <span className="flex-1">Show cancelled bookings</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {state.bookings.filter(b => b.status === 'cancelled').length}
+                        </Badge>
+                      </label>
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                        <Checkbox
+                          checked={state.selectedStatusFilters.includes('no-show')}
+                          onCheckedChange={(checked) => {
+                            const newFilters = checked 
+                              ? [...state.selectedStatusFilters, 'no-show']
+                              : state.selectedStatusFilters.filter(s => s !== 'no-show');
+                            actions.setStatusFilter(newFilters);
+                          }}
+                        />
+                        <span className="flex-1">Show no-show bookings</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {state.bookings.filter(b => b.status === 'no-show').length}
+                        </Badge>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Staff Filter */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
+                      <button
+                        onClick={() => {
+                          if (state.selectedStaffIds.length === state.staff.length) {
+                            actions.setStaffFilter([]);
+                          } else {
+                            actions.setStaffFilter(state.staff.map(s => s.id));
+                          }
+                        }}
+                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                      >
+                        {state.selectedStaffIds.length === state.staff.length ? "Clear all" : "Select all"}
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {state.staff.map(member => (
+                        <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStaffIds.includes(member.id)}
+                            onCheckedChange={(checked) => {
+                              const newIds = checked
+                                ? [...state.selectedStaffIds, member.id]
+                                : state.selectedStaffIds.filter(id => id !== member.id);
+                              actions.setStaffFilter(newIds);
+                            }}
+                          />
+                          <div className="flex items-center gap-2 flex-1">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: member.color }}
+                            />
+                            <span>{member.name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             
             {/* Show unassigned toggle */}
             <div className="flex items-center gap-2">

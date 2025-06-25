@@ -136,9 +136,15 @@ class BookingApi {
 
   // Create a new booking
   async createBooking(bookingData: CreateBookingData): Promise<Booking> {
+    // Format date in local timezone to avoid UTC conversion issues
+    const year = bookingData.date.getFullYear();
+    const month = String(bookingData.date.getMonth() + 1).padStart(2, '0');
+    const day = String(bookingData.date.getDate()).padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+    
     const formattedData = {
       ...bookingData,
-      date: bookingData.date.toISOString().split('T')[0],
+      date: localDateString,
     };
     
     const response = await apiClient.post<Booking>('/public/bookings', formattedData);
