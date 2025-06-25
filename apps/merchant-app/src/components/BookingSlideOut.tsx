@@ -42,7 +42,7 @@ type Step = "datetime" | "service" | "customer" | "confirm";
 export function BookingSlideOut({
   isOpen,
   onClose,
-  initialDate = new Date(),
+  initialDate,
   initialTime,
   initialStaffId,
   staff,
@@ -50,6 +50,14 @@ export function BookingSlideOut({
   customers = [],
   onSave
 }: BookingSlideOutProps) {
+  // Create stable defaults to prevent infinite loops
+  const [defaultDate] = useState(() => new Date());
+  const [defaultTime] = useState(() => {
+    const now = new Date();
+    now.setHours(9, 0, 0, 0); // 9:00 AM
+    return now;
+  });
+  
   const [currentStep, setCurrentStep] = useState<Step>("datetime");
   const [formData, setFormData] = useState({
     customerId: "",
@@ -59,8 +67,8 @@ export function BookingSlideOut({
     isNewCustomer: true,
     serviceId: "",
     staffId: initialStaffId || "",
-    date: initialDate,
-    time: initialTime || new Date(),
+    date: initialDate || defaultDate,
+    time: initialTime || defaultTime,
     notes: "",
     sendReminder: true
   });
@@ -74,12 +82,12 @@ export function BookingSlideOut({
       // Update date/time/staff from props when dialog opens
       setFormData(prev => ({
         ...prev,
-        date: initialDate,
-        time: initialTime || new Date(),
-        staffId: initialStaffId || prev.staffId
+        date: initialDate || defaultDate,
+        time: initialTime || defaultTime,
+        staffId: initialStaffId || ''
       }));
     }
-  }, [isOpen, initialDate, initialTime, initialStaffId]);
+  }, [isOpen, initialDate, initialTime, initialStaffId, defaultDate, defaultTime]);
 
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
@@ -245,8 +253,8 @@ export function BookingSlideOut({
             <div>
               <Label>Staff Member</Label>
               <Select
-                value={formData.staffId || 'next-available'}
-                onValueChange={(value) => setFormData({ ...formData, staffId: value === 'next-available' ? null : value })}
+                value={formData.staffId === null || formData.staffId === '' ? 'next-available' : formData.staffId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, staffId: value === 'next-available' ? '' : value }))}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select staff member" />
@@ -381,7 +389,7 @@ export function BookingSlideOut({
   const canProceed = () => {
     switch (currentStep) {
       case "datetime":
-        return formData.staffId && formData.date && formData.time;
+        return formData.date && formData.time;
       case "service":
         return formData.serviceId;
       case "customer":
