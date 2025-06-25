@@ -54,9 +54,9 @@ class CalendarErrorBoundary extends React.Component<
   }
 }
 
-// Dynamically import the page content
+// Dynamically import the refactored calendar
 const CalendarPageContent = dynamic(
-  () => import('./CalendarPageContent'),
+  () => import('@/components/calendar/refactored/CalendarPage').then(mod => ({ default: mod.CalendarPage })),
   { 
     loading: () => <PageLoader pageName="Calendar" />
   }
