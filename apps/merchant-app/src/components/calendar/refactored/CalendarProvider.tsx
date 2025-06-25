@@ -7,13 +7,48 @@ import type { CalendarState, CalendarAction, CalendarContextType, CalendarView, 
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
 
+// Local storage keys
+const STORAGE_KEYS = {
+  statusFilters: 'calendar_statusFilters',
+  staffFilter: 'calendar_staffFilter',
+  showUnassigned: 'calendar_showUnassigned',
+  timeInterval: 'calendar_timeInterval',
+} as const;
+
+// Load saved preferences from localStorage
+function loadSavedPreferences(): Partial<CalendarState> {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    const savedStatusFilters = localStorage.getItem(STORAGE_KEYS.statusFilters);
+    const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
+    const savedShowUnassigned = localStorage.getItem(STORAGE_KEYS.showUnassigned);
+    const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
+    
+    return {
+      selectedStatusFilters: savedStatusFilters 
+        ? JSON.parse(savedStatusFilters) 
+        : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+      selectedStaffIds: savedStaffFilter ? JSON.parse(savedStaffFilter) : [],
+      showUnassignedColumn: savedShowUnassigned ? JSON.parse(savedShowUnassigned) : true,
+      timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 30,
+    };
+  } catch (error) {
+    console.error('Error loading calendar preferences:', error);
+    return {};
+  }
+}
+
 // Initial state with proper defaults
-const initialState: CalendarState = {
+const getInitialState = (): CalendarState => {
+  const savedPrefs = loadSavedPreferences();
+  
+  return {
   // View management
   currentView: 'day',
   currentDate: new Date(),
   dateRange: { start: new Date(), end: new Date() },
-  timeInterval: 30, // Default to 30-minute intervals
+  timeInterval: savedPrefs.timeInterval || 30,
   
   // Data
   bookings: [],
@@ -28,13 +63,13 @@ const initialState: CalendarState = {
   
   // UI State
   selectedBookingId: null,
-  selectedStaffIds: [],
+  selectedStaffIds: savedPrefs.selectedStaffIds || [],
   selectedServiceIds: [],
-  selectedStatusFilters: ['confirmed', 'in-progress'], // Default: hide completed and cancelled
+  selectedStatusFilters: savedPrefs.selectedStatusFilters || ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
   searchQuery: '',
   
   // Feature flags
-  showUnassignedColumn: true,
+  showUnassignedColumn: savedPrefs.showUnassignedColumn ?? true,
   showBlockedTime: true,
   showBreaks: true,
   
@@ -51,6 +86,7 @@ const initialState: CalendarState = {
   isBookingSlideOutOpen: false,
   isDetailsSlideOutOpen: false,
   detailsBookingId: null,
+  };
 };
 
 // Calendar reducer for complex state management
@@ -244,7 +280,7 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     case 'RESET':
-      return initialState;
+      return getInitialState();
     
     default:
       return state;
@@ -300,7 +336,7 @@ interface CalendarProviderProps {
 }
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
-  const [state, dispatch] = useReducer(calendarReducer, initialState);
+  const [state, dispatch] = useReducer(calendarReducer, getInitialState());
   
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
@@ -410,6 +446,20 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     const range = calculateDateRange(state.currentDate, state.currentView);
     dispatch({ type: 'SET_DATE', payload: state.currentDate });
   }, []);
+  
+  // Save filter preferences to localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
+      localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(state.selectedStaffIds));
+      localStorage.setItem(STORAGE_KEYS.showUnassigned, JSON.stringify(state.showUnassignedColumn));
+      localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
+    } catch (error) {
+      console.error('Error saving calendar preferences:', error);
+    }
+  }, [state.selectedStatusFilters, state.selectedStaffIds, state.showUnassignedColumn, state.timeInterval]);
   
   const contextValue: CalendarContextType = {
     state,

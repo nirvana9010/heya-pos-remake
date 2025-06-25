@@ -79,14 +79,13 @@ function CalendarContent() {
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
     
-    // Check if we're filtering out completed/cancelled (default is to hide them)
-    const showingCompleted = state.selectedStatusFilters.includes('completed');
-    const showingCancelled = state.selectedStatusFilters.includes('cancelled');
-    const showingNoShow = state.selectedStatusFilters.includes('no-show');
+    // Check if we're hiding any statuses (default is to show all)
+    const allStatuses = ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
+    const hiddenStatuses = allStatuses.filter(status => !state.selectedStatusFilters.includes(status));
     
-    if (showingCompleted) count++;
-    if (showingCancelled) count++;
-    if (showingNoShow) count++;
+    if (hiddenStatuses.length > 0) {
+      count++;
+    }
     
     // Check staff filter
     if (state.selectedStaffIds.length < state.staff.length && state.selectedStaffIds.length > 0) {
