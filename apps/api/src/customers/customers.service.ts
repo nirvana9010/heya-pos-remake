@@ -186,6 +186,104 @@ export class CustomersService {
     return result;
   }
 
+  async searchCustomers(merchantId: string, query: string) {
+    // First, get a count of total matching customers
+    const totalCount = await this.prisma.customer.count({
+      where: {
+        merchantId,
+        OR: [
+          {
+            firstName: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            lastName: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            email: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            phone: {
+              contains: query,
+            },
+          },
+          {
+            mobile: {
+              contains: query,
+            },
+          },
+        ],
+      },
+    });
+
+    // Then get the most relevant results
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        merchantId,
+        OR: [
+          // Prioritize exact matches first
+          { firstName: { equals: query, mode: 'insensitive' } },
+          { lastName: { equals: query, mode: 'insensitive' } },
+          { email: { equals: query, mode: 'insensitive' } },
+          { phone: { equals: query } },
+          { mobile: { equals: query } },
+          // Then starts with
+          { firstName: { startsWith: query, mode: 'insensitive' } },
+          { lastName: { startsWith: query, mode: 'insensitive' } },
+          { email: { startsWith: query, mode: 'insensitive' } },
+          { phone: { startsWith: query } },
+          { mobile: { startsWith: query } },
+          // Then contains
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+          { phone: { contains: query } },
+          { mobile: { contains: query } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        mobile: true,
+        visitCount: true,
+        totalSpent: true,
+        createdAt: true,
+      },
+      orderBy: [
+        { visitCount: 'desc' }, // Most frequent customers first
+        { totalSpent: 'desc' }, // Then by spending
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+      ],
+      take: 50, // Reasonable limit for UI performance
+    });
+
+    return {
+      data: customers.map(customer => ({
+        ...customer,
+        totalSpent: customer.totalSpent 
+          ? (typeof customer.totalSpent === 'object' && 'toNumber' in customer.totalSpent
+            ? customer.totalSpent.toNumber()
+            : Number(customer.totalSpent))
+          : 0,
+      })),
+      displayed: customers.length,
+      total: totalCount,
+      hasMore: totalCount > customers.length,
+    };
+  }
+
   async getStats(merchantId: string) {
     const [total, vipCustomers, newThisMonth, revenueResult] = await Promise.all([
       // Total customers

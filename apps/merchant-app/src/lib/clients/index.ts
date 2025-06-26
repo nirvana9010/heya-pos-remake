@@ -92,8 +92,12 @@ export class ApiClient {
     return this.services.deleteService(id);
   }
 
-  async getCustomers() {
-    return this.customers.getCustomers();
+  async getCustomers(params?: any) {
+    return this.customers.getCustomers(params);
+  }
+
+  async searchCustomers(query: string) {
+    return this.customers.searchCustomers(query);
   }
 
   async createCustomer(data: any) {

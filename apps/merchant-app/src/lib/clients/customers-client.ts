@@ -45,6 +45,15 @@ export class CustomersClient extends BaseApiClient {
     return response;
   }
 
+  async searchCustomers(query: string): Promise<{
+    data: Customer[];
+    displayed: number;
+    total: number;
+    hasMore: boolean;
+  }> {
+    return this.get('/customers/search', { params: { q: query } }, 'v1');
+  }
+
   async getCustomer(id: string): Promise<Customer> {
     return this.get(`/customers/${id}`, undefined, 'v1');
   }

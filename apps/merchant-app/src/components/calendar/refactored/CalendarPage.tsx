@@ -167,33 +167,58 @@ function CalendarContent() {
   
   const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
     try {
-      // Create booking via API
+      // Get locationId from localStorage or fetch it
+      let locationId = null;
+      const merchantData = localStorage.getItem('merchant');
+      if (merchantData) {
+        const merchant = JSON.parse(merchantData);
+        locationId = merchant.locations?.[0];
+      }
+      
+      // If no locationId in merchant data, fetch locations
+      if (!locationId) {
+        const locations = await apiClient.getLocations();
+        if (locations && locations.length > 0) {
+          locationId = locations[0].id;
+        }
+      }
+      
+      if (!locationId) {
+        throw new Error('No location found. Please configure at least one location.');
+      }
+      
+      // Create booking via V2 API with correct format
       const newBooking = await apiClient.createBooking({
         customerId: bookingData.customerId,
-        serviceId: bookingData.serviceId,
-        staffId: bookingData.staffId || null,
+        locationId: locationId,
+        services: [{
+          serviceId: bookingData.serviceId,
+          staffId: bookingData.staffId || undefined
+        }],
+        staffId: bookingData.staffId || undefined,
         startTime: bookingData.startTime.toISOString(),
-        notes: bookingData.notes,
+        notes: bookingData.notes || '',
       });
       
       // Transform and add to local state
+      // The response is already transformed by the bookings client
       const startTime = new Date(newBooking.startTime);
       const transformedBooking = {
         id: newBooking.id,
         date: format(startTime, 'yyyy-MM-dd'),
         time: format(startTime, 'HH:mm'),
-        duration: newBooking.duration,
+        duration: newBooking.duration || 30,
         status: newBooking.status as BookingStatus,
         customerId: newBooking.customerId,
         customerName: newBooking.customerName,
-        customerPhone: newBooking.customerPhone,
-        customerEmail: newBooking.customerEmail,
+        customerPhone: newBooking.customerPhone || '',
+        customerEmail: newBooking.customerEmail || '',
         serviceId: bookingData.serviceId,
-        serviceName: newBooking.serviceName || 'Service',
+        serviceName: newBooking.serviceName,
         servicePrice: newBooking.price || newBooking.totalAmount || 0,
-        staffId: (bookingData.staffId && bookingData.staffId !== '') ? bookingData.staffId : null,
+        staffId: newBooking.staffId || null,
         staffName: newBooking.staffName || 'Unassigned',
-        notes: bookingData.notes,
+        notes: newBooking.notes || '',
         paymentStatus: 'pending',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -210,10 +235,23 @@ function CalendarContent() {
         bookingData
       });
       
+      // Extract specific error message
+      let errorMessage = 'Please try again';
+      if (error.response?.data?.message) {
+        if (Array.isArray(error.response.data.message)) {
+          // Validation errors from API
+          errorMessage = error.response.data.message.join(', ');
+        } else if (typeof error.response.data.message === 'string') {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       // Show error toast with specific message
       toast({
         title: 'Failed to create booking',
-        description: error.response?.data?.message || error.message || 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

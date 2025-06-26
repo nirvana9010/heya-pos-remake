@@ -47,7 +47,11 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
         name: `${booking.customer.firstName} ${booking.customer.lastName}`,
         email: booking.customer.email,
         phone: booking.customer.phone,
-        loyaltyPoints: booking.customer.loyaltyPoints?.toNumber(),
+        loyaltyPoints: booking.customer.loyaltyPoints 
+          ? (typeof booking.customer.loyaltyPoints === 'object' && 'toNumber' in booking.customer.loyaltyPoints
+            ? booking.customer.loyaltyPoints.toNumber()
+            : Number(booking.customer.loyaltyPoints))
+          : 0,
       },
       
       staff: {
@@ -62,7 +66,9 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
         name: bookingService.service.name,
         category: bookingService.service.categoryModel?.name || 'Uncategorized',
         duration: bookingService.duration || bookingService.service.duration,
-        price: bookingService.price.toNumber(),
+        price: typeof bookingService.price === 'object' && 'toNumber' in bookingService.price
+          ? bookingService.price.toNumber()
+          : Number(bookingService.price),
         staffId: bookingService.staffId || booking.provider.id,
         staffName: bookingService.staff ? 
           `${bookingService.staff.firstName} ${bookingService.staff.lastName}` : 
@@ -78,8 +84,13 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       
       startTime: booking.startTime,
       endTime: booking.endTime,
-      totalAmount: booking.totalAmount.toNumber(),
-      depositAmount: booking.depositAmount.toNumber(),
+      totalAmount: typeof booking.totalAmount === 'object' && 'toNumber' in booking.totalAmount
+        ? booking.totalAmount.toNumber()
+        : Number(booking.totalAmount),
+      depositAmount: typeof booking.depositAmount === 'object' && 'toNumber' in booking.depositAmount
+        ? booking.depositAmount.toNumber()
+        : Number(booking.depositAmount),
+      totalDuration: booking.services.reduce((sum: number, s: any) => sum + (s.duration || s.service.duration || 0), 0),
       notes: booking.notes,
       
       isOverride: booking.isOverride,

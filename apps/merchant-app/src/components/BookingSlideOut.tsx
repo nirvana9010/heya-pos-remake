@@ -25,6 +25,7 @@ import { cn } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { apiClient } from "@/lib/api-client";
+import { CustomerSearchInput, type Customer } from "@/components/customers";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -74,10 +75,6 @@ export function BookingSlideOut({
     sendReminder: true
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Reset to first step and update initial values when dialog opens
   useEffect(() => {
@@ -104,60 +101,6 @@ export function BookingSlideOut({
   const selectedService = services.find(s => s.id === formData.serviceId);
   const selectedStaff = staff.find(s => s.id === formData.staffId);
 
-  // Search customers from API
-  const searchCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await apiClient.getCustomers({ search: query, limit: 50 });
-      // Handle paginated response
-      const results = response?.data || response || [];
-      setSearchResults(results);
-    } catch (error: any) {
-      console.error('Customer search failed:', error);
-      // If search fails, fall back to filtering loaded customers
-      const filtered = customers.filter(c => {
-        const name = c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim();
-        return name.toLowerCase().includes(query.toLowerCase()) ||
-               (c.mobile || c.phone || '').includes(query) ||
-               (c.email || '').toLowerCase().includes(query.toLowerCase());
-      });
-      setSearchResults(filtered);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [customers]);
-
-  // Debounced search effect
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    if (searchQuery) {
-      searchTimeoutRef.current = setTimeout(() => {
-        searchCustomers(searchQuery);
-      }, 300); // 300ms debounce
-    } else {
-      setSearchResults([]);
-    }
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery, searchCustomers]);
-
-  // Get recent customers from props (first 10)
-  const displayCustomers = searchQuery 
-    ? searchResults 
-    : customers.slice(0, 10); // Show recent customers when not searching
-
   const handleNext = () => {
     const stepIndex = steps.findIndex(s => s.id === currentStep);
     if (stepIndex < steps.length - 1) {
@@ -173,15 +116,22 @@ export function BookingSlideOut({
   };
 
   const handleSubmit = () => {
-    if (!formData.time) {
-      console.error('Cannot submit booking without time');
+    if (!formData.time || !formData.date) {
+      console.error('Cannot submit booking without date and time');
       return;
     }
     
+    // Properly combine the selected date with the selected time
+    const combinedDateTime = new Date(formData.date);
+    combinedDateTime.setHours(formData.time.getHours());
+    combinedDateTime.setMinutes(formData.time.getMinutes());
+    combinedDateTime.setSeconds(0);
+    combinedDateTime.setMilliseconds(0);
+    
     onSave({
       ...formData,
-      startTime: formData.time,
-      endTime: new Date(formData.time.getTime() + (selectedService?.duration || 60) * 60000)
+      startTime: combinedDateTime,
+      endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000)
     });
     onClose();
   };
@@ -193,109 +143,89 @@ export function BookingSlideOut({
           <div className="space-y-4">
             <div>
               <Label>Find or Create Customer</Label>
-              <Input
-                placeholder="Type 2+ characters to search all customers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              <CustomerSearchInput
+                value={formData.customerId ? {
+                  id: formData.customerId,
+                  firstName: formData.customerName.split(' ')[0] || '',
+                  lastName: formData.customerName.split(' ').slice(1).join(' ') || '',
+                  name: formData.customerName,
+                  phone: formData.customerPhone,
+                  email: formData.customerEmail
+                } : null}
+                onSelect={(customer) => {
+                  if (customer) {
+                    const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+                    setFormData({
+                      ...formData,
+                      customerId: customer.id,
+                      customerName: fullName,
+                      customerPhone: customer.mobile || customer.phone || '',
+                      customerEmail: customer.email || "",
+                      isNewCustomer: false
+                    });
+                    handleNext();
+                  } else {
+                    // Clear selection
+                    setFormData({
+                      ...formData,
+                      customerId: '',
+                      customerName: '',
+                      customerPhone: '',
+                      customerEmail: '',
+                      isNewCustomer: true
+                    });
+                  }
+                }}
+                onCreateNew={() => {
+                  setFormData({
+                    ...formData,
+                    isNewCustomer: true
+                  });
+                }}
+                fallbackCustomers={customers}
                 className="mt-1"
+                autoFocus
               />
-              {!searchQuery && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Start typing to search your entire customer database
-                </p>
-              )}
             </div>
 
-            {(displayCustomers.length > 0 || isSearching) && (
-              <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
-                <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 sticky top-0">
-                  {isSearching ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin h-3 w-3 border-2 border-gray-500 border-t-transparent rounded-full" />
-                      Searching...
-                    </span>
-                  ) : searchQuery ? (
-                    `${displayCustomers.length} customers found`
-                  ) : (
-                    'Recent customers'
-                  )}
-                </div>
-                {isSearching && displayCustomers.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
-                    <div className="animate-spin h-8 w-8 border-3 border-gray-300 border-t-teal-600 rounded-full mx-auto mb-4" />
-                    Searching all customers...
+            {formData.isNewCustomer && (
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-3">Create New Customer</h4>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="customerName">Name *</Label>
+                    <Input
+                      id="customerName"
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      placeholder="John Doe"
+                      className="mt-1"
+                    />
                   </div>
-                ) : (
-                  displayCustomers.map((customer) => (
-                  <button
-                    key={customer.id}
-                    className="w-full p-3 hover:bg-gray-50 text-left transition-colors"
-                    onClick={() => {
-                      const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
-                      setFormData({
-                        ...formData,
-                        customerId: customer.id,
-                        customerName: fullName,
-                        customerPhone: customer.mobile || customer.phone || '',
-                        customerEmail: customer.email || "",
-                        isNewCustomer: false
-                      });
-                      handleNext();
-                    }}
-                  >
-                    <div className="font-medium">
-                      {customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim()}
-                    </div>
-                    <div className="text-sm text-gray-600">{customer.mobile || customer.phone}</div>
-                  </button>
-                ))
-                )}
+                  <div>
+                    <Label htmlFor="customerPhone">Phone *</Label>
+                    <Input
+                      id="customerPhone"
+                      value={formData.customerPhone}
+                      onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                      placeholder="+1 (555) 123-4567"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customerEmail">Email</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={formData.customerEmail}
+                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                      placeholder="john@example.com"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
             )}
-            
-            {searchQuery && !isSearching && displayCustomers.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>No customers found matching "{searchQuery}"</p>
-                <p className="text-sm mt-2">Try a different search term</p>
-              </div>
-            )}
-
-            <div className="pt-4 border-t">
-              <h4 className="font-medium mb-3">Create New Customer</h4>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="customerName">Name *</Label>
-                  <Input
-                    id="customerName"
-                    value={formData.customerName}
-                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                    placeholder="John Doe"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="customerPhone">Phone *</Label>
-                  <Input
-                    id="customerPhone"
-                    value={formData.customerPhone}
-                    onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                    placeholder="+1 (555) 123-4567"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="customerEmail">Email</Label>
-                  <Input
-                    id="customerEmail"
-                    type="email"
-                    value={formData.customerEmail}
-                    onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                    placeholder="john@example.com"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
         );
 

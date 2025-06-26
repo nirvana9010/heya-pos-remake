@@ -96,7 +96,7 @@ export class BookingCreationService {
         depositAmount: 0, // TODO: Calculate based on merchant settings
         notes: data.notes,
         source: data.source,
-        createdById: data.createdById,
+        createdById: data.staffId || data.createdById,
         isOverride: data.isOverride || false,
         overrideReason: data.overrideReason,
         createdAt: new Date(),
@@ -160,7 +160,9 @@ export class BookingCreationService {
     return {
       id: service.id,
       duration: service.duration,
-      price: service.price.toNumber(),
+      price: typeof service.price === 'object' && service.price !== null && 'toNumber' in service.price
+        ? service.price.toNumber()
+        : Number(service.price),
     };
   }
 

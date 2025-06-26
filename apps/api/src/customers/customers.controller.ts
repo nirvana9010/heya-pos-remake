@@ -43,6 +43,17 @@ export class CustomersController {
     return this.customersService.findAll(user.merchantId, params);
   }
 
+  @Get('search')
+  @Permissions('customers.read')
+  async searchCustomers(@CurrentUser() user: any, @Query('q') query: string) {
+    // Dedicated search endpoint that returns all matching results without pagination
+    if (!query || query.length < 2) {
+      return { data: [], total: 0 };
+    }
+    
+    return this.customersService.searchCustomers(user.merchantId, query);
+  }
+
   @Get('export')
   @Permissions('customers.export')
   async export(
