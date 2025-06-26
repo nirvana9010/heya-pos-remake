@@ -155,9 +155,16 @@ export class BookingsV2Controller {
     // For now, handle single service (first one) until we update the command to support multiple
     const primaryService = dto.services[0];
     
+    // Use the staff ID from the service if no top-level staff ID is provided
+    const effectiveStaffId = dto.staffId || primaryService.staffId;
+    
+    if (!effectiveStaffId) {
+      throw new Error('Staff ID is required either at booking level or service level');
+    }
+    
     const command = new CreateBookingCommand({
       customerId: dto.customerId,
-      staffId: dto.staffId,
+      staffId: effectiveStaffId,
       serviceId: primaryService.serviceId,
       locationId: dto.locationId,
       startTime: new Date(dto.startTime),
@@ -171,7 +178,34 @@ export class BookingsV2Controller {
 
     const booking = await this.createBookingHandler.execute(command);
     
-    return this.toDto(booking);
+    // Fetch the full booking details to return enriched data
+    const query = new GetBookingByIdQuery({
+      bookingId: booking.id,
+      merchantId: user.merchantId,
+    });
+    
+    const enrichedBooking = await this.queryBus.execute(query);
+    
+    // Return in the same format as the list endpoint
+    return {
+      id: enrichedBooking.id,
+      bookingNumber: enrichedBooking.bookingNumber,
+      customerName: enrichedBooking.customer.name,
+      customerPhone: enrichedBooking.customer.phone,
+      staffId: enrichedBooking.staff.id,
+      staffName: enrichedBooking.staff.name,
+      serviceName: enrichedBooking.services.length > 1
+        ? enrichedBooking.services.map((s: any) => s.name).join(' + ')
+        : enrichedBooking.services[0]?.name || 'Unknown Service',
+      services: enrichedBooking.services,
+      startTime: enrichedBooking.startTime,
+      endTime: enrichedBooking.endTime,
+      status: enrichedBooking.status,
+      totalAmount: enrichedBooking.totalAmount,
+      totalDuration: enrichedBooking.totalDuration,
+      locationName: enrichedBooking.location.name,
+      createdAt: enrichedBooking.createdAt,
+    };
   }
 
   @Patch(':id')

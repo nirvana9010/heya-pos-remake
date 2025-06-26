@@ -47,6 +47,7 @@ export interface BookingDetail {
   startTime: Date;
   endTime: Date;
   totalAmount: number;
+  totalDuration: number;
   depositAmount: number;
   notes?: string;
   

@@ -19,8 +19,12 @@ export interface Booking {
 
 export interface CreateBookingRequest {
   customerId: string;
-  serviceId: string;
-  staffId: string;
+  locationId: string;
+  services: Array<{
+    serviceId: string;
+    staffId?: string;
+  }>;
+  staffId?: string;
   startTime: string;
   notes?: string;
 }
