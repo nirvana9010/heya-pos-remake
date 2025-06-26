@@ -15,6 +15,7 @@ import {
 } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
+import { Check } from 'lucide-react';
 
 interface MonthlyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -154,7 +155,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                         return (
                           <div
                             key={booking.id}
-                            className="text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
+                            className="text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 relative overflow-hidden flex items-center gap-1"
                             style={{
                               backgroundColor: staff?.color || '#E5E7EB',
                               color: staff?.color ? 'white' : '#4B5563'
@@ -164,7 +165,14 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                               onBookingClick(booking);
                             }}
                           >
-                            {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} {booking.customerName}
+                            {booking.status === 'completed' && (
+                              <Check className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
+                            )}
+                            <span className="relative flex-1">
+                              {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} {booking.customerName}
+                              {/* Fade out gradient for long text */}
+                              <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-[inherit] to-transparent pointer-events-none" />
+                            </span>
                           </div>
                         );
                       })}

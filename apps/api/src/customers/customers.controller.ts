@@ -61,6 +61,12 @@ export class CustomersController {
     }
   }
 
+  @Get('stats')
+  @Permissions('customers.read')
+  getStats(@CurrentUser() user: any) {
+    return this.customersService.getStats(user.merchantId);
+  }
+
   @Post('import')
   @UseGuards(PinAuthGuard)
   @Permissions('customers.import')

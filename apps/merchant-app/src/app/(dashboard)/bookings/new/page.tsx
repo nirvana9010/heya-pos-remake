@@ -54,11 +54,14 @@ function NewBookingContent() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [servicesData, customersData, staffData] = await Promise.all([
+      const [servicesData, customersResponse, staffData] = await Promise.all([
         apiClient.getServices(),
         apiClient.getCustomers(),
         apiClient.getStaff()
       ]);
+      
+      // Handle paginated response for customers
+      const customersData = customersResponse?.data || customersResponse || [];
       
       setServices(servicesData.filter((s: any) => s.isActive));
       setCustomers(customersData);

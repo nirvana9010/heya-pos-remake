@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '@heya-pos/ui';
@@ -112,7 +112,8 @@ export default function CustomersPageContent() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [serverTotalPages, setServerTotalPages] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -129,69 +130,126 @@ export default function CustomersPageContent() {
   });
   const [loyaltyDialogCustomer, setLoyaltyDialogCustomer] = useState<Customer | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    vip: 0,
+    newThisMonth: 0,
+    totalRevenue: 0
+  });
 
-  // Load customers in the background after page renders
-  useEffect(() => {
-    // Use requestIdleCallback to load data when browser is idle
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => {
-        loadCustomers().finally(() => {
-          setIsInitialLoad(false);
-        });
-      });
-    } else {
-      // Fallback for browsers that don't support requestIdleCallback
-      setTimeout(() => {
-        loadCustomers().finally(() => {
-          setIsInitialLoad(false);
-        });
-      }, 0);
+  // Forward declaration of loadCustomers to avoid hoisting issues
+  const loadCustomersRef = useRef<(params?: { search?: string; limit?: number; page?: number }) => Promise<void>>();
+
+  // Define searchCustomers early using useCallback to avoid hoisting issues
+  const searchCustomers = useCallback(async (query: string) => {
+    // Clear timeout if there's a pending search
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, []);
 
-  // Filter customers when data or filters change
-  useEffect(() => {
-    if (!loading) {
-      filterCustomers();
-      setCurrentPage(1);
+    // If empty query, just filter the existing customers instead of reloading all
+    if (!query || query.trim().length === 0) {
+      setIsSearching(false);
+      // Filter will be handled by the filterCustomers function via the useEffect
+      return;
     }
-  }, [customers, searchQuery, selectedSegment, sortBy]);
 
-  const loadCustomers = async () => {
-    try {
-      setLoading(true);
-      
-      // Check cache first
-      const cachedData = prefetchManager.getCached('customers');
-      if (cachedData) {
-        // Use cached data immediately
-        const mappedCustomers = cachedData.map((customer: any) => ({
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await apiClient.customers.getCustomers({ search: query, limit: 100, page: 1 });
+        
+        // Handle paginated response
+        const customersData = response.data || [];
+        const totalCount = response.meta?.total || 0;
+        
+        // Map the API response
+        const mappedCustomers = customersData.map((customer: any) => ({
           ...customer,
           totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
           totalSpent: parseFloat(customer.totalSpent || '0'),
           loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
           loyaltyVisits: customer.loyaltyVisits || 0,
         }));
+        
         setCustomers(mappedCustomers);
-        setLoading(false);
-        
-        // Still fetch fresh data in background
-        apiClient.getCustomers().then(freshData => {
-          const mappedFresh = freshData.map((customer: any) => ({
-            ...customer,
-            totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
-            totalSpent: parseFloat(customer.totalSpent || '0'),
-            loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
-            loyaltyVisits: customer.loyaltyVisits || 0,
-          }));
-          setCustomers(mappedFresh);
+        setFilteredCustomers(mappedCustomers);
+        setTotalCustomers(totalCount);
+        setServerTotalPages(Math.ceil(totalCount / itemsPerPage));
+      } catch (error: any) {
+        console.error('Customer search failed:', error);
+        toast({
+          title: "Search Error",
+          description: error.response?.data?.message || "Failed to search customers",
+          variant: "destructive",
         });
-        
-        return;
+      } finally {
+        setIsSearching(false);
       }
+    }, 300); // 300ms debounce
+  }, [toast]);
+
+  // Load customers and stats immediately on mount
+  useEffect(() => {
+    // Load customers
+    loadCustomersRef.current?.({ limit: itemsPerPage, page: 1 });
+    
+    // Fetch real stats from the database separately
+    apiClient.customers.getStats()
+      .then(stats => {
+        if (stats) {
+          setGlobalStats(stats);
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load customer stats:', error);
+        toast({
+          title: "Warning",
+          description: "Failed to load customer statistics",
+          variant: "default",
+        });
+      });
+    
+    setIsInitialLoad(false);
+  }, [itemsPerPage, toast]);
+
+  // Handle search query changes
+  useEffect(() => {
+    if (!isInitialLoad) {
+      searchCustomers(searchQuery);
+    }
+  }, [searchQuery, searchCustomers, isInitialLoad]);
+
+  // Filter customers when segment, sort, or search query changes
+  useEffect(() => {
+    if (!loading && !isSearching) {
+      filterCustomers();
+      setCurrentPage(1);
+    }
+  }, [customers, selectedSegment, sortBy, searchQuery]);
+
+  const loadCustomers = async (params?: { search?: string; limit?: number; page?: number }) => {
+    try {
+      setLoading(true);
       
-      // No cache, load customers from API
-      const customersData = await apiClient.getCustomers();
+      // Use pagination for better performance
+      const apiParams = {
+        limit: itemsPerPage,
+        page: 1,
+        ...params
+      };
+      
+      // Load customers from API with parameters
+      const response = await apiClient.customers.getCustomers(apiParams);
+      
+      // Handle paginated response
+      const customersData = response.data || [];
+      const totalCount = response.meta?.total || 0;
       
       // Map the API response to include the stats from backend
       const mappedCustomers = customersData.map((customer: any) => ({
@@ -204,10 +262,10 @@ export default function CustomersPageContent() {
       
       // Show customers immediately with their stats from backend
       setCustomers(mappedCustomers);
+      setFilteredCustomers(mappedCustomers);
+      setTotalCustomers(totalCount);
+      setServerTotalPages(Math.ceil(totalCount / itemsPerPage));
       setLoading(false);
-      
-      // Backend already provides all necessary stats (totalVisits, totalSpent, etc)
-      // No need to load bookings separately
       
     } catch (error: any) {
       toast({
@@ -219,8 +277,8 @@ export default function CustomersPageContent() {
     }
   };
 
-  // Removed loadBookingsInBackground - backend already provides all stats
-  // If real-time updates needed in future, use WebSocket or refresh button
+  // Assign loadCustomers to ref
+  loadCustomersRef.current = loadCustomers;
 
   const processBookingsInChunks = (customersData: Customer[], bookingsData: any[]) => {
     const CHUNK_SIZE = 100;
@@ -332,16 +390,15 @@ export default function CustomersPageContent() {
   const filterCustomers = () => {
     let filtered = [...customers];
 
-    // Apply search filter
-    if (searchQuery) {
+    // Apply search filter for client-side filtering (when search is empty or short)
+    if (searchQuery && searchQuery.trim().length > 0 && !isSearching) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(customer => {
-        const fullName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
-        
-        return fullName.includes(query) ||
-          (customer.email && customer.email.toLowerCase().includes(query)) ||
-          (customer.phone && customer.phone.includes(searchQuery));
-      });
+      filtered = filtered.filter(customer =>
+        customer.firstName.toLowerCase().includes(query) ||
+        customer.lastName.toLowerCase().includes(query) ||
+        customer.email?.toLowerCase().includes(query) ||
+        customer.phone?.includes(query)
+      );
     }
 
     // Apply segment filter
@@ -383,23 +440,77 @@ export default function CustomersPageContent() {
     setFilteredCustomers(filtered);
   };
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    return {
-      total: customers.length,
-      vip: customers.filter(c => c.totalSpent > 1000 || c.totalVisits > 10).length,
-      newThisMonth: customers.filter(c => c.totalVisits === 0).length,
-      totalRevenue: customers.reduce((sum, c) => sum + c.totalSpent, 0)
-    };
-  }, [customers]);
+  // Pagination logic - use server-side pagination when possible
+  const isFiltering = searchQuery || selectedSegment !== 'all';
 
-  // Pagination
+  // Use real stats from database
+  const stats = useMemo(() => {
+    // When filtering, calculate from filtered results
+    if (isFiltering && filteredCustomers.length > 0) {
+      return {
+        total: filteredCustomers.length,
+        vip: filteredCustomers.filter(c => c.totalSpent > 1000 || c.totalVisits > 10).length,
+        newThisMonth: filteredCustomers.filter(c => c.totalVisits === 0).length,
+        totalRevenue: filteredCustomers.reduce((sum, c) => sum + c.totalSpent, 0)
+      };
+    }
+    
+    // Use real stats from database
+    return globalStats;
+  }, [filteredCustomers, globalStats, isFiltering]);
+  const displayCustomers = isFiltering ? filteredCustomers : customers;
+  
   const paginatedCustomers = useMemo(() => {
+    if (!isFiltering) {
+      // Server-side pagination - customers are already paginated
+      return customers;
+    }
+    // Client-side pagination for filtered results
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredCustomers, currentPage, itemsPerPage]);
+  }, [customers, filteredCustomers, currentPage, itemsPerPage, isFiltering]);
 
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const totalPages = isFiltering ? 
+    Math.ceil(filteredCustomers.length / itemsPerPage) : 
+    serverTotalPages;
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K for search focus
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      
+      // Escape to clear search
+      if (e.key === 'Escape' && searchQuery) {
+        setSearchQuery('');
+      }
+      
+      // Left/Right arrows for pagination when not in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        const newPage = currentPage - 1;
+        setCurrentPage(newPage);
+        if (!isFiltering) {
+          loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+        }
+      }
+      
+      if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        const newPage = currentPage + 1;
+        setCurrentPage(newPage);
+        if (!isFiltering) {
+          loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery, currentPage, totalPages, itemsPerPage, isFiltering]);
 
   // Form handlers
   const handleSubmit = async (e: React.FormEvent) => {
@@ -421,7 +532,17 @@ export default function CustomersPageContent() {
       setIsAddDialogOpen(false);
       setEditingCustomer(null);
       setFormData({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
+      // Reload customers and stats
       loadCustomers();
+      apiClient.customers.getStats()
+        .then(stats => {
+          if (stats) {
+            setGlobalStats(stats);
+          }
+        })
+        .catch(error => {
+          console.error('Failed to refresh stats:', error);
+        });
     } catch (error) {
       toast({
         title: "Error",
@@ -431,8 +552,8 @@ export default function CustomersPageContent() {
     }
   };
 
-  // Loading state
-  if (loading && isInitialLoad) {
+  // Better loading state with full skeleton
+  if (loading && customers.length === 0) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-8">
@@ -455,6 +576,34 @@ export default function CustomersPageContent() {
             </Card>
           ))}
         </div>
+        {/* Search and Filters Skeleton */}
+        <div className="flex gap-4 mb-6">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        {/* Customer List Skeleton */}
+        <Card>
+          <div className="p-6">
+            <div className="divide-y divide-gray-100">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="py-4">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-32 mb-2" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div>
+                      <Skeleton className="h-5 w-16 mb-1" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -534,11 +683,21 @@ export default function CustomersPageContent() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search customers..."
+            ref={searchInputRef}
+            placeholder="Search customers by name, email, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-24"
+            disabled={isSearching}
           />
+          {isSearching && (
+            <div className="absolute right-20 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            </div>
+          )}
+          <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground border px-2 py-1 rounded bg-muted">
+            ⌘K
+          </kbd>
         </div>
         
         <Suspense fallback={<Skeleton className="h-10 w-32" />}>
@@ -571,8 +730,26 @@ export default function CustomersPageContent() {
         </Suspense>
       </div>
 
+      {/* Results Summary */}
+      {(searchQuery || selectedSegment !== 'all') && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {filteredCustomers.length} of {totalCustomers} customers
+          {searchQuery && <span> matching "{searchQuery}"</span>}
+          {selectedSegment !== 'all' && <span> in {selectedSegment} segment</span>}
+        </div>
+      )}
+
       {/* Customer List */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden relative">
+        {/* Loading overlay for pagination */}
+        {loading && customers.length > 0 && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span className="text-sm text-muted-foreground">Loading customers...</span>
+            </div>
+          </div>
+        )}
         <div className="p-6">
           {paginatedCustomers.length === 0 ? (
             <div className="text-center py-12">
@@ -690,26 +867,63 @@ export default function CustomersPageContent() {
           )}
         </div>
         
-        {/* Pagination */}
+        {/* Enhanced Pagination */}
         {totalPages > 1 && (
           <div className="border-t px-6 py-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} customers
-            </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, isFiltering ? filteredCustomers.length : totalCustomers)} of {isFiltering ? filteredCustomers.length : totalCustomers} customers
+              </p>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+                if (!isFiltering) {
+                  loadCustomersRef.current?.({ limit: Number(value), page: 1 });
+                }
+              }}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">per page</span>
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
+                onClick={() => {
+                  const newPage = Math.max(1, currentPage - 1);
+                  setCurrentPage(newPage);
+                  if (!isFiltering) {
+                    loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+                  }
+                }}
+                disabled={currentPage === 1 || loading}
               >
                 Previous
               </Button>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">Page</span>
+                <span className="text-sm font-medium">{currentPage}</span>
+                <span className="text-sm text-muted-foreground">of {totalPages}</span>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => {
+                  const newPage = Math.min(totalPages, currentPage + 1);
+                  setCurrentPage(newPage);
+                  if (!isFiltering) {
+                    loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+                  }
+                }}
+                disabled={currentPage === totalPages || loading}
               >
                 Next
               </Button>

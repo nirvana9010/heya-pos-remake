@@ -1,11 +1,49 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-06-24
+> Last Updated: 2025-06-26
 > 
+> **CRITICAL UPDATE**: API Base URL must include /api - REPEATED MISTAKE!
 > **CRITICAL UPDATE**: V1/V2 API confusion causing major issues - SEE NEW SECTION BELOW
 > **NEW**: Timezone handling in booking system - major debugging session
 > **LATEST**: Database sync issues and availability display bugs fixed
+
+## 🔥 CRITICAL: API Base URL Configuration - STOP BREAKING LOGIN!
+**Added**: 2025-06-26
+**Frequency**: This mistake happens EVERY FEW SESSIONS
+**Impact**: Breaks ALL API calls, especially login
+
+### The Mistake That Keeps Happening
+```typescript
+// ❌ WRONG - Missing /api path
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// ✅ CORRECT - Must include /api
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+```
+
+### Why This Breaks Everything
+- Backend expects: `http://localhost:3000/api/v1/auth/merchant/login`
+- Wrong config creates: `http://localhost:3000/v1/auth/merchant/login` 
+- Result: "Cannot POST /v1/auth/merchant/login" error
+
+### Files That MUST Have Correct API_BASE_URL:
+- `/apps/merchant-app/src/lib/clients/base-client.ts`
+- `/apps/booking-app/src/lib/api-client.ts`
+- `/apps/admin-dashboard/src/lib/api-client.ts`
+
+### How to Test BEFORE Breaking Login:
+```bash
+# Quick test - should return 200
+curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"HAMILTON","password":"demo123"}'
+```
+
+### NEVER CHANGE base-client.ts WITHOUT:
+1. Checking current API_BASE_URL value
+2. Testing a simple API call first
+3. Verifying the /api path is included
 
 ## 🚨 NEW: Debugging Without Browser Console - The "Array to 0" Pattern
 **Added**: 2025-06-19

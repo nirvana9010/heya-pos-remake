@@ -186,6 +186,49 @@ export class CustomersService {
     return result;
   }
 
+  async getStats(merchantId: string) {
+    const [total, vipCustomers, newThisMonth, revenueResult] = await Promise.all([
+      // Total customers
+      this.prisma.customer.count({
+        where: { merchantId }
+      }),
+      
+      // VIP customers (spent > 1000 or visits > 10)
+      this.prisma.customer.count({
+        where: {
+          merchantId,
+          OR: [
+            { totalSpent: { gt: 1000 } },
+            { visitCount: { gt: 10 } }
+          ]
+        }
+      }),
+      
+      // New customers this month (visits = 0)
+      this.prisma.customer.count({
+        where: {
+          merchantId,
+          visitCount: 0
+        }
+      }),
+      
+      // Total revenue
+      this.prisma.customer.aggregate({
+        where: { merchantId },
+        _sum: {
+          totalSpent: true
+        }
+      })
+    ]);
+
+    return {
+      total,
+      vip: vipCustomers,
+      newThisMonth,
+      totalRevenue: Number(revenueResult._sum.totalSpent || 0)
+    };
+  }
+
   async findOne(merchantId: string, id: string) {
     const customer = await this.prisma.customer.findFirst({
       where: {

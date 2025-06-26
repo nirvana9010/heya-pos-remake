@@ -31,10 +31,18 @@ export interface UpdateCustomerRequest {
 }
 
 export class CustomersClient extends BaseApiClient {
-  async getCustomers(): Promise<Customer[]> {
-    const response = await this.get('/customers', undefined, 'v1');
-    // Real API returns paginated response, extract data
-    return response.data || response;
+  async getCustomers(params?: { limit?: number; page?: number; search?: string }): Promise<{
+    data: Customer[];
+    meta?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const response = await this.get('/customers', { params }, 'v1');
+    // Return full paginated response
+    return response;
   }
 
   async getCustomer(id: string): Promise<Customer> {
@@ -51,5 +59,14 @@ export class CustomersClient extends BaseApiClient {
 
   async deleteCustomer(id: string): Promise<void> {
     return this.delete(`/customers/${id}`, undefined, 'v1');
+  }
+
+  async getStats(): Promise<{
+    total: number;
+    vip: number;
+    newThisMonth: number;
+    totalRevenue: number;
+  }> {
+    return this.get('/customers/stats', undefined, 'v1');
   }
 }
