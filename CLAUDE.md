@@ -252,6 +252,17 @@ This is a Point of Sale (POS) system remake with multiple apps: merchant-app, bo
 - `apps/booking-app/` - Next.js customer booking interface **(runs on port 3001)**
 - `apps/admin-dashboard/` - Next.js admin interface **(runs on port 3003)**
 
+## 🚨 CRITICAL: API Base URL - STOP BREAKING LOGIN!
+**API_BASE_URL MUST include /api path**:
+```typescript
+// ❌ WRONG - This breaks everything
+const API_BASE_URL = 'http://localhost:3000';
+
+// ✅ CORRECT - Always include /api
+const API_BASE_URL = 'http://localhost:3000/api';
+```
+**CHECK THIS BEFORE MODIFYING**: `/apps/merchant-app/src/lib/clients/base-client.ts`
+
 ## 🚨 CRITICAL: API Versioning Rules
 **ALL API calls MUST include version prefix** (`/v1/` or `/v2/`):
 - ❌ WRONG: `/admin/login`, `/bookings`, `/merchants`

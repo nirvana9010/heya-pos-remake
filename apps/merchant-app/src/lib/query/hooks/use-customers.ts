@@ -2,6 +2,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../api-client';
 import type { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../../clients/customers-client';
 
+// Type for paginated response
+interface PaginatedCustomersResponse {
+  data: Customer[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 // Query keys for customers
 export const customerKeys = {
   all: ['customers'] as const,
@@ -12,12 +23,12 @@ export const customerKeys = {
 };
 
 /**
- * Hook to fetch all customers
+ * Hook to fetch all customers (returns paginated response)
  */
-export function useCustomers() {
+export function useCustomers(params?: { limit?: number; page?: number; search?: string }) {
   return useQuery({
-    queryKey: customerKeys.list(),
-    queryFn: () => apiClient.customers.getCustomers(),
+    queryKey: customerKeys.list(params),
+    queryFn: () => apiClient.customers.getCustomers(params),
     staleTime: 10 * 60 * 1000, // 10 minutes (customers don't change as frequently)
     refetchOnWindowFocus: false, // Don't auto-refetch on focus for customers
   });
@@ -53,11 +64,16 @@ export function useCreateCustomer() {
         newCustomer
       );
 
-      // Optimistically update the customers list
-      queryClient.setQueryData(
-        customerKeys.list(),
-        (oldCustomers: Customer[] | undefined) => {
-          return oldCustomers ? [...oldCustomers, newCustomer] : [newCustomer];
+      // Optimistically update the customers list (handle paginated response)
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (oldData: PaginatedCustomersResponse | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: [...oldData.data, newCustomer],
+            meta: oldData.meta ? { ...oldData.meta, total: oldData.meta.total + 1 } : undefined
+          };
         }
       );
     },
@@ -83,13 +99,17 @@ export function useUpdateCustomer() {
         updatedCustomer
       );
       
-      // Update the customer in the list
-      queryClient.setQueryData(
-        customerKeys.list(),
-        (oldCustomers: Customer[] | undefined) => {
-          return oldCustomers?.map(customer => 
-            customer.id === id ? updatedCustomer : customer
-          ) || [updatedCustomer];
+      // Update the customer in the list (handle paginated response)
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (oldData: PaginatedCustomersResponse | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.map(customer => 
+              customer.id === id ? updatedCustomer : customer
+            )
+          };
         }
       );
     },
@@ -111,11 +131,16 @@ export function useDeleteCustomer() {
       // Remove from cache
       queryClient.removeQueries({ queryKey: customerKeys.detail(id) });
       
-      // Remove from the list
-      queryClient.setQueryData(
-        customerKeys.list(),
-        (oldCustomers: Customer[] | undefined) => {
-          return oldCustomers?.filter(customer => customer.id !== id) || [];
+      // Remove from the list (handle paginated response)
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (oldData: PaginatedCustomersResponse | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.filter(customer => customer.id !== id),
+            meta: oldData.meta ? { ...oldData.meta, total: Math.max(0, oldData.meta.total - 1) } : undefined
+          };
         }
       );
     },

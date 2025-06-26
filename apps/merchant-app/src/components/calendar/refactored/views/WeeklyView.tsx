@@ -5,15 +5,105 @@ import { useCalendar } from '../CalendarProvider';
 import { useTimeGrid } from '../hooks';
 import { format, startOfWeek, addDays, isSameDay, isToday, parseISO } from 'date-fns';
 import { cn } from '@heya-pos/ui';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, pointerWithin, useSensors, useSensor, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { DraggableBooking } from '@/components/calendar/DraggableBooking';
+import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking } from '../types';
+import { Check } from 'lucide-react';
+
+// Calculate layout for overlapping bookings
+interface BookingLayout {
+  left: number;
+  width: number;
+}
+
+function calculateBookingLayout(bookings: Booking[]): Map<string, BookingLayout> {
+  const layoutMap = new Map<string, BookingLayout>();
+  
+  // Sort bookings by start time
+  const sortedBookings = [...bookings].sort((a, b) => {
+    const timeA = a.time.localeCompare(b.time);
+    if (timeA !== 0) return timeA;
+    // If same start time, longer duration goes first
+    return b.duration - a.duration;
+  });
+  
+  // First pass: assign columns
+  const bookingColumns = new Map<string, number>();
+  const columns: Array<{ bookingId: string; endMinutes: number }> = [];
+  
+  sortedBookings.forEach(booking => {
+    const [hours, minutes] = booking.time.split(':').map(Number);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + booking.duration;
+    
+    // Find available column
+    let columnIndex = -1;
+    for (let i = 0; i < columns.length; i++) {
+      if (columns[i].endMinutes <= startMinutes) {
+        columnIndex = i;
+        break;
+      }
+    }
+    
+    // If no available column found, add a new one
+    if (columnIndex === -1) {
+      columnIndex = columns.length;
+      columns.push({ bookingId: booking.id, endMinutes });
+    } else {
+      // Reuse existing column
+      columns[columnIndex] = { bookingId: booking.id, endMinutes };
+    }
+    
+    bookingColumns.set(booking.id, columnIndex);
+  });
+  
+  // Second pass: determine max columns for each booking's time range
+  sortedBookings.forEach(booking => {
+    const [hours, minutes] = booking.time.split(':').map(Number);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + booking.duration;
+    
+    // Find all bookings that overlap with this one
+    let maxColumns = 1;
+    sortedBookings.forEach(other => {
+      if (other.id === booking.id) return;
+      
+      const [otherHours, otherMinutes] = other.time.split(':').map(Number);
+      const otherStart = otherHours * 60 + otherMinutes;
+      const otherEnd = otherStart + other.duration;
+      
+      // Check for overlap
+      if (otherStart < endMinutes && otherEnd > startMinutes) {
+        const otherColumn = bookingColumns.get(other.id) || 0;
+        maxColumns = Math.max(maxColumns, otherColumn + 1);
+      }
+    });
+    
+    const columnIndex = bookingColumns.get(booking.id) || 0;
+    const width = 100 / maxColumns;
+    const left = columnIndex * width;
+    
+    layoutMap.set(booking.id, { left, width });
+  });
+  
+  return layoutMap;
+}
 
 interface WeeklyViewProps {
   onBookingClick: (booking: Booking) => void;
   onTimeSlotClick: (date: Date, time: string, staffId: string | null) => void;
+  onDragStart: (event: DragStartEvent) => void;
+  onDragOver: (event: DragOverEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  activeBooking: Booking | null;
+  dragOverSlot: {
+    staffId: string;
+    staffName: string;
+    startTime: Date;
+    endTime: Date;
+  } | null;
 }
 
 // Simple DroppableTimeSlot component for the refactored calendar
@@ -50,9 +140,32 @@ function DroppableTimeSlot({
   );
 }
 
-export function WeeklyView({ onBookingClick, onTimeSlotClick, onDragEnd }: WeeklyViewProps) {
+export function WeeklyView({ 
+  onBookingClick, 
+  onTimeSlotClick, 
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  activeBooking,
+  dragOverSlot 
+}: WeeklyViewProps) {
   const { state, filteredBookings } = useCalendar();
   const { timeSlots } = useTimeGrid();
+  
+  // Configure drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3, // Small distance to start drag
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    })
+  );
   
   const weekStart = startOfWeek(state.currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -125,7 +238,13 @@ export function WeeklyView({ onBookingClick, onTimeSlotClick, onDragEnd }: Weekl
       </div>
 
       {/* Scrollable content area */}
-      <DndContext onDragEnd={onDragEnd} collisionDetection={() => null}>
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+      >
         <div className="flex-1 overflow-auto">
           <div className="flex">
             {/* Time column */}
@@ -164,26 +283,83 @@ export function WeeklyView({ onBookingClick, onTimeSlotClick, onDragEnd }: Weekl
                         )}
                         onClick={() => onTimeSlotClick(day, slot.time, null)}
                       >
-                        {slotBookings.map((booking, index) => (
-                          <DraggableBooking
-                            key={booking.id}
-                            id={booking.id}
-                            booking={booking}
-                            onClick={() => onBookingClick(booking)}
-                            className={cn(
-                              "absolute left-0 right-0 mx-0.5 text-xs px-1 py-0.5 rounded cursor-pointer truncate z-10",
-                              index > 0 && `top-[${(index * 12)}px]`
-                            )}
-                            style={{
-                              backgroundColor: state.staff.find(s => s.id === booking.staffId)?.color || '#7C3AED',
-                              top: index > 0 ? `${index * 12}px` : '0px'
-                            }}
-                          >
-                            <div className="text-white truncate">
-                              {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} - {booking.customerName}
-                            </div>
-                          </DraggableBooking>
-                        ))}
+                        {/* Only show bookings that start at this exact time slot */}
+                        {(() => {
+                          const startingBookings = slotBookings.filter(booking => booking.time === slot.time);
+                          
+                          if (startingBookings.length === 0) return null;
+                          
+                          // Get ALL bookings for this day to check for overlaps
+                          const allDayBookings = bookingsByDayAndTime.get(key) || [];
+                          
+                          return startingBookings.map((booking) => {
+                            // Check for any bookings that overlap with this booking's time range
+                            const [bookingHour, bookingMin] = booking.time.split(':').map(Number);
+                            const bookingStart = bookingHour * 60 + bookingMin;
+                            const bookingEnd = bookingStart + booking.duration;
+                            
+                            const overlappingBookings = allDayBookings.filter(other => {
+                              const [otherHour, otherMin] = other.time.split(':').map(Number);
+                              const otherStart = otherHour * 60 + otherMin;
+                              const otherEnd = otherStart + other.duration;
+                              
+                              // Check if they overlap
+                              return otherStart < bookingEnd && otherEnd > bookingStart;
+                            });
+                            
+                            const hasOverlaps = overlappingBookings.length > 1;
+                            const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
+                            const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
+                            
+                            // Calculate how many time slots this booking spans
+                            const slotsSpanned = Math.ceil(booking.duration / 30); // Weekly view uses 30min slots
+                            
+                            const bgColor = state.staff.find(s => s.id === booking.staffId)?.color || '#7C3AED';
+                            
+                            return (
+                              <DraggableBooking
+                                key={booking.id}
+                                id={booking.id}
+                                booking={booking}
+                                onClick={() => onBookingClick(booking)}
+                                className={hasOverlaps ? "absolute" : "absolute inset-x-0.5"}
+                                style={hasOverlaps ? { 
+                                  top: '1px',
+                                  left: `${layout.left}%`,
+                                  width: `calc(${layout.width}% - 2px)`,
+                                  marginLeft: '1px',
+                                  height: `${slotsSpanned * 30 - 2}px`,
+                                  maxWidth: '100%'
+                                } : { 
+                                  top: '1px',
+                                  height: `${slotsSpanned * 30 - 2}px`,
+                                  maxWidth: '100%'
+                                }}
+                              >
+                                <div 
+                                  className="text-xs px-1 py-0.5 rounded cursor-pointer overflow-hidden relative flex items-center gap-1"
+                                  style={{
+                                    backgroundColor: bgColor,
+                                    opacity: 0.9,
+                                    height: '100%'
+                                  }}
+                                >
+                                  {/* Completed indicator */}
+                                  {booking.status === 'completed' && (
+                                    <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                                    </div>
+                                  )}
+                                  <div className="text-white truncate pr-2 relative flex-1">
+                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} - {booking.customerName}
+                                    {/* Fade out gradient for long text */}
+                                    <div className="absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[inherit] to-transparent pointer-events-none" />
+                                  </div>
+                                </div>
+                              </DraggableBooking>
+                            );
+                          });
+                        })()}
                       </DroppableTimeSlot>
                     );
                   })}
@@ -192,6 +368,12 @@ export function WeeklyView({ onBookingClick, onTimeSlotClick, onDragEnd }: Weekl
             </div>
           </div>
         </div>
+        
+        {/* Drag Overlay */}
+        <CalendarDragOverlay 
+          activeBooking={activeBooking} 
+          dragOverSlot={dragOverSlot}
+        />
       </DndContext>
     </div>
   );

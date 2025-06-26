@@ -106,6 +106,14 @@ export function useCalendarData() {
   const fetchStaff = useCallback(async () => {
     try {
       const response = await apiClient.getStaff();
+      console.log('Staff API response:', response);
+      
+      // Handle empty or invalid response
+      if (!response || !Array.isArray(response)) {
+        console.warn('Invalid staff response:', response);
+        actions.setStaff([]);
+        return;
+      }
       
       // Transform staff to calendar format and filter out invalid entries
       const transformedStaff = response
@@ -131,11 +139,16 @@ export function useCalendarData() {
         }));
       
       actions.setStaff(transformedStaff || []);
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
+    } catch (error: any) {
+      console.error('Failed to fetch staff:', {
+        message: error?.message,
+        response: error?.response,
+        data: error?.data,
+        originalError: error
+      });
       toast({
         title: 'Error',
-        description: 'Failed to load staff. Please try again.',
+        description: error?.message || 'Failed to load staff. Please try again.',
         variant: 'destructive',
       });
     }
@@ -145,6 +158,15 @@ export function useCalendarData() {
   const fetchServices = useCallback(async () => {
     try {
       const response = await apiClient.getServices();
+      console.log('Services API response:', response);
+      
+      // Handle empty or invalid response
+      if (!response || !Array.isArray(response)) {
+        console.warn('Invalid services response:', response);
+        actions.setServices([]);
+        return;
+      }
+      
       // Transform services to match our type
       const transformedServices = (response || []).map(service => ({
         ...service,
@@ -159,10 +181,16 @@ export function useCalendarData() {
   // Fetch customers data
   const fetchCustomers = useCallback(async () => {
     try {
+      // Just fetch recent customers for quick access (20 is enough since we have search)
       const response = await apiClient.getCustomers();
       
+      // Handle paginated response
+      const customerData = response?.data || response || [];
+      
+      console.log(`Loaded ${customerData.length} recent customers for calendar`);
+      
       // Transform customers to calendar format
-      const transformedCustomers = (response || []).map((customer: any) => ({
+      const transformedCustomers = customerData.map((customer: any) => ({
         id: customer.id,
         name: `${customer.firstName} ${customer.lastName}`,
         email: customer.email,

@@ -3,7 +3,7 @@ import { transformApiResponse } from '../db-transforms';
 import { validateRequest, validateResponse, ApiValidationError } from './validation';
 import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '../cache-config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export interface ApiError {
   message: string;

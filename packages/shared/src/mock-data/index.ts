@@ -171,9 +171,40 @@ export const mockApi = {
   },
 
   // Customers
-  async getCustomers(): Promise<Customer[]> {
+  async getCustomers(params?: { limit?: number; page?: number; search?: string }): Promise<{
+    data: Customer[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
     await delay(500);
-    return mockCustomers;
+    const limit = params?.limit || 20;
+    const page = params?.page || 1;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    
+    let filteredCustomers = mockCustomers;
+    if (params?.search) {
+      const searchLower = params.search.toLowerCase();
+      filteredCustomers = mockCustomers.filter(c => 
+        c.name.toLowerCase().includes(searchLower) ||
+        c.email.toLowerCase().includes(searchLower) ||
+        c.phone.includes(params.search)
+      );
+    }
+    
+    return {
+      data: filteredCustomers.slice(start, end),
+      meta: {
+        total: filteredCustomers.length,
+        page,
+        limit,
+        totalPages: Math.ceil(filteredCustomers.length / limit)
+      }
+    };
   },
 
   async createCustomer(data: Partial<Customer>): Promise<Customer> {

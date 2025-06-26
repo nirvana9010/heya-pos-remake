@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users } from 'lucide-react';
+import { Users, Check } from 'lucide-react';
 import { BookingTooltip } from '../BookingTooltip';
 
 interface DailyViewProps {
@@ -481,7 +481,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={null}
                         className={cn(
-                          "h-[60px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100",
+                          "h-[60px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100 overflow-hidden",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
@@ -504,16 +504,32 @@ export function DailyView({
                         {(() => {
                           const startingBookings = slotBookings.filter(booking => booking.time === slot.time);
                           
-                          // Only use column layout if there are overlapping bookings in this time slot
-                          const hasOverlaps = startingBookings.length > 1;
-                          const layoutMap = hasOverlaps ? calculateBookingLayout(startingBookings) : new Map();
+                          if (startingBookings.length === 0) return null;
+                          
+                          // Get ALL bookings for this staff member (unassigned) to check for overlaps
+                          const allUnassignedBookings = bookingsByStaff.get(null) || [];
                           
                           return startingBookings.map((booking) => {
-                            const layout = hasOverlaps 
-                              ? layoutMap.get(booking.id) || { left: 0, width: 100 }
-                              : { left: 0, width: 100 };
-                            // Calculate how many 30-minute slots this booking spans
-                            const slotsSpanned = Math.ceil(booking.duration / 30);
+                            // Check for any bookings that overlap with this booking's time range
+                            const [bookingHour, bookingMin] = booking.time.split(':').map(Number);
+                            const bookingStart = bookingHour * 60 + bookingMin;
+                            const bookingEnd = bookingStart + booking.duration;
+                            
+                            const overlappingBookings = allUnassignedBookings.filter(other => {
+                              const [otherHour, otherMin] = other.time.split(':').map(Number);
+                              const otherStart = otherHour * 60 + otherMin;
+                              const otherEnd = otherStart + other.duration;
+                              
+                              // Check if they overlap
+                              return otherStart < bookingEnd && otherEnd > bookingStart;
+                            });
+                            
+                            const hasOverlaps = overlappingBookings.length > 1;
+                            const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
+                            const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
+                            
+                            // Calculate how many time slots this booking spans based on interval
+                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
                           
                           // Determine if booking is in the past
                           const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
@@ -523,12 +539,10 @@ export function DailyView({
                           let bgOpacity = 0.9;
                           let borderWidth = 4;
                           let textColor = 'text-white';
+                          let bgColor = '#9CA3AF'; // Gray for unassigned
                           
-                          if (booking.status === 'completed' || isPast) {
-                            bgOpacity = 0.3;
-                            borderWidth = 3;
-                            textColor = 'text-gray-700';
-                          } else if (booking.status === 'cancelled') {
+                          // Check status first
+                          if (booking.status === 'cancelled') {
                             bgOpacity = 0.2;
                             borderWidth = 3;
                             textColor = 'text-gray-500';
@@ -536,152 +550,17 @@ export function DailyView({
                             bgOpacity = 0.2;
                             borderWidth = 3;
                             textColor = 'text-gray-500';
-                          }
-                          
-                          const bgColor = '#9CA3AF'; // Gray for unassigned
-                          
-                          return (
-                            <DraggableBooking
-                              key={booking.id}
-                              id={booking.id}
-                              className={hasOverlaps ? "absolute" : "absolute inset-x-1"}
-                              style={hasOverlaps ? { 
-                                top: '2px',
-                                left: `${layout.left}%`,
-                                width: `calc(${layout.width}% - 4px)`,
-                                marginLeft: '2px'
-                              } : { top: '2px' }}
-                            >
-                              <div 
-                                className={cn(
-                                  "text-xs overflow-hidden cursor-pointer rounded relative z-10",
-                                  textColor,
-                                  booking.status === 'cancelled' && 'line-through',
-                                  booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
-                                  !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
-                                )}
-                                style={{
-                                  height: `${slotsSpanned * 60 - 4}px`,
-                                  backgroundColor: `rgba(156, 163, 175, ${bgOpacity})`,
-                                  borderLeft: `${borderWidth}px solid ${bgColor}`,
-                                  paddingLeft: `${borderWidth + 2}px`,
-                                  paddingRight: '4px',
-                                  paddingTop: '2px',
-                                  paddingBottom: '2px',
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!activeBooking) {
-                                    onBookingClick(booking);
-                                  }
-                                }}
-                                onMouseEnter={(e) => {
-                                  setHoveredBookingId(booking.id);
-                                  setTooltipPosition({ x: e.clientX, y: e.clientY });
-                                }}
-                                onMouseLeave={() => setHoveredBookingId(null)}
-                                onMouseMove={(e) => {
-                                  if (hoveredBookingId === booking.id) {
-                                    setTooltipPosition({ x: e.clientX, y: e.clientY });
-                                  }
-                                }}
-                              >
-                                {/* Time and duration in top right */}
-                                <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
-                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                </div>
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900")}>
-                                  {booking.customerName}
-                                </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90")}>
-                                  {booking.serviceName}
-                                </div>
-                              </div>
-                            </DraggableBooking>
-                          );
-                          });
-                        })()}
-                      </DroppableTimeSlot>
-                    );
-                  })}
-                </div>
-              )}
-              
-              {/* Staff columns */}
-              {visibleStaff.map((staff, staffIndex) => (
-                <div key={staff.id}>
-                  {timeSlots.map((slot, slotIndex) => {
-                    const slotBookings = bookingsByStaff.get(staff.id)?.filter(booking => 
-                      booking.time === slot.time
-                    ) || [];
-                    
-                    return (
-                      <DroppableTimeSlot
-                        key={`${staff.id}-${slot.time}`}
-                        id={`day_${format(state.currentDate, 'yyyy-MM-dd')}_${slot.time}_${staff.id}`}
-                        date={format(state.currentDate, 'yyyy-MM-dd')}
-                        time={slot.time}
-                        staffId={staff.id}
-                        className={cn(
-                          "h-[60px] cursor-pointer relative transition-colors duration-100",
-                          staffIndex < visibleStaff.length - 1 && "border-r border-gray-100",
-                          !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
-                          (() => {
-                            // Match the border styling from time column using shadows
-                            if (state.timeInterval === 60) {
-                              return slot.minute === 0 ? "shadow-[inset_0_1px_0_0_rgb(209,213,219)]" : "";
-                            } else if (state.timeInterval === 30) {
-                              if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
-                              if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
-                              return "";
-                            } else {
-                              if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
-                              if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
-                              return "shadow-[inset_0_1px_0_0_rgb(243,244,246)]";
-                            }
-                          })()
-                        )}
-                        onClick={() => onTimeSlotClick(state.currentDate, slot.time, staff.id)}
-                      >
-                        {/* Only show bookings that start at this exact time slot */}
-                        {(() => {
-                          const startingBookings = slotBookings.filter(booking => booking.time === slot.time);
-                          
-                          // Only use column layout if there are overlapping bookings in this time slot
-                          const hasOverlaps = startingBookings.length > 1;
-                          const layoutMap = hasOverlaps ? calculateBookingLayout(startingBookings) : new Map();
-                          
-                          return startingBookings.map((booking) => {
-                            const layout = hasOverlaps 
-                              ? layoutMap.get(booking.id) || { left: 0, width: 100 }
-                              : { left: 0, width: 100 };
-                            // Calculate how many 30-minute slots this booking spans
-                            const slotsSpanned = Math.ceil(booking.duration / 30);
-                          
-                          // Determine if booking is in the past
-                          const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
-                          const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
-                          
-                          // Style based on status and time
-                          let bgOpacity = 0.9;
-                          let borderWidth = 4;
-                          let textColor = 'text-white';
-                          
-                          if (booking.status === 'completed' || isPast) {
+                          } else if (booking.status === 'completed') {
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
-                          } else if (booking.status === 'cancelled') {
-                            bgOpacity = 0.2;
+                          } else if (isPast) {
+                            // Only fade confirmed bookings if they're in the past
+                            bgOpacity = 0.3;
                             borderWidth = 3;
-                            textColor = 'text-gray-500';
-                          } else if (booking.status === 'no-show') {
-                            bgOpacity = 0.2;
-                            borderWidth = 3;
-                            textColor = 'text-gray-500';
+                            textColor = 'text-gray-700';
                           }
-                          
-                          const bgColor = staff.color;
+                          // Otherwise keep default solid style for confirmed/in-progress bookings that are current/future
                           
                           // Helper to convert hex to rgba
                           const hexToRgba = (hex: string, opacity: number) => {
@@ -700,8 +579,12 @@ export function DailyView({
                                 top: '2px',
                                 left: `${layout.left}%`,
                                 width: `calc(${layout.width}% - 4px)`,
-                                marginLeft: '2px'
-                              } : { top: '2px' }}
+                                marginLeft: '2px',
+                                maxWidth: 'calc(100% - 8px)'
+                              } : { 
+                                top: '2px',
+                                maxWidth: 'calc(100% - 8px)'
+                              }}
                             >
                               <div 
                                 className={cn(
@@ -741,10 +624,200 @@ export function DailyView({
                                 <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
                                   {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                 </div>
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900")}>
+                                {/* Completed indicator */}
+                                {booking.status === 'completed' && (
+                                  <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                  </div>
+                                )}
+                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", booking.status === 'completed' && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90")}>
+                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", booking.status === 'completed' && "pl-5")}>
+                                  {booking.serviceName}
+                                </div>
+                              </div>
+                            </DraggableBooking>
+                          );
+                          });
+                        })()}
+                      </DroppableTimeSlot>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Staff columns */}
+              {visibleStaff.map((staff, staffIndex) => (
+                <div key={staff.id}>
+                  {timeSlots.map((slot, slotIndex) => {
+                    const slotBookings = bookingsByStaff.get(staff.id)?.filter(booking => 
+                      booking.time === slot.time
+                    ) || [];
+                    
+                    return (
+                      <DroppableTimeSlot
+                        key={`${staff.id}-${slot.time}`}
+                        id={`day_${format(state.currentDate, 'yyyy-MM-dd')}_${slot.time}_${staff.id}`}
+                        date={format(state.currentDate, 'yyyy-MM-dd')}
+                        time={slot.time}
+                        staffId={staff.id}
+                        className={cn(
+                          "h-[60px] cursor-pointer relative transition-colors duration-100 overflow-hidden",
+                          staffIndex < visibleStaff.length - 1 && "border-r border-gray-100",
+                          !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
+                          (() => {
+                            // Match the border styling from time column using shadows
+                            if (state.timeInterval === 60) {
+                              return slot.minute === 0 ? "shadow-[inset_0_1px_0_0_rgb(209,213,219)]" : "";
+                            } else if (state.timeInterval === 30) {
+                              if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
+                              if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
+                              return "";
+                            } else {
+                              if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
+                              if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
+                              return "shadow-[inset_0_1px_0_0_rgb(243,244,246)]";
+                            }
+                          })()
+                        )}
+                        onClick={() => onTimeSlotClick(state.currentDate, slot.time, staff.id)}
+                      >
+                        {/* Only show bookings that start at this exact time slot */}
+                        {(() => {
+                          const startingBookings = slotBookings.filter(booking => booking.time === slot.time);
+                          
+                          if (startingBookings.length === 0) return null;
+                          
+                          // Get ALL bookings for this staff member to check for overlaps
+                          const allStaffBookings = bookingsByStaff.get(staff.id) || [];
+                          
+                          return startingBookings.map((booking) => {
+                            // Check for any bookings that overlap with this booking's time range
+                            const [bookingHour, bookingMin] = booking.time.split(':').map(Number);
+                            const bookingStart = bookingHour * 60 + bookingMin;
+                            const bookingEnd = bookingStart + booking.duration;
+                            
+                            const overlappingBookings = allStaffBookings.filter(other => {
+                              const [otherHour, otherMin] = other.time.split(':').map(Number);
+                              const otherStart = otherHour * 60 + otherMin;
+                              const otherEnd = otherStart + other.duration;
+                              
+                              // Check if they overlap
+                              return otherStart < bookingEnd && otherEnd > bookingStart;
+                            });
+                            
+                            const hasOverlaps = overlappingBookings.length > 1;
+                            const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
+                            const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
+                            
+                            // Calculate how many time slots this booking spans based on interval
+                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
+                          
+                          // Determine if booking is in the past
+                          const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
+                          const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
+                          
+                          // Style based on status and time
+                          let bgOpacity = 0.9;
+                          let borderWidth = 4;
+                          let textColor = 'text-white';
+                          
+                          // Check status first
+                          if (booking.status === 'cancelled') {
+                            bgOpacity = 0.2;
+                            borderWidth = 3;
+                            textColor = 'text-gray-500';
+                          } else if (booking.status === 'no-show') {
+                            bgOpacity = 0.2;
+                            borderWidth = 3;
+                            textColor = 'text-gray-500';
+                          } else if (booking.status === 'completed') {
+                            bgOpacity = 0.3;
+                            borderWidth = 3;
+                            textColor = 'text-gray-700';
+                          } else if (isPast) {
+                            // Only fade confirmed bookings if they're in the past
+                            bgOpacity = 0.3;
+                            borderWidth = 3;
+                            textColor = 'text-gray-700';
+                          }
+                          // Otherwise keep default solid style for confirmed/in-progress bookings that are current/future
+                          
+                          const bgColor = staff.color;
+                          
+                          // Helper to convert hex to rgba
+                          const hexToRgba = (hex: string, opacity: number) => {
+                            const r = parseInt(hex.slice(1, 3), 16);
+                            const g = parseInt(hex.slice(3, 5), 16);
+                            const b = parseInt(hex.slice(5, 7), 16);
+                            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                          };
+                          
+                          return (
+                            <DraggableBooking
+                              key={booking.id}
+                              id={booking.id}
+                              className={hasOverlaps ? "absolute" : "absolute inset-x-1"}
+                              style={hasOverlaps ? { 
+                                top: '2px',
+                                left: `${layout.left}%`,
+                                width: `calc(${layout.width}% - 4px)`,
+                                marginLeft: '2px',
+                                maxWidth: 'calc(100% - 8px)'
+                              } : { 
+                                top: '2px',
+                                maxWidth: 'calc(100% - 8px)'
+                              }}
+                            >
+                              <div 
+                                className={cn(
+                                  "text-xs overflow-hidden cursor-pointer rounded relative z-10",
+                                  textColor,
+                                  booking.status === 'cancelled' && 'line-through',
+                                  booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
+                                  !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
+                                )}
+                                style={{
+                                  height: `${slotsSpanned * 60 - 4}px`,
+                                  backgroundColor: hexToRgba(bgColor, bgOpacity),
+                                  borderLeft: `${borderWidth}px solid ${bgColor}`,
+                                  paddingLeft: `${borderWidth + 2}px`,
+                                  paddingRight: '4px',
+                                  paddingTop: '2px',
+                                  paddingBottom: '2px',
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!activeBooking) {
+                                    onBookingClick(booking);
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  setHoveredBookingId(booking.id);
+                                  setTooltipPosition({ x: e.clientX, y: e.clientY });
+                                }}
+                                onMouseLeave={() => setHoveredBookingId(null)}
+                                onMouseMove={(e) => {
+                                  if (hoveredBookingId === booking.id) {
+                                    setTooltipPosition({ x: e.clientX, y: e.clientY });
+                                  }
+                                }}
+                              >
+                                {/* Time and duration in top right */}
+                                <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
+                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                </div>
+                                {/* Completed indicator */}
+                                {booking.status === 'completed' && (
+                                  <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                  </div>
+                                )}
+                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", booking.status === 'completed' && "pl-5")}>
+                                  {booking.customerName}
+                                </div>
+                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", booking.status === 'completed' && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>

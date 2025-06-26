@@ -1,5 +1,34 @@
 # CLAUDE CODE MANDATORY TASK CHECKLISTS
 
+## 🔥 CRITICAL: BEFORE MODIFYING ANY API CLIENT
+
+### ⚠️ API Base URL Check (PREVENTS BREAKING LOGIN)
+**File**: `/apps/merchant-app/src/lib/clients/base-client.ts`
+
+```typescript
+// ALWAYS verify this line FIRST:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+//                                                                            ^^^^
+//                                                         MUST include /api path!
+```
+
+### Test BEFORE Making Changes:
+```bash
+# 1. Test current login works
+curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"HAMILTON","password":"demo123"}'
+
+# 2. If returns 200 with token, DO NOT change API_BASE_URL
+# 3. If returns 404, check if /api is missing
+```
+
+### Common Mistakes That Break Everything:
+- ❌ Removing `/api` from base URL
+- ❌ Adding version to base URL (like `/api/v1`)
+- ❌ Changing URL structure without testing
+- ❌ Assuming backend paths don't need `/api` prefix
+
 ## 🚨 QUICK FIX: Common Prisma Database Errors
 
 ### "Column does not exist" Error
@@ -213,6 +242,11 @@ When something isn't working:
 ### PHASE 1: UNDERSTAND THE PROBLEM
 - [ ] Read the COMPLETE error message (not just the first line)
 - [ ] Identify error type: Compilation? Runtime? Logic? Network?
+- [ ] **CHECK BROWSER DEVTOOLS NETWORK TAB FIRST!** 
+  - [ ] Look at the actual URL being called
+  - [ ] Check request headers and payload
+  - [ ] Note the exact error response
+  - [ ] This would have shown "/v1/auth/merchant/login" missing "/api" immediately!
 - [ ] Check if services are running: `ps aux | grep -E "node|nest|next" | grep -v grep`
 - [ ] Note the exact file and line number if provided
 
@@ -250,6 +284,57 @@ When something isn't working:
 - [ ] Test related functionality
 - [ ] Clean up any debug code
 - [ ] Document the fix if non-obvious
+
+### 🚨 PROCESS MANAGEMENT (AVOID 2-HOUR DEBUGGING SESSIONS)
+- [ ] **CHECK WHAT'S ACTUALLY RUNNING FIRST**:
+  ```bash
+  ps aux | grep -E "node|next|nest" | grep -v grep
+  ```
+- [ ] **IDENTIFY SPECIFIC PROCESSES BY PORT**:
+  ```bash
+  lsof -ti:3000  # API
+  lsof -ti:3002  # Merchant app
+  ```
+- [ ] **CLEAN RESTART PROCEDURE**:
+  1. Kill ONLY the specific process (NOT all npm/node):
+     ```bash
+     # ✅ SAFE: Kill by specific port
+     lsof -ti:3002 | xargs kill -9
+     # ✅ SAFE: Kill specific process pattern
+     pkill -f "next dev.*3002"
+     # ❌ DANGEROUS: Kills Claude Code!
+     pkill -f "npm"  # NEVER USE THIS!
+     ```
+  2. Wait for port to clear:
+     ```bash
+     sleep 3
+     ```
+  3. Start cleanly from correct directory:
+     ```bash
+     cd apps/merchant-app && npm run dev
+     ```
+- [ ] **WHEN MULTIPLE PROCESSES CONFLICT**:
+  - Check logs to see restart loops ("address already in use")
+  - Kill ALL instances of that specific app
+  - Don't try to restart while another is still starting
+
+### 🔧 ENVIRONMENT VARIABLE DEBUGGING
+- [ ] **CHECK .env FILES BEFORE CHANGING CODE**:
+  ```bash
+  # Check all env files in the app
+  ls -la apps/merchant-app/.env*
+  cat apps/merchant-app/.env.local | grep API_URL
+  ```
+- [ ] **COMMON ENV VARIABLE MISTAKES**:
+  - Missing `/api` in API URL: `NEXT_PUBLIC_API_URL=http://localhost:3000` ❌
+  - Correct format: `NEXT_PUBLIC_API_URL=http://localhost:3000/api` ✅
+- [ ] **VERIFY ENV VARIABLES ARE LOADED**:
+  - Next.js shows loaded env files on startup
+  - Check the startup logs: "Environments: .env.local, .env.development"
+- [ ] **WHEN CODE LOOKS RIGHT BUT DOESN'T WORK**:
+  1. Check if env variable overrides the code default
+  2. Test with hardcoded value temporarily
+  3. If that works, it's definitely an env issue
 ```
 
 ## 🧪 TESTING CHECKLIST
@@ -455,6 +540,34 @@ When everything is broken:
 - [ ] Proceed with debugging checklist
 - [ ] Document what went wrong
 ```
+
+## 🏃 QUICK DEBUGGING WINS (DO THESE FIRST!)
+
+Before diving into complex debugging:
+
+### 1. **BROWSER DEVTOOLS NETWORK TAB** (Solves 50% of API issues)
+   - Open DevTools → Network tab
+   - Try the failing operation
+   - Look at the ACTUAL request URL (not what you think it is)
+   - Check response status and body
+   - **Example**: Would have shown `/v1/auth/merchant/login` instead of `/api/v1/auth/merchant/login` immediately
+
+### 2. **CHECK WHAT'S ACTUALLY RUNNING**
+   ```bash
+   ps aux | grep -E "node|nest|next" | grep -v grep
+   ```
+
+### 3. **CHECK ENV VARIABLES**
+   ```bash
+   cat apps/merchant-app/.env.local | grep API
+   ```
+
+### 4. **CHECK RECENT CHANGES**
+   ```bash
+   git status && git diff
+   ```
+
+These 4 steps would have solved the 2-hour debugging session in 2 minutes!
 
 ## 📝 UNIVERSAL RULES
 

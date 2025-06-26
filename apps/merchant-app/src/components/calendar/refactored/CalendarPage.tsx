@@ -21,6 +21,7 @@ import { Badge } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@heya-pos/ui';
 import { Separator } from '@heya-pos/ui';
+import { useToast } from '@heya-pos/ui';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -50,6 +51,7 @@ export function CalendarPage() {
 // Inner component that has access to calendar context
 function CalendarContent() {
   const { state, actions } = useCalendar();
+  const { toast } = useToast();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigateToToday,
@@ -199,9 +201,21 @@ function CalendarContent() {
       
       actions.addBooking(transformedBooking);
       actions.closeBookingSlideOut();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create booking:', error);
-      // Show error toast
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        bookingData
+      });
+      
+      // Show error toast with specific message
+      toast({
+        title: 'Failed to create booking',
+        description: error.response?.data?.message || error.message || 'Please try again',
+        variant: 'destructive',
+      });
     }
   }, [actions]);
   
@@ -621,7 +635,11 @@ function CalendarContent() {
               <WeeklyView
                 onBookingClick={handleBookingClick}
                 onTimeSlotClick={handleTimeSlotClick}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
                 onDragEnd={handleDragEndEvent}
+                activeBooking={activeBooking}
+                dragOverSlot={dragOverSlot}
               />
             )}
             {currentView === 'month' && (
