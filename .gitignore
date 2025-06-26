@@ -87,6 +87,15 @@ handoff.md
 # Testing
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+playwright/.cache/
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.mp4
+screenshots/
 
 # Debug and test files
 apps/merchant-app/src/app/test-*/
