@@ -44,6 +44,7 @@
     "promote:production": "git checkout main && git merge staging && git push origin main"
   },
   "devDependencies": {
+    "@playwright/test": "^1.53.1",
     "concurrently": "^8.2.2",
     "madge": "^8.0.0",
     "playwright": "^1.53.0",
