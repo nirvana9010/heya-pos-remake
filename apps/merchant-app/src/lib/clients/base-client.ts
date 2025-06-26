@@ -199,12 +199,26 @@ export class BaseApiClient {
   }
 
   private redirectToLogin() {
-    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+    if (typeof window !== 'undefined') {
+      // Check if already redirecting
+      if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+        console.log('[BaseClient] Redirect already in progress, skipping');
+        throw new Error('UNAUTHORIZED_REDIRECT');
+      }
+      
+      // Don't redirect if already on login page
+      if (window.location.pathname.includes('/login')) {
+        throw new Error('UNAUTHORIZED_REDIRECT');
+      }
+      
       // Set a flag to prevent further API calls
       (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
       
-      // Use replace to prevent back button issues and redirect immediately
-      window.location.replace('/login');
+      // Emit a custom event that the AuthGuard can listen to
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      
+      // Clear auth data but let AuthGuard handle the redirect
+      this.clearAuthData();
       
       // Throw a special error to stop execution
       throw new Error('UNAUTHORIZED_REDIRECT');

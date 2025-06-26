@@ -105,6 +105,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
   }, []);
 
+  // Listen for unauthorized events from API client
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      console.log('[AuthProvider] Received unauthorized event, clearing auth');
+      clearAuthData();
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: false,
+        user: null,
+        merchant: null,
+        tokenExpiresAt: null,
+        error: 'Session expired. Please login again.'
+      }));
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
   // Set up automatic token refresh
   useEffect(() => {
     if (authState.isAuthenticated && authState.tokenExpiresAt) {

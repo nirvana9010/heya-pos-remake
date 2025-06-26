@@ -97,11 +97,10 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Step 5: Start Merchant App
-echo -e "\n${YELLOW}Step 5: Starting Merchant App on port $MERCHANT_PORT...${NC}"
+# Step 5: Start Merchant App (with zombie cleanup)
+echo -e "\n${YELLOW}Step 5: Starting Merchant App on port $MERCHANT_PORT with zombie cleanup...${NC}"
 cd apps/merchant-app
-NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/merchant.log 2>&1 &
-MERCHANT_PID=$!
+./dev-service.sh start
 cd ../..
 
 # Step 6: Start Booking App
@@ -118,9 +117,8 @@ NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/admi
 ADMIN_PID=$!
 cd ../..
 
-# Create PID file for easy shutdown
+# Create PID file for easy shutdown (merchant managed by its own service)
 echo "API_PID=$API_PID" > .pids
-echo "MERCHANT_PID=$MERCHANT_PID" >> .pids
 echo "BOOKING_PID=$BOOKING_PID" >> .pids
 echo "ADMIN_PID=$ADMIN_PID" >> .pids
 

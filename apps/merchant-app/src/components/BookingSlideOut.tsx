@@ -208,7 +208,7 @@ export function BookingSlideOut({
                       id="customerPhone"
                       value={formData.customerPhone}
                       onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="0400 123 456"
                       className="mt-1"
                     />
                   </div>
