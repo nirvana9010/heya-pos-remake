@@ -53,6 +53,7 @@ export const cacheConfigs: Record<string, CacheConfig> = {
     cacheKey: (params) => {
       const key = ['customers'];
       if (params.search) key.push(params.search);
+      if (params.q) key.push(params.q); // Handle search query parameter
       if (params.page) key.push(params.page);
       return key.join(':');
     },

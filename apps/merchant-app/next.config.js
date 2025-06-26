@@ -39,6 +39,19 @@ const nextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           }
         ]
       },
@@ -72,6 +85,19 @@ const nextConfig = {
     // Fix for ChunkLoadError
     if (!isServer) {
       config.output.publicPath = '/_next/';
+      
+      // Increase chunk load timeout
+      config.output.chunkLoadTimeout = 120000; // 2 minutes
+      
+      // Force webpack runtime to use correct public path
+      config.output.hotUpdateChunkFilename = 'static/webpack/[id].[fullhash].hot-update.js';
+      config.output.hotUpdateMainFilename = 'static/webpack/[runtime].[fullhash].hot-update.json';
+      
+      // Better chunk naming for cache busting
+      if (!dev) {
+        config.output.filename = 'static/chunks/[name].[contenthash].js';
+        config.output.chunkFilename = 'static/chunks/[name].[contenthash].js';
+      }
     }
     // Resolve @heya-pos/ui to its dist folder
     config.resolve.alias = {
@@ -163,6 +189,9 @@ const nextConfig = {
       
       // Add webpack runtime optimization
       config.optimization.minimize = true;
+      
+      // Add retry logic for chunk loading
+      config.output.crossOriginLoading = 'anonymous';
     }
     
     // Fix module resolution for monorepo

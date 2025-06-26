@@ -47,7 +47,7 @@ export function CustomerSearchInput({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [hasMoreResults, setHasMoreResults] = useState(false);
@@ -61,9 +61,17 @@ export function CustomerSearchInput({
     }
 
     setIsSearching(true);
+    // Clear any existing results before starting new search
+    setSearchResults([]);
     try {
+      console.log('🔍 CustomerSearchInput: Starting search for:', query);
+      console.log('🔍 CustomerSearchInput: apiClient available?', !!apiClient);
+      console.log('🔍 CustomerSearchInput: apiClient.searchCustomers available?', !!apiClient?.searchCustomers);
+      
       // Use the dedicated search endpoint for better performance
       const response = await apiClient.searchCustomers(query);
+      
+      console.log('✅ CustomerSearchInput: API call succeeded, response:', response);
       
       const results = response?.data || [];
       
@@ -76,8 +84,15 @@ export function CustomerSearchInput({
       setSearchResults(normalizedResults);
       setHasMoreResults(response?.hasMore || false);
     } catch (error: any) {
-      console.error('Customer search failed:', error);
+      console.error('❌ CustomerSearchInput: Customer search failed:', error);
+      console.error('❌ CustomerSearchInput: Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response,
+        config: error?.config
+      });
       // Fall back to filtering provided customers
+      console.log('⚠️ CustomerSearchInput: Falling back to filtering', fallbackCustomers.length, 'pre-loaded customers');
       const filtered = fallbackCustomers.filter(c => {
         const name = c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim();
         return name.toLowerCase().includes(query.toLowerCase()) ||
@@ -93,18 +108,27 @@ export function CustomerSearchInput({
 
   // Debounced search
   useEffect(() => {
+    console.log('🔄 CustomerSearchInput useEffect triggered:', { searchQuery, value: !!value });
+    
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
     if (searchQuery && !value) {
+      console.log('🟢 Setting up search for:', searchQuery);
       setShowDropdown(true);
+      // Clear previous results immediately when query changes
+      setSearchResults([]);
       searchTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ Timeout fired, searching for:', searchQuery);
         searchCustomers(searchQuery);
       }, 300);
     } else if (!searchQuery) {
+      console.log('🔴 Clearing search');
       setSearchResults([]);
       setShowDropdown(false);
+    } else {
+      console.log('🟡 Skipping search (value is set)');
     }
 
     return () => {
@@ -117,7 +141,7 @@ export function CustomerSearchInput({
   // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
@@ -159,6 +183,7 @@ export function CustomerSearchInput({
   const handleSelect = (customer: Customer) => {
     onSelect(customer);
     setSearchQuery('');
+    setSearchResults([]); // Clear search results after selection
     setShowDropdown(false);
     setHighlightedIndex(-1);
   };
@@ -178,7 +203,7 @@ export function CustomerSearchInput({
   };
 
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
+    <div className={cn("relative", className)} ref={containerRef}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
@@ -221,7 +246,9 @@ export function CustomerSearchInput({
 
       {/* Search Results Dropdown */}
       {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto">
+        <div 
+          key={searchQuery}
+          className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto">
           {searchQuery.length < 2 ? (
             <div className="px-4 py-3 text-sm text-gray-500">
               Type at least 2 characters to search...
@@ -229,7 +256,7 @@ export function CustomerSearchInput({
           ) : isSearching ? (
             <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Searching...
+              Searching for "{searchQuery}"...
             </div>
           ) : searchResults.length === 0 ? (
             <div className="px-4 py-3">
@@ -265,14 +292,14 @@ export function CustomerSearchInput({
                   <span className="text-teal-700">Create new customer "{searchQuery}"</span>
                 </button>
               )}
-              {searchResults.map((customer, index) => {
+              {searchResults.slice().map((customer, index) => {
                 const name = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
                 const phone = customer.mobile || customer.phone;
                 const isHighlighted = index === highlightedIndex;
                 
                 return (
                   <button
-                    key={customer.id}
+                    key={`${searchQuery}-${customer.id}`}
                     type="button"
                     onClick={() => handleSelect(customer)}
                     className={cn(

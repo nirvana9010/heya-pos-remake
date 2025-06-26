@@ -37,6 +37,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
+  // Early return for static assets and Next.js internals
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.includes('.') // Files with extensions
+  ) {
+    return NextResponse.next()
+  }
+  
   // Skip auth check for public routes
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
@@ -89,13 +98,26 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get('authToken')?.value
     
     if (token) {
-      const payload = await verifyToken(token, request)
-      
-      // Only redirect if token is valid and not expired
-      if (payload && payload.exp && payload.exp > Date.now() / 1000) {
-        return NextResponse.redirect(new URL('/calendar', request.url))
-      } else {
-        // Token is invalid/expired, clear the cookie
+      try {
+        const payload = await verifyToken(token, request)
+        
+        // Only redirect if token is valid and not expired
+        if (payload && payload.exp && payload.exp > Date.now() / 1000) {
+          // Check if we're coming from a failed auth redirect
+          const from = request.nextUrl.searchParams.get('from')
+          if (from) {
+            // Don't redirect if we were just sent here
+            return NextResponse.next()
+          }
+          return NextResponse.redirect(new URL('/calendar', request.url))
+        } else {
+          // Token is invalid/expired, clear the cookie
+          const response = NextResponse.next()
+          response.cookies.delete('authToken')
+          return response
+        }
+      } catch (error) {
+        // If verification fails, clear the cookie and proceed
         const response = NextResponse.next()
         response.cookies.delete('authToken')
         return response

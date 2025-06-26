@@ -5,11 +5,35 @@
  * to prevent the app from crashing when chunks fail to load.
  */
 
+// Webpack chunk timeout configuration
+declare global {
+  interface Window {
+    __webpack_require__?: any;
+    __CHUNK_ERROR_HANDLER_ACTIVE__?: boolean;
+  }
+}
+
 export function setupChunkErrorHandler() {
   if (typeof window === 'undefined') return;
+  
+  // Prevent multiple installations
+  if (window.__CHUNK_ERROR_HANDLER_ACTIVE__) return;
+  window.__CHUNK_ERROR_HANDLER_ACTIVE__ = true;
+
+  // Increase webpack chunk load timeout (default is often too low)
+  if (window.__webpack_require__ && window.__webpack_require__.l) {
+    const originalLoader = window.__webpack_require__.l;
+    window.__webpack_require__.l = function(url: string, done: any, key: any, chunkId: any) {
+      // Set a longer timeout for chunk loading (30 seconds instead of default)
+      const script = document.createElement('script');
+      script.timeout = 30000;
+      return originalLoader.call(this, url, done, key, chunkId);
+    };
+  }
 
   // Track failed chunks to avoid infinite loops
   const failedChunks = new Set<string>();
+  const retryAttempts = new Map<string, number>();
 
   // Override webpack's chunk loading error handler
   const originalError = window.onerror;
@@ -31,12 +55,31 @@ export function setupChunkErrorHandler() {
         // Show user-friendly notification
         showChunkErrorNotification();
 
-        // Try to recover by reloading the page after a delay
-        setTimeout(() => {
-          if (window.confirm('Some resources failed to load. Would you like to reload the page?')) {
-            window.location.reload();
+        // Try to recover automatically
+        const attempts = retryAttempts.get(chunkName) || 0;
+        retryAttempts.set(chunkName, attempts + 1);
+        
+        if (attempts < 3) {
+          console.log(`[ChunkErrorHandler] Attempting to retry chunk ${chunkName} (attempt ${attempts + 1}/3)`);
+          
+          // Clear webpack cache for this chunk if possible
+          if (window.__webpack_require__ && window.__webpack_require__.cache) {
+            delete window.__webpack_require__.cache[chunkName];
           }
-        }, 2000);
+          
+          // Auto-reload after a short delay without confirmation
+          setTimeout(() => {
+            console.log('[ChunkErrorHandler] Auto-reloading page...');
+            window.location.reload();
+          }, 1500);
+        } else {
+          // After 3 attempts, ask user
+          setTimeout(() => {
+            if (window.confirm('Some resources failed to load after multiple attempts. Would you like to reload the page?')) {
+              window.location.reload();
+            }
+          }, 2000);
+        }
 
         // Prevent the error from propagating
         return true;
@@ -55,13 +98,56 @@ export function setupChunkErrorHandler() {
   window.addEventListener('unhandledrejection', (event) => {
     if (
       event.reason?.name === 'ChunkLoadError' ||
-      event.reason?.message?.includes('Loading chunk')
+      event.reason?.message?.includes('Loading chunk') ||
+      event.reason?.message?.includes('Failed to fetch dynamically imported module')
     ) {
       console.warn('[ChunkErrorHandler] Unhandled chunk loading rejection:', event.reason);
       event.preventDefault();
-      showChunkErrorNotification();
+      
+      // Extract chunk info and retry
+      const chunkInfo = event.reason?.message || '';
+      const chunkName = chunkInfo.match(/chunk ([\w\/.-]+)/)?.[1] || 'unknown';
+      
+      if (!failedChunks.has(chunkName)) {
+        failedChunks.add(chunkName);
+        const attempts = retryAttempts.get(chunkName) || 0;
+        
+        if (attempts < 2) {
+          retryAttempts.set(chunkName, attempts + 1);
+          showChunkErrorNotification();
+          
+          // Auto-reload for dynamic import failures
+          setTimeout(() => {
+            console.log('[ChunkErrorHandler] Auto-reloading due to dynamic import failure...');
+            window.location.reload();
+          }, 1500);
+        }
+      }
     }
   });
+  
+  // Add service worker update handler to clear cache on updates
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.addEventListener('updatefound', () => {
+        console.log('[ChunkErrorHandler] Service worker update found, preparing for refresh...');
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              // Clear caches and reload
+              caches.keys().then(names => {
+                Promise.all(names.map(name => caches.delete(name))).then(() => {
+                  console.log('[ChunkErrorHandler] Caches cleared, reloading...');
+                  window.location.reload();
+                });
+              });
+            }
+          });
+        }
+      });
+    });
+  }
 }
 
 function showChunkErrorNotification() {
