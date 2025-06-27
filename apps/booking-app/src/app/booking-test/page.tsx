@@ -94,11 +94,30 @@ export default function BookingTestPage() {
       testDate.setDate(testDate.getDate() + 30);
       const dateStr = testDate.toISOString().split('T')[0];
       
-      const availabilityRes = await api.post('/v1/public/bookings/check-availability', {
+      console.log('Checking availability with:', {
         date: dateStr,
         serviceId: service.id,
-        staffId: staff.id
+        staffId: staff.id,
+        subdomain: merchantSubdomain
       });
+      
+      let availabilityRes;
+      try {
+        availabilityRes = await api.post('/v1/public/bookings/check-availability', {
+          date: dateStr,
+          serviceId: service.id,
+          staffId: staff.id
+        });
+      
+        console.log('Availability response:', availabilityRes.data);
+      } catch (error: any) {
+        console.error('Availability check failed:', error.response?.data || error.message);
+        updateStep(2, { 
+          status: 'error', 
+          message: error.response?.data?.message || error.message
+        });
+        throw error;
+      }
       
       const availableSlots = availabilityRes.data.slots.filter((s: any) => s.available);
       const slot = availableSlots.find((s: any) => s.time === '14:00') || availableSlots[0];
