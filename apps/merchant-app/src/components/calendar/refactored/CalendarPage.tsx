@@ -30,7 +30,8 @@ import {
   Plus,
   RefreshCw,
   Filter,
-  Users
+  Users,
+  CheckCircle2
 } from 'lucide-react';
 import { BookingSlideOut } from '@/components/BookingSlideOut';
 import { BookingDetailsSlideOut } from '@/components/BookingDetailsSlideOut';
@@ -38,6 +39,8 @@ import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
 import type { Booking, BookingStatus } from './types';
+import { getAvailableStaff, ensureValidStaffId, isValidStaffId } from '@/lib/services/mock-availability.service';
+import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -188,17 +191,89 @@ function CalendarContent() {
       }
       
       // Create booking via V2 API with correct format
-      const newBooking = await apiClient.createBooking({
+      // CRITICAL: Resolve staff assignment before API call
+      let finalStaffId: string;
+      
+      console.log('🔍 [CalendarPage] Processing booking with staffId:', {
+        value: bookingData.staffId,
+        type: typeof bookingData.staffId,
+        isNextAvailable: bookingData.staffId === NEXT_AVAILABLE_STAFF_ID,
+        isValid: isValidStaffId(bookingData.staffId)
+      });
+      
+      try {
+        // Check if we already have a valid staff ID
+        if (isValidStaffId(bookingData.staffId)) {
+          finalStaffId = bookingData.staffId;
+          console.log('✅ [CalendarPage] Using provided valid staffId:', finalStaffId);
+        } else {
+          // Need to resolve "Next Available" or handle invalid staffId
+          console.log('🔄 [CalendarPage] Resolving staff assignment...');
+          
+          // Get the service to know the duration
+          const service = state.services.find(s => s.id === bookingData.serviceId);
+          if (!service) {
+            throw new Error('Service not found. Please refresh and try again.');
+          }
+          
+          // Transform bookings for availability check
+          const bookingsForAvailability = state.bookings.map(b => {
+            const startTime = new Date(`${b.date}T${b.time}`);
+            const endTime = new Date(startTime.getTime() + b.duration * 60000);
+            return {
+              ...b,
+              startTime,
+              endTime
+            };
+          });
+          
+          // Get available staff with auto-assignment
+          const availabilityResult = await getAvailableStaff(
+            bookingData.serviceId,
+            bookingData.startTime,
+            service.duration,
+            state.staff,
+            bookingsForAvailability
+          );
+          
+          // Use the enhanced service to ensure valid staff ID
+          finalStaffId = ensureValidStaffId(null, availabilityResult.assignedStaff);
+          console.log(`✅ [CalendarPage] Auto-assigned to: ${availabilityResult.assignedStaff?.name}`);
+        }
+      } catch (error) {
+        // Enhanced error handling
+        console.error('❌ [CalendarPage] Staff assignment failed:', error);
+        throw new Error(
+          error instanceof Error ? 
+            error.message : 
+            'Unable to assign staff. Please select a specific staff member.'
+        );
+      }
+      
+      // Final validation - MUST have a valid UUID at this point
+      if (!isValidStaffId(finalStaffId)) {
+        console.error('❌ [CalendarPage] Final validation failed:', {
+          finalStaffId,
+          type: typeof finalStaffId
+        });
+        throw new Error('System error: Invalid staff assignment. Please try again.');
+      }
+      
+      // Prepare the booking request data
+      const bookingRequest = {
         customerId: bookingData.customerId,
         locationId: locationId,
         services: [{
           serviceId: bookingData.serviceId,
-          staffId: bookingData.staffId || undefined
+          staffId: finalStaffId
         }],
-        staffId: bookingData.staffId || undefined,
+        staffId: finalStaffId,
         startTime: bookingData.startTime.toISOString(),
         notes: bookingData.notes || '',
-      });
+      };
+      
+      
+      const newBooking = await apiClient.createBooking(bookingRequest);
       
       // Transform and add to local state
       // The response is already transformed by the bookings client
@@ -226,6 +301,30 @@ function CalendarContent() {
       
       actions.addBooking(transformedBooking);
       actions.closeBookingSlideOut();
+      
+      // Show success toast with icon
+      const toastMessage = (
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+          <div>
+            <p className="font-semibold">Booking created successfully!</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {transformedBooking.customerName} • {format(startTime, 'h:mm a')}
+            </p>
+            <p className="text-sm text-gray-500">
+              {transformedBooking.serviceName} with {transformedBooking.staffName}
+            </p>
+          </div>
+        </div>
+      );
+      
+      toast({
+        title: "",
+        description: toastMessage,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+        duration: 5000,
+      });
     } catch (error: any) {
       console.error('Failed to create booking:', error);
       console.error('Error details:', {
@@ -699,10 +798,11 @@ function CalendarContent() {
         onClose={handleBookingSlideOutClose}
         initialDate={bookingSlideOutData?.date}
         initialTime={initialTime}
-        initialStaffId={bookingSlideOutData?.staffId || ''}
+        initialStaffId={bookingSlideOutData?.staffId || null}
         staff={memoizedStaff}
         services={memoizedServices}
         customers={memoizedCustomers}
+        bookings={state.bookings}
         onSave={handleBookingSlideOutSave}
       />
       

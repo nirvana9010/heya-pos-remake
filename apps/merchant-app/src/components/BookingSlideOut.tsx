@@ -12,7 +12,8 @@ import {
   Mail,
   AlertCircle,
   CheckCircle,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -26,6 +27,8 @@ import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
+import { getAvailableStaff, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/mock-availability.service";
+import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -36,6 +39,7 @@ interface BookingSlideOutProps {
   staff: Array<{ id: string; name: string; color: string }>;
   services: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
   customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
+  bookings?: Array<any>; // For availability checking
   onSave: (booking: any) => void;
 }
 
@@ -50,8 +54,14 @@ export function BookingSlideOut({
   staff,
   services,
   customers = [],
+  bookings = [],
   onSave
 }: BookingSlideOutProps) {
+  console.log('🎭 [BookingSlideOut] Component rendered with props:', {
+    isOpen,
+    initialStaffId,
+    hasOnSave: !!onSave
+  });
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
   const [defaultTime] = useState(() => {
@@ -68,12 +78,18 @@ export function BookingSlideOut({
     customerEmail: "",
     isNewCustomer: true,
     serviceId: "",
-    staffId: initialStaffId || "",
+    staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
     date: initialDate || defaultDate,
     time: initialTime || defaultTime,
     notes: "",
     sendReminder: true
   });
+  
+  const [availableStaff, setAvailableStaff] = useState<typeof staff>([]);
+  const [unavailableStaff, setUnavailableStaff] = useState<Array<{ staff: typeof staff[0]; reason: string }>>([]);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState<string>("");
+  const [nextAvailableStaff, setNextAvailableStaff] = useState<typeof staff[0] | null>(null);
 
 
   // Reset to first step and update initial values when dialog opens
@@ -85,10 +101,76 @@ export function BookingSlideOut({
         ...prev,
         date: initialDate || defaultDate,
         time: initialTime || defaultTime,
-        staffId: initialStaffId || ''
+        staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID
       }));
     }
   }, [isOpen, initialDate, initialTime, initialStaffId, defaultDate, defaultTime]);
+  
+  // Check staff availability when service and datetime are selected
+  useEffect(() => {
+    const checkAvailability = async () => {
+      // Check availability even without service (use default duration)
+      if (!formData.date || !formData.time) {
+        setAvailableStaff(staff);
+        setUnavailableStaff([]);
+        setAvailabilityMessage("");
+        setNextAvailableStaff(null);
+        return;
+      }
+      
+      setIsCheckingAvailability(true);
+      
+      try {
+        // Get duration from selected service or use default
+        let duration = 30; // Default 30 minutes when no service selected
+        if (formData.serviceId) {
+          const service = services.find(s => s.id === formData.serviceId);
+          if (service) {
+            duration = service.duration;
+          }
+        }
+        
+        // Combine date and time
+        const startTime = new Date(formData.date);
+        startTime.setHours(formData.time.getHours());
+        startTime.setMinutes(formData.time.getMinutes());
+        startTime.setSeconds(0);
+        startTime.setMilliseconds(0);
+        
+        // Check availability (serviceId can be empty, we just need it for the check)
+        const result = await getAvailableStaff(
+          formData.serviceId || 'default',
+          startTime,
+          duration,
+          staff,
+          bookings
+        );
+        
+        setAvailableStaff(result.available);
+        setUnavailableStaff(result.unavailable);
+        setAvailabilityMessage(formatAvailabilityMessage(result));
+        
+        // Set the auto-assigned staff if using "Next Available"
+        if (isNextAvailableStaff(formData.staffId)) {
+          setNextAvailableStaff(result.assignedStaff || null);
+        } else {
+          setNextAvailableStaff(null);
+        }
+        
+        // If the currently selected staff is not available, clear selection
+        if (formData.staffId && 
+            !isNextAvailableStaff(formData.staffId) && 
+            !result.available.find(s => s.id === formData.staffId)) {
+          setFormData(prev => ({ ...prev, staffId: '' }));
+        }
+        
+      } finally {
+        setIsCheckingAvailability(false);
+      }
+    };
+    
+    checkAvailability();
+  }, [formData.serviceId, formData.date, formData.time, staff, services, bookings]);
 
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
@@ -128,11 +210,40 @@ export function BookingSlideOut({
     combinedDateTime.setSeconds(0);
     combinedDateTime.setMilliseconds(0);
     
-    onSave({
+    // Resolve the final staff ID - this is CRITICAL for API compatibility
+    let finalStaffId: string;
+    try {
+      if (isNextAvailableStaff(formData.staffId)) {
+        // Use the pre-assigned staff from availability check
+        finalStaffId = ensureValidStaffId(null, nextAvailableStaff);
+      } else {
+        // Use the selected staff
+        finalStaffId = ensureValidStaffId(formData.staffId, null);
+      }
+    } catch (error) {
+      console.error('❌ [BookingSlideOut] Staff validation failed:', error);
+      // This should rarely happen as UI prevents it, but we need to handle it
+      alert('Please select a staff member or ensure staff are available at the selected time.');
+      return;
+    }
+    
+    // Build the save data with all fields including the resolved staffId
+    const saveData = {
       ...formData,
+      staffId: finalStaffId,
       startTime: combinedDateTime,
       endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000)
+    };
+    
+    console.log('🚀 [BookingSlideOut] Submitting with:', {
+      '🆔 staffId': saveData.staffId,
+      '🏷️ type': typeof saveData.staffId,
+      '🕐 startTime': saveData.startTime.toISOString(),
+      '🛎️ serviceId': saveData.serviceId,
+      '👤 customerId': saveData.customerId
     });
+    
+    onSave(saveData);
     onClose();
   };
 
@@ -270,33 +381,129 @@ export function BookingSlideOut({
             <div>
               <Label>Staff Member</Label>
               <Select
-                value={formData.staffId === null || formData.staffId === '' ? 'next-available' : formData.staffId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, staffId: value === 'next-available' ? '' : value }))}
+                value={formData.staffId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, staffId: value }))}
+                disabled={isCheckingAvailability}
               >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select staff member" />
+                <SelectTrigger className={cn("mt-1", isCheckingAvailability && "opacity-70")}>
+                  <SelectValue placeholder={isCheckingAvailability ? "Checking availability..." : "Select staff member"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="next-available">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-600" />
-                      <span>Next Available</span>
+                  {/* Check if we're still loading */}
+                  {isCheckingAvailability ? (
+                    <div className="p-4 text-center">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Checking availability...</p>
                     </div>
-                  </SelectItem>
-                  <Separator className="my-1" />
-                  {staff.map((member) => (
+                  ) : formData.serviceId && availableStaff.length === 0 ? (
+                    /* No staff available at all */
+                    <div className="p-4 text-center">
+                      <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-red-700">No staff available</p>
+                      <p className="text-xs text-red-600 mt-1">Please select a different time</p>
+                    </div>
+                  ) : (
+                    /* Normal staff selection */
+                    <>
+                      {/* Only show Next Available if we have available staff */}
+                      {(!formData.serviceId || availableStaff.length > 0) && (
+                        <>
+                          <SelectItem value={NEXT_AVAILABLE_STAFF_ID}>
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-gray-600" />
+                              <span>Next Available</span>
+                              {availableStaff.length > 0 && (
+                                <>
+                                  <span className="text-xs text-gray-500">({availableStaff.length} available)</span>
+                                  {nextAvailableStaff && (
+                                    <span className="text-xs text-teal-600 font-medium ml-1">
+                                      → {nextAvailableStaff.name}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </SelectItem>
+                          <Separator className="my-1" />
+                        </>
+                      )}
+                  
+                  {/* Show available staff */}
+                  {availableStaff.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full" 
                           style={{ backgroundColor: member.color }}
                         />
-                        {member.name}
+                        <span>{member.name}</span>
+                        <CheckCircle className="w-3 h-3 text-green-600 ml-auto" />
                       </div>
                     </SelectItem>
                   ))}
+                  
+                  {/* Show unavailable staff if any */}
+                  {unavailableStaff.length > 0 && availableStaff.length > 0 && (
+                    <Separator className="my-1" />
+                  )}
+                  
+                  {unavailableStaff.map(({ staff: member, reason }) => (
+                    <SelectItem key={member.id} value={member.id} disabled>
+                      <div className="flex items-center gap-2 opacity-50">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: member.color }}
+                        />
+                        <span>{member.name}</span>
+                        <span className="text-xs text-red-600 ml-auto">{reason}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
+              
+              {/* Availability message */}
+              {(formData.date && formData.time) && (
+                <div className={cn(
+                  "mt-2 text-sm",
+                  !isCheckingAvailability && availableStaff.length === 0 ? "text-red-600" : "text-gray-600"
+                )}>
+                  {isCheckingAvailability ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Checking staff availability...</span>
+                    </div>
+                  ) : availabilityMessage ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        {availableStaff.length === 0 ? (
+                          <AlertCircle className="w-4 h-4" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                        {availabilityMessage}
+                      </div>
+                      
+                      {/* Show auto-assignment details when Next Available is selected */}
+                      {isNextAvailableStaff(formData.staffId) && nextAvailableStaff && (
+                        <div className="mt-2 p-2 bg-teal-50 border border-teal-200 rounded-md">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: nextAvailableStaff.color }}
+                            />
+                            <span className="text-teal-800 font-medium">
+                              Will be assigned to: {nextAvailableStaff.name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             <div>
@@ -368,12 +575,20 @@ export function BookingSlideOut({
                     </div>
                   </>
                 )}
-                {selectedStaff && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Staff:</span>
-                    <span className="font-medium">{selectedStaff.name}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Staff:</span>
+                  <span className="font-medium">
+                    {isNextAvailableStaff(formData.staffId) ? (
+                      nextAvailableStaff ? 
+                        `${nextAvailableStaff.name} (auto-assigned)` : 
+                        availableStaff.length > 0 ?
+                          `Next Available (${availableStaff[0].name})` :
+                          'No staff available'
+                    ) : (
+                      selectedStaff?.name || 'Select staff'
+                    )}
+                  </span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Date & Time:</span>
                   <span className="font-medium">
@@ -392,12 +607,22 @@ export function BookingSlideOut({
               </div>
             )}
 
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                A confirmation will be sent to the customer
-              </span>
-            </div>
+            {/* Show warning if no staff available */}
+            {isNextAvailableStaff(formData.staffId) && !nextAvailableStaff ? (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-sm text-red-800">
+                  No staff available at this time. Please go back and select a different time.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-800">
+                  A confirmation will be sent to the customer
+                </span>
+              </div>
+            )}
           </div>
         );
     }
@@ -406,7 +631,13 @@ export function BookingSlideOut({
   const canProceed = () => {
     switch (currentStep) {
       case "datetime":
-        return formData.date && formData.time;
+        // Must have date, time, and either a selected staff OR available staff for "next available"
+        const hasDateTime = formData.date && formData.time;
+        const hasValidStaff = formData.staffId && (
+          // If Next Available is selected, ensure we have someone to assign
+          isNextAvailableStaff(formData.staffId) ? nextAvailableStaff !== null : true
+        );
+        return hasDateTime && hasValidStaff && !isCheckingAvailability;
       case "service":
         return formData.serviceId;
       case "customer":
@@ -449,6 +680,7 @@ export function BookingSlideOut({
               <Button 
                 onClick={handleSubmit}
                 className="bg-teal-600 hover:bg-teal-700"
+                disabled={isNextAvailableStaff(formData.staffId) && !nextAvailableStaff}
               >
                 Confirm Booking
               </Button>

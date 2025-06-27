@@ -117,6 +117,7 @@ export class ApiClient {
   }
 
   async createBooking(data: any) {
+    console.log('📡 [ApiClient] createBooking called with:', JSON.stringify(data, null, 2));
     return this.bookings.createBooking(data);
   }
 

@@ -110,6 +110,7 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async createBooking(data: CreateBookingRequest): Promise<Booking> {
+    console.log('📨 [BookingsClient] createBooking input:', JSON.stringify(data, null, 2));
     const booking = await this.post(
       '/bookings', 
       data, 
