@@ -15,9 +15,11 @@ import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
 import { ImportPreviewDialog } from "@/components/services/import-preview-dialog";
+import { useAuth } from "@/lib/auth/auth-provider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { merchant } = useAuth();
   const [bookingAdvanceHours, setBookingAdvanceHours] = useState("48");
   const [cancellationHours, setCancellationHours] = useState("24");
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
@@ -35,6 +37,26 @@ export default function SettingsPage() {
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
   const [showUnassignedColumn, setShowUnassignedColumn] = useState(true);
   const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(true);
+  const [calendarStartHour, setCalendarStartHour] = useState(6);
+  const [calendarEndHour, setCalendarEndHour] = useState(23);
+  
+  // Merchant profile state
+  const [merchantProfile, setMerchantProfile] = useState<any>(null);
+  const [businessName, setBusinessName] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessAbn, setBusinessAbn] = useState("");
+  
+  // Business hours state
+  const [businessHours, setBusinessHours] = useState<any>({
+    monday: { open: "09:00", close: "17:00", isOpen: true },
+    tuesday: { open: "09:00", close: "17:00", isOpen: true },
+    wednesday: { open: "09:00", close: "17:00", isOpen: true },
+    thursday: { open: "09:00", close: "17:00", isOpen: true },
+    friday: { open: "09:00", close: "17:00", isOpen: true },
+    saturday: { open: "09:00", close: "17:00", isOpen: true },
+    sunday: { open: "09:00", close: "17:00", isOpen: false },
+  });
   
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
@@ -48,6 +70,7 @@ export default function SettingsPage() {
   useEffect(() => {
     loadMerchantSettings();
     loadLocationData();
+    loadMerchantProfile();
   }, []);
 
   const loadLocationData = async () => {
@@ -59,6 +82,22 @@ export default function SettingsPage() {
         // Location timezone will inherit from merchant if not set
         if (firstLocation.timezone) {
           setSelectedTimezone(firstLocation.timezone);
+        }
+        // Load business hours
+        if (firstLocation.businessHours) {
+          const formattedHours: any = {};
+          Object.entries(firstLocation.businessHours).forEach(([day, hours]: [string, any]) => {
+            if (hours) {
+              formattedHours[day] = {
+                open: hours.open || hours.openTime || "09:00",
+                close: hours.close || hours.closeTime || "17:00",
+                isOpen: hours.isOpen !== undefined ? hours.isOpen : true
+              };
+            } else {
+              formattedHours[day] = { open: "09:00", close: "17:00", isOpen: false };
+            }
+          });
+          setBusinessHours(formattedHours);
         }
       }
     } catch (error) {
@@ -82,6 +121,8 @@ export default function SettingsPage() {
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
         setShowUnassignedColumn(response.showUnassignedColumn ?? true);
         setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
+        setCalendarStartHour(response.calendarStartHour ?? 6);
+        setCalendarEndHour(response.calendarEndHour ?? 23);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
@@ -89,6 +130,24 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
+    }
+  };
+
+  const loadMerchantProfile = async () => {
+    try {
+      const profile = await apiClient.getMerchantProfile();
+      setMerchantProfile(profile);
+      setBusinessName(profile.name || "");
+      setBusinessEmail(profile.email || "");
+      setBusinessPhone(profile.phone || "");
+      setBusinessAbn(profile.abn || "");
+    } catch (error) {
+      console.error("Failed to load merchant profile:", error);
+      // Fallback to auth context merchant data if available
+      if (merchant) {
+        setBusinessName(merchant.name || "");
+        setBusinessEmail(merchant.email || "");
+      }
     }
   };
 
@@ -136,6 +195,8 @@ export default function SettingsPage() {
         allowCustomTipAmount,
         showUnassignedColumn,
         allowUnassignedBookings,
+        calendarStartHour,
+        calendarEndHour,
       });
       
       toast({
@@ -332,19 +393,36 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="business-name">Business Name</Label>
-                  <Input id="business-name" defaultValue="Hamilton Beauty" />
+                  <Input 
+                    id="business-name" 
+                    value={businessName} 
+                    onChange={(e) => setBusinessName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="abn">ABN</Label>
-                  <Input id="abn" defaultValue="12 345 678 901" />
+                  <Input 
+                    id="abn" 
+                    value={businessAbn} 
+                    onChange={(e) => setBusinessAbn(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Business Email</Label>
-                  <Input id="email" type="email" defaultValue="contact@hamiltonbeauty.com.au" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={businessEmail} 
+                    onChange={(e) => setBusinessEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Business Phone</Label>
-                  <Input id="phone" defaultValue="+61 2 9876 5432" />
+                  <Input 
+                    id="phone" 
+                    value={businessPhone} 
+                    onChange={(e) => setBusinessPhone(e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -395,14 +473,38 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Business Hours</h3>
                 <div className="grid gap-3">
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                  {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
                     <div key={day} className="flex items-center justify-between">
-                      <Label className="w-24">{day}</Label>
+                      <Label className="w-24 capitalize">{day}</Label>
                       <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <Input 
+                          type="time" 
+                          value={businessHours[day]?.open || "09:00"} 
+                          onChange={(e) => setBusinessHours({
+                            ...businessHours,
+                            [day]: { ...businessHours[day], open: e.target.value }
+                          })}
+                          className="w-32" 
+                          disabled={!businessHours[day]?.isOpen}
+                        />
                         <span>to</span>
-                        <Input type="time" defaultValue="17:00" className="w-32" />
-                        <Switch defaultChecked={day !== "Sunday"} />
+                        <Input 
+                          type="time" 
+                          value={businessHours[day]?.close || "17:00"}
+                          onChange={(e) => setBusinessHours({
+                            ...businessHours,
+                            [day]: { ...businessHours[day], close: e.target.value }
+                          })}
+                          className="w-32" 
+                          disabled={!businessHours[day]?.isOpen}
+                        />
+                        <Switch 
+                          checked={businessHours[day]?.isOpen || false}
+                          onCheckedChange={(checked) => setBusinessHours({
+                            ...businessHours,
+                            [day]: { ...businessHours[day], isOpen: checked }
+                          })}
+                        />
                       </div>
                     </div>
                   ))}
@@ -410,7 +512,41 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveTimezone} disabled={loading}>
+                <Button onClick={async () => {
+                  setLoading(true);
+                  try {
+                    // Update merchant profile
+                    await apiClient.put("/merchant/profile", {
+                      name: businessName,
+                      email: businessEmail,
+                      phone: businessPhone,
+                      abn: businessAbn,
+                    });
+                    
+                    // Update timezone
+                    await handleSaveTimezone();
+                    
+                    // Update business hours if we have a location
+                    if (locationId) {
+                      await apiClient.updateLocation(locationId, {
+                        businessHours: businessHours
+                      });
+                    }
+                    
+                    toast({
+                      title: "Success",
+                      description: "Business information updated successfully",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to update business information",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }} disabled={loading}>
                   {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -525,6 +661,47 @@ export default function SettingsPage() {
                     checked={allowUnassignedBookings} 
                     onCheckedChange={setAllowUnassignedBookings}
                   />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-base font-medium">Calendar Display Hours</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Set the hours displayed on your calendar view (default: 6 AM - 11 PM)
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 max-w-sm">
+                    <div className="space-y-2">
+                      <Label htmlFor="calendar-start">Start Hour</Label>
+                      <Select value={calendarStartHour.toString()} onValueChange={(value) => setCalendarStartHour(parseInt(value))}>
+                        <SelectTrigger id="calendar-start">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <SelectItem key={i} value={i.toString()}>
+                              {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="calendar-end">End Hour</Label>
+                      <Select value={calendarEndHour.toString()} onValueChange={(value) => setCalendarEndHour(parseInt(value))}>
+                        <SelectTrigger id="calendar-end">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <SelectItem key={i} value={i.toString()} disabled={i <= calendarStartHour}>
+                              {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -246,6 +246,10 @@ export class ApiClient {
     return this.locations.getMerchantSettings();
   }
 
+  async getMerchantProfile() {
+    return this.locations.getMerchantProfile();
+  }
+
   async getReportOverview(locationId?: string) {
     return this.reports.getReportOverview(locationId);
   }

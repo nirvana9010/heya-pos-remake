@@ -118,6 +118,10 @@ export interface CalendarState {
   showBlockedTime: boolean;
   showBreaks: boolean;
   
+  // Calendar display settings
+  calendarStartHour: number;
+  calendarEndHour: number;
+  
   // Loading states
   isLoading: boolean;
   isRefreshing: boolean;
@@ -175,6 +179,9 @@ export type CalendarAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_REFRESHING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
+  
+  // Settings actions
+  | { type: 'UPDATE_CALENDAR_HOURS'; payload: { startHour: number; endHour: number } }
   
   // Reset
   | { type: 'RESET' };

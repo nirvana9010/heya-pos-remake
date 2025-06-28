@@ -20,10 +20,11 @@ import Link from 'next/link'
 import { NotificationsDropdown } from '@/components/notifications-dropdown'
 import { GlobalSearch } from '@/components/global-search'
 import { useAuth } from '@/lib/auth/auth-provider'
+import { CacheBuster } from '@/components/CacheBuster'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const { logout } = useAuth()
+  const { logout, merchant, user } = useAuth()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -69,6 +70,9 @@ export function Topbar() {
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button> */}
 
+        {/* Cache Buster (Dev only) */}
+        <CacheBuster />
+
         {/* Notifications */}
         <NotificationsDropdown />
 
@@ -96,16 +100,16 @@ export function Topbar() {
                 fontWeight: '600',
                 fontSize: '0.875rem'
               }}>
-                HB
+                {merchant?.name ? merchant.name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2) : 'UN'}
               </div>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Hamilton Beauty</p>
+                <p className="text-sm font-medium leading-none">{merchant?.name || 'Unknown Merchant'}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@hamiltonbeauty.com
+                  {user?.email || merchant?.email || 'No email'}
                 </p>
               </div>
             </DropdownMenuLabel>
