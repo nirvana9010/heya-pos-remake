@@ -192,12 +192,45 @@ export function useCalendarData() {
     }
   }, [actions]);
   
+  // Fetch merchant settings
+  const fetchMerchantSettings = useCallback(async () => {
+    try {
+      // First check localStorage for cached merchant data
+      const merchantData = localStorage.getItem('merchant');
+      if (merchantData) {
+        const merchant = JSON.parse(merchantData);
+        if (merchant.settings) {
+          // Update calendar hours if they exist in settings
+          if (merchant.settings.calendarStartHour !== undefined && 
+              merchant.settings.calendarEndHour !== undefined) {
+            actions.dispatch({
+              type: 'UPDATE_CALENDAR_HOURS',
+              payload: {
+                startHour: merchant.settings.calendarStartHour,
+                endHour: merchant.settings.calendarEndHour
+              }
+            });
+          }
+          
+          // Update unassigned column visibility
+          if (merchant.settings.showUnassignedColumn !== undefined) {
+            if (merchant.settings.showUnassignedColumn !== state.showUnassignedColumn) {
+              actions.toggleUnassignedColumn();
+            }
+          }
+        }
+      }
+    } catch (error) {
+    }
+  }, [actions, state.showUnassignedColumn]);
+
   // Initial data load
   useEffect(() => {
+    fetchMerchantSettings();
     fetchStaff();
     fetchServices();
     fetchCustomers();
-  }, [fetchStaff, fetchServices, fetchCustomers]);
+  }, [fetchMerchantSettings, fetchStaff, fetchServices, fetchCustomers]);
   
   // Fetch bookings when date range changes
   useEffect(() => {
@@ -284,8 +317,8 @@ export function useTimeGrid() {
   
   const timeSlots = useMemo((): TimeSlot[] => {
     const slots: TimeSlot[] = [];
-    const startHour = 7; // 7 AM
-    const endHour = 21; // 9 PM
+    const startHour = state.calendarStartHour;
+    const endHour = state.calendarEndHour;
     const interval = state.timeInterval;
     
     // Parse business hours

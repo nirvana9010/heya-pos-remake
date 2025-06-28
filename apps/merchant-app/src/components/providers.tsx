@@ -9,7 +9,6 @@ import { AuthProvider } from '@/lib/auth/auth-provider';
 import { QueryProvider } from '@/lib/query/query-provider';
 import { NotificationsProvider } from '@/contexts/notifications-context';
 import { ClearCorruptedAuth } from './ClearCorruptedAuth';
-import { AuthDebugPanel } from './AuthDebugPanel';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,22 +22,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         {/* Only wrap protected routes in AuthGuard and layout */}
         {isAuthPage ? (
-          <>
-            {children}
-            <AuthDebugPanel />
-          </>
+          children
         ) : isTestPage ? (
           // Test pages may need notifications context
           needsNotifications ? (
             <NotificationsProvider>
               {children}
-              <AuthDebugPanel />
             </NotificationsProvider>
           ) : (
-            <>
-              {children}
-              <AuthDebugPanel />
-            </>
+            children
           )
         ) : (
           <AuthGuard>
@@ -47,7 +39,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 <PerformanceMonitor />
                 <PrefetchManager />
                 {children}
-                <AuthDebugPanel />
               </NotificationsProvider>
             </TimezoneProvider>
           </AuthGuard>

@@ -73,6 +73,10 @@ const getInitialState = (): CalendarState => {
   showBlockedTime: true,
   showBreaks: true,
   
+  // Calendar display settings - defaults match hooks.ts
+  calendarStartHour: 6, // Will be overridden by merchant settings
+  calendarEndHour: 23, // Will be overridden by merchant settings
+  
   // Loading states
   isLoading: false,
   isRefreshing: false,
@@ -277,6 +281,13 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         error: action.payload,
         isLoading: false,
         isRefreshing: false,
+      };
+    
+    case 'UPDATE_CALENDAR_HOURS':
+      return {
+        ...state,
+        calendarStartHour: action.payload.startHour,
+        calendarEndHour: action.payload.endHour,
       };
     
     case 'RESET':

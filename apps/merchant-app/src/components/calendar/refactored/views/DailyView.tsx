@@ -177,20 +177,11 @@ export function DailyView({
   
   // Get bookings for current day
   const todaysBookings = useMemo(() => {
-    console.log('📊 DailyView - Filtering bookings:', {
-      filteredBookingsCount: filteredBookings.length,
-      currentDate: state.currentDate,
-      firstBooking: filteredBookings[0],
-    });
     
     const result = filteredBookings.filter(booking => 
       isSameDay(parseISO(booking.date), state.currentDate)
     );
     
-    console.log('📊 DailyView - Today\'s bookings:', {
-      count: result.length,
-      bookings: result,
-    });
     
     return result;
   }, [filteredBookings, state.currentDate]);
@@ -230,23 +221,14 @@ export function DailyView({
       }
     });
     
-    // Debug log to check booking distribution
-    console.log('📊 Bookings by staff:', {
-      totalBookings: todaysBookings.length,
-      staffGroups: Array.from(grouped.entries()).map(([staffId, bookings]) => ({
-        staffId,
-        count: bookings.length,
-        bookings: bookings.map(b => ({ id: b.id, staffId: b.staffId, customerName: b.customerName }))
-      }))
-    });
     
     return grouped;
   }, [todaysBookings, state.staff, state.showUnassignedColumn]);
   
-  // Debug log to check for invalid staff IDs
-  if (visibleStaff.some(s => !s.id || s.id === '')) {
-    console.warn('⚠️ Found staff member(s) with invalid ID:', visibleStaff.filter(s => !s.id || s.id === ''));
-  }
+  
+  // Use calendar hours from state
+  const CALENDAR_START_HOUR = state.calendarStartHour;
+  const CALENDAR_END_HOUR = state.calendarEndHour;
   
   // Calculate current time position
   const getCurrentTimePosition = () => {
@@ -254,9 +236,14 @@ export function DailyView({
     const hour = now.getHours();
     const minute = now.getMinutes();
     
+    // Check if current time is outside calendar view hours
+    if (hour < CALENDAR_START_HOUR || hour >= CALENDAR_END_HOUR) {
+      return null; // Don't show indicator outside calendar hours
+    }
+    
     // Calculate position based on the time grid
-    // We start at 7 AM, so subtract 7 hours
-    const hoursFromStart = hour - 7;
+    // We start at CALENDAR_START_HOUR
+    const hoursFromStart = hour - CALENDAR_START_HOUR;
     const minutesFromStart = hoursFromStart * 60 + minute;
     
     // Each slot is 60px tall
@@ -277,7 +264,7 @@ export function DailyView({
     
     // Calculate scroll position to show 30 minutes before business start
     const scrollToHour = Math.max(0, businessStartHour - 0.5);
-    const hoursFromStart = scrollToHour - 7; // Calendar starts at 7 AM
+    const hoursFromStart = scrollToHour - CALENDAR_START_HOUR; // Calendar starts at CALENDAR_START_HOUR
     
     // Calculate pixels per hour based on time interval
     // Each slot is 60px tall, so slots per hour = 60 / timeInterval
@@ -380,7 +367,7 @@ export function DailyView({
         >
           <div className="relative">
             {/* Current time indicator */}
-            {isCurrentDateToday && (
+            {isCurrentDateToday && currentTimeInfo && (
               <div 
                 className="absolute left-0 right-0 z-20 pointer-events-none"
                 style={{ top: `${currentTimeInfo.position}px` }}

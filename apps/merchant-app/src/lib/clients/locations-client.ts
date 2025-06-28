@@ -30,6 +30,19 @@ export interface MerchantSettings {
   };
 }
 
+export interface MerchantProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  abn: string;
+  subdomain: string;
+  website?: string;
+  description?: string;
+  logo?: string;
+  settings?: any;
+}
+
 export class LocationsClient extends BaseApiClient {
   async getLocations(): Promise<Location[]> {
     return this.get('/locations', undefined, 'v1');
@@ -62,5 +75,9 @@ export class LocationsClient extends BaseApiClient {
       }
       throw error;
     }
+  }
+
+  async getMerchantProfile(): Promise<MerchantProfile> {
+    return this.get('/merchant/profile', undefined, 'v1');
   }
 }
