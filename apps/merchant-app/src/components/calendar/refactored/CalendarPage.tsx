@@ -41,6 +41,7 @@ import { apiClient } from '@/lib/api-client';
 import type { Booking, BookingStatus } from './types';
 import { getAvailableStaff, ensureValidStaffId, isValidStaffId } from '@/lib/services/mock-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
+import { bookingEvents } from '@/lib/services/booking-events';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -147,7 +148,6 @@ function CalendarContent() {
   
   // Handle booking click
   const handleBookingClick = useCallback((booking: Booking) => {
-    console.log('Booking clicked:', booking.id, booking.customerName);
     actions.openDetailsSlideOut(booking.id);
   }, [actions]);
   
@@ -194,21 +194,13 @@ function CalendarContent() {
       // CRITICAL: Resolve staff assignment before API call
       let finalStaffId: string;
       
-      console.log('🔍 [CalendarPage] Processing booking with staffId:', {
-        value: bookingData.staffId,
-        type: typeof bookingData.staffId,
-        isNextAvailable: bookingData.staffId === NEXT_AVAILABLE_STAFF_ID,
-        isValid: isValidStaffId(bookingData.staffId)
-      });
       
       try {
         // Check if we already have a valid staff ID
         if (isValidStaffId(bookingData.staffId)) {
           finalStaffId = bookingData.staffId;
-          console.log('✅ [CalendarPage] Using provided valid staffId:', finalStaffId);
         } else {
           // Need to resolve "Next Available" or handle invalid staffId
-          console.log('🔄 [CalendarPage] Resolving staff assignment...');
           
           // Get the service to know the duration
           const service = state.services.find(s => s.id === bookingData.serviceId);
@@ -238,11 +230,9 @@ function CalendarContent() {
           
           // Use the enhanced service to ensure valid staff ID
           finalStaffId = ensureValidStaffId(null, availabilityResult.assignedStaff);
-          console.log(`✅ [CalendarPage] Auto-assigned to: ${availabilityResult.assignedStaff?.name}`);
         }
       } catch (error) {
         // Enhanced error handling
-        console.error('❌ [CalendarPage] Staff assignment failed:', error);
         throw new Error(
           error instanceof Error ? 
             error.message : 
@@ -252,10 +242,6 @@ function CalendarContent() {
       
       // Final validation - MUST have a valid UUID at this point
       if (!isValidStaffId(finalStaffId)) {
-        console.error('❌ [CalendarPage] Final validation failed:', {
-          finalStaffId,
-          type: typeof finalStaffId
-        });
         throw new Error('System error: Invalid staff assignment. Please try again.');
       }
       
@@ -302,6 +288,13 @@ function CalendarContent() {
       actions.addBooking(transformedBooking);
       actions.closeBookingSlideOut();
       
+      // Broadcast the booking creation to other tabs
+      bookingEvents.broadcast({
+        type: 'booking_created',
+        bookingId: transformedBooking.id,
+        source: 'slideout'
+      });
+      
       // Show success toast with icon
       const toastMessage = (
         <div className="flex items-start gap-3">
@@ -326,13 +319,6 @@ function CalendarContent() {
         duration: 5000,
       });
     } catch (error: any) {
-      console.error('Failed to create booking:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        bookingData
-      });
       
       // Extract specific error message
       let errorMessage = 'Please try again';
@@ -360,7 +346,6 @@ function CalendarContent() {
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
     const booking = state.bookings.find(b => b.id === active.id);
-    console.log('Drag start - active booking:', booking);
     if (booking) {
       setActiveBooking(booking);
       setIsDragging(true);
@@ -372,7 +357,6 @@ function CalendarContent() {
     
     if (over && over.data.current?.date && over.data.current?.time) {
       const targetData = over.data.current;
-      console.log('Drag over target data:', targetData);
       
       const staffMember = state.staff.find(s => s.id === targetData.staffId);
       
@@ -380,7 +364,6 @@ function CalendarContent() {
         // Validate time format (should be HH:MM)
         const timeMatch = targetData.time.match(/^(\d{1,2}):(\d{2})$/);
         if (!timeMatch) {
-          console.error('Invalid time format in drag over:', targetData.time);
           setDragOverSlot(null);
           return;
         }
@@ -392,7 +375,6 @@ function CalendarContent() {
         // Create date from string (should be YYYY-MM-DD format)
         const startTime = new Date(targetData.date + 'T00:00:00');
         if (isNaN(startTime.getTime())) {
-          console.error('Invalid date in drag over:', targetData.date);
           setDragOverSlot(null);
           return;
         }
@@ -406,7 +388,6 @@ function CalendarContent() {
           endTime: new Date(startTime.getTime() + 30 * 60000), // 30 minutes later
         });
       } catch (error) {
-        console.error('Error parsing drag over data:', error, targetData);
         setDragOverSlot(null);
       }
     } else {
@@ -416,7 +397,6 @@ function CalendarContent() {
   
   // Handle drag end
   const handleDragEndEvent = useCallback(async (event: DragEndEvent) => {
-    console.log('Drag end event triggered:', event);
     const { active, over } = event;
     
     // Clean up drag state
@@ -425,14 +405,12 @@ function CalendarContent() {
     setDragOverSlot(null);
     
     if (!over || !active || !activeBooking) {
-      console.log('No valid drop target or active booking');
       return;
     }
     
     // Get drop data
     const dropData = over.data.current;
     if (!dropData || !dropData.date || !dropData.time) {
-      console.error('Invalid drop data', dropData);
       return;
     }
     
@@ -448,7 +426,6 @@ function CalendarContent() {
         originalDate = format(new Date(activeBooking.date), 'yyyy-MM-dd');
       }
     } catch (error) {
-      console.error('Error parsing original booking date:', activeBooking.date, error);
       return;
     }
     
@@ -457,22 +434,13 @@ function CalendarContent() {
                       activeBooking.staffId === staffId;
     
     if (isSameSlot) {
-      console.log('Dropped on same slot, no update needed');
       return;
     }
     
-    console.log('Updating booking via drag:', { 
-      bookingId: activeBooking.id, 
-      date, 
-      time, 
-      staffId,
-      oldStaffId: activeBooking.staffId 
-    });
     
     try {
       await updateBookingTime(activeBooking.id, date, time, staffId);
     } catch (error) {
-      console.error('Failed to update booking:', error);
     }
   }, [activeBooking, updateBookingTime]);
   
@@ -554,15 +522,25 @@ function CalendarContent() {
             </div>
             
             {/* Right: Actions */}
-            <div className="flex items-center gap-2">{/* Refresh button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Auto-refresh indicator */}
+              {isRefreshing && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  <span>Updating...</span>
+                </div>
+              )}
+              
+              {/* Refresh button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refresh}
+                disabled={isRefreshing}
+                title="Manually refresh calendar"
+              >
+                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              </Button>
             
             {/* New booking button */}
             <Button

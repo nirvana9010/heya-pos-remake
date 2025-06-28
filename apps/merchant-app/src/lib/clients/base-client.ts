@@ -75,11 +75,9 @@ export class BaseApiClient {
           };
           
           // Log with full details for debugging
-          console.error('[API Error]', JSON.stringify(errorInfo, null, 2));
           
           // Also log the raw error for additional context
           if (error.response?.data) {
-            console.error('[API Error Details]', error.response.data);
           }
         }
 
@@ -90,7 +88,6 @@ export class BaseApiClient {
 
         // Handle 403 errors - likely corrupted auth state
         if (error.response?.status === 403 && !originalRequest._retry) {
-          console.warn('[BaseClient] 403 Forbidden - auth state may be corrupted, clearing and redirecting to login');
           this.clearAuthData();
           this.redirectToLogin();
           return Promise.reject(error);
@@ -202,7 +199,6 @@ export class BaseApiClient {
     if (typeof window !== 'undefined') {
       // Check if already redirecting
       if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-        console.log('[BaseClient] Redirect already in progress, skipping');
         throw new Error('UNAUTHORIZED_REDIRECT');
       }
       

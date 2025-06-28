@@ -4,7 +4,6 @@ import { MerchantSettings } from '../types/models/merchant';
 const prisma = new PrismaClient();
 
 async function addUnassignedColumnSetting() {
-  console.log('Starting migration: Adding showUnassignedColumn setting to merchants...');
 
   try {
     // Get all merchants
@@ -18,14 +17,12 @@ async function addUnassignedColumnSetting() {
       },
     });
 
-    console.log(`Found ${merchants.length} merchants to update`);
 
     for (const merchant of merchants) {
       const currentSettings = merchant.settings as any;
       
       // Check if showUnassignedColumn already exists
       if (currentSettings.showUnassignedColumn !== undefined) {
-        console.log(`✓ Merchant ${merchant.name} already has showUnassignedColumn setting`);
         continue;
       }
 
@@ -46,14 +43,10 @@ async function addUnassignedColumnSetting() {
         },
       });
 
-      console.log(
-        `✓ Updated ${merchant.name}: showUnassignedColumn = ${shouldEnableUnassignedColumn} (${merchant._count.staff} staff)`
-      );
     }
 
-    console.log('Migration completed successfully!');
   } catch (error) {
-    console.error('Migration failed:', error);
+    throw error;
     process.exit(1);
   } finally {
     await prisma.$disconnect();

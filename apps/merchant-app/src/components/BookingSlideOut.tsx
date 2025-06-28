@@ -57,11 +57,6 @@ export function BookingSlideOut({
   bookings = [],
   onSave
 }: BookingSlideOutProps) {
-  console.log('🎭 [BookingSlideOut] Component rendered with props:', {
-    isOpen,
-    initialStaffId,
-    hasOnSave: !!onSave
-  });
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
   const [defaultTime] = useState(() => {
@@ -199,7 +194,6 @@ export function BookingSlideOut({
 
   const handleSubmit = () => {
     if (!formData.time || !formData.date) {
-      console.error('Cannot submit booking without date and time');
       return;
     }
     
@@ -221,7 +215,6 @@ export function BookingSlideOut({
         finalStaffId = ensureValidStaffId(formData.staffId, null);
       }
     } catch (error) {
-      console.error('❌ [BookingSlideOut] Staff validation failed:', error);
       // This should rarely happen as UI prevents it, but we need to handle it
       alert('Please select a staff member or ensure staff are available at the selected time.');
       return;
@@ -235,13 +228,6 @@ export function BookingSlideOut({
       endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000)
     };
     
-    console.log('🚀 [BookingSlideOut] Submitting with:', {
-      '🆔 staffId': saveData.staffId,
-      '🏷️ type': typeof saveData.staffId,
-      '🕐 startTime': saveData.startTime.toISOString(),
-      '🛎️ serviceId': saveData.serviceId,
-      '👤 customerId': saveData.customerId
-    });
     
     onSave(saveData);
     onClose();

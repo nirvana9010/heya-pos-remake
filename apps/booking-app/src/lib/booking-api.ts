@@ -1,5 +1,10 @@
 import apiClient from './api-client';
 
+// Broadcast channel for cross-tab communication
+const broadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window 
+  ? new BroadcastChannel('heya-pos-bookings') 
+  : null;
+
 export interface Service {
   id: string;
   name: string;
@@ -90,6 +95,7 @@ export interface MerchantInfo {
   email: string;
   requireDeposit: boolean;
   depositPercentage: number;
+  allowUnassignedBookings: boolean;
 }
 
 class BookingApi {
@@ -148,6 +154,20 @@ class BookingApi {
     };
     
     const response = await apiClient.post<Booking>('/public/bookings', formattedData);
+    
+    // Broadcast booking creation event to other tabs/windows
+    if (broadcastChannel && response) {
+      try {
+        broadcastChannel.postMessage({
+          type: 'booking_created',
+          bookingId: response.id,
+          source: 'external',
+          timestamp: Date.now()
+        });
+      } catch (error) {
+      }
+    }
+    
     return response;
   }
 

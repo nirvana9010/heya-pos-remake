@@ -13,7 +13,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, tokenExpiresAt } = useAuth();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [showRedirectMessage, setShowRedirectMessage] = useState(false);
   const redirectTimeoutRef = useRef<NodeJS.Timeout>();
+  const fallbackTimeoutRef = useRef<NodeJS.Timeout>();
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
@@ -21,6 +23,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return () => {
       if (redirectTimeoutRef.current) {
         clearTimeout(redirectTimeoutRef.current);
+      }
+      if (fallbackTimeoutRef.current) {
+        clearTimeout(fallbackTimeoutRef.current);
       }
     };
   }, []);
@@ -55,14 +60,27 @@ export function AuthGuard({ children }: AuthGuardProps) {
       // Only redirect if not already on login page and haven't redirected yet
       if (pathname !== '/login' && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
+        setShowRedirectMessage(true);
         // Set global flag to prevent API calls and other redirects
         (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
         
         // Add a small delay to prevent race conditions
         redirectTimeoutRef.current = setTimeout(() => {
           console.log('[AuthGuard] Executing redirect to login');
-          router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+          try {
+            router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+          } catch (error) {
+            console.error('[AuthGuard] Failed to redirect:', error);
+            // Fallback: use window.location for redirect
+            window.location.href = `/login?from=${encodeURIComponent(pathname)}`;
+          }
         }, 100);
+        
+        // Set up fallback redirect after 3 seconds
+        fallbackTimeoutRef.current = setTimeout(() => {
+          console.warn('[AuthGuard] Redirect seems stuck, forcing navigation');
+          window.location.href = '/login';
+        }, 3000);
       }
     }
   }, [isAuthenticated, isLoading, tokenExpiresAt, pathname, router]);
@@ -80,11 +98,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
   
   // If not authenticated or token expired after check, show redirect message
-  if (!isAuthenticated || isTokenExpired || hasRedirectedRef.current) {
+  if (!isAuthenticated || isTokenExpired || showRedirectMessage) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Redirecting to login...</p>
+          <p className="text-sm text-gray-500 mt-2">If you're not redirected, <a href="/login" className="text-blue-600 underline">click here</a></p>
         </div>
       </div>
     );

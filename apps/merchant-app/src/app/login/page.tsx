@@ -22,6 +22,13 @@ export default function LoginPage() {
     email: '',
     password: ''
   });
+  
+  // Clear the redirect flag when login page loads
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = false;
+    }
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {

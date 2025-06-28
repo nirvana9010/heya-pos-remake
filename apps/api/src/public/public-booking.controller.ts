@@ -120,6 +120,7 @@ export class PublicBookingController {
       email: location.email,
       requireDeposit: settings?.requireDeposit || false,
       depositPercentage: settings?.depositPercentage || 0,
+      allowUnassignedBookings: settings?.allowUnassignedBookings ?? true,
     };
   }
 
@@ -239,18 +240,28 @@ export class PublicBookingController {
 
   @Post('bookings/check-availability')
   @HttpCode(HttpStatus.OK)
-  async checkAvailability(@Body() dto: CheckAvailabilityDto) {
+  async checkAvailability(
+    @Body() dto: CheckAvailabilityDto,
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
     try {
-      return await this.publicBookingService.checkAvailability(dto);
+      const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+      return await this.publicBookingService.checkAvailability(dto, merchant.id);
     } catch (error: any) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Post('bookings')
-  async createBooking(@Body() dto: PublicCreateBookingDto) {
+  async createBooking(
+    @Body() dto: PublicCreateBookingDto,
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
     try {
-      return await this.publicBookingService.createPublicBooking(dto);
+      const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+      return await this.publicBookingService.createPublicBooking(dto, merchant.id);
     } catch (error: any) {
       if (error instanceof ConflictException) {
         throw error;

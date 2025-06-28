@@ -8,6 +8,33 @@
 > **NEW**: Timezone handling in booking system - major debugging session
 > **LATEST**: Database sync issues and availability display bugs fixed
 
+## 🚨 CRITICAL: API Restart - Stop Waiting for npm run start:dev!
+**Added**: 2025-06-27
+**Frequency**: Common mistake when restarting API
+**Impact**: Wastes 2 minutes waiting for a command that never exits
+
+### The Problem
+`npm run start:dev` runs in **watch mode** - it runs FOREVER and never exits!
+
+### ❌ WRONG Approach:
+```bash
+cd apps/api && npm run start:dev  # This will timeout after 2 minutes!
+```
+
+### ✅ CORRECT Approach:
+```bash
+pkill -f "nest start"
+cd apps/api && npm run start:dev > /tmp/api.log 2>&1 &
+sleep 15  # API starts in ~10-15 seconds
+curl http://localhost:3000/api/v1/health  # Verify it's running
+```
+
+### Key Points:
+- Use `&` to run in background
+- Wait only 15 seconds (not 2 minutes!)
+- Check health endpoint to confirm it's running
+- The dev server auto-reloads on changes - rarely needs restart
+
 ## 🔥 CRITICAL: API Base URL Configuration - STOP BREAKING LOGIN!
 **Added**: 2025-06-26
 **Frequency**: This mistake happens EVERY FEW SESSIONS

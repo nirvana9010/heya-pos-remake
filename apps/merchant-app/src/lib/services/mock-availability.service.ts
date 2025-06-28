@@ -65,12 +65,6 @@ export async function getAvailableStaff(
   const available: Staff[] = [];
   const unavailable: { staff: Staff; reason: string }[] = [];
 
-  console.log('🔍 [AvailabilityCheck] Starting check:', {
-    serviceId,
-    startTime: startTime.toISOString(),
-    duration,
-    staffCount: staffList.length
-  });
 
   // Filter only active bookings (not cancelled or no-show)
   const activeBookings = bookings.filter(
@@ -133,11 +127,6 @@ export async function getAvailableStaff(
     message = `${available.length} staff members available`;
   }
 
-  console.log('✅ [AvailabilityCheck] Complete:', {
-    available: available.map(s => s.name),
-    unavailable: unavailable.length,
-    assigned: assignedStaff?.name || 'None'
-  });
 
   return { 
     available, 
