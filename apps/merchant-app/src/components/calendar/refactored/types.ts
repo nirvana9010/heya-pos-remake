@@ -26,6 +26,7 @@ export interface Booking {
   customerName: string;
   customerPhone?: string;
   customerEmail?: string;
+  customerSource?: string; // e.g., 'WALK_IN'
   
   serviceId: string;
   serviceName: string;
