@@ -275,6 +275,48 @@ const SelectedServicesSummary = ({ services }: { services: Service[] }) => {
   );
 };
 
+// Intelligent staff selection when auto-assigning
+// Since we don't have access to booking counts in the public booking app,
+// we use a time-based rotation to distribute bookings more evenly
+function selectBestAvailableStaff(staff: Staff[], selectedDate: Date | undefined, selectedTime: string | null): string | null {
+  if (staff.length === 0) return null;
+  
+  // Filter out any "Unassigned" or system staff
+  const eligibleStaff = staff.filter(s => 
+    s.name.toLowerCase() !== 'unassigned' && 
+    s.isActive
+  );
+  
+  if (eligibleStaff.length === 0) return null;
+  
+  // If only one staff member, return them
+  if (eligibleStaff.length === 1) {
+    return eligibleStaff[0].id;
+  }
+  
+  // Use a combination of date and time to create a rotation index
+  // This ensures different staff get selected at different times
+  let rotationSeed = 0;
+  
+  if (selectedDate) {
+    // Use day of month and month to create variation
+    rotationSeed += selectedDate.getDate() + (selectedDate.getMonth() * 31);
+  }
+  
+  if (selectedTime) {
+    // Add hour from time to further vary selection
+    const hour = parseInt(selectedTime.split(':')[0] || '0');
+    rotationSeed += hour;
+  }
+  
+  // Use modulo to select a staff member based on the rotation seed
+  const selectedIndex = rotationSeed % eligibleStaff.length;
+  const selectedStaff = eligibleStaff[selectedIndex];
+  
+  
+  return selectedStaff.id;
+}
+
 export default function BookingPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -293,7 +335,7 @@ export default function BookingPageClient() {
   const [selectedServices, setSelectedServices] = useState<string[]>(
     searchParams.get("service") ? [searchParams.get("service")!] : []
   );
-  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<string | null>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isReturningCustomer, setIsReturningCustomer] = useState(false);
@@ -334,11 +376,9 @@ export default function BookingPageClient() {
       
       // Use merchant from context if available, otherwise use API response
       setMerchantInfo(merchantFromContext || merchantData);
-      console.log('Merchant timezone:', merchantFromContext?.timezone || merchantData.timezone);
       setServices(servicesData.filter(s => s.isActive));
       setStaff(staffData.filter(s => s.isActive));
     } catch (error) {
-      console.error('Failed to load data:', error);
       toast({
         title: "Error",
         description: "Failed to load booking data",
@@ -360,7 +400,6 @@ export default function BookingPageClient() {
       });
       setAvailableSlots(slots);
     } catch (error) {
-      console.error('Failed to load available slots:', error);
     }
   };
 
@@ -384,13 +423,31 @@ export default function BookingPageClient() {
   const handleBookingSubmit = async () => {
     if (selectedServices.length === 0 || !selectedDate || !selectedTime) return;
     
+    // Determine staff assignment based on merchant settings
+    let finalStaffId = selectedStaff === "" ? null : selectedStaff || undefined;
+    
+    // If merchant doesn't allow unassigned bookings and no staff is selected, auto-assign
+    if (!finalStaffId && merchantInfo && !merchantInfo.allowUnassignedBookings) {
+      // Auto-assign using intelligent selection
+      finalStaffId = selectBestAvailableStaff(staff, selectedDate, selectedTime);
+      
+      if (!finalStaffId) {
+        toast({
+          title: "Error",
+          description: "No staff members available. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     // Create booking directly
     await createBooking({
       customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
       customerPhone: customerInfo.phone,
       customerEmail: customerInfo.email,
       services: selectedServices.map(id => ({ serviceId: id })),
-      staffId: selectedStaff === "" ? null : selectedStaff || undefined,
+      staffId: finalStaffId,
       date: selectedDate,
       startTime: selectedTime,
       notes: customerInfo.notes
@@ -409,7 +466,6 @@ export default function BookingPageClient() {
       
       // Don't show toast - we're showing the confirmation page instead
     } catch (error: any) {
-      console.error('Failed to create booking:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create booking. Please try again.",
@@ -819,7 +875,9 @@ export default function BookingPageClient() {
                       <Badge variant="secondary" className="text-xs">Smart Match</Badge>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      We&apos;ll assign the best available specialist for your service
+                      {merchantInfo?.allowUnassignedBookings 
+                        ? "We'll assign the best available specialist for your service"
+                        : "We'll automatically assign an available specialist"}
                     </p>
                   </div>
                   <motion.div

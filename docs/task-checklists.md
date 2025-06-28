@@ -29,6 +29,56 @@ curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
 - ❌ Changing URL structure without testing
 - ❌ Assuming backend paths don't need `/api` prefix
 
+## 🚀 SERVICE MANAGEMENT: Starting/Restarting Services
+
+### API Service (Port 3000)
+**CRITICAL**: `npm run start:dev` runs in watch mode - it NEVER exits!
+
+#### ❌ WRONG Way (Wastes 2 minutes):
+```bash
+cd apps/api && npm run start:dev  # Will timeout waiting for exit
+```
+
+#### ✅ CORRECT Way:
+```bash
+# 1. Kill existing process (if any)
+pkill -f "nest start" || true
+
+# 2. Start in background with logs
+cd apps/api && npm run start:dev > /tmp/api.log 2>&1 &
+
+# 3. Wait for startup (NOT 2 minutes!)
+sleep 15
+
+# 4. Verify it's running
+curl http://localhost:3000/api/v1/health
+```
+
+### Merchant App (Port 3002)
+```bash
+pkill -f "next dev.*3002" || true
+cd apps/merchant-app && npm run dev > /tmp/merchant.log 2>&1 &
+sleep 10
+curl http://localhost:3002
+```
+
+### When to Restart Services:
+- ✅ After installing new npm packages
+- ✅ After changing .env files
+- ✅ After modifying Prisma schema
+- ❌ NOT for TypeScript changes (auto-reloads)
+- ❌ NOT for adding endpoints (auto-reloads)
+
+### Check What's Running:
+```bash
+# See all Node.js processes
+ps aux | grep -E "node|nest|next" | grep -v grep
+
+# Check specific ports
+lsof -i :3000  # API
+lsof -i :3002  # Merchant app
+```
+
 ## 🚨 QUICK FIX: Common Prisma Database Errors
 
 ### "Column does not exist" Error

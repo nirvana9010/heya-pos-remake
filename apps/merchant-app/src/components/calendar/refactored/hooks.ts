@@ -13,6 +13,7 @@ import {
   format
 } from 'date-fns';
 import type { Booking, TimeSlot } from './types';
+import { bookingEvents } from '@/lib/services/booking-events';
 
 // Hook for fetching calendar data
 export function useCalendarData() {
@@ -28,12 +29,6 @@ export function useCalendarData() {
       const startDate = format(state.dateRange.start, 'yyyy-MM-dd');
       const endDate = format(state.dateRange.end, 'yyyy-MM-dd');
       
-      console.log('📅 Fetching bookings for date range:', {
-        startDate,
-        endDate,
-        dateRange: state.dateRange,
-        currentView: state.currentView,
-      });
       
       // For day view, use date parameter instead of startDate/endDate
       const params = state.currentView === 'day' 
@@ -42,10 +37,6 @@ export function useCalendarData() {
       
       const response = await apiClient.getBookings(params);
       
-      console.log('📚 API Response:', {
-        bookingsCount: response?.length || 0,
-        firstBooking: response?.[0],
-      });
       
       // Transform bookings to calendar format
       const transformedBookings = response.map((booking: any) => {
@@ -90,7 +81,6 @@ export function useCalendarData() {
       
       actions.setBookings(transformedBookings);
     } catch (error) {
-      console.error('Failed to fetch bookings:', error);
       actions.setError('Failed to load bookings');
       toast({
         title: 'Error',
@@ -106,11 +96,9 @@ export function useCalendarData() {
   const fetchStaff = useCallback(async () => {
     try {
       const response = await apiClient.getStaff();
-      console.log('Staff API response:', response);
       
       // Handle empty or invalid response
       if (!response || !Array.isArray(response)) {
-        console.warn('Invalid staff response:', response);
         actions.setStaff([]);
         return;
       }
@@ -158,11 +146,9 @@ export function useCalendarData() {
   const fetchServices = useCallback(async () => {
     try {
       const response = await apiClient.getServices();
-      console.log('Services API response:', response);
       
       // Handle empty or invalid response
       if (!response || !Array.isArray(response)) {
-        console.warn('Invalid services response:', response);
         actions.setServices([]);
         return;
       }
@@ -174,7 +160,6 @@ export function useCalendarData() {
       }));
       actions.setServices(transformedServices);
     } catch (error) {
-      console.error('Failed to fetch services:', error);
     }
   }, [actions]);
   
@@ -187,7 +172,6 @@ export function useCalendarData() {
       // Handle paginated response
       const customerData = response?.data || response || [];
       
-      console.log(`Loaded ${customerData.length} recent customers for calendar`);
       
       // Transform customers to calendar format
       const transformedCustomers = customerData.map((customer: any) => ({
@@ -205,7 +189,6 @@ export function useCalendarData() {
       
       actions.setCustomers(transformedCustomers);
     } catch (error) {
-      console.error('Failed to fetch customers:', error);
     }
   }, [actions]);
   
@@ -220,6 +203,60 @@ export function useCalendarData() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+  
+  // Smart refresh: Multiple strategies for keeping calendar up-to-date
+  useEffect(() => {
+    let lastFetchTime = Date.now();
+    const MIN_REFRESH_INTERVAL = 30000; // 30 seconds minimum between refreshes
+    
+    // Strategy 1: Refresh when window regains focus
+    const handleFocus = () => {
+      const timeSinceLastFetch = Date.now() - lastFetchTime;
+      
+      // Only refresh if:
+      // 1. At least 30 seconds have passed since last fetch
+      // 2. Not currently loading or refreshing
+      // 3. Calendar is visible
+      if (timeSinceLastFetch > MIN_REFRESH_INTERVAL && 
+          !state.isRefreshing && 
+          !state.isLoading) {
+        fetchBookings();
+        lastFetchTime = Date.now();
+      }
+    };
+    
+    // Also refresh when visibility changes (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocus();
+      }
+    };
+    
+    // Strategy 2: Listen for booking events from other tabs/windows
+    const unsubscribe = bookingEvents.subscribe((event) => {
+      
+      // Refresh if a booking was created or updated from external source
+      if ((event.type === 'booking_created' || event.type === 'booking_updated') && 
+          event.source === 'external') {
+        // Small delay to ensure database is updated
+        setTimeout(() => {
+          if (!state.isRefreshing && !state.isLoading) {
+            fetchBookings();
+            lastFetchTime = Date.now();
+          }
+        }, 1000);
+      }
+    });
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubscribe();
+    };
+  }, [fetchBookings, state.isRefreshing, state.isLoading]);
   
   // Refresh function
   const refresh = useCallback(async () => {
@@ -322,7 +359,6 @@ export function useBookingOperations() {
         description: 'Booking updated successfully',
       });
     } catch (error) {
-      console.error('Failed to update booking:', error);
       toast({
         title: 'Error',
         description: 'Failed to update booking. Please try again.',
@@ -348,7 +384,6 @@ export function useBookingOperations() {
         description: 'Booking status updated',
       });
     } catch (error) {
-      console.error('Failed to update booking status:', error);
       toast({
         title: 'Error',
         description: 'Failed to update booking status',
@@ -370,7 +405,6 @@ export function useBookingOperations() {
         description: 'Booking deleted successfully',
       });
     } catch (error) {
-      console.error('Failed to delete booking:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete booking',

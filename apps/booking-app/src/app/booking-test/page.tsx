@@ -4,49 +4,74 @@ import { useState, useEffect } from 'react';
 import { Button } from '@heya-pos/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Badge } from '@heya-pos/ui';
-import { CheckCircle2, XCircle, Loader2, Calendar } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
+import { Label } from '@heya-pos/ui';
+import { Input } from '@heya-pos/ui';
+import { Textarea } from '@heya-pos/ui';
+import { CheckCircle2, XCircle, Loader2, Calendar, Play, RotateCcw, Radio } from 'lucide-react';
+import { Checkbox } from '@heya-pos/ui';
 import { format } from 'date-fns';
 import axios from 'axios';
 
-interface TestStep {
-  name: string;
-  status: 'pending' | 'running' | 'success' | 'error';
+interface TestResult {
+  status: 'pending' | 'success' | 'error';
   message?: string;
   data?: any;
 }
 
-// Standalone test page - doesn't use MerchantContext to avoid subdomain requirements
+// Standalone test page for granular booking flow testing
 export default function BookingTestPage() {
-  const [isRunning, setIsRunning] = useState(false);
   const [merchantSubdomain, setMerchantSubdomain] = useState('hamilton');
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [steps, setSteps] = useState<TestStep[]>([
-    { name: 'Get Services', status: 'pending' },
-    { name: 'Get Staff', status: 'pending' },
-    { name: 'Check Availability', status: 'pending' },
-    { name: 'Create Booking', status: 'pending' },
-    { name: 'Process Payment', status: 'pending' },
-    { name: 'Verify Notifications Sent', status: 'pending' },
-    { name: 'Verify in Calendar', status: 'pending' }
-  ]);
-  const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [merchantInfo, setMerchantInfo] = useState<any>(null);
+  
+  // Test data states
+  const [services, setServices] = useState<any[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [customerData, setCustomerData] = useState({
+    name: 'Test Customer',
+    email: 'test@example.com',
+    phone: '0400000000',
+    notes: 'Test booking via granular test page'
+  });
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [broadcastStatus, setBroadcastStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  
+  // Test results
+  const [results, setResults] = useState<Record<string, TestResult>>({
+    merchantInfo: { status: 'pending' },
+    services: { status: 'pending' },
+    staff: { status: 'pending' },
+    availability: { status: 'pending' },
+    booking: { status: 'pending' }
+  });
+  
+  // Loading states
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
 
   // Helper to create axios instance with subdomain
   const createApiClient = (subdomain: string) => {
     return {
       get: (url: string, config = {}) => 
-        axios.get(`${API_URL}${url}?subdomain=${subdomain}`, {
+        axios.get(`${API_URL}${url}`, {
           ...config,
+          params: { subdomain, ...(config.params || {}) },
           headers: {
             'X-Merchant-Subdomain': subdomain,
             ...(config.headers || {})
           }
         }),
       post: (url: string, data: any, config = {}) => 
-        axios.post(`${API_URL}${url}?subdomain=${subdomain}`, data, {
+        axios.post(`${API_URL}${url}`, data, {
           ...config,
+          params: { subdomain, ...(config.params || {}) },
           headers: {
             'X-Merchant-Subdomain': subdomain,
             ...(config.headers || {})
@@ -55,402 +80,700 @@ export default function BookingTestPage() {
     };
   };
 
-  const updateStep = (index: number, update: Partial<TestStep>) => {
-    setSteps(prev => prev.map((step, i) => 
-      i === index ? { ...step, ...update } : step
-    ));
+  const updateResult = (key: string, result: TestResult) => {
+    setResults(prev => ({ ...prev, [key]: result }));
   };
 
-  const runTest = async () => {
-    setIsRunning(true);
+  const setLoadingState = (key: string, isLoading: boolean) => {
+    setLoading(prev => ({ ...prev, [key]: isLoading }));
+  };
+
+  // Test Functions
+  const getMerchantInfo = async () => {
+    setLoadingState('merchantInfo', true);
     const api = createApiClient(merchantSubdomain);
     
     try {
-      // Step 1: Get Services
-      updateStep(0, { status: 'running' });
-      const servicesRes = await api.get('/v1/public/services');
-      const service = servicesRes.data.data[0];
-      updateStep(0, { 
-        status: 'success', 
-        message: `Found ${servicesRes.data.data.length} services`,
-        data: service
+      const response = await api.get('/v1/public/merchant-info');
+      setMerchantInfo(response.data);
+      updateResult('merchantInfo', {
+        status: 'success',
+        message: `Loaded merchant: ${response.data.name}`,
+        data: response.data
       });
-
-      // Step 2: Get Staff
-      updateStep(1, { status: 'running' });
-      const staffRes = await api.get('/v1/public/staff');
-      const staff = staffRes.data.data[0];
-      updateStep(1, { 
-        status: 'success', 
-        message: `Found ${staffRes.data.data.length} staff members`,
-        data: staff
-      });
-
-      // Step 3: Check Availability
-      updateStep(2, { status: 'running' });
-      
-      // Use a date 30 days in the future to avoid conflicts
-      const testDate = new Date();
-      testDate.setDate(testDate.getDate() + 30);
-      const dateStr = testDate.toISOString().split('T')[0];
-      
-      console.log('Checking availability with:', {
-        date: dateStr,
-        serviceId: service.id,
-        staffId: staff.id,
-        subdomain: merchantSubdomain
-      });
-      
-      let availabilityRes;
-      try {
-        availabilityRes = await api.post('/v1/public/bookings/check-availability', {
-          date: dateStr,
-          serviceId: service.id,
-          staffId: staff.id
-        });
-      
-        console.log('Availability response:', availabilityRes.data);
-      } catch (error: any) {
-        console.error('Availability check failed:', error.response?.data || error.message);
-        updateStep(2, { 
-          status: 'error', 
-          message: error.response?.data?.message || error.message
-        });
-        throw error;
-      }
-      
-      const availableSlots = availabilityRes.data.slots.filter((s: any) => s.available);
-      const slot = availableSlots.find((s: any) => s.time === '14:00') || availableSlots[0];
-      
-      updateStep(2, { 
-        status: 'success', 
-        message: `Found ${availableSlots.length} available slots`,
-        data: slot
-      });
-
-      // Step 4: Create Booking
-      updateStep(3, { status: 'running' });
-      
-      const timestamp = Date.now();
-      const randomPhone = `+614${String(timestamp).slice(-8)}`;
-      const bookingData = {
-        customerName: `Test Customer ${timestamp}`,
-        customerEmail: `test${timestamp}@example.com`,
-        customerPhone: randomPhone,
-        serviceId: service.id,
-        staffId: staff.id,
-        date: dateStr,
-        startTime: slot.time,
-        notes: 'Automated test booking - please ignore'
-      };
-      
-      const bookingRes = await api.post('/v1/public/bookings', bookingData);
-      const booking = bookingRes.data;
-      setBookingDetails(booking);
-      
-      updateStep(3, { 
-        status: 'success', 
-        message: `Booking created: ${booking.id}`,
-        data: booking
-      });
-
-      // Step 5: Process Payment (Mock)
-      updateStep(4, { status: 'running' });
-      
-      // For testing, we'll simulate a successful payment
-      // In a real scenario, this would integrate with Tyro or other payment gateway
-      const paymentData = {
-        bookingId: booking.id,
-        amount: service.price,
-        method: 'TEST_CARD',
-        status: 'SUCCESS',
-        reference: `TEST-${Date.now()}`
-      };
-      
-      // Since we don't have a test payment endpoint, we'll mark this as successful
-      // In production, this would call the actual payment processing endpoint
-      updateStep(4, { 
-        status: 'success', 
-        message: 'Payment simulated successfully',
-        data: paymentData
-      });
-
-      // Step 6: Verify Notifications Sent
-      updateStep(5, { status: 'running' });
-      
-      // Wait a moment for the notification event to be processed
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Check notification logs if we have authentication
-      if (authToken) {
-        try {
-          const notifResponse = await axios.get(
-            `${API_URL}/v1/notifications/history?bookingId=${booking.id}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'X-Merchant-Subdomain': merchantSubdomain
-              }
-            }
-          );
-          
-          const notifications = notifResponse.data;
-          const emailSent = notifications.some((n: any) => n.channel === 'email' && n.status === 'sent');
-          const smsSent = notifications.some((n: any) => n.channel === 'sms' && n.status === 'sent');
-          
-          updateStep(5, { 
-            status: 'success', 
-            message: `Notifications: ${emailSent ? '✓ Email' : '✗ Email'} ${smsSent ? '✓ SMS' : '✗ SMS'}`,
-            data: notifications
-          });
-        } catch (error) {
-          // If we can't check notification history, still mark as success
-          // since the booking was created and notifications are sent asynchronously
-          updateStep(5, { 
-            status: 'success', 
-            message: 'Notifications triggered (check merchant test notifications page)',
-            data: { 
-              note: 'Login as merchant to view notification history',
-              bookingId: booking.id 
-            }
-          });
-        }
-      } else {
-        updateStep(5, { 
-          status: 'success', 
-          message: 'Notifications triggered (verify in merchant dashboard)',
-          data: { bookingId: booking.id }
-        });
-      }
-
-      // Step 7: Verify in Calendar
-      updateStep(6, { status: 'running' });
-      
-      // Make an authenticated request to verify the booking appears
-      // For now, we'll check if we can retrieve the booking
-      try {
-        const verifyRes = await api.get(`/v1/public/bookings/${booking.id}`);
-        updateStep(6, { 
-          status: 'success', 
-          message: 'Booking verified in system',
-          data: verifyRes.data
-        });
-      } catch (error) {
-        // If public endpoint doesn't exist, we'll still mark as success
-        // since the booking was created
-        updateStep(6, { 
-          status: 'success', 
-          message: 'Booking created - verify in merchant dashboard',
-          data: { bookingId: booking.id, date: dateStr, time: slot.time }
-        });
-      }
-
     } catch (error: any) {
-      const failedStepIndex = steps.findIndex(s => s.status === 'running');
-      if (failedStepIndex !== -1) {
-        updateStep(failedStepIndex, { 
-          status: 'error', 
-          message: error.response?.data?.message || error.message 
-        });
-      }
+      updateResult('merchantInfo', {
+        status: 'error',
+        message: error.response?.data?.message || error.message
+      });
     } finally {
-      setIsRunning(false);
+      setLoadingState('merchantInfo', false);
     }
   };
 
-  const resetTest = () => {
-    setSteps(steps.map(step => ({ ...step, status: 'pending', message: undefined, data: undefined })));
-    setBookingDetails(null);
-  };
-
-  const getStatusIcon = (status: TestStep['status']) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case 'error':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'running':
-        return <Loader2 className="w-5 h-5 animate-spin text-blue-500" />;
-      default:
-        return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />;
+  const getServices = async () => {
+    setLoadingState('services', true);
+    const api = createApiClient(merchantSubdomain);
+    
+    try {
+      const response = await api.get('/v1/public/services');
+      const serviceList = response.data.data || [];
+      setServices(serviceList);
+      updateResult('services', {
+        status: 'success',
+        message: `Found ${serviceList.length} services`,
+        data: serviceList
+      });
+    } catch (error: any) {
+      updateResult('services', {
+        status: 'error',
+        message: error.response?.data?.message || error.message
+      });
+    } finally {
+      setLoadingState('services', false);
     }
   };
 
-  const getStatusBadge = (status: TestStep['status']) => {
+  const getStaff = async () => {
+    setLoadingState('staff', true);
+    const api = createApiClient(merchantSubdomain);
+    
+    try {
+      const response = await api.get('/v1/public/staff');
+      const staffList = response.data.data || [];
+      setStaff(staffList);
+      updateResult('staff', {
+        status: 'success',
+        message: `Found ${staffList.length} staff members`,
+        data: staffList
+      });
+    } catch (error: any) {
+      updateResult('staff', {
+        status: 'error',
+        message: error.response?.data?.message || error.message
+      });
+    } finally {
+      setLoadingState('staff', false);
+    }
+  };
+
+  const checkAvailability = async () => {
+    if (selectedServices.length === 0) {
+      updateResult('availability', {
+        status: 'error',
+        message: 'Please select at least one service'
+      });
+      return;
+    }
+
+    setLoadingState('availability', true);
+    const api = createApiClient(merchantSubdomain);
+    
+    try {
+      const payload = {
+        date: selectedDate,
+        services: selectedServices.map(serviceId => ({
+          serviceId,
+          staffId: selectedStaff === 'any' ? undefined : selectedStaff || undefined
+        }))
+      };
+
+      
+      const response = await api.post('/v1/public/bookings/check-availability', payload);
+      const slots = response.data.slots || [];
+      const availableSlotsList = slots.filter((s: any) => s.available);
+      setAvailableSlots(availableSlotsList);
+      
+      updateResult('availability', {
+        status: 'success',
+        message: `Found ${availableSlotsList.length} available time slots`,
+        data: slots
+      });
+    } catch (error: any) {
+      updateResult('availability', {
+        status: 'error',
+        message: error.response?.data?.message || error.message
+      });
+    } finally {
+      setLoadingState('availability', false);
+    }
+  };
+
+  const createBooking = async () => {
+    if (selectedServices.length === 0 || !selectedTime) {
+      updateResult('booking', {
+        status: 'error',
+        message: 'Please select at least one service and a time slot'
+      });
+      return;
+    }
+
+    setLoadingState('booking', true);
+    const api = createApiClient(merchantSubdomain);
+    
+    try {
+      // Determine staff assignment based on merchant settings
+      let finalStaffId = selectedStaff === 'any' ? null : selectedStaff || undefined;
+      
+      // If merchant doesn't allow unassigned bookings and no staff is selected, auto-assign
+      if (!finalStaffId && merchantInfo && !merchantInfo.allowUnassignedBookings) {
+        // Need to find an available staff member
+        if (staff.length > 0) {
+          
+          // Try each staff member to find one that's available
+          let assignedStaff = null;
+          for (const staffMember of staff) {
+            try {
+              // Check if this staff member is available
+              const availCheckPayload = {
+                date: selectedDate,
+                services: selectedServices.map(serviceId => ({
+                  serviceId,
+                  staffId: staffMember.id
+                }))
+              };
+              
+              const availRes = await api.post('/v1/public/bookings/check-availability', availCheckPayload);
+              const slots = availRes.data.slots || [];
+              const targetSlot = slots.find((s: any) => s.time === selectedTime);
+              
+              if (targetSlot && targetSlot.available) {
+                assignedStaff = staffMember;
+                finalStaffId = staffMember.id;
+                break;
+              }
+            } catch (err) {
+              // Skip this staff member if check fails
+            }
+          }
+          
+          if (!assignedStaff) {
+            updateResult('booking', {
+              status: 'error',
+              message: 'No staff members available at this time. Please select a different time.'
+            });
+            return;
+          }
+        } else {
+          updateResult('booking', {
+            status: 'error',
+            message: 'No staff members available for auto-assignment'
+          });
+          return;
+        }
+      }
+      
+      // Generate unique customer data to avoid conflicts
+      const timestamp = Date.now();
+      const bookingData = {
+        customerName: `${customerData.name} ${timestamp}`,
+        customerEmail: customerData.email.replace('@', `+${timestamp}@`),
+        customerPhone: customerData.phone,
+        services: selectedServices.map(serviceId => ({ serviceId })),
+        staffId: finalStaffId,  // staffId goes at top level, not in services
+        date: selectedDate,
+        startTime: selectedTime,
+        notes: customerData.notes
+      };
+
+      
+      // Set broadcast status to sending
+      setBroadcastStatus('sending');
+      
+      const response = await api.post('/v1/public/bookings', bookingData);
+      setCreatedBooking(response.data);
+      
+      // Mark broadcast as sent after successful booking creation
+      if ('BroadcastChannel' in window) {
+        setBroadcastStatus('sent');
+        setTimeout(() => setBroadcastStatus('idle'), 3000);
+      } else {
+        setBroadcastStatus('error');
+        setTimeout(() => setBroadcastStatus('idle'), 3000);
+      }
+      
+      updateResult('booking', {
+        status: 'success',
+        message: `Booking created successfully! ID: ${response.data.id}`,
+        data: response.data
+      });
+    } catch (error: any) {
+      
+      // Reset broadcast status on error
+      setBroadcastStatus('idle');
+      
+      updateResult('booking', {
+        status: 'error',
+        message: error.response?.data?.message || error.message
+      });
+    } finally {
+      setLoadingState('booking', false);
+    }
+  };
+
+  const resetAll = () => {
+    setServices([]);
+    setSelectedServices([]);
+    setStaff([]);
+    setSelectedStaff('');
+    setAvailableSlots([]);
+    setSelectedTime('');
+    setCreatedBooking(null);
+    setMerchantInfo(null);
+    setResults({
+      merchantInfo: { status: 'pending' },
+      services: { status: 'pending' },
+      staff: { status: 'pending' },
+      availability: { status: 'pending' },
+      booking: { status: 'pending' }
+    });
+  };
+
+  const getStatusBadge = (status: TestResult['status']) => {
     const variants = {
       success: 'default' as const,
       error: 'destructive' as const,
-      running: 'secondary' as const,
       pending: 'outline' as const
     };
     
-    return (
-      <Badge variant={variants[status]}>
-        {status}
-      </Badge>
-    );
+    return <Badge variant={variants[status]}>{status}</Badge>;
+  };
+
+  const getStatusIcon = (status: TestResult['status']) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
+    }
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-6xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-6 h-6" />
-            End-to-End Booking Test
+            Granular Booking Test
           </CardTitle>
           <CardDescription>
-            This tool tests the complete booking flow including payment processing
+            Test each step of the booking flow individually with full control over inputs
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Test Configuration */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Merchant Subdomain</label>
-              <input
-                type="text"
-                value={merchantSubdomain}
-                onChange={(e) => setMerchantSubdomain(e.target.value)}
-                className="w-full mt-1 px-3 py-2 border rounded-md"
-                placeholder="hamilton"
-                disabled={isRunning}
-              />
-            </div>
-            
-            <details className="p-3 bg-gray-50 rounded-lg">
-              <summary className="text-sm font-medium cursor-pointer">
-                Optional: Add Auth Token for Notification Verification
-              </summary>
-              <div className="mt-3">
-                <label className="text-sm text-gray-600">
-                  Auth Token (from merchant login)
-                </label>
-                <input
-                  type="text"
-                  value={authToken || ''}
-                  onChange={(e) => setAuthToken(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-xs font-mono"
-                  placeholder="Bearer eyJ..."
-                  disabled={isRunning}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  To get token: Login as merchant, open DevTools Network tab, find any API request, copy Authorization header
-                </p>
+          {/* Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Merchant Subdomain</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={merchantSubdomain}
+                    onChange={(e) => setMerchantSubdomain(e.target.value)}
+                    placeholder="hamilton"
+                    className="flex-1"
+                  />
+                  <Button onClick={resetAll} variant="outline" size="icon">
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </details>
-            
-            <div className="flex gap-4">
-              <Button 
-                onClick={runTest} 
-                disabled={isRunning}
-                className="flex items-center gap-2"
-              >
-                {isRunning && <Loader2 className="w-4 h-4 animate-spin" />}
-                Run Test
-              </Button>
-              <Button 
-                onClick={resetTest} 
-                variant="outline"
-                disabled={isRunning}
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Test Steps */}
-          <div className="space-y-3">
-            {steps.map((step, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                {getStatusIcon(step.status)}
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">{step.name}</h4>
-                    {getStatusBadge(step.status)}
-                  </div>
-                  {step.message && (
-                    <p className="text-sm text-gray-600 mt-1">{step.message}</p>
-                  )}
-                  {step.data && step.status === 'success' && (
-                    <details className="mt-2">
-                      <summary className="text-sm text-blue-600 cursor-pointer">
-                        View Details
-                      </summary>
-                      <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto">
-                        {JSON.stringify(step.data, null, 2)}
-                      </pre>
-                    </details>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Booking Summary */}
-          {bookingDetails && (
-            <Card className="bg-green-50 border-green-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Step 1: Merchant Info */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-green-800">Booking Created Successfully!</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="font-medium text-gray-600">Booking ID</dt>
-                    <dd className="font-mono">{bookingDetails.id}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Date & Time</dt>
-                    <dd>{bookingDetails.date} at {bookingDetails.startTime}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Customer</dt>
-                    <dd>{bookingDetails.customerName}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Service</dt>
-                    <dd>{bookingDetails.serviceName}</dd>
-                  </div>
-                </dl>
-                
-                <div className="mt-4 p-3 bg-green-100 rounded">
-                  <p className="text-sm text-green-800">
-                    ✓ This booking should now appear in the merchant calendar at{' '}
-                    <a 
-                      href={`http://localhost:3002/calendar?date=${bookingDetails.date}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline font-medium"
-                    >
-                      http://localhost:3002/calendar
-                    </a>
-                  </p>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {getStatusIcon(results.merchantInfo.status)}
+                    Get Merchant Info
+                  </CardTitle>
+                  {getStatusBadge(results.merchantInfo.status)}
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  onClick={getMerchantInfo} 
+                  disabled={loading.merchantInfo}
+                  className="w-full"
+                >
+                  {loading.merchantInfo && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Fetch Merchant Info
+                </Button>
+                {results.merchantInfo.message && (
+                  <p className="text-sm text-muted-foreground">{results.merchantInfo.message}</p>
+                )}
+                {merchantInfo && (
+                  <div className="text-sm space-y-1">
+                    <p><strong>Name:</strong> {merchantInfo.name}</p>
+                    <p><strong>Timezone:</strong> {merchantInfo.timezone}</p>
+                    <p><strong>Allow Unassigned:</strong> {merchantInfo.allowUnassignedBookings ? 'Yes' : 'No'}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
 
-          {/* Instructions */}
-          <Card className="bg-blue-50 border-blue-200">
+            {/* Step 2: Get Services */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {getStatusIcon(results.services.status)}
+                    Get Services
+                  </CardTitle>
+                  {getStatusBadge(results.services.status)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  onClick={getServices} 
+                  disabled={loading.services}
+                  className="w-full"
+                >
+                  {loading.services && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Fetch Services
+                </Button>
+                {results.services.message && (
+                  <p className="text-sm text-muted-foreground">{results.services.message}</p>
+                )}
+                {services.length > 0 && (
+                  <div>
+                    <Label>Select Services (Multiple allowed)</Label>
+                    <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                      {services.map((service) => (
+                        <label key={service.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <Checkbox
+                            checked={selectedServices.includes(service.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedServices([...selectedServices, service.id]);
+                              } else {
+                                setSelectedServices(selectedServices.filter(id => id !== service.id));
+                              }
+                            }}
+                          />
+                          <span className="text-sm flex-1">
+                            {service.name} - ${service.price} ({service.duration}min)
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {selectedServices.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} selected
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Step 3: Get Staff */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {getStatusIcon(results.staff.status)}
+                    Get Staff
+                  </CardTitle>
+                  {getStatusBadge(results.staff.status)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  onClick={getStaff} 
+                  disabled={loading.staff}
+                  className="w-full"
+                >
+                  {loading.staff && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Fetch Staff
+                </Button>
+                {results.staff.message && (
+                  <p className="text-sm text-muted-foreground">{results.staff.message}</p>
+                )}
+                {staff.length > 0 && (
+                  <div>
+                    <Label>Select Staff</Label>
+                    <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose staff member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">🌟 Any Available</SelectItem>
+                        {staff.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name} - {member.role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedStaff === 'any' && merchantInfo && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {merchantInfo.allowUnassignedBookings 
+                          ? "Will create unassigned booking" 
+                          : "Will auto-assign next available staff"}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Step 4: Check Availability */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {getStatusIcon(results.availability.status)}
+                    Check Availability
+                  </CardTitle>
+                  {getStatusBadge(results.availability.status)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label>Date</Label>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  onClick={checkAvailability} 
+                  disabled={loading.availability || selectedServices.length === 0}
+                  className="w-full"
+                >
+                  {loading.availability && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Check Available Times
+                </Button>
+                {results.availability.message && (
+                  <p className="text-sm text-muted-foreground">{results.availability.message}</p>
+                )}
+                {availableSlots.length > 0 && (
+                  <div>
+                    <Label>Select Time</Label>
+                    <Select value={selectedTime} onValueChange={setSelectedTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose time slot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSlots.map((slot) => (
+                          <SelectItem key={slot.time} value={slot.time}>
+                            {slot.time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Step 5: Create Booking */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {getStatusIcon(results.booking.status)}
+                    Create Booking
+                  </CardTitle>
+                  {getStatusBadge(results.booking.status)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Customer Name</Label>
+                    <Input
+                      value={customerData.name}
+                      onChange={(e) => setCustomerData({...customerData, name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Customer Email</Label>
+                    <Input
+                      type="email"
+                      value={customerData.email}
+                      onChange={(e) => setCustomerData({...customerData, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Customer Phone</Label>
+                    <Input
+                      value={customerData.phone}
+                      onChange={(e) => setCustomerData({...customerData, phone: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Notes</Label>
+                    <Input
+                      value={customerData.notes}
+                      onChange={(e) => setCustomerData({...customerData, notes: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                {/* Show selected services summary */}
+                {selectedServices.length > 0 && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-medium mb-2">Selected Services:</h4>
+                    <div className="space-y-1">
+                      {selectedServices.map(serviceId => {
+                        const service = services.find(s => s.id === serviceId);
+                        if (!service) return null;
+                        return (
+                          <div key={serviceId} className="text-xs flex justify-between">
+                            <span>{service.name}</span>
+                            <span>${service.price} - {service.duration}min</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 pt-2 border-t text-sm font-medium flex justify-between">
+                      <span>Total:</span>
+                      <span>
+                        ${selectedServices.reduce((sum, id) => {
+                          const service = services.find(s => s.id === id);
+                          return sum + (service?.price || 0);
+                        }, 0).toFixed(2)} - {selectedServices.reduce((sum, id) => {
+                          const service = services.find(s => s.id === id);
+                          return sum + (service?.duration || 0);
+                        }, 0)}min
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={createBooking} 
+                  disabled={loading.booking || selectedServices.length === 0 || !selectedTime}
+                  className="w-full"
+                >
+                  {loading.booking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Create Booking
+                </Button>
+                
+                {results.booking.message && (
+                  <p className="text-sm text-muted-foreground">{results.booking.message}</p>
+                )}
+                
+                {createdBooking && (
+                  <>
+                    <Card className="bg-green-50 border-green-200">
+                      <CardHeader>
+                        <CardTitle className="text-green-800">Booking Created!</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <dl className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <dt className="font-medium">Booking ID:</dt>
+                            <dd className="font-mono text-xs">{createdBooking.id}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Provider:</dt>
+                            <dd>{createdBooking.staffName || 'Unassigned'}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Date & Time:</dt>
+                            <dd>{createdBooking.date} at {createdBooking.startTime}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Services:</dt>
+                            <dd>
+                              {createdBooking.services && createdBooking.services.length > 0 ? (
+                                <div className="space-y-1">
+                                  {createdBooking.services.map((s: any, i: number) => (
+                                    <div key={i} className="text-xs">
+                                      {s.name} - ${s.price} ({s.duration}min)
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                createdBooking.serviceName || 'N/A'
+                              )}
+                            </dd>
+                          </div>
+                        </dl>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Calendar Auto-Update Notice */}
+                    <Card className="bg-green-50 border-green-200">
+                      <CardHeader>
+                        <CardTitle className="text-green-800 text-base">✨ Calendar Auto-Update</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-green-800">
+                          <strong>The booking has been created with staff:</strong> {createdBooking.staffName || 'Unassigned'}
+                        </p>
+                        <p className="text-sm text-green-700 mt-2">
+                          The calendar will automatically update to show this booking in the 
+                          <strong> {createdBooking.staffId ? createdBooking.staffName : 'Unassigned'} column</strong> using:
+                        </p>
+                        <ul className="text-sm text-green-600 mt-2 list-disc list-inside">
+                          <li>Broadcast events for instant cross-tab updates</li>
+                          <li>Focus-based refresh when switching back to calendar tab</li>
+                        </ul>
+                        <p className="text-sm text-green-600 mt-2">
+                          💡 No manual refresh needed - the calendar stays in sync automatically!
+                        </p>
+                        
+                        {/* Broadcast Status Indicator */}
+                        {broadcastStatus !== 'idle' && (
+                          <div className="mt-3 flex items-center gap-2">
+                            {broadcastStatus === 'sent' ? (
+                              <>
+                                <Radio className="w-4 h-4 text-green-600 animate-pulse" />
+                                <span className="text-sm text-green-700 font-medium">
+                                  Broadcast event sent successfully!
+                                </span>
+                              </>
+                            ) : broadcastStatus === 'error' ? (
+                              <>
+                                <XCircle className="w-4 h-4 text-red-600" />
+                                <span className="text-sm text-red-700">
+                                  Broadcast failed
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                <span className="text-sm text-blue-700">
+                                  Broadcasting...
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Debug Panel */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-blue-800 text-lg">How This Works</CardTitle>
+              <CardTitle className="text-lg">Debug Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-blue-700">
-              <p className="font-medium mb-2">ℹ️ Access this page at: http://localhost:3001/hamilton/booking-test</p>
-              <p>1. Fetches available services and staff from the merchant</p>
-              <p>2. Checks availability for a future date (30 days ahead)</p>
-              <p>3. Creates a booking with test customer details</p>
-              <p>4. Simulates a successful payment (in production, this would use Tyro)</p>
-              <p>5. Verifies notifications were sent (email/SMS based on customer preferences)</p>
-              <p>6. Verifies the booking was created in the system</p>
-              <p className="font-medium pt-2">
-                After running, check:
-              </p>
-              <ul className="list-disc list-inside ml-2">
-                <li>Merchant calendar to see the booking</li>
-                <li>Test notifications page to see email/SMS logs</li>
-                <li>Customer would receive confirmation email/SMS</li>
-              </ul>
+            <CardContent>
+              <details>
+                <summary className="cursor-pointer text-sm font-medium">View All Test Results</summary>
+                <pre className="mt-2 p-3 bg-gray-50 rounded text-xs overflow-auto">
+                  {JSON.stringify(results, null, 2)}
+                </pre>
+              </details>
             </CardContent>
           </Card>
         </CardContent>

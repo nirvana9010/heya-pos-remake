@@ -14,4 +14,5 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   requireDeposit: false,
   depositPercentage: 0,
   showUnassignedColumn: true, // Default to true to support "Any Available" bookings
+  allowUnassignedBookings: true, // Default to true for flexibility - businesses can disable if they prefer immediate assignment
 };

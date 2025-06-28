@@ -34,17 +34,16 @@ export class PublicBookingService {
     private readonly bookingAvailabilityService: BookingAvailabilityService,
   ) {}
 
-  async createPublicBooking(dto: PublicCreateBookingData) {
-    // Get the first active merchant for now (in production, this would be based on domain/subdomain)
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
+  async createPublicBooking(dto: PublicCreateBookingData, merchantId: string) {
+    // Verify merchant exists and is active
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
     });
 
-    if (!merchant) {
-      throw new Error('No active merchant found');
+    if (!merchant || merchant.status !== 'ACTIVE') {
+      throw new Error('Merchant not found or not active');
     }
 
-    console.log('Processing booking for merchant:', merchant.id, merchant.name);
 
     // Normalize input to support both single and multiple services
     const serviceRequests = dto.services || [
@@ -117,8 +116,17 @@ export class PublicBookingService {
       });
     }
 
+    // Check merchant settings for unassigned bookings
+    const merchantSettings = merchant.settings as any;
+    const allowUnassignedBookings = merchantSettings?.allowUnassignedBookings ?? true;
+    
     // Use provided staff or leave unassigned (null) if not specified
     const staffId = dto.staffId || serviceRequests[0].staffId || null;
+    
+    // Validate staff assignment based on merchant settings
+    if (!staffId && !allowUnassignedBookings) {
+      throw new Error('This business requires staff selection for all bookings. Please select a specific staff member.');
+    }
     
     // For the createdBy field (which is required), we need any active staff
     // This doesn't mean the booking is assigned to them - it's just for audit purposes
@@ -142,13 +150,11 @@ export class PublicBookingService {
         where: { merchantId: merchant.id },
         select: { id: true, firstName: true, status: true },
       });
-      console.error('No active staff found. All staff:', allStaff);
       throw new Error('No active staff available in the system');
     }
 
     // Store the creator ID to use in the transaction
     const creatorStaffId = anyActiveStaff.id;
-    console.log('Using creator staff ID:', creatorStaffId);
 
     try {
       // For multiple services, create booking directly with transaction
@@ -214,7 +220,6 @@ export class PublicBookingService {
         
         // For online bookings, we need a creator even if no staff is assigned
         // Use the provided staff ID, or use any active staff as creator (for audit purposes only)
-        console.log('Staff assignment:', { staffId, creatorStaffId });
         bookingData.createdById = staffId || creatorStaffId;
         
         // Only set provider if staffId is provided (can be null for unassigned)
@@ -319,14 +324,17 @@ export class PublicBookingService {
     }
   }
 
-  async checkAvailability(dto: { date: string; serviceId?: string; staffId?: string; services?: Array<{ serviceId: string; staffId?: string }> }) {
-    // Get the first active merchant for now
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
+  async checkAvailability(
+    dto: { date: string; serviceId?: string; staffId?: string; services?: Array<{ serviceId: string; staffId?: string }> },
+    merchantId: string
+  ) {
+    // Verify merchant exists and is active
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
     });
 
-    if (!merchant) {
-      throw new Error('No active merchant found');
+    if (!merchant || merchant.status !== 'ACTIVE') {
+      throw new Error('Merchant not found or not active');
     }
 
     // Normalize input to support both single and multiple services

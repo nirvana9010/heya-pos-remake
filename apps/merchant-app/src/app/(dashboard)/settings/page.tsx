@@ -34,6 +34,7 @@ export default function SettingsPage() {
   const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>([10, 15, 20]);
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
   const [showUnassignedColumn, setShowUnassignedColumn] = useState(true);
+  const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(true);
   
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
@@ -80,6 +81,7 @@ export default function SettingsPage() {
         setDefaultTipPercentages(response.defaultTipPercentages || [10, 15, 20]);
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
         setShowUnassignedColumn(response.showUnassignedColumn ?? true);
+        setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
@@ -133,6 +135,7 @@ export default function SettingsPage() {
         defaultTipPercentages,
         allowCustomTipAmount,
         showUnassignedColumn,
+        allowUnassignedBookings,
       });
       
       toast({
@@ -508,6 +511,19 @@ export default function SettingsPage() {
                   <Switch 
                     checked={showUnassignedColumn} 
                     onCheckedChange={setShowUnassignedColumn}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Allow Unassigned Bookings</Label>
+                    <p className="text-sm text-muted-foreground">
+                      When customers choose "Any Available" staff: ON = Creates unassigned bookings for manual assignment later, OFF = Automatically assigns the next available staff member
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={allowUnassignedBookings} 
+                    onCheckedChange={setAllowUnassignedBookings}
                   />
                 </div>
               </div>

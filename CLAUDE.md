@@ -53,6 +53,19 @@ Before attempting ANY task, follow this systematic approach:
 pkill -f "nest start" && sleep 3 && cd apps/api && npm run start:dev
 ```
 
+### 🚨 CRITICAL: Don't Wait for npm run start:dev!
+**npm run start:dev runs in watch mode - it NEVER exits!**
+- ❌ WRONG: Waiting 2 minutes for the command to "complete"
+- ✅ RIGHT: Start in background, wait 10-15 seconds, check if running
+
+```bash
+# Correct way to restart API:
+pkill -f "nest start"
+cd apps/api && npm run start:dev > /tmp/api.log 2>&1 &
+sleep 15  # API starts in ~10-15 seconds
+curl http://localhost:3000/api/v1/health  # Verify it's running
+```
+
 ### 🚨 CRITICAL: NEVER USE THESE KILL COMMANDS (they kill Claude Code):
 - ❌ `pkill -f "npm"` - TOO BROAD, kills Claude Code!
 - ❌ `pkill -f "npm run"` - TOO BROAD, kills Claude Code!

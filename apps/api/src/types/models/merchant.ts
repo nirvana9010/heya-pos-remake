@@ -36,6 +36,8 @@ export interface MerchantSettings {
   depositPercentage: number; // 1-100
   // Unassigned column settings
   showUnassignedColumn: boolean;
+  // Booking behavior settings
+  allowUnassignedBookings: boolean;
 }
 
 export enum MerchantStatus {
