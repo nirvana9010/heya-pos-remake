@@ -13,7 +13,8 @@ import {
   AlertCircle,
   CheckCircle,
   Users,
-  Loader2
+  Loader2,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -29,6 +30,7 @@ import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
 import { getAvailableStaff, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/mock-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
+import { useAuth } from "@/hooks/use-auth";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -57,6 +59,8 @@ export function BookingSlideOut({
   bookings = [],
   onSave
 }: BookingSlideOutProps) {
+  const { merchant } = useAuth();
+  
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
   const [defaultTime] = useState(() => {
@@ -72,6 +76,7 @@ export function BookingSlideOut({
     customerPhone: "",
     customerEmail: "",
     isNewCustomer: true,
+    isWalkIn: false,
     serviceId: "",
     staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
     date: initialDate || defaultDate,
@@ -178,6 +183,24 @@ export function BookingSlideOut({
   const selectedService = services.find(s => s.id === formData.serviceId);
   const selectedStaff = staff.find(s => s.id === formData.staffId);
 
+  const generateWalkInCustomer = () => {
+    const now = new Date();
+    const timeStr = format(now, "MMM-dd-hhmma");
+    
+    setFormData({
+      ...formData,
+      customerId: '', // Will be created as new customer
+      customerName: `Walk-in ${timeStr}`,
+      customerPhone: '0000000000', // Placeholder phone
+      customerEmail: '',
+      isNewCustomer: true,
+      isWalkIn: true // Add flag to track walk-in status
+    });
+    
+    // Auto-proceed to next step
+    handleNext();
+  };
+
   const handleNext = () => {
     const stepIndex = steps.findIndex(s => s.id === currentStep);
     if (stepIndex < steps.length - 1) {
@@ -225,7 +248,9 @@ export function BookingSlideOut({
       ...formData,
       staffId: finalStaffId,
       startTime: combinedDateTime,
-      endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000)
+      endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000),
+      // Add customer source for walk-in customers
+      ...(formData.isWalkIn && { customerSource: 'WALK_IN' })
     };
     
     
@@ -258,7 +283,8 @@ export function BookingSlideOut({
                       customerName: fullName,
                       customerPhone: customer.mobile || customer.phone || '',
                       customerEmail: customer.email || "",
-                      isNewCustomer: false
+                      isNewCustomer: false,
+                      isWalkIn: false
                     });
                     handleNext();
                   } else {
@@ -269,7 +295,8 @@ export function BookingSlideOut({
                       customerName: '',
                       customerPhone: '',
                       customerEmail: '',
-                      isNewCustomer: true
+                      isNewCustomer: true,
+                      isWalkIn: false
                     });
                   }
                 }}
@@ -285,7 +312,24 @@ export function BookingSlideOut({
               />
             </div>
 
-            {formData.isNewCustomer && (
+            {/* Walk-in Customer Button */}
+            {merchant?.settings?.allowWalkInBookings !== false && (
+              <div className="flex items-center justify-center py-2">
+                <span className="text-sm text-gray-500 mr-3">or</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateWalkInCustomer}
+                  className="gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Walk-in Customer
+                </Button>
+              </div>
+            )}
+
+            {formData.isNewCustomer && !formData.isWalkIn && (
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-3">Create New Customer</h4>
                 <div className="space-y-3">
@@ -321,6 +365,22 @@ export function BookingSlideOut({
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Walk-in Customer Indicator */}
+            {formData.isWalkIn && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserPlus className="h-5 w-5 text-gray-600" />
+                  <h4 className="font-medium">Walk-in Customer</h4>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Quick booking for: <span className="font-medium">{formData.customerName}</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  No contact details will be stored for this customer
+                </p>
               </div>
             )}
           </div>

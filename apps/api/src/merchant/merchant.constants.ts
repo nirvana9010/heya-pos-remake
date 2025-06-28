@@ -17,4 +17,5 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   allowUnassignedBookings: true, // Default to true for flexibility - businesses can disable if they prefer immediate assignment
   calendarStartHour: 6, // 6 AM
   calendarEndHour: 23, // 11 PM
+  allowWalkInBookings: true, // Default to true for flexibility
 };
