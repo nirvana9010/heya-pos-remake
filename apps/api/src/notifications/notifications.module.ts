@@ -12,14 +12,20 @@ import { NotificationEventHandler } from './handlers/notification-event.handler'
 import { SimpleSchedulerService } from './simple-scheduler.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TestNotificationsController } from './test-notifications.controller';
+import { MerchantNotificationsController } from './merchant-notifications.controller';
+import { MerchantNotificationsService } from './merchant-notifications.service';
 
 @Module({
   imports: [
     PrismaModule,
   ],
-  controllers: process.env.NODE_ENV !== 'production' ? [TestNotificationsController] : [],
+  controllers: [
+    MerchantNotificationsController,
+    ...(process.env.NODE_ENV !== 'production' ? [TestNotificationsController] : []),
+  ],
   providers: [
     NotificationsService,
+    MerchantNotificationsService,
     EmailService,
     SmsService,
     SendGridEmailService,
@@ -31,6 +37,6 @@ import { TestNotificationsController } from './test-notifications.controller';
     NotificationEventHandler,
     SimpleSchedulerService, // Always use simple scheduler - no crypto dependencies
   ],
-  exports: [NotificationsService],
+  exports: [NotificationsService, MerchantNotificationsService],
 })
 export class NotificationsModule {}

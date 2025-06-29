@@ -257,13 +257,19 @@ function CalendarContent() {
         const timestamp = Date.now();
         const walkInEmail = `walkin-${timestamp}@heya-pos.local`;
         
-        const customerData = {
+        const customerData: any = {
           firstName: bookingData.customerName.split(' ')[0] || 'Walk-in',
           lastName: bookingData.customerName.split(' ').slice(1).join(' ') || 'Customer',
-          email: bookingData.customerEmail || (bookingData.isWalkIn ? walkInEmail : ''),
           phone: bookingData.customerPhone || '0000000000',
           notes: bookingData.isWalkIn ? 'Walk-in customer' : ''
         };
+        
+        // Only include email if it's provided or if it's a walk-in customer
+        if (bookingData.customerEmail) {
+          customerData.email = bookingData.customerEmail;
+        } else if (bookingData.isWalkIn) {
+          customerData.email = walkInEmail;
+        }
         
         const newCustomer = await apiClient.createCustomer(customerData);
         finalCustomerId = newCustomer.id;

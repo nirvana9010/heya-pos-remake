@@ -10,6 +10,8 @@ import {
   OrderState,
 } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
 
 @Injectable()
 export class PaymentsService {
@@ -17,6 +19,8 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
     private readonly gatewayService: PaymentGatewayService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly merchantNotificationsService: MerchantNotificationsService,
   ) {}
 
   /**
@@ -339,6 +343,27 @@ export class PaymentsService {
     // Update order state if needed
     if (refundResult?.success) {
       await this.updateOrderPaymentState(payment.orderId, merchantId);
+      
+      // Create merchant notification for successful refund
+      // First get the order with customer details
+      const order = await this.prisma.order.findUnique({
+        where: { id: payment.orderId },
+        include: {
+          customer: true,
+        },
+      });
+      
+      if (order && order.customer) {
+        const customerName = `${order.customer.firstName} ${order.customer.lastName}`.trim();
+        await this.merchantNotificationsService.createRefundNotification(
+          merchantId,
+          {
+            paymentId: refund.id,
+            customerName,
+            amount,
+          }
+        );
+      }
     }
 
     return refund;

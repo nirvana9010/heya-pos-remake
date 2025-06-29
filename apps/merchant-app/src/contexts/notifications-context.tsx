@@ -1,7 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Notification, generateMockNotifications, getUnreadCount } from '@/lib/notifications';
+import React, { createContext, useContext, useMemo, useCallback, useEffect } from 'react';
+import { Notification, getUnreadCount } from '@/lib/notifications';
+import { MerchantNotification } from '@/lib/clients/notifications-client';
+import { 
+  useNotifications, 
+  useMarkNotificationRead, 
+  useMarkAllNotificationsRead,
+  useDeleteNotification,
+  useDeleteAllNotifications 
+} from '@/lib/query/hooks/use-notifications';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -11,104 +19,132 @@ interface NotificationsContextType {
   clearNotification: (id: string) => void;
   clearAll: () => void;
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  refreshNotifications: () => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  // Use React Query hook for fetching notifications
+  const { data: notificationsData, isLoading, error, refetch } = useNotifications();
+  
+  // Mutation hooks
+  const markAsReadMutation = useMarkNotificationRead();
+  const markAllAsReadMutation = useMarkAllNotificationsRead();
+  const deleteNotificationMutation = useDeleteNotification();
+  const deleteAllNotificationsMutation = useDeleteAllNotifications();
 
-  // Initialize with mock data in development
+  // Helper function to convert API notification to local format
+  const convertNotification = useCallback((apiNotification: MerchantNotification): Notification => ({
+    id: apiNotification.id,
+    type: apiNotification.type,
+    priority: apiNotification.priority,
+    title: apiNotification.title,
+    message: apiNotification.message,
+    timestamp: new Date(apiNotification.createdAt),
+    read: apiNotification.read,
+    actionUrl: apiNotification.actionUrl,
+    actionLabel: apiNotification.actionLabel,
+    metadata: apiNotification.metadata,
+  }), []);
+
+  // Convert notifications data
+  const notifications = useMemo(() => {
+    if (!notificationsData?.data) return [];
+    return notificationsData.data.map(convertNotification);
+  }, [notificationsData, convertNotification]);
+
+  // Track previous unread count for sound notification
+  const prevUnreadCountRef = React.useRef(0);
+  
   useEffect(() => {
-    // Load persisted notifications from localStorage
-    const stored = localStorage.getItem('merchant-notifications');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Filter out old notification types that no longer exist
-        const validTypes = ['booking_new', 'booking_cancelled', 'booking_modified', 'payment_refunded'];
-        const filteredNotifications = parsed.filter((n: any) => validTypes.includes(n.type));
-        
-        setNotifications(filteredNotifications.map((n: any) => ({
-          ...n,
-          timestamp: new Date(n.timestamp)
-        })));
-      } catch (e) {
-        console.error('Failed to parse stored notifications:', e);
-      }
-    } else if (process.env.NODE_ENV === 'development') {
-      // Only generate mock notifications if no stored ones exist
-      setNotifications(generateMockNotifications());
-    }
-  }, []);
-
-  // Persist notifications to localStorage
-  useEffect(() => {
-    if (notifications.length > 0) {
-      localStorage.setItem('merchant-notifications', JSON.stringify(notifications));
-    }
-  }, [notifications]);
-
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  }, []);
-
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
-    );
-  }, []);
-
-  const clearNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-    localStorage.removeItem('merchant-notifications');
-  }, []);
-
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      read: false
-    };
+    const unreadCount = notifications.filter(n => !n.read).length;
     
-    setNotifications(prev => [newNotification, ...prev]);
-    
-    // Play notification sound if enabled
-    if ('Audio' in window) {
+    // Play sound for new unread notifications
+    if (unreadCount > prevUnreadCountRef.current && 'Audio' in window) {
       try {
         const audio = new Audio('/notification.mp3');
         audio.volume = 0.3;
         audio.play().catch(() => {
-          // Ignore audio play errors (user hasn't interacted yet)
+          // Ignore audio play errors
         });
       } catch (e) {
         // Ignore audio errors
       }
     }
+    
+    prevUnreadCountRef.current = unreadCount;
+  }, [notifications]);
+
+  // Clean up old mock data on mount
+  useEffect(() => {
+    localStorage.removeItem('merchant-notifications');
   }, []);
 
-  // DISABLED: Simulated notifications - not needed for MVP
-  // This was causing random notifications to appear every 30 seconds
-  /*
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await markAsReadMutation.mutateAsync(id);
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  }, [markAsReadMutation]);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await markAllAsReadMutation.mutateAsync();
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err);
+    }
+  }, [markAllAsReadMutation]);
+
+  const clearNotification = useCallback(async (id: string) => {
+    try {
+      await deleteNotificationMutation.mutateAsync(id);
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
+  }, [deleteNotificationMutation]);
+
+  const clearAll = useCallback(async () => {
+    try {
+      await deleteAllNotificationsMutation.mutateAsync();
+    } catch (err) {
+      console.error('Failed to clear all notifications:', err);
+    }
+  }, [deleteAllNotificationsMutation]);
+
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    // This is a client-side only function for immediate UI feedback
+    // Real notifications should come from the server
+    console.warn('addNotification is deprecated - notifications should come from the server');
     
-    const interval = setInterval(() => {
-      // Implementation disabled
-    }, 30000); // Check every 30 seconds
+    // Play notification sound
+    if ('Audio' in window) {
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.volume = 0.3;
+        audio.play().catch(() => {
+          // Ignore audio play errors
+        });
+      } catch (e) {
+        // Ignore audio errors
+      }
+    }
     
-    return () => clearInterval(interval);
-  }, [addNotification]);
-  */
+    // Trigger a refetch to get the latest from server
+    refetch();
+  }, [refetch]);
+
+  const refreshNotifications = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const unreadCount = getUnreadCount(notifications);
+
+  // Transform error to string
+  const errorMessage = error ? (error as any).message || 'Failed to load notifications' : null;
 
   return (
     <NotificationsContext.Provider value={{
@@ -118,7 +154,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       markAllAsRead,
       clearNotification,
       clearAll,
-      addNotification
+      addNotification,
+      refreshNotifications,
+      isLoading,
+      error: errorMessage
     }}>
       {children}
     </NotificationsContext.Provider>

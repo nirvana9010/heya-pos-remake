@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BookingCreatedEvent } from '../../contexts/bookings/domain/events/booking-created.event';
 import { NotificationsService } from '../notifications.service';
+import { MerchantNotificationsService } from '../merchant-notifications.service';
 import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -11,6 +12,7 @@ export class NotificationEventHandler {
 
   constructor(
     private readonly notificationsService: NotificationsService,
+    private readonly merchantNotificationsService: MerchantNotificationsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -86,6 +88,20 @@ export class NotificationEventHandler {
 
       this.logger.log(
         `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+      );
+
+      // Create merchant notification
+      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        'booking_new',
+        {
+          id: booking.id,
+          customerName,
+          serviceName: firstService?.service?.name || 'Service',
+          startTime: booking.startTime,
+          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+        }
       );
 
       // Schedule reminders (if enabled)
@@ -211,6 +227,20 @@ export class NotificationEventHandler {
         `Booking cancellation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
       );
 
+      // Create merchant notification
+      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        'booking_cancelled',
+        {
+          id: booking.id,
+          customerName,
+          serviceName: firstService?.service?.name || 'Service',
+          startTime: booking.startTime,
+          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+        }
+      );
+
       // Cancel any pending reminders
       await this.cancelReminders(booking.id);
 
@@ -233,6 +263,54 @@ export class NotificationEventHandler {
       this.logger.log(`Cancelled pending reminders for booking ${bookingId}`);
     } catch (error) {
       this.logger.error(`Failed to cancel reminders for booking ${bookingId}`, error);
+    }
+  }
+
+  @OnEvent('booking.modified')
+  async handleBookingModified(event: { bookingId: string; changes: string }): Promise<void> {
+    try {
+      this.logger.log(`Handling booking modified event: ${event.bookingId}`);
+
+      // Fetch booking details
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: event.bookingId },
+        include: {
+          customer: true,
+          merchant: true,
+          provider: true,
+          services: {
+            include: {
+              service: true,
+              staff: true,
+            },
+          },
+          location: true,
+        },
+      });
+
+      if (!booking) {
+        this.logger.error(`Booking not found: ${event.bookingId}`);
+        return;
+      }
+
+      // Create merchant notification
+      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const firstService = booking.services[0];
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        'booking_modified',
+        {
+          id: booking.id,
+          customerName,
+          serviceName: firstService?.service?.name || 'Service',
+          startTime: booking.startTime,
+          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+        },
+        event.changes
+      );
+
+    } catch (error) {
+      this.logger.error(`Failed to handle booking modified event: ${event.bookingId}`, error);
     }
   }
 }
