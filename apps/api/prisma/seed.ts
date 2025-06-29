@@ -82,6 +82,14 @@ async function main() {
         // Payment settings
         requireDeposit: true,
         depositPercentage: 30, // 30% deposit required
+        // Unassigned booking settings
+        showUnassignedColumn: false,
+        allowUnassignedBookings: false,
+        // Calendar display settings
+        calendarStartHour: 6,
+        calendarEndHour: 23,
+        // Walk-in settings
+        allowWalkInBookings: true,
       },
     },
   });
