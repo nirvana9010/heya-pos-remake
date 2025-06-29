@@ -6,7 +6,10 @@ module.exports = {
       args: 'run start:dev',
       cwd: './apps/api',
       watch: false,  // Let Next.js/NestJS handle hot reload
-      env: { PORT: 3000 }
+      env: { 
+        PORT: 3000,
+        NODE_ENV: 'development'
+      }
     },
     {
       name: 'merchant',
@@ -14,7 +17,10 @@ module.exports = {
       args: 'run dev',
       cwd: './apps/merchant-app',
       watch: false,
-      env: { PORT: 3001 }
+      env: { 
+        PORT: 3002,
+        NODE_ENV: 'development'
+      }
     },
     {
       name: 'booking',
@@ -22,7 +28,10 @@ module.exports = {
       args: 'run dev',
       cwd: './apps/booking-app',
       watch: false,
-      env: { PORT: 3002 }
+      env: { 
+        PORT: 3001,
+        NODE_ENV: 'development'
+      }
     },
     {
       name: 'admin',
@@ -30,7 +39,10 @@ module.exports = {
       args: 'run dev',
       cwd: './apps/admin-dashboard',
       watch: false,
-      env: { PORT: 3003 }
+      env: { 
+        PORT: 3003,
+        NODE_ENV: 'development'
+      }
     }
   ]
 };

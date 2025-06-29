@@ -18,6 +18,13 @@ export interface Merchant {
   name: string;
   email: string;
   subdomain: string;
+  settings?: {
+    showUnassignedColumn?: boolean;
+    allowUnassignedBookings?: boolean;
+    calendarStartHour?: number;
+    calendarEndHour?: number;
+    [key: string]: any;
+  };
 }
 
 export interface AuthState {
