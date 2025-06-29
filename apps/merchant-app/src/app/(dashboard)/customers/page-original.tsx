@@ -148,7 +148,8 @@ export default function CustomersPage() {
     try {
       setLoading(true);
       // Fetch customers first
-      const customersData = await apiClient.getCustomers();
+      const customersResponse = await apiClient.getCustomers();
+      const customersData = customersResponse.data || [];
       
       // For bookings, we need to handle pagination properly
       // Try to get more bookings with a higher limit

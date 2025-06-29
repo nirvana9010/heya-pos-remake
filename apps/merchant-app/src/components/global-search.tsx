@@ -92,11 +92,14 @@ export function GlobalSearch() {
             : customersRes.value.data.data?.slice(0, 3) || [];
             
           customers.forEach((customer: any) => {
+            // Construct full name from firstName and lastName
+            const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown Customer';
+            
             searchResults.push({
               type: 'customer',
               id: customer.id,
-              title: customer.name,
-              subtitle: customer.phone || customer.email,
+              title: fullName,
+              subtitle: customer.phone || customer.mobile || customer.email || 'No contact info',
               url: `/customers/${customer.id}`,
               metadata: customer,
             });
@@ -260,7 +263,7 @@ export function GlobalSearch() {
 
       {/* Search Results Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 9999 }}>
           {isLoading ? (
             <div className="p-4 text-center">
               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
