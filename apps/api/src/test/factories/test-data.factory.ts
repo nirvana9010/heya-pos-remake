@@ -195,7 +195,6 @@ export class TestDataFactory {
             phone: faker.phone.number(),
             pin: pin,
             accessLevel: i === 0 ? 3 : 1, // Higher level for first staff member
-            commissionRate: 30,
             status: 'ACTIVE',
             calendarColor: faker.color.rgb(),
           },

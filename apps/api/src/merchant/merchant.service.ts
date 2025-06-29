@@ -16,9 +16,23 @@ export class MerchantService {
       throw new NotFoundException('Merchant not found');
     }
 
-    // The settings field should already be a proper object thanks to Prisma's JSON handling
-    // If it's not, we have a data corruption issue that needs to be fixed at the source
-    return merchant.settings as unknown as MerchantSettings;
+    // Handle nested settings structure that may occur due to data corruption
+    let settings = merchant.settings as any;
+    
+    // If settings has nested 'settings' property, unwrap it
+    while (settings && typeof settings === 'object' && 'settings' in settings && settings.settings) {
+      // Merge top-level properties with nested settings
+      const topLevelProps = { ...settings };
+      delete topLevelProps.settings;
+      settings = { ...settings.settings, ...topLevelProps };
+    }
+    
+    // Ensure priceToDurationRatio has a default value if not set
+    if (settings && typeof settings === 'object' && !settings.priceToDurationRatio) {
+      settings.priceToDurationRatio = 1.0; // Default: $1 = 1 minute
+    }
+
+    return settings as MerchantSettings;
   }
 
   async updateMerchantSettings(

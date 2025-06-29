@@ -18,6 +18,7 @@ import {
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ServicesService } from './services.service';
+import { CsvParserService } from './csv-parser.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
@@ -29,7 +30,6 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Service } from '@prisma/client';
 import { PaginatedResponse } from '../types';
-import { CsvParserService } from './csv-parser.service';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -113,13 +113,36 @@ export class ServicesController {
 
   // ============= NEW CSV IMPORT ENDPOINTS =============
 
+  @Post('import/mapping')
+  @UseGuards(PinAuthGuard)
+  @RequirePermissions('service.create')
+  @UseInterceptors(FileInterceptor('file'))
+  async getCsvMapping(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.includes('csv') && !file.originalname.endsWith('.csv')) {
+      throw new BadRequestException('File must be CSV format');
+    }
+
+    // File size limit: 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+
+    return this.csvParser.parseCsvForMapping(file.buffer);
+  }
+
   @Post('import/preview')
   @UseGuards(PinAuthGuard)
   @RequirePermissions('service.create')
   @UseInterceptors(FileInterceptor('file'))
   async previewImport(
     @UploadedFile() file: Express.Multer.File,
-    @Body() options: ImportOptionsDto,
+    @Body() body: any,
     @CurrentUser() user: any,
   ) {
     if (!file) {
@@ -135,10 +158,30 @@ export class ServicesController {
       throw new BadRequestException('File size must be less than 5MB');
     }
 
+    // Parse options from body
+    const options: ImportOptionsDto = {
+      duplicateAction: body.duplicateAction || 'skip',
+      createCategories: body.createCategories === 'true' || body.createCategories === true,
+      skipInvalidRows: body.skipInvalidRows === 'true' || body.skipInvalidRows === true,
+    };
+
+    // Parse column mappings if provided
+    let columnMappings: Record<string, string> | undefined;
+    if (body.columnMappings) {
+      try {
+        columnMappings = typeof body.columnMappings === 'string' 
+          ? JSON.parse(body.columnMappings) 
+          : body.columnMappings;
+      } catch (e) {
+        throw new BadRequestException('Invalid column mappings format');
+      }
+    }
+
     return this.servicesService.previewImport(
       user.merchantId,
       file.buffer,
-      options
+      options,
+      columnMappings
     );
   }
 

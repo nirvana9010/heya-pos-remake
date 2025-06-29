@@ -3,12 +3,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
-import { ImportOptionsDto, ImportPreviewRow, ImportPreviewDto, ImportResult, DuplicateAction, ImportServicesDto, ServiceImportItem } from './dto/import-services.dto';
+import { ImportOptionsDto, ImportPreviewRow, ImportPreviewDto, ImportResult, DuplicateAction, ImportServicesDto, ServiceImportItem, ImportAction } from './dto/import-services.dto';
 import { CreateServiceCategoryDto } from './dto/create-category.dto';
 import { UpdateServiceCategoryDto } from './dto/update-category.dto';
 import { Service, ServiceCategory, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '../types';
 import { CsvParserService } from './csv-parser.service';
+import { MerchantService } from '../merchant/merchant.service';
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {
@@ -21,6 +22,7 @@ export class ServicesService {
   constructor(
     private prisma: PrismaService,
     private csvParser: CsvParserService,
+    private merchantService: MerchantService,
   ) {}
 
   // ============= SERVICE CRUD =============
@@ -528,10 +530,14 @@ export class ServicesService {
   async previewImport(
     merchantId: string,
     file: Buffer,
-    options: ImportOptionsDto
+    options: ImportOptionsDto,
+    columnMappings?: Record<string, string>
   ): Promise<ImportPreviewDto> {
-    // Parse CSV file
-    const rawRows = await this.csvParser.parseCsvFile(file);
+    // Get merchant settings for price-to-duration ratio
+    const merchantSettings = await this.merchantService.getMerchantSettings(merchantId);
+    
+    // Parse CSV file with optional column mappings
+    const rawRows = await this.csvParser.parseCsvFile(file, columnMappings);
     
     if (rawRows.length === 0) {
       throw new BadRequestException('CSV file is empty');
@@ -546,6 +552,7 @@ export class ServicesService {
       toCreate: 0,
       toUpdate: 0,
       toSkip: 0,
+      toDelete: 0,
     };
 
     // Process each row
@@ -554,13 +561,13 @@ export class ServicesService {
       const rawRow = rawRows[i];
       
       // Validate row
-      const validation = this.csvParser.validateRow(rawRow, rowNumber);
+      const validation = this.csvParser.validateRow(rawRow, rowNumber, merchantSettings);
       
       // Transform row
-      const data = this.csvParser.transformRow(rawRow);
+      const data = this.csvParser.transformRow(rawRow, merchantSettings);
       
       // Check for existing service
-      let action: 'create' | 'update' | 'skip' = 'create';
+      let action: 'create' | 'update' | 'skip' | 'delete' = 'create';
       let existingServiceId: string | undefined;
       
       if (validation.isValid) {
@@ -571,28 +578,84 @@ export class ServicesService {
           },
         });
 
-        if (existing) {
-          summary.duplicates++;
-          existingServiceId = existing.id;
-          
-          switch (options.duplicateAction) {
-            case DuplicateAction.UPDATE:
-              action = 'update';
-              summary.toUpdate++;
+        // Handle explicit action from CSV
+        if (data.action) {
+          switch (data.action) {
+            case ImportAction.ADD:
+              if (existing) {
+                summary.duplicates++;
+                existingServiceId = existing.id;
+                // Apply duplicate action strategy
+                switch (options.duplicateAction) {
+                  case DuplicateAction.UPDATE:
+                    action = 'update';
+                    summary.toUpdate++;
+                    validation.warnings.push('Service exists - will update based on duplicate action setting');
+                    break;
+                  case DuplicateAction.SKIP:
+                    action = 'skip';
+                    summary.toSkip++;
+                    validation.warnings.push('Service exists - will skip based on duplicate action setting');
+                    break;
+                  case DuplicateAction.CREATE_NEW:
+                    action = 'create';
+                    summary.toCreate++;
+                    validation.warnings.push('Service exists - will create with modified name');
+                    break;
+                }
+              } else {
+                action = 'create';
+                summary.toCreate++;
+              }
               break;
-            case DuplicateAction.SKIP:
-              action = 'skip';
-              summary.toSkip++;
+            case ImportAction.EDIT:
+              if (existing) {
+                action = 'update';
+                existingServiceId = existing.id;
+                summary.toUpdate++;
+              } else {
+                validation.errors.push('Cannot edit - service does not exist');
+                action = 'skip';
+                summary.toSkip++;
+              }
               break;
-            case DuplicateAction.CREATE_NEW:
-              // Will append number to name during import
-              action = 'create';
-              summary.toCreate++;
-              validation.warnings.push('Will create with modified name');
+            case ImportAction.DELETE:
+              if (existing) {
+                action = 'delete';
+                existingServiceId = existing.id;
+                summary.toDelete++;
+              } else {
+                validation.warnings.push('Cannot delete - service does not exist');
+                action = 'skip';
+                summary.toSkip++;
+              }
               break;
           }
         } else {
-          summary.toCreate++;
+          // No explicit action - use existing logic
+          if (existing) {
+            summary.duplicates++;
+            existingServiceId = existing.id;
+            
+            switch (options.duplicateAction) {
+              case DuplicateAction.UPDATE:
+                action = 'update';
+                summary.toUpdate++;
+                break;
+              case DuplicateAction.SKIP:
+                action = 'skip';
+                summary.toSkip++;
+                break;
+              case DuplicateAction.CREATE_NEW:
+                // Will append number to name during import
+                action = 'create';
+                summary.toCreate++;
+                validation.warnings.push('Will create with modified name');
+                break;
+            }
+          } else {
+            summary.toCreate++;
+          }
         }
         summary.valid++;
       } else {
@@ -620,11 +683,15 @@ export class ServicesService {
     rows: ImportPreviewRow[],
     options: ImportOptionsDto
   ): Promise<ImportResult> {
+    // Get merchant settings for price-to-duration ratio
+    const merchantSettings = await this.merchantService.getMerchantSettings(merchantId);
+    
     const result: ImportResult = {
       success: true,
       imported: 0,
       updated: 0,
       skipped: 0,
+      deleted: 0,
       failed: 0,
       errors: [],
     };
@@ -640,8 +707,40 @@ export class ServicesService {
         try {
           const { data } = row;
           
+          // Handle delete action
+          if (row.action === 'delete' && row.existingServiceId) {
+            // Check if service is used in any bookings
+            const bookingCount = await tx.bookingService.count({
+              where: { serviceId: row.existingServiceId },
+            });
+
+            if (bookingCount > 0) {
+              // Soft delete by deactivating
+              await tx.service.update({
+                where: { id: row.existingServiceId },
+                data: { isActive: false },
+              });
+            } else {
+              // Hard delete if not used
+              await tx.service.delete({
+                where: { id: row.existingServiceId },
+              });
+            }
+            result.deleted++;
+            continue;
+          }
+          
           // Parse duration to minutes
-          const duration = this.csvParser.parseDuration(data.duration);
+          let duration: number;
+          if (data.duration) {
+            duration = this.csvParser.parseDuration(data.duration);
+          } else if (data.price > 0 && merchantSettings?.priceToDurationRatio) {
+            // Calculate duration from price if not provided
+            duration = this.csvParser.calculateDurationFromPrice(data.price, merchantSettings.priceToDurationRatio);
+          } else {
+            // This shouldn't happen if validation is working correctly
+            throw new Error('Duration is required');
+          }
           
           // Find or create category if specified
           let categoryId: string | undefined;
@@ -654,18 +753,22 @@ export class ServicesService {
             categoryId = category.id;
           }
 
-          // Prepare service data
+          // Prepare service data using merchant settings for global values
           const serviceData = {
             name: data.name,
             description: data.description,
             duration,
             price: data.price,
-            currency: 'AUD',
-            taxRate: data.tax_rate ?? 0.1,
+            currency: merchantSettings.currency || 'AUD',
+            taxRate: data.tax_rate ?? 0.1, // Use CSV value if present, else default GST
             isActive: data.active ?? true,
-            requiresDeposit: data.deposit_required ?? false,
-            depositAmount: data.deposit_amount,
-            maxAdvanceBooking: data.max_advance_days ?? 90,
+            requiresDeposit: data.deposit_required ?? merchantSettings.requireDeposit ?? false,
+            depositAmount: data.deposit_amount ?? (merchantSettings.requireDeposit && merchantSettings.depositPercentage 
+              ? (data.price * merchantSettings.depositPercentage / 100) 
+              : undefined),
+            maxAdvanceBooking: data.max_advance_days ?? (merchantSettings.bookingAdvanceHours 
+              ? Math.ceil(merchantSettings.bookingAdvanceHours / 24) 
+              : 90),
             minAdvanceBooking: data.min_advance_hours ?? 0,
             displayOrder: 0,
             merchantId,
@@ -732,6 +835,12 @@ export class ServicesService {
     merchantId: string,
     categoryName: string
   ): Promise<ServiceCategory> {
+    // Predefined colors from the UI
+    const AVAILABLE_COLORS = [
+      '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
+      '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
+    ];
+
     // Check if category exists (case-insensitive)
     const existing = await tx.serviceCategory.findFirst({
       where: {
@@ -747,6 +856,104 @@ export class ServicesService {
       return existing;
     }
 
+    // Get all existing categories to check which colors are in use
+    const existingCategories = await tx.serviceCategory.findMany({
+      where: { merchantId },
+      select: { color: true },
+    });
+
+    const usedColors = new Set(
+      existingCategories
+        .map(cat => cat.color)
+        .filter(color => color && AVAILABLE_COLORS.includes(color))
+    );
+
+    // Find unused colors
+    const unusedColors = AVAILABLE_COLORS.filter(color => !usedColors.has(color));
+    
+    let selectedColor: string;
+    
+    if (unusedColors.length > 0) {
+      // Randomly select from unused colors
+      selectedColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
+    } else {
+      // Fallback: If all colors are used, generate a color based on category name hash
+      // This ensures the same category name always gets the same color
+      const hash = categoryName.split('').reduce((acc, char) => {
+        return char.charCodeAt(0) + ((acc << 5) - acc);
+      }, 0);
+      
+      // Use the hash to pick a color and slightly modify it
+      const baseColor = AVAILABLE_COLORS[Math.abs(hash) % AVAILABLE_COLORS.length];
+      
+      // Create a slight variation by adjusting the lightness
+      // Convert hex to HSL, adjust lightness, convert back
+      const hexToHSL = (hex: string) => {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        let h = 0;
+        let s = 0;
+        
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+          }
+        }
+        
+        return { h: h * 360, s: s * 100, l: l * 100 };
+      };
+      
+      const hslToHex = (h: number, s: number, l: number) => {
+        h = h / 360;
+        s = s / 100;
+        l = l / 100;
+        
+        let r, g, b;
+        
+        if (s === 0) {
+          r = g = b = l;
+        } else {
+          const hue2rgb = (p: number, q: number, t: number) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          };
+          
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        
+        const toHex = (x: number) => {
+          const hex = Math.round(x * 255).toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        };
+        
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+      };
+      
+      const hsl = hexToHSL(baseColor);
+      // Adjust lightness based on hash to create variation
+      const adjustedLightness = hsl.l + ((hash % 20) - 10);
+      const boundedLightness = Math.max(30, Math.min(70, adjustedLightness));
+      
+      selectedColor = hslToHex(hsl.h, hsl.s, boundedLightness);
+    }
+
     // Create new category
     const categoryCount = await tx.serviceCategory.count({
       where: { merchantId },
@@ -756,6 +963,7 @@ export class ServicesService {
       data: {
         merchantId,
         name: categoryName,
+        color: selectedColor,
         sortOrder: categoryCount,
         isActive: true,
       },

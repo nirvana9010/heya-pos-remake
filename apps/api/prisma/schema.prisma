@@ -114,7 +114,6 @@ model Staff {
   calendarColor       String?
   avatar              String?
   status              String               @default("ACTIVE")
-  commissionRate      Decimal?             @db.Decimal(5, 2)
   hireDate            DateTime             @default(now())
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())

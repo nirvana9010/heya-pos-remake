@@ -7,6 +7,12 @@ export enum DuplicateAction {
   CREATE_NEW = 'create_new'
 }
 
+export enum ImportAction {
+  ADD = 'add',
+  EDIT = 'edit',
+  DELETE = 'delete'
+}
+
 export class ServiceCsvRowDto {
   @IsString()
   @IsNotEmpty()
@@ -20,13 +26,22 @@ export class ServiceCsvRowDto {
   @IsOptional()
   description?: string;
 
-  @IsNotEmpty()
-  duration: string | number; // Flexible to accept "60", "1h", "1.5h"
+  @IsOptional()
+  duration?: string | number; // Flexible to accept "60", "1h", "1.5h" - optional if price-to-duration is set
 
   @IsNumber()
   @Min(0)
   price: number;
 
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+
+  @IsEnum(ImportAction)
+  @IsOptional()
+  action?: ImportAction; // Explicit action: add/edit/delete
+
+  // Legacy fields - kept for backwards compatibility but not used in new imports
   @IsBoolean()
   @IsOptional()
   deposit_required?: boolean;
@@ -51,10 +66,6 @@ export class ServiceCsvRowDto {
   @IsOptional()
   @Min(0)
   max_advance_days?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  active?: boolean;
 }
 
 export class ImportOptionsDto {
@@ -78,7 +89,7 @@ export interface ImportPreviewRow {
   rowNumber: number;
   data: ServiceCsvRowDto;
   validation: ImportValidation;
-  action: 'create' | 'update' | 'skip';
+  action: 'create' | 'update' | 'skip' | 'delete';
   existingServiceId?: string;
 }
 
@@ -90,6 +101,7 @@ export interface ImportSummary {
   toCreate: number;
   toUpdate: number;
   toSkip: number;
+  toDelete: number;
 }
 
 export class ImportPreviewDto {
@@ -111,6 +123,7 @@ export interface ImportResult {
   imported: number;
   updated: number;
   skipped: number;
+  deleted: number;
   failed: number;
   errors: Array<{
     row: number;

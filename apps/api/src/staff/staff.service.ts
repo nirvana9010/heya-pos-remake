@@ -37,7 +37,6 @@ export class StaffService {
       phone: staffData.phone,
       accessLevel: staffData.accessLevel || 1,
       calendarColor: staffData.calendarColor,
-      commissionRate: staffData.commissionRate,
       merchantId,
       pin: hashedPin,
     };

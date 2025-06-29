@@ -1,12 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ServiceCsvRowDto, ImportValidation } from './dto/import-services.dto';
+import { ServiceCsvRowDto, ImportValidation, ImportAction } from './dto/import-services.dto';
 
 @Injectable()
 export class CsvParserService {
   /**
    * Parse CSV buffer and return array of objects
    */
-  async parseCsvFile(buffer: Buffer): Promise<any[]> {
+  async parseCsvFile(buffer: Buffer, columnMappings?: Record<string, string>): Promise<any[]> {
     const { parse } = await import('csv-parse/sync');
     
     try {
@@ -18,7 +18,51 @@ export class CsvParserService {
         skipRecordsWithError: false,
       });
 
+      // If column mappings are provided, transform the records
+      if (columnMappings && Object.keys(columnMappings).length > 0) {
+        return records.map(record => {
+          const mappedRecord: any = {};
+          
+          // Map CSV columns to service fields
+          Object.entries(columnMappings).forEach(([csvColumn, serviceField]) => {
+            if (record[csvColumn] !== undefined) {
+              mappedRecord[serviceField] = record[csvColumn];
+            }
+          });
+          
+          return mappedRecord;
+        });
+      }
+
       return records;
+    } catch (error) {
+      throw new BadRequestException('Invalid CSV file format');
+    }
+  }
+
+  /**
+   * Parse CSV headers and preview rows for column mapping
+   */
+  async parseCsvForMapping(buffer: Buffer): Promise<{ headers: string[]; rows: string[][] }> {
+    const { parse } = await import('csv-parse/sync');
+    
+    try {
+      const allRows = parse(buffer, {
+        columns: false, // Return as array of arrays
+        skip_empty_lines: true,
+        trim: true,
+        relaxColumnCount: true,
+        to: 11, // Get headers + up to 10 preview rows
+      });
+
+      if (allRows.length === 0) {
+        throw new BadRequestException('CSV file is empty');
+      }
+
+      const headers = allRows[0];
+      const rows = allRows.slice(1); // Preview rows without headers
+
+      return { headers, rows };
     } catch (error) {
       throw new BadRequestException('Invalid CSV file format');
     }
@@ -64,17 +108,36 @@ export class CsvParserService {
   /**
    * Validate a single row
    */
-  validateRow(row: any, rowNumber: number): ImportValidation {
+  validateRow(row: any, rowNumber: number, merchantSettings?: any): ImportValidation {
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    // Parse action first
+    const action = row.action?.toString().toLowerCase().trim();
+    const isDelete = action === 'delete' || action === 'remove' || action === 'del';
 
     // Required fields
     if (!row.name || row.name.trim() === '') {
       errors.push('Name is required');
     }
 
-    if (!row.duration) {
-      errors.push('Duration is required');
+    // For delete actions, only name is required
+    if (isDelete) {
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+      };
+    }
+
+    // For add/edit actions, validate other fields
+    // Duration is not required if we have price and priceToDurationRatio
+    if (!row.duration || row.duration === '') {
+      if (row.price && merchantSettings?.priceToDurationRatio) {
+        warnings.push(`Duration will be calculated from price: $${row.price} → ${Math.round(parseFloat(row.price) * merchantSettings.priceToDurationRatio)} minutes`);
+      } else {
+        errors.push('Duration is required (or enable auto-duration in Import settings)');
+      }
     } else {
       try {
         this.parseDuration(row.duration);
@@ -92,31 +155,7 @@ export class CsvParserService {
       }
     }
 
-    // Optional fields validation
-    if (row.deposit_required && row.deposit_required.toLowerCase() === 'true' && !row.deposit_amount) {
-      errors.push('Deposit amount is required when deposit is required');
-    }
-
-    if (row.tax_rate) {
-      const taxRate = parseFloat(row.tax_rate);
-      if (isNaN(taxRate) || taxRate < 0 || taxRate > 1) {
-        errors.push('Tax rate must be between 0 and 1 (e.g., 0.1 for 10%)');
-      }
-    }
-
-    if (row.min_advance_hours) {
-      const hours = parseFloat(row.min_advance_hours);
-      if (isNaN(hours) || hours < 0) {
-        errors.push('Minimum advance hours must be 0 or greater');
-      }
-    }
-
-    if (row.max_advance_days) {
-      const days = parseFloat(row.max_advance_days);
-      if (isNaN(days) || days < 0) {
-        errors.push('Maximum advance days must be 0 or greater');
-      }
-    }
+    // Note: Removed validation for deposit, tax, and booking rules as these now come from merchant settings
 
     // Warnings
     if (!row.category) {
@@ -135,15 +174,22 @@ export class CsvParserService {
   }
 
   /**
+   * Calculate duration from price using merchant's ratio
+   */
+  calculateDurationFromPrice(price: number, priceToDurationRatio: number = 1.0): number {
+    return Math.round(price * priceToDurationRatio);
+  }
+
+  /**
    * Transform CSV row to ServiceCsvRowDto
    */
-  transformRow(row: any): ServiceCsvRowDto {
+  transformRow(row: any, merchantSettings?: any): ServiceCsvRowDto {
     // Parse boolean values
     const parseBoolean = (value: any): boolean => {
       if (typeof value === 'boolean') return value;
       if (typeof value === 'string') {
         const lower = value.toLowerCase().trim();
-        return lower === 'true' || lower === 'yes' || lower === '1';
+        return lower === 'true' || lower === 'yes' || lower === '1' || lower === 'active';
       }
       return false;
     };
@@ -155,18 +201,38 @@ export class CsvParserService {
       return isNaN(num) ? undefined : num;
     };
 
+    // Parse action value
+    const parseAction = (value: any): ImportAction | undefined => {
+      if (!value) return undefined;
+      const lower = value.toString().toLowerCase().trim();
+      if (lower === 'add' || lower === 'create' || lower === 'new') return ImportAction.ADD;
+      if (lower === 'edit' || lower === 'update' || lower === 'modify') return ImportAction.EDIT;
+      if (lower === 'delete' || lower === 'remove' || lower === 'del') return ImportAction.DELETE;
+      return undefined;
+    };
+
+    const price = parseNumber(row.price) || 0;
+    let duration = row.duration;
+    
+    // If duration is empty but we have price and settings, calculate duration
+    if ((!duration || duration === '') && price > 0 && merchantSettings?.priceToDurationRatio) {
+      duration = this.calculateDurationFromPrice(price, merchantSettings.priceToDurationRatio);
+    }
+
     return {
       name: row.name?.trim() || '',
       category: row.category?.trim() || undefined,
       description: row.description?.trim() || undefined,
-      duration: row.duration, // Keep as string/number for flexible parsing
-      price: parseNumber(row.price) || 0,
-      deposit_required: parseBoolean(row.deposit_required),
-      deposit_amount: parseNumber(row.deposit_amount),
-      tax_rate: parseNumber(row.tax_rate) ?? 0.1, // Default 10% GST
-      min_advance_hours: parseNumber(row.min_advance_hours) ?? 0,
-      max_advance_days: parseNumber(row.max_advance_days) ?? 90,
+      duration: duration, // Will be either provided value or calculated from price
+      price: price,
       active: row.active !== undefined ? parseBoolean(row.active) : true,
+      action: row.action ? parseAction(row.action) : undefined,
+      // Legacy fields - only included if present in CSV for backwards compatibility
+      deposit_required: row.deposit_required ? parseBoolean(row.deposit_required) : undefined,
+      deposit_amount: row.deposit_amount ? parseNumber(row.deposit_amount) : undefined,
+      tax_rate: row.tax_rate ? parseNumber(row.tax_rate) : undefined,
+      min_advance_hours: row.min_advance_hours ? parseNumber(row.min_advance_hours) : undefined,
+      max_advance_days: row.max_advance_days ? parseNumber(row.max_advance_days) : undefined,
     };
   }
 
@@ -175,84 +241,78 @@ export class CsvParserService {
    */
   generateTemplate(): string {
     const headers = [
+      'action',
       'name',
       'category',
       'description',
       'duration',
       'price',
-      'deposit_required',
-      'deposit_amount',
-      'tax_rate',
-      'min_advance_hours',
-      'max_advance_days',
       'active'
     ];
 
     const exampleRows = [
       [
+        'add',
         'Classic Facial',
         'Facials',
         'Deep cleansing facial with extractions',
         '60',
         '120',
-        'false',
-        '',
-        '0.1',
-        '0',
-        '90',
         'true'
       ],
       [
+        'add',
         'Deluxe Facial',
         'Facials',
         'Premium facial with LED therapy',
         '90',
         '180',
-        'true',
-        '50',
-        '0.1',
-        '24',
-        '60',
         'true'
       ],
       [
+        'add',
         'Express Manicure',
         'Nails',
         'Quick nail shaping and polish',
         '30',
         '45',
-        'false',
-        '',
-        '0.1',
-        '0',
-        '30',
         'true'
       ],
       [
+        'edit',
         'Full Body Massage',
         'Massage',
-        'Relaxing full body massage',
+        'Updated description for existing service',
         '1h',
-        '150',
-        'false',
-        '',
-        '0.1',
-        '2',
-        '14',
+        '160',
         'true'
       ],
       [
+        'add',
         'Hair Cut & Style',
         'Hair',
         'Professional cut and styling',
         '45',
         '85',
-        'false',
-        '',
-        '0.1',
-        '0',
-        '30',
         'true'
+      ],
+      [
+        'add',
+        'Premium Package',
+        'Packages',
+        'Luxury treatment package',
+        '',  // Empty duration to demonstrate auto-calculation
+        '300',
+        'true'
+      ],
+      [
+        'delete',
+        'Old Service',
+        '',
+        '',
+        '',
+        '',
+        ''
       ]
     ];
 

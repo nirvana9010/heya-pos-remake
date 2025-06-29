@@ -39,6 +39,7 @@ interface DataTableProps<TData, TValue> {
   showPagination?: boolean;
   pageSize?: number;
   showRowSelection?: boolean;
+  rowSelection?: Record<string, boolean>;
   onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void;
   headerActions?: React.ReactNode;
 }
@@ -51,6 +52,7 @@ export function DataTable<TData, TValue>({
   showPagination = true,
   pageSize = 10,
   showRowSelection = false,
+  rowSelection: controlledRowSelection,
   onRowSelectionChange,
   headerActions,
 }: DataTableProps<TData, TValue>) {
@@ -60,7 +62,10 @@ export function DataTable<TData, TValue>({
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [internalRowSelection, setInternalRowSelection] = React.useState({});
+  
+  // Use controlled selection if provided, otherwise use internal state
+  const rowSelection = controlledRowSelection ?? internalRowSelection;
 
   const table = useReactTable({
     data,
@@ -74,10 +79,17 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: (updater) => {
       const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-      setRowSelection(newSelection);
-      // Call the parent callback if provided
-      if (onRowSelectionChange) {
+      
+      // If using controlled selection, just call the callback
+      if (controlledRowSelection !== undefined && onRowSelectionChange) {
         onRowSelectionChange(newSelection);
+      } else {
+        // Otherwise, update internal state
+        setInternalRowSelection(newSelection);
+        // And call callback if provided
+        if (onRowSelectionChange) {
+          onRowSelectionChange(newSelection);
+        }
       }
     },
     state: {

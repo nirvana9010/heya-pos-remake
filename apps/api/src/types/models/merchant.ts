@@ -43,6 +43,8 @@ export interface MerchantSettings {
   calendarEndHour: number; // 0-23 (default: 23 for 11 PM)
   // Walk-in customer settings
   allowWalkInBookings: boolean;
+  // Import settings
+  priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
 }
 
 export enum MerchantStatus {
