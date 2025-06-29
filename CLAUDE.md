@@ -30,6 +30,17 @@ Before attempting ANY task, follow this systematic approach:
   ```
 - **Wait for readiness**: After any restart, check logs or test a simple endpoint before proceeding
 
+## 🚨 CRITICAL: PM2 RULES
+1. **NEVER use pm2 start with inline commands**
+2. **ONLY use**: `pm2 restart 0/1/2/3` or `pm2 restart all`
+3. **If PM2 is broken, run**: `npm run pm2:fix`
+4. **Process IDs are ALWAYS**:
+   - 0: api
+   - 1: merchant
+   - 2: booking  
+   - 3: admin
+5. **NEVER create new process IDs**
+
 ## 🚨 CRITICAL: API RESTART PROCEDURE
 **NEVER restart the API unless absolutely necessary!** The dev server auto-reloads TypeScript changes.
 
@@ -49,22 +60,15 @@ Before attempting ANY task, follow this systematic approach:
 
 ### The ONLY correct restart command:
 ```bash
-# ONLY use this exact command when restart is truly needed:
-pkill -f "nest start" && sleep 3 && cd apps/api && npm run start:dev
+# Use PM2 for restarts:
+pm2 restart 0  # Restart just API
+pm2 restart all  # Restart everything
 ```
 
 ### 🚨 CRITICAL: Don't Wait for npm run start:dev!
 **npm run start:dev runs in watch mode - it NEVER exits!**
 - ❌ WRONG: Waiting 2 minutes for the command to "complete"
-- ✅ RIGHT: Start in background, wait 10-15 seconds, check if running
-
-```bash
-# Correct way to restart API:
-pkill -f "nest start"
-cd apps/api && npm run start:dev > /tmp/api.log 2>&1 &
-sleep 15  # API starts in ~10-15 seconds
-curl http://localhost:3000/api/v1/health  # Verify it's running
-```
+- ✅ RIGHT: Use PM2 commands which handle this properly
 
 ### 🚨 CRITICAL: NEVER USE THESE KILL COMMANDS (they kill Claude Code):
 - ❌ `pkill -f "npm"` - TOO BROAD, kills Claude Code!
@@ -73,10 +77,10 @@ curl http://localhost:3000/api/v1/health  # Verify it's running
 - ❌ `pkill -f "node"` - TOO BROAD, can kill system processes!
 
 ### ✅ SAFE RESTART COMMANDS:
-- ✅ `lsof -ti:3000 | xargs kill -9` - Kill by specific port
-- ✅ `pkill -f "nest start"` - Kill specific NestJS process
-- ✅ `pkill -f "tsx watch src/main"` - Kill specific pattern
-- ✅ `pkill -f "next dev.*3002"` - Kill specific Next.js dev server
+- ✅ `pm2 restart 0` - Restart API
+- ✅ `pm2 restart all` - Restart all services
+- ✅ `npm run pm2:fix` - Fix broken PM2 setup
+- ✅ `lsof -ti:3000 | xargs kill -9` - Kill by specific port (emergency only)
 
 ### When NOT to restart:
 - TypeScript changes (auto-reloads)
