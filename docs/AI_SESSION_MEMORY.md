@@ -136,6 +136,60 @@ curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
 2. Testing a simple API call first
 3. Verifying the /api path is included
 
+## 🔥 CRITICAL: Authentication Token Names - REPEATED MISTAKE!
+**Added**: 2025-06-29
+**Frequency**: This mistake happens MULTIPLE TIMES PER SESSION
+**Impact**: API calls fail with 401 Unauthorized
+
+### The Mistake That Keeps Happening
+```typescript
+// ❌ WRONG - These token names DO NOT EXIST
+localStorage.getItem('authToken')     // WRONG!
+localStorage.getItem('auth-token')    // WRONG!
+localStorage.getItem('token')         // WRONG!
+
+// ✅ CORRECT - The ONLY valid token names
+localStorage.getItem('access_token')  // Auth token
+localStorage.getItem('refresh_token') // Refresh token
+```
+
+### Why This Confusion Happens
+- The **cookie** is named `authToken` (for middleware)
+- But **localStorage** uses `access_token` (for API calls)
+- Making assumptions instead of checking auth implementation
+
+### BEFORE Writing ANY Auth Code:
+```bash
+# ALWAYS check the actual token names first:
+grep -r "localStorage.*token" apps/merchant-app/src/lib/auth/auth-provider.tsx
+
+# Or check all token usage:
+grep -r "localStorage.getItem.*token" --include="*.ts" --include="*.tsx"
+```
+
+### The Complete Auth Storage Map:
+```typescript
+// localStorage (client-side):
+localStorage.getItem('access_token')   // JWT access token
+localStorage.getItem('refresh_token')  // JWT refresh token  
+localStorage.getItem('user')          // User object (JSON)
+localStorage.getItem('merchant')      // Merchant object (JSON)
+
+// Cookies (for SSR middleware):
+document.cookie = 'authToken=...'     // Same as access_token
+```
+
+### How to Prevent This Mistake:
+1. **NEVER ASSUME** - Always check auth-provider.tsx first
+2. **INVESTIGATE FIRST** - Run the grep command above
+3. **NO GUESSING** - If unsure, look at existing code
+
+### Common Failure Points:
+- CalendarProvider loading merchant settings
+- API clients making authenticated requests
+- Custom hooks checking auth status
+- Any component using localStorage directly
+
 ## 🚨 NEW: Debugging Without Browser Console - The "Array to 0" Pattern
 **Added**: 2025-06-19
 **Issue**: Payments page showed `payments: 0` instead of array, all revenue $0.00
