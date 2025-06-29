@@ -13,8 +13,8 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   timeFormat: '12h',
   requireDeposit: false,
   depositPercentage: 0,
-  showUnassignedColumn: true, // Default to true to support "Any Available" bookings
-  allowUnassignedBookings: true, // Default to true for flexibility - businesses can disable if they prefer immediate assignment
+  showUnassignedColumn: false, // Default to false - merchants can enable if needed
+  allowUnassignedBookings: false, // Default to false - merchants must explicitly enable unassigned bookings
   calendarStartHour: 6, // 6 AM
   calendarEndHour: 23, // 11 PM
   allowWalkInBookings: true, // Default to true for flexibility

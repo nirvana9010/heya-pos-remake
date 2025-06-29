@@ -43,10 +43,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
 const getInitialState = (merchantSettings?: any): CalendarState => {
   const savedPrefs = loadSavedPreferences();
   
-  // Debug logging
-  console.log('[getInitialState] merchantSettings:', merchantSettings);
-  console.log('[getInitialState] showUnassignedColumn:', merchantSettings?.showUnassignedColumn);
-  console.log('[getInitialState] Final value will be:', merchantSettings?.showUnassignedColumn ?? true);
   
   return {
   // View management
@@ -369,18 +365,11 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
           headers
         });
         
-        console.log('[CalendarProvider] API Response status:', response.status);
-        
         if (response.ok) {
           const settings = await response.json();
-          console.log('[CalendarProvider] Loaded merchant settings:', settings);
-          console.log('[CalendarProvider] showUnassignedColumn from API:', settings?.showUnassignedColumn);
-          console.log('[CalendarProvider] Full settings object:', JSON.stringify(settings, null, 2));
           setMerchantSettings(settings);
         } else {
           console.error('[CalendarProvider] Failed to load settings, status:', response.status);
-          const error = await response.text();
-          console.error('[CalendarProvider] Error response:', error);
         }
       } catch (error) {
         console.error('[CalendarProvider] Failed to load merchant settings:', error);
@@ -393,14 +382,8 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   // Use merchant settings if loaded, otherwise fallback to auth context
   const effectiveSettings = merchantSettings || merchant?.settings;
   
-  // Debug logging
-  console.log('[CalendarProvider] Effective settings:', effectiveSettings);
-  console.log('[CalendarProvider] showUnassignedColumn from settings:', effectiveSettings?.showUnassignedColumn);
   
   const [state, dispatch] = useReducer(calendarReducer, getInitialState(effectiveSettings));
-  
-  // Debug state value
-  console.log('[CalendarProvider] State showUnassignedColumn:', state.showUnassignedColumn);
   
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
@@ -512,14 +495,8 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   
   // Update showUnassignedColumn when merchant settings change
   useEffect(() => {
-    console.log('[CalendarProvider] Settings update effect triggered');
-    console.log('[CalendarProvider] effectiveSettings:', effectiveSettings);
-    console.log('[CalendarProvider] showUnassignedColumn in settings:', effectiveSettings?.showUnassignedColumn);
-    console.log('[CalendarProvider] current state value:', state.showUnassignedColumn);
-    
     if (effectiveSettings?.showUnassignedColumn !== undefined && 
         effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) {
-      console.log('[CalendarProvider] Updating showUnassignedColumn from', state.showUnassignedColumn, 'to', effectiveSettings.showUnassignedColumn);
       dispatch({ 
         type: 'SET_UI_FLAGS', 
         payload: { showUnassignedColumn: effectiveSettings.showUnassignedColumn } 
