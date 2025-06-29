@@ -525,28 +525,50 @@ When integrating with external or internal APIs:
 
 ```markdown
 ### PHASE 1: API DISCOVERY
+- [ ] **INVESTIGATE FIRST - DO NOT ASSUME ENDPOINTS!**
+  - [ ] Search for ACTUAL endpoint usage in codebase: `grep -r "endpoint_name" --include="*.ts"`
+  - [ ] Check API client files for exact paths
+  - [ ] Verify endpoint in controller: `grep -r "@Get.*endpoint\|@Post.*endpoint" --include="*.controller.ts"`
+  - [ ] Test the ACTUAL endpoint with curl before writing code
 - [ ] Find API documentation or existing usage
 - [ ] Identify authentication method
 - [ ] Note base URL and endpoints needed
 - [ ] Check for rate limits or restrictions
 
-### PHASE 2: MINIMAL INTEGRATION
-- [ ] Test with curl first: `curl -X GET http://api/endpoint -H "Auth: token"`
+### PHASE 2: VERIFY BEFORE CODING
+- [ ] **TEST THE EXACT ENDPOINT YOU FOUND**:
+  ```bash
+  # Example: Don't assume /services/categories, verify it's actually /service-categories
+  curl -X GET http://localhost:3000/api/v1/[ACTUAL_ENDPOINT] -H "Authorization: Bearer [token]"
+  ```
+- [ ] Confirm response structure matches expectations
+- [ ] Note any version prefix (v1, v2) requirements
+- [ ] Check if endpoint requires specific headers
+
+### PHASE 3: MINIMAL INTEGRATION
+- [ ] Use the VERIFIED endpoint path from your investigation
 - [ ] Create simple service method
 - [ ] Handle basic errors (network, auth)
 - [ ] Log requests and responses
 
-### PHASE 3: ROBUST INTEGRATION
+### PHASE 4: ROBUST INTEGRATION
 - [ ] Add proper error handling
 - [ ] Implement retry logic if appropriate
 - [ ] Add request/response typing
 - [ ] Cache responses if applicable
 
-### PHASE 4: TESTING
+### PHASE 5: TESTING
 - [ ] Test success cases
 - [ ] Test failure cases (wrong auth, 404, 500)
 - [ ] Test timeout handling
 - [ ] Verify no sensitive data in logs
+
+### 🚨 COMMON ENDPOINT MISTAKES TO AVOID:
+- ❌ Assuming plural when it's singular: `/services/categories` vs `/service-categories`
+- ❌ Missing version prefix: `/categories` vs `/v1/categories`
+- ❌ Wrong HTTP method: GET vs POST
+- ❌ Missing required headers or auth tokens
+- ✅ ALWAYS verify with actual API calls before coding!
 ```
 
 ## ⚡ PERFORMANCE ISSUE CHECKLIST
