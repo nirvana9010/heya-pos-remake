@@ -96,8 +96,8 @@ export default function CustomerProfilePage() {
       setLoading(true);
       
       // Load customer details
-      const customers = await apiClient.getCustomers();
-      const customerData = customers.find((c: any) => c.id === customerId);
+      const customersResponse = await apiClient.getCustomers();
+      const customerData = customersResponse.data.find((c: any) => c.id === customerId);
       
       if (!customerData) {
         toast({

@@ -29,8 +29,8 @@ export const prefetchManager = {
     if (this.isCacheValid(key)) return
     
     try {
-      const data = await apiClient.getCustomers()
-      this.cache.set(key, { data, timestamp: Date.now() })
+      const response = await apiClient.getCustomers()
+      this.cache.set(key, { data: response.data, timestamp: Date.now() })
     } catch (error) {
       // Silently fail - prefetching is optional
     }

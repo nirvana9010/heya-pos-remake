@@ -4,7 +4,7 @@ import React, { createContext, useContext, useMemo, useCallback, useEffect } fro
 import { Notification, getUnreadCount } from '@/lib/notifications';
 import { MerchantNotification } from '@/lib/clients/notifications-client';
 import { 
-  useNotifications, 
+  useNotifications as useNotificationsQuery, 
   useMarkNotificationRead, 
   useMarkAllNotificationsRead,
   useDeleteNotification,
@@ -28,7 +28,7 @@ const NotificationsContext = createContext<NotificationsContextType | undefined>
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   // Use React Query hook for fetching notifications
-  const { data: notificationsData, isLoading, error, refetch } = useNotifications();
+  const { data: notificationsData, isLoading, error, refetch } = useNotificationsQuery();
   
   // Mutation hooks
   const markAsReadMutation = useMarkNotificationRead();
