@@ -1,5 +1,53 @@
 # CLAUDE CODE MANDATORY TASK CHECKLISTS
 
+## 🔥🔥🔥 CATASTROPHIC: DUPLICATE AUTH SYSTEM CHECK - DO THIS FIRST WHEN DEBUGGING
+
+### ⚠️ SYMPTOMS: Changes Not Appearing Despite Successful Compilation
+If you experience ANY of these symptoms, CHECK FOR DUPLICATE AUTH IMMEDIATELY:
+- ✅ Changes work on test pages
+- ❌ Same changes don't appear on production pages  
+- ✅ Code compiles successfully
+- ❌ Browser shows old version
+- ✅ Console logs work in test environment
+- ❌ Console logs missing in production
+
+### IMMEDIATE DEBUGGING CHECKLIST:
+```bash
+# 1. CHECK FOR DUPLICATE AUTH SYSTEMS - DO THIS FIRST!
+echo "=== Checking for duplicate auth systems ==="
+find . -name "*auth*" -path "*/hooks/*" | grep -v node_modules
+find . -name "use-auth*" -type f | grep -v node_modules
+
+# 2. Verify ONLY ONE auth exists (should be in lib/auth)
+echo "=== The ONLY auth file that should exist ==="
+ls -la apps/merchant-app/src/lib/auth/auth-provider.tsx
+
+# 3. Check imports in the problem component
+echo "=== Checking imports in BookingSlideOut ==="
+grep -n "useAuth" apps/merchant-app/src/components/BookingSlideOut.tsx
+
+# 4. If duplicate found, DELETE IT IMMEDIATELY
+# rm -f apps/merchant-app/src/hooks/use-auth.tsx  # DELETE if exists!
+```
+
+### THE GOLDEN RULE:
+**THERE CAN BE ONLY ONE AUTH SYSTEM**
+- Location: `/apps/merchant-app/src/lib/auth/auth-provider.tsx`
+- NEVER create auth in `/hooks` directory
+- NEVER create duplicate auth "for testing"
+- If component needs auth, import from the ONE TRUE AUTH
+
+### Why This Is CATASTROPHIC:
+- Creates separate React component trees
+- Test pages and production pages can't communicate
+- No amount of cache clearing will fix it
+- User will waste HOURS debugging the wrong thing
+
+### User Quote from The Incident:
+> "why did you create a new fucking auth when we already have one"
+
+This single mistake caused an entire day of wasted debugging.
+
 ## 🔥 CRITICAL: BEFORE MODIFYING ANY API CLIENT
 
 ### ⚠️ API Base URL Check (PREVENTS BREAKING LOGIN)

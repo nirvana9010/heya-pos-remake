@@ -1,5 +1,8 @@
 "use client";
 
+// Build timestamp - updates when file is saved
+const __SLIDEOUT_BUILD_TIME__ = new Date().toLocaleString();
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   ChevronRight, 
@@ -30,7 +33,7 @@ import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
 import { getAvailableStaff, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/mock-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/auth/auth-provider";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -65,7 +68,30 @@ export function BookingSlideOut({
   const [defaultDate] = useState(() => new Date());
   const [defaultTime] = useState(() => {
     const now = new Date();
-    now.setHours(9, 0, 0, 0); // 9:00 AM
+    const minutes = now.getMinutes();
+    const remainder = minutes % 15;
+    
+    // Round up to next 15-minute interval
+    if (remainder === 0) {
+      // Already on a 15-minute mark, add 15 minutes
+      now.setMinutes(minutes + 15);
+    } else {
+      // Round up to next 15-minute mark
+      now.setMinutes(minutes + (15 - remainder));
+    }
+    
+    // Reset seconds and milliseconds
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    
+    // Debug log
+    console.log('[BookingSlideOut] Default time calculated:', {
+      buildTime: __SLIDEOUT_BUILD_TIME__,
+      currentTime: new Date().toLocaleTimeString(),
+      defaultTime: now.toLocaleTimeString(),
+      minutes: now.getMinutes()
+    });
+    
     return now;
   });
   

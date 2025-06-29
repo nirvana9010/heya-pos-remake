@@ -1,5 +1,8 @@
 'use client';
 
+// Build timestamp - updates when file is saved
+const __BUILD_TIME__ = new Date().toLocaleString();
+
 import React, { useCallback } from 'react';
 import { CalendarProvider, useCalendar } from './CalendarProvider';
 import { DailyView } from './views/DailyView';
@@ -245,9 +248,36 @@ function CalendarContent() {
         throw new Error('System error: Invalid staff assignment. Please try again.');
       }
       
+      // Handle walk-in customer creation if needed
+      let finalCustomerId = bookingData.customerId;
+      
+      if (bookingData.isNewCustomer) {
+        // Create the customer first
+        // Generate unique email for walk-in customers using timestamp
+        const timestamp = Date.now();
+        const walkInEmail = `walkin-${timestamp}@heya-pos.local`;
+        
+        const customerData = {
+          firstName: bookingData.customerName.split(' ')[0] || 'Walk-in',
+          lastName: bookingData.customerName.split(' ').slice(1).join(' ') || 'Customer',
+          email: bookingData.customerEmail || (bookingData.isWalkIn ? walkInEmail : ''),
+          phone: bookingData.customerPhone || '0000000000',
+          notes: bookingData.isWalkIn ? 'Walk-in customer' : ''
+        };
+        
+        const newCustomer = await apiClient.createCustomer(customerData);
+        finalCustomerId = newCustomer.id;
+        
+        // Update the local state with the new customer
+        actions.setCustomers([...state.customers, {
+          ...newCustomer,
+          name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim()
+        }]);
+      }
+      
       // Prepare the booking request data
       const bookingRequest = {
-        customerId: bookingData.customerId,
+        customerId: finalCustomerId,
         locationId: locationId,
         services: [{
           serviceId: bookingData.serviceId,
@@ -447,6 +477,12 @@ function CalendarContent() {
   return (
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* Dev mode timestamp */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-xs font-mono border-b border-yellow-300">
+            Build Time: {__BUILD_TIME__} | Current: {new Date().toLocaleTimeString()} | BookingSlideOut default time should round to next 15min
+          </div>
+        )}
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center justify-between h-14 px-6">
@@ -684,15 +720,6 @@ function CalendarContent() {
                 </div>
               </PopoverContent>
             </Popover>
-            
-            {/* Show unassigned toggle */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Show Unassigned</span>
-              <Switch
-                checked={state.showUnassignedColumn}
-                onCheckedChange={() => actions.toggleUnassignedColumn()}
-              />
-            </div>
             
             {/* Time interval selector - only for day view */}
             {currentView === 'day' && (
