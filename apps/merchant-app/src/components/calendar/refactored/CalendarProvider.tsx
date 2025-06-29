@@ -41,6 +41,11 @@ function loadSavedPreferences(): Partial<CalendarState> {
 const getInitialState = (merchantSettings?: any): CalendarState => {
   const savedPrefs = loadSavedPreferences();
   
+  // Debug logging
+  console.log('[getInitialState] merchantSettings:', merchantSettings);
+  console.log('[getInitialState] showUnassignedColumn:', merchantSettings?.showUnassignedColumn);
+  console.log('[getInitialState] Final value will be:', merchantSettings?.showUnassignedColumn ?? true);
+  
   return {
   // View management
   currentView: 'day',
@@ -346,7 +351,41 @@ interface CalendarProviderProps {
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
   const { merchant } = useAuth();
-  const [state, dispatch] = useReducer(calendarReducer, getInitialState(merchant?.settings));
+  const [merchantSettings, setMerchantSettings] = React.useState<any>(null);
+  
+  // Load merchant settings on mount
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/v1/merchant/settings', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        if (response.ok) {
+          const settings = await response.json();
+          console.log('[CalendarProvider] Loaded merchant settings:', settings);
+          setMerchantSettings(settings);
+        }
+      } catch (error) {
+        console.error('[CalendarProvider] Failed to load merchant settings:', error);
+      }
+    };
+    
+    loadSettings();
+  }, []);
+  
+  // Use merchant settings if loaded, otherwise fallback to auth context
+  const effectiveSettings = merchantSettings || merchant?.settings;
+  
+  // Debug logging
+  console.log('[CalendarProvider] Effective settings:', effectiveSettings);
+  console.log('[CalendarProvider] showUnassignedColumn from settings:', effectiveSettings?.showUnassignedColumn);
+  
+  const [state, dispatch] = useReducer(calendarReducer, getInitialState(effectiveSettings));
+  
+  // Debug state value
+  console.log('[CalendarProvider] State showUnassignedColumn:', state.showUnassignedColumn);
   
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
@@ -458,14 +497,15 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   
   // Update showUnassignedColumn when merchant settings change
   useEffect(() => {
-    if (merchant?.settings?.showUnassignedColumn !== undefined && 
-        merchant.settings.showUnassignedColumn !== state.showUnassignedColumn) {
+    if (effectiveSettings?.showUnassignedColumn !== undefined && 
+        effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) {
+      console.log('[CalendarProvider] Updating showUnassignedColumn from', state.showUnassignedColumn, 'to', effectiveSettings.showUnassignedColumn);
       dispatch({ 
         type: 'SET_UI_FLAGS', 
-        payload: { showUnassignedColumn: merchant.settings.showUnassignedColumn } 
+        payload: { showUnassignedColumn: effectiveSettings.showUnassignedColumn } 
       });
     }
-  }, [merchant?.settings?.showUnassignedColumn]);
+  }, [effectiveSettings?.showUnassignedColumn]);
   
   // Save filter preferences to localStorage
   useEffect(() => {
