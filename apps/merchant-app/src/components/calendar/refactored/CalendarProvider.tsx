@@ -4,6 +4,8 @@ import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCa
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { toMerchantTime, toUTC } from '@/lib/date-utils';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { getAuthHeader } from '@/lib/constants/auth-constants';
+import { API_ENDPOINTS } from '@/lib/constants/api-constants';
 import type { CalendarState, CalendarAction, CalendarContextType, CalendarView, DateRange, BookingStatus, TimeInterval, BusinessHours } from './types';
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
@@ -357,15 +359,28 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   React.useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/v1/merchant/settings', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          }
+        const headers = getAuthHeader();
+        if (!headers.Authorization) {
+          console.error('[CalendarProvider] No auth token found');
+          return;
+        }
+        
+        const response = await fetch(API_ENDPOINTS.MERCHANT_SETTINGS, {
+          headers
         });
+        
+        console.log('[CalendarProvider] API Response status:', response.status);
+        
         if (response.ok) {
           const settings = await response.json();
           console.log('[CalendarProvider] Loaded merchant settings:', settings);
+          console.log('[CalendarProvider] showUnassignedColumn from API:', settings?.showUnassignedColumn);
+          console.log('[CalendarProvider] Full settings object:', JSON.stringify(settings, null, 2));
           setMerchantSettings(settings);
+        } else {
+          console.error('[CalendarProvider] Failed to load settings, status:', response.status);
+          const error = await response.text();
+          console.error('[CalendarProvider] Error response:', error);
         }
       } catch (error) {
         console.error('[CalendarProvider] Failed to load merchant settings:', error);
@@ -497,6 +512,11 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   
   // Update showUnassignedColumn when merchant settings change
   useEffect(() => {
+    console.log('[CalendarProvider] Settings update effect triggered');
+    console.log('[CalendarProvider] effectiveSettings:', effectiveSettings);
+    console.log('[CalendarProvider] showUnassignedColumn in settings:', effectiveSettings?.showUnassignedColumn);
+    console.log('[CalendarProvider] current state value:', state.showUnassignedColumn);
+    
     if (effectiveSettings?.showUnassignedColumn !== undefined && 
         effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) {
       console.log('[CalendarProvider] Updating showUnassignedColumn from', state.showUnassignedColumn, 'to', effectiveSettings.showUnassignedColumn);
