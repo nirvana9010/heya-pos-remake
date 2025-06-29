@@ -129,7 +129,7 @@ function isMoneyField(fieldName: string): boolean {
     fieldLower.endsWith('total') ||
     fieldLower.endsWith('cost') ||
     fieldLower.endsWith('revenue') ||
-    fieldLower.endsWith('fee') ||
+    fieldLower.endsWith('fee')
   );
 }
 
