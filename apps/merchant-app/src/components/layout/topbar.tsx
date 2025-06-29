@@ -50,15 +50,6 @@ export function Topbar() {
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
         {/* Global Search with Suggestions */}
         <GlobalSearch />
-
-        {/* Quick Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Link href="/bookings/new">
-            <button className="btn btn-secondary btn-sm">
-              + New Booking
-            </button>
-          </Link>
-        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

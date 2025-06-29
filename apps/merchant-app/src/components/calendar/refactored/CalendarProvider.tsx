@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { toMerchantTime, toUTC } from '@/lib/date-utils';
+import { useAuth } from '@/lib/auth/auth-provider';
 import type { CalendarState, CalendarAction, CalendarContextType, CalendarView, DateRange, BookingStatus, TimeInterval, BusinessHours } from './types';
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
@@ -11,7 +12,6 @@ const CalendarContext = createContext<CalendarContextType | null>(null);
 const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
   staffFilter: 'calendar_staffFilter',
-  showUnassigned: 'calendar_showUnassigned',
   timeInterval: 'calendar_timeInterval',
 } as const;
 
@@ -22,7 +22,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
   try {
     const savedStatusFilters = localStorage.getItem(STORAGE_KEYS.statusFilters);
     const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
-    const savedShowUnassigned = localStorage.getItem(STORAGE_KEYS.showUnassigned);
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
     
     return {
@@ -30,7 +29,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
         ? JSON.parse(savedStatusFilters) 
         : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? JSON.parse(savedStaffFilter) : [],
-      showUnassignedColumn: savedShowUnassigned ? JSON.parse(savedShowUnassigned) : true,
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 30,
     };
   } catch (error) {
@@ -40,7 +38,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
 }
 
 // Initial state with proper defaults
-const getInitialState = (): CalendarState => {
+const getInitialState = (merchantSettings?: any): CalendarState => {
   const savedPrefs = loadSavedPreferences();
   
   return {
@@ -69,7 +67,7 @@ const getInitialState = (): CalendarState => {
   searchQuery: '',
   
   // Feature flags
-  showUnassignedColumn: savedPrefs.showUnassignedColumn ?? true,
+  showUnassignedColumn: merchantSettings?.showUnassignedColumn ?? true,
   showBlockedTime: true,
   showBreaks: true,
   
@@ -202,12 +200,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     // UI actions
-    case 'TOGGLE_UNASSIGNED':
+    case 'SET_UI_FLAGS':
       return {
         ...state,
-        showUnassignedColumn: !state.showUnassignedColumn,
+        ...action.payload,
       };
-    
+      
     case 'TOGGLE_BLOCKED':
       return {
         ...state,
@@ -347,7 +345,8 @@ interface CalendarProviderProps {
 }
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
-  const [state, dispatch] = useReducer(calendarReducer, getInitialState());
+  const { merchant } = useAuth();
+  const [state, dispatch] = useReducer(calendarReducer, getInitialState(merchant?.settings));
   
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
@@ -429,7 +428,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     setSearch: (query: string) => dispatch({ type: 'SET_SEARCH', payload: query }),
     
     // UI actions
-    toggleUnassignedColumn: () => dispatch({ type: 'TOGGLE_UNASSIGNED' }),
     toggleBlockedTime: () => dispatch({ type: 'TOGGLE_BLOCKED' }),
     toggleBreaks: () => dispatch({ type: 'TOGGLE_BREAKS' }),
     
@@ -458,6 +456,17 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     dispatch({ type: 'SET_DATE', payload: state.currentDate });
   }, []);
   
+  // Update showUnassignedColumn when merchant settings change
+  useEffect(() => {
+    if (merchant?.settings?.showUnassignedColumn !== undefined && 
+        merchant.settings.showUnassignedColumn !== state.showUnassignedColumn) {
+      dispatch({ 
+        type: 'SET_UI_FLAGS', 
+        payload: { showUnassignedColumn: merchant.settings.showUnassignedColumn } 
+      });
+    }
+  }, [merchant?.settings?.showUnassignedColumn]);
+  
   // Save filter preferences to localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -465,12 +474,11 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     try {
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(state.selectedStaffIds));
-      localStorage.setItem(STORAGE_KEYS.showUnassigned, JSON.stringify(state.showUnassignedColumn));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
     } catch (error) {
       console.error('Error saving calendar preferences:', error);
     }
-  }, [state.selectedStatusFilters, state.selectedStaffIds, state.showUnassignedColumn, state.timeInterval]);
+  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval]);
   
   const contextValue: CalendarContextType = {
     state,

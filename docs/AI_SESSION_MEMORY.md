@@ -1,12 +1,76 @@
 # 🧠 AI Session Memory - Heya POS Project
 
 > **ALWAYS READ THIS FILE FIRST** before making any changes to the project.
-> Last Updated: 2025-06-26
+> Last Updated: 2025-06-28
 > 
 > **CRITICAL UPDATE**: API Base URL must include /api - REPEATED MISTAKE!
 > **CRITICAL UPDATE**: V1/V2 API confusion causing major issues - SEE NEW SECTION BELOW
 > **NEW**: Timezone handling in booking system - major debugging session
 > **LATEST**: Database sync issues and availability display bugs fixed
+> **🔥 CATASTROPHIC**: NEVER CREATE DUPLICATE AUTH SYSTEMS - See new section below
+
+## 🔥🔥🔥 CATASTROPHIC: NEVER CREATE DUPLICATE AUTH SYSTEMS - ABSOLUTE TOP PRIORITY
+**Added**: 2025-06-28
+**Severity**: CATASTROPHIC - This mistake cost DAYS of debugging
+**Impact**: Complete system breakdown where changes compile but NEVER appear
+
+### THE DISASTER THAT HAPPENED
+We created a duplicate auth system that caused:
+- Hours of debugging why the walk-in button wouldn't appear
+- Changes visible on test pages but NOT on production pages
+- Login infinite spinner issues
+- Complete breakdown of React component communication
+
+### What Went Wrong
+```typescript
+// ❌ CATASTROPHIC MISTAKE - Created duplicate auth
+// apps/merchant-app/src/hooks/use-auth.tsx (SHOULD NOT EXIST!)
+export function useAuth() { ... }
+
+// ✅ CORRECT - The ONLY auth system that should exist
+// apps/merchant-app/src/lib/auth/auth-provider.tsx
+export function useAuth() { ... }
+```
+
+### Why This Is Catastrophic
+When you have duplicate auth systems:
+1. Test pages use one auth context
+2. Production pages use another auth context
+3. Components exist in separate React trees that DON'T communicate
+4. Changes compile successfully but NEVER appear in the browser
+5. No amount of cache clearing, process killing, or rebuilding will fix it
+
+### SYMPTOMS TO RECOGNIZE IMMEDIATELY
+- ✅ Changes work on test pages
+- ❌ Same changes don't appear on production pages
+- ✅ Code compiles successfully
+- ❌ Browser shows old version despite compilation
+- ✅ Console logs appear in test environment
+- ❌ Console logs missing in production environment
+
+### IMMEDIATE DEBUGGING STEPS
+```bash
+# 1. CHECK FOR DUPLICATE AUTH - DO THIS FIRST!
+find . -name "*auth*" -path "*/hooks/*" | grep -v node_modules
+find . -name "*auth*" -path "*/lib/*" | grep -v node_modules
+
+# 2. Check imports in problem component
+grep -n "useAuth" path/to/problem/component.tsx
+
+# 3. There should be ONLY ONE auth provider:
+# apps/merchant-app/src/lib/auth/auth-provider.tsx
+```
+
+### THE GOLDEN RULE
+**THERE CAN BE ONLY ONE AUTH SYSTEM**
+- NEVER create auth hooks in `/hooks` directory
+- ALWAYS use the existing auth from `/lib/auth/auth-provider.tsx`
+- If you think you need a new auth hook, YOU DON'T - use the existing one
+
+### User Quote from the Incident
+"why did you create a new fucking auth when we already have one"
+
+This single mistake caused an entire day of debugging that ended with the user giving up in frustration.
 
 ## 🚨 CRITICAL: API Restart - Stop Waiting for npm run start:dev!
 **Added**: 2025-06-27
@@ -1635,3 +1699,48 @@ description: error.message || "Generic fallback message"
 ```
 
 **Remember**: When debugging timezone issues, ALWAYS log both UTC and local times!
+
+---
+
+## 💀 CATASTROPHIC FAILURES TO AVOID - LEARN FROM THESE DISASTERS
+
+### 1. The Duplicate Auth System Disaster (2025-06-28)
+**What Happened**: Created a duplicate auth system in `/hooks/use-auth.tsx` when one already existed in `/lib/auth/auth-provider.tsx`
+
+**The Nightmare**:
+- User spent HOURS debugging why walk-in button wouldn't appear
+- Changes worked on test pages but NOT on calendar page
+- No amount of cache clearing, rebuilding, or process killing helped
+- User quote: "jesus christ I'm not retarded yes I am looking at the third step and it's not there"
+- Session ended with user giving up in complete frustration
+
+**Why It's Catastrophic**:
+- Creates two separate React component trees
+- Test pages use one auth, production uses another
+- Components can't communicate across contexts
+- Changes compile but never appear in browser
+
+**The Lesson**: THERE CAN BE ONLY ONE AUTH SYSTEM. Check for duplicates FIRST when debugging mysterious "changes not appearing" issues.
+
+### 2. The API Base URL Disaster (Recurring)
+**What Happened**: Repeatedly forgetting to include `/api` in the base URL
+
+**The Nightmare**:
+- Login breaks completely
+- All API calls fail with 404s
+- Happens EVERY FEW SESSIONS
+- Wastes 30+ minutes each time
+
+**The Lesson**: API_BASE_URL must ALWAYS be `http://localhost:3000/api` not just `http://localhost:3000`
+
+### 3. The V1/V2 Endpoint Confusion (2025-06-24)
+**What Happened**: Mixed up V1 and V2 endpoints causing 404s everywhere
+
+**The Nightmare**:
+- Bookings use V2, everything else uses V1
+- Easy to forget and use wrong version
+- Causes mysterious 404s that seem random
+
+**The Lesson**: ALWAYS check endpoint version. Bookings = V2, Everything else = V1
+
+### Remember: These aren't just mistakes - they're CATASTROPHIC FAILURES that cost days of debugging and user frustration. Learn from them!

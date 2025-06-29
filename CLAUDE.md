@@ -232,6 +232,7 @@ const doOperation = async () => {
 - **Simple is maintainable**: Complex solutions break easily
 - **Test assumptions early**: Verify before building on them
 - **One step at a time**: Incremental progress is real progress
+- **USE THE CHECKLIST**: When debugging, ALWAYS check `/docs/task-checklists.md` for systematic debugging approaches
 
 **NEVER default to workarounds without investigating the core issue first!**
 - ALWAYS investigate why something is configured the way it is
@@ -264,6 +265,34 @@ This is a Point of Sale (POS) system remake with multiple apps: merchant-app, bo
 - `apps/merchant-app/` - Next.js merchant interface **(runs on port 3002)**
 - `apps/booking-app/` - Next.js customer booking interface **(runs on port 3001)**
 - `apps/admin-dashboard/` - Next.js admin interface **(runs on port 3003)**
+
+## 🔥🔥🔥 NEVER CREATE DUPLICATE AUTH SYSTEMS - CATASTROPHIC FAILURE
+**THIS MISTAKE COST DAYS OF DEBUGGING AND USER FRUSTRATION**
+
+### The Disaster That Must Never Happen Again:
+```typescript
+// ❌ CATASTROPHIC - NEVER create this file:
+apps/merchant-app/src/hooks/use-auth.tsx  // SHOULD NOT EXIST!
+
+// ✅ CORRECT - The ONLY auth that should exist:
+apps/merchant-app/src/lib/auth/auth-provider.tsx
+```
+
+### Why This Is CATASTROPHIC:
+- Creates two separate React component trees that can't communicate
+- Changes work on test pages but NOT on production pages
+- No amount of debugging, cache clearing, or rebuilding will fix it
+- User spent HOURS debugging the wrong thing
+- User quote: "why did you create a new fucking auth when we already have one"
+
+### BEFORE Creating ANY Hook or Context:
+```bash
+# CHECK if it already exists!
+find . -name "*auth*" -type f | grep -v node_modules
+grep -r "useAuth" --include="*.tsx" --include="*.ts"
+```
+
+### THE GOLDEN RULE: THERE CAN BE ONLY ONE AUTH SYSTEM
 
 ## 🚨 CRITICAL: API Base URL - STOP BREAKING LOGIN!
 **API_BASE_URL MUST include /api path**:
