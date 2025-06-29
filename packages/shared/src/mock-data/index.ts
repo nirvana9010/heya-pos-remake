@@ -192,7 +192,7 @@ export const mockApi = {
       filteredCustomers = mockCustomers.filter(c => 
         c.name.toLowerCase().includes(searchLower) ||
         c.email.toLowerCase().includes(searchLower) ||
-        c.phone.includes(params.search)
+        c.phone.includes(searchLower)
       );
     }
     
