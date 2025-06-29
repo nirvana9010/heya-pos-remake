@@ -10,7 +10,6 @@ export interface CreateStaffRequest {
   role: StaffRole;
   accessLevel: number;
   permissions: string[];
-  commissionRate?: number;
   calendarColor?: string;
   locationIds: string[];
 }

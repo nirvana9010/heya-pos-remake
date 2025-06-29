@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from '@tanstack/react-query';
 import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -15,11 +16,13 @@ import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
 import { ImportPreviewDialog } from "@/components/services/import-preview-dialog";
+import { ColumnMappingDialog } from "@/components/services/column-mapping-dialog";
 import { useAuth } from "@/lib/auth/auth-provider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { merchant } = useAuth();
+  const queryClient = useQueryClient();
   const [bookingAdvanceHours, setBookingAdvanceHours] = useState("48");
   const [cancellationHours, setCancellationHours] = useState("24");
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
@@ -39,6 +42,7 @@ export default function SettingsPage() {
   const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(true);
   const [calendarStartHour, setCalendarStartHour] = useState(6);
   const [calendarEndHour, setCalendarEndHour] = useState(23);
+  const [priceToDurationRatio, setPriceToDurationRatio] = useState("1.0");
   
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
@@ -65,6 +69,10 @@ export default function SettingsPage() {
   const [importingServices, setImportingServices] = useState(false);
   const [serviceImportPreview, setServiceImportPreview] = useState<any>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvPreviewRows, setCsvPreviewRows] = useState<string[][]>([]);
+  const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
 
   // Load location data on mount
   useEffect(() => {
@@ -123,6 +131,7 @@ export default function SettingsPage() {
         setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
+        setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
@@ -197,6 +206,7 @@ export default function SettingsPage() {
         allowUnassignedBookings,
         calendarStartHour,
         calendarEndHour,
+        priceToDurationRatio: parseFloat(priceToDurationRatio),
       });
       
       toast({
@@ -290,10 +300,15 @@ export default function SettingsPage() {
   const downloadServiceTemplate = async () => {
     try {
       await apiClient.services.downloadServiceTemplate();
+      toast({
+        title: "Success",
+        description: "Template downloaded successfully",
+      });
     } catch (error) {
+      console.error('Template download error:', error);
       toast({
         title: "Error",
-        description: "Failed to download template",
+        description: error instanceof Error ? error.message : "Failed to download template",
         variant: "destructive",
       });
     }
@@ -311,11 +326,51 @@ export default function SettingsPage() {
 
     setImportingServices(true);
     try {
-      const preview = await apiClient.services.previewServiceImport(serviceFile, {
+      // First, get the CSV headers and preview rows for column mapping
+      const formData = new FormData();
+      formData.append('file', serviceFile);
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const token = localStorage.getItem('access_token');
+
+      const response = await fetch(`${API_BASE_URL}/v1/services/import/mapping`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to parse CSV file');
+      }
+
+      const mappingData = await response.json();
+      setCsvHeaders(mappingData.headers);
+      setCsvPreviewRows(mappingData.rows);
+      setShowMappingDialog(true);
+    } catch (error) {
+      toast({
+        title: "Import error",
+        description: error instanceof Error ? error.message : "Failed to parse CSV file",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingServices(false);
+    }
+  };
+
+  const handleColumnMappingConfirm = async (mappings: Record<string, string>) => {
+    setColumnMappings(mappings);
+    setShowMappingDialog(false);
+    setImportingServices(true);
+
+    try {
+      const preview = await apiClient.services.previewServiceImport(serviceFile!, {
         duplicateAction: 'skip',
         createCategories: true,
         skipInvalidRows: false,
-      });
+      }, mappings);
       
       setServiceImportPreview(preview);
       setShowPreviewDialog(true);
@@ -348,6 +403,9 @@ export default function SettingsPage() {
         title: "Import successful",
         description: `Imported: ${result.imported}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
       });
+
+      // Invalidate services cache so the Services page shows the new data
+      queryClient.invalidateQueries({ queryKey: ['services'] });
 
       // Reset state
       setServiceFile(null);
@@ -1158,13 +1216,91 @@ export default function SettingsPage() {
                     CSV Format Instructions
                   </h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Required fields: name, duration, price</li>
+                    <li>• Required fields: Service Name, Price</li>
+                    <li>• Optional fields: Category, Description, Duration, Active Status</li>
+                    <li>• Duration can be left empty if price-to-duration ratio is set</li>
                     <li>• Duration formats: 60, 90, 1h, 1.5h, 1h30m, "90 min"</li>
                     <li>• Categories will be created automatically if they don't exist</li>
-                    <li>• Tax rate as decimal (0.1 for 10%)</li>
-                    <li>• Set active to "true" or "false"</li>
+                    <li>• Set active to "true" or "false" (default: true)</li>
                     <li>• Duplicate services will be skipped by default</li>
+                    <li>• Tax, deposit, and booking rules use your merchant settings</li>
                   </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Tip: After upload, you'll map your CSV columns to the correct fields
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Auto Duration Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Auto Duration Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure automatic duration calculation for services when importing without duration values
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price-duration-ratio">Price to Duration Ratio</Label>
+                    <div className="flex items-center gap-2 max-w-xs">
+                      <span className="text-sm text-muted-foreground">$1 =</span>
+                      <Input
+                        id="price-duration-ratio"
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="10"
+                        value={priceToDurationRatio}
+                        onChange={(e) => setPriceToDurationRatio(e.target.value)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">minutes</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      When importing services without duration, the system will automatically calculate duration based on price. 
+                      For example, with a ratio of 1.0, a $60 service will be set to 60 minutes.
+                    </p>
+                  </div>
+                  
+                  <div className="rounded-lg bg-muted p-4 space-y-2">
+                    <h4 className="font-medium">Examples with current ratio ({priceToDurationRatio}):</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• $30 service → {Math.round(30 * parseFloat(priceToDurationRatio))} minutes</li>
+                      <li>• $60 service → {Math.round(60 * parseFloat(priceToDurationRatio))} minutes</li>
+                      <li>• $90 service → {Math.round(90 * parseFloat(priceToDurationRatio))} minutes</li>
+                      <li>• $120 service → {Math.round(120 * parseFloat(priceToDurationRatio))} minutes</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={async () => {
+                    setLoading(true);
+                    try {
+                      await apiClient.put("/merchant/settings", {
+                        priceToDurationRatio: parseFloat(priceToDurationRatio),
+                      });
+                      toast({
+                        title: "Success",
+                        description: "Auto duration settings updated successfully",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to update settings",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }} disabled={loading}>
+                    {loading ? "Saving..." : "Save Changes"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1182,6 +1318,18 @@ export default function SettingsPage() {
         preview={serviceImportPreview}
         onConfirm={executeServiceImport}
         importing={importingServices}
+      />
+
+      {/* Column Mapping Dialog */}
+      <ColumnMappingDialog
+        open={showMappingDialog}
+        onClose={() => {
+          setShowMappingDialog(false);
+          setServiceFile(null);
+        }}
+        csvHeaders={csvHeaders}
+        csvPreviewRows={csvPreviewRows}
+        onConfirm={handleColumnMappingConfirm}
       />
     </div>
   );

@@ -37,12 +37,6 @@ export class CreateStaffDto {
   permissions: string[];
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  commissionRate?: number;
-
-  @IsOptional()
   @IsString()
   calendarColor?: string;
 

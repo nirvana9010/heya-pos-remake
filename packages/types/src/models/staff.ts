@@ -10,7 +10,6 @@ export interface Staff {
   calendarColor?: string;
   avatar?: string;
   status: StaffStatus;
-  commissionRate?: number;
   hireDate: Date;
   lastLogin?: Date;
   locations?: StaffLocation[];

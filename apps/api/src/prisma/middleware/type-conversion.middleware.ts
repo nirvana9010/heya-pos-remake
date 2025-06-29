@@ -82,7 +82,6 @@ function isMoneyField(fieldName: string): boolean {
 function isPercentageField(fieldName: string): boolean {
   const percentageFields = [
     'taxRate',
-    'commissionRate',
     'percentage',
     'multiplier',
     'pointsValue',

@@ -165,7 +165,6 @@ async function seedTestMerchant() {
         pin: await bcrypt.hash('1234', 10),
         accessLevel: 3,
         calendarColor: '#FF6B6B',
-        commissionRate: 50,
         locations: {
           create: [
             { locationId: mainLocation.id, isPrimary: true },
@@ -185,7 +184,6 @@ async function seedTestMerchant() {
         pin: await bcrypt.hash('2345', 10),
         accessLevel: 2,
         calendarColor: '#4ECDC4',
-        commissionRate: 40,
         locations: {
           create: [{ locationId: mainLocation.id, isPrimary: true }]
         }
@@ -201,7 +199,6 @@ async function seedTestMerchant() {
         pin: await bcrypt.hash('3456', 10),
         accessLevel: 2,
         calendarColor: '#45B7D1',
-        commissionRate: 40,
         locations: {
           create: [{ locationId: mainLocation.id, isPrimary: true }]
         }
@@ -218,7 +215,6 @@ async function seedTestMerchant() {
         pin: await bcrypt.hash('4567', 10),
         accessLevel: 1,
         calendarColor: '#F7DC6F',
-        commissionRate: 35,
         locations: {
           create: [{ locationId: secondLocation.id, isPrimary: true }]
         }
@@ -234,7 +230,6 @@ async function seedTestMerchant() {
         pin: await bcrypt.hash('5678', 10),
         accessLevel: 1,
         calendarColor: '#BB8FCE',
-        commissionRate: 35,
         locations: {
           create: [{ locationId: mainLocation.id, isPrimary: true }]
         }

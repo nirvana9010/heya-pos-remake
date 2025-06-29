@@ -142,7 +142,6 @@ async function main() {
       accessLevel: 3, // owner
       calendarColor: '#7C3AED', // Purple
       status: 'ACTIVE',
-      commissionRate: 0.25,
     },
   });
 
@@ -157,7 +156,6 @@ async function main() {
       accessLevel: 2, // manager
       calendarColor: '#14B8A6', // Teal
       status: 'ACTIVE',
-      commissionRate: 0.20,
     },
   });
 
@@ -172,7 +170,6 @@ async function main() {
       accessLevel: 1, // employee
       calendarColor: '#F59E0B', // Amber
       status: 'ACTIVE',
-      commissionRate: 0.15,
     },
   });
 

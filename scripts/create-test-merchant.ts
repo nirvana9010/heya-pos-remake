@@ -109,7 +109,6 @@ async function createTestMerchant() {
         accessLevel: 2, // manager
         calendarColor: '#9B59B6',
         status: 'ACTIVE',
-        commissionRate: 0.25,
       },
     });
 
@@ -124,7 +123,6 @@ async function createTestMerchant() {
         accessLevel: 1, // employee
         calendarColor: '#3498DB',
         status: 'ACTIVE',
-        commissionRate: 0.20,
       },
     });
 

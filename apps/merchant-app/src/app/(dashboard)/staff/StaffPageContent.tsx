@@ -49,7 +49,6 @@ interface Staff {
   accessLevel: number;
   calendarColor: string;
   status: 'ACTIVE' | 'INACTIVE';
-  commissionRate?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,7 +91,6 @@ export default function StaffPageContent() {
     accessLevel: 1,
     calendarColor: '#7C3AED',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
-    commissionRate: 0,
   });
 
   useEffect(() => {
@@ -184,7 +182,6 @@ export default function StaffPageContent() {
         accessLevel: formData.accessLevel,
         calendarColor: formData.calendarColor,
         status: formData.status,
-        commissionRate: formData.commissionRate,
       };
       
       // If pin is provided, include it
@@ -260,7 +257,6 @@ export default function StaffPageContent() {
       accessLevel: 1,
       calendarColor: '#7C3AED',
       status: 'ACTIVE',
-      commissionRate: 0,
     });
     setSelectedStaff(null);
     setShowPin(false);
@@ -343,13 +339,6 @@ export default function StaffPageContent() {
           </div>
         );
       }
-    },
-    {
-      accessorKey: 'commissionRate',
-      header: 'Commission',
-      cell: ({ row }: any) => (
-        <span>{row.original.commissionRate ? `${row.original.commissionRate}%` : '-'}</span>
-      )
     },
     {
       accessorKey: 'status',
@@ -653,18 +642,6 @@ export default function StaffPageContent() {
                   ))}
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="commissionRate">Commission Rate (%)</Label>
-                <Input
-                  id="commissionRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.commissionRate * 100}
-                  onChange={(e) => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) / 100 })}
-                />
-              </div>
             </TabsContent>
           </Tabs>
           
@@ -821,18 +798,6 @@ export default function StaffPageContent() {
                     />
                   ))}
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="commissionRate">Commission Rate (%)</Label>
-                <Input
-                  id="commissionRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.commissionRate * 100}
-                  onChange={(e) => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) / 100 })}
-                />
               </div>
             </TabsContent>
           </Tabs>

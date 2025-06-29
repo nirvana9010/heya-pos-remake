@@ -112,7 +112,6 @@ export class TypeTransformationInterceptor implements NestInterceptor {
   private isDecimalField(fieldName: string): boolean {
     const decimalFields = [
       'quantity',
-      'commissionRate',
       'taxRate',
       'loyaltyPoints',
       'points',

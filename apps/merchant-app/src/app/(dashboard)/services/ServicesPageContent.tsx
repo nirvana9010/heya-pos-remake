@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Plus, Search, MoreVertical, Edit, Trash2, DollarSign, Clock, 
-  ChevronDown, ChevronRight, Users, Percent, Copy, Check, X,
+  ChevronDown, ChevronRight, Users, Copy, Check, X,
   Scissors, Package, AlertCircle
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
@@ -60,8 +60,7 @@ export default function ServicesPageContent() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
-  const [priceAdjustment, setPriceAdjustment] = useState({ type: 'percentage', value: 10 });
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [savingService, setSavingService] = useState(false);
@@ -137,10 +136,13 @@ export default function ServicesPageContent() {
   }, [services, categories, debouncedSearchQuery, selectedCategoryFilter]);
 
   // Handle row selection changes
-  const handleRowSelectionChange = useCallback((rowSelection: Record<string, boolean>) => {
+  const handleRowSelectionChange = useCallback((newRowSelection: Record<string, boolean>) => {
+    // Update the row selection state
+    setRowSelection(newRowSelection);
+    
     // Convert row selection object to array of selected service IDs
-    const selectedIds = Object.keys(rowSelection)
-      .filter(key => rowSelection[key])
+    const selectedIds = Object.keys(newRowSelection)
+      .filter(key => newRowSelection[key])
       .map(index => tableData[parseInt(index)]?.id)
       .filter(Boolean);
     setSelectedServices(selectedIds);
@@ -482,7 +484,6 @@ export default function ServicesPageContent() {
     // Close ALL other dialogs first
     setIsDeleteDialogOpen(false);
     setDeletingServiceId(null);
-    setIsBulkEditOpen(false);
     setIsCategoryDialogOpen(false);
     
     setEditingService(service);
@@ -597,37 +598,35 @@ export default function ServicesPageContent() {
     });
   };
 
-  const handleBulkPriceUpdate = async () => {
+
+  const handleBulkDelete = async () => {
     if (selectedServices.length === 0) return;
     
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}? This action cannot be undone.`
+    );
+    
+    if (!confirmDelete) return;
+    
     try {
-      const updates = selectedServices.map(async (serviceId) => {
-        const service = services.find(s => s.id === serviceId);
-        
-        let newPrice = service.price;
-        if (priceAdjustment.type === 'percentage') {
-          newPrice = service.price * (1 + priceAdjustment.value / 100);
-        } else {
-          newPrice = service.price + priceAdjustment.value;
-        }
-        
-        return apiClient.updateService(serviceId, { price: Math.round(Number(newPrice) * 100) / 100 });
-      });
+      const deletePromises = selectedServices.map(serviceId => 
+        deleteService.mutateAsync(serviceId)
+      );
       
-      await Promise.all(updates);
+      await Promise.all(deletePromises);
       
       toast({
         title: "Success",
-        description: `Updated prices for ${selectedServices.length} services`,
+        description: `Deleted ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}`,
       });
       
-      await refetch();
+      // Clear both selections
       setSelectedServices([]);
-      setIsBulkEditOpen(false);
+      setRowSelection({});
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update prices",
+        description: "Failed to delete some services",
         variant: "destructive",
       });
     }
@@ -828,6 +827,7 @@ export default function ServicesPageContent() {
               columns={columns}
               data={tableData}
               showRowSelection={true}
+              rowSelection={rowSelection}
               onRowSelectionChange={handleRowSelectionChange}
               headerActions={
                 selectedServices.length > 0 ? (
@@ -838,17 +838,19 @@ export default function ServicesPageContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setIsBulkEditOpen(true);
-                      }}
+                      onClick={handleBulkDelete}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <Percent className="h-4 w-4 mr-2" />
-                      Bulk Price Update
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Bulk Delete
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedServices([])}
+                      onClick={() => {
+                        setSelectedServices([]);
+                        setRowSelection({});
+                      }}
                     >
                       Clear
                     </Button>
@@ -1060,82 +1062,6 @@ export default function ServicesPageContent() {
         </div>
       </SlideOutPanel>
 
-      {/* Bulk Edit Panel */}
-      <SlideOutPanel
-        isOpen={isBulkEditOpen}
-        onClose={() => {
-          setIsBulkEditOpen(false);
-          setPriceAdjustment({ type: 'percentage', value: 10 });
-        }}
-        title="Bulk Price Update"
-        subtitle={`Update prices for ${selectedServices.length} selected services`}
-        width="narrow"
-        preserveState={false}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label>Adjustment Type</Label>
-            <Select 
-              value={priceAdjustment.type}
-              onValueChange={(value: 'percentage' | 'amount') => 
-                setPriceAdjustment({ ...priceAdjustment, type: value })
-              }
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percentage">Percentage</SelectItem>
-                <SelectItem value="amount">Fixed Amount</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label htmlFor="adjustmentValue">
-              {priceAdjustment.type === 'percentage' ? 'Percentage (%)' : 'Amount ($)'}
-            </Label>
-            <Input
-              id="adjustmentValue"
-              type="number"
-              value={priceAdjustment.value}
-              onChange={(e) => setPriceAdjustment({ 
-                ...priceAdjustment, 
-                value: parseFloat(e.target.value) || 0 
-              })}
-              min={priceAdjustment.type === 'percentage' ? -100 : undefined}
-              step={priceAdjustment.type === 'percentage' ? 1 : 0.01}
-              className="mt-1"
-            />
-          </div>
-          
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              This will {priceAdjustment.value >= 0 ? 'increase' : 'decrease'} the selected service prices by{' '}
-              {priceAdjustment.type === 'percentage' 
-                ? `${Math.abs(priceAdjustment.value)}%`
-                : `$${Math.abs(priceAdjustment.value).toFixed(2)}`
-              }
-            </AlertDescription>
-          </Alert>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsBulkEditOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleBulkPriceUpdate}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              Update Prices
-            </Button>
-          </div>
-        </div>
-      </SlideOutPanel>
 
       {/* Delete Confirmation Panel */}
       <SlideOutPanel

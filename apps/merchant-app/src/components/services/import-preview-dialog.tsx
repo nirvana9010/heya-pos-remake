@@ -98,12 +98,24 @@ export function ImportPreviewDialog({
                           {error}
                         </div>
                       ))}
-                      {row.validation.warnings.map((warning, i) => (
-                        <div key={i} className="text-xs text-orange-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {warning}
-                        </div>
-                      ))}
+                      {row.validation.warnings.map((warning, i) => {
+                        const isAutoDuration = warning.toLowerCase().includes('duration will be calculated');
+                        return (
+                          <div 
+                            key={i} 
+                            className={`text-xs flex items-center gap-1 ${
+                              isAutoDuration ? 'text-green-600' : 'text-orange-600'
+                            }`}
+                          >
+                            {isAutoDuration ? (
+                              <CheckCircle className="h-3 w-3" />
+                            ) : (
+                              <AlertCircle className="h-3 w-3" />
+                            )}
+                            {warning}
+                          </div>
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -97,8 +97,6 @@ function isMoneyField(fieldName: string): boolean {
     'taxAmount',
     'subtotal',
     'fee',
-    'commission',
-    'commissionRate',
     'value',
     // 'payment', // REMOVED: This was causing 'payments' array to be treated as money!
     'refund',
@@ -132,7 +130,6 @@ function isMoneyField(fieldName: string): boolean {
     fieldLower.endsWith('cost') ||
     fieldLower.endsWith('revenue') ||
     fieldLower.endsWith('fee') ||
-    fieldLower.endsWith('rate') && fieldLower.includes('commission')
   );
 }
 

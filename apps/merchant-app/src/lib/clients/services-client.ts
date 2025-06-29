@@ -142,7 +142,7 @@ export class ServicesClient extends BaseApiClient {
   }
 
   // Import methods
-  async previewServiceImport(file: File, options: ImportOptions): Promise<ImportPreview> {
+  async previewServiceImport(file: File, options: ImportOptions, columnMappings?: Record<string, string>): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
     
@@ -151,10 +151,18 @@ export class ServicesClient extends BaseApiClient {
       formData.append(key, value.toString());
     });
 
-    const response = await fetch(`${this.baseUrl}/v1/services/import/preview`, {
+    // Add column mappings if provided
+    if (columnMappings) {
+      formData.append('columnMappings', JSON.stringify(columnMappings));
+    }
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const token = localStorage.getItem('access_token');
+
+    const response = await fetch(`${API_BASE_URL}/v1/services/import/preview`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: formData,
     });
@@ -172,10 +180,13 @@ export class ServicesClient extends BaseApiClient {
   }
 
   async downloadServiceTemplate(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/v1/services/import/template`, {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const token = localStorage.getItem('access_token');
+    
+    const response = await fetch(`${API_BASE_URL}/v1/services/import/template`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 

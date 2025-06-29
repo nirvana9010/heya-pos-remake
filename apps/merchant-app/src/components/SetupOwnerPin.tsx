@@ -50,7 +50,6 @@ export function SetupOwnerPin({ onComplete, mode }: SetupOwnerPinProps) {
         role: "OWNER",
         accessLevel: 10, // Maximum access level
         permissions: ["*"], // Full permissions
-        commissionRate: 0,
         calendarColor: "#8B5CF6", // Purple for owner
         locationIds: [] // Empty array for all locations
       });

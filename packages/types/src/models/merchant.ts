@@ -38,6 +38,8 @@ export interface MerchantSettings {
   enableTips: boolean;
   defaultTipPercentages?: number[]; // e.g., [10, 15, 20]
   allowCustomTipAmount?: boolean;
+  // Import settings
+  priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
 }
 
 export enum MerchantStatus {

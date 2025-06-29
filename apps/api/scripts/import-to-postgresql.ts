@@ -191,7 +191,6 @@ async function importData() {
           calendarColor: member.calendarColor,
           avatar: member.avatar,
           status: member.status,
-          commissionRate: member.commissionRate ? parseDecimal(member.commissionRate) : null,
           hireDate: new Date(member.hireDate),
           lastLogin: member.lastLogin ? new Date(member.lastLogin) : null,
           createdAt: new Date(member.createdAt),
