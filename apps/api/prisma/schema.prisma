@@ -49,6 +49,7 @@ model Merchant {
   loyaltyPrograms    LoyaltyProgram?
   package            Package           @relation(fields: [packageId], references: [id])
   merchantAuth       MerchantAuth?
+  merchantNotifications MerchantNotification[]
   notificationLogs   NotificationLog[]
   orders             Order[]
   outboxEvents       OutboxEvent[]
@@ -688,4 +689,25 @@ model ScheduledNotification {
   @@index([bookingId])
   @@index([status])
   @@index([scheduledFor])
+}
+
+model MerchantNotification {
+  id          String    @id @default(uuid())
+  merchantId  String
+  type        String    // booking_new, booking_cancelled, booking_modified, payment_refunded
+  priority    String    @default("info") // urgent, important, info
+  title       String
+  message     String
+  read        Boolean   @default(false)
+  actionUrl   String?
+  actionLabel String?
+  metadata    Json?     // Additional data like bookingId, customerId, etc.
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  merchant    Merchant  @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
 }

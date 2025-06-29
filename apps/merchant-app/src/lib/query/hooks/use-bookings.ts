@@ -13,6 +13,11 @@ export const bookingKeys = {
     [...bookingKeys.all, 'availability', { date: date.toISOString(), serviceId, staffId }] as const,
 };
 
+// Query key for notifications (used to trigger refresh after booking changes)
+export const notificationKeys = {
+  all: ['notifications'] as const,
+};
+
 /**
  * Hook to fetch bookings with optional parameters
  */
@@ -98,6 +103,11 @@ export function useCreateBooking() {
         bookingKeys.detail(newBooking.id),
         newBooking
       );
+      
+      // Trigger notification refresh (notification will be created on backend)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      }, 1000); // Small delay to allow backend to create notification
     },
     onError: (error) => {
       console.error('Failed to create booking:', error);
@@ -123,6 +133,11 @@ export function useUpdateBooking() {
       
       // Invalidate lists to ensure they're updated
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
+      
+      // Trigger notification refresh if status changed (notification created on backend)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      }, 1000);
     },
     onError: (error) => {
       console.error('Failed to update booking:', error);
@@ -149,6 +164,11 @@ export function useRescheduleBooking() {
       // Invalidate lists and availability queries
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
       queryClient.invalidateQueries({ queryKey: [...bookingKeys.all, 'availability'] });
+      
+      // Trigger notification refresh (booking_modified notification)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      }, 1000);
     },
     onError: (error) => {
       console.error('Failed to reschedule booking:', error);
@@ -222,6 +242,11 @@ export function useCancelBooking() {
       
       // Invalidate lists to update status
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
+      
+      // Trigger notification refresh (booking_cancelled notification)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      }, 1000);
     },
     onError: (error) => {
       console.error('Failed to cancel booking:', error);

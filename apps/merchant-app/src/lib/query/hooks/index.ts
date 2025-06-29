@@ -13,6 +13,9 @@ export * from './use-customers';
 // Reports hooks
 export * from './use-reports';
 
+// Notifications hooks
+export * from './use-notifications';
+
 // TODO: Add other domain hooks as needed:
 // export * from './use-services';
 // export * from './use-staff';

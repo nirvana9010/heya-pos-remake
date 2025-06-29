@@ -6,6 +6,7 @@ import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { Prisma } from '@prisma/client';
 import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
 import { LoyaltyService } from '../../../../loyalty/loyalty.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 interface UpdateBookingData {
   bookingId: string;
@@ -32,6 +33,7 @@ export class BookingUpdateService {
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
     private readonly loyaltyService: LoyaltyService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -45,12 +47,17 @@ export class BookingUpdateService {
       hasTimeChange: !!data.startTime,
     });
     
-    return this.prisma.$transaction(async (tx) => {
+    let originalBooking: Booking | null = null;
+    let isRescheduling = false;
+    
+    const result = await this.prisma.$transaction(async (tx) => {
       // 1. Get the existing booking
       const booking = await this.bookingRepository.findById(data.bookingId, data.merchantId);
       if (!booking) {
         throw new NotFoundException(`Booking not found: ${data.bookingId}`);
       }
+      
+      originalBooking = booking;
       
       console.log('[BookingUpdateService] Current booking:', {
         bookingId: booking.id,
@@ -60,7 +67,7 @@ export class BookingUpdateService {
       });
 
       // 2. Check if we're rescheduling (time change)
-      const isRescheduling = data.startTime && (
+      isRescheduling = data.startTime && (
         data.startTime.getTime() !== booking.timeSlot.start.getTime() ||
         (data.endTime && data.endTime.getTime() !== booking.timeSlot.end.getTime())
       );
@@ -170,6 +177,23 @@ export class BookingUpdateService {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
+
+    // Emit booking modified event
+    const changes = [];
+    if (isRescheduling) {
+      changes.push(`changed time to ${data.startTime?.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}`);
+    }
+    if (data.staffId && originalBooking && data.staffId !== originalBooking.staffId) {
+      changes.push('changed staff member');
+    }
+    if (changes.length > 0) {
+      this.eventEmitter.emit('booking.modified', { 
+        bookingId: data.bookingId,
+        changes: changes.join(' and ')
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -220,7 +244,12 @@ export class BookingUpdateService {
     }
 
     booking.cancel(data.reason, data.cancelledBy);
-    return await this.bookingRepository.update(booking);
+    const result = await this.bookingRepository.update(booking);
+    
+    // Emit booking cancelled event
+    this.eventEmitter.emit('booking.cancelled', { bookingId: data.bookingId });
+    
+    return result;
   }
 
   /**

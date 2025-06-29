@@ -6,9 +6,10 @@ import { PaymentGatewayService } from './payment-gateway.service';
 import { TyroPaymentService } from './tyro-payment.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, NotificationsModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,

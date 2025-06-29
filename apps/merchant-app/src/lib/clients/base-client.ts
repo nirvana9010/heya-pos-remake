@@ -217,7 +217,9 @@ export class BaseApiClient {
       this.clearAuthData();
       
       // Throw a special error to stop execution
-      throw new Error('UNAUTHORIZED_REDIRECT');
+      const redirectError = new Error('UNAUTHORIZED_REDIRECT');
+      (redirectError as any).isAuthRedirect = true;
+      throw redirectError;
     }
   }
 
