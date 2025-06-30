@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { TimeSlot } from '../value-objects/time-slot.vo';
 import { BookingStatus, BookingStatusValue } from '../value-objects/booking-status.vo';
+import { PaymentStatus, PaymentStatusEnum } from '../value-objects/payment-status.vo';
 
 export interface BookingProps {
   id: string;
@@ -23,6 +24,13 @@ export interface BookingProps {
   updatedAt?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
+  completedAt?: Date;
+  // Payment fields
+  paymentStatus?: PaymentStatusEnum;
+  paidAmount?: number;
+  paymentMethod?: string;
+  paymentReference?: string;
+  paidAt?: Date;
 }
 
 /**
@@ -50,6 +58,13 @@ export class Booking {
   private _updatedAt: Date;
   private _cancelledAt?: Date;
   private _cancellationReason?: string;
+  private _completedAt?: Date;
+  // Payment properties
+  private _paymentStatus: PaymentStatus;
+  private _paidAmount: number;
+  private _paymentMethod?: string;
+  private _paymentReference?: string;
+  private _paidAt?: Date;
 
   // Domain events that occurred
   private _domainEvents: any[] = [];
@@ -77,6 +92,13 @@ export class Booking {
     this._updatedAt = props.updatedAt || new Date();
     this._cancelledAt = props.cancelledAt;
     this._cancellationReason = props.cancellationReason;
+    this._completedAt = props.completedAt;
+    // Payment properties
+    this._paymentStatus = props.paymentStatus ? new PaymentStatus(props.paymentStatus) : PaymentStatus.unpaid();
+    this._paidAmount = props.paidAmount || 0;
+    this._paymentMethod = props.paymentMethod;
+    this._paymentReference = props.paymentReference;
+    this._paidAt = props.paidAt;
   }
 
   private validateProps(props: BookingProps): void {
@@ -123,6 +145,7 @@ export class Booking {
     }
 
     this._status = BookingStatus.COMPLETED;
+    this._completedAt = new Date();
     this._updatedAt = new Date();
     
     this.addDomainEvent({
@@ -196,6 +219,114 @@ export class Booking {
     });
   }
 
+  // Payment methods
+  markAsPaid(amount: number, method: string, reference?: string): void {
+    if (!this._paymentStatus.canBePaid()) {
+      throw new BadRequestException(
+        `Cannot mark booking as paid in ${this._paymentStatus.toString()} status`
+      );
+    }
+
+    if (amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than zero');
+    }
+
+    if (amount >= this._totalAmount) {
+      this._paymentStatus = PaymentStatus.paid();
+      this._paidAmount = this._totalAmount;
+    } else {
+      this._paymentStatus = PaymentStatus.partial();
+      this._paidAmount = amount;
+    }
+
+    this._paymentMethod = method;
+    this._paymentReference = reference;
+    this._paidAt = new Date();
+    this._updatedAt = new Date();
+    
+    this.addDomainEvent({
+      type: 'BookingPaymentRecorded',
+      bookingId: this._id,
+      amount,
+      method,
+      reference,
+      paymentStatus: this._paymentStatus.toString(),
+      occurredAt: new Date(),
+    });
+  }
+
+  recordPartialPayment(amount: number, method: string, reference?: string): void {
+    if (!this._paymentStatus.canBePaid()) {
+      throw new BadRequestException(
+        `Cannot record payment for booking in ${this._paymentStatus.toString()} status`
+      );
+    }
+
+    if (amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than zero');
+    }
+
+    const newPaidAmount = this._paidAmount + amount;
+    
+    if (newPaidAmount >= this._totalAmount) {
+      this._paymentStatus = PaymentStatus.paid();
+      this._paidAmount = this._totalAmount;
+    } else {
+      this._paymentStatus = PaymentStatus.partial();
+      this._paidAmount = newPaidAmount;
+    }
+
+    this._paymentMethod = method;
+    this._paymentReference = reference;
+    this._paidAt = new Date();
+    this._updatedAt = new Date();
+    
+    this.addDomainEvent({
+      type: 'BookingPartialPaymentRecorded',
+      bookingId: this._id,
+      amount,
+      totalPaid: this._paidAmount,
+      method,
+      reference,
+      paymentStatus: this._paymentStatus.toString(),
+      occurredAt: new Date(),
+    });
+  }
+
+  refundPayment(amount: number, reason: string): void {
+    if (!this._paymentStatus.canBeRefunded()) {
+      throw new BadRequestException(
+        `Cannot refund booking in ${this._paymentStatus.toString()} status`
+      );
+    }
+
+    if (amount <= 0 || amount > this._paidAmount) {
+      throw new BadRequestException('Invalid refund amount');
+    }
+
+    const remainingAmount = this._paidAmount - amount;
+    
+    if (remainingAmount === 0) {
+      this._paymentStatus = PaymentStatus.refunded();
+      this._paidAmount = 0;
+    } else {
+      this._paymentStatus = PaymentStatus.partial();
+      this._paidAmount = remainingAmount;
+    }
+
+    this._updatedAt = new Date();
+    
+    this.addDomainEvent({
+      type: 'BookingPaymentRefunded',
+      bookingId: this._id,
+      refundAmount: amount,
+      remainingPaid: this._paidAmount,
+      reason,
+      paymentStatus: this._paymentStatus.toString(),
+      occurredAt: new Date(),
+    });
+  }
+
   private addDomainEvent(event: any): void {
     this._domainEvents.push(event);
   }
@@ -224,6 +355,14 @@ export class Booking {
   get createdAt(): Date { return this._createdAt; }
   get updatedAt(): Date { return this._updatedAt; }
   get cancelledAt(): Date | undefined { return this._cancelledAt; }
+  get completedAt(): Date | undefined { return this._completedAt; }
   get cancellationReason(): string | undefined { return this._cancellationReason; }
   get domainEvents(): any[] { return [...this._domainEvents]; }
+  // Payment getters
+  get paymentStatus(): PaymentStatus { return this._paymentStatus; }
+  get paidAmount(): number { return this._paidAmount; }
+  get paymentMethod(): string | undefined { return this._paymentMethod; }
+  get paymentReference(): string | undefined { return this._paymentReference; }
+  get paidAt(): Date | undefined { return this._paidAt; }
+  get balanceDue(): number { return this._totalAmount - this._paidAmount; }
 }

@@ -10,7 +10,6 @@ import {
   OrderState,
 } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
 
 @Injectable()
@@ -19,7 +18,6 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
     private readonly gatewayService: PaymentGatewayService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly merchantNotificationsService: MerchantNotificationsService,
   ) {}
 
@@ -37,7 +35,11 @@ export class PaymentsService {
     }
 
     // Check if payment amount is valid
-    if (dto.amount > order.balanceDue.toNumber()) {
+    const balanceDue = typeof order.balanceDue === 'object' && order.balanceDue.toNumber
+      ? order.balanceDue.toNumber()
+      : Number(order.balanceDue);
+    
+    if (dto.amount > balanceDue) {
       throw new BadRequestException('Payment amount exceeds balance due');
     }
 
@@ -271,10 +273,18 @@ export class PaymentsService {
     await this.ordersService.recalculateOrderTotals(orderId);
     const order = await this.ordersService.findOrder(orderId, merchantId);
 
+    // Convert to numbers for comparison
+    const balanceDue = typeof order.balanceDue === 'object' && order.balanceDue.toNumber
+      ? order.balanceDue.toNumber()
+      : Number(order.balanceDue);
+    const paidAmount = typeof order.paidAmount === 'object' && order.paidAmount.toNumber
+      ? order.paidAmount.toNumber()
+      : Number(order.paidAmount);
+
     let newState: OrderState;
-    if (order.balanceDue.equals(0)) {
+    if (balanceDue === 0) {
       newState = OrderState.PAID;
-    } else if (order.paidAmount.greaterThan(0)) {
+    } else if (paidAmount > 0) {
       newState = OrderState.PARTIALLY_PAID;
     } else {
       return; // No state change needed

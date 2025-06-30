@@ -836,7 +836,7 @@ function CalendarContent() {
               startTime: new Date(`${booking.date}T${booking.time}`),
               endTime: new Date(new Date(`${booking.date}T${booking.time}`).getTime() + booking.duration * 60000),
               status: booking.status,
-              isPaid: booking.paymentStatus === 'paid',
+              isPaid: booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid',
               totalPrice: booking.servicePrice,
               notes: booking.notes,
             }}
@@ -852,8 +852,112 @@ function CalendarContent() {
             onStatusChange={(bookingId, status) => {
               actions.updateBooking(bookingId, { status: status as any });
             }}
-            onPaymentStatusChange={(bookingId, isPaid) => {
-              actions.updateBooking(bookingId, { paymentStatus: isPaid ? 'paid' : 'unpaid' });
+            onPaymentStatusChange={async (bookingId, isPaid) => {
+              console.log('🔵 onPaymentStatusChange called:', { bookingId, isPaid });
+              
+              // Find the booking in state to log its current status
+              const currentBooking = state.bookings.find(b => b.id === bookingId);
+              console.log('📊 Current booking state:', {
+                id: currentBooking?.id,
+                bookingNumber: currentBooking?.bookingNumber,
+                customerName: currentBooking?.customerName,
+                paymentStatus: currentBooking?.paymentStatus,
+                isPaid: currentBooking?.isPaid
+              });
+              
+              try {
+                if (isPaid) {
+                  // Mark as paid - call API
+                  console.log('🟢 Marking as paid...');
+                  toast({
+                    title: "Processing payment...",
+                    description: "Please wait while we mark this booking as paid.",
+                  });
+                  
+                  console.log('🟡 Calling apiClient.markBookingAsPaid...');
+                  const result = await apiClient.markBookingAsPaid(bookingId, 'CASH');
+                  console.log('🟣 API Result:', result);
+                  console.log('🟣 Result type:', typeof result);
+                  console.log('🟣 Result keys:', result ? Object.keys(result) : 'null');
+                  console.log('🟣 Result.success:', result?.success);
+                  
+                  if (result.success) {
+                    console.log('✅ Success! Updating local state...');
+                    
+                    // Update local state immediately with all payment fields
+                    actions.updateBooking(bookingId, { 
+                      paymentStatus: 'PAID',
+                      isPaid: true,
+                      paidAmount: result.booking?.paidAmount || currentBooking?.totalPrice || currentBooking?.servicePrice
+                    });
+                    
+                    console.log('📝 Local state updated');
+                    
+                    toast({
+                      title: "Payment recorded",
+                      description: "Booking has been marked as paid successfully.",
+                      variant: "default",
+                      className: "bg-green-50 border-green-200",
+                    });
+                    
+                    // Also refresh from server to ensure consistency
+                    console.log('🔄 Refreshing bookings data...');
+                    setTimeout(() => {
+                      refresh();
+                    }, 1000);
+                  } else {
+                    console.log('❌ result.success is false or undefined');
+                    throw new Error(result.message || 'Failed to mark as paid');
+                  }
+                } else {
+                  // For unpaid, just update local state (no API endpoint for this yet)
+                  actions.updateBooking(bookingId, { paymentStatus: 'unpaid' });
+                  
+                  toast({
+                    title: "Payment status updated",
+                    description: "Booking has been marked as unpaid.",
+                  });
+                }
+              } catch (error: any) {
+                console.error('Failed to update payment status - Full error:', error);
+                console.error('Error type:', typeof error);
+                console.error('Error keys:', error ? Object.keys(error) : 'null');
+                console.error('Error message directly:', error?.message);
+                console.error('Error data:', error?.data);
+                
+                // Handle API errors properly - check all possible error formats
+                let errorMessage = "Failed to update payment status";
+                
+                // Try different ways to get the error message
+                if (typeof error === 'string') {
+                  errorMessage = error;
+                } else if (error?.message) {
+                  // BaseApiClient transformed error OR regular Error
+                  errorMessage = error.message;
+                } else if (error?.data?.message) {
+                  // Transformed error with data
+                  errorMessage = error.data.message;
+                } else if (error?.response?.data?.message) {
+                  // Original axios error
+                  errorMessage = error.response.data.message;
+                } else if (error?.originalError?.response?.data?.message) {
+                  // Nested transformed error
+                  errorMessage = error.originalError.response.data.message;
+                } else {
+                  // Last resort - stringify the error
+                  try {
+                    errorMessage = JSON.stringify(error);
+                  } catch {
+                    errorMessage = "An unknown error occurred. Check console for details.";
+                  }
+                }
+                
+                toast({
+                  title: "Failed to update payment status",
+                  description: errorMessage,
+                  variant: "destructive",
+                });
+              }
             }}
           />
         );

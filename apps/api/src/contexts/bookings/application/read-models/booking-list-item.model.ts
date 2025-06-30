@@ -29,6 +29,11 @@ export interface BookingListItem {
   totalDuration: number; // Total duration in minutes
   locationName: string;
   createdAt: Date;
-  isPaid?: boolean; // Payment status
+  // Payment fields - using new simplified architecture
+  paymentStatus: string; // UNPAID, PARTIAL, PAID, REFUNDED
+  isPaid?: boolean; // Kept for backward compatibility (true if paymentStatus === 'PAID')
   paidAmount?: number; // Amount paid
+  paymentMethod?: string;
+  paidAt?: Date;
+  completedAt?: Date;
 }

@@ -65,4 +65,14 @@ export interface BookingDetail {
   cancelledAt?: Date;
   cancellationReason?: string;
   cancelledBy?: string;
+  
+  // Completion info
+  completedAt?: Date;
+  
+  // Payment info
+  paymentStatus: string;
+  paidAmount: number;
+  paymentMethod?: string;
+  paymentReference?: string;
+  paidAt?: Date;
 }

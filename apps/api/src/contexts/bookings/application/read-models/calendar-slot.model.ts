@@ -8,6 +8,9 @@ export interface CalendarSlot {
   startTime: Date;
   endTime: Date;
   status: string;
+  paymentStatus?: string;
+  paidAmount?: number;
+  completedAt?: Date | null;
   customerName: string;
   serviceName: string;
   serviceColor?: string;

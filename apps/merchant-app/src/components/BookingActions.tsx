@@ -14,7 +14,8 @@ import {
   Mail,
   CreditCard,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 
 export interface BookingActionsProps {
@@ -35,8 +36,9 @@ export interface BookingActionsProps {
   showDelete?: boolean;
   showReminder?: boolean;
   showPayment?: boolean;
+  isPaymentProcessing?: boolean;
   onStatusChange?: (bookingId: string, status: string) => void;
-  onPaymentToggle?: (bookingId: string) => void;
+  onPaymentToggle?: (bookingId: string, isPaid: boolean) => void;
   onProcessPayment?: (bookingId: string) => void;
   onEdit?: (bookingId: string) => void;
   onDelete?: (bookingId: string) => void;
@@ -52,6 +54,7 @@ export function BookingActions({
   showDelete = true,
   showReminder = true,
   showPayment = true,
+  isPaymentProcessing = false,
   onStatusChange,
   onPaymentToggle,
   onProcessPayment,
@@ -156,14 +159,19 @@ export function BookingActions({
             <Button
               size={size}
               variant={isPaid ? "default" : "outline"}
-              onClick={() => onPaymentToggle(booking.id)}
+              onClick={() => onPaymentToggle(booking.id, !isPaid)}
+              disabled={isPaymentProcessing}
               className={cn(
                 "flex items-center gap-1",
                 isPaid && "bg-green-600 hover:bg-green-700"
               )}
             >
-              <DollarSign className="h-4 w-4" />
-              {isPaid ? "Paid" : "Mark as Paid"}
+              {isPaymentProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <DollarSign className="h-4 w-4" />
+              )}
+              {isPaymentProcessing ? "Processing..." : (isPaid ? "Paid" : "Mark as Paid")}
             </Button>
           )}
         </>

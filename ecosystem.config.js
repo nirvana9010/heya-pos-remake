@@ -14,7 +14,7 @@ module.exports = {
     {
       name: 'merchant',
       script: 'npm',
-      args: 'run dev',
+      args: 'run dev:direct',
       cwd: './apps/merchant-app',
       watch: false,
       env: { 

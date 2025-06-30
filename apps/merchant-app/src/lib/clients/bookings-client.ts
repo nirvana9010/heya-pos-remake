@@ -221,12 +221,15 @@ export class BookingsClient extends BaseApiClient {
       (booking.services?.reduce((sum: number, s: any) => sum + (Number(s.price) || 0), 0) || 0);
     
     // Calculate total duration from all services
-    const duration = booking.duration || 
+    // API returns totalDuration for list endpoints, duration for detail endpoints
+    const duration = booking.duration || booking.totalDuration ||
       (booking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0);
     
     // Transform status from uppercase to lowercase with hyphens
+    // Special case: COMPLETE/COMPLETED -> completed (with 'd')
     const status = booking.status ? 
-      booking.status.toLowerCase().replace(/_/g, '-') : 
+      ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
+       booking.status.toLowerCase().replace(/_/g, '-')) : 
       'confirmed';
     
     return {
@@ -242,5 +245,14 @@ export class BookingsClient extends BaseApiClient {
       duration,
       date: booking.startTime, // For backward compatibility
     };
+  }
+
+  async markBookingAsPaid(id: string, paymentMethod: string = 'CASH'): Promise<{
+    success: boolean;
+    message: string;
+    order: any;
+    payment?: any;
+  }> {
+    return this.post(`/bookings/${id}/mark-paid`, { paymentMethod }, undefined, 'v2');
   }
 }

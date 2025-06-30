@@ -42,10 +42,13 @@ export interface Booking {
   color?: string;
   paymentStatus?: string;
   paymentMethod?: string;
+  isPaid?: boolean;
+  paidAmount?: number;
   
   // Timestamps
   createdAt: string;
   updatedAt: string;
+  completedAt?: string;
 }
 
 export interface Staff {

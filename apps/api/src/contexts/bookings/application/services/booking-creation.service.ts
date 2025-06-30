@@ -43,7 +43,7 @@ export class BookingCreationService {
    * This is a transactional script that orchestrates the entire booking creation process.
    */
   async createBooking(data: CreateBookingData): Promise<Booking> {
-    return this.prisma.$transaction(async (tx) => {
+    const savedBooking = await this.prisma.$transaction(async (tx) => {
       // 1. Lock the staff member to prevent concurrent bookings
       await this.bookingRepository.lockStaff(data.staffId, data.merchantId, tx);
 
@@ -135,6 +135,9 @@ export class BookingCreationService {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
+
+
+    return savedBooking;
   }
 
   /**

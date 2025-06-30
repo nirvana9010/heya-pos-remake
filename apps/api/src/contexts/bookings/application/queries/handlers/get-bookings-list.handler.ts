@@ -79,6 +79,12 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           status: true,
           totalAmount: true,
           createdAt: true,
+          // Payment fields
+          paymentStatus: true,
+          paidAmount: true,
+          paymentMethod: true,
+          paidAt: true,
+          completedAt: true,
           customer: {
             select: {
               firstName: true,
@@ -162,8 +168,15 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         totalDuration,
         locationName: booking.location.name,
         createdAt: booking.createdAt,
-        isPaid: undefined, // Payment info not included in list query
-        paidAmount: undefined,
+        // Payment fields
+        paymentStatus: booking.paymentStatus || 'UNPAID',
+        isPaid: booking.paymentStatus === 'PAID',
+        paidAmount: typeof booking.paidAmount === 'object' && booking.paidAmount.toNumber
+          ? booking.paidAmount.toNumber()
+          : Number(booking.paidAmount || 0),
+        paymentMethod: booking.paymentMethod || undefined,
+        paidAt: booking.paidAt || undefined,
+        completedAt: booking.completedAt || undefined,
       };
     });
 

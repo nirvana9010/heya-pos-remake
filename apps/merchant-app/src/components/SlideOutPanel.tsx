@@ -52,21 +52,17 @@ export function SlideOutPanel({
 
   // Handle opening/closing animations
   useEffect(() => {
-    console.log('[SlideOutPanel] isOpen changed to:', isOpen, 'preserveState:', preserveState);
     if (isOpen) {
       setShouldRender(true);
       // Small delay to ensure DOM is ready for animation
       requestAnimationFrame(() => {
         setIsVisible(true);
-        console.log('[SlideOutPanel] Panel opening - isVisible set to true');
       });
     } else {
       setIsVisible(false);
-      console.log('[SlideOutPanel] Panel closing - isVisible set to false');
       if (!preserveState) {
         const timer = setTimeout(() => {
           setShouldRender(false);
-          console.log('[SlideOutPanel] shouldRender set to false after animation');
         }, 300); // Match animation duration
         return () => clearTimeout(timer);
       }
@@ -107,16 +103,13 @@ export function SlideOutPanel({
     if (isOpen) {
       // Store original overflow value
       const originalOverflow = document.body.style.overflow || '';
-      console.log('[SlideOutPanel] Setting body overflow to hidden, original was:', originalOverflow);
       document.body.style.overflow = "hidden";
       
       return () => {
-        console.log('[SlideOutPanel] Restoring body overflow to:', originalOverflow);
         document.body.style.overflow = originalOverflow;
       };
     } else {
       // Ensure overflow is reset when closed
-      console.log('[SlideOutPanel] Panel closed, ensuring overflow is reset');
       document.body.style.overflow = '';
     }
   }, [isOpen]);

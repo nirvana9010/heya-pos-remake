@@ -45,12 +45,17 @@ export function useCalendarData() {
         const date = format(startTime, 'yyyy-MM-dd');
         const time = format(startTime, 'HH:mm');
         
+        
         return {
           id: booking.id,
           date,
           time,
-          duration: booking.duration,
-          status: booking.status,
+          duration: booking.duration || booking.totalDuration || 60,
+          // Ensure status is always lowercase for consistent filtering
+          status: booking.status ? 
+            ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
+             booking.status.toLowerCase().replace(/_/g, '-')) : 
+            'confirmed',
           
           // Customer info
           customerId: booking.customerId,
@@ -72,10 +77,13 @@ export function useCalendarData() {
           notes: booking.notes,
           internalNotes: booking.internalNotes,
           paymentStatus: booking.paymentStatus,
+          isPaid: booking.isPaid,
+          paidAmount: booking.paidAmount,
           
           // Timestamps
           createdAt: booking.createdAt,
           updatedAt: booking.updatedAt,
+          completedAt: booking.completedAt,
         };
       });
       
@@ -290,6 +298,11 @@ export function useCalendarData() {
       unsubscribe();
     };
   }, [fetchBookings, state.isRefreshing, state.isLoading]);
+  
+  // Real-time updates have been removed. Calendar will update via:
+  // 1. Manual refresh button
+  // 2. Focus/visibility events (when tab becomes active)
+  // 3. Cross-tab communication via bookingEvents service
   
   // Refresh function
   const refresh = useCallback(async () => {
