@@ -15,7 +15,6 @@ console.log(`
    - Framework: NestJS (v10.x)
    - Database: PostgreSQL with Prisma ORM
    - Authentication: JWT + PIN-based dual auth
-   - Real-time: Socket.io WebSockets
    - Validation: class-validator
    - File Upload: Multer
    - CSV Processing: csv-parse

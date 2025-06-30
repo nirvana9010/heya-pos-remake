@@ -84,13 +84,6 @@ export function BookingSlideOut({
     now.setSeconds(0);
     now.setMilliseconds(0);
     
-    // Debug log
-    console.log('[BookingSlideOut] Default time calculated:', {
-      buildTime: __SLIDEOUT_BUILD_TIME__,
-      currentTime: new Date().toLocaleTimeString(),
-      defaultTime: now.toLocaleTimeString(),
-      minutes: now.getMinutes()
-    });
     
     return now;
   });

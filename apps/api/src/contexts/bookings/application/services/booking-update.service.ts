@@ -6,7 +6,7 @@ import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { Prisma } from '@prisma/client';
 import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
 import { LoyaltyService } from '../../../../loyalty/loyalty.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CacheService } from '../../../../common/cache/cache.service';
 
 interface UpdateBookingData {
   bookingId: string;
@@ -33,7 +33,7 @@ export class BookingUpdateService {
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
     private readonly loyaltyService: LoyaltyService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -178,20 +178,6 @@ export class BookingUpdateService {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
 
-    // Emit booking modified event
-    const changes = [];
-    if (isRescheduling) {
-      changes.push(`changed time to ${data.startTime?.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}`);
-    }
-    if (data.staffId && originalBooking && data.staffId !== originalBooking.staffId) {
-      changes.push('changed staff member');
-    }
-    if (changes.length > 0) {
-      this.eventEmitter.emit('booking.modified', { 
-        bookingId: data.bookingId,
-        changes: changes.join(' and ')
-      });
-    }
 
     return result;
   }
@@ -205,8 +191,16 @@ export class BookingUpdateService {
       throw new NotFoundException(`Booking not found: ${bookingId}`);
     }
 
+    const previousStatus = booking.status;
     booking.start();
-    return await this.bookingRepository.update(booking);
+    const updatedBooking = await this.bookingRepository.update(booking);
+    
+    // Invalidate cache for this merchant's bookings
+    await this.cacheService.deletePattern(`${merchantId}:bookings-list:.*`);
+    await this.cacheService.deletePattern(`${merchantId}:calendar-view:.*`);
+    
+    
+    return updatedBooking;
   }
 
   /**
@@ -218,8 +212,15 @@ export class BookingUpdateService {
       throw new NotFoundException(`Booking not found: ${bookingId}`);
     }
 
+    const previousStatus = booking.status;
     booking.complete();
     const updatedBooking = await this.bookingRepository.update(booking);
+    
+    // Invalidate cache for this merchant's bookings
+    await this.cacheService.deletePattern(`${merchantId}:bookings-list:.*`);
+    await this.cacheService.deletePattern(`${merchantId}:calendar-view:.*`);
+    console.log(`[BookingUpdateService] Cache invalidated for merchant ${merchantId}`);
+    
     
     // Process loyalty points/visits accrual
     try {
@@ -246,8 +247,6 @@ export class BookingUpdateService {
     booking.cancel(data.reason, data.cancelledBy);
     const result = await this.bookingRepository.update(booking);
     
-    // Emit booking cancelled event
-    this.eventEmitter.emit('booking.cancelled', { bookingId: data.bookingId });
     
     return result;
   }
@@ -263,5 +262,135 @@ export class BookingUpdateService {
 
     booking.markAsNoShow();
     return await this.bookingRepository.update(booking);
+  }
+
+  /**
+   * Marks a booking as paid - OPTIMIZED FOR PERFORMANCE
+   */
+  async markBookingAsPaid(
+    bookingId: string,
+    merchantId: string,
+    paymentMethod: string,
+    amount?: number,
+    reference?: string,
+  ): Promise<any> {
+    const now = new Date();
+    
+    try {
+      // First get the booking to know the totalAmount if amount not provided
+      if (!amount) {
+        const booking = await this.prisma.booking.findFirst({
+          where: { id: bookingId, merchantId },
+          select: { totalAmount: true },
+        });
+        if (booking) {
+          amount = Number(booking.totalAmount);
+        }
+      }
+      
+      // Single atomic update - no transaction, no separate select!
+      const result = await this.prisma.booking.updateMany({
+        where: {
+          id: bookingId,
+          merchantId,
+          paymentStatus: { notIn: ['PAID', 'REFUNDED'] },
+        },
+        data: {
+          paymentStatus: 'PAID',
+          paidAmount: amount,
+          paymentMethod,
+          paymentReference: reference,
+          paidAt: now,
+          updatedAt: now,
+        },
+      });
+
+      if (result.count === 0) {
+        // Check if booking exists and is already paid
+        const exists = await this.prisma.booking.count({
+          where: { id: bookingId, merchantId },
+        });
+        
+        if (exists === 0) {
+          throw new NotFoundException(`Booking not found: ${bookingId}`);
+        }
+        throw new BadRequestException('Cannot mark booking as paid in PAID status');
+      }
+
+      // Fetch the updated booking data in a single query
+      const updated = await this.prisma.booking.findFirst({
+        where: { id: bookingId, merchantId },
+        select: {
+          id: true,
+          bookingNumber: true,
+          totalAmount: true,
+          paymentStatus: true,
+          paidAmount: true,
+          paymentMethod: true,
+          paidAt: true,
+        },
+      });
+
+      if (!updated) {
+        throw new Error('Failed to fetch updated booking');
+      }
+
+      // paidAmount is already set in the update above
+
+      // Invalidate cache for this merchant's bookings
+      await this.cacheService.deletePattern(`${merchantId}:bookings-list:.*`);
+      await this.cacheService.deletePattern(`${merchantId}:calendar-view:.*`);
+      console.log(`[BookingUpdateService] Cache invalidated for merchant ${merchantId} after marking as paid`);
+
+
+      return updated;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Records a partial payment for a booking
+   */
+  async recordPartialPayment(
+    bookingId: string,
+    merchantId: string,
+    amount: number,
+    paymentMethod: string,
+    reference?: string,
+  ): Promise<Booking> {
+    const booking = await this.bookingRepository.findById(bookingId, merchantId);
+    if (!booking) {
+      throw new NotFoundException(`Booking not found: ${bookingId}`);
+    }
+
+    booking.recordPartialPayment(amount, paymentMethod, reference);
+    const updatedBooking = await this.bookingRepository.update(booking);
+    
+    // Payment recorded successfully
+    
+    return updatedBooking;
+  }
+
+  /**
+   * Refunds a payment for a booking
+   */
+  async refundPayment(
+    bookingId: string,
+    merchantId: string,
+    amount: number,
+    reason: string,
+  ): Promise<Booking> {
+    const booking = await this.bookingRepository.findById(bookingId, merchantId);
+    if (!booking) {
+      throw new NotFoundException(`Booking not found: ${bookingId}`);
+    }
+
+    booking.refundPayment(amount, reason);
+    const updatedBooking = await this.bookingRepository.update(booking);
+    
+    // Refund processed successfully
+    
+    return updatedBooking;
   }
 }

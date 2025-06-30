@@ -350,6 +350,12 @@ export function WeeklyView({
                                       <Check className="w-2 h-2 text-white" strokeWidth={3} />
                                     </div>
                                   )}
+                                  {/* Paid badge */}
+                                  {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                                    <div className="bg-green-600 text-white text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0">
+                                      PAID
+                                    </div>
+                                  )}
                                   <div className="text-white truncate pr-2 relative flex-1">
                                     {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} - {booking.customerName}
                                     {/* Fade out gradient for long text */}

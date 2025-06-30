@@ -13,6 +13,7 @@ import {
   Inject,
   ParseUUIDPipe,
   UsePipes,
+  BadRequestException,
 } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { CreateBookingHandler } from '../../application/commands/create-booking.handler';
@@ -277,6 +278,53 @@ export class BookingsV2Controller {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@CurrentUser() user: any, @Param('id') id: string) {
     await this.bookingRepository.delete(id, user.merchantId);
+  }
+
+  @Post(':id/mark-paid')
+  @Permissions('booking.update', 'payment.create')
+  @HttpCode(HttpStatus.OK)
+  async markAsPaid(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { paymentMethod?: string; notes?: string; amount?: number; reference?: string },
+  ) {
+    const startTime = Date.now();
+    
+    try {
+      const serviceStart = Date.now();
+      const updatedBooking = await this.bookingUpdateService.markBookingAsPaid(
+        id,
+        user.merchantId,
+        body.paymentMethod || 'CASH',
+        body.amount,
+        body.reference,
+      );
+      console.log(`[PERF] Service call took: ${Date.now() - serviceStart}ms`);
+      
+      const responseStart = Date.now();
+      const response = {
+        success: true,
+        message: 'Booking marked as paid successfully',
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+          paymentStatus: updatedBooking.paymentStatus,
+          paidAmount: Number(updatedBooking.paidAmount),
+          balanceDue: Number(updatedBooking.totalAmount) - Number(updatedBooking.paidAmount),
+          paymentMethod: updatedBooking.paymentMethod,
+          paidAt: updatedBooking.paidAt,
+          totalAmount: Number(updatedBooking.totalAmount),
+        },
+      };
+      console.log(`[PERF] Response prep took: ${Date.now() - responseStart}ms`);
+      console.log(`[PERF] Total controller time: ${Date.now() - startTime}ms`);
+      
+      return response;
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to mark booking as paid: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 
   /**

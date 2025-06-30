@@ -168,6 +168,9 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                             {booking.status === 'completed' && (
                               <Check className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
                             )}
+                            {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                              <div className="w-2 h-2 bg-green-600 rounded-full flex-shrink-0" title="Paid" />
+                            )}
                             <span className="relative flex-1">
                               {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} {booking.customerName}
                               {/* Fade out gradient for long text */}
@@ -188,11 +191,23 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                       <span className="text-xs bg-gray-100 rounded px-1">
                         {dayBookings.length} bookings
                       </span>
-                      {confirmedBookings !== dayBookings.length && (
-                        <span className="text-xs text-gray-500">
-                          {confirmedBookings} confirmed
-                        </span>
-                      )}
+                      {(() => {
+                        const paidCount = dayBookings.filter(b => b.paymentStatus === 'PAID' || b.paymentStatus === 'paid').length;
+                        if (paidCount > 0 && paidCount < dayBookings.length) {
+                          return (
+                            <span className="text-xs text-green-600 font-medium">
+                              {paidCount} paid
+                            </span>
+                          );
+                        } else if (paidCount === dayBookings.length) {
+                          return (
+                            <span className="text-xs text-green-600 font-medium">
+                              All paid
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </>
                 )}

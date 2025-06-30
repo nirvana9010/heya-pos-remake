@@ -13,8 +13,6 @@ export function PerformanceMonitor() {
       const navigationStart = performance.timeOrigin
       const now = performance.now()
       
-      console.log(`[Performance] Route: ${pathname}`)
-      console.log(`[Performance] Time since navigation start: ${Math.round(now)}ms`)
       
       // Monitor long tasks
       if ('PerformanceObserver' in window) {

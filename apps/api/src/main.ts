@@ -22,6 +22,7 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
+
   // Enable compression
   app.use(compression());
 

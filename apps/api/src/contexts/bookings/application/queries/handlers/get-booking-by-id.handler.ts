@@ -104,6 +104,16 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
       cancelledBy: undefined, // No cancelledByStaffId in current schema
+      completedAt: booking.completedAt,
+      
+      // Payment fields
+      paymentStatus: booking.paymentStatus || 'UNPAID',
+      paidAmount: typeof booking.paidAmount === 'object' && 'toNumber' in booking.paidAmount
+        ? booking.paidAmount.toNumber()
+        : Number(booking.paidAmount || 0),
+      paymentMethod: booking.paymentMethod,
+      paymentReference: booking.paymentReference,
+      paidAt: booking.paidAt,
     };
   }
 }

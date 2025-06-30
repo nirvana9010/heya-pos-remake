@@ -68,6 +68,9 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
         startTime: true,
         endTime: true,
         status: true,
+        paymentStatus: true,
+        paidAmount: true,
+        completedAt: true,
         customer: {
           select: {
             firstName: true,
@@ -116,6 +119,11 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
         startTime: booking.startTime,
         endTime: booking.endTime,
         status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        paidAmount: typeof booking.paidAmount === 'object' && booking.paidAmount.toNumber
+          ? booking.paidAmount.toNumber()
+          : Number(booking.paidAmount || 0),
+        completedAt: booking.completedAt,
         customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
         serviceName: service?.name || 'Unknown Service',
         serviceColor: service?.categoryModel?.color || '#6B7280',

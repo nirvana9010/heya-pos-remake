@@ -78,6 +78,7 @@ export function BookingDetailsSlideOut({
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [formData, setFormData] = useState({
     staffId: booking.staffId,
     date: booking.startTime,
@@ -159,8 +160,14 @@ export function BookingDetailsSlideOut({
     onStatusChange(booking.id, newStatus);
   };
 
-  const handlePaymentToggle = () => {
-    onPaymentStatusChange(booking.id, !booking.isPaid);
+  const handlePaymentToggle = async () => {
+    setIsPaymentProcessing(true);
+    try {
+      const isPaid = booking.paymentStatus === 'paid';
+      await onPaymentStatusChange(booking.id, !isPaid);
+    } finally {
+      setIsPaymentProcessing(false);
+    }
   };
 
   return (
@@ -208,6 +215,7 @@ export function BookingDetailsSlideOut({
           <BookingActions
             booking={{
               ...booking,
+              isPaid: booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid',
               totalPrice: booking.totalPrice,
               customerPhone: booking.customerPhone,
               customerEmail: booking.customerEmail
@@ -216,8 +224,9 @@ export function BookingDetailsSlideOut({
             variant="inline"
             showEdit={false}
             showDelete={false}
+            isPaymentProcessing={isPaymentProcessing}
             onStatusChange={onStatusChange}
-            onPaymentToggle={onPaymentStatusChange}
+            onPaymentToggle={handlePaymentToggle}
           />
         </div>
 
@@ -380,7 +389,7 @@ export function BookingDetailsSlideOut({
                       />
                     )}
                   </div>
-                  {booking.isPaid && (
+                  {booking.paymentStatus === 'paid' && (
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="h-4 w-4 text-gray-400" />
                       <Badge variant="success" className="text-xs">Paid</Badge>

@@ -145,6 +145,10 @@ export class ApiClient {
     return this.bookings.cancelBooking(id, reason);
   }
 
+  async markBookingAsPaid(id: string, paymentMethod: string = 'CASH') {
+    return this.bookings.markBookingAsPaid(id, paymentMethod);
+  }
+
   async updateBookingStatus(id: string, status: string) {
     console.warn('updateBookingStatus is deprecated. Use specific status methods instead.');
     

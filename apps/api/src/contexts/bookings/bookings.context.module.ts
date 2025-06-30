@@ -4,6 +4,9 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { OutboxModule } from '../shared/outbox/outbox.module';
 import { LoyaltyModule } from '../../loyalty/loyalty.module';
+import { PaymentsModule } from '../../payments/payments.module';
+import { CacheModule } from '../../common/cache/cache.module';
+import { AuthModule } from '../../auth/auth.module';
 
 // Infrastructure
 import { PrismaBookingRepository } from './infrastructure/persistence/prisma-booking.repository';
@@ -26,11 +29,15 @@ import { QueryHandlers } from './application/queries/handlers';
     EventEmitterModule.forRoot(), // For domain events
     OutboxModule,
     LoyaltyModule, // For loyalty points accrual
+    PaymentsModule, // For marking bookings as paid
+    CacheModule, // For cache invalidation
+    AuthModule, // For JWT authentication in WebSocket
   ],
   controllers: [
     BookingsV2Controller,
   ],
   providers: [
+    
     // Repository
     {
       provide: 'IBookingRepository',

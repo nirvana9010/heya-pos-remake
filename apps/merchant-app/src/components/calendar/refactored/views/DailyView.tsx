@@ -468,7 +468,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={null}
                         className={cn(
-                          "h-[60px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100 overflow-hidden",
+                          "h-[60px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
@@ -515,8 +515,12 @@ export function DailyView({
                             const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
                             const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
                             
-                            // Calculate how many time slots this booking spans based on interval
+                            // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
+                            
+                            // Debug duration calculation for walk-in
+                            if (booking.customerName?.includes('Walk-in')) {
+                            }
                           
                           // Determine if booking is in the past
                           const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
@@ -537,7 +541,7 @@ export function DailyView({
                             bgOpacity = 0.2;
                             borderWidth = 3;
                             textColor = 'text-gray-500';
-                          } else if (booking.status === 'completed') {
+                          } else if ((booking.completedAt || booking.status === 'completed')) {
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
@@ -575,7 +579,7 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "text-xs overflow-hidden cursor-pointer rounded relative z-10",
+                                  "text-xs cursor-pointer rounded relative z-20",
                                   textColor,
                                   booking.status === 'cancelled' && 'line-through',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
@@ -612,15 +616,21 @@ export function DailyView({
                                   {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                 </div>
                                 {/* Completed indicator */}
-                                {booking.status === 'completed' && (
+                                {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                   </div>
                                 )}
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", booking.status === 'completed' && "pl-5")}>
+                                {/* Paid badge */}
+                                {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                                  <div className="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                    PAID
+                                  </div>
+                                )}
+                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", booking.status === 'completed' && "pl-5")}>
+                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>
@@ -650,7 +660,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={staff.id}
                         className={cn(
-                          "h-[60px] cursor-pointer relative transition-colors duration-100 overflow-hidden",
+                          "h-[60px] cursor-pointer relative transition-colors duration-100",
                           staffIndex < visibleStaff.length - 1 && "border-r border-gray-100",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
@@ -698,8 +708,12 @@ export function DailyView({
                             const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
                             const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
                             
-                            // Calculate how many time slots this booking spans based on interval
+                            // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
+                            
+                            // Debug duration calculation for walk-in
+                            if (booking.customerName?.includes('Walk-in')) {
+                            }
                           
                           // Determine if booking is in the past
                           const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
@@ -719,7 +733,7 @@ export function DailyView({
                             bgOpacity = 0.2;
                             borderWidth = 3;
                             textColor = 'text-gray-500';
-                          } else if (booking.status === 'completed') {
+                          } else if ((booking.completedAt || booking.status === 'completed')) {
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
@@ -759,7 +773,7 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "text-xs overflow-hidden cursor-pointer rounded relative z-10",
+                                  "text-xs cursor-pointer rounded relative z-20",
                                   textColor,
                                   booking.status === 'cancelled' && 'line-through',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
@@ -796,15 +810,21 @@ export function DailyView({
                                   {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                 </div>
                                 {/* Completed indicator */}
-                                {booking.status === 'completed' && (
+                                {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                   </div>
                                 )}
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", booking.status === 'completed' && "pl-5")}>
+                                {/* Paid badge */}
+                                {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                                  <div className="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                    PAID
+                                  </div>
+                                )}
+                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", booking.status === 'completed' && "pl-5")}>
+                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>

@@ -1,6 +1,7 @@
 import { Booking } from '../../domain/entities/booking.entity';
 import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { BookingStatusValue } from '../../domain/value-objects/booking-status.vo';
+import { PaymentStatusEnum } from '../../domain/value-objects/payment-status.vo';
 import { Prisma } from '@prisma/client';
 
 // Type for Prisma booking with all necessary relations
@@ -68,6 +69,15 @@ export class BookingMapper {
       updatedAt: prismaBooking.updatedAt,
       cancelledAt: prismaBooking.cancelledAt || undefined,
       cancellationReason: prismaBooking.cancellationReason || undefined,
+      completedAt: prismaBooking.completedAt || undefined,
+      // Payment fields
+      paymentStatus: (prismaBooking.paymentStatus as PaymentStatusEnum) || PaymentStatusEnum.UNPAID,
+      paidAmount: typeof prismaBooking.paidAmount === 'object' && prismaBooking.paidAmount.toNumber
+        ? prismaBooking.paidAmount.toNumber()
+        : Number(prismaBooking.paidAmount || 0),
+      paymentMethod: prismaBooking.paymentMethod || undefined,
+      paymentReference: prismaBooking.paymentReference || undefined,
+      paidAt: prismaBooking.paidAt || undefined,
     });
   }
 
@@ -94,6 +104,13 @@ export class BookingMapper {
       createdById: booking.createdById,
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
+      completedAt: booking.completedAt,
+      // Payment fields
+      paymentStatus: booking.paymentStatus.toString(),
+      paidAmount: booking.paidAmount,
+      paymentMethod: booking.paymentMethod,
+      paymentReference: booking.paymentReference,
+      paidAt: booking.paidAt,
     };
   }
 
@@ -109,6 +126,13 @@ export class BookingMapper {
       updatedAt: booking.updatedAt,
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
+      completedAt: booking.completedAt,
+      // Payment fields
+      paymentStatus: booking.paymentStatus.toString(),
+      paidAmount: booking.paidAmount,
+      paymentMethod: booking.paymentMethod,
+      paymentReference: booking.paymentReference,
+      paidAt: booking.paidAt,
     };
   }
 

@@ -196,8 +196,14 @@ export class OrdersService {
     let taxAmount = new Decimal(0);
 
     for (const item of order.items) {
-      const itemSubtotal = item.quantity.mul(item.unitPrice).sub(item.discount);
-      const itemTax = itemSubtotal.mul(item.taxRate);
+      // Convert to Decimal if needed
+      const quantity = new Decimal(item.quantity);
+      const unitPrice = new Decimal(item.unitPrice);
+      const discount = new Decimal(item.discount || 0);
+      const taxRate = new Decimal(item.taxRate || 0);
+
+      const itemSubtotal = quantity.mul(unitPrice).sub(discount);
+      const itemTax = itemSubtotal.mul(taxRate);
       const itemTotal = itemSubtotal.add(itemTax);
 
       await this.prisma.orderItem.update({
@@ -217,11 +223,12 @@ export class OrdersService {
     
     for (const modifier of order.modifiers) {
       let modifierAmount = new Decimal(0);
+      const modifierValue = new Decimal(modifier.value);
 
       if (modifier.calculation === OrderModifierCalculation.PERCENTAGE) {
-        modifierAmount = subtotal.mul(modifier.value.div(100));
+        modifierAmount = subtotal.mul(modifierValue.div(100));
       } else {
-        modifierAmount = modifier.value;
+        modifierAmount = modifierValue;
       }
 
       if (modifier.type === OrderModifierType.DISCOUNT) {
@@ -238,7 +245,7 @@ export class OrdersService {
 
     // Calculate paid amount and balance due
     const paidAmount = order.payments.reduce(
-      (sum, payment) => sum.add(payment.amount),
+      (sum, payment) => sum.add(new Decimal(payment.amount)),
       new Decimal(0)
     );
 
@@ -307,6 +314,9 @@ export class OrdersService {
   }
 
   async createOrderFromBooking(bookingId: string, merchantId: string, staffId: string) {
+    console.log(`[PERF] createOrderFromBooking - start`);
+    const bookingStart = Date.now();
+    
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, merchantId },
       include: {
@@ -319,6 +329,7 @@ export class OrdersService {
         customer: true,
       },
     });
+    console.log(`[PERF] Booking query took ${Date.now() - bookingStart}ms`);
 
     if (!booking) {
       throw new NotFoundException('Booking not found');
@@ -349,12 +360,49 @@ export class OrdersService {
     }
 
     // Check if order already exists for this booking
+    const orderCheckStart = Date.now();
     const existingOrder = await this.prisma.order.findFirst({
       where: { bookingId },
+      include: {
+        items: true,
+      },
     });
+    console.log(`[PERF] Order check took ${Date.now() - orderCheckStart}ms`);
 
     if (existingOrder) {
-      return this.findOrder(existingOrder.id, merchantId);
+      // Check if order has items, if not and it's still in DRAFT, add them
+      if ((!existingOrder.items || existingOrder.items.length === 0) && existingOrder.state === 'DRAFT') {
+        // Add booking services as order items
+        const items = booking.services.map(bs => ({
+          itemType: 'SERVICE',
+          itemId: bs.serviceId,
+          description: bs.service.name,
+          quantity: 1,
+          unitPrice: typeof bs.price === 'object' && bs.price.toNumber ? bs.price.toNumber() : Number(bs.price),
+          staffId: bs.staffId,
+          metadata: {
+            bookingServiceId: bs.id,
+            duration: bs.duration,
+          },
+        }));
+
+        const addItemsStart = Date.now();
+        await this.addOrderItems(existingOrder.id, merchantId, items);
+        console.log(`[PERF] Add items took ${Date.now() - addItemsStart}ms`);
+      }
+      
+      // For performance, just return the basic order data we need
+      const findOrderStart = Date.now();
+      const result = await this.prisma.order.findFirst({
+        where: { id: existingOrder.id, merchantId },
+        include: {
+          items: true,
+          payments: true,
+        },
+      });
+      console.log(`[PERF] Find order (optimized) took ${Date.now() - findOrderStart}ms`);
+      console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms`);
+      return result;
     }
 
     // Create new order
@@ -372,7 +420,7 @@ export class OrdersService {
       itemId: bs.serviceId,
       description: bs.service.name,
       quantity: 1,
-      unitPrice: bs.price.toNumber(),
+      unitPrice: typeof bs.price === 'object' && bs.price.toNumber ? bs.price.toNumber() : Number(bs.price),
       staffId: bs.staffId,
       metadata: {
         bookingServiceId: bs.id,
