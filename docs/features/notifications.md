@@ -159,11 +159,13 @@ useNotifications
 ## ⚠️ Edge Cases & Gotchas
 
 ### Handled Edge Cases
-- ✅ Duplicate browser notifications - Tracked in localStorage to prevent repeats
+- ✅ Duplicate browser notifications - Uses booking ID as tag for deduplication
 - ✅ Sound autoplay restrictions - Errors caught silently
 - ✅ Browser notification permissions - Graceful degradation if denied
 - ✅ Multiple tabs polling - Each tab polls independently
 - ✅ Stale data prevention - Aggressive cache invalidation
+- ✅ Duplicate database records - Atomic processing prevents multiple event handling
+- ✅ localStorage growth - Automatically cleaned up (keeps last 100 IDs)
 
 ### Known Limitations
 - ⚠️ 5-second delay - Not real-time, uses polling instead of WebSockets
@@ -171,6 +173,7 @@ useNotifications
 - ⚠️ No notification batching - Each event creates separate notification
 - ⚠️ No pagination - Frontend fetches up to 50 notifications
 - ⚠️ Outbox query performance - May need optimization (see CLAUDE.md)
+- ⚠️ Timing inconsistency - Notifications may take 5 seconds to 4+ minutes due to various factors
 
 ### Performance Notes
 - Polling interval: 5 seconds (matches backend outbox polling)
@@ -182,11 +185,14 @@ useNotifications
 
 ### Common Issues
 
-**Issue**: Notifications not appearing
-- Check: Browser console for errors
+**Issue**: Notifications not appearing or delayed (1-4+ minutes)
+- Check: Browser console for errors and notification debug logs
 - Check: Network tab for polling requests every 5 seconds
 - Check: `pm2 logs api --nostream --lines 50` for backend errors
-- Fix: Ensure merchant ID matches logged-in user
+- Check: Frontend logs for `isNew: false` - indicates race condition
+- Fix: Clear localStorage `shownBrowserNotifications` and refresh page
+- Fix: Run `node clear-notification-cache.js` to clean up duplicates
+- Root cause: Race condition in notification state tracking (partially fixed)
 
 **Issue**: Browser notifications not showing
 - Check: Browser notification permissions
@@ -264,6 +270,23 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - Future optimization: Consider implementing notification batching for high-volume merchants
 - Future enhancement: Add notification preferences (email, SMS, push)
 - The outbox pattern ensures notifications are never lost, even during service disruptions
+
+### Recent Fixes (2025-01-01)
+- Fixed race condition where all notifications were marked as "seen" preventing browser alerts
+- Added atomic processing to outbox events to prevent duplicate handling
+- Improved notification state tracking - only processed notifications are tracked
+- Added debouncing (100ms) to prevent rapid state updates
+- Browser notifications now use booking ID as tag for better deduplication
+- Added localStorage cleanup to prevent unbounded growth
+
+### Remaining Issues
+- Notification timing is inconsistent (5 seconds to 4+ minutes)
+- Root cause appears to be complex interaction between:
+  - Frontend polling and state management
+  - React Query caching behavior
+  - Browser notification API limitations
+  - Possible network/database performance variations
+- Notifications do eventually appear, but timing is unpredictable
 
 ---
 
