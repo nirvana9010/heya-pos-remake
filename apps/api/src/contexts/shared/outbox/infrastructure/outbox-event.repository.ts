@@ -28,6 +28,8 @@ export class OutboxEventRepository {
   }
 
   async findUnprocessed(limit: number = 100): Promise<OutboxEvent[]> {
+    // Simple approach: just find unprocessed events
+    // The markAsProcessed method will handle atomicity
     const events = await this.prisma.outboxEvent.findMany({
       where: {
         processedAt: null,
@@ -45,12 +47,22 @@ export class OutboxEventRepository {
   }
 
   async markAsProcessed(eventId: string): Promise<void> {
-    await this.prisma.outboxEvent.update({
-      where: { id: eventId },
+    // Use updateMany with a WHERE clause that ensures we only update if not already processed
+    // This prevents duplicate processing in case of race conditions
+    const result = await this.prisma.outboxEvent.updateMany({
+      where: { 
+        id: eventId,
+        processedAt: null // Only update if not already processed
+      },
       data: {
         processedAt: new Date(),
       },
     });
+
+    // If no rows were updated, it means the event was already processed
+    if (result.count === 0) {
+      throw new Error(`Event ${eventId} was already processed`);
+    }
   }
 
   async recordError(eventId: string, error: string): Promise<void> {

@@ -19,7 +19,7 @@ export class NotificationEventHandler {
   @OnEvent('booking.created')
   async handleBookingCreated(event: BookingCreatedEvent): Promise<void> {
     try {
-      this.logger.log(`Handling booking created event: ${event.bookingId}`);
+      this.logger.log(`[${new Date().toISOString()}] Handling booking created event: ${event.bookingId}`);
 
       // Fetch full booking details
       const booking = await this.prisma.booking.findUnique({
@@ -92,6 +92,7 @@ export class NotificationEventHandler {
 
       // Create merchant notification
       const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for booking ${booking.id}`);
       await this.merchantNotificationsService.createBookingNotification(
         booking.merchantId,
         'booking_new',
@@ -103,6 +104,7 @@ export class NotificationEventHandler {
           staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
         }
       );
+      this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
 
       // Schedule reminders (if enabled)
       await this.scheduleReminders(booking.id, booking.startTime);
@@ -263,6 +265,55 @@ export class NotificationEventHandler {
       this.logger.log(`Cancelled pending reminders for booking ${bookingId}`);
     } catch (error) {
       this.logger.error(`Failed to cancel reminders for booking ${bookingId}`, error);
+    }
+  }
+
+  @OnEvent('booking.completed')
+  async handleBookingCompleted(event: { bookingId: string }): Promise<void> {
+    try {
+      this.logger.log(`Handling booking completed event: ${event.bookingId}`);
+
+      // Fetch booking details
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: event.bookingId },
+        include: {
+          customer: true,
+          merchant: true,
+          provider: true,
+          services: {
+            include: {
+              service: true,
+              staff: true,
+            },
+          },
+          location: true,
+        },
+      });
+
+      if (!booking) {
+        this.logger.error(`Booking not found: ${event.bookingId}`);
+        return;
+      }
+
+      // Create merchant notification
+      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const firstService = booking.services[0];
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        'booking_modified',
+        {
+          id: booking.id,
+          customerName,
+          serviceName: firstService?.service?.name || 'Service',
+          startTime: booking.startTime,
+          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+        },
+        'completed their appointment',
+      );
+
+      this.logger.log(`Booking completed notification created for booking ${event.bookingId}`);
+    } catch (error) {
+      this.logger.error(`Failed to handle booking completed event for ${event.bookingId}`, error);
     }
   }
 

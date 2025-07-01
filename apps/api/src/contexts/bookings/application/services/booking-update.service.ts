@@ -7,6 +7,8 @@ import { Prisma } from '@prisma/client';
 import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
 import { LoyaltyService } from '../../../../loyalty/loyalty.service';
 import { CacheService } from '../../../../common/cache/cache.service';
+import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
+import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 
 interface UpdateBookingData {
   bookingId: string;
@@ -34,6 +36,7 @@ export class BookingUpdateService {
     private readonly bookingRepository: IBookingRepository,
     private readonly loyaltyService: LoyaltyService,
     private readonly cacheService: CacheService,
+    private readonly outboxRepository: OutboxEventRepository,
   ) {}
 
   /**
@@ -207,20 +210,34 @@ export class BookingUpdateService {
    * Completes a booking (changes status to COMPLETED)
    */
   async completeBooking(bookingId: string, merchantId: string): Promise<Booking> {
-    const booking = await this.bookingRepository.findById(bookingId, merchantId);
-    if (!booking) {
-      throw new NotFoundException(`Booking not found: ${bookingId}`);
-    }
+    const result = await this.prisma.$transaction(async (tx) => {
+      const booking = await this.bookingRepository.findById(bookingId, merchantId);
+      if (!booking) {
+        throw new NotFoundException(`Booking not found: ${bookingId}`);
+      }
 
-    const previousStatus = booking.status;
-    booking.complete();
-    const updatedBooking = await this.bookingRepository.update(booking);
+      const previousStatus = booking.status;
+      booking.complete();
+      const updatedBooking = await this.bookingRepository.update(booking);
+      
+      // Create outbox event for completed booking
+      const outboxEvent = OutboxEvent.create({
+        aggregateId: booking.id,
+        aggregateType: 'booking',
+        eventType: 'completed',
+        eventData: { bookingId: booking.id },
+        eventVersion: 1,
+        merchantId: booking.merchantId,
+      });
+      await this.outboxRepository.save(outboxEvent, tx);
+      
+      return updatedBooking;
+    });
     
     // Invalidate cache for this merchant's bookings
     await this.cacheService.deletePattern(`${merchantId}:bookings-list:.*`);
     await this.cacheService.deletePattern(`${merchantId}:calendar-view:.*`);
     console.log(`[BookingUpdateService] Cache invalidated for merchant ${merchantId}`);
-    
     
     // Process loyalty points/visits accrual
     try {
@@ -232,21 +249,42 @@ export class BookingUpdateService {
       // In production, this should be handled by a retry mechanism or event system
     }
     
-    return updatedBooking;
+    return result;
   }
 
   /**
    * Cancels a booking with reason
    */
   async cancelBooking(data: CancelBookingData): Promise<Booking> {
-    const booking = await this.bookingRepository.findById(data.bookingId, data.merchantId);
-    if (!booking) {
-      throw new NotFoundException(`Booking not found: ${data.bookingId}`);
-    }
+    const result = await this.prisma.$transaction(async (tx) => {
+      const booking = await this.bookingRepository.findById(data.bookingId, data.merchantId);
+      if (!booking) {
+        throw new NotFoundException(`Booking not found: ${data.bookingId}`);
+      }
 
-    booking.cancel(data.reason, data.cancelledBy);
-    const result = await this.bookingRepository.update(booking);
+      booking.cancel(data.reason, data.cancelledBy);
+      const updatedBooking = await this.bookingRepository.update(booking, tx);
+      
+      // Create and save the booking cancelled event to outbox
+      const outboxEvent = OutboxEvent.create({
+        aggregateId: booking.id,
+        aggregateType: 'booking',
+        eventType: 'cancelled',
+        eventData: {
+          bookingId: booking.id,
+        },
+        eventVersion: 1,
+        merchantId: booking.merchantId,
+      });
+
+      await this.outboxRepository.save(outboxEvent, tx);
+      
+      return updatedBooking;
+    });
     
+    // Invalidate cache for this merchant's bookings
+    await this.cacheService.deletePattern(`${data.merchantId}:bookings-list:.*`);
+    await this.cacheService.deletePattern(`${data.merchantId}:calendar-view:.*`);
     
     return result;
   }
