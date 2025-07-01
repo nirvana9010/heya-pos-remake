@@ -12,11 +12,10 @@ export function useBookingActions() {
     try {
       await apiClient.completeBooking(bookingId);
       
-      // Emit event to refresh calendar
-      bookingEvents.emit('booking_updated', {
+      // Broadcast event to refresh calendar
+      bookingEvents.broadcast({
+        type: 'booking_updated',
         bookingId,
-        type: 'status_change',
-        status: 'completed',
         source: 'external'
       });
       
@@ -43,11 +42,10 @@ export function useBookingActions() {
     try {
       await apiClient.markBookingAsPaid(bookingId, paymentMethod);
       
-      // Emit event to refresh calendar
-      bookingEvents.emit('booking_updated', {
+      // Broadcast event to refresh calendar
+      bookingEvents.broadcast({
+        type: 'booking_updated',
         bookingId,
-        type: 'payment_recorded',
-        paymentMethod,
         source: 'external'
       });
       
@@ -74,11 +72,10 @@ export function useBookingActions() {
     try {
       await apiClient.startBooking(bookingId);
       
-      // Emit event to refresh calendar
-      bookingEvents.emit('booking_updated', {
+      // Broadcast event to refresh calendar
+      bookingEvents.broadcast({
+        type: 'booking_updated',
         bookingId,
-        type: 'status_change',
-        status: 'in-progress',
         source: 'external'
       });
       

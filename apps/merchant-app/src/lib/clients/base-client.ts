@@ -42,7 +42,6 @@ export class BaseApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        
         return config;
       },
       (error) => Promise.reject(error)

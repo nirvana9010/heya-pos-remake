@@ -72,8 +72,16 @@ export class BookingsV2Controller {
 
     const result = await this.queryBus.execute(query);
 
+    // Transform status to lowercase for all items
+    const transformedItems = result.items.map((item: any) => {
+      if (item && item.status) {
+        item.status = item.status.toLowerCase().replace(/_/g, '-');
+      }
+      return item;
+    });
+
     return {
-      data: result.items,
+      data: transformedItems,
       meta: {
         total: result.total,
         page: result.page,
@@ -147,6 +155,12 @@ export class BookingsV2Controller {
     });
 
     const booking = await this.queryBus.execute(query);
+    
+    // Transform status to lowercase for consistency
+    if (booking && booking.status) {
+      booking.status = booking.status.toLowerCase().replace(/_/g, '-');
+    }
+    
     return booking;
   }
 
@@ -201,7 +215,7 @@ export class BookingsV2Controller {
       services: enrichedBooking.services,
       startTime: enrichedBooking.startTime,
       endTime: enrichedBooking.endTime,
-      status: enrichedBooking.status,
+      status: enrichedBooking.status ? enrichedBooking.status.toLowerCase().replace(/_/g, '-') : 'confirmed',
       totalAmount: enrichedBooking.totalAmount,
       totalDuration: enrichedBooking.totalDuration,
       locationName: enrichedBooking.location.name,
@@ -332,10 +346,14 @@ export class BookingsV2Controller {
    * This is part of the anti-corruption layer
    */
   private toDto(booking: any) {
+    // Convert status to lowercase hyphenated format
+    const statusValue = booking.status?.value || booking.status || 'CONFIRMED';
+    const status = statusValue.toLowerCase().replace(/_/g, '-');
+    
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
-      status: booking.status.value,
+      status,
       startTime: booking.timeSlot.start,
       endTime: booking.timeSlot.end,
       customerId: booking.customerId,

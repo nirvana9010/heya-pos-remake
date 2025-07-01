@@ -37,7 +37,8 @@ export interface BookingActionsProps {
   showReminder?: boolean;
   showPayment?: boolean;
   isPaymentProcessing?: boolean;
-  onStatusChange?: (bookingId: string, status: string) => void;
+  isStatusUpdating?: boolean;
+  onStatusChange?: (bookingId: string, status: string) => void | Promise<void>;
   onPaymentToggle?: (bookingId: string, isPaid: boolean) => void;
   onProcessPayment?: (bookingId: string) => void;
   onEdit?: (bookingId: string) => void;
@@ -55,6 +56,7 @@ export function BookingActions({
   showReminder = true,
   showPayment = true,
   isPaymentProcessing = false,
+  isStatusUpdating = false,
   onStatusChange,
   onPaymentToggle,
   onProcessPayment,
@@ -101,18 +103,28 @@ export function BookingActions({
             size={size}
             variant="outline"
             onClick={() => onStatusChange(booking.id, "in-progress")}
+            disabled={isStatusUpdating}
             className="flex items-center gap-1"
           >
-            <PlayCircle className="h-4 w-4" />
+            {isStatusUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <PlayCircle className="h-4 w-4" />
+            )}
             Start
           </Button>
           <Button
             size={size}
             variant="outline"
             onClick={() => onStatusChange(booking.id, "cancelled")}
+            disabled={isStatusUpdating}
             className="flex items-center gap-1 text-red-600 hover:text-red-700"
           >
-            <XCircle className="h-4 w-4" />
+            {isStatusUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
             Cancel
           </Button>
         </>
@@ -124,18 +136,28 @@ export function BookingActions({
             size={size}
             variant="outline"
             onClick={() => onStatusChange(booking.id, "completed")}
+            disabled={isStatusUpdating}
             className="flex items-center gap-1"
           >
-            <CheckCircle className="h-4 w-4" />
+            {isStatusUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
             Complete
           </Button>
           <Button
             size={size}
             variant="outline"
             onClick={() => onStatusChange(booking.id, "cancelled")}
+            disabled={isStatusUpdating}
             className="flex items-center gap-1 text-red-600 hover:text-red-700"
           >
-            <XCircle className="h-4 w-4" />
+            {isStatusUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
             Cancel
           </Button>
         </>

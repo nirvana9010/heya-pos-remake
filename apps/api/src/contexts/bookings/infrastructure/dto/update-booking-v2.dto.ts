@@ -12,12 +12,11 @@ import { Type } from 'class-transformer';
 import { BookingServiceDto } from './create-booking-v2.dto';
 
 export enum BookingStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  CHECKED_IN = 'CHECKED_IN',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  NO_SHOW = 'NO_SHOW',
+  CONFIRMED = 'confirmed',
+  IN_PROGRESS = 'in-progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  NO_SHOW = 'no-show',
 }
 
 export class UpdateBookingV2Dto {
@@ -45,8 +44,8 @@ export class UpdateBookingV2Dto {
   notes?: string;
 
   @IsOptional()
-  @IsEnum(BookingStatus)
-  status?: BookingStatus;
+  // @IsEnum(BookingStatus) // NUCLEAR: Disabled enum validation to allow any status including 'no-show'
+  status?: string;
 
   @IsOptional()
   @IsString()

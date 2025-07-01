@@ -255,4 +255,14 @@ export class BookingsClient extends BaseApiClient {
   }> {
     return this.post(`/bookings/${id}/mark-paid`, { paymentMethod }, undefined, 'v2');
   }
+
+  async startBooking(id: string): Promise<Booking> {
+    const booking = await this.patch(`/bookings/${id}/start`, {}, undefined, 'v2');
+    return this.transformBooking(booking);
+  }
+
+  async completeBooking(id: string): Promise<Booking> {
+    const booking = await this.patch(`/bookings/${id}/complete`, {}, undefined, 'v2');
+    return this.transformBooking(booking);
+  }
 }

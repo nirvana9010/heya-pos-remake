@@ -1243,20 +1243,29 @@ export default function BookingsPageContent() {
                                 showDelete={false}
                                 showReminder={isUpcoming}
                                 showPayment={booking.status?.toLowerCase() !== 'cancelled'}
-                                onStatusChange={(bookingId, status) => {
-                                  if (status === 'in-progress') {
-                                    handleCheckIn(bookingId);
-                                  } else {
-                                    // Handle other status changes
-                                    apiClient.updateBooking(bookingId, { status })
-                                      .then(() => loadBookings())
-                                      .catch(error => {
-                                        toast({
-                                          title: "Error",
-                                          description: "Failed to update booking status",
-                                          variant: "destructive",
-                                        });
-                                      });
+                                onStatusChange={async (bookingId, status) => {
+                                  try {
+                                    switch (status) {
+                                      case 'in-progress':
+                                        handleCheckIn(bookingId);
+                                        break;
+                                      case 'completed':
+                                        await apiClient.completeBooking(bookingId);
+                                        break;
+                                      case 'cancelled':
+                                        await apiClient.cancelBooking(bookingId, 'Cancelled by user');
+                                        break;
+                                      default:
+                                        // For other statuses like 'confirmed', 'no-show', use updateBooking
+                                        await apiClient.updateBooking(bookingId, { status });
+                                    }
+                                    await loadBookings();
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to update booking status",
+                                      variant: "destructive",
+                                    });
                                   }
                                 }}
                                 onPaymentToggle={(bookingId) => handleMarkPaid(bookingId, booking.totalAmount || booking.price || 0)}

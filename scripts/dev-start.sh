@@ -63,22 +63,23 @@ fi
 
 # Step 3: Ensure database exists
 echo -e "\n${YELLOW}Step 3: Checking database...${NC}"
-if [ ! -f "apps/api/dev.db" ]; then
-    if [ -f "apps/api/prisma/dev.db" ]; then
-        echo "Copying database from prisma directory..."
-        cp apps/api/prisma/dev.db apps/api/dev.db
-    else
-        echo -e "${RED}❌ No database found! Run 'npm run db:setup' first${NC}"
-        exit 1
-    fi
+# For PostgreSQL/Supabase, we just check connectivity
+if nc -zv aws-0-ap-southeast-2.pooler.supabase.com 6543 >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Database ready${NC}"
+else
+    echo -e "${RED}❌ Cannot connect to database${NC}"
+    exit 1
 fi
-echo -e "${GREEN}✅ Database ready${NC}"
 
 # Step 4: Start API
 echo -e "\n${YELLOW}Step 4: Starting API on port $API_PORT...${NC}"
 # Create logs directory if it doesn't exist
 mkdir -p logs
 cd apps/api
+# Load environment variables from .env file
+if [ -f .env ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+fi
 NODE_ENV=development PORT=$API_PORT npm run start:dev > ../../logs/api.log 2>&1 &
 API_PID=$!
 cd ../..

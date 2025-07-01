@@ -98,7 +98,7 @@ export class AuthService {
   }
 
   async merchantLogin(dto: MerchantLoginDto): Promise<AuthSession> {
-    const merchantAuth = await this.validateMerchant(dto.username, dto.password);
+    const merchantAuth = await this.validateMerchant(dto.email, dto.password);
     const merchant = merchantAuth.merchant;
 
     // Create auth user object

@@ -337,19 +337,46 @@ When asked to implement a new feature:
 When something isn't working:
 
 ```markdown
+### ⚠️ STOP! BEFORE YOU WRITE ANY CODE:
+1. **Open Browser DevTools → Network Tab**
+2. **Reproduce the error**
+3. **Look at the actual request payload**
+4. **This takes 30 seconds and solves 50% of issues**
+
 ### PHASE 1: UNDERSTAND THE PROBLEM
 - [ ] Read the COMPLETE error message (not just the first line)
+- [ ] **LOG THE ACTUAL VALUES** - Error messages can be misleading!
+  - [ ] If error says "must be X", log what's actually being passed
+  - [ ] Example: "status: must be one of..." but status contained a UUID
+  - [ ] Toast messages often reveal the real value: "Booking marked as [UUID]"
 - [ ] Identify error type: Compilation? Runtime? Logic? Network?
 - [ ] **CHECK BROWSER DEVTOOLS NETWORK TAB FIRST!** 
   - [ ] Look at the actual URL being called
   - [ ] Check request headers and payload
+  - [ ] **VERIFY PAYLOAD DATA TYPES** - Is each field the right type?
+    - [ ] Strings where strings expected (not UUIDs/IDs)
+    - [ ] Numbers where numbers expected (not strings)
+    - [ ] If validation error says "must be X", CHECK WHAT'S ACTUALLY BEING SENT
+    - [ ] Example: API expects `{status: "confirmed"}` but might be sending `{status: "5ab3f904-67ce-443e"}`
   - [ ] Note the exact error response
   - [ ] This would have shown "/v1/auth/merchant/login" missing "/api" immediately!
+  - [ ] **DO THIS BEFORE WRITING ANY CODE - IT TAKES 30 SECONDS**
 - [ ] Check if services are running: `ps aux | grep -E "node|nest|next" | grep -v grep`
 - [ ] Note the exact file and line number if provided
+- [ ] **VERIFY WHICH COMPONENT IS ACTUALLY BEING USED**
+  - [ ] Check dynamic imports: `import('@/components/...')`
+  - [ ] Don't fix files that aren't being loaded!
 
 ### PHASE 2: INVESTIGATE
 - [ ] Check recent changes: `git status` and `git diff`
+- [ ] **CHECK PARAMETER SIGNATURES MATCH**
+  - [ ] Compare how caller invokes vs how handler expects params
+  - [ ] Example bug: `onClick={() => handler(id, status)}` vs `const handler = (status) => {}`
+  - [ ] Parameters can get swapped if signatures don't match!
+- [ ] **COMPARE WORKING VS BROKEN AT THE SAME LAYER**
+  - [ ] UI handlers should be compared to UI handlers
+  - [ ] Don't compare API calls to UI events
+  - [ ] Working feature might be masking the same bug
 - [ ] **If database error: Check if schema and database are in sync**
   - [ ] Compare schema.prisma with actual database
   - [ ] Run `npx prisma migrate status` to check migration state
@@ -599,6 +626,66 @@ When addressing performance problems:
 - [ ] Test with realistic data volume
 - [ ] Check memory usage
 - [ ] Document optimization made
+```
+
+## 🔄 PARAMETER MISMATCH CHECKLIST
+
+When errors don't match reality (e.g., validation error but value seems correct):
+
+```markdown
+### SIGNS OF PARAMETER MISMATCH
+- [ ] Error message doesn't match what you think you're sending
+- [ ] Validation says "must be X" but you're sending X
+- [ ] UUID or ID appears where string expected
+- [ ] Number appears where boolean expected
+
+### DEBUGGING STEPS
+1. **LOG ACTUAL VALUES AT EVERY LAYER**
+   ```typescript
+   // In the component calling the handler
+   console.log('Calling handler with:', param1, param2);
+   onClick={() => handler(param1, param2)}
+   
+   // In the handler itself
+   const handler = (receivedParam1, receivedParam2) => {
+     console.log('Handler received:', receivedParam1, receivedParam2);
+   }
+   ```
+
+2. **CHECK SIGNATURES MATCH**
+   ```typescript
+   // BAD: Mismatch in parameters
+   // Caller: onStatusChange(bookingId, status)
+   // Handler: const handleStatusChange = (status) => {}
+   // Result: bookingId gets passed as status!
+   
+   // GOOD: Parameters match
+   // Caller: onStatusChange(bookingId, status)
+   // Handler: const handleStatusChange = (bookingId, status) => {}
+   ```
+
+3. **COMMON PATTERNS THAT CAUSE MISMATCHES**
+   - Component passes 2 params, handler expects 1
+   - Event handlers that ignore parameters (using closure values)
+   - Spread operators passing entire objects
+   - Array methods passing index as second parameter
+
+### REAL EXAMPLE FROM CODEBASE
+```typescript
+// BookingActions called:
+onStatusChange(booking.id, "in-progress")
+
+// But BookingDetailsSlideOut had:
+const handleStatusChange = async (newStatus: string) => {
+  // booking.id was received as newStatus!
+  await onStatusChange(booking.id, newStatus);
+}
+
+// Fix: Match the signature
+const handleStatusChange = async (bookingId: string, newStatus: string) => {
+  await onStatusChange(bookingId, newStatus);
+}
+```
 ```
 
 ## ⚛️ REACT INFINITE LOOP CHECKLIST
