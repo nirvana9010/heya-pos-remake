@@ -34,6 +34,7 @@ import { CustomerSearchInput, type Customer } from "@/components/customers";
 import { getAvailableStaff, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/mock-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { useTimezone } from "@/contexts/timezone-context";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -63,6 +64,7 @@ export function BookingSlideOut({
   onSave
 }: BookingSlideOutProps) {
   const { merchant } = useAuth();
+  const { formatInMerchantTz } = useTimezone();
   
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
@@ -203,13 +205,23 @@ export function BookingSlideOut({
   const selectedStaff = staff.find(s => s.id === formData.staffId);
 
   const generateWalkInCustomer = () => {
-    const now = new Date();
-    const timeStr = format(now, "MMM-dd-hhmma");
+    // Use the selected booking date and time, not the current time
+    const bookingDateTime = new Date(formData.date);
+    bookingDateTime.setHours(formData.time.getHours());
+    bookingDateTime.setMinutes(formData.time.getMinutes());
+    
+    // Format the datetime in merchant's timezone for consistent display
+    const dateStr = formatInMerchantTz(bookingDateTime, 'date');
+    const timeStr = formatInMerchantTz(bookingDateTime, 'time');
+    
+    // Extract month, day, and time components for the walk-in name
+    const monthDay = format(bookingDateTime, "MMM-dd");
+    const time = timeStr.replace(/\s/g, '').toUpperCase(); // Remove spaces and uppercase AM/PM
     
     setFormData({
       ...formData,
       customerId: '', // Will be created as new customer
-      customerName: `Walk-in ${timeStr}`,
+      customerName: `Walk-in ${monthDay}-${time}`,
       customerPhone: '0000000000', // Placeholder phone
       customerEmail: '',
       isNewCustomer: true,
