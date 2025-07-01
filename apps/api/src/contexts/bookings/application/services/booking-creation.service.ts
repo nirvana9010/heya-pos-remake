@@ -109,8 +109,8 @@ export class BookingCreationService {
       // 7. Save booking created event to outbox
       const outboxEvent = OutboxEvent.create({
         aggregateId: savedBooking.id,
-        aggregateType: 'Booking',
-        eventType: 'BookingCreated',
+        aggregateType: 'booking',  // lowercase to match handler
+        eventType: 'created',      // lowercase to match handler
         eventData: {
           bookingId: savedBooking.id,
           bookingNumber: savedBooking.bookingNumber,

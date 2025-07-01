@@ -16,11 +16,13 @@ import { cn } from '@heya-pos/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@heya-pos/ui';
 import { type Service, type Customer, type Staff, type TimeSlot } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
+import { useNotifications } from '@/contexts/notifications-context';
 
 function NewBookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { refreshNotifications } = useNotifications();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -151,6 +153,12 @@ function NewBookingContent() {
         title: "Success",
         description: "Booking created successfully",
       });
+      
+      // Refresh notifications after a delay to allow backend processing
+      // Increased to 2 seconds to ensure outbox events are processed
+      setTimeout(() => {
+        refreshNotifications();
+      }, 2000);
 
       router.push('/bookings');
     } catch (error) {

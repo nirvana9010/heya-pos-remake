@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
+import { useNotifications } from "@/contexts/notifications-context";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -82,6 +83,7 @@ interface Booking {
 
 export default function CalendarPageEnhanced() {
   const { toast } = useToast();
+  const { refreshNotifications } = useNotifications();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewType, setViewType] = useState<"day" | "week">("day");
   const [timeInterval, setTimeInterval] = useState<15 | 30 | 60>(15);
@@ -232,7 +234,7 @@ export default function CalendarPageEnhanced() {
       }
       
       setBookings(prev => prev.map(b => 
-        b.id === bookingId ? { ...b, ...updatedBooking, status: newStatus as any } : b
+        b.id === bookingId ? { ...b, ...updatedBooking } : b
       ));
       
       // Show success indicator
@@ -245,6 +247,9 @@ export default function CalendarPageEnhanced() {
       });
       
       setLastUpdated(new Date());
+      
+      // Trigger immediate notification check (we also poll every 5 seconds)
+      refreshNotifications();
     } catch (error) {
       console.error('Failed to update booking status:', error);
       toast({

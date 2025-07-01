@@ -60,17 +60,37 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      this.logger.log(`Found ${events.length} unprocessed events`);
+      this.logger.log(`[${new Date().toISOString()}] Found ${events.length} unprocessed events`);
 
       for (const event of events) {
         try {
-          await this.publishEvent(event);
+          this.logger.log(`[${new Date().toISOString()}] Publishing event ${event.id} of type ${event.aggregateType}.${event.eventType}`);
+          
+          // First try to mark as processed atomically
+          // This prevents duplicate processing
           await this.outboxRepository.markAsProcessed(event.id);
-          this.logger.log(`Published event ${event.id} of type ${event.eventType}`);
+          
+          // Only publish if we successfully marked it as processed
+          await this.publishEvent(event);
+          
+          this.logger.log(`[${new Date().toISOString()}] Successfully published and marked as processed: ${event.id}`);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // Skip if event was already processed (race condition)
+          if (errorMessage.includes('was already processed')) {
+            this.logger.log(`[${new Date().toISOString()}] Event ${event.id} was already processed by another instance`);
+            continue;
+          }
+          
           this.logger.error(`Failed to publish event ${event.id}: ${errorMessage}`);
-          await this.outboxRepository.recordError(event.id, errorMessage);
+          
+          // Only record error if it's not an "already processed" error
+          try {
+            await this.outboxRepository.recordError(event.id, errorMessage);
+          } catch (recordError) {
+            this.logger.error(`Failed to record error for event ${event.id}:`, recordError);
+          }
         }
       }
     } finally {

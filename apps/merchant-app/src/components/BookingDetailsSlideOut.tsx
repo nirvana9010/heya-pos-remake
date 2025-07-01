@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNotifications } from '@/contexts/notifications-context';
 import { 
   X,
   Clock, 
@@ -80,6 +81,7 @@ export function BookingDetailsSlideOut({
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
   const { toast } = useToast();
+  const { refreshNotifications } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
@@ -168,6 +170,12 @@ export function BookingDetailsSlideOut({
     setIsStatusUpdating(true);
     try {
       await onStatusChange(bookingId, newStatus);
+      
+      // Refresh notifications after a delay to allow backend processing
+      // Increased to 2 seconds to ensure outbox events are processed
+      setTimeout(() => {
+        refreshNotifications();
+      }, 2000);
     } finally {
       setIsStatusUpdating(false);
     }

@@ -52,6 +52,13 @@ npm run typecheck
 # If commands are not found, ask the user for the correct commands
 ```
 
+### Important: Commands to Avoid
+
+**NEVER use heredoc syntax (cat > file << 'EOF') in Bash commands** - This can cause system crashes. Instead:
+- Use the Write tool to create files
+- Use echo commands with proper escaping for simple content
+- Use multiple echo commands with >> for multi-line content
+
 ## Project Structure
 
 - `/apps/api` - NestJS backend API (connects to database)
@@ -81,6 +88,8 @@ Only the API service connects to the database. Frontend apps communicate through
 Use PM2 for process management and monitoring:
 ```bash
 pm2 status          # Check all processes
-pm2 logs api        # View API logs
+pm2 logs api --nostream --lines 20  # View recent API logs (use --nostream to avoid hanging)
 pm2 restart api --update-env  # Restart with new env vars
 ```
+
+**Important**: Always use `--nostream` flag when reading PM2 logs to get immediate output instead of waiting/tailing.
