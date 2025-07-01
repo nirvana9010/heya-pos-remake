@@ -44,7 +44,20 @@ export default function BookingDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await apiClient.updateBooking(params.id as string, { status: newStatus });
+      switch (newStatus) {
+        case 'in-progress':
+          await apiClient.startBooking(params.id as string);
+          break;
+        case 'completed':
+          await apiClient.completeBooking(params.id as string);
+          break;
+        case 'cancelled':
+          await apiClient.cancelBooking(params.id as string, 'Cancelled by user');
+          break;
+        default:
+          // For other statuses like 'confirmed', 'no-show', use updateBooking
+          await apiClient.updateBooking(params.id as string, { status: newStatus });
+      }
       await loadBooking();
     } catch (error) {
       console.error('Failed to update booking status:', error);

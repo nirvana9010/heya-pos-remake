@@ -849,8 +849,55 @@ function CalendarContent() {
               actions.removeBooking(bookingId);
               actions.closeDetailsSlideOut();
             }}
-            onStatusChange={(bookingId, status) => {
-              actions.updateBooking(bookingId, { status: status as any });
+            onStatusChange={async (bookingId, status) => {
+              try {
+                // Use proper API endpoints for status changes
+                switch (status) {
+                  case 'in-progress':
+                    await apiClient.startBooking(bookingId);
+                    break;
+                  case 'completed':
+                    await apiClient.completeBooking(bookingId);
+                    break;
+                  case 'cancelled':
+                    await apiClient.cancelBooking(bookingId, 'Cancelled by user');
+                    break;
+                  default:
+                    // For other status changes (confirmed, no-show), use the general update endpoint
+                    await apiClient.updateBooking(bookingId, { status });
+                }
+                
+                // Update local state after successful API call
+                actions.updateBooking(bookingId, { status: status as any });
+                
+                // Refresh calendar data after a short delay (like mark-as-paid does)
+                setTimeout(() => {
+                  refresh();
+                }, 1000);
+                
+                toast({
+                  title: "Status updated",
+                  description: `Booking marked as ${status.replace('-', ' ')}`,
+                  variant: "default",
+                  className: "bg-green-50 border-green-200",
+                });
+              } catch (error: any) {
+                console.error('Failed to update booking status:', error);
+                
+                // Extract error message
+                let errorMessage = "Failed to update booking status";
+                if (error?.message) {
+                  errorMessage = error.message;
+                } else if (error?.response?.data?.message) {
+                  errorMessage = error.response.data.message;
+                }
+                
+                toast({
+                  title: "Error",
+                  description: errorMessage,
+                  variant: "destructive",
+                });
+              }
             }}
             onPaymentStatusChange={async (bookingId, isPaid) => {
               console.log('🔵 onPaymentStatusChange called:', { bookingId, isPaid });

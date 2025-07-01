@@ -655,6 +655,7 @@ model OutboxEvent {
   @@index([createdAt])
   @@index([aggregateId, aggregateType])
   @@index([merchantId])
+  @@index([processedAt, retryCount]) // Composite index for unprocessed events query
 }
 
 model NotificationLog {

@@ -31,7 +31,7 @@ import { QueryHandlers } from './application/queries/handlers';
     LoyaltyModule, // For loyalty points accrual
     PaymentsModule, // For marking bookings as paid
     CacheModule, // For cache invalidation
-    AuthModule, // For JWT authentication in WebSocket
+    AuthModule,
   ],
   controllers: [
     BookingsV2Controller,

@@ -95,7 +95,6 @@ export default function CalendarPageEnhanced() {
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "polling" | "disconnected">("connected");
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [showSavedIndicator, setShowSavedIndicator] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to generate consistent colors for staff
@@ -558,7 +557,7 @@ export default function CalendarPageEnhanced() {
           booking={selectedBooking}
           isOpen={!!selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          onStatusChange={(status) => updateBookingStatus(selectedBooking.id, status)}
+          onStatusChange={(bookingId, status) => updateBookingStatus(bookingId, status)}
           isUpdating={updatingBookingId === selectedBooking.id}
         />
       )}

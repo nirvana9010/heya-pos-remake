@@ -17,7 +17,7 @@ export class AuthClient extends BaseApiClient {
   async login(email: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
     
     const payload = {
-      username: email, // Backend accepts email in username field
+      email,
       password,
     };
     

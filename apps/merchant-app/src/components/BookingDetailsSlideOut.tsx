@@ -29,10 +29,12 @@ import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { BookingActions } from "./BookingActions";
 import { displayFormats } from "../lib/date-utils";
+import { apiClient } from "@/lib/api-client";
 
 interface BookingService {
   id: string;
@@ -77,8 +79,10 @@ export function BookingDetailsSlideOut({
   onStatusChange,
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [formData, setFormData] = useState({
     staffId: booking.staffId,
     date: booking.startTime,
@@ -140,8 +144,12 @@ export function BookingDetailsSlideOut({
   };
 
   const handleSave = () => {
+    // Only send fields that should be updated
+    // Status changes should use the dedicated status change methods
+    const { status, ...bookingWithoutStatus } = booking;
+    
     onSave({
-      ...booking,
+      ...bookingWithoutStatus,
       staffId: formData.staffId,
       startTime: formData.time,
       endTime: new Date(formData.time.getTime() + duration * 60000),
@@ -156,8 +164,13 @@ export function BookingDetailsSlideOut({
     }
   };
 
-  const handleStatusChange = (newStatus: string) => {
-    onStatusChange(booking.id, newStatus);
+  const handleStatusChange = async (bookingId: string, newStatus: string) => {
+    setIsStatusUpdating(true);
+    try {
+      await onStatusChange(bookingId, newStatus);
+    } finally {
+      setIsStatusUpdating(false);
+    }
   };
 
   const handlePaymentToggle = async () => {
@@ -225,7 +238,8 @@ export function BookingDetailsSlideOut({
             showEdit={false}
             showDelete={false}
             isPaymentProcessing={isPaymentProcessing}
-            onStatusChange={onStatusChange}
+            isStatusUpdating={isStatusUpdating}
+            onStatusChange={handleStatusChange}
             onPaymentToggle={handlePaymentToggle}
           />
         </div>
