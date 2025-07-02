@@ -3,7 +3,7 @@
 // Build timestamp - updates when file is saved
 const __SLIDEOUT_BUILD_TIME__ = new Date().toLocaleString();
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   ChevronRight, 
   User, 
@@ -47,6 +47,14 @@ interface BookingSlideOutProps {
   customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
   bookings?: Array<any>; // For availability checking
   onSave: (booking: any) => void;
+  merchant?: {
+    settings?: {
+      allowWalkInBookings?: boolean;
+      allowUnassignedBookings?: boolean;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
 }
 
 type Step = "datetime" | "service" | "customer" | "confirm";
@@ -61,10 +69,25 @@ export function BookingSlideOut({
   services,
   customers = [],
   bookings = [],
-  onSave
+  onSave,
+  merchant: merchantProp
 }: BookingSlideOutProps) {
-  const { merchant } = useAuth();
+  const { merchant: authMerchant } = useAuth();
   const { formatInMerchantTz } = useTimezone();
+  
+  // Use prop merchant if provided, otherwise fall back to auth merchant
+  const merchant = merchantProp || authMerchant;
+  
+  // Filter out "Unassigned" staff when allowUnassignedBookings is false
+  const filteredStaff = React.useMemo(() => {
+    if (merchant?.settings?.allowUnassignedBookings === false) {
+      return staff.filter(s => 
+        s.name.toLowerCase() !== 'unassigned' && 
+        s.id.toLowerCase() !== 'unassigned'
+      );
+    }
+    return staff;
+  }, [staff, merchant?.settings?.allowUnassignedBookings]);
   
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
@@ -163,7 +186,7 @@ export function BookingSlideOut({
           formData.serviceId || 'default',
           startTime,
           duration,
-          staff,
+          filteredStaff,
           bookings
         );
         
@@ -191,7 +214,7 @@ export function BookingSlideOut({
     };
     
     checkAvailability();
-  }, [formData.serviceId, formData.date, formData.time, staff, services, bookings]);
+  }, [formData.serviceId, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings]);
 
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
@@ -202,7 +225,7 @@ export function BookingSlideOut({
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const selectedService = services.find(s => s.id === formData.serviceId);
-  const selectedStaff = staff.find(s => s.id === formData.staffId);
+  const selectedStaff = filteredStaff.find(s => s.id === formData.staffId);
 
   const generateWalkInCustomer = () => {
     // Use the selected booking date and time, not the current time
