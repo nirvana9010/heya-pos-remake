@@ -11,6 +11,7 @@ import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { PaymentDialog } from '@/components/PaymentDialog';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { BookingSlideOut } from '@/components/BookingSlideOut';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
 import { 
   DropdownMenu, 
@@ -60,8 +61,8 @@ import { apiClient } from '@/lib/api-client';
 import { BookingActions } from '@/components/BookingActions';
 import { displayFormats, toMerchantTime } from '@/lib/date-utils';
 
-export default function BookingsPageContent() {
-  console.log('[BookingsPage] Component rendering...');
+export default function BookingsManager() {
+  console.log('[BookingsManager] Component rendering...');
   
   const router = useRouter();
   const { toast } = useToast();
@@ -86,24 +87,29 @@ export default function BookingsPageContent() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
   const [merchantSettings, setMerchantSettings] = useState<any>(null);
+  const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
+  const [services, setServices] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
-    console.log('[BookingsPage] useEffect triggered');
+    console.log('[BookingsManager] useEffect triggered');
     
     // Check if we have a token before attempting to load bookings
     const token = localStorage.getItem('access_token');
-    console.log('[BookingsPage] Token exists:', !!token);
+    console.log('[BookingsManager] Token exists:', !!token);
     
     if (!token) {
-      console.log('[BookingsPage] No token, skipping loadBookings call');
+      console.log('[BookingsManager] No token, skipping loadBookings call');
       setLoading(false);
       return;
     }
     
-    console.log('[BookingsPage] Token found, calling loadBookings...');
+    console.log('[BookingsManager] Token found, calling loadBookings...');
     loadBookings();
     loadStaff();
     loadMerchantSettings();
+    loadServices();
+    loadCustomers();
     
     // Load recent searches from localStorage
     const saved = localStorage.getItem('recentBookingSearches');
@@ -156,6 +162,40 @@ export default function BookingsPageContent() {
       // Ignore auth errors as they'll be handled by the interceptor
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
         console.error('Failed to load merchant settings:', error);
+      }
+    }
+  };
+
+  const loadServices = async () => {
+    // Check if redirect is in progress
+    if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+      return;
+    }
+    
+    try {
+      const servicesData = await apiClient.getServices();
+      setServices(servicesData);
+    } catch (error: any) {
+      // Ignore auth errors as they'll be handled by the interceptor
+      if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
+        console.error('Failed to load services:', error);
+      }
+    }
+  };
+
+  const loadCustomers = async () => {
+    // Check if redirect is in progress
+    if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
+      return;
+    }
+    
+    try {
+      const customersData = await apiClient.getCustomers();
+      setCustomers(customersData);
+    } catch (error: any) {
+      // Ignore auth errors as they'll be handled by the interceptor
+      if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
+        console.error('Failed to load customers:', error);
       }
     }
   };
@@ -826,9 +866,9 @@ export default function BookingsPageContent() {
       <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Bookings</h1>
-        <Button onClick={() => router.push('/bookings/new')}>
+        <Button onClick={() => setIsQuickBookingOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Booking
+          Quick Booking
         </Button>
       </div>
 
@@ -1304,6 +1344,33 @@ export default function BookingsPageContent() {
           defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}
         />
       )}
+
+      {/* Booking Slideout */}
+      <BookingSlideOut
+        isOpen={isQuickBookingOpen}
+        onClose={() => setIsQuickBookingOpen(false)}
+        staff={staff}
+        services={services}
+        customers={customers}
+        bookings={bookings}
+        onSave={async (bookingData) => {
+          try {
+            await apiClient.createBooking(bookingData);
+            toast({
+              title: "Booking Created",
+              description: "The booking has been created successfully.",
+            });
+            setIsQuickBookingOpen(false);
+            loadBookings(); // Refresh the bookings list
+          } catch (error) {
+            toast({
+              title: "Error",
+              description: "Failed to create booking. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }}
+      />
     </div>
     </ErrorBoundary>
   );

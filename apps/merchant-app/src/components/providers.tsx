@@ -8,6 +8,7 @@ import { TimezoneProvider } from '@/contexts/timezone-context';
 import { AuthProvider } from '@/lib/auth/auth-provider';
 import { QueryProvider } from '@/lib/query/query-provider';
 import { NotificationsProvider } from '@/contexts/notifications-context';
+import { BookingProvider } from '@/contexts/booking-context';
 import { ClearCorruptedAuth } from './ClearCorruptedAuth';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -36,9 +37,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <AuthGuard>
             <TimezoneProvider>
               <NotificationsProvider>
-                <PerformanceMonitor />
-                <PrefetchManager />
-                {children}
+                <BookingProvider>
+                  <PerformanceMonitor />
+                  <PrefetchManager />
+                  {children}
+                </BookingProvider>
               </NotificationsProvider>
             </TimezoneProvider>
           </AuthGuard>

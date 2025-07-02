@@ -45,6 +45,7 @@ import type { Booking, BookingStatus } from './types';
 import { getAvailableStaff, ensureValidStaffId, isValidStaffId } from '@/lib/services/mock-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -59,6 +60,7 @@ export function CalendarPage() {
 function CalendarContent() {
   const { state, actions } = useCalendar();
   const { toast } = useToast();
+  const { merchant } = useAuth();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigateToToday,
@@ -815,6 +817,7 @@ function CalendarContent() {
         customers={memoizedCustomers}
         bookings={state.bookings}
         onSave={handleBookingSlideOutSave}
+        merchant={merchant}
       />
       
       {state.isDetailsSlideOutOpen && state.detailsBookingId && (() => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, User, Moon, Sun, Palette } from 'lucide-react'
+import { Search, User, Moon, Sun, Palette, Plus } from 'lucide-react'
 import {
   Button,
   DropdownMenu,
@@ -20,11 +20,13 @@ import Link from 'next/link'
 import { NotificationsDropdown } from '@/components/notifications-dropdown'
 import { GlobalSearch } from '@/components/global-search'
 import { useAuth } from '@/lib/auth/auth-provider'
+import { useBooking } from '@/contexts/booking-context'
 import { CacheBuster } from '@/components/CacheBuster'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const { logout, merchant, user } = useAuth()
+  const { openBookingSlideout } = useBooking()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -60,6 +62,16 @@ export function Topbar() {
         >
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button> */}
+
+        {/* Quick Booking Button */}
+        <Button 
+          size="sm" 
+          onClick={openBookingSlideout}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Quick Booking
+        </Button>
 
         {/* Cache Buster (Dev only) */}
         <CacheBuster />

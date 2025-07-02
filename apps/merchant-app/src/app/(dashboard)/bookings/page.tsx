@@ -4,8 +4,8 @@ import dynamic from 'next/dynamic';
 import { TablePageLoader } from '@/components/PageLoader';
 
 // Dynamically import the page content
-const BookingsPageContent = dynamic(
-  () => import('./BookingsPageContent'),
+const BookingsManager = dynamic(
+  () => import('./BookingsManager'),
   { 
     loading: () => <TablePageLoader />
   }
@@ -13,5 +13,5 @@ const BookingsPageContent = dynamic(
 
 // This lightweight wrapper loads instantly
 export default function BookingsPage() {
-  return <BookingsPageContent />;
+  return <BookingsManager />;
 }
