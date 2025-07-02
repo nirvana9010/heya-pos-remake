@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check } from 'lucide-react';
+import { Users, Check, X } from 'lucide-react';
 import { BookingTooltip } from '../BookingTooltip';
 
 interface DailyViewProps {
@@ -527,16 +527,17 @@ export function DailyView({
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
                           
                           // Style based on status and time
+                          let bgColor = '#9CA3AF'; // Gray for unassigned
                           let bgOpacity = 0.9;
                           let borderWidth = 4;
                           let textColor = 'text-white';
-                          let bgColor = '#9CA3AF'; // Gray for unassigned
                           
                           // Check status first
                           if (booking.status === 'cancelled') {
-                            bgOpacity = 0.2;
+                            bgColor = '#FEE2E2'; // Light red background
+                            bgOpacity = 0.4;
                             borderWidth = 3;
-                            textColor = 'text-gray-500';
+                            textColor = 'text-red-700';
                           } else if (booking.status === 'no-show') {
                             bgOpacity = 0.2;
                             borderWidth = 3;
@@ -579,9 +580,9 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "text-xs cursor-pointer rounded relative z-20",
+                                  "text-xs cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
-                                  booking.status === 'cancelled' && 'line-through',
+                                  booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
@@ -611,14 +612,23 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Time and duration in top right */}
-                                <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
-                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                </div>
+                                {/* Time and duration - adjust position if cancelled */}
+                                {booking.status !== 'cancelled' && (
+                                  <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
+                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                  </div>
+                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                  </div>
+                                )}
+                                {/* Cancelled indicator */}
+                                {booking.status === 'cancelled' && (
+                                  <div className="absolute top-1 right-1 flex items-center gap-1">
+                                    <X className="w-4 h-4 text-red-600" strokeWidth={3} />
+                                    <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
                                 {/* Paid badge */}
@@ -720,15 +730,17 @@ export function DailyView({
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
                           
                           // Style based on status and time
+                          let bgColor = staff.color;
                           let bgOpacity = 0.9;
                           let borderWidth = 4;
                           let textColor = 'text-white';
                           
                           // Check status first
                           if (booking.status === 'cancelled') {
-                            bgOpacity = 0.2;
+                            bgColor = '#FEE2E2'; // Light red background
+                            bgOpacity = 0.4;
                             borderWidth = 3;
-                            textColor = 'text-gray-500';
+                            textColor = 'text-red-700';
                           } else if (booking.status === 'no-show') {
                             bgOpacity = 0.2;
                             borderWidth = 3;
@@ -744,8 +756,6 @@ export function DailyView({
                             textColor = 'text-gray-700';
                           }
                           // Otherwise keep default solid style for confirmed/in-progress bookings that are current/future
-                          
-                          const bgColor = staff.color;
                           
                           // Helper to convert hex to rgba
                           const hexToRgba = (hex: string, opacity: number) => {
@@ -773,9 +783,9 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "text-xs cursor-pointer rounded relative z-20",
+                                  "text-xs cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
-                                  booking.status === 'cancelled' && 'line-through',
+                                  booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
@@ -805,14 +815,23 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Time and duration in top right */}
-                                <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
-                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                </div>
+                                {/* Time and duration - adjust position if cancelled */}
+                                {booking.status !== 'cancelled' && (
+                                  <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
+                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                  </div>
+                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                  </div>
+                                )}
+                                {/* Cancelled indicator */}
+                                {booking.status === 'cancelled' && (
+                                  <div className="absolute top-1 right-1 flex items-center gap-1">
+                                    <X className="w-4 h-4 text-red-600" strokeWidth={3} />
+                                    <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
                                 {/* Paid badge */}

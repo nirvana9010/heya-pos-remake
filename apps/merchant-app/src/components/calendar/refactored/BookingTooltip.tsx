@@ -3,7 +3,7 @@
 import React from 'react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@heya-pos/ui';
-import { Clock, DollarSign, Phone, CheckCircle } from 'lucide-react';
+import { Clock, DollarSign, Phone, CheckCircle, X } from 'lucide-react';
 import type { Booking } from './types';
 
 interface BookingTooltipProps {
@@ -34,13 +34,14 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
             <div className="text-sm text-gray-600">{booking.serviceName}</div>
           </div>
           <div className={cn(
-            "px-2 py-1 rounded-full text-xs font-medium",
+            "px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1",
             booking.status === 'confirmed' && "bg-teal-100 text-teal-700",
             booking.status === 'in-progress' && "bg-teal-100 text-teal-700",
             booking.status === 'completed' && "bg-gray-100 text-gray-700",
-            booking.status === 'cancelled' && "bg-red-100 text-red-700 line-through",
+            booking.status === 'cancelled' && "bg-red-100 text-red-700 font-bold",
             booking.status === 'no-show' && "bg-orange-100 text-orange-700"
           )}>
+            {booking.status === 'cancelled' && <X className="w-3 h-3" strokeWidth={3} />}
             {booking.status === 'in-progress' ? 'In Progress' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
           </div>
         </div>
