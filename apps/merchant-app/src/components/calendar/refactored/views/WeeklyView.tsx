@@ -10,7 +10,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking } from '../types';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 // Calculate layout for overlapping bookings
 interface BookingLayout {
@@ -314,7 +314,16 @@ export function WeeklyView({
                             // Calculate how many time slots this booking spans
                             const slotsSpanned = Math.ceil(booking.duration / 30); // Weekly view uses 30min slots
                             
-                            const bgColor = state.staff.find(s => s.id === booking.staffId)?.color || '#7C3AED';
+                            let bgColor = state.staff.find(s => s.id === booking.staffId)?.color || '#7C3AED';
+                            let opacity = 0.9;
+                            let textColor = 'text-white';
+                            
+                            // Adjust styling for cancelled bookings
+                            if (booking.status === 'cancelled') {
+                              bgColor = '#FEE2E2'; // Light red
+                              opacity = 0.8;
+                              textColor = 'text-red-700';
+                            }
                             
                             return (
                               <DraggableBooking
@@ -337,10 +346,14 @@ export function WeeklyView({
                                 }}
                               >
                                 <div 
-                                  className="text-xs px-1 py-0.5 rounded cursor-pointer overflow-hidden relative flex items-center gap-1"
+                                  className={cn(
+                                    "text-xs px-1 py-0.5 rounded cursor-pointer overflow-hidden relative flex items-center gap-1",
+                                    textColor,
+                                    booking.status === 'cancelled' && 'cancelled-booking'
+                                  )}
                                   style={{
                                     backgroundColor: bgColor,
-                                    opacity: 0.9,
+                                    opacity: opacity,
                                     height: '100%'
                                   }}
                                 >
@@ -350,13 +363,17 @@ export function WeeklyView({
                                       <Check className="w-2 h-2 text-white" strokeWidth={3} />
                                     </div>
                                   )}
+                                  {/* Cancelled indicator */}
+                                  {booking.status === 'cancelled' && (
+                                    <X className="w-3 h-3 text-red-600 flex-shrink-0" strokeWidth={3} />
+                                  )}
                                   {/* Paid badge */}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
                                     <div className="bg-green-600 text-white text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0">
                                       PAID
                                     </div>
                                   )}
-                                  <div className="text-white truncate pr-2 relative flex-1">
+                                  <div className="truncate pr-2 relative flex-1">
                                     {format(parseISO(`2000-01-01T${booking.time}`), 'h:mma')} - {booking.customerName}
                                     {/* Fade out gradient for long text */}
                                     <div className="absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[inherit] to-transparent pointer-events-none" />

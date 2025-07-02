@@ -1488,3 +1488,26 @@ button:focus {
 .theme-blush-sage .service-card.massage {
   background: linear-gradient(135deg, rgba(176, 196, 176, 0.1) 0%, transparent 50%);
 }
+
+/* Cancelled booking visual indicator */
+.cancelled-booking {
+  position: relative;
+}
+
+.cancelled-booking::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(239, 68, 68, 0.15) 10px,
+    rgba(239, 68, 68, 0.15) 20px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}

@@ -15,7 +15,7 @@ import {
 } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 interface MonthlyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -152,13 +152,17 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                     <div className="space-y-0.5">
                       {dayBookings.slice(0, 3).map((booking) => {
                         const staff = state.staff.find(s => s.id === booking.staffId);
+                        const isCancelled = booking.status === 'cancelled';
                         return (
                           <div
                             key={booking.id}
-                            className="text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 relative overflow-hidden flex items-center gap-1"
+                            className={cn(
+                              "text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 relative overflow-hidden flex items-center gap-1",
+                              isCancelled && 'cancelled-booking'
+                            )}
                             style={{
-                              backgroundColor: staff?.color || '#E5E7EB',
-                              color: staff?.color ? 'white' : '#4B5563'
+                              backgroundColor: isCancelled ? '#FEE2E2' : (staff?.color || '#E5E7EB'),
+                              color: isCancelled ? '#B91C1C' : (staff?.color ? 'white' : '#4B5563')
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -167,6 +171,9 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                           >
                             {booking.status === 'completed' && (
                               <Check className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
+                            )}
+                            {booking.status === 'cancelled' && (
+                              <X className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
                             )}
                             {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
                               <div className="w-2 h-2 bg-green-600 rounded-full flex-shrink-0" title="Paid" />
