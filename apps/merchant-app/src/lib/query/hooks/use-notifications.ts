@@ -14,12 +14,11 @@ export function useNotifications(params?: {
   const queryInfo = useQuery({
     queryKey: [...notificationKeys.all, params],
     queryFn: async () => {
-      console.log('[useNotifications] Fetching notifications...', new Date().toISOString());
+      console.log('[useNotifications] Fetching notifications...');
       const result = await apiClient.notifications.getNotifications(params);
       console.log('[useNotifications] Fetched notifications:', {
-        count: result.data.length,
-        unreadCount: result.unreadCount,
-        timestamp: new Date().toISOString()
+        total: result?.data?.length || 0,
+        unread: result?.unreadCount || 0
       });
       return result;
     },
@@ -33,17 +32,6 @@ export function useNotifications(params?: {
     retryDelay: 5000,
     structuralSharing: false, // Disable structural sharing to force new object references
   });
-
-  // Log when data changes
-  React.useEffect(() => {
-    if (queryInfo.data) {
-      console.log('[useNotifications] Data updated in hook:', {
-        dataCount: queryInfo.data.data.length,
-        isFetching: queryInfo.isFetching,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [queryInfo.data, queryInfo.isFetching]);
 
   return queryInfo;
 }

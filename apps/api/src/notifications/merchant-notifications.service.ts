@@ -176,10 +176,10 @@ export class MerchantNotificationsService {
         notification = {
           type: 'booking_modified',
           priority: 'info',
-          title: 'Booking changed',
-          message: `${booking.customerName} ${changes || 'modified their booking'}`,
+          title: 'Booking rescheduled',
+          message: `Booking for ${booking.customerName} ${changes || 'modified their booking'}`,
           actionUrl: `/bookings/${booking.id}`,
-          actionLabel: 'View changes',
+          actionLabel: 'View booking',
           metadata: {
             bookingId: booking.id,
             customerName: booking.customerName,

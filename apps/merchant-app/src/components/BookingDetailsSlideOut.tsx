@@ -85,21 +85,29 @@ export function BookingDetailsSlideOut({
   const [isEditing, setIsEditing] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
-  const [formData, setFormData] = useState({
-    staffId: booking.staffId,
-    date: booking.startTime,
-    time: booking.startTime,
-    notes: booking.notes || ""
-  });
+  // Initialize form data with separate date and time objects
+  const initializeFormData = (booking: any) => {
+    // Create separate Date objects to avoid shared reference issues
+    const startDate = new Date(booking.startTime);
+    const startTime = new Date(booking.startTime);
+    
+    return {
+      staffId: booking.staffId,
+      date: startDate,
+      time: startTime,
+      notes: booking.notes || ""
+    };
+  };
+  
+  const [formData, setFormData] = useState(() => initializeFormData(booking));
 
   useEffect(() => {
-    setFormData({
-      staffId: booking.staffId,
-      date: booking.startTime,
-      time: booking.startTime,
-      notes: booking.notes || ""
-    });
-  }, [booking]);
+    // Only reset form data if we're not currently editing
+    // This prevents the form from resetting while the user is making changes
+    if (!isEditing) {
+      setFormData(initializeFormData(booking));
+    }
+  }, [booking, isEditing]);
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
@@ -146,18 +154,39 @@ export function BookingDetailsSlideOut({
   };
 
   const handleSave = () => {
-    // Only send fields that should be updated
-    // Status changes should use the dedicated status change methods
-    const { status, ...bookingWithoutStatus } = booking;
+    // Exit edit mode immediately for better UX
+    setIsEditing(false);
     
+    const { status, ...bookingWithoutStatus } = booking;
+    const startTimeISO = formData.time instanceof Date ? formData.time.toISOString() : formData.time;
+    const endTimeISO = new Date(formData.time.getTime() + duration * 60000).toISOString();
+    
+    // Fire and forget - don't await
     onSave({
       ...bookingWithoutStatus,
       staffId: formData.staffId,
-      startTime: formData.time,
-      endTime: new Date(formData.time.getTime() + duration * 60000),
+      startTime: startTimeISO,
+      endTime: endTimeISO,
       notes: formData.notes
+    }).then(() => {
+      // Show success toast
+      toast({
+        title: "Booking updated",
+        description: `${booking.customerName}'s appointment has been updated successfully.`,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+        duration: 5000,
+      });
+      
+      // Trigger notification refresh after a delay to ensure backend processing
+      setTimeout(() => {
+        refreshNotifications();
+      }, 2000);
+    }).catch(error => {
+      // If save fails, re-enter edit mode
+      console.error('Failed to save booking:', error);
+      setIsEditing(true);
     });
-    setIsEditing(false);
   };
 
   const handleDelete = () => {
@@ -289,9 +318,14 @@ export function BookingDetailsSlideOut({
                   value={format(formData.date, "yyyy-MM-dd")}
                   onChange={(e) => {
                     const newDate = new Date(e.target.value);
+                    // Create a new time object with the new date but keeping the same time
                     const updatedTime = new Date(formData.time);
                     updatedTime.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
-                    setFormData({ ...formData, date: newDate, time: updatedTime });
+                    setFormData({ 
+                      ...formData, 
+                      date: newDate, 
+                      time: updatedTime 
+                    });
                   }}
                   className="mt-1"
                 />
@@ -304,8 +338,9 @@ export function BookingDetailsSlideOut({
                   value={format(formData.time, "HH:mm")}
                   onChange={(e) => {
                     const [hours, minutes] = e.target.value.split(':');
-                    const newTime = new Date(formData.date);
-                    newTime.setHours(parseInt(hours), parseInt(minutes));
+                    // Create a NEW Date object based on the current date
+                    const newTime = new Date(formData.date.getTime()); // Clone the date
+                    newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
                     setFormData({ ...formData, time: newTime });
                   }}
                   className="mt-1"

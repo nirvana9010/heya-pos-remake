@@ -74,6 +74,15 @@ export class BookingUpdateService {
         data.startTime.getTime() !== booking.timeSlot.start.getTime() ||
         (data.endTime && data.endTime.getTime() !== booking.timeSlot.end.getTime())
       );
+      
+      console.log('[BookingUpdateService] Reschedule check:', {
+        bookingId: data.bookingId,
+        isRescheduling,
+        dataStartTime: data.startTime?.toISOString(),
+        bookingStartTime: booking.timeSlot.start.toISOString(),
+        startTimeMatch: data.startTime?.getTime() === booking.timeSlot.start.getTime(),
+        timeDiff: data.startTime ? data.startTime.getTime() - booking.timeSlot.start.getTime() : 0,
+      });
 
       if (isRescheduling) {
         // 3. Lock the staff member if we're changing time
@@ -181,6 +190,38 @@ export class BookingUpdateService {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
 
+    // Create outbox event if booking was rescheduled
+    if (isRescheduling && originalBooking && data.startTime) {
+      // Calculate the new end time if not provided
+      const newEndTime = data.endTime || new Date(data.startTime.getTime() + 
+        (originalBooking.timeSlot.end.getTime() - originalBooking.timeSlot.start.getTime()));
+      
+      console.log('[BookingUpdateService] Creating outbox event for reschedule:', {
+        bookingId: data.bookingId,
+        oldStartTime: originalBooking.timeSlot.start.toISOString(),
+        newStartTime: data.startTime.toISOString(),
+        oldEndTime: originalBooking.timeSlot.end.toISOString(),
+        newEndTime: newEndTime.toISOString(),
+      });
+      
+      await this.prisma.$transaction(async (tx) => {
+        const outboxEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'rescheduled',
+          eventData: { 
+            bookingId: data.bookingId,
+            oldStartTime: originalBooking.timeSlot.start,
+            newStartTime: data.startTime,
+            oldEndTime: originalBooking.timeSlot.end,
+            newEndTime: newEndTime,
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+        await this.outboxRepository.save(outboxEvent, tx);
+      });
+    }
 
     return result;
   }

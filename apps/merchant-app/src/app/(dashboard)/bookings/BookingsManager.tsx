@@ -1362,10 +1362,29 @@ export default function BookingsManager() {
             });
             setIsQuickBookingOpen(false);
             loadBookings(); // Refresh the bookings list
-          } catch (error) {
+          } catch (error: any) {
+            // Extract error message from the API response
+            const errorMessage = error?.response?.data?.message || 
+                               error?.message || 
+                               "Failed to create booking. Please try again.";
+            
+            // Check if this is a conflict error with detailed information
+            const conflicts = error?.response?.data?.conflicts;
+            let description = errorMessage;
+            
+            if (conflicts && Array.isArray(conflicts)) {
+              // Show the first conflict details
+              const firstConflict = conflicts[0];
+              if (firstConflict) {
+                const conflictStart = new Date(firstConflict.startTime);
+                const conflictTime = format(conflictStart, 'h:mm a');
+                description = `${errorMessage}. There's already a booking at ${conflictTime}.`;
+              }
+            }
+            
             toast({
               title: "Error",
-              description: "Failed to create booking. Please try again.",
+              description,
               variant: "destructive",
             });
           }

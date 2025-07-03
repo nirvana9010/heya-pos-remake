@@ -37,17 +37,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const queryResult = useNotificationsQuery();
   const { data: notificationsData, isLoading, error, refetch } = queryResult;
   
-  // Log the full query result to debug
-  console.log('[NotificationsContext] Full query result:', {
-    hasData: !!queryResult.data,
-    isLoading: queryResult.isLoading,
-    isFetching: queryResult.isFetching,
-    isRefetching: queryResult.isRefetching,
-    dataUpdatedAt: queryResult.dataUpdatedAt,
-    errorUpdatedAt: queryResult.errorUpdatedAt,
-    status: queryResult.status,
-    fetchStatus: queryResult.fetchStatus,
-  });
   const queryClient = useQueryClient();
   
   // Mutation hooks
@@ -75,20 +64,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // Convert notifications data
   const notifications = useMemo(() => {
-    console.log('[NotificationsContext] Converting notifications data:', {
-      hasData: !!notificationsData,
-      dataLength: notificationsData?.data?.length || 0,
-      timestamp: new Date().toISOString()
-    });
-    
     if (!notificationsData?.data) return [];
     const converted = notificationsData.data.map(convertNotification);
-    
-    console.log('[NotificationsContext] Converted notifications:', {
-      count: converted.length,
-      unreadCount: converted.filter(n => !n.read).length,
-      timestamp: new Date().toISOString()
-    });
     
     return converted;
   }, [notificationsData, convertNotification]);
@@ -109,13 +86,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const shownIds = localStorage.getItem('shownBrowserNotifications');
       if (shownIds) {
         const ids = JSON.parse(shownIds);
-        console.log('[NotificationsContext] Loaded shown notifications from localStorage:', ids);
         
         // Clean up old IDs (keep only last 100)
         if (ids.length > 100) {
           const recentIds = ids.slice(-100);
           localStorage.setItem('shownBrowserNotifications', JSON.stringify(recentIds));
-          console.log('[NotificationsContext] Cleaned up old notification IDs, kept last 100');
           return new Set(recentIds);
         }
         
@@ -156,11 +131,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const unreadCount = notifications.filter(n => !n.read).length;
     const currentIds = new Set(notifications.map(n => n.id));
     
-    console.log('[NotificationsContext] Checking notifications:', {
+    console.log('[NotificationsContext] Processing notifications:', {
       total: notifications.length,
       unread: unreadCount,
-      previousIds: prevNotificationIdsRef.current.size,
-      shownBrowserNotifications: shownBrowserNotificationsRef.current.size
+      prevIds: prevNotificationIdsRef.current.size,
+      shownBrowser: shownBrowserNotificationsRef.current.size
     });
     
     // Find new notifications that haven't shown browser alerts yet
@@ -169,13 +144,15 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const isNew = !prevNotificationIdsRef.current.has(n.id);
       const notShownYet = !shownBrowserNotificationsRef.current.has(n.id);
       
-      if (isUnread) {
-        console.log(`[NotificationsContext] Notification ${n.id}:`, {
+      // Log for debugging
+      if (isUnread && !notShownYet) {
+        console.log('[NotificationsContext] Checking notification:', {
+          id: n.id,
+          title: n.title,
           isUnread,
           isNew,
           notShownYet,
-          title: n.title,
-          createdAt: n.createdAt
+          createdAt: n.timestamp || n.createdAt
         });
       }
       
@@ -183,11 +160,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       // 1. It's unread AND
       // 2. We haven't shown a browser notification for it yet AND
       // 3. It's either new OR it was created recently (within last 5 minutes)
-      const createdRecently = new Date(n.createdAt).getTime() > Date.now() - 5 * 60 * 1000;
+      const createdRecently = n.timestamp ? 
+        new Date(n.timestamp).getTime() > Date.now() - 5 * 60 * 1000 :
+        new Date(n.createdAt).getTime() > Date.now() - 5 * 60 * 1000;
       return isUnread && notShownYet && (isNew || createdRecently);
     });
     
-    console.log(`[NotificationsContext] Found ${newNotifications.length} new notifications`);
+    console.log('[NotificationsContext] New notifications to show:', newNotifications.length);
     
     // Play sound and show browser notification for new unread notifications
     if (newNotifications.length > 0) {
@@ -210,7 +189,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         if (NotificationAPI.permission === 'granted') {
           newNotifications.forEach(notification => {
             try {
-              console.log(`[NotificationsContext] Showing browser notification for: ${notification.title}`);
               // Use booking ID as tag to prevent duplicate notifications for same booking
               const tag = notification.metadata?.bookingId || notification.id;
               const browserNotification = new NotificationAPI(notification.title, {
@@ -263,10 +241,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       prevNotificationIdsRef.current.add(n.id);
     });
     
-    console.log('[NotificationsContext] Updated tracking:', {
-      prevIds: prevNotificationIdsRef.current.size,
-      shownBrowserNotifications: shownBrowserNotificationsRef.current.size
-    });
   }, [notifications]);
   
   // Debounced effect to process notifications
@@ -280,7 +254,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     
     // Debounce notification processing by 100ms to prevent rapid updates
     notificationDebounceRef.current = setTimeout(() => {
-      console.log('[NotificationsContext] Processing notifications after debounce...');
       processNotifications();
     }, 100);
     
@@ -297,31 +270,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     localStorage.removeItem('merchant-notifications');
   }, []);
 
-  // Debug effect to track React Query updates
-  useEffect(() => {
-    console.log('[NotificationsContext] React Query state:', {
-      isLoading,
-      isFetching: (notificationsData as any)?.isFetching,
-      dataTimestamp: (notificationsData as any)?.dataUpdatedAt,
-      error: error ? (error as any).message : null,
-      hasData: !!notificationsData,
-      timestamp: new Date().toISOString()
-    });
-  }, [notificationsData, isLoading, error]);
 
-  // Force update when data timestamp changes
+  // Force update and process notifications when data timestamp changes
   const lastDataTimestampRef = React.useRef(queryResult.dataUpdatedAt);
   useEffect(() => {
     if (queryResult.dataUpdatedAt && queryResult.dataUpdatedAt !== lastDataTimestampRef.current) {
-      console.log('[NotificationsContext] Data timestamp changed, forcing update:', {
-        old: lastDataTimestampRef.current,
-        new: queryResult.dataUpdatedAt,
-        hasNewData: !!queryResult.data
-      });
       lastDataTimestampRef.current = queryResult.dataUpdatedAt;
       forceUpdate();
+      
+      // Immediately process notifications when new data arrives
+      // This ensures browser notifications show without waiting for bell click
+      if (notifications && notifications.length > 0) {
+        // Use a small timeout to ensure state has updated
+        setTimeout(() => {
+          processNotifications();
+        }, 50);
+      }
     }
-  }, [queryResult.dataUpdatedAt, queryResult.data, forceUpdate]);
+  }, [queryResult.dataUpdatedAt, queryResult.data, forceUpdate, notifications, processNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
     try {

@@ -46,6 +46,7 @@ import { getAvailableStaff, ensureValidStaffId, isValidStaffId } from '@/lib/ser
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { useNotifications } from '@/contexts/notifications-context';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -61,6 +62,7 @@ function CalendarContent() {
   const { state, actions } = useCalendar();
   const { toast } = useToast();
   const { merchant } = useAuth();
+  const { refreshNotifications } = useNotifications();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigateToToday,
@@ -844,9 +846,99 @@ function CalendarContent() {
               notes: booking.notes,
             }}
             staff={memoizedStaff}
-            onSave={(updatedBooking) => {
-              // Handle booking update
-              actions.updateBooking(state.detailsBookingId!, updatedBooking);
+            onSave={async (updatedBooking) => {
+              const originalBooking = state.bookings.find(b => b.id === state.detailsBookingId);
+              if (!originalBooking) return;
+              
+              // Parse the UTC time and convert to local date/time for display
+              const utcDate = new Date(updatedBooking.startTime);
+              // Get the local date string in YYYY-MM-DD format
+              const year = utcDate.getFullYear();
+              const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+              const day = String(utcDate.getDate()).padStart(2, '0');
+              const localDateStr = `${year}-${month}-${day}`;
+              
+              // Get the local time in HH:mm format
+              const hours = String(utcDate.getHours()).padStart(2, '0');
+              const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+              const localTimeStr = `${hours}:${minutes}`;
+              
+              // 1. OPTIMISTIC UPDATE - Update UI immediately
+              actions.updateBooking(state.detailsBookingId!, {
+                date: localDateStr,
+                time: localTimeStr,
+                staffId: updatedBooking.staffId,
+                staffName: updatedBooking.staffName,
+                notes: updatedBooking.notes
+              });
+              
+              try {
+                const originalStartTime = new Date(`${originalBooking.date}T${originalBooking.time}`);
+                const newStartTime = typeof updatedBooking.startTime === 'string' 
+                  ? new Date(updatedBooking.startTime)
+                  : updatedBooking.startTime;
+                const timeChanged = originalStartTime.getTime() !== newStartTime.getTime();
+                const staffChanged = originalBooking.staffId !== updatedBooking.staffId;
+                
+                // 2. Make API calls
+                if (timeChanged || staffChanged) {
+                  await apiClient.rescheduleBooking(state.detailsBookingId!, {
+                    startTime: updatedBooking.startTime,
+                    staffId: updatedBooking.staffId
+                  });
+                }
+                
+                // Update notes if changed
+                if (originalBooking.notes !== updatedBooking.notes) {
+                  await apiClient.updateBooking(state.detailsBookingId!, {
+                    notes: updatedBooking.notes
+                  });
+                }
+                
+                // Show detailed success toast
+                const updatedTime = new Date(updatedBooking.startTime);
+                const formattedTime = format(updatedTime, 'h:mm a');
+                const formattedDate = format(updatedTime, 'MMM d, yyyy');
+                
+                toast({
+                  title: 'Booking updated',
+                  description: (
+                    <div>
+                      <p>{booking.customerName}'s appointment has been rescheduled.</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        New time: {formattedDate} at {formattedTime}
+                      </p>
+                    </div>
+                  ),
+                  variant: "default",
+                  className: "bg-green-50 border-green-200",
+                  duration: 5000,
+                });
+                
+                // Trigger notification refresh after a delay
+                setTimeout(() => {
+                  refreshNotifications();
+                }, 2000);
+              } catch (error) {
+                // 3. ROLLBACK on error - restore original booking data
+                actions.updateBooking(state.detailsBookingId!, {
+                  date: originalBooking.date,
+                  time: originalBooking.time,
+                  staffId: originalBooking.staffId,
+                  staffName: originalBooking.staffName,
+                  notes: originalBooking.notes
+                });
+                
+                console.error('Error updating booking:', error);
+                toast({
+                  title: 'Error',
+                  description: 'Failed to update booking',
+                  variant: 'destructive',
+                });
+                
+                // Re-throw to let slideout know save failed
+                throw error;
+              }
             }}
             onDelete={(bookingId) => {
               actions.removeBooking(bookingId);

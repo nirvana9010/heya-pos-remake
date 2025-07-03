@@ -230,6 +230,11 @@ export class BookingsV2Controller {
     @Param('id') id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
+    console.log('[BookingsV2Controller] Update booking request:', {
+      bookingId: id,
+      dto: JSON.stringify(dto, null, 2),
+      merchantId: user.merchantId,
+    });
     
     const updateData: any = {
       bookingId: id,

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, BadRequestException, Headers } from '@nestjs/common';
 import { BookingAvailabilityService } from '../contexts/bookings/application/services/booking-availability.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/decorators/public.decorator';
@@ -32,7 +32,10 @@ export class AvailabilityController {
   ) {}
 
   @Get()
-  async getAvailability(@Query() query: GetAvailabilityDto) {
+  async getAvailability(
+    @Query() query: GetAvailabilityDto,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
     const startDate = new Date(query.startDate);
     const endDate = new Date(query.endDate);
     
@@ -51,13 +54,20 @@ export class AvailabilityController {
       throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
     }
 
-    // Get the first active merchant for now
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
+    // Get merchant by subdomain from header
+    if (!headerSubdomain) {
+      throw new BadRequestException('Merchant subdomain is required in x-merchant-subdomain header');
+    }
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { 
+        subdomain: headerSubdomain,
+        status: 'ACTIVE'
+      },
     });
 
     if (!merchant) {
-      throw new BadRequestException('No active merchant found');
+      throw new BadRequestException(`Merchant not found: ${headerSubdomain}`);
     }
 
     const slots = await this.availabilityService.getAvailableSlots({

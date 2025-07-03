@@ -37,13 +37,7 @@ export class NotificationsClient extends BaseApiClient {
     take?: number;
     unreadOnly?: boolean;
   }): Promise<NotificationsResponse> {
-    console.log('[NotificationsClient] Fetching notifications with params:', params);
     const result = await this.get('/merchant/notifications', { params });
-    console.log('[NotificationsClient] API Response:', {
-      dataCount: result.data?.length || 0,
-      unreadCount: result.unreadCount,
-      total: result.total
-    });
     return result;
   }
 

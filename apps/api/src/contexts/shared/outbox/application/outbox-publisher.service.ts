@@ -102,6 +102,12 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     // Construct the full event name with context
     const eventName = `${event.aggregateType}.${event.eventType}`;
     
+    this.logger.log(`[${new Date().toISOString()}] Publishing event ${eventName} with data:`, JSON.stringify({
+      aggregateId: event.aggregateId,
+      merchantId: event.merchantId,
+      ...event.eventData,
+    }, null, 2));
+    
     // Emit the event with the original event data
     await this.eventEmitter.emitAsync(eventName, {
       aggregateId: event.aggregateId,
