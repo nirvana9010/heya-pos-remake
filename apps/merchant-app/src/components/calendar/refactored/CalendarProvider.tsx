@@ -31,7 +31,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
         ? JSON.parse(savedStatusFilters) 
         : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? JSON.parse(savedStaffFilter) : [],
-      timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 30,
+      timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
     };
   } catch (error) {
     console.error('Error loading calendar preferences:', error);
@@ -49,7 +49,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   currentView: 'day',
   currentDate: new Date(),
   dateRange: { start: new Date(), end: new Date() },
-  timeInterval: savedPrefs.timeInterval || 30,
+  timeInterval: savedPrefs.timeInterval || 15,
   
   // Data
   bookings: [],

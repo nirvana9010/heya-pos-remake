@@ -229,11 +229,12 @@ export function BookingSlideOut({
 
   const generateWalkInCustomer = async () => {
     try {
-      // First, try to find an existing walk-in customer
-      const searchResponse = await apiClient.searchCustomers('Walk-in Customer');
-      const existingWalkInCustomer = searchResponse?.find((customer: any) => 
-        customer.name === 'Walk-in Customer' || 
-        (customer.firstName === 'Walk-in Customer' && customer.lastName === ' ')
+      // Search for existing walk-in customer
+      const searchResponse = await apiClient.searchCustomers('Walk-in');
+      const customers = searchResponse?.data || [];
+      const existingWalkInCustomer = customers.find((customer: any) => 
+        (customer.firstName === 'Walk-in' && customer.lastName === 'Customer') ||
+        customer.source === 'WALK_IN'
       );
       
       if (existingWalkInCustomer) {
@@ -243,7 +244,7 @@ export function BookingSlideOut({
           customerId: existingWalkInCustomer.id,
           customerName: 'Walk-in Customer',
           customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '0000000000',
-          customerEmail: existingWalkInCustomer.email || '',
+          customerEmail: '', // Never use email for walk-in
           isNewCustomer: false,
           isWalkIn: true
         });
@@ -344,8 +345,8 @@ export function BookingSlideOut({
               <CustomerSearchInput
                 value={formData.customerId ? {
                   id: formData.customerId,
-                  firstName: formData.isWalkIn ? formData.customerName : (formData.customerName.split(' ')[0] || ''),
-                  lastName: formData.isWalkIn ? ' ' : (formData.customerName.split(' ').slice(1).join(' ') || ''),
+                  firstName: formData.isWalkIn ? 'Walk-in' : (formData.customerName.split(' ')[0] || ''),
+                  lastName: formData.isWalkIn ? 'Customer' : (formData.customerName.split(' ').slice(1).join(' ') || ''),
                   name: formData.customerName,
                   phone: formData.customerPhone,
                   email: formData.customerEmail
