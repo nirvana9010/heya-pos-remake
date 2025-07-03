@@ -59,11 +59,9 @@ export function WeeklyView({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Fixed header row - matching scrollable area structure */}
+      {/* Fixed header row */}
       <div className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm">
-        <div className="flex h-full">
-          <div className="w-20 flex-shrink-0 border-r border-gray-100 bg-gray-50 h-full" />
-          <div className="flex flex-1 min-w-[860px]">
+        <div className="flex h-full min-w-[860px]">
             {weekDays.map((day) => {
               const dayBookings = filteredBookings.filter(b => 
                 isSameDay(parseISO(b.date), day)
@@ -103,7 +101,6 @@ export function WeeklyView({
                 </div>
               );
             })}
-          </div>
         </div>
       </div>
 
