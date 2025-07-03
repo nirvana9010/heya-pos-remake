@@ -116,8 +116,8 @@ export function WeeklyView({
             const dayBookings = bookingsByDay.get(dayKey) || [];
             
             return (
-              <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 min-h-full">
-                <div className="p-3 space-y-2">
+              <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 min-h-full overflow-hidden">
+                <div className="p-2 space-y-2">
                   {dayBookings.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm py-8">
                       No bookings
@@ -157,7 +157,7 @@ export function WeeklyView({
                         <div
                           key={booking.id}
                           className={cn(
-                            "cursor-pointer rounded relative overflow-hidden",
+                            "cursor-pointer rounded relative overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-md",
                             textColor,
                             booking.status === 'cancelled' && 'cancelled-booking',
                             booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]'
@@ -191,23 +191,21 @@ export function WeeklyView({
                               <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                             </div>
                           )}
-                          {/* Paid badge */}
-                          {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                          {/* Paid badge - only show on non-cancelled bookings */}
+                          {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && booking.status !== 'cancelled' && (
                             <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
                               PAID
                             </div>
                           )}
                           <div className={cn("font-bold truncate pr-20 text-base", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                            {booking.customerName}
+                            {booking.customerName?.replace(/Walk-in.*\d{1,2}-\d{1,2}(AM|PM)$/i, 'Walk-in').replace(/Walk-in \d{2}-\w+-\d{1,2}-\d{2}-\w+/i, 'Walk-in')}
                           </div>
                           <div className={cn("truncate text-sm mt-2 opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                             {booking.serviceName}
                           </div>
-                          {booking.staffName && !booking.staffId && (
-                            <div className={cn("text-sm mt-1 opacity-75", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                              Unassigned
-                            </div>
-                          )}
+                          <div className={cn("text-sm mt-1 opacity-75", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                            {booking.staffId ? (state.staff.find(s => s.id === booking.staffId)?.name || 'Unknown Staff') : 'Unassigned'}
+                          </div>
                         </div>
                       );
                     })
