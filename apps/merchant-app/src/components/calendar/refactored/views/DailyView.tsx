@@ -169,9 +169,9 @@ export function DailyView({
     const hoursFromStart = hour - CALENDAR_START_HOUR;
     const minutesFromStart = hoursFromStart * 60 + minute;
     
-    // Each slot is 60px tall
+    // Each slot is 40px tall
     // Calculate pixels per minute based on the current time interval
-    const pixelsPerMinute = 60 / state.timeInterval;
+    const pixelsPerMinute = 40 / state.timeInterval;
     const position = minutesFromStart * pixelsPerMinute;
     
     return { position, time: format(now, "h:mm a") };
@@ -190,9 +190,9 @@ export function DailyView({
     const hoursFromStart = scrollToHour - CALENDAR_START_HOUR; // Calendar starts at CALENDAR_START_HOUR
     
     // Calculate pixels per hour based on time interval
-    // Each slot is 60px tall, so slots per hour = 60 / timeInterval
+    // Each slot is 40px tall, so slots per hour = 60 / timeInterval
     const slotsPerHour = 60 / state.timeInterval;
-    const pixelsPerHour = slotsPerHour * 60;
+    const pixelsPerHour = slotsPerHour * 40;
     const scrollPosition = Math.max(0, hoursFromStart * pixelsPerHour);
     
     // Use setTimeout to ensure DOM is ready
@@ -355,7 +355,7 @@ export function DailyView({
                     <div
                       key={slot.time}
                       className={cn(
-                        "h-[60px] text-right pr-3 pt-1.5 transition-all duration-200",
+                        "h-[40px] text-right pr-3 pt-1 transition-all duration-200",
                         getBorderStyle(),
                         slot.minute === 0 && "bg-gradient-to-r from-gray-50 to-transparent", // Gradient for hour rows
                         !slot.isBusinessHours && "bg-gray-50/50" // Gray out non-business hours
@@ -391,7 +391,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={null}
                         className={cn(
-                          "h-[60px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100",
+                          "h-[40px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
@@ -504,7 +504,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${slotsSpanned * 60 - 4}px`,
+                                  height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   borderLeft: `${borderWidth}px solid ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
@@ -587,7 +587,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={staff.id}
                         className={cn(
-                          "h-[60px] cursor-pointer relative transition-colors duration-100",
+                          "h-[40px] cursor-pointer relative transition-colors duration-100",
                           staffIndex < visibleStaff.length - 1 && "border-r border-gray-100",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
@@ -701,7 +701,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${slotsSpanned * 60 - 4}px`,
+                                  height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   borderLeft: `${borderWidth}px solid ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,

@@ -59,6 +59,7 @@ import {
 import { type Booking } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 import { BookingActions } from '@/components/BookingActions';
+import { PaymentStatusBadge } from '@/components/PaymentStatusBadge';
 import { displayFormats, toMerchantTime } from '@/lib/date-utils';
 
 export default function BookingsManager() {
@@ -1139,11 +1140,9 @@ export default function BookingsManager() {
                                   <span className="font-medium">
                                     {displayFormats.time(bookingDate)}
                                   </span>
-                                  {!isToday(toMerchantTime(bookingDate)) && (
-                                    <span className="text-sm text-gray-500">
-                                      {displayFormats.date(bookingDate)}
-                                    </span>
-                                  )}
+                                  <span className="text-sm text-gray-500">
+                                    {displayFormats.date(bookingDate)}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Badge className={getStatusColor(booking.status || '')}>
@@ -1194,25 +1193,12 @@ export default function BookingsManager() {
                                 </div>
                                 
                                 <div className="text-right">
-                                  <div className="flex items-center justify-end gap-1">
-                                    {booking.paidAmount > 0 ? (
-                                      <CheckCircle className="h-4 w-4 text-green-500" />
-                                    ) : (
-                                      <DollarSign className="h-4 w-4 text-gray-400" />
-                                    )}
-                                    <span className={cn(
-                                      "font-medium",
-                                      booking.paidAmount > 0 && "text-green-600"
-                                    )}>
-                                      ${Number(booking.totalAmount || booking.price || 0).toFixed(2)}
-                                    </span>
-                                  </div>
-                                  {booking.paidAmount > 0 && (
-                                    <span className="text-xs text-green-600">Paid</span>
-                                  )}
-                                  {!booking.paidAmount && booking.status?.toLowerCase() !== 'cancelled' && (
-                                    <span className="text-xs text-orange-600">Unpaid</span>
-                                  )}
+                                  <PaymentStatusBadge
+                                    isPaid={booking.paidAmount > 0}
+                                    amount={Number(booking.totalAmount || booking.price || 0)}
+                                    isCancelled={booking.status?.toLowerCase() === 'cancelled'}
+                                    size="sm"
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -1229,7 +1215,6 @@ export default function BookingsManager() {
                                 variant="inline"
                                 showEdit={false}
                                 showDelete={false}
-                                showReminder={isUpcoming}
                                 showPayment={booking.status?.toLowerCase() !== 'cancelled'}
                                 onStatusChange={async (bookingId, status) => {
                                   try {
@@ -1258,7 +1243,6 @@ export default function BookingsManager() {
                                 }}
                                 onPaymentToggle={(bookingId) => handleMarkPaid(bookingId, booking.totalAmount || booking.price || 0)}
                                 onProcessPayment={handleProcessPayment}
-                                onSendReminder={handleSendReminder}
                                 onReschedule={(bookingId) => router.push(`/bookings/${bookingId}/edit`)}
                                 onEdit={(bookingId) => router.push(`/bookings/${bookingId}`)}
                               />
