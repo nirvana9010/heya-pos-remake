@@ -786,12 +786,6 @@ function CalendarContent() {
             {currentView === 'week' && (
               <WeeklyView
                 onBookingClick={handleBookingClick}
-                onTimeSlotClick={handleTimeSlotClick}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEndEvent}
-                activeBooking={activeBooking}
-                dragOverSlot={dragOverSlot}
               />
             )}
             {currentView === 'month' && (
