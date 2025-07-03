@@ -256,33 +256,61 @@ function CalendarContent() {
       let finalCustomerId = bookingData.customerId;
       
       if (bookingData.isNewCustomer) {
-        // Create the customer first
-        // Generate unique email for walk-in customers using timestamp
-        const timestamp = Date.now();
-        const walkInEmail = `walkin-${timestamp}@heya-pos.local`;
-        
-        const customerData: any = {
-          firstName: bookingData.customerName.split(' ')[0] || 'Walk-in',
-          lastName: bookingData.customerName.split(' ').slice(1).join(' ') || 'Customer',
-          phone: bookingData.customerPhone || '0000000000',
-          notes: bookingData.isWalkIn ? 'Walk-in customer' : ''
-        };
-        
-        // Only include email if it's provided or if it's a walk-in customer
-        if (bookingData.customerEmail) {
-          customerData.email = bookingData.customerEmail;
-        } else if (bookingData.isWalkIn) {
-          customerData.email = walkInEmail;
+        // For walk-in customers, check if we already have one
+        if (bookingData.isWalkIn) {
+          try {
+            // First, try to find an existing walk-in customer
+            const searchResponse = await apiClient.searchCustomers('Walk-in Customer');
+            const existingWalkInCustomer = searchResponse?.find((customer: any) => 
+              customer.name === 'Walk-in Customer' || 
+              (customer.firstName === 'Walk-in Customer' && customer.lastName === ' ')
+            );
+            
+            if (existingWalkInCustomer) {
+              // Use existing walk-in customer
+              finalCustomerId = existingWalkInCustomer.id;
+            } else {
+              // Create a single walk-in customer that can be reused
+              const customerData = {
+                firstName: 'Walk-in Customer',
+                lastName: ' ', // Space to satisfy API requirements
+                phone: '0000000000',
+                email: 'walkin@heya-pos.local', // Static email for walk-in customer
+                notes: 'Shared walk-in customer account'
+              };
+              
+              const newCustomer = await apiClient.createCustomer(customerData);
+              finalCustomerId = newCustomer.id;
+              
+              // Update the local state with the new customer
+              actions.setCustomers([...state.customers, {
+                ...newCustomer,
+                name: 'Walk-in Customer'
+              }]);
+            }
+          } catch (error) {
+            console.error('Failed to handle walk-in customer:', error);
+            throw new Error('Failed to process walk-in customer');
+          }
+        } else {
+          // Regular new customer creation
+          const customerData: any = {
+            firstName: bookingData.isWalkIn ? bookingData.customerName : (bookingData.customerName.split(' ')[0] || ''),
+            lastName: bookingData.isWalkIn ? ' ' : (bookingData.customerName.split(' ').slice(1).join(' ') || ''),
+            phone: bookingData.customerPhone || '',
+            email: bookingData.customerEmail || undefined,
+            notes: ''
+          };
+          
+          const newCustomer = await apiClient.createCustomer(customerData);
+          finalCustomerId = newCustomer.id;
+          
+          // Update the local state with the new customer
+          actions.setCustomers([...state.customers, {
+            ...newCustomer,
+            name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim()
+          }]);
         }
-        
-        const newCustomer = await apiClient.createCustomer(customerData);
-        finalCustomerId = newCustomer.id;
-        
-        // Update the local state with the new customer
-        actions.setCustomers([...state.customers, {
-          ...newCustomer,
-          name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim()
-        }]);
       }
       
       // Prepare the booking request data
@@ -744,8 +772,6 @@ function CalendarContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="15">15m</SelectItem>
-                    <SelectItem value="30">30m</SelectItem>
-                    <SelectItem value="60">1h</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

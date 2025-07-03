@@ -34,7 +34,6 @@ export interface BookingActionsProps {
   variant?: "inline" | "stacked";
   showEdit?: boolean;
   showDelete?: boolean;
-  showReminder?: boolean;
   showPayment?: boolean;
   isPaymentProcessing?: boolean;
   isStatusUpdating?: boolean;
@@ -43,7 +42,6 @@ export interface BookingActionsProps {
   onProcessPayment?: (bookingId: string) => void;
   onEdit?: (bookingId: string) => void;
   onDelete?: (bookingId: string) => void;
-  onSendReminder?: (booking: any) => void;
   onReschedule?: (bookingId: string) => void;
 }
 
@@ -53,7 +51,6 @@ export function BookingActions({
   variant = "inline",
   showEdit = true,
   showDelete = true,
-  showReminder = true,
   showPayment = true,
   isPaymentProcessing = false,
   isStatusUpdating = false,
@@ -62,7 +59,6 @@ export function BookingActions({
   onProcessPayment,
   onEdit,
   onDelete,
-  onSendReminder,
   onReschedule
 }: BookingActionsProps) {
   const status = booking.status?.toLowerCase();
@@ -197,28 +193,6 @@ export function BookingActions({
             </Button>
           )}
         </>
-      )}
-
-      {/* Communication Actions */}
-      {showReminder && isUpcoming && onSendReminder && (booking.customerPhone || booking.customerEmail) && (
-        <Button
-          size={size}
-          variant="outline"
-          onClick={() => onSendReminder(booking)}
-          className="flex items-center gap-1"
-        >
-          {booking.customerPhone ? (
-            <>
-              <MessageSquare className="h-4 w-4" />
-              SMS Reminder
-            </>
-          ) : (
-            <>
-              <Mail className="h-4 w-4" />
-              Email Reminder
-            </>
-          )}
-        </Button>
       )}
 
       {/* Edit Actions */}

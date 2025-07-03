@@ -227,29 +227,51 @@ export function BookingSlideOut({
   const selectedService = services.find(s => s.id === formData.serviceId);
   const selectedStaff = filteredStaff.find(s => s.id === formData.staffId);
 
-  const generateWalkInCustomer = () => {
-    // Use the selected booking date and time, not the current time
-    const bookingDateTime = new Date(formData.date);
-    bookingDateTime.setHours(formData.time.getHours());
-    bookingDateTime.setMinutes(formData.time.getMinutes());
-    
-    // Format the datetime in merchant's timezone for consistent display
-    const dateStr = formatInMerchantTz(bookingDateTime, 'date');
-    const timeStr = formatInMerchantTz(bookingDateTime, 'time');
-    
-    // Extract month, day, and time components for the walk-in name
-    const monthDay = format(bookingDateTime, "MMM-dd");
-    const time = timeStr.replace(/\s/g, '').toUpperCase(); // Remove spaces and uppercase AM/PM
-    
-    setFormData({
-      ...formData,
-      customerId: '', // Will be created as new customer
-      customerName: `Walk-in ${monthDay}-${time}`,
-      customerPhone: '0000000000', // Placeholder phone
-      customerEmail: '',
-      isNewCustomer: true,
-      isWalkIn: true // Add flag to track walk-in status
-    });
+  const generateWalkInCustomer = async () => {
+    try {
+      // First, try to find an existing walk-in customer
+      const searchResponse = await apiClient.searchCustomers('Walk-in Customer');
+      const existingWalkInCustomer = searchResponse?.find((customer: any) => 
+        customer.name === 'Walk-in Customer' || 
+        (customer.firstName === 'Walk-in Customer' && customer.lastName === ' ')
+      );
+      
+      if (existingWalkInCustomer) {
+        // Use existing walk-in customer
+        setFormData({
+          ...formData,
+          customerId: existingWalkInCustomer.id,
+          customerName: 'Walk-in Customer',
+          customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '0000000000',
+          customerEmail: existingWalkInCustomer.email || '',
+          isNewCustomer: false,
+          isWalkIn: true
+        });
+      } else {
+        // No existing walk-in customer found, will create one on first use
+        setFormData({
+          ...formData,
+          customerId: '', // Will be created as new customer
+          customerName: 'Walk-in Customer',
+          customerPhone: '0000000000', // Placeholder phone
+          customerEmail: '',
+          isNewCustomer: true,
+          isWalkIn: true
+        });
+      }
+    } catch (error) {
+      console.error('Failed to search for existing walk-in customer:', error);
+      // Fallback to creating new walk-in customer
+      setFormData({
+        ...formData,
+        customerId: '',
+        customerName: 'Walk-in Customer',
+        customerPhone: '0000000000',
+        customerEmail: '',
+        isNewCustomer: true,
+        isWalkIn: true
+      });
+    }
     
     // Auto-proceed to next step
     handleNext();
@@ -322,8 +344,8 @@ export function BookingSlideOut({
               <CustomerSearchInput
                 value={formData.customerId ? {
                   id: formData.customerId,
-                  firstName: formData.customerName.split(' ')[0] || '',
-                  lastName: formData.customerName.split(' ').slice(1).join(' ') || '',
+                  firstName: formData.isWalkIn ? formData.customerName : (formData.customerName.split(' ')[0] || ''),
+                  lastName: formData.isWalkIn ? ' ' : (formData.customerName.split(' ').slice(1).join(' ') || ''),
                   name: formData.customerName,
                   phone: formData.customerPhone,
                   email: formData.customerEmail
