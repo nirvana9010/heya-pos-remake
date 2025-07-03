@@ -8,6 +8,9 @@ import {
 @ValidatorConstraint({ async: false })
 export class IsValidPhoneConstraint implements ValidatorConstraintInterface {
   validate(phoneNumber: any): boolean {
+    // Allow empty values (null, undefined, empty string) for optional fields
+    if (!phoneNumber || phoneNumber === '') return true;
+    
     if (typeof phoneNumber !== 'string') return false;
     
     // Remove all non-numeric characters except + at the beginning

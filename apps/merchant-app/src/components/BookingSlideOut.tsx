@@ -243,7 +243,7 @@ export function BookingSlideOut({
           ...formData,
           customerId: existingWalkInCustomer.id,
           customerName: 'Walk-in Customer',
-          customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '0000000000',
+          customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '',
           customerEmail: '', // Never use email for walk-in
           isNewCustomer: false,
           isWalkIn: true
@@ -254,7 +254,7 @@ export function BookingSlideOut({
           ...formData,
           customerId: '', // Will be created as new customer
           customerName: 'Walk-in Customer',
-          customerPhone: '0000000000', // Placeholder phone
+          customerPhone: '', // No phone for walk-in
           customerEmail: '',
           isNewCustomer: true,
           isWalkIn: true
@@ -267,7 +267,7 @@ export function BookingSlideOut({
         ...formData,
         customerId: '',
         customerName: 'Walk-in Customer',
-        customerPhone: '0000000000',
+        customerPhone: '',
         customerEmail: '',
         isNewCustomer: true,
         isWalkIn: true
@@ -421,7 +421,7 @@ export function BookingSlideOut({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="customerPhone">Phone *</Label>
+                    <Label htmlFor="customerPhone">Phone</Label>
                     <Input
                       id="customerPhone"
                       value={formData.customerPhone}
@@ -678,10 +678,12 @@ export function BookingSlideOut({
                   <span className="text-gray-600">Customer:</span>
                   <span className="font-medium">{formData.customerName}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Phone:</span>
-                  <span className="font-medium">{formData.customerPhone}</span>
-                </div>
+                {formData.customerPhone && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phone:</span>
+                    <span className="font-medium">{formData.customerPhone}</span>
+                  </div>
+                )}
                 {selectedService && (
                   <>
                     <div className="flex justify-between">
@@ -764,7 +766,7 @@ export function BookingSlideOut({
       case "service":
         return formData.serviceId;
       case "customer":
-        return formData.customerName && formData.customerPhone;
+        return formData.customerName; // Only name is required
       default:
         return true;
     }

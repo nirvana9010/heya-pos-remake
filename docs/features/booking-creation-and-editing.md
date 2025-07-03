@@ -84,7 +84,7 @@ The booking creation follows a 4-step wizard:
 When merchant settings allow (`allowWalkInBookings`):
 - Generate walk-in customer with timestamp
 - Format: "Walk-in MMM-DD-HH:MM[AM/PM]"
-- Placeholder phone number (0000000000)
+- No phone number or email required
 - Customer source marked as 'WALK_IN'
 
 ### Staff Assignment

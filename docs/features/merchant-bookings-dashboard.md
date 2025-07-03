@@ -216,7 +216,7 @@ pm2 logs merchant-app | grep -i error
 
 ## 🔗 Related Documentation
 
-- [Booking States Documentation](./booking-states.md)
+- [Booking States Documentation](./booking-status-lifecycle.md)
 - [Calendar View Documentation](./calendar.md)
 - [Customer Booking App](./customer-booking-app.md)
 - [API v2 Documentation](../api/v2-endpoints.md)

@@ -178,13 +178,14 @@ getAvailableStaff()
    - Recent customers shown first
    
 2. Create new customer
-   - Name (required)
-   - Phone (required)
+   - First Name (required)
+   - Last Name (optional)
+   - Phone (optional)
    - Email (optional)
    
 3. Walk-in customer
    - Auto-generates name: "Walk-in MMM-DD-HH:MMAM"
-   - Placeholder phone: "0000000000"
+   - No phone number required
    - No email required
 ```
 
@@ -463,9 +464,9 @@ pm2 logs api | grep -E "POST.*bookings|PATCH.*bookings"
 
 ## 🔗 Related Documentation
 
-- [BookingsManager Documentation](./bookings-manager.md)
+- [BookingsManager Documentation](./merchant-bookings-dashboard.md)
 - [Calendar View Documentation](./calendar.md)
-- [Booking States Documentation](./booking-states.md)
+- [Booking States Documentation](./booking-status-lifecycle.md)
 - [Customer Booking App](./customer-booking-app.md)
 - [Staff Management](./staff-management.md)
 
@@ -476,6 +477,10 @@ pm2 logs api | grep -E "POST.*bookings|PATCH.*bookings"
 2. Added walk-in customer support with auto-naming
 3. Improved staff availability real-time checking
 4. Enhanced error handling and user feedback
+5. Made phone and email fields optional for all customers
+6. Made lastName optional in customer creation
+7. Fixed phone validation to allow empty values
+8. Walk-in customers no longer have placeholder phone numbers
 
 ### Recommended Future Enhancements
 1. **Recurring Bookings**: Weekly/monthly repeat options
@@ -495,7 +500,7 @@ pm2 logs api | grep -E "POST.*bookings|PATCH.*bookings"
 
 ---
 
-**Last Updated**: 2025-07-02  
+**Last Updated**: 2025-07-03  
 **Next Review Date**: 2025-10-02
 
 <!-- 

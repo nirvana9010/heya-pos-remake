@@ -193,5 +193,5 @@ npm run test -- packages/utils/src/__tests__/timezone.test.ts
 ---
 
 **See Also**: 
-- [Booking Manager](/docs/features/bookings-manager.md)
+- [Booking Manager](/docs/features/merchant-bookings-dashboard.md)
 - [Merchant Settings](/docs/features/merchant-settings.md)
