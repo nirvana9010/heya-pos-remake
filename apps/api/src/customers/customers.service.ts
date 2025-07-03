@@ -50,9 +50,25 @@ export class CustomersService {
 
     return this.prisma.customer.create({
       data: {
-        ...dto,
-        merchantId,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone,
+        mobile: dto.mobile,
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
+        gender: dto.gender,
+        address: dto.address,
+        suburb: dto.suburb,
+        city: dto.city,
+        state: dto.state,
+        country: dto.country,
+        postalCode: dto.postalCode,
+        notes: dto.notes,
+        tags: dto.tags,
+        preferredLanguage: dto.preferredLanguage,
+        marketingConsent: dto.marketingConsent,
+        source: dto.source,
+        merchantId,
       },
     });
   }

@@ -170,9 +170,9 @@ export const requestSchemas = {
 
   createCustomer: {
     firstName: validators.required,
-    lastName: validators.required,
-    email: validators.email,
-    phone: validators.required,
+    lastName: validators.optional(validators.string),
+    email: validators.optional(validators.email),
+    phone: validators.optional(validators.string),
     mobile: validators.optional(validators.string),
     notes: validators.optional(validators.string)
   },

@@ -28,10 +28,10 @@ export class CreateCustomerDto {
   firstName: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MinLength(1)
   @MaxLength(50)
-  lastName: string;
+  lastName?: string;
 
   @IsString()
   @IsOptional()

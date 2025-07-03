@@ -198,7 +198,7 @@ node -e "const {PrismaClient} = require('@prisma/client'); const p = new PrismaC
 
 ## 🔗 Related Documentation
 
-- [Notification System Documentation](./notifications.md)
+- [Notification System Documentation](./real-time-merchant-notifications.md)
 - [Cache Strategy Documentation](./caching.md)
 - [Event Sourcing Pattern](./event-sourcing.md)
 

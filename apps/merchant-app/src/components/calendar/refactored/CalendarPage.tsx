@@ -275,7 +275,6 @@ function CalendarContent() {
               const customerData = {
                 firstName: 'Walk-in',
                 lastName: 'Customer', // Use 'Customer' as last name instead of space
-                phone: '0000000000',
                 notes: 'Shared walk-in customer account',
                 source: 'WALK_IN'
               };
