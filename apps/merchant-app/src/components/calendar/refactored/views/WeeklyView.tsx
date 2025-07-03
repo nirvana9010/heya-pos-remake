@@ -169,40 +169,52 @@ export function WeeklyView({
                           }}
                           onClick={() => onBookingClick(booking)}
                         >
-                          {/* Time and duration */}
-                          {booking.status !== 'cancelled' && (
-                            <div className="absolute top-2 right-2 text-sm font-medium opacity-75">
-                              {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                          {/* Top row: Time/duration and completed indicator */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {/* Completed indicator */}
+                              {(booking.completedAt || booking.status === 'completed') && (
+                                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                </div>
+                              )}
+                              {/* Time and duration */}
+                              {booking.status !== 'cancelled' && (
+                                <div className="text-sm font-medium opacity-75">
+                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {/* Completed indicator */}
-                          {(booking.completedAt || booking.status === 'completed') && (
-                            <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                            </div>
-                          )}
-                          {/* Cancelled indicator */}
-                          {booking.status === 'cancelled' && (
-                            <div className="absolute top-2 right-2 flex items-center gap-1">
-                              <X className="w-5 h-5 text-red-600" strokeWidth={3} />
-                              <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
-                            </div>
-                          )}
+                            {/* Cancelled indicator */}
+                            {booking.status === 'cancelled' && (
+                              <div className="flex items-center gap-1">
+                                <X className="w-5 h-5 text-red-600" strokeWidth={3} />
+                                <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Customer name */}
+                          <div className="font-bold truncate text-base">
+                            {booking.customerName?.replace(/Walk-in.*\d{1,2}-\d{1,2}(AM|PM)$/i, 'Walk-in').replace(/Walk-in \d{2}-\w+-\d{1,2}-\d{2}-\w+/i, 'Walk-in')}
+                          </div>
+                          
+                          {/* Service name */}
+                          <div className="truncate text-sm mt-2 opacity-90">
+                            {booking.serviceName}
+                          </div>
+                          
+                          {/* Staff name */}
+                          <div className="text-sm mt-1 opacity-75">
+                            {booking.staffId ? (state.staff.find(s => s.id === booking.staffId)?.name || 'Unknown Staff') : 'Unassigned'}
+                          </div>
+                          
                           {/* Paid badge - only show on non-cancelled bookings */}
                           {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && booking.status !== 'cancelled' && (
                             <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
                               PAID
                             </div>
                           )}
-                          <div className={cn("font-bold truncate pr-20 text-base", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                            {booking.customerName?.replace(/Walk-in.*\d{1,2}-\d{1,2}(AM|PM)$/i, 'Walk-in').replace(/Walk-in \d{2}-\w+-\d{1,2}-\d{2}-\w+/i, 'Walk-in')}
-                          </div>
-                          <div className={cn("truncate text-sm mt-2 opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                            {booking.serviceName}
-                          </div>
-                          <div className={cn("text-sm mt-1 opacity-75", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                            {booking.staffId ? (state.staff.find(s => s.id === booking.staffId)?.name || 'Unknown Staff') : 'Unassigned'}
-                          </div>
                         </div>
                       );
                     })
