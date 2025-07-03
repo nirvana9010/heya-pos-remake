@@ -156,10 +156,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   const observer = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       if (entry.duration > 50) {
-        console.warn('[DevPerformanceMonitor] Long task detected:', {
-          duration: `${entry.duration.toFixed(2)}ms`,
-          startTime: `${entry.startTime.toFixed(2)}ms`,
-        });
+        // Long task detected - logging removed to reduce console clutter
       }
     }
   });

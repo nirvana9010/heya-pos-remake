@@ -19,11 +19,7 @@ export function PerformanceMonitor() {
         const observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
             if (entry.duration > 50) {
-              console.warn(`[Performance] Long task detected:`, {
-                duration: Math.round(entry.duration),
-                startTime: Math.round(entry.startTime),
-                pathname: pathname
-              })
+              // Long task detected - logging removed to reduce console clutter
             }
           }
         })

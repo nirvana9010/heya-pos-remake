@@ -5,6 +5,7 @@ import { NotificationsService } from '../notifications.service';
 import { MerchantNotificationsService } from '../merchant-notifications.service';
 import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../prisma/prisma.service';
+import { format } from 'date-fns';
 
 @Injectable()
 export class NotificationEventHandler {
@@ -268,6 +269,74 @@ export class NotificationEventHandler {
     }
   }
 
+  @OnEvent('booking.rescheduled')
+  async handleBookingRescheduled(event: { 
+    bookingId: string; 
+    oldStartTime?: Date | string;
+    newStartTime?: Date | string;
+    oldEndTime?: Date | string;
+    newEndTime?: Date | string;
+  }): Promise<void> {
+    try {
+      this.logger.log(`[${new Date().toISOString()}] Handling booking rescheduled event:`, {
+        bookingId: event.bookingId,
+        oldStartTime: event.oldStartTime,
+        newStartTime: event.newStartTime
+      });
+
+      // Fetch booking details
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: event.bookingId },
+        include: {
+          customer: true,
+          merchant: true,
+          provider: true,
+          services: {
+            include: {
+              service: true,
+              staff: true,
+            },
+          },
+          location: true,
+        },
+      });
+
+      if (!booking) {
+        this.logger.error(`Booking not found: ${event.bookingId}`);
+        return;
+      }
+
+      // Create merchant notification
+      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const firstService = booking.services[0];
+      
+      this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for rescheduled booking ${booking.id}`);
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        'booking_modified',
+        {
+          id: booking.id,
+          customerName,
+          serviceName: firstService?.service?.name || 'Service',
+          startTime: booking.startTime,
+          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+        },
+        'has been rescheduled',
+      );
+      this.logger.log(`[${new Date().toISOString()}] Merchant notification created for rescheduled booking ${booking.id}`);
+
+      // Cancel old reminders and schedule new ones
+      await this.cancelReminders(booking.id);
+      if (event.newStartTime) {
+        const newStartDate = typeof event.newStartTime === 'string' ? new Date(event.newStartTime) : event.newStartTime;
+        await this.scheduleReminders(booking.id, newStartDate);
+      }
+
+    } catch (error) {
+      this.logger.error(`Failed to handle booking rescheduled event: ${event.bookingId}`, error);
+    }
+  }
+
   @OnEvent('booking.completed')
   async handleBookingCompleted(event: { bookingId: string }): Promise<void> {
     try {
@@ -314,54 +383,6 @@ export class NotificationEventHandler {
       this.logger.log(`Booking completed notification created for booking ${event.bookingId}`);
     } catch (error) {
       this.logger.error(`Failed to handle booking completed event for ${event.bookingId}`, error);
-    }
-  }
-
-  @OnEvent('booking.modified')
-  async handleBookingModified(event: { bookingId: string; changes: string }): Promise<void> {
-    try {
-      this.logger.log(`Handling booking modified event: ${event.bookingId}`);
-
-      // Fetch booking details
-      const booking = await this.prisma.booking.findUnique({
-        where: { id: event.bookingId },
-        include: {
-          customer: true,
-          merchant: true,
-          provider: true,
-          services: {
-            include: {
-              service: true,
-              staff: true,
-            },
-          },
-          location: true,
-        },
-      });
-
-      if (!booking) {
-        this.logger.error(`Booking not found: ${event.bookingId}`);
-        return;
-      }
-
-      // Create merchant notification
-      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
-      const firstService = booking.services[0];
-      await this.merchantNotificationsService.createBookingNotification(
-        booking.merchantId,
-        'booking_modified',
-        {
-          id: booking.id,
-          customerName,
-          serviceName: firstService?.service?.name || 'Service',
-          startTime: booking.startTime,
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
-        },
-        event.changes
-      );
-
-    } catch (error) {
-      this.logger.error(`Failed to handle booking modified event: ${event.bookingId}`, error);
     }
   }
 }

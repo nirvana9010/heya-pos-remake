@@ -4,6 +4,8 @@ import { BookingCreationService } from './booking-creation.service';
 import { BookingAvailabilityService } from './booking-availability.service';
 import { TimezoneUtils } from '../../../../utils/shared/timezone';
 import { toNumber } from '../../../../utils/decimal';
+import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
+import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 
 export interface PublicCreateBookingData {
   customerName: string;
@@ -32,6 +34,7 @@ export class PublicBookingService {
     private readonly prisma: PrismaService,
     private readonly bookingCreationService: BookingCreationService,
     private readonly bookingAvailabilityService: BookingAvailabilityService,
+    private readonly outboxRepository: OutboxEventRepository,
   ) {}
 
   async createPublicBooking(dto: PublicCreateBookingData, merchantId: string) {
@@ -250,6 +253,30 @@ export class PublicBookingService {
           
           currentStartTime = new Date(currentStartTime.getTime() + service.duration * 60 * 1000);
         }
+
+        // Create OutboxEvent for notification system
+        const outboxEvent = OutboxEvent.create({
+          aggregateId: newBooking.id,
+          aggregateType: 'booking',  // lowercase to match handler
+          eventType: 'created',      // lowercase to match handler
+          eventData: {
+            bookingId: newBooking.id,
+            bookingNumber: newBooking.bookingNumber,
+            customerId: newBooking.customerId,
+            staffId: newBooking.providerId,
+            serviceId: services[0]?.id, // First service for backward compatibility
+            locationId: newBooking.locationId,
+            startTime: newBooking.startTime,
+            endTime: newBooking.endTime,
+            status: newBooking.status,
+            totalAmount: newBooking.totalAmount,
+            source: newBooking.source,
+          },
+          eventVersion: 1,
+          merchantId: newBooking.merchantId,
+        });
+
+        await this.outboxRepository.save(outboxEvent, tx);
 
         return newBooking;
       });

@@ -49,7 +49,7 @@
     "@playwright/test": "^1.53.1",
     "concurrently": "^8.2.2",
     "madge": "^8.0.0",
-    "playwright": "^1.53.0",
+    "playwright": "^1.53.2",
     "prettier": "^3.2.5",
     "puppeteer": "^24.11.1",
     "supabase": "^2.26.9",
@@ -64,6 +64,7 @@
     "@types/nodemailer": "^6.4.17",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "nodemailer": "^7.0.3"
   }
 }

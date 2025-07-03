@@ -5,6 +5,7 @@ import { BookingSlideOut } from '@/components/BookingSlideOut';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { format } from 'date-fns';
 
 interface BookingContextType {
   openBookingSlideout: () => void;
@@ -101,10 +102,29 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       // Reload bookings to refresh any components using the data
       const updatedBookings = await apiClient.getBookings();
       setBookings(updatedBookings);
-    } catch (error) {
+    } catch (error: any) {
+      // Extract error message from the API response
+      const errorMessage = error?.response?.data?.message || 
+                         error?.message || 
+                         "Failed to create booking. Please try again.";
+      
+      // Check if this is a conflict error with detailed information
+      const conflicts = error?.response?.data?.conflicts;
+      let description = errorMessage;
+      
+      if (conflicts && Array.isArray(conflicts)) {
+        // Show the first conflict details
+        const firstConflict = conflicts[0];
+        if (firstConflict) {
+          const conflictStart = new Date(firstConflict.startTime);
+          const conflictTime = format(conflictStart, 'h:mm a');
+          description = `${errorMessage}. There's already a booking at ${conflictTime}.`;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create booking. Please try again.",
+        description,
         variant: "destructive",
       });
     }

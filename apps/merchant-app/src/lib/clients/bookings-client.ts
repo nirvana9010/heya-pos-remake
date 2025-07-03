@@ -7,7 +7,9 @@ export interface Booking {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  serviceId: string;
   serviceName: string;
+  staffId: string;
   staffName: string;
   startTime: string;
   status: string;
@@ -15,6 +17,7 @@ export interface Booking {
   totalAmount: number;
   duration: number;
   date: string; // For backward compatibility
+  notes?: string;
 }
 
 export interface CreateBookingRequest {
@@ -134,7 +137,6 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async rescheduleBooking(id: string, data: RescheduleBookingRequest): Promise<Booking> {
-    
     // Use V2 API for rescheduling as it handles time updates better
     const updateData: any = {
       startTime: data.startTime,
@@ -145,13 +147,8 @@ export class BookingsClient extends BaseApiClient {
       updateData.staffId = data.staffId;
     }
     
-    
-    try {
-      const booking = await this.patch(`/bookings/${id}`, updateData, undefined, 'v2');
-      return this.transformBooking(booking);
-    } catch (error) {
-      throw error;
-    }
+    const booking = await this.patch(`/bookings/${id}`, updateData, undefined, 'v2');
+    return this.transformBooking(booking);
   }
 
   // V2 booking status update methods
@@ -244,6 +241,8 @@ export class BookingsClient extends BaseApiClient {
       totalAmount: totalAmount,
       duration,
       date: booking.startTime, // For backward compatibility
+      serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
+      staffId: booking.staffId || booking.providerId || '',
     };
   }
 

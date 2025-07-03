@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { type Booking, type Service, type Staff } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 import { toMerchantTime } from '@/lib/date-utils';
+import { fromZonedTime } from 'date-fns-tz';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -41,6 +42,13 @@ export default function EditBookingPage() {
         apiClient.getServices(),
         apiClient.getStaff()
       ]);
+      
+      console.log('=== LOADED BOOKING DATA ===');
+      console.log('Raw booking data:', bookingData);
+      console.log('StartTime:', bookingData.startTime);
+      console.log('Date:', bookingData.date);
+      console.log('ServiceId:', bookingData.serviceId);
+      console.log('StaffId:', bookingData.staffId);
       
       setBooking(bookingData);
       setServices(servicesData);
@@ -75,42 +83,160 @@ export default function EditBookingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('\n\n=== EDIT BOOKING FORM SUBMITTED ===');
+    console.log('Form event type:', e.type);
+    console.log('Saving state before:', saving);
+    
+    // Log EXACTLY what's in the form inputs right now
+    const dateInput = (document.getElementById('date') as HTMLInputElement)?.value;
+    const timeInput = (document.getElementById('time') as HTMLInputElement)?.value;
+    console.log('\n🔍 ACTUAL INPUT VALUES:');
+    console.log('Date input value:', dateInput);
+    console.log('Time input value:', timeInput);
+    console.log('\n📋 FORM STATE:');
+    console.log('formData.date:', formData.date);
+    console.log('formData.startTime:', formData.startTime);
+    console.log('\n📅 ORIGINAL BOOKING:');
+    console.log('booking.startTime:', booking?.startTime);
+    
+    // Prevent double submission
+    if (saving) {
+      console.log('Already saving, ignoring duplicate submission');
+      return;
+    }
     
     try {
       setSaving(true);
+      console.log('\nSetting saving to true');
+      console.log('Full form data:', JSON.stringify(formData, null, 2));
+      console.log('Full booking data:', JSON.stringify(booking, null, 2));
       
       const selectedService = services.find(s => s.id === formData.serviceId);
       const selectedStaff = staff.find(s => s.id === formData.staffId);
+      
+      console.log('Selected service:', selectedService);
+      console.log('Selected staff:', selectedStaff);
       
       if (!selectedService || !selectedStaff) {
         throw new Error('Invalid service or staff selection');
       }
       
-      // Calculate end time based on service duration
-      const [hours, minutes] = formData.startTime.split(':').map(Number);
-      const startDate = new Date();
-      startDate.setHours(hours, minutes, 0, 0);
-      const endDate = new Date(startDate.getTime() + selectedService.duration * 60000);
-      const endTime = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+      // Construct the full startTime ISO string by combining date and time
+      const startTime = `${formData.date}T${formData.startTime}:00`;
       
-      await apiClient.updateBooking(params.id as string, {
-        serviceId: formData.serviceId,
-        serviceName: selectedService.name,
-        staffId: formData.staffId,
-        staffName: selectedStaff.name,
-        date: new Date(formData.date),
-        startTime: formData.startTime,
-        endTime,
-        duration: selectedService.duration,
-        price: selectedService.price,
-        notes: formData.notes
+      // Debug logging
+      console.log('Edit booking debug:', {
+        originalStartTime: booking.startTime,
+        newStartTime: startTime,
+        formData,
+        booking
       });
       
+      // Normalize times for comparison
+      // The API returns startTime with timezone (e.g., "2025-07-02T10:00:00.000Z")
+      // We need to properly handle timezone conversion
+      let timeChanged = false;
+      
+      if (booking.startTime) {
+        // Create a date object in merchant timezone from our form data
+        const [year, month, day] = formData.date.split('-').map(Number);
+        const [hours, minutes] = formData.startTime.split(':').map(Number);
+        const newDateInMerchantTZ = new Date(year, month - 1, day, hours, minutes, 0);
+        
+        // Convert to UTC for comparison
+        const newDateUTC = fromZonedTime(newDateInMerchantTZ, 'Australia/Sydney');
+        
+        // Parse the original time (already in UTC)
+        const originalDate = new Date(booking.startTime);
+        
+        // Compare the actual time values
+        timeChanged = newDateUTC.getTime() !== originalDate.getTime();
+        
+        console.log('\n⏰ TIME COMPARISON DETAILS:');
+        console.log('Form inputs:', { date: formData.date, time: formData.startTime });
+        console.log('Parsed values:', { year, month, day, hours, minutes });
+        console.log('New date in merchant TZ:', newDateInMerchantTZ.toString());
+        console.log('New date in UTC:', newDateUTC.toISOString());
+        console.log('Original date:', originalDate.toISOString());
+        console.log('Time changed?', timeChanged);
+        console.log('Timestamps:', {
+          original: originalDate.getTime(),
+          new: newDateUTC.getTime(),
+          difference: newDateUTC.getTime() - originalDate.getTime()
+        });
+      }
+      
+      const staffChanged = formData.staffId !== booking.staffId;
+      
+      if (timeChanged || staffChanged) {
+        // Use rescheduleBooking for time/staff changes
+        // The API expects an ISO string in UTC
+        const [year, month, day] = formData.date.split('-').map(Number);
+        const [hours, minutes] = formData.startTime.split(':').map(Number);
+        const dateInMerchantTZ = new Date(year, month - 1, day, hours, minutes, 0);
+        
+        // Convert merchant time to UTC
+        const dateUTC = fromZonedTime(dateInMerchantTZ, 'Australia/Sydney');
+        const startTimeISO = dateUTC.toISOString();
+        
+        console.log('Calling rescheduleBooking with:', {
+          bookingId: params.id,
+          startTime: startTimeISO,
+          staffId: formData.staffId,
+          dateInMerchantTZ: dateInMerchantTZ.toString(),
+          dateUTC: dateUTC.toString()
+        });
+        
+        console.log('About to call rescheduleBooking...');
+        const rescheduleResponse = await apiClient.rescheduleBooking(params.id as string, {
+          startTime: startTimeISO,
+          staffId: formData.staffId
+        });
+        console.log('Reschedule response:', rescheduleResponse);
+      } else {
+        console.log('NO CHANGES DETECTED for time/staff - not calling rescheduleBooking');
+        console.log('timeChanged:', timeChanged);
+        console.log('staffChanged:', staffChanged);
+      }
+      
+      // Update notes if changed (this is supported by updateBooking)
+      const notesChanged = formData.notes !== (booking.notes || '');
+      console.log('Notes changed?', notesChanged, 'Old:', booking.notes, 'New:', formData.notes);
+      
+      if (notesChanged) {
+        console.log('Updating notes...');
+        const notesResponse = await apiClient.updateBooking(params.id as string, {
+          notes: formData.notes
+        });
+        console.log('Notes update response:', notesResponse);
+      }
+      
+      // Note: Service changes are not supported by the current API
+      // If service was changed, we should show a warning
+      if (formData.serviceId !== booking.serviceId) {
+        console.warn('Service changes are not supported by the current API');
+        console.log('Service ID changed from', booking.serviceId, 'to', formData.serviceId);
+      }
+      
+      // Check if any changes were made
+      if (!timeChanged && !staffChanged && !notesChanged) {
+        console.log('No changes detected in booking');
+        alert('No changes were made to the booking.');
+      }
+      
+      console.log('About to redirect to:', `/bookings/${params.id}`);
       router.push(`/bookings/${params.id}`);
     } catch (error) {
-      console.error('Failed to update booking:', error);
-    } finally {
+      console.error('=== ERROR IN HANDLESUBMIT ===');
+      console.error('Error details:', error);
+      console.error('Error stack:', (error as Error).stack);
+      console.error('Error response:', (error as any)?.response?.data);
+      alert('Failed to update booking: ' + (error as Error).message);
       setSaving(false);
+      // Don't redirect on error
+    } finally {
+      console.log('=== END OF HANDLESUBMIT ===');
+      console.log('Saving state after:', saving);
     }
   };
 
@@ -163,9 +289,9 @@ export default function EditBookingPage() {
                 <Label htmlFor="service">Service</Label>
                 <Select
                   value={formData.serviceId}
-                  onValueChange={(value) => setFormData({...formData, serviceId: value})}
+                  disabled
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-50">
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,6 +302,7 @@ export default function EditBookingPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-sm text-gray-500">Service changes are not supported at this time</p>
               </div>
 
               <div className="space-y-2">
@@ -222,7 +349,12 @@ export default function EditBookingPage() {
                     id="time"
                     type="time"
                     value={formData.startTime}
-                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    onChange={(e) => {
+                      console.log('\n🕒 TIME INPUT CHANGED!');
+                      console.log('Old value:', formData.startTime);
+                      console.log('New value:', e.target.value);
+                      setFormData({...formData, startTime: e.target.value});
+                    }}
                     className="pl-10"
                     required
                   />
@@ -249,7 +381,26 @@ export default function EditBookingPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button 
+                type="submit" 
+                disabled={saving}
+                onClick={(e) => {
+                  console.log('\n\n🔴 SAVE BUTTON CLICKED! 🔴');
+                  console.log('Button event type:', e.type);
+                  console.log('Saving state at click:', saving);
+                  console.log('Button disabled:', saving);
+                  console.log('\n📝 Form data at click time:');
+                  console.log(JSON.stringify(formData, null, 2));
+                  
+                  // Get input values at click time
+                  const dateVal = (document.getElementById('date') as HTMLInputElement)?.value;
+                  const timeVal = (document.getElementById('time') as HTMLInputElement)?.value;
+                  console.log('\n🎯 Input values at click time:');
+                  console.log('Date input:', dateVal);
+                  console.log('Time input:', timeVal);
+                  // Let the form handle submission
+                }}
+              >
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>

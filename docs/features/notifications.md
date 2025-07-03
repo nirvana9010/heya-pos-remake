@@ -1,8 +1,9 @@
 # Feature: Merchant Notifications System
 
 **Date Implemented**: 2025-01-01  
+**Last Updated**: 2025-01-03  
 **Implemented By**: Claude Code Session  
-**Risk Level**: MEDIUM  
+**Risk Level**: HIGH (due to unresolved reliability issues)  
 **Related Ticket/Issue**: #notifications-implementation
 
 ## 📋 Quick Reference
@@ -144,7 +145,8 @@ useNotifications
 ```
 
 ### Manual Testing Checklist
-- [ ] Create a new booking - verify "New Booking" notification appears within 5 seconds
+- [ ] Create a new booking from merchant app - verify "New Booking" notification appears within 5 seconds
+- [ ] Create a new booking from public booking app - verify "New Booking" notification appears within 5 seconds
 - [ ] Cancel a booking - verify "Booking Cancelled" urgent notification appears
 - [ ] Modify a booking - verify "Booking Modified" notification appears
 - [ ] Complete a booking - verify "Booking Completed" notification appears
@@ -155,6 +157,7 @@ useNotifications
 - [ ] Mark all notifications as read
 - [ ] Test with multiple browser tabs open
 - [ ] Test notification persistence after page reload
+- [ ] **NOTE**: All notifications currently require clicking bell icon or page refresh to appear
 
 ## ⚠️ Edge Cases & Gotchas
 
@@ -172,8 +175,8 @@ useNotifications
 - ⚠️ Performance impact - Continuous polling creates backend load
 - ⚠️ No notification batching - Each event creates separate notification
 - ⚠️ No pagination - Frontend fetches up to 50 notifications
-- ⚠️ Outbox query performance - May need optimization (see CLAUDE.md)
-- ⚠️ Timing inconsistency - Notifications may take 5 seconds to 4+ minutes due to various factors
+- ⚠️ Outbox query performance - Improved with index but still needs monitoring
+- ⚠️ CRITICAL: Notifications don't appear until page refresh - React Query data updates aren't triggering notification processing
 
 ### Performance Notes
 - Polling interval: 5 seconds (matches backend outbox polling)
@@ -185,14 +188,17 @@ useNotifications
 
 ### Common Issues
 
-**Issue**: Notifications not appearing or delayed (1-4+ minutes)
-- Check: Browser console for errors and notification debug logs
-- Check: Network tab for polling requests every 5 seconds
-- Check: `pm2 logs api --nostream --lines 50` for backend errors
-- Check: Frontend logs for `isNew: false` - indicates race condition
-- Fix: Clear localStorage `shownBrowserNotifications` and refresh page
-- Fix: Run `node clear-notification-cache.js` to clean up duplicates
-- Root cause: Race condition in notification state tracking (partially fixed)
+**Issue**: Notifications not appearing until page refresh
+- Check: Browser console for `[useNotifications] Fetching notifications...` logs every 5 seconds
+- Check: Network tab for polling requests every 5 seconds returning new data
+- Check: Console for `[NotificationsContext] Processing notifications` logs
+- Check: `pm2 logs api --nostream --lines 50` for notification creation
+- Root cause: React Query's `dataUpdatedAt` not triggering notification processing despite new data
+- Attempted fixes:
+  - Added `structuralSharing: false` to force new object references
+  - Added effect to watch `dataUpdatedAt` changes
+  - Added immediate processing when data updates
+  - Problem persists - notifications fetch but don't process until component re-render
 
 **Issue**: Browser notifications not showing
 - Check: Browser notification permissions
@@ -279,19 +285,53 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - Browser notifications now use booking ID as tag for better deduplication
 - Added localStorage cleanup to prevent unbounded growth
 
-### Remaining Issues
-- Notification timing is inconsistent (5 seconds to 4+ minutes)
-- Root cause appears to be complex interaction between:
-  - Frontend polling and state management
-  - React Query caching behavior
-  - Browser notification API limitations
-  - Possible network/database performance variations
-- Notifications do eventually appear, but timing is unpredictable
+### Updates (2025-01-03)
+- Added missing `booking.rescheduled` event handler in NotificationEventHandler
+- Created database index for OutboxEvent queries: `CREATE INDEX "OutboxEvent_processedAt_retryCount_idx"`
+- Simplified notification messages to avoid time formatting issues
+- Attempted to fix auto-notification by processing on React Query data updates
+
+### Updates (2025-07-03)
+- Fixed missing notifications for bookings created through public booking app
+  - Added OutboxEvent creation in PublicBookingService
+  - Now triggers same notification flow as merchant-created bookings
+- Notifications confirmed working from booking app to merchant app
+- Auto-popup issue remains unresolved for all notification sources
+
+### Critical Unresolved Issues
+- **Notifications require page refresh to appear** - Despite polling working correctly:
+  - API creates notifications successfully
+  - React Query fetches new data every 5 seconds
+  - BUT: Notification processing doesn't trigger until manual interaction (page refresh, bell click)
+  - Root cause: React state/effect not detecting changes in query data properly
+  - **UPDATE (2025-07-03)**: This issue affects ALL notification sources:
+    - Bookings created in merchant app
+    - Bookings created through public booking app
+    - Both notification center and browser notifications affected
+  
+### Technical Insights Discovered
+1. **OutboxEvent Performance**: Queries were slow (400-500ms) due to missing index on `processedAt` and `retryCount`
+2. **Event Handler Coverage**: The system was missing handlers for some booking events (e.g., rescheduled)
+3. **React Query Behavior**: Setting `structuralSharing: false` doesn't guarantee effect triggers
+4. **Notification Deduplication**: Using booking ID as browser notification tag prevents duplicate popups
+5. **PM2 Logging**: Always use `--nostream` flag to avoid hanging when reading logs
+
+### Debugging Shortcuts
+```bash
+# Quick notification system check
+pm2 logs api --nostream --lines 20 | grep -E "(notification|Notification|NOTIFICATION)"
+
+# Monitor OutboxEvent processing
+pm2 logs api --nostream --lines 20 | grep -E "(OutboxPublisher|Slow query)"
+
+# Check if notifications are being created
+pm2 logs api --nostream --lines 20 | grep "Creating notification for"
+```
 
 ---
 
-**Last Updated**: 2025-01-01  
-**Next Review Date**: 2025-04-01
+**Last Updated**: 2025-07-03  
+**Next Review Date**: 2025-10-03
 
 <!-- 
 Template Usage Notes:

@@ -321,15 +321,11 @@ export class PublicBookingController {
   }
 
   @Get('service-categories')
-  async getServiceCategories() {
-    // Get the first active merchant for now (in production, this would be based on domain/subdomain)
-    const merchant = await this.prisma.merchant.findFirst({
-      where: { status: 'ACTIVE' },
-    });
-
-    if (!merchant) {
-      throw new BadRequestException('No active merchant found');
-    }
+  async getServiceCategories(
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
 
     const categories = await this.prisma.serviceCategory.findMany({
       where: {

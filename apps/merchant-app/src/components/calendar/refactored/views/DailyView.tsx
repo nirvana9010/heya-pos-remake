@@ -29,84 +29,7 @@ interface DailyViewProps {
   } | null;
 }
 
-// Calculate layout for overlapping bookings
-interface BookingLayout {
-  left: number;
-  width: number;
-}
-
-function calculateBookingLayout(bookings: Booking[]): Map<string, BookingLayout> {
-  const layoutMap = new Map<string, BookingLayout>();
-  
-  // Sort bookings by start time
-  const sortedBookings = [...bookings].sort((a, b) => {
-    const timeA = a.time.localeCompare(b.time);
-    if (timeA !== 0) return timeA;
-    // If same start time, longer duration goes first
-    return b.duration - a.duration;
-  });
-  
-  // First pass: assign columns
-  const bookingColumns = new Map<string, number>();
-  const columns: Array<{ bookingId: string; endMinutes: number }> = [];
-  
-  sortedBookings.forEach(booking => {
-    const [hours, minutes] = booking.time.split(':').map(Number);
-    const startMinutes = hours * 60 + minutes;
-    const endMinutes = startMinutes + booking.duration;
-    
-    // Find available column
-    let columnIndex = -1;
-    for (let i = 0; i < columns.length; i++) {
-      if (columns[i].endMinutes <= startMinutes) {
-        columnIndex = i;
-        break;
-      }
-    }
-    
-    // If no available column found, add a new one
-    if (columnIndex === -1) {
-      columnIndex = columns.length;
-      columns.push({ bookingId: booking.id, endMinutes });
-    } else {
-      // Reuse existing column
-      columns[columnIndex] = { bookingId: booking.id, endMinutes };
-    }
-    
-    bookingColumns.set(booking.id, columnIndex);
-  });
-  
-  // Second pass: determine max columns for each booking's time range
-  sortedBookings.forEach(booking => {
-    const [hours, minutes] = booking.time.split(':').map(Number);
-    const startMinutes = hours * 60 + minutes;
-    const endMinutes = startMinutes + booking.duration;
-    
-    // Find all bookings that overlap with this one
-    let maxColumns = 1;
-    sortedBookings.forEach(other => {
-      if (other.id === booking.id) return;
-      
-      const [otherHours, otherMinutes] = other.time.split(':').map(Number);
-      const otherStart = otherHours * 60 + otherMinutes;
-      const otherEnd = otherStart + other.duration;
-      
-      // Check for overlap
-      if (otherStart < endMinutes && otherEnd > startMinutes) {
-        const otherColumn = bookingColumns.get(other.id) || 0;
-        maxColumns = Math.max(maxColumns, otherColumn + 1);
-      }
-    });
-    
-    const columnIndex = bookingColumns.get(booking.id) || 0;
-    const width = 100 / maxColumns;
-    const left = columnIndex * width;
-    
-    layoutMap.set(booking.id, { left, width });
-  });
-  
-  return layoutMap;
-}
+// Simple stacking for overlapping bookings - removed complex column layout
 
 
 // Simple DroppableTimeSlot component for the refactored calendar
@@ -512,8 +435,8 @@ export function DailyView({
                             });
                             
                             const hasOverlaps = overlappingBookings.length > 1;
-                            const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
-                            const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
+                            // Simple stacking: find this booking's index in the overlapping set
+                            const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
                             // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
@@ -566,21 +489,15 @@ export function DailyView({
                             <DraggableBooking
                               key={booking.id}
                               id={booking.id}
-                              className={hasOverlaps ? "absolute" : "absolute inset-x-1"}
-                              style={hasOverlaps ? { 
+                              className="absolute inset-x-1"
+                              style={{ 
                                 top: '2px',
-                                left: `${layout.left}%`,
-                                width: `calc(${layout.width}% - 4px)`,
-                                marginLeft: '2px',
-                                maxWidth: 'calc(100% - 8px)'
-                              } : { 
-                                top: '2px',
-                                maxWidth: 'calc(100% - 8px)'
+                                zIndex: hasOverlaps ? overlapIndex + 10 : 1
                               }}
                             >
                               <div 
                                 className={cn(
-                                  "text-xs cursor-pointer rounded relative z-20 overflow-hidden",
+                                  "cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
@@ -590,10 +507,10 @@ export function DailyView({
                                   height: `${slotsSpanned * 60 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   borderLeft: `${borderWidth}px solid ${bgColor}`,
-                                  paddingLeft: `${borderWidth + 2}px`,
-                                  paddingRight: '4px',
-                                  paddingTop: '2px',
-                                  paddingBottom: '2px',
+                                  paddingLeft: `${borderWidth + 12}px`,
+                                  paddingRight: '16px',
+                                  paddingTop: '12px',
+                                  paddingBottom: '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -614,7 +531,7 @@ export function DailyView({
                               >
                                 {/* Time and duration - adjust position if cancelled */}
                                 {booking.status !== 'cancelled' && (
-                                  <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
+                                  <div className="absolute top-2 right-2 text-sm font-medium opacity-75">
                                     {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                   </div>
                                 )}
@@ -626,21 +543,21 @@ export function DailyView({
                                 )}
                                 {/* Cancelled indicator */}
                                 {booking.status === 'cancelled' && (
-                                  <div className="absolute top-1 right-1 flex items-center gap-1">
-                                    <X className="w-4 h-4 text-red-600" strokeWidth={3} />
-                                    <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
+                                    <X className="w-5 h-5 text-red-600" strokeWidth={3} />
+                                    <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
                                 {/* Paid badge */}
                                 {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                  <div className="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                  <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
                                     PAID
                                   </div>
                                 )}
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("truncate text-sm mt-2", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>
@@ -715,8 +632,8 @@ export function DailyView({
                             });
                             
                             const hasOverlaps = overlappingBookings.length > 1;
-                            const layoutMap = hasOverlaps ? calculateBookingLayout(overlappingBookings) : new Map();
-                            const layout = layoutMap.get(booking.id) || { left: 0, width: 100 };
+                            // Simple stacking: find this booking's index in the overlapping set
+                            const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
                             // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
@@ -769,21 +686,15 @@ export function DailyView({
                             <DraggableBooking
                               key={booking.id}
                               id={booking.id}
-                              className={hasOverlaps ? "absolute" : "absolute inset-x-1"}
-                              style={hasOverlaps ? { 
+                              className="absolute inset-x-1"
+                              style={{ 
                                 top: '2px',
-                                left: `${layout.left}%`,
-                                width: `calc(${layout.width}% - 4px)`,
-                                marginLeft: '2px',
-                                maxWidth: 'calc(100% - 8px)'
-                              } : { 
-                                top: '2px',
-                                maxWidth: 'calc(100% - 8px)'
+                                zIndex: hasOverlaps ? overlapIndex + 10 : 1
                               }}
                             >
                               <div 
                                 className={cn(
-                                  "text-xs cursor-pointer rounded relative z-20 overflow-hidden",
+                                  "cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
@@ -793,10 +704,10 @@ export function DailyView({
                                   height: `${slotsSpanned * 60 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   borderLeft: `${borderWidth}px solid ${bgColor}`,
-                                  paddingLeft: `${borderWidth + 2}px`,
-                                  paddingRight: '4px',
-                                  paddingTop: '2px',
-                                  paddingBottom: '2px',
+                                  paddingLeft: `${borderWidth + 12}px`,
+                                  paddingRight: '16px',
+                                  paddingTop: '12px',
+                                  paddingBottom: '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -817,7 +728,7 @@ export function DailyView({
                               >
                                 {/* Time and duration - adjust position if cancelled */}
                                 {booking.status !== 'cancelled' && (
-                                  <div className="absolute top-1 right-1 text-[10px] font-medium opacity-75">
+                                  <div className="absolute top-2 right-2 text-sm font-medium opacity-75">
                                     {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                   </div>
                                 )}
@@ -829,21 +740,21 @@ export function DailyView({
                                 )}
                                 {/* Cancelled indicator */}
                                 {booking.status === 'cancelled' && (
-                                  <div className="absolute top-1 right-1 flex items-center gap-1">
-                                    <X className="w-4 h-4 text-red-600" strokeWidth={3} />
-                                    <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
+                                    <X className="w-5 h-5 text-red-600" strokeWidth={3} />
+                                    <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
                                 {/* Paid badge */}
                                 {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                  <div className="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                  <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
                                     PAID
                                   </div>
                                 )}
-                                <div className={cn("font-medium truncate pr-16", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("truncate text-sm mt-2", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>
