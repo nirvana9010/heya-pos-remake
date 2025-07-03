@@ -359,10 +359,10 @@ export default function BookingsManager() {
 
   // Bulk operations
   const handleSelectAll = () => {
-    if (selectedBookings.size === filteredBookings.length) {
+    if (selectedBookings.size === sortedBookings.length) {
       setSelectedBookings(new Set());
     } else {
-      setSelectedBookings(new Set(filteredBookings.map(b => b.id)));
+      setSelectedBookings(new Set(sortedBookings.map(b => b.id)));
     }
   };
 
@@ -668,40 +668,13 @@ export default function BookingsManager() {
     };
   }, [bookings]);
 
-  // Group bookings by date
-  const groupedBookings = useMemo(() => {
-    const groups: { [key: string]: Booking[] } = {};
-    
-    filteredBookings.forEach(booking => {
-      const date = new Date(booking.startTime || booking.date);
-      let groupKey: string;
-      
-      if (isToday(date)) {
-        groupKey = 'Today';
-      } else if (isTomorrow(date)) {
-        groupKey = 'Tomorrow';
-      } else if (isThisWeek(date)) {
-        groupKey = 'This Week';
-      } else {
-        groupKey = format(date, 'MMMM yyyy');
-      }
-      
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(booking);
+  // Sort bookings by creation date (newest first)
+  const sortedBookings = useMemo(() => {
+    return [...filteredBookings].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order (newest first)
     });
-
-    // Sort bookings within each group
-    Object.keys(groups).forEach(key => {
-      groups[key].sort((a, b) => {
-        const dateA = new Date(a.startTime || a.date).getTime();
-        const dateB = new Date(b.startTime || b.date).getTime();
-        return dateA - dateB;
-      });
-    });
-
-    return groups;
   }, [filteredBookings]);
 
   const columns = [
@@ -1106,44 +1079,19 @@ export default function BookingsManager() {
               No bookings found
             </div>
           ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedBookings).map(([groupName, groupBookings]) => {
-                const groupBookingIds = groupBookings.map(b => b.id);
-                const groupSelected = groupBookingIds.filter(id => selectedBookings.has(id));
-                const isGroupFullySelected = groupSelected.length === groupBookings.length && groupBookings.length > 0;
-                const isGroupPartiallySelected = groupSelected.length > 0 && groupSelected.length < groupBookings.length;
-                
-                return (
-                  <div key={groupName}>
-                    {/* Group Header */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <Checkbox
-                        checked={isGroupFullySelected}
-                        onCheckedChange={() => {
-                          const newSelected = new Set(selectedBookings);
-                          if (isGroupFullySelected) {
-                            groupBookingIds.forEach(id => newSelected.delete(id));
-                          } else {
-                            groupBookingIds.forEach(id => newSelected.add(id));
-                          }
-                          setSelectedBookings(newSelected);
-                        }}
-                      />
-                      <h3 className="text-lg font-semibold text-gray-900">{groupName}</h3>
-                      <Badge variant="secondary">{groupBookings.length}</Badge>
-                      {groupName === 'Today' && (
-                        <span className="text-sm text-gray-500">
-                          ${groupBookings
-                            .filter(b => b.status?.toLowerCase() !== 'cancelled' && b.status?.toLowerCase() !== 'no_show')
-                            .reduce((sum, b) => sum + (b.totalAmount || b.price || 0), 0)
-                            .toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-
-                  {/* Bookings in group */}
-                  <div className="space-y-3">
-                    {groupBookings.map((booking) => {
+            <div className="space-y-3">
+              {/* Select All Header */}
+              <div className="flex items-center gap-3 pb-2 border-b">
+                <Checkbox
+                  checked={selectedBookings.size === sortedBookings.length && sortedBookings.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium">
+                  Select All ({sortedBookings.length} bookings)
+                </span>
+              </div>
+              
+              {sortedBookings.map((booking) => {
                       const bookingDate = new Date(booking.startTime || booking.date);
                       const isPast = bookingDate < new Date();
                       const isUpcoming = !isPast && booking.status?.toLowerCase() !== 'completed' && booking.status?.toLowerCase() !== 'cancelled';
@@ -1320,10 +1268,6 @@ export default function BookingsManager() {
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                </div>
-              );
               })}
             </div>
           )}
