@@ -259,11 +259,12 @@ function CalendarContent() {
         // For walk-in customers, check if we already have one
         if (bookingData.isWalkIn) {
           try {
-            // First, try to find an existing walk-in customer
-            const searchResponse = await apiClient.searchCustomers('Walk-in Customer');
-            const existingWalkInCustomer = searchResponse?.find((customer: any) => 
-              customer.name === 'Walk-in Customer' || 
-              (customer.firstName === 'Walk-in Customer' && customer.lastName === ' ')
+            // Search for existing walk-in customer
+            const searchResponse = await apiClient.searchCustomers('Walk-in');
+            const customers = searchResponse?.data || [];
+            const existingWalkInCustomer = customers.find((customer: any) => 
+              (customer.firstName === 'Walk-in' && customer.lastName === 'Customer') ||
+              customer.source === 'WALK_IN'
             );
             
             if (existingWalkInCustomer) {
@@ -272,11 +273,11 @@ function CalendarContent() {
             } else {
               // Create a single walk-in customer that can be reused
               const customerData = {
-                firstName: 'Walk-in Customer',
-                lastName: ' ', // Space to satisfy API requirements
+                firstName: 'Walk-in',
+                lastName: 'Customer', // Use 'Customer' as last name instead of space
                 phone: '0000000000',
-                email: 'walkin@heya-pos.local', // Static email for walk-in customer
-                notes: 'Shared walk-in customer account'
+                notes: 'Shared walk-in customer account',
+                source: 'WALK_IN'
               };
               
               const newCustomer = await apiClient.createCustomer(customerData);
@@ -294,9 +295,10 @@ function CalendarContent() {
           }
         } else {
           // Regular new customer creation
+          const nameParts = bookingData.customerName.split(' ');
           const customerData: any = {
-            firstName: bookingData.isWalkIn ? bookingData.customerName : (bookingData.customerName.split(' ')[0] || ''),
-            lastName: bookingData.isWalkIn ? ' ' : (bookingData.customerName.split(' ').slice(1).join(' ') || ''),
+            firstName: nameParts[0] || 'Customer',
+            lastName: nameParts.slice(1).join(' ') || 'Customer', // Use 'Customer' as default last name
             phone: bookingData.customerPhone || '',
             email: bookingData.customerEmail || undefined,
             notes: ''
