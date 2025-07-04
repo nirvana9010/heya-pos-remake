@@ -767,6 +767,7 @@ export class ServicesService {
       // Track services created in this transaction to avoid duplicate checks against them
       const createdServiceNames = new Set<string>();
       const createdServiceIds = new Set<string>(); // Track import IDs too
+      const renamedServices = new Map<string, string>(); // Track original name -> new name mappings
       
       // Counter for generating sequential IDs within this import
       let importIdCounter = await tx.service.count({ where: { merchantId } });
@@ -922,19 +923,33 @@ export class ServicesService {
             
             if (isDuplicateInTransaction) {
               if (options.duplicateAction === DuplicateAction.CREATE_NEW) {
-                // Find a unique name by appending a number
-                let counter = 2;
-                let nameExists = true;
-                while (nameExists) {
-                  finalName = `${serviceData.name} (${counter})`;
-                  nameExists = createdServiceNames.has(finalName) || 
-                    !!(await tx.service.findFirst({
-                      where: {
-                        merchantId,
-                        name: finalName,
-                      },
-                    }));
-                  counter++;
+                // For duplicates within the same import, append category name
+                const categoryName = data.category || 'Uncategorized';
+                finalName = `${serviceData.name} (${categoryName})`;
+                
+                // Check if this name already exists
+                let nameExists = createdServiceNames.has(finalName) || 
+                  !!(await tx.service.findFirst({
+                    where: {
+                      merchantId,
+                      name: finalName,
+                    },
+                  }));
+                  
+                // If it still exists, append a number
+                if (nameExists) {
+                  let counter = 2;
+                  while (nameExists) {
+                    finalName = `${serviceData.name} (${categoryName} ${counter})`;
+                    nameExists = createdServiceNames.has(finalName) || 
+                      !!(await tx.service.findFirst({
+                        where: {
+                          merchantId,
+                          name: finalName,
+                        },
+                      }));
+                    counter++;
+                  }
                 }
               } else {
                 // Skip this duplicate within the same import
@@ -956,19 +971,79 @@ export class ServicesService {
               
               // If service exists and we're set to create new, find a unique name
               if (existingService && options.duplicateAction === DuplicateAction.CREATE_NEW) {
-                // Find a unique name by appending a number
-                let counter = 2;
-                let nameExists = true;
-                while (nameExists) {
-                  finalName = `${serviceData.name} (${counter})`;
-                  nameExists = createdServiceNames.has(finalName) || 
+                // Get the existing service's category name
+                const existingWithCategory = await tx.service.findFirst({
+                  where: { id: existingService.id },
+                  include: { categoryModel: true }
+                });
+                
+                const existingCategoryName = existingWithCategory?.categoryModel?.name || existingWithCategory?.category || 'Uncategorized';
+                const newCategoryName = data.category || 'Uncategorized';
+                
+                // If both services have different categories, append category names
+                if (existingCategoryName !== newCategoryName) {
+                  // Update the existing service name to include its category
+                  const existingNewName = `${serviceData.name} (${existingCategoryName})`;
+                  
+                  // Check if the renamed existing service name would conflict
+                  const existingRenameConflict = await tx.service.findFirst({
+                    where: {
+                      merchantId,
+                      name: existingNewName,
+                      NOT: { id: existingService.id }
+                    }
+                  });
+                  
+                  if (!existingRenameConflict && !createdServiceNames.has(existingNewName)) {
+                    await tx.service.update({
+                      where: { id: existingService.id },
+                      data: { name: existingNewName }
+                    });
+                    renamedServices.set(serviceData.name, existingNewName);
+                  }
+                  
+                  // Set the new service name with its category
+                  finalName = `${serviceData.name} (${newCategoryName})`;
+                  
+                  // Check if this name already exists
+                  let nameExists = createdServiceNames.has(finalName) || 
                     !!(await tx.service.findFirst({
                       where: {
                         merchantId,
                         name: finalName,
                       },
                     }));
-                  counter++;
+                    
+                  // If it still exists, append a number
+                  if (nameExists) {
+                    let counter = 2;
+                    while (nameExists) {
+                      finalName = `${serviceData.name} (${newCategoryName} ${counter})`;
+                      nameExists = createdServiceNames.has(finalName) || 
+                        !!(await tx.service.findFirst({
+                          where: {
+                            merchantId,
+                            name: finalName,
+                          },
+                        }));
+                      counter++;
+                    }
+                  }
+                } else {
+                  // Same category, fall back to number suffix
+                  let counter = 2;
+                  let nameExists = true;
+                  while (nameExists) {
+                    finalName = `${serviceData.name} (${counter})`;
+                    nameExists = createdServiceNames.has(finalName) || 
+                      !!(await tx.service.findFirst({
+                        where: {
+                          merchantId,
+                          name: finalName,
+                        },
+                      }));
+                    counter++;
+                  }
                 }
               } else if (existingService) {
                 // Service exists but we're not set to create new - this shouldn't happen
