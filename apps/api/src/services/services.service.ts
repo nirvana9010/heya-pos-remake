@@ -163,6 +163,8 @@ export class ServicesService {
     }
 
 
+    const skip = (page - 1) * limit;
+
     const [total, services] = await Promise.all([
       this.prisma.service.count({ where }),
       this.prisma.service.findMany({
@@ -171,7 +173,7 @@ export class ServicesService {
           categoryModel: true,
         },
         orderBy: { [sortBy]: sortOrder },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
     ]);

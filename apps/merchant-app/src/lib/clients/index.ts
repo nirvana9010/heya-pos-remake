@@ -64,8 +64,15 @@ export class ApiClient {
     return this.auth.refreshToken(refreshToken);
   }
 
-  async getServices() {
-    return this.services.getServices();
+  async getServices(params?: { 
+    limit?: number; 
+    offset?: number; 
+    page?: number;
+    searchTerm?: string;
+    categoryId?: string;
+    isActive?: boolean;
+  }) {
+    return this.services.getServices(params);
   }
 
   async getCategories() {

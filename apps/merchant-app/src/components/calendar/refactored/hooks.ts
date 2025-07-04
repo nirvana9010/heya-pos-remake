@@ -155,14 +155,17 @@ export function useCalendarData() {
     try {
       const response = await apiClient.getServices();
       
+      // Extract services array from paginated response
+      const servicesData = response.data || [];
+      
       // Handle empty or invalid response
-      if (!response || !Array.isArray(response)) {
+      if (!servicesData || !Array.isArray(servicesData)) {
         actions.setServices([]);
         return;
       }
       
       // Transform services to match our type
-      const transformedServices = (response || []).map(service => ({
+      const transformedServices = servicesData.map(service => ({
         ...service,
         categoryName: service.category?.name || 'General',
       }));
