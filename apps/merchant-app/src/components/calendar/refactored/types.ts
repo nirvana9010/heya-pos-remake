@@ -165,6 +165,7 @@ export type CalendarAction =
   | { type: 'SET_SEARCH'; payload: string }
   
   // UI actions
+  | { type: 'SET_UI_FLAGS'; payload: Partial<Pick<CalendarState, 'showUnassignedColumn' | 'showBlockedTime' | 'showBreaks'>> }
   | { type: 'TOGGLE_UNASSIGNED' }
   | { type: 'TOGGLE_BLOCKED' }
   | { type: 'TOGGLE_BREAKS' }
@@ -235,6 +236,9 @@ export interface CalendarActions {
   
   // Reset
   reset: () => void;
+  
+  // Direct dispatch access
+  dispatch: (action: CalendarAction) => void;
 }
 
 // Calendar context type

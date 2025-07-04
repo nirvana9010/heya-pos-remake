@@ -26,12 +26,40 @@ function loadSavedPreferences(): Partial<CalendarState> {
     const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
     
+    // Load merchant settings to get showUnassignedColumn preference and calendar hours
+    let showUnassignedColumn = undefined;
+    let calendarStartHour = undefined;
+    let calendarEndHour = undefined;
+    
+    const merchantData = localStorage.getItem('merchant');
+    if (merchantData) {
+      try {
+        const merchant = JSON.parse(merchantData);
+        if (merchant.settings) {
+          if (merchant.settings.showUnassignedColumn !== undefined) {
+            showUnassignedColumn = merchant.settings.showUnassignedColumn;
+          }
+          if (merchant.settings.calendarStartHour !== undefined) {
+            calendarStartHour = merchant.settings.calendarStartHour;
+          }
+          if (merchant.settings.calendarEndHour !== undefined) {
+            calendarEndHour = merchant.settings.calendarEndHour;
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+    
     return {
       selectedStatusFilters: savedStatusFilters 
         ? JSON.parse(savedStatusFilters) 
         : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? JSON.parse(savedStaffFilter) : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
+      ...(showUnassignedColumn !== undefined && { showUnassignedColumn }),
+      ...(calendarStartHour !== undefined && { calendarStartHour }),
+      ...(calendarEndHour !== undefined && { calendarEndHour }),
     };
   } catch (error) {
     console.error('Error loading calendar preferences:', error);
@@ -70,13 +98,13 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   searchQuery: '',
   
   // Feature flags
-  showUnassignedColumn: merchantSettings?.showUnassignedColumn ?? true,
+  showUnassignedColumn: savedPrefs.showUnassignedColumn ?? false, // Default to false to prevent flash
   showBlockedTime: true,
   showBreaks: true,
   
-  // Calendar display settings - defaults match hooks.ts
-  calendarStartHour: 6, // Will be overridden by merchant settings
-  calendarEndHour: 23, // Will be overridden by merchant settings
+  // Calendar display settings - use saved preferences or defaults
+  calendarStartHour: savedPrefs.calendarStartHour ?? 6,
+  calendarEndHour: savedPrefs.calendarEndHour ?? 23,
   
   // Loading states
   isLoading: false,
@@ -207,6 +235,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       return {
         ...state,
         ...action.payload,
+      };
+      
+    case 'TOGGLE_UNASSIGNED':
+      return {
+        ...state,
+        showUnassignedColumn: !state.showUnassignedColumn,
       };
       
     case 'TOGGLE_BLOCKED':
@@ -465,6 +499,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     setSearch: (query: string) => dispatch({ type: 'SET_SEARCH', payload: query }),
     
     // UI actions
+    toggleUnassignedColumn: () => dispatch({ type: 'TOGGLE_UNASSIGNED' }),
     toggleBlockedTime: () => dispatch({ type: 'TOGGLE_BLOCKED' }),
     toggleBreaks: () => dispatch({ type: 'TOGGLE_BREAKS' }),
     
@@ -485,6 +520,9 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     
     // Reset
     reset: () => dispatch({ type: 'RESET' }),
+    
+    // Direct dispatch access for complex actions
+    dispatch,
   }), [dispatch]);
   
   // Initialize date range on mount
