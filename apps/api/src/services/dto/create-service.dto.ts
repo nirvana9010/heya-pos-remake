@@ -33,7 +33,7 @@ export class CreateServiceDto {
   @IsOptional()
   @Min(0)
   @Max(1)
-  taxRate?: number; // Default 0.1 (10% GST)
+  taxRate?: number; // Default 0.0 (GST-inclusive pricing)
 
   @IsBoolean()
   @IsOptional()

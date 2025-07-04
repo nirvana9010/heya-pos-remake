@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heya-pos/ui";
+import { Button, Badge } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import {
   PlayCircle,
@@ -173,24 +173,27 @@ export function BookingActions({
               Process Payment
             </Button>
           )}
-          {onPaymentToggle && (
+          {!isPaid && onPaymentToggle && (
             <Button
               size={size}
-              variant={isPaid ? "default" : "outline"}
+              variant="outline"
               onClick={() => onPaymentToggle(booking.id, !isPaid)}
               disabled={isPaymentProcessing}
-              className={cn(
-                "flex items-center gap-1",
-                isPaid && "bg-green-600 hover:bg-green-700"
-              )}
+              className="flex items-center gap-1"
             >
               {isPaymentProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <DollarSign className="h-4 w-4" />
               )}
-              {isPaymentProcessing ? "Processing..." : (isPaid ? "Paid" : "Mark as Paid")}
+              {isPaymentProcessing ? "Processing..." : "Mark as Paid"}
             </Button>
+          )}
+          {isPaid && (
+            <Badge variant="success" className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Paid
+            </Badge>
           )}
         </>
       )}
