@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText } from "lucide-react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -73,6 +73,7 @@ export default function SettingsPage() {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvPreviewRows, setCsvPreviewRows] = useState<string[][]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
+  const [lastImportResult, setLastImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
 
   // Load location data on mount
   useEffect(() => {
@@ -400,8 +401,9 @@ export default function SettingsPage() {
       );
 
       toast({
-        title: "Import successful",
-        description: `Imported: ${result.imported}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
+        title: "✅ Import successful!",
+        description: `Successfully imported ${result.imported} services${result.updated > 0 ? `, updated ${result.updated}` : ''}${result.skipped > 0 ? `, skipped ${result.skipped}` : ''}.`,
+        duration: 5000, // Show for 5 seconds
       });
 
       // Invalidate services cache so the Services page shows the new data
@@ -411,6 +413,9 @@ export default function SettingsPage() {
       setServiceFile(null);
       setServiceImportPreview(null);
       setShowPreviewDialog(false);
+      
+      // Store the result for display
+      setLastImportResult(result);
     } catch (error) {
       toast({
         title: "Import failed",
@@ -1170,6 +1175,21 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {lastImportResult && (
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        Last import completed successfully!
+                      </p>
+                    </div>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      Imported {lastImportResult.imported} new services
+                      {lastImportResult.updated > 0 && `, updated ${lastImportResult.updated}`}
+                      {lastImportResult.skipped > 0 && `, skipped ${lastImportResult.skipped}`}
+                    </p>
+                  </div>
+                )}
                 <div className="border-2 border-dashed rounded-lg p-6 space-y-4">
                   <div className="text-center space-y-2">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
