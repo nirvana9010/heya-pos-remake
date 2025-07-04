@@ -174,7 +174,8 @@ export default function BookingsManager() {
     }
     
     try {
-      const servicesData = await apiClient.getServices();
+      const servicesResponse = await apiClient.getServices();
+      const servicesData = servicesResponse.data || [];
       setServices(servicesData);
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor

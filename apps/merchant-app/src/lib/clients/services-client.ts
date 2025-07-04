@@ -98,10 +98,17 @@ export interface ImportResult {
 
 export class ServicesClient extends BaseApiClient {
   // Services
-  async getServices(): Promise<Service[]> {
-    const response = await this.get('/services', undefined, 'v1');
-    // Real API returns paginated response, extract data
-    return response.data || response;
+  async getServices(params?: { 
+    limit?: number; 
+    offset?: number; 
+    page?: number;
+    searchTerm?: string;
+    categoryId?: string;
+    isActive?: boolean;
+  }): Promise<{ data: Service[]; meta: { total: number; page: number; limit: number; totalPages: number } }> {
+    const response = await this.get('/services', { params }, 'v1');
+    // Return full paginated response
+    return response;
   }
 
   async getService(id: string): Promise<Service> {

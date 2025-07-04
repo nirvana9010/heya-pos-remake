@@ -37,11 +37,14 @@ export default function EditBookingPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [bookingData, servicesData, staffData] = await Promise.all([
+      const [bookingData, servicesResponse, staffData] = await Promise.all([
         apiClient.getBooking(params.id as string),
         apiClient.getServices(),
         apiClient.getStaff()
       ]);
+      
+      // Extract services array from paginated response
+      const servicesData = servicesResponse.data || [];
       
       console.log('=== LOADED BOOKING DATA ===');
       console.log('Raw booking data:', bookingData);

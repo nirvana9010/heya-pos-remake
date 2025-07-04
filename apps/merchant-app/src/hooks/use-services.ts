@@ -14,18 +14,22 @@ export const servicesKeys = {
   categories: () => [...servicesKeys.all, 'categories'] as const,
 };
 
-// Hook to fetch all services
-export function useServices() {
+// Hook to fetch all services with pagination and filtering
+export function useServices(params?: { 
+  page?: number; 
+  limit?: number;
+  searchTerm?: string;
+  categoryId?: string;
+  isActive?: boolean;
+}) {
+  const queryKey = [...servicesKeys.services(), params];
+  
   return useQuery({
-    queryKey: servicesKeys.services(),
+    queryKey,
     queryFn: async () => {
-      // Check prefetch cache first
-      const cached = prefetchManager.getCached('services');
-      if (cached?.services) {
-        // Return cached data immediately, React Query will refetch in background
-        return cached.services;
-      }
-      return apiClient.getServices();
+      // Always fetch from API for paginated data
+      const response = await apiClient.getServices(params);
+      return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -51,13 +55,20 @@ export function useCategories() {
 }
 
 // Combined hook for both services and categories
-export function useServicesData() {
-  const servicesQuery = useServices();
+export function useServicesData(params?: { 
+  page?: number; 
+  limit?: number;
+  searchTerm?: string;
+  categoryId?: string;
+  isActive?: boolean;
+}) {
+  const servicesQuery = useServices(params);
   const categoriesQuery = useCategories();
 
   return {
-    services: servicesQuery.data || [],
+    services: servicesQuery.data?.data || [],
     categories: categoriesQuery.data || [],
+    meta: servicesQuery.data?.meta,
     isLoading: servicesQuery.isLoading || categoriesQuery.isLoading,
     isError: servicesQuery.isError || categoriesQuery.isError,
     error: servicesQuery.error || categoriesQuery.error,

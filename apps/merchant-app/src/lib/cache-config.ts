@@ -16,9 +16,9 @@ export interface CacheConfig {
 export const cacheConfigs: Record<string, CacheConfig> = {
   // Static data - cache for longer
   'services': {
-    ttl: 30 * 60 * 1000, // 30 minutes
-    staleWhileRevalidate: 60 * 60 * 1000, // 1 hour
-    shouldCache: (data) => Array.isArray(data) && data.length > 0,
+    ttl: 0, // Temporarily disable caching to debug pagination
+    staleWhileRevalidate: 0,
+    shouldCache: () => false,
   },
   
   'staff': {

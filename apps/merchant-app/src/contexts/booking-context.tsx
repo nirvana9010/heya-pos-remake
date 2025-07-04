@@ -51,13 +51,16 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
     setLoading(true);
     try {
       // Load all required data in parallel
-      const [staffData, servicesData, customersData, bookingsData, settingsData] = await Promise.all([
+      const [staffData, servicesResponse, customersData, bookingsData, settingsData] = await Promise.all([
         apiClient.getStaff().catch(() => []),
-        apiClient.getServices().catch(() => []),
+        apiClient.getServices().catch(() => ({ data: [] })),
         apiClient.getCustomers().catch(() => []),
         apiClient.getBookings().catch(() => []),
         apiClient.getMerchantSettings().catch(() => null)
       ]);
+      
+      // Extract services array from paginated response
+      const servicesData = servicesResponse.data || [];
 
       // Transform staff data to include name property
       const transformedStaff = staffData.map((member: any) => ({

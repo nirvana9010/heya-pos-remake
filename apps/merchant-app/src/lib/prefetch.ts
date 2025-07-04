@@ -42,10 +42,12 @@ export const prefetchManager = {
     if (this.isCacheValid(key)) return
     
     try {
-      const [services, categories] = await Promise.all([
-        apiClient.getServices(),
+      const [servicesResponse, categories] = await Promise.all([
+        apiClient.getServices({ limit: 100 }), // Explicitly request more services for cache
         apiClient.getCategories()
       ])
+      // Extract services array from paginated response
+      const services = servicesResponse.data || []
       this.cache.set(key, { 
         data: { services, categories }, 
         timestamp: Date.now() 

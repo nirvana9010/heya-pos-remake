@@ -44,16 +44,13 @@ interface ServiceRow extends Service {
 
 export default function ServicesPageContent() {
   const { toast } = useToast();
-  const { services, categories, isLoading, refetch } = useServicesData();
-  const createService = useCreateService();
-  const updateService = useUpdateService();
-  const deleteService = useDeleteService();
-  const createCategory = useCreateCategory();
-  const updateCategory = useUpdateCategory();
-  const deleteCategory = useDeleteCategory();
   
+  // State declarations - must come before hooks that use them
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [isSearching, setIsSearching] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -64,13 +61,12 @@ export default function ServicesPageContent() {
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [savingService, setSavingService] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'price' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [savingInline, setSavingInline] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -81,6 +77,30 @@ export default function ServicesPageContent() {
     staffNotes: '',
     dependencies: [] as string[]
   });
+
+  // Data fetching hooks - now all state is declared
+  const queryParams = { 
+    page: currentPage, 
+    limit: pageSize,
+    searchTerm: debouncedSearchQuery || undefined,
+    categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter
+  };
+  
+  const { services, categories, meta, isLoading, refetch } = useServicesData(queryParams);
+  
+  const createService = useCreateService();
+  const updateService = useUpdateService();
+  const deleteService = useDeleteService();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  
+  // Set expanded categories after categories are loaded
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      setExpandedCategories(categories.map(c => c.id));
+    }
+  }, [categories]);
 
   // Debounced search
   const debouncedSearch = useMemo(
@@ -104,6 +124,11 @@ export default function ServicesPageContent() {
       setExpandedCategories(categories.map(c => c.id));
     }
   }, [categories]);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategoryFilter, debouncedSearchQuery]);
 
   // Get staff count for a service - TODO: Replace with real staff assignments from API
   const getStaffCount = (serviceId: string) => {
@@ -113,27 +138,13 @@ export default function ServicesPageContent() {
 
   // Transform services for the table
   const tableData = useMemo(() => {
-    let data: ServiceRow[] = services.map(service => ({
+    // No client-side filtering needed - server handles it
+    return services.map(service => ({
       ...service,
       staffCount: getStaffCount(service.id),
       categoryColor: categories.find(c => c.id === service.categoryId)?.color
     }));
-
-    // Filter by category
-    if (selectedCategoryFilter !== "all") {
-      data = data.filter(service => service.categoryId === selectedCategoryFilter);
-    }
-
-    // Filter by search query
-    if (debouncedSearchQuery) {
-      data = data.filter(service =>
-        service.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        service.categoryName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-      );
-    }
-
-    return data;
-  }, [services, categories, debouncedSearchQuery, selectedCategoryFilter]);
+  }, [services, categories]);
 
   // Handle row selection changes
   const handleRowSelectionChange = useCallback((newRowSelection: Record<string, boolean>) => {
@@ -712,13 +723,10 @@ export default function ServicesPageContent() {
               >
                 All Services
                 <Badge variant="secondary" className="ml-2 bg-gray-100">
-                  {services.length}
+                  {meta?.total || services.length}
                 </Badge>
               </Button>
               {categories.map((category) => {
-                const count = services.filter(s => s.categoryId === category.id).length;
-                if (count === 0) return null;
-                
                 return (
                   <Button
                     key={category.id}
@@ -735,9 +743,6 @@ export default function ServicesPageContent() {
                       style={{ backgroundColor: category.color || '#6B7280' }}
                     />
                     {category.name}
-                    <Badge variant="secondary" className="ml-1 bg-gray-100">
-                      {count}
-                    </Badge>
                   </Button>
                 );
               })}
@@ -829,6 +834,8 @@ export default function ServicesPageContent() {
               showRowSelection={true}
               rowSelection={rowSelection}
               onRowSelectionChange={handleRowSelectionChange}
+              showPagination={false} // Disable DataTable's internal pagination - we're using server-side pagination
+              pageSize={9999} // Set a high page size to show all data passed to it
               headerActions={
                 selectedServices.length > 0 ? (
                   <>
@@ -858,6 +865,92 @@ export default function ServicesPageContent() {
                 ) : null
               }
             />
+            
+            {/* Pagination Controls */}
+            {meta && (
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-700">
+                    {meta.total === 0 
+                      ? "No services found" 
+                      : `Showing ${((currentPage - 1) * pageSize) + 1} to ${Math.min(currentPage * pageSize, meta.total)} of ${meta.total} services`
+                    }
+                  </span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(value) => {
+                      setPageSize(Number(value));
+                      setCurrentPage(1); // Reset to first page when changing page size
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="100">100 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    First
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">Page</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={meta.totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value) || 1;
+                        setCurrentPage(Math.min(Math.max(1, page), meta.totalPages));
+                      }}
+                      className="h-8 w-16 text-center"
+                    />
+                    <span className="text-sm">of {meta.totalPages}</span>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('[Pagination] Next clicked, currentPage:', currentPage, 'totalPages:', meta.totalPages);
+                      setCurrentPage(prev => Math.min(meta.totalPages, prev + 1));
+                    }}
+                    disabled={currentPage === meta.totalPages}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(meta.totalPages)}
+                    disabled={currentPage === meta.totalPages}
+                  >
+                    Last
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
