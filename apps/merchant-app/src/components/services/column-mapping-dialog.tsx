@@ -20,10 +20,11 @@ interface ColumnMappingDialogProps {
 }
 
 const REQUIRED_FIELDS = ['name', 'price'];
-const OPTIONAL_FIELDS = ['category', 'description', 'duration', 'active'];
+const OPTIONAL_FIELDS = ['id', 'category', 'description', 'duration', 'active'];
 const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
 const FIELD_LABELS: Record<string, string> = {
+  id: 'Service ID',
   name: 'Service Name',
   category: 'Category',
   description: 'Description',
@@ -50,7 +51,9 @@ export function ColumnMappingDialog({
         let detectedField: string | null = null;
 
         // Try to auto-detect based on common variations
-        if (lowerHeader.includes('name') || lowerHeader === 'service' || lowerHeader === 'service name') {
+        if (lowerHeader === 'id' || lowerHeader.includes('service id') || lowerHeader.includes('service_id') || lowerHeader === 'code' || lowerHeader === 'sku') {
+          detectedField = 'id';
+        } else if (lowerHeader.includes('name') || lowerHeader === 'service' || lowerHeader === 'service name') {
           detectedField = 'name';
         } else if (lowerHeader.includes('price') || lowerHeader.includes('cost') || lowerHeader.includes('amount')) {
           detectedField = 'price';

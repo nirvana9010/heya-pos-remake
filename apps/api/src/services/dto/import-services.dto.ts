@@ -15,6 +15,10 @@ export enum ImportAction {
 
 export class ServiceCsvRowDto {
   @IsString()
+  @IsOptional()
+  id?: string; // Optional unique identifier for the service (e.g., "SERVICE001", "SVC-123")
+
+  @IsString()
   @IsNotEmpty()
   name: string;
 

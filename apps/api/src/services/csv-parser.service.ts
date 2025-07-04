@@ -220,6 +220,7 @@ export class CsvParserService {
     }
 
     return {
+      id: row.id?.trim() || undefined, // Support for unique service identifier
       name: row.name?.trim() || '',
       category: row.category?.trim() || undefined,
       description: row.description?.trim() || undefined,
@@ -241,6 +242,7 @@ export class CsvParserService {
    */
   generateTemplate(): string {
     const headers = [
+      'id',
       'action',
       'name',
       'category',
@@ -252,6 +254,7 @@ export class CsvParserService {
 
     const exampleRows = [
       [
+        'SVC001',
         'add',
         'Classic Facial',
         'Facials',
@@ -261,6 +264,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC002',
         'add',
         'Deluxe Facial',
         'Facials',
@@ -270,6 +274,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC003',
         'add',
         'Express Manicure',
         'Nails',
@@ -279,6 +284,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC004',
         'edit',
         'Full Body Massage',
         'Massage',
@@ -288,6 +294,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC005',
         'add',
         'Hair Cut & Style',
         'Hair',
@@ -297,6 +304,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC006',
         'add',
         'Premium Package',
         'Packages',
@@ -306,6 +314,7 @@ export class CsvParserService {
         'true'
       ],
       [
+        'SVC007',
         'delete',
         'Old Service',
         '',
