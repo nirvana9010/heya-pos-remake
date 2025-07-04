@@ -124,7 +124,7 @@ export class OrdersService {
             quantity: new Decimal(item.quantity),
             unitPrice: new Decimal(item.unitPrice),
             discount: new Decimal(item.discount || 0),
-            taxRate: new Decimal(item.taxRate || 0.1),
+            taxRate: new Decimal(item.taxRate || 0.0),
             taxAmount: new Decimal(0), // Will be calculated
             total: new Decimal(0), // Will be calculated
             staffId: item.staffId,

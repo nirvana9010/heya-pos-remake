@@ -61,7 +61,7 @@ export class ServicesService {
         duration: dto.duration,
         price: dto.price,
         currency: dto.currency || 'AUD',
-        taxRate: dto.taxRate ?? 0.1, // Default 10% GST
+        taxRate: dto.taxRate ?? 0.0, // Prices are GST-inclusive
         isActive: dto.isActive ?? true,
         requiresDeposit: dto.requiresDeposit ?? false,
         depositAmount: dto.depositAmount,

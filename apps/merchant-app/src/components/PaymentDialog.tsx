@@ -188,10 +188,6 @@ export function PaymentDialog({
                 <span>Subtotal:</span>
                 <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                <span>${order?.taxAmount?.toFixed(2) || '0.00'}</span>
-              </div>
               {order?.modifiers?.map((modifier: any) => (
                 <div key={modifier.id} className="flex justify-between text-sm">
                   <span>{modifier.description}:</span>

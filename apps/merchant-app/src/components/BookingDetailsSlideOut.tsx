@@ -34,6 +34,7 @@ import { useToast } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { BookingActions } from "./BookingActions";
+import { PaymentDialog } from "./PaymentDialog";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
 
@@ -85,6 +86,8 @@ export function BookingDetailsSlideOut({
   const [isEditing, setIsEditing] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -213,11 +216,54 @@ export function BookingDetailsSlideOut({
   const handlePaymentToggle = async () => {
     setIsPaymentProcessing(true);
     try {
-      const isPaid = booking.paymentStatus === 'paid';
+      const isPaid = booking.isPaid;
       await onPaymentStatusChange(booking.id, !isPaid);
     } finally {
       setIsPaymentProcessing(false);
     }
+  };
+
+  const handleProcessPayment = async (bookingId: string) => {
+    try {
+      // Create order from booking if not exists
+      const order = await apiClient.createOrderFromBooking(bookingId);
+      
+      // Lock the order if it's in DRAFT state
+      if (order.state === 'DRAFT') {
+        await apiClient.updateOrderState(order.id, 'LOCKED');
+      }
+      
+      setSelectedOrderForPayment(order);
+      setPaymentDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create order for payment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePaymentComplete = async (updatedOrder: any) => {
+    // Close the payment dialog
+    setPaymentDialogOpen(false);
+    setSelectedOrderForPayment(null);
+    
+    // Update the booking's payment status
+    await onPaymentStatusChange(booking.id, true);
+    
+    // Refresh notifications
+    setTimeout(() => {
+      refreshNotifications();
+    }, 2000);
+    
+    toast({
+      title: "Payment processed",
+      description: `Payment for ${booking.customerName}'s booking has been processed successfully.`,
+      variant: "default",
+      className: "bg-green-50 border-green-200",
+      duration: 5000,
+    });
   };
 
   return (
@@ -265,7 +311,7 @@ export function BookingDetailsSlideOut({
           <BookingActions
             booking={{
               ...booking,
-              isPaid: booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid',
+              isPaid: booking.isPaid,
               totalPrice: booking.totalPrice,
               customerPhone: booking.customerPhone,
               customerEmail: booking.customerEmail
@@ -278,6 +324,7 @@ export function BookingDetailsSlideOut({
             isStatusUpdating={isStatusUpdating}
             onStatusChange={handleStatusChange}
             onPaymentToggle={handlePaymentToggle}
+            onProcessPayment={handleProcessPayment}
           />
         </div>
 
@@ -431,9 +478,12 @@ export function BookingDetailsSlideOut({
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Scissors className="h-4 w-4 text-gray-400" />
-                      <span>{booking.serviceName}</span>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Scissors className="h-4 w-4 text-gray-400" />
+                        <span>{booking.serviceName}</span>
+                      </div>
+                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm mt-3">
@@ -446,12 +496,14 @@ export function BookingDetailsSlideOut({
                       />
                     )}
                   </div>
-                  {booking.paymentStatus === 'paid' && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-gray-400" />
-                      <Badge variant="success" className="text-xs">Paid</Badge>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-sm mt-2">
+                    <DollarSign className="h-4 w-4 text-gray-400" />
+                    {booking.isPaid ? (
+                      <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
+                    ) : (
+                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -500,6 +552,17 @@ export function BookingDetailsSlideOut({
           )}
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      {selectedOrderForPayment && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          order={selectedOrderForPayment}
+          onPaymentComplete={handlePaymentComplete}
+          enableTips={false}
+        />
+      )}
     </SlideOutPanel>
   );
 }
