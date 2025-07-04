@@ -112,9 +112,9 @@ export class ServicesService {
     // Add search conditions if provided
     if (searchTerm && searchTerm.trim()) {
       where.OR = [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
-        { description: { contains: searchTerm, mode: 'insensitive' } },
-        { category: { contains: searchTerm, mode: 'insensitive' } },
+        { name: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+        { category: { contains: searchTerm } },
       ];
     }
 
@@ -841,14 +841,11 @@ export class ServicesService {
       '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
     ];
 
-    // Check if category exists (case-insensitive)
+    // Check if category exists
     const existing = await tx.serviceCategory.findFirst({
       where: {
         merchantId,
-        name: {
-          equals: categoryName,
-          mode: 'insensitive',
-        },
+        name: categoryName,
       },
     });
 
