@@ -125,19 +125,10 @@ export function BookingDetailsSlideOut({
         // Try to create order from booking (it will return existing if already created)
         const order = await apiClient.createOrderFromBooking(booking.id);
         if (order) {
-          console.log('Fetched order for booking:', {
-            bookingId: booking.id,
-            orderId: order.id,
-            totalAmount: order.totalAmount,
-            paidAmount: order.paidAmount,
-            state: order.state,
-            modifiers: order.modifiers
-          });
           setAssociatedOrder(order);
         }
       } catch (error) {
         // Order might not exist yet, which is fine
-        console.error('Error fetching order for booking:', booking.id, error);
         setAssociatedOrder(null);
       } finally {
         setIsLoadingOrder(false);
@@ -285,13 +276,6 @@ export function BookingDetailsSlideOut({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
-    console.log('Payment complete, updated order:', {
-      orderId: updatedOrder.id,
-      totalAmount: updatedOrder.totalAmount,
-      paidAmount: updatedOrder.paidAmount,
-      modifiers: updatedOrder.modifiers
-    });
-    
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
@@ -551,33 +535,20 @@ export function BookingDetailsSlideOut({
                   </div>
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <DollarSign className="h-4 w-4 text-gray-400" />
-                    {(() => {
-                      console.log('Payment display debug:', {
-                        isPaid: booking.isPaid,
-                        hasOrder: !!associatedOrder,
-                        orderTotal: associatedOrder?.totalAmount,
-                        orderPaid: associatedOrder?.paidAmount,
-                        bookingPrice: booking.totalPrice
-                      });
-                      
-                      if (booking.isPaid && associatedOrder) {
-                        const paidAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
-                        return (
-                          <span className="text-green-600 font-medium">
-                            Paid ${paidAmount.toFixed(2)}
-                            {paidAmount !== booking.totalPrice && (
-                              <span className="text-xs text-gray-500 ml-1">
-                                (was ${booking.totalPrice.toFixed(2)})
-                              </span>
-                            )}
+                    {booking.isPaid && associatedOrder ? (
+                      <span className="text-green-600 font-medium">
+                        Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
+                        {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            (was ${booking.totalPrice.toFixed(2)})
                           </span>
-                        );
-                      } else if (booking.isPaid) {
-                        return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
-                      } else {
-                        return <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>;
-                      }
-                    })()}
+                        )}
+                      </span>
+                    ) : booking.isPaid ? (
+                      <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
+                    ) : (
+                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
               </div>
