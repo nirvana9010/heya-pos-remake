@@ -90,6 +90,7 @@ export function BookingDetailsSlideOut({
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
   const [associatedOrder, setAssociatedOrder] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+  const [orderRefetchTrigger, setOrderRefetchTrigger] = useState(0);
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -136,7 +137,7 @@ export function BookingDetailsSlideOut({
         }
       } catch (error) {
         // Order might not exist yet, which is fine
-        console.log('No order found for booking:', booking.id);
+        console.error('Error fetching order for booking:', booking.id, error);
         setAssociatedOrder(null);
       } finally {
         setIsLoadingOrder(false);
@@ -144,10 +145,10 @@ export function BookingDetailsSlideOut({
     };
 
     // Fetch if booking is paid or if we have an order for payment
-    if (booking.isPaid || selectedOrderForPayment) {
+    if (booking.isPaid || selectedOrderForPayment || orderRefetchTrigger > 0) {
       fetchOrder();
     }
-  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment]); // Re-fetch when payment status changes
+  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment, orderRefetchTrigger]); // Re-fetch when payment status changes
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
@@ -300,6 +301,9 @@ export function BookingDetailsSlideOut({
     
     // Update the booking's payment status
     await onPaymentStatusChange(booking.id, true);
+    
+    // Force refetch the order to ensure we have latest data
+    setOrderRefetchTrigger(prev => prev + 1);
     
     // Refresh notifications
     setTimeout(() => {
@@ -547,20 +551,33 @@ export function BookingDetailsSlideOut({
                   </div>
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <DollarSign className="h-4 w-4 text-gray-400" />
-                    {booking.isPaid && associatedOrder ? (
-                      <span className="text-green-600 font-medium">
-                        Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
-                        {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            (was ${booking.totalPrice.toFixed(2)})
+                    {(() => {
+                      console.log('Payment display debug:', {
+                        isPaid: booking.isPaid,
+                        hasOrder: !!associatedOrder,
+                        orderTotal: associatedOrder?.totalAmount,
+                        orderPaid: associatedOrder?.paidAmount,
+                        bookingPrice: booking.totalPrice
+                      });
+                      
+                      if (booking.isPaid && associatedOrder) {
+                        const paidAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
+                        return (
+                          <span className="text-green-600 font-medium">
+                            Paid ${paidAmount.toFixed(2)}
+                            {paidAmount !== booking.totalPrice && (
+                              <span className="text-xs text-gray-500 ml-1">
+                                (was ${booking.totalPrice.toFixed(2)})
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                    ) : booking.isPaid ? (
-                      <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
-                    ) : (
-                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
-                    )}
+                        );
+                      } else if (booking.isPaid) {
+                        return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
+                      } else {
+                        return <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>;
+                      }
+                    })()}
                   </div>
                 </div>
               </div>
