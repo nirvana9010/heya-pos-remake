@@ -24,7 +24,6 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { QueryServiceDto } from './dto/query-service.dto';
 import { ImportOptionsDto, ExecuteImportDto } from './dto/import-services.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PinAuthGuard } from '../auth/guards/pin-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -114,7 +113,6 @@ export class ServicesController {
   // ============= NEW CSV IMPORT ENDPOINTS =============
 
   @Post('import/mapping')
-  @UseGuards(PinAuthGuard)
   @RequirePermissions('service.create')
   @UseInterceptors(FileInterceptor('file'))
   async getCsvMapping(
@@ -137,7 +135,6 @@ export class ServicesController {
   }
 
   @Post('import/preview')
-  @UseGuards(PinAuthGuard)
   @RequirePermissions('service.create')
   @UseInterceptors(FileInterceptor('file'))
   async previewImport(
@@ -186,7 +183,6 @@ export class ServicesController {
   }
 
   @Post('import/execute')
-  @UseGuards(PinAuthGuard)
   @RequirePermissions('service.create')
   async executeImport(
     @Body() body: ExecuteImportDto,
