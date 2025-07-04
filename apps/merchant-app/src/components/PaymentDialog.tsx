@@ -31,9 +31,9 @@ import {
   OrderModifierType,
   OrderModifierCalculation,
 } from '@heya-pos/types';
-import { CreditCard, DollarSign, Percent, Plus, Minus } from 'lucide-react';
+import { CreditCard, DollarSign, Percent, Plus, Minus, Edit2, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { useToast } from '@heya-pos/ui';
+import { useToast, cn } from '@heya-pos/ui';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -64,9 +64,36 @@ export function PaymentDialog({
     tipAmount?: string;
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const [itemAdjustments, setItemAdjustments] = useState<Record<string, number>>({});
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
+  const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
 
-  // Calculate amounts
-  const balanceDue = order?.balanceDue || 0;
+  // Calculate amounts including adjustments
+  const calculateAdjustedTotal = useMemo(() => {
+    if (!order) return { subtotal: 0, adjustments: 0, total: 0 };
+    
+    let itemAdjustmentsTotal = 0;
+    for (const [itemId, newPrice] of Object.entries(itemAdjustments)) {
+      const item = order.items?.find((i: any) => i.id === itemId);
+      if (item) {
+        const originalPrice = item.unitPrice * item.quantity;
+        itemAdjustmentsTotal += newPrice - originalPrice;
+      }
+    }
+    
+    const orderLevelAdjustment = showOrderAdjustment ? orderAdjustment.amount : 0;
+    const totalAdjustments = itemAdjustmentsTotal + orderLevelAdjustment;
+    const adjustedTotal = (order.totalAmount || 0) + totalAdjustments;
+    
+    return {
+      subtotal: order.subtotal || 0,
+      adjustments: totalAdjustments,
+      total: adjustedTotal
+    };
+  }, [order, itemAdjustments, orderAdjustment, showOrderAdjustment]);
+
+  const balanceDue = calculateAdjustedTotal.total - (order?.paidAmount || 0);
   const tipAmount = useMemo(() => {
     if (!enableTips) return 0;
     
@@ -94,9 +121,44 @@ export function PaymentDialog({
       return;
     }
 
+
     setProcessing(true);
 
     try {
+      // Apply item adjustments as modifiers
+      for (const [itemId, newPrice] of Object.entries(itemAdjustments)) {
+        const item = order.items.find((i: any) => i.id === itemId);
+        if (!item) continue;
+
+        const originalPrice = item.unitPrice * item.quantity;
+        const difference = newPrice - originalPrice;
+        
+        if (difference !== 0) {
+          await apiClient.addOrderModifier(order.id, {
+            type: difference < 0 ? OrderModifierType.DISCOUNT : OrderModifierType.SURCHARGE,
+            calculation: OrderModifierCalculation.FIXED_AMOUNT,
+            value: Math.abs(difference),
+            description: `Adjustment: ${item.description || item.name}`,
+            appliesTo: [itemId]
+          });
+        }
+      }
+
+      // Apply order-level adjustment if provided
+      if (showOrderAdjustment && orderAdjustment.amount !== 0) {
+        await apiClient.addOrderModifier(order.id, {
+          type: orderAdjustment.amount < 0 ? OrderModifierType.DISCOUNT : OrderModifierType.SURCHARGE,
+          calculation: OrderModifierCalculation.FIXED_AMOUNT,
+          value: Math.abs(orderAdjustment.amount),
+          description: orderAdjustment.reason || `Order ${orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}`
+        });
+      }
+
+      // Refresh order to get updated totals
+      const updatedOrder = await apiClient.getOrder(order.id);
+      
+      // Update the balanceDue with the new total
+      const updatedBalanceDue = updatedOrder.balanceDue || 0;
       let result;
 
       if (isSplitPayment) {
@@ -115,11 +177,11 @@ export function PaymentDialog({
         // Process single payment
         const paymentData = {
           orderId: order.id,
-          amount: balanceDue,
+          amount: updatedBalanceDue,
           method: paymentMethod,
           tipAmount: enableTips ? tipAmount : 0,
           metadata: paymentMethod === PaymentMethod.CASH ? {
-            cashReceived: parseFloat(cashReceived) || balanceDue,
+            cashReceived: parseFloat(cashReceived) || updatedBalanceDue,
           } : undefined,
         };
 
@@ -138,8 +200,14 @@ export function PaymentDialog({
       });
 
       // Refresh order data
-      const updatedOrder = await apiClient.getOrder(order.id);
-      onPaymentComplete?.(updatedOrder);
+      const finalOrder = await apiClient.getOrder(order.id);
+      
+      // Clear adjustments
+      setItemAdjustments({});
+      setOrderAdjustment({ amount: 0, reason: '' });
+      setShowOrderAdjustment(false);
+      
+      onPaymentComplete?.(finalOrder);
       onOpenChange(false);
 
     } catch (error: any) {
@@ -181,6 +249,207 @@ export function PaymentDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Order Items */}
+          {order?.items && order.items.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium text-sm text-gray-700">Order Items</h3>
+              <div className="space-y-2">
+                {order.items.map((item: any) => {
+                  const originalPrice = item.unitPrice * item.quantity;
+                  const adjustedPrice = itemAdjustments[item.id] ?? originalPrice;
+                  const difference = adjustedPrice - originalPrice;
+                  const isEditing = editingItemId === item.id;
+
+                  return (
+                    <div key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div>
+                        <span className="text-sm font-medium">{item.description || item.name}</span>
+                        <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">$</span>
+                            <div className="flex items-center">
+                              <Input
+                                type="number"
+                                step="1"
+                                value={adjustedPrice.toFixed(2)}
+                                onChange={(e) => {
+                                  const newPrice = parseFloat(e.target.value) || 0;
+                                  setItemAdjustments(prev => ({
+                                    ...prev,
+                                    [item.id]: newPrice
+                                  }));
+                                }}
+                                className="w-20 h-8 text-sm rounded-r-none"
+                                autoFocus
+                              />
+                              <div className="flex flex-col">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setItemAdjustments(prev => ({
+                                      ...prev,
+                                      [item.id]: (prev[item.id] || originalPrice) + 1
+                                    }));
+                                  }}
+                                  className="h-4 w-6 p-0 rounded-none rounded-tr border-l-0"
+                                >
+                                  <ChevronUp className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const currentPrice = itemAdjustments[item.id] || originalPrice;
+                                    if (currentPrice > 1) {
+                                      setItemAdjustments(prev => ({
+                                        ...prev,
+                                        [item.id]: currentPrice - 1
+                                      }));
+                                    }
+                                  }}
+                                  className="h-4 w-6 p-0 rounded-none rounded-br border-l-0 border-t-0"
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingItemId(null)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setItemAdjustments(prev => {
+                                  const next = { ...prev };
+                                  delete next[item.id];
+                                  return next;
+                                });
+                                setEditingItemId(null);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm font-medium">
+                              ${adjustedPrice.toFixed(2)}
+                              {difference !== 0 && (
+                                <span className={cn(
+                                  "ml-1 text-xs",
+                                  difference < 0 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  ({difference < 0 ? '-' : '+'}${Math.abs(difference).toFixed(2)})
+                                </span>
+                              )}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingItemId(item.id)}
+                              className="h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Order-level Adjustment */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm text-gray-700">Order Adjustment</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowOrderAdjustment(!showOrderAdjustment)}
+              >
+                {showOrderAdjustment ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+            
+            {showOrderAdjustment && (
+              <div className="p-3 bg-gray-50 rounded space-y-3">
+                <div>
+                  <Label htmlFor="adjustment-amount" className="text-sm">
+                    Amount (negative for discount)
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm">$</span>
+                    <div className="flex items-center">
+                      <Input
+                        id="adjustment-amount"
+                        type="number"
+                        step="1"
+                        value={orderAdjustment.amount || ''}
+                        onChange={(e) => {
+                          const amount = parseFloat(e.target.value) || 0;
+                          setOrderAdjustment(prev => ({ ...prev, amount }));
+                        }}
+                        placeholder="0.00"
+                        className="rounded-r-none"
+                      />
+                      <div className="flex flex-col">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 1 }));
+                          }}
+                          className="h-5 w-8 p-0 rounded-none rounded-tr border-l-0"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 1 }));
+                          }}
+                          className="h-5 w-8 p-0 rounded-none rounded-br border-l-0 border-t-0"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="adjustment-reason" className="text-sm">
+                    Reason <span className="text-gray-400">(optional)</span>
+                  </Label>
+                  <Input
+                    id="adjustment-reason"
+                    type="text"
+                    value={orderAdjustment.reason}
+                    onChange={(e) => {
+                      setOrderAdjustment(prev => ({ ...prev, reason: e.target.value }));
+                    }}
+                    placeholder="e.g., Loyalty discount, Service issue, etc."
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Order Summary */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="space-y-2">
@@ -197,9 +466,18 @@ export function PaymentDialog({
                   </span>
                 </div>
               ))}
+              {calculateAdjustedTotal.adjustments !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Pending Adjustments:</span>
+                  <span className={calculateAdjustedTotal.adjustments < 0 ? 'text-green-600' : 'text-red-600'}>
+                    {calculateAdjustedTotal.adjustments < 0 ? '-' : '+'}
+                    ${Math.abs(calculateAdjustedTotal.adjustments).toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div className="border-t pt-2 flex justify-between font-semibold">
                 <span>Total:</span>
-                <span>${order?.totalAmount?.toFixed(2) || '0.00'}</span>
+                <span>${calculateAdjustedTotal.total.toFixed(2)}</span>
               </div>
               {order?.paidAmount > 0 && (
                 <div className="flex justify-between text-green-600">
@@ -241,15 +519,45 @@ export function PaymentDialog({
               <TabsContent value={PaymentMethod.CASH} className="space-y-4">
                 <div>
                   <Label htmlFor="cash-received">Cash Received</Label>
-                  <Input
-                    id="cash-received"
-                    type="number"
-                    step="0.01"
-                    placeholder={totalWithTip.toFixed(2)}
-                    value={cashReceived}
-                    onChange={(e) => setCashReceived(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                  />
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm">$</span>
+                    <div className="flex items-center">
+                      <Input
+                        id="cash-received"
+                        type="number"
+                        step="1"
+                        placeholder={totalWithTip.toFixed(2)}
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        className="rounded-r-none"
+                      />
+                      <div className="flex flex-col">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const current = parseFloat(cashReceived) || totalWithTip;
+                            setCashReceived((current + 1).toFixed(2));
+                          }}
+                          className="h-5 w-8 p-0 rounded-none rounded-tr border-l-0"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const current = parseFloat(cashReceived) || totalWithTip;
+                            if (current > 1) setCashReceived((current - 1).toFixed(2));
+                          }}
+                          className="h-5 w-8 p-0 rounded-none rounded-br border-l-0 border-t-0"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {changeAmount > 0 && (
                   <div className="bg-green-50 p-3 rounded">
