@@ -88,6 +88,8 @@ export function BookingDetailsSlideOut({
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
+  const [associatedOrder, setAssociatedOrder] = useState<any>(null);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -111,6 +113,33 @@ export function BookingDetailsSlideOut({
       setFormData(initializeFormData(booking));
     }
   }, [booking, isEditing]);
+
+  // Fetch associated order for the booking
+  useEffect(() => {
+    const fetchOrder = async () => {
+      if (!booking.id || !isOpen) return;
+      
+      setIsLoadingOrder(true);
+      try {
+        // Try to create order from booking (it will return existing if already created)
+        const order = await apiClient.createOrderFromBooking(booking.id);
+        if (order) {
+          setAssociatedOrder(order);
+        }
+      } catch (error) {
+        // Order might not exist yet, which is fine
+        console.log('No order found for booking:', booking.id);
+        setAssociatedOrder(null);
+      } finally {
+        setIsLoadingOrder(false);
+      }
+    };
+
+    // Only fetch if booking is paid or we expect an order
+    if (booking.isPaid) {
+      fetchOrder();
+    }
+  }, [booking.id, isOpen, booking.isPaid]); // Re-fetch when payment status changes
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
@@ -233,6 +262,8 @@ export function BookingDetailsSlideOut({
         await apiClient.updateOrderState(order.id, 'LOCKED');
       }
       
+      // Update the associated order state so we can show adjusted prices
+      setAssociatedOrder(order);
       setSelectedOrderForPayment(order);
       setPaymentDialogOpen(true);
     } catch (error) {
@@ -248,6 +279,9 @@ export function BookingDetailsSlideOut({
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
+    
+    // Update the associated order state
+    setAssociatedOrder(updatedOrder);
     
     // Update the booking's payment status
     await onPaymentStatusChange(booking.id, true);
@@ -498,7 +532,16 @@ export function BookingDetailsSlideOut({
                   </div>
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <DollarSign className="h-4 w-4 text-gray-400" />
-                    {booking.isPaid ? (
+                    {booking.isPaid && associatedOrder ? (
+                      <span className="text-green-600 font-medium">
+                        Paid ${(associatedOrder.totalAmount || associatedOrder.paidAmount || booking.totalPrice).toFixed(2)}
+                        {associatedOrder.totalAmount !== booking.totalPrice && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            (was ${booking.totalPrice.toFixed(2)})
+                          </span>
+                        )}
+                      </span>
+                    ) : booking.isPaid ? (
                       <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
                     ) : (
                       <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
