@@ -124,6 +124,14 @@ export function BookingDetailsSlideOut({
         // Try to create order from booking (it will return existing if already created)
         const order = await apiClient.createOrderFromBooking(booking.id);
         if (order) {
+          console.log('Fetched order for booking:', {
+            bookingId: booking.id,
+            orderId: order.id,
+            totalAmount: order.totalAmount,
+            paidAmount: order.paidAmount,
+            state: order.state,
+            modifiers: order.modifiers
+          });
           setAssociatedOrder(order);
         }
       } catch (error) {
@@ -135,11 +143,11 @@ export function BookingDetailsSlideOut({
       }
     };
 
-    // Only fetch if booking is paid or we expect an order
-    if (booking.isPaid) {
+    // Fetch if booking is paid or if we have an order for payment
+    if (booking.isPaid || selectedOrderForPayment) {
       fetchOrder();
     }
-  }, [booking.id, isOpen, booking.isPaid]); // Re-fetch when payment status changes
+  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment]); // Re-fetch when payment status changes
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
@@ -276,6 +284,13 @@ export function BookingDetailsSlideOut({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
+    console.log('Payment complete, updated order:', {
+      orderId: updatedOrder.id,
+      totalAmount: updatedOrder.totalAmount,
+      paidAmount: updatedOrder.paidAmount,
+      modifiers: updatedOrder.modifiers
+    });
+    
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
@@ -534,8 +549,8 @@ export function BookingDetailsSlideOut({
                     <DollarSign className="h-4 w-4 text-gray-400" />
                     {booking.isPaid && associatedOrder ? (
                       <span className="text-green-600 font-medium">
-                        Paid ${(associatedOrder.totalAmount || associatedOrder.paidAmount || booking.totalPrice).toFixed(2)}
-                        {associatedOrder.totalAmount !== booking.totalPrice && (
+                        Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
+                        {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
                           <span className="text-xs text-gray-500 ml-1">
                             (was ${booking.totalPrice.toFixed(2)})
                           </span>

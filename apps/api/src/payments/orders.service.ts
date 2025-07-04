@@ -155,7 +155,9 @@ export class OrdersService {
   ) {
     const order = await this.findOrder(orderId, merchantId);
 
-    if (order.state !== OrderState.DRAFT && order.state !== OrderState.LOCKED) {
+    if (order.state !== OrderState.DRAFT && 
+        order.state !== OrderState.LOCKED && 
+        order.state !== OrderState.PENDING_PAYMENT) {
       throw new BadRequestException('Cannot modify a paid order');
     }
 
