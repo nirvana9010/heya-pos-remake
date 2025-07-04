@@ -696,7 +696,7 @@ export class ServicesService {
       errors: [],
     };
 
-    // Use transaction for data integrity
+    // Use transaction for data integrity with extended timeout
     await this.prisma.$transaction(async (tx) => {
       for (const row of rows) {
         if (row.action === 'skip' || !row.validation.isValid) {
@@ -745,11 +745,38 @@ export class ServicesService {
           // Find or create category if specified
           let categoryId: string | undefined;
           if (data.category && options.createCategories) {
-            const category = await this.findOrCreateCategoryInTx(
-              tx,
-              merchantId,
-              data.category
-            );
+            // Check if category exists
+            let category = await tx.serviceCategory.findFirst({
+              where: {
+                merchantId,
+                name: data.category,
+              },
+            });
+
+            if (!category) {
+              // Create new category
+              const categoryCount = await tx.serviceCategory.count({
+                where: { merchantId },
+              });
+
+              // Use a simple color selection
+              const AVAILABLE_COLORS = [
+                '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
+                '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
+              ];
+              const colorIndex = categoryCount % AVAILABLE_COLORS.length;
+
+              category = await tx.serviceCategory.create({
+                data: {
+                  merchantId,
+                  name: data.category,
+                  color: AVAILABLE_COLORS[colorIndex],
+                  sortOrder: categoryCount,
+                  isActive: true,
+                },
+              });
+            }
+            
             categoryId = category.id;
           }
 
@@ -824,14 +851,18 @@ export class ServicesService {
           }
         }
       }
+    }, {
+      maxWait: 5000, // Max time to wait for a transaction slot
+      timeout: 30000, // Transaction timeout: 30 seconds for large imports
     });
 
     result.success = result.failed === 0 || options.skipInvalidRows;
     return result;
   }
 
-  private async findOrCreateCategoryInTx(
-    tx: any,
+  // Removed findOrCreateCategoryInTx - inline transaction operations instead
+  private async findOrCreateCategoryOLD(
+    tx: Prisma.TransactionClient,
     merchantId: string,
     categoryName: string
   ): Promise<ServiceCategory> {
