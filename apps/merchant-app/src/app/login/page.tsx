@@ -162,70 +162,75 @@ export default function LoginPage() {
             </Button>
           </form>
           
-          <div className="mt-6 space-y-3">
-            <div className="text-center text-sm text-gray-600">
-              <div className="font-medium mb-2">Demo Credentials:</div>
-              <div className="space-y-1">
-                <div>
-                  <strong>Hamilton Beauty:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@hamiltonbeauty.com</code>, 
-                  Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
-                </div>
-                <div>
-                  <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@zenwellness.com</code>, 
-                  Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo456</code>
+          {/* Only show demo credentials if explicitly enabled */}
+          {process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === 'true' && (
+            <>
+              <div className="mt-6 space-y-3">
+                <div className="text-center text-sm text-gray-600">
+                  <div className="font-medium mb-2">Demo Credentials:</div>
+                  <div className="space-y-1">
+                    <div>
+                      <strong>Hamilton Beauty:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@hamiltonbeauty.com</code>, 
+                      Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
+                    </div>
+                    <div>
+                      <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@zenwellness.com</code>, 
+                      Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo456</code>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-          
-          {/* Auto login buttons for easy testing */}
-          <div className="mt-4 space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setFormData({
-                  email: 'admin@hamiltonbeauty.com',
-                  password: 'demo123'
-                });
-                // Auto submit after a short delay
-                setTimeout(() => {
-                  const form = document.querySelector('form');
-                  if (form) {
-                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                    form.dispatchEvent(submitEvent);
-                  }
-                }, 100);
-              }}
-              disabled={isSubmitting}
-            >
-              💅 Quick Login as Hamilton Beauty
-            </Button>
-            
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setFormData({
-                  email: 'admin@zenwellness.com',
-                  password: 'demo456'
-                });
-                // Auto submit after a short delay
-                setTimeout(() => {
-                  const form = document.querySelector('form');
-                  if (form) {
-                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                    form.dispatchEvent(submitEvent);
-                  }
-                }, 100);
-              }}
-              disabled={isSubmitting}
-            >
-              🧘 Quick Login as Zen Wellness
-            </Button>
-          </div>
+              
+              {/* Auto login buttons for easy testing */}
+              <div className="mt-4 space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFormData({
+                      email: 'admin@hamiltonbeauty.com',
+                      password: 'demo123'
+                    });
+                    // Auto submit after a short delay
+                    setTimeout(() => {
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(submitEvent);
+                      }
+                    }, 100);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  💅 Quick Login as Hamilton Beauty
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFormData({
+                      email: 'admin@zenwellness.com',
+                      password: 'demo456'
+                    });
+                    // Auto submit after a short delay
+                    setTimeout(() => {
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(submitEvent);
+                      }
+                    }, 100);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  🧘 Quick Login as Zen Wellness
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
