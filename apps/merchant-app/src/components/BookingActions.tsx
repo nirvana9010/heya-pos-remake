@@ -37,6 +37,7 @@ export interface BookingActionsProps {
   showPayment?: boolean;
   isPaymentProcessing?: boolean;
   isStatusUpdating?: boolean;
+  isProcessingPayment?: boolean;
   onStatusChange?: (bookingId: string, status: string) => void | Promise<void>;
   onPaymentToggle?: (bookingId: string, isPaid: boolean) => void;
   onProcessPayment?: (bookingId: string) => void;
@@ -54,6 +55,7 @@ export function BookingActions({
   showPayment = true,
   isPaymentProcessing = false,
   isStatusUpdating = false,
+  isProcessingPayment = false,
   onStatusChange,
   onPaymentToggle,
   onProcessPayment,
@@ -167,10 +169,15 @@ export function BookingActions({
               size={size}
               variant="outline"
               onClick={() => onProcessPayment(booking.id)}
+              disabled={isProcessingPayment}
               className="flex items-center gap-1"
             >
-              <CreditCard className="h-4 w-4" />
-              Process Payment
+              {isProcessingPayment ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              {isProcessingPayment ? "Processing..." : "Process Payment"}
             </Button>
           )}
           {!isPaid && onPaymentToggle && (
