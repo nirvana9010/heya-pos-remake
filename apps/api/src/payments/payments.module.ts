@@ -4,6 +4,7 @@ import { PaymentsService } from './payments.service';
 import { OrdersService } from './orders.service';
 import { PaymentGatewayService } from './payment-gateway.service';
 import { TyroPaymentService } from './tyro-payment.service';
+import { MockPaymentService } from './mock-payment.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -16,6 +17,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     OrdersService,
     PaymentGatewayService,
     TyroPaymentService,
+    MockPaymentService,
   ],
   exports: [PaymentsService, OrdersService, PaymentGatewayService],
 })

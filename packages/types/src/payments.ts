@@ -93,11 +93,14 @@ export interface OrderModifierDto {
 }
 
 export interface PaymentGatewayConfig {
-  provider: 'TYRO' | 'STRIPE' | 'SQUARE';
+  provider: 'TYRO' | 'STRIPE' | 'SQUARE' | 'MOCK';
   apiKey?: string;
+  secretKey?: string;
   merchantId?: string;
   terminalId?: string;
-  testMode: boolean;
+  webhookSecret?: string;
+  environment?: 'production' | 'sandbox';
+  testMode?: boolean;
 }
 
 // Payment gateway abstraction
