@@ -38,7 +38,7 @@ export class TyroPaymentService implements IPaymentGateway {
           merchantId,
           locationId,
           invoiceId,
-          paymentMethod: PaymentMethod.CARD_TYRO,
+          paymentMethod: PaymentMethod.CARD,
           amount: toDecimal(tyroTransaction.baseAmount / 100), // Convert from cents
           currency: 'AUD',
           status,
@@ -95,8 +95,8 @@ export class TyroPaymentService implements IPaymentGateway {
         throw new Error('Payment not found');
       }
 
-      if (payment.paymentMethod !== PaymentMethod.CARD_TYRO) {
-        throw new Error('Payment is not a Tyro payment');
+      if (payment.paymentMethod !== PaymentMethod.CARD) {
+        throw new Error('Payment is not a card payment');
       }
 
       // Determine refund status
@@ -277,7 +277,7 @@ export class TyroPaymentService implements IPaymentGateway {
       return {
         success: false,
         error: 'Payment declined by card issuer',
-        method: PaymentMethod.CARD_TYRO,
+        method: PaymentMethod.CARD,
         amount: 0,
       };
     }
@@ -287,7 +287,7 @@ export class TyroPaymentService implements IPaymentGateway {
       paymentId: referenceId,
       transactionId: `TXN_${referenceId}`,
       amount: 100, // This would come from the actual transaction
-      method: PaymentMethod.CARD_TYRO,
+      method: PaymentMethod.CARD,
       gatewayResponse: {
         authorisationCode: 'AUTH123',
         result: 'APPROVED',
