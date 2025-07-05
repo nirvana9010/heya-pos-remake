@@ -2,9 +2,7 @@
 
 export enum PaymentMethod {
   CASH = 'CASH',
-  CARD_TYRO = 'CARD_TYRO',
-  CARD_STRIPE = 'CARD_STRIPE',
-  CARD_MANUAL = 'CARD_MANUAL',
+  CARD = 'CARD',
   GIFT_CARD = 'GIFT_CARD',
   STORE_CREDIT = 'STORE_CREDIT',
   OTHER = 'OTHER'

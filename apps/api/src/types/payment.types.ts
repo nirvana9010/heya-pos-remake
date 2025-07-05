@@ -1,8 +1,6 @@
 export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
-  CARD_TYRO = 'CARD_TYRO',
-  CARD_STRIPE = 'CARD_STRIPE',
   EFTPOS = 'EFTPOS',
   ONLINE = 'ONLINE',
   GIFT_CARD = 'GIFT_CARD',
