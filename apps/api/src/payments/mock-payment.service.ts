@@ -38,8 +38,7 @@ export class MockPaymentService implements IPaymentGateway {
     
     console.log('[MockPaymentService] Getting terminal status for:', referenceId);
     
-    // Simulate successful payment after a short delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // No delay for development - instant response
     
     // Simulate different outcomes based on reference patterns
     if (referenceId.includes('FAIL')) {
@@ -83,8 +82,7 @@ export class MockPaymentService implements IPaymentGateway {
       reason,
     });
     
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // No delay for development - instant response
     
     return {
       success: true,
@@ -98,8 +96,7 @@ export class MockPaymentService implements IPaymentGateway {
     
     console.log('[MockPaymentService] Voiding payment:', paymentId);
     
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // No delay for development - instant response
     
     return {
       success: true,

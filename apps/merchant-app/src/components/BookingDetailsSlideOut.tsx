@@ -91,6 +91,7 @@ export function BookingDetailsSlideOut({
   const [associatedOrder, setAssociatedOrder] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [orderRefetchTrigger, setOrderRefetchTrigger] = useState(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -253,6 +254,7 @@ export function BookingDetailsSlideOut({
   };
 
   const handleProcessPayment = async (bookingId: string) => {
+    setIsProcessingPayment(true);
     try {
       // Create order from booking if not exists
       const order = await apiClient.createOrderFromBooking(bookingId);
@@ -272,6 +274,8 @@ export function BookingDetailsSlideOut({
         description: "Failed to create order for payment.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -359,6 +363,7 @@ export function BookingDetailsSlideOut({
             showDelete={false}
             isPaymentProcessing={isPaymentProcessing}
             isStatusUpdating={isStatusUpdating}
+            isProcessingPayment={isProcessingPayment}
             onStatusChange={handleStatusChange}
             onPaymentToggle={handlePaymentToggle}
             onProcessPayment={handleProcessPayment}
