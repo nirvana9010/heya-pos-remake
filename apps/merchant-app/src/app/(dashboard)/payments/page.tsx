@@ -654,7 +654,7 @@ export default function PaymentsPage() {
         const MethodIcon = method === "cash" ? Banknote : CardIcon;
         const methodLabels: Record<string, string> = {
           "cash": "Cash",
-          "card-tyro": "Tyro",
+          "card-tyro": "Card",
         };
         return (
           <div className="flex items-center gap-2">
