@@ -315,13 +315,26 @@ function CalendarContent() {
       }
       
       // Prepare the booking request data
+      // Check if bookingData has services array (multi-service) or single serviceId
+      let services = [];
+      if (bookingData.services && Array.isArray(bookingData.services)) {
+        // Multi-service booking from BookingSlideOut
+        services = bookingData.services.map((service: any) => ({
+          serviceId: service.serviceId,
+          staffId: service.staffId || finalStaffId
+        }));
+      } else if (bookingData.serviceId) {
+        // Single service booking (legacy support)
+        services = [{
+          serviceId: bookingData.serviceId,
+          staffId: finalStaffId
+        }];
+      }
+      
       const bookingRequest = {
         customerId: finalCustomerId,
         locationId: locationId,
-        services: [{
-          serviceId: bookingData.serviceId,
-          staffId: finalStaffId
-        }],
+        services: services,
         staffId: finalStaffId,
         startTime: bookingData.startTime.toISOString(),
         notes: bookingData.notes || '',
@@ -333,6 +346,20 @@ function CalendarContent() {
       // Transform and add to local state
       // The response is already transformed by the bookings client
       const startTime = new Date(newBooking.startTime);
+      
+      // For multi-service bookings, we need to get the first service info for display
+      // The calendar currently shows single bookings, so we'll use the first service
+      let serviceId = bookingData.serviceId;
+      let serviceName = newBooking.serviceName;
+      let servicePrice = newBooking.price || newBooking.totalAmount || 0;
+      
+      if (bookingData.services && Array.isArray(bookingData.services) && bookingData.services.length > 0) {
+        // Multi-service booking - use first service for display
+        serviceId = bookingData.services[0].serviceId;
+        // TODO: The API response for multi-service bookings might need adjustment
+        // For now, we'll use the response fields as-is
+      }
+      
       const transformedBooking = {
         id: newBooking.id,
         date: format(startTime, 'yyyy-MM-dd'),
@@ -343,9 +370,9 @@ function CalendarContent() {
         customerName: newBooking.customerName,
         customerPhone: newBooking.customerPhone || '',
         customerEmail: newBooking.customerEmail || '',
-        serviceId: bookingData.serviceId,
-        serviceName: newBooking.serviceName,
-        servicePrice: newBooking.price || newBooking.totalAmount || 0,
+        serviceId: serviceId,
+        serviceName: serviceName,
+        servicePrice: servicePrice,
         staffId: newBooking.staffId || null,
         staffName: newBooking.staffName || 'Unassigned',
         notes: newBooking.notes || '',

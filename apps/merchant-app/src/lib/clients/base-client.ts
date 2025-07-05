@@ -336,6 +336,7 @@ export class BaseApiClient {
       validateRequest(data, requestSchema, url);
     }
 
+    console.log('[BaseApiClient] POST to', url, 'with data:', JSON.stringify(data, null, 2));
 
     const response = await this.axiosInstance.post(this.addVersionPrefix(url, version), data, config);
     

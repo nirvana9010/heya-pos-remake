@@ -3,7 +3,7 @@
 // Build timestamp - updates when file is saved
 const __SLIDEOUT_BUILD_TIME__ = new Date().toLocaleString();
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { 
   ChevronRight, 
   User, 
@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
+import { Checkbox } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
@@ -121,7 +122,7 @@ export function BookingSlideOut({
     customerEmail: "",
     isNewCustomer: true,
     isWalkIn: false,
-    serviceId: "",
+    selectedServices: [] as string[],
     staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
     date: initialDate || defaultDate,
     time: initialTime || defaultTime,
@@ -145,12 +146,20 @@ export function BookingSlideOut({
         ...prev,
         date: initialDate || defaultDate,
         time: initialTime || defaultTime,
-        staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID
+        staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
+        // Reset selectedServices when dialog opens to avoid stale data
+        selectedServices: []
       }));
     }
   }, [isOpen, initialDate, initialTime, initialStaffId, defaultDate, defaultTime]);
   
-  // Check staff availability when service and datetime are selected
+  // Memoize selected services list to avoid infinite loops
+  const selectedServicesList = useMemo(
+    () => services.filter(s => formData.selectedServices.includes(s.id)),
+    [services, formData.selectedServices]
+  );
+  
+  // Check staff availability when services and datetime are selected
   useEffect(() => {
     const checkAvailability = async () => {
       // Check availability even without service (use default duration)
@@ -165,13 +174,10 @@ export function BookingSlideOut({
       setIsCheckingAvailability(true);
       
       try {
-        // Get duration from selected service or use default
+        // Calculate total duration from all selected services or use default
         let duration = 30; // Default 30 minutes when no service selected
-        if (formData.serviceId) {
-          const service = services.find(s => s.id === formData.serviceId);
-          if (service) {
-            duration = service.duration;
-          }
+        if (formData.selectedServices.length > 0) {
+          duration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
         }
         
         // Combine date and time
@@ -181,9 +187,9 @@ export function BookingSlideOut({
         startTime.setSeconds(0);
         startTime.setMilliseconds(0);
         
-        // Check availability (serviceId can be empty, we just need it for the check)
+        // Check availability (use first service ID or default)
         const result = await getAvailableStaff(
-          formData.serviceId || 'default',
+          formData.selectedServices[0] || 'default',
           startTime,
           duration,
           filteredStaff,
@@ -214,7 +220,7 @@ export function BookingSlideOut({
     };
     
     checkAvailability();
-  }, [formData.serviceId, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings]);
+  }, [formData.selectedServices, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings]);
 
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
@@ -224,7 +230,6 @@ export function BookingSlideOut({
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
-  const selectedService = services.find(s => s.id === formData.serviceId);
   const selectedStaff = filteredStaff.find(s => s.id === formData.staffId);
 
   const generateWalkInCustomer = async () => {
@@ -293,7 +298,19 @@ export function BookingSlideOut({
   };
 
   const handleSubmit = () => {
-    if (!formData.time || !formData.date) {
+    if (!formData.time || !formData.date || formData.selectedServices.length === 0) {
+      return;
+    }
+    
+    // Debug: Log what's in selectedServices
+    console.log('BookingSlideOut - selectedServices:', formData.selectedServices);
+    console.log('BookingSlideOut - selectedServicesList:', selectedServicesList);
+    
+    // Validate service IDs
+    const invalidServiceIds = formData.selectedServices.filter(id => !id || id.trim() === '');
+    if (invalidServiceIds.length > 0) {
+      console.error('Invalid service IDs found:', invalidServiceIds);
+      alert('Error: Some selected services have invalid IDs. Please try selecting services again.');
       return;
     }
     
@@ -320,15 +337,32 @@ export function BookingSlideOut({
       return;
     }
     
-    // Build the save data with all fields including the resolved staffId
+    // Calculate total duration
+    const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
+    
+    // Build the save data with services array format for V2 API
     const saveData = {
-      ...formData,
+      customerId: formData.customerId,
+      customerName: formData.customerName,
+      customerPhone: formData.customerPhone,
+      customerEmail: formData.customerEmail,
+      isNewCustomer: formData.isNewCustomer,
+      isWalkIn: formData.isWalkIn,
+      services: formData.selectedServices.map(serviceId => ({
+        serviceId,
+        staffId: finalStaffId
+      })),
       staffId: finalStaffId,
       startTime: combinedDateTime,
-      endTime: new Date(combinedDateTime.getTime() + (selectedService?.duration || 60) * 60000),
+      endTime: new Date(combinedDateTime.getTime() + totalDuration * 60000),
+      notes: formData.notes,
+      sendReminder: formData.sendReminder,
       // Add customer source for walk-in customers
       ...(formData.isWalkIn && { customerSource: 'WALK_IN' })
     };
+    
+    // Debug: Log the save data being sent
+    console.log('BookingSlideOut - saveData being sent:', JSON.stringify(saveData, null, 2));
     
     
     onSave(saveData);
@@ -467,34 +501,92 @@ export function BookingSlideOut({
         return (
           <div className="space-y-4">
             <div className="grid gap-3">
-              {services.map((service) => (
-                <button
-                  key={service.id}
-                  className={cn(
-                    "p-4 rounded-lg border-2 text-left transition-all",
-                    formData.serviceId === service.id
-                      ? "border-teal-500 bg-teal-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                  onClick={() => setFormData({ ...formData, serviceId: service.id })}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{service.name}</h4>
-                      {service.categoryName && (
-                        <Badge variant="secondary" className="mt-1">
-                          {service.categoryName}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold">${service.price}</div>
-                      <div className="text-sm text-gray-600">{service.duration} min</div>
+              {services.map((service) => {
+                const isSelected = formData.selectedServices.includes(service.id);
+                return (
+                  <div
+                    key={service.id}
+                    className={cn(
+                      "p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      isSelected
+                        ? "border-teal-500 bg-teal-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onClick={() => {
+                      console.log('Service clicked:', service.id, service);
+                      if (!service.id) {
+                        console.error('Service has no ID!', service);
+                        return;
+                      }
+                      
+                      if (isSelected) {
+                        setFormData({
+                          ...formData,
+                          selectedServices: formData.selectedServices.filter(id => id !== service.id)
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          selectedServices: [...formData.selectedServices, service.id]
+                        });
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <Checkbox 
+                            checked={isSelected}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <h4 className="font-medium">{service.name}</h4>
+                            {service.categoryName && (
+                              <Badge variant="secondary" className="mt-1">
+                                {service.categoryName}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">${service.price}</div>
+                        <div className="text-sm text-gray-600">{service.duration} min</div>
+                      </div>
                     </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
+            
+            {/* Selected Services Summary */}
+            {formData.selectedServices.length > 0 && (
+              <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                <h4 className="font-medium text-teal-900 mb-2">
+                  Selected Services ({formData.selectedServices.length})
+                </h4>
+                <div className="space-y-2">
+                  {selectedServicesList.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between text-sm">
+                      <span>{service.name}</span>
+                      <span className="font-medium">${service.price}</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-teal-200">
+                    <div className="flex items-center justify-between font-semibold">
+                      <span>Total</span>
+                      <div className="text-right">
+                        <div>${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}</div>
+                        <div className="text-xs font-normal text-teal-700">
+                          {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -684,19 +776,29 @@ export function BookingSlideOut({
                     <span className="font-medium">{formData.customerPhone}</span>
                   </div>
                 )}
-                {selectedService && (
+                {selectedServicesList.length > 0 && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Service:</span>
-                      <span className="font-medium">{selectedService.name}</span>
+                      <span className="text-gray-600">Services:</span>
+                      <span className="font-medium">{selectedServicesList.length} selected</span>
+                    </div>
+                    {selectedServicesList.map((service) => (
+                      <div key={service.id} className="ml-4 text-sm flex justify-between">
+                        <span className="text-gray-600">{service.name}</span>
+                        <span>${service.price}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-2 border-t">
+                      <span className="text-gray-600">Total Duration:</span>
+                      <span className="font-medium">
+                        {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Duration:</span>
-                      <span className="font-medium">{selectedService.duration} minutes</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Price:</span>
-                      <span className="font-medium">${selectedService.price}</span>
+                      <span className="text-gray-600">Total Price:</span>
+                      <span className="font-medium">
+                        ${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}
+                      </span>
                     </div>
                   </>
                 )}
@@ -764,7 +866,7 @@ export function BookingSlideOut({
         );
         return hasDateTime && hasValidStaff && !isCheckingAvailability;
       case "service":
-        return formData.serviceId;
+        return formData.selectedServices.length > 0;
       case "customer":
         return formData.customerName; // Only name is required
       default:

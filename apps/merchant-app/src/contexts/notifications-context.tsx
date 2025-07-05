@@ -131,12 +131,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const unreadCount = notifications.filter(n => !n.read).length;
     const currentIds = new Set(notifications.map(n => n.id));
     
-    console.log('[NotificationsContext] Processing notifications:', {
-      total: notifications.length,
-      unread: unreadCount,
-      prevIds: prevNotificationIdsRef.current.size,
-      shownBrowser: shownBrowserNotificationsRef.current.size
-    });
     
     // Find new notifications that haven't shown browser alerts yet
     const newNotifications = notifications.filter(n => {
@@ -144,17 +138,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const isNew = !prevNotificationIdsRef.current.has(n.id);
       const notShownYet = !shownBrowserNotificationsRef.current.has(n.id);
       
-      // Log for debugging
-      if (isUnread && !notShownYet) {
-        console.log('[NotificationsContext] Checking notification:', {
-          id: n.id,
-          title: n.title,
-          isUnread,
-          isNew,
-          notShownYet,
-          createdAt: n.timestamp || n.createdAt
-        });
-      }
       
       // A notification should trigger if:
       // 1. It's unread AND
@@ -166,7 +149,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       return isUnread && notShownYet && (isNew || createdRecently);
     });
     
-    console.log('[NotificationsContext] New notifications to show:', newNotifications.length);
     
     // Play sound and show browser notification for new unread notifications
     if (newNotifications.length > 0) {

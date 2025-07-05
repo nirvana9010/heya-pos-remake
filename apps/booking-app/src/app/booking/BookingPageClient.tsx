@@ -275,47 +275,6 @@ const SelectedServicesSummary = ({ services }: { services: Service[] }) => {
   );
 };
 
-// Intelligent staff selection when auto-assigning
-// Since we don't have access to booking counts in the public booking app,
-// we use a time-based rotation to distribute bookings more evenly
-function selectBestAvailableStaff(staff: Staff[], selectedDate: Date | undefined, selectedTime: string | null): string | null {
-  if (staff.length === 0) return null;
-  
-  // Filter out any "Unassigned" or system staff
-  const eligibleStaff = staff.filter(s => 
-    s.name.toLowerCase() !== 'unassigned' && 
-    s.isActive
-  );
-  
-  if (eligibleStaff.length === 0) return null;
-  
-  // If only one staff member, return them
-  if (eligibleStaff.length === 1) {
-    return eligibleStaff[0].id;
-  }
-  
-  // Use a combination of date and time to create a rotation index
-  // This ensures different staff get selected at different times
-  let rotationSeed = 0;
-  
-  if (selectedDate) {
-    // Use day of month and month to create variation
-    rotationSeed += selectedDate.getDate() + (selectedDate.getMonth() * 31);
-  }
-  
-  if (selectedTime) {
-    // Add hour from time to further vary selection
-    const hour = parseInt(selectedTime.split(':')[0] || '0');
-    rotationSeed += hour;
-  }
-  
-  // Use modulo to select a staff member based on the rotation seed
-  const selectedIndex = rotationSeed % eligibleStaff.length;
-  const selectedStaff = eligibleStaff[selectedIndex];
-  
-  
-  return selectedStaff.id;
-}
 
 export default function BookingPageClient() {
   const searchParams = useSearchParams();
@@ -423,23 +382,10 @@ export default function BookingPageClient() {
   const handleBookingSubmit = async () => {
     if (selectedServices.length === 0 || !selectedDate || !selectedTime) return;
     
-    // Determine staff assignment based on merchant settings
-    let finalStaffId = selectedStaff === "" ? null : selectedStaff || undefined;
-    
-    // If merchant doesn't allow unassigned bookings and no staff is selected, auto-assign
-    if (!finalStaffId && merchantInfo && !merchantInfo.allowUnassignedBookings) {
-      // Auto-assign using intelligent selection
-      finalStaffId = selectBestAvailableStaff(staff, selectedDate, selectedTime);
-      
-      if (!finalStaffId) {
-        toast({
-          title: "Error",
-          description: "No staff members available. Please try again later.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    // Determine staff assignment
+    // When "Any Available" is selected (empty string), don't send a staffId
+    // Let the API handle auto-assignment to find an actually available staff member
+    let finalStaffId = selectedStaff === "" ? undefined : selectedStaff || undefined;
     
     // Create booking directly
     await createBooking({
@@ -1074,7 +1020,9 @@ export default function BookingPageClient() {
                     TimezoneUtils.startOfDayInTimezone(new Date(), merchantInfo.timezone) :
                     new Date();
                   today.setHours(0, 0, 0, 0);
-                  return date < today || date.getDay() === 0;
+                  // Only disable dates in the past, not based on day of week
+                  // The API will handle business hours validation
+                  return date < today;
                 }}
                 className="w-full max-w-[600px] mx-auto"
                 classNames={{

@@ -167,26 +167,50 @@ export class BookingsV2Controller {
   @Post()
   @Permissions('booking.create')
   async create(@CurrentUser() user: any, @Body() dto: CreateBookingV2Dto) {
-    // For now, handle single service (first one) until we update the command to support multiple
-    const primaryService = dto.services[0];
+    console.log('[BookingsV2Controller] Received DTO:', JSON.stringify(dto, null, 2));
+    console.log('[BookingsV2Controller] Services array:', JSON.stringify(dto.services, null, 2));
     
-    // Use the staff ID from the service if no top-level staff ID is provided
-    const effectiveStaffId = dto.staffId || primaryService.staffId;
-    
-    if (!effectiveStaffId) {
-      throw new Error('Staff ID is required either at booking level or service level');
+    // Validate that at least one service has a staff ID
+    const hasStaffAssignment = dto.services.some(s => s.staffId) || dto.staffId;
+    if (!hasStaffAssignment) {
+      throw new Error('At least one service must have a staff assignment, or provide a top-level staff ID');
     }
+    
+    // Determine createdById - use user's staffId if they have one (staff users),
+    // otherwise use the booking's assigned staff (merchant users)
+    let createdById: string;
+    if (user.staffId) {
+      // Staff user - use their ID
+      createdById = user.staffId;
+      console.log('[BookingsV2Controller] Using staff user ID for createdById:', createdById);
+    } else {
+      // Merchant user - use the booking's assigned staff for audit purposes
+      // This matches the pattern used in public-booking.service.ts
+      createdById = dto.staffId || dto.services.find(s => s.staffId)?.staffId;
+      console.log('[BookingsV2Controller] Merchant user detected, using booking staff for createdById:', createdById);
+      if (!createdById) {
+        throw new Error('Unable to determine staff for booking creation');
+      }
+    }
+    
+    // Map services to include staff IDs
+    const servicesWithStaff = dto.services.map(service => ({
+      serviceId: service.serviceId,
+      staffId: service.staffId || dto.staffId,
+      price: service.price,
+      duration: service.duration,
+    }));
     
     const command = new CreateBookingCommand({
       customerId: dto.customerId,
-      staffId: effectiveStaffId,
-      serviceId: primaryService.serviceId,
+      staffId: dto.staffId, // Optional top-level staff ID
+      services: servicesWithStaff, // Pass all services
       locationId: dto.locationId,
       startTime: new Date(dto.startTime),
       merchantId: user.merchantId,
       notes: dto.notes,
       source: dto.source || 'MANUAL',
-      createdById: user.id,
+      createdById: createdById, // Use the determined createdById
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,
     });

@@ -128,7 +128,8 @@ export class PrismaBookingRepository implements IBookingRepository {
    */
   async save(
     booking: Booking,
-    tx: Prisma.TransactionClient
+    tx: Prisma.TransactionClient,
+    services?: any[]
   ): Promise<Booking> {
     // Convert domain entity to persistence model
     const persistenceData = BookingMapper.toPersistence(booking);
@@ -156,18 +157,32 @@ export class PrismaBookingRepository implements IBookingRepository {
       },
     });
 
-    // Create the BookingService association
-    await tx.bookingService.create({
-      data: {
-        bookingId: createdBooking.id,
-        serviceId: booking.serviceId,
-        staffId: booking.staffId,
-        price: booking.totalAmount,
-        duration: Math.floor(
-          (booking.timeSlot.end.getTime() - booking.timeSlot.start.getTime()) / 60000
-        ),
-      },
-    });
+    // Create BookingService associations
+    if (services && services.length > 0) {
+      // Create multiple booking services
+      await tx.bookingService.createMany({
+        data: services.map(service => ({
+          bookingId: createdBooking.id,
+          serviceId: service.id,
+          staffId: service.staffId || booking.staffId,
+          price: service.price,
+          duration: service.duration,
+        })),
+      });
+    } else {
+      // Fallback to single service for backward compatibility
+      await tx.bookingService.create({
+        data: {
+          bookingId: createdBooking.id,
+          serviceId: booking.serviceId,
+          staffId: booking.staffId,
+          price: booking.totalAmount,
+          duration: Math.floor(
+            (booking.timeSlot.end.getTime() - booking.timeSlot.start.getTime()) / 60000
+          ),
+        },
+      });
+    }
 
     // Fetch the complete booking with all associations
     const bookingWithRelations = await tx.booking.findUnique({

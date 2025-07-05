@@ -29,7 +29,7 @@ interface BookingProviderProps {
 
 export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, merchant } = useAuth();
   const [isBookingSlideoutOpen, setIsBookingSlideoutOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -61,6 +61,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       
       // Extract services array from paginated response
       const servicesData = servicesResponse.data || [];
+      console.log('BookingContext - loaded services:', servicesData);
 
       // Transform staff data to include name property
       const transformedStaff = staffData.map((member: any) => ({
@@ -96,7 +97,21 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
 
   const handleSaveBooking = async (bookingData: any) => {
     try {
-      await apiClient.createBooking(bookingData);
+      console.log('[BookingContext] Received bookingData:', JSON.stringify(bookingData, null, 2));
+      
+      // Add locationId from merchant context
+      const bookingRequest = {
+        customerId: bookingData.customerId,
+        locationId: merchant?.id || '',
+        services: bookingData.services,
+        staffId: bookingData.staffId,
+        startTime: bookingData.startTime,
+        notes: bookingData.notes || ''
+      };
+      
+      console.log('[BookingContext] Sending bookingRequest:', JSON.stringify(bookingRequest, null, 2));
+      
+      await apiClient.createBooking(bookingRequest);
       toast({
         title: "Booking Created",
         description: "The booking has been created successfully.",
