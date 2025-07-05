@@ -308,7 +308,7 @@ async function main() {
         });
 
         // Create payment
-        const paymentMethods = ['CASH', 'CARD', 'CARD_TYRO'];
+        const paymentMethods = ['CASH', 'CARD'];
         await prisma.payment.create({
           data: {
             merchantId: merchant.id,

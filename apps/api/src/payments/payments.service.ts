@@ -55,7 +55,7 @@ export class PaymentsService {
         paymentResult = await this.processCashPayment(order.id, dto, staffId);
         break;
       
-      case PaymentMethod.CARD_TYRO:
+      case PaymentMethod.CARD:
         paymentResult = await this.processCardPayment(order.id, dto, staffId);
         break;
       

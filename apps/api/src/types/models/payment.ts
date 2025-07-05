@@ -36,8 +36,6 @@ export interface PaymentRefund {
 export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
-  CARD_STRIPE = 'CARD_STRIPE',
-  CARD_TYRO = 'CARD_TYRO',
   BANK_TRANSFER = 'BANK_TRANSFER',
   DIGITAL_WALLET = 'DIGITAL_WALLET',
   OTHER = 'OTHER'

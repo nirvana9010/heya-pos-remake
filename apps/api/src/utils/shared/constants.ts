@@ -49,8 +49,6 @@ export const BOOKING_STATUSES = {
 export const PAYMENT_METHODS = {
   CASH: { value: 'CASH', label: 'Cash', icon: 'banknote' },
   CARD: { value: 'CARD', label: 'Card', icon: 'credit-card' },
-  CARD_STRIPE: { value: 'CARD_STRIPE', label: 'Card (Stripe)', icon: 'credit-card' },
-  CARD_TYRO: { value: 'CARD_TYRO', label: 'Card (Tyro)', icon: 'credit-card' },
   BANK_TRANSFER: { value: 'BANK_TRANSFER', label: 'Bank Transfer', icon: 'building' },
   DIGITAL_WALLET: { value: 'DIGITAL_WALLET', label: 'Digital Wallet', icon: 'smartphone' },
 } as const;

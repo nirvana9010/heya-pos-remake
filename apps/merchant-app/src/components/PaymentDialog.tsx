@@ -185,10 +185,10 @@ export function PaymentDialog({
           } : undefined,
         };
 
-        if (paymentMethod === PaymentMethod.CARD_TYRO) {
-          // For card payments, we'd integrate with Tyro terminal here
+        if (paymentMethod === PaymentMethod.CARD) {
+          // For card payments, we'd integrate with payment terminal here
           // For now, simulate with a reference
-          paymentData.reference = `TYRO_${Date.now()}`;
+          paymentData.reference = `CARD_${Date.now()}`;
         }
 
         result = await apiClient.processPayment(paymentData);
@@ -510,7 +510,7 @@ export function PaymentDialog({
                   <DollarSign className="mr-2 h-4 w-4" />
                   Cash
                 </TabsTrigger>
-                <TabsTrigger value={PaymentMethod.CARD_TYRO}>
+                <TabsTrigger value={PaymentMethod.CARD}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   Card
                 </TabsTrigger>
@@ -568,7 +568,7 @@ export function PaymentDialog({
                 )}
               </TabsContent>
 
-              <TabsContent value={PaymentMethod.CARD_TYRO} className="space-y-4">
+              <TabsContent value={PaymentMethod.CARD} className="space-y-4">
                 <div className="text-center p-8 bg-gray-50 rounded">
                   <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-600">
@@ -610,7 +610,7 @@ export function PaymentDialog({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={PaymentMethod.CASH}>Cash</SelectItem>
-                          <SelectItem value={PaymentMethod.CARD_TYRO}>Card</SelectItem>
+                          <SelectItem value={PaymentMethod.CARD}>Card</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
