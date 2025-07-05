@@ -434,6 +434,7 @@ export default function BookingPageClient() {
         return selectedServices.length > 0;
       case 2:
         // Allow empty string (Any Available) as well as specific staff selection
+        // Empty string is valid for "Any Available", null/undefined means nothing selected
         return selectedStaff !== null && selectedStaff !== undefined;
       case 3:
         return !!selectedDate && !!selectedTime;
@@ -792,6 +793,7 @@ export default function BookingPageClient() {
       <RadioGroup 
         value={selectedStaff || ""} 
         onValueChange={setSelectedStaff}
+        defaultValue=""
       >
         <div className="grid md:grid-cols-2 gap-4">
           <motion.div
@@ -1461,7 +1463,7 @@ export default function BookingPageClient() {
               // Reset form
               setCurrentStep(1);
               setSelectedServices([]);
-              setSelectedStaff(null);
+              setSelectedStaff("");
               setSelectedDate(undefined);
               setSelectedTime(null);
               setCustomerInfo({
@@ -1666,7 +1668,7 @@ export default function BookingPageClient() {
                           currency={merchantInfo?.currency || 'AUD'}
                           onPaymentSuccess={handleBookingSubmit}
                           onCancel={() => setCurrentStep(5)}
-                          service={selectedServicesList[0]}
+                          services={selectedServicesList}
                           date={selectedDate!}
                           time={selectedTime!}
                           staffName={selectedStaffMember?.name || 'Any Available'}
