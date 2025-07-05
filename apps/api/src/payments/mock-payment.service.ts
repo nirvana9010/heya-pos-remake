@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IPaymentGateway, PaymentGatewayConfig, PaymentResult, RefundResult } from '@heya-pos/types';
+import { IPaymentGateway, PaymentGatewayConfig, PaymentResult, RefundResult, PaymentMethod } from '@heya-pos/types';
 
 @Injectable()
 export class MockPaymentService implements IPaymentGateway {
@@ -46,6 +46,8 @@ export class MockPaymentService implements IPaymentGateway {
       return {
         success: false,
         transactionId: referenceId,
+        amount: 0,
+        method: PaymentMethod.CARD,
         error: 'Simulated payment failure',
         gatewayResponse: {
           status: 'FAILED',
@@ -55,10 +57,13 @@ export class MockPaymentService implements IPaymentGateway {
       };
     }
     
-    // Default to success
+    // Default to success - for mock, we'll use a default amount
+    // In real implementation, this would be tracked with the terminal payment
     return {
       success: true,
       transactionId: `TXN_${referenceId}`,
+      amount: 100, // Default amount for testing
+      method: PaymentMethod.CARD,
       gatewayResponse: {
         status: 'APPROVED',
         authCode: 'MOCK123',
@@ -84,10 +89,7 @@ export class MockPaymentService implements IPaymentGateway {
     return {
       success: true,
       refundId: `REFUND_${Date.now()}_${paymentId.substring(0, 8)}`,
-      gatewayResponse: {
-        status: 'REFUNDED',
-        timestamp: new Date().toISOString(),
-      },
+      amount: amount,
     };
   }
 
@@ -102,10 +104,7 @@ export class MockPaymentService implements IPaymentGateway {
     return {
       success: true,
       refundId: `VOID_${Date.now()}_${paymentId.substring(0, 8)}`,
-      gatewayResponse: {
-        status: 'VOIDED',
-        timestamp: new Date().toISOString(),
-      },
+      amount: 0, // Void typically refunds the full amount
     };
   }
 

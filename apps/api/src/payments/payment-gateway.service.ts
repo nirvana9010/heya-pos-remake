@@ -35,7 +35,7 @@ export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
 
   async onModuleInit() {
     // Auto-initialize payment gateway on startup
-    const provider = this.configService.get<string>('PAYMENT_PROVIDER', 'MOCK');
+    const provider = this.configService.get<string>('PAYMENT_PROVIDER', 'MOCK') as 'TYRO' | 'STRIPE' | 'SQUARE' | 'MOCK';
     const merchantId = this.configService.get<string>('PAYMENT_MERCHANT_ID', 'mock-merchant');
     
     console.log('[PaymentGatewayService] Initializing payment gateway on startup:', {

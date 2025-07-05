@@ -327,7 +327,7 @@ export class PaymentsService {
 
     // Process refund based on payment method
     let refundResult;
-    if (payment.paymentMethod === PaymentMethod.CARD_TYRO) {
+    if (payment.paymentMethod === PaymentMethod.CARD) {
       refundResult = await this.gatewayService.refundPayment(payment.id, amount, reason);
     }
 
@@ -407,7 +407,7 @@ export class PaymentsService {
 
     // Process void based on payment method
     let voidResult;
-    if (payment.paymentMethod === PaymentMethod.CARD_TYRO) {
+    if (payment.paymentMethod === PaymentMethod.CARD) {
       voidResult = await this.gatewayService.voidPayment(payment.id);
     }
 
