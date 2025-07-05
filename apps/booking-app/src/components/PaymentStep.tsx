@@ -11,11 +11,16 @@ interface PaymentStepProps {
   currency?: string;
   onPaymentSuccess: () => void;
   onCancel: () => void;
-  service: {
+  service?: {
     name: string;
     duration: number;
     price: number;
   };
+  services?: Array<{
+    name: string;
+    duration: number;
+    price: number;
+  }>;
   date: Date;
   time: string;
   staffName?: string;
@@ -28,11 +33,16 @@ export function PaymentStep({
   onPaymentSuccess,
   onCancel,
   service,
+  services,
   date,
   time,
   staffName,
   customerName,
 }: PaymentStepProps) {
+  // Support both single service (legacy) and multiple services
+  const servicesList = services || (service ? [service] : []);
+  const totalDuration = servicesList.reduce((sum, s) => sum + s.duration, 0);
+  const totalPrice = servicesList.reduce((sum, s) => sum + s.price, 0);
   return (
     <div className="max-w-4xl mx-auto">
       <div className="grid md:grid-cols-5 gap-6">
@@ -50,14 +60,30 @@ export function PaymentStep({
                 <p className="font-medium">{customerName}</p>
               </div>
 
-              {/* Service */}
+              {/* Services */}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Service</p>
-                <p className="font-medium">{service.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{service.duration} minutes</span>
-                </div>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Service{servicesList.length > 1 ? 's' : ''}
+                </p>
+                {servicesList.map((svc, index) => (
+                  <div key={index} className={index > 0 ? 'mt-2' : ''}>
+                    <p className="font-medium">{svc.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{svc.duration} minutes</span>
+                    </div>
+                  </div>
+                ))}
+                {servicesList.length > 1 && (
+                  <div className="mt-2 pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground font-medium">
+                        Total: {totalDuration} minutes
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Date & Time */}
@@ -84,7 +110,7 @@ export function PaymentStep({
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-muted-foreground">Service Total</span>
-                  <span className="font-medium">${service.price.toFixed(2)}</span>
+                  <span className="font-medium">${totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Deposit Required</span>
