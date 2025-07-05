@@ -19,6 +19,7 @@ export interface CheckAvailabilityData {
   startDate: Date;
   endDate: Date;
   timezone: string; // Required - must come from location settings
+  duration?: number; // Optional: override service duration for multi-service bookings
 }
 
 /**
@@ -102,7 +103,19 @@ export class BookingAvailabilityService {
       // Generate time slots based on location business hours
       const slots: TimeSlot[] = [];
       const slotDuration = 15; // 15-minute intervals
-      const totalServiceDuration = service.duration + service.paddingBefore + service.paddingAfter;
+      // Use provided duration (for multi-service bookings) or default to service duration
+      const baseDuration = data.duration || service.duration;
+      const totalServiceDuration = baseDuration + service.paddingBefore + service.paddingAfter;
+      
+      // Debug logging
+      console.error('SERVICE AVAILABILITY CHECK:', {
+        serviceId: service.id,
+        baseDuration,
+        paddingBefore: service.paddingBefore,
+        paddingAfter: service.paddingAfter,
+        totalServiceDuration,
+        requestedDuration: data.duration
+      });
   
       // For each day in the range
       let currentDate = new Date(startDate);
@@ -131,7 +144,7 @@ export class BookingAvailabilityService {
           // Generate slots for this day
           let slotStart = new Date(openTime.getTime()); // Create a proper copy
           while (addMinutes(slotStart, totalServiceDuration) <= closeTime) {
-            const slotEnd = addMinutes(slotStart, service.duration);
+            const slotEnd = addMinutes(slotStart, baseDuration);
             const effectiveStart = addMinutes(slotStart, -service.paddingBefore);
             const effectiveEnd = addMinutes(slotEnd, service.paddingAfter);
   
@@ -191,11 +204,9 @@ export class BookingAvailabilityService {
     existingBookings: any[]
   ): { hasConflict: boolean; reason?: string } {
     for (const booking of existingBookings) {
-      // Check if the time ranges overlap
+      // Check if the time ranges overlap: booking starts before slot ends AND ends after slot starts
       if (
-        (slotStart >= booking.startTime && slotStart < booking.endTime) ||
-        (slotEnd > booking.startTime && slotEnd <= booking.endTime) ||
-        (slotStart <= booking.startTime && slotEnd >= booking.endTime)
+        booking.startTime < slotEnd && booking.endTime > slotStart
       ) {
         return {
           hasConflict: true,

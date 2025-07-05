@@ -113,6 +113,7 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async createBooking(data: CreateBookingRequest): Promise<Booking> {
+    console.log('[BookingsClient] createBooking called with:', JSON.stringify(data, null, 2));
     const booking = await this.post(
       '/bookings', 
       data, 
@@ -121,7 +122,10 @@ export class BookingsClient extends BaseApiClient {
       requestSchemas.createBooking,
       responseSchemas.booking
     );
-    return this.transformBooking(booking);
+    console.log('[BookingsClient] Raw response:', JSON.stringify(booking, null, 2));
+    const transformed = this.transformBooking(booking);
+    console.log('[BookingsClient] Transformed response:', JSON.stringify(transformed, null, 2));
+    return transformed;
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {

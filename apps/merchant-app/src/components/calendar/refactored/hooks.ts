@@ -279,9 +279,9 @@ export function useCalendarData() {
     // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
       
-      // Refresh if a booking was created or updated from external source
+      // Refresh if a booking was created or updated from external source or slideout
       if ((event.type === 'booking_created' || event.type === 'booking_updated') && 
-          event.source === 'external') {
+          (event.source === 'external' || event.source === 'slideout')) {
         // Small delay to ensure database is updated
         setTimeout(() => {
           if (!state.isRefreshing && !state.isLoading) {

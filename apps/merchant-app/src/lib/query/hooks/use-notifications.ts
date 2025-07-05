@@ -14,12 +14,7 @@ export function useNotifications(params?: {
   const queryInfo = useQuery({
     queryKey: [...notificationKeys.all, params],
     queryFn: async () => {
-      console.log('[useNotifications] Fetching notifications...');
       const result = await apiClient.notifications.getNotifications(params);
-      console.log('[useNotifications] Fetched notifications:', {
-        total: result?.data?.length || 0,
-        unread: result?.unreadCount || 0
-      });
       return result;
     },
     staleTime: 0, // Always consider data stale to force fresh fetches

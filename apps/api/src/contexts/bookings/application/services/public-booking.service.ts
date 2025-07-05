@@ -72,6 +72,13 @@ export class PublicBookingService {
     // Calculate total duration and price
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
     const totalPrice = services.reduce((sum, service) => sum + toNumber(service.price), 0);
+    
+    // Debug log
+    console.error('BOOKING CREATION - Service details:', {
+      services: services.map(s => ({ id: s.id, name: s.name, duration: s.duration })),
+      totalDuration,
+      requestedStartTime: `${dto.date} ${dto.startTime}`,
+    });
 
     // Get first location for merchant
     const location = await this.prisma.location.findFirst({
@@ -84,16 +91,6 @@ export class PublicBookingService {
     if (!location) {
       throw new Error('No active location found');
     }
-
-    // Calculate start and end times using the location's timezone
-    const startTime = TimezoneUtils.createDateInTimezone(
-      dto.date,
-      dto.startTime,
-      location.timezone
-    );
-    
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + totalDuration);
 
     // Create or find customer
     let customer = await this.prisma.customer.findFirst({
@@ -119,16 +116,72 @@ export class PublicBookingService {
       });
     }
 
+    // Calculate start and end times using the location's timezone
+    const startTime = TimezoneUtils.createDateInTimezone(
+      dto.date,
+      dto.startTime,
+      location.timezone
+    );
+    
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + totalDuration);
+
     // Check merchant settings for unassigned bookings
     const merchantSettings = merchant.settings as any;
     const allowUnassignedBookings = merchantSettings?.allowUnassignedBookings ?? true;
     
     // Use provided staff or leave unassigned (null) if not specified
-    const staffId = dto.staffId || serviceRequests[0].staffId || null;
+    let staffId = dto.staffId || serviceRequests[0].staffId || null;
     
-    // Validate staff assignment based on merchant settings
+    // If no staff selected and merchant doesn't allow unassigned bookings,
+    // we need to find an available staff member
     if (!staffId && !allowUnassignedBookings) {
-      throw new Error('This business requires staff selection for all bookings. Please select a specific staff member.');
+      // Get all active staff who can provide these services
+      const availableStaff = await this.prisma.staff.findMany({
+        where: {
+          merchantId: merchant.id,
+          status: 'ACTIVE',
+          NOT: {
+            firstName: 'Unassigned',
+          },
+        },
+      });
+
+      if (availableStaff.length === 0) {
+        throw new Error('No staff members available for this booking.');
+      }
+
+      // Find the first available staff member
+      let foundAvailableStaff = false;
+      for (const staff of availableStaff) {
+        const conflicts = await this.prisma.booking.findMany({
+          where: {
+            merchantId: merchant.id,
+            providerId: staff.id,
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+        });
+
+        if (conflicts.length === 0) {
+          staffId = staff.id;
+          foundAvailableStaff = true;
+          console.error('AUTO-ASSIGNED STAFF:', {
+            staffId: staff.id,
+            staffName: `${staff.firstName} ${staff.lastName}`,
+            requestedTime: `${dto.date} ${dto.startTime}`,
+            duration: totalDuration,
+          });
+          break;
+        }
+      }
+
+      if (!foundAvailableStaff) {
+        throw new Error('This time slot is no longer available. All staff members are booked.');
+      }
     }
     
     // For the createdBy field (which is required), we need any active staff
@@ -162,6 +215,35 @@ export class PublicBookingService {
     try {
       // For multiple services, create booking directly with transaction
       const booking = await this.prisma.$transaction(async (tx) => {
+        // Debug: Find ALL bookings for this staff on this day
+        if (staffId) {
+          const dayStart = new Date(startTime);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(startTime);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const allDayBookings = await tx.booking.findMany({
+            where: {
+              merchantId: merchant.id,
+              providerId: staffId,
+              startTime: { gte: dayStart, lte: dayEnd },
+              status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+            },
+            orderBy: { startTime: 'asc' },
+          });
+          
+          console.error('ALL BOOKINGS FOR STAFF ON DAY:', {
+            staffId,
+            date: dayStart.toISOString().split('T')[0],
+            bookings: allDayBookings.map(b => ({
+              id: b.id,
+              start: b.startTime.toISOString(),
+              end: b.endTime.toISOString(),
+              status: b.status,
+            })),
+          });
+        }
+        
         // Check for conflicts only if a staff member is assigned
         const conflicts = staffId ? await tx.booking.findMany({
           where: {
@@ -169,22 +251,11 @@ export class PublicBookingService {
             providerId: staffId,
             status: { notIn: ['CANCELLED', 'NO_SHOW'] },
             OR: [
-              { 
-                AND: [
-                  { startTime: { lte: startTime } },
-                  { endTime: { gt: startTime } },
-                ],
-              },
+              // Existing booking overlaps if it starts before our end AND ends after our start
               {
                 AND: [
                   { startTime: { lt: endTime } },
-                  { endTime: { gte: endTime } },
-                ],
-              },
-              {
-                AND: [
-                  { startTime: { gte: startTime } },
-                  { endTime: { lte: endTime } },
+                  { endTime: { gt: startTime } },
                 ],
               },
             ],
@@ -192,6 +263,21 @@ export class PublicBookingService {
         }) : [];
 
         if (conflicts.length > 0) {
+          // Log conflict details for debugging
+          console.error('BOOKING CONFLICT:', {
+            requestedSlot: {
+              start: startTime.toISOString(),
+              end: endTime.toISOString(),
+              duration: `${totalDuration} minutes`
+            },
+            conflictingBookings: conflicts.map(c => ({
+              id: c.id,
+              start: c.startTime.toISOString(),
+              end: c.endTime.toISOString(),
+              provider: c.providerId
+            }))
+          });
+          
           throw new ConflictException({
             message: 'This time slot is no longer available. Please choose a different time.',
             conflicts: conflicts.map(c => ({
@@ -405,8 +491,8 @@ export class PublicBookingService {
       const startDate = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
       const endDate = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
 
-      // For now, check availability for the first service only
-      // TODO: Implement proper multi-service availability checking
+      // Use first service for the availability check but with total duration
+      // This ensures we check for slots that can accommodate all selected services
       const slots = await this.bookingAvailabilityService.getAvailableSlots({
         staffId: dto.staffId,
         serviceId: serviceRequests[0].serviceId,
@@ -414,6 +500,8 @@ export class PublicBookingService {
         startDate,
         endDate,
         timezone: location.timezone,
+        // Pass the total duration for multi-service bookings
+        duration: totalDuration,
       });
 
       // Convert to simple time slots for public API
@@ -498,10 +586,9 @@ export class PublicBookingService {
           const bookingStart = new Date(booking.startTime);
           const bookingEnd = new Date(booking.endTime);
           
+          // Check if slots overlap: booking starts before slot ends AND ends after slot starts
           const conflicts = (
-            (slotStart >= bookingStart && slotStart < bookingEnd) ||
-            (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
-            (slotStart <= bookingStart && slotEnd >= bookingEnd)
+            bookingStart < slotEnd && bookingEnd > slotStart
           );
           
           if (conflicts && booking.providerId) {

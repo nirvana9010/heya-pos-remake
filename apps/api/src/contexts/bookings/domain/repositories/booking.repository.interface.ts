@@ -16,7 +16,7 @@ export interface IBookingRepository {
    * Save a booking entity
    * This handles all the persistence logic for creating a booking
    */
-  save(booking: Booking, tx?: any): Promise<Booking>;
+  save(booking: Booking, tx?: any, services?: any[]): Promise<Booking>;
   /**
    * Find a booking by its ID
    */

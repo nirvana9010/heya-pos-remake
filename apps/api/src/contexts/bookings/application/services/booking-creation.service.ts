@@ -8,10 +8,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
 import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
+import { BookingServiceData } from '../commands/create-booking.command';
 
 interface CreateBookingData {
-  staffId: string;
-  serviceId: string;
+  staffId?: string; // Optional for multi-service bookings
+  serviceId?: string; // Legacy single service
+  services?: BookingServiceData[]; // New multi-service support
   customerId: string;
   startTime: Date;
   locationId: string;
@@ -43,80 +45,133 @@ export class BookingCreationService {
    * This is a transactional script that orchestrates the entire booking creation process.
    */
   async createBooking(data: CreateBookingData): Promise<Booking> {
-    const savedBooking = await this.prisma.$transaction(async (tx) => {
-      // 1. Lock the staff member to prevent concurrent bookings
-      await this.bookingRepository.lockStaff(data.staffId, data.merchantId, tx);
+    // Convert legacy single service to services array
+    const services: BookingServiceData[] = data.services || (data.serviceId ? [{
+      serviceId: data.serviceId,
+      staffId: data.staffId
+    }] : []);
 
-      // 2. Fetch service details to calculate end time and pricing
-      const service = await this.getServiceDetails(data.serviceId, tx);
-      if (!service) {
-        throw new Error(`Service not found: ${data.serviceId}`);
+    if (services.length === 0) {
+      throw new Error('At least one service is required');
+    }
+
+    const savedBooking = await this.prisma.$transaction(async (tx) => {
+      // 1. Lock all staff members involved to prevent concurrent bookings
+      const uniqueStaffIds = [...new Set(services
+        .map(s => s.staffId || data.staffId)
+        .filter(Boolean)
+      )] as string[];
+      
+      for (const staffId of uniqueStaffIds) {
+        await this.bookingRepository.lockStaff(staffId, data.merchantId, tx);
       }
 
-      const endTime = new Date(data.startTime.getTime() + service.duration * 60 * 1000);
-
-      // 3. Check for conflicting bookings
-      const conflicts = await this.bookingRepository.findConflictingBookings(
-        data.staffId,
-        data.startTime,
-        endTime,
-        data.merchantId,
-        undefined, // no booking to exclude since we're creating new
-        tx
-      );
-
-      if (conflicts.length > 0 && !data.isOverride) {
-        const conflictInfo = conflicts.map(c => ({
-          id: c.id,
-          startTime: c.timeSlot.start,
-          endTime: c.timeSlot.end,
-          status: c.status.value,
-        }));
-        throw new ConflictException({
-          message: 'Time slot has conflicts',
-          conflicts: conflictInfo,
+      // 2. Fetch all service details and calculate total duration and pricing
+      let totalAmount = 0;
+      let totalDuration = 0;
+      const serviceDetails: Array<ServiceDetails & { staffId?: string }> = [];
+      
+      for (const bookingService of services) {
+        const service = await this.getServiceDetails(bookingService.serviceId, tx);
+        if (!service) {
+          throw new Error(`Service not found: ${bookingService.serviceId}`);
+        }
+        
+        const duration = bookingService.duration || service.duration;
+        const price = bookingService.price !== undefined ? bookingService.price : service.price;
+        
+        serviceDetails.push({
+          ...service,
+          duration,
+          price,
+          staffId: bookingService.staffId || data.staffId
         });
+        
+        totalAmount += price;
+        totalDuration += duration;
+      }
+
+      const endTime = new Date(data.startTime.getTime() + totalDuration * 60 * 1000);
+
+      // 3. Check for conflicting bookings for each staff-service combination
+      let currentStartTime = new Date(data.startTime);
+      
+      for (const serviceDetail of serviceDetails) {
+        const serviceEndTime = new Date(currentStartTime.getTime() + serviceDetail.duration * 60 * 1000);
+        const staffId = serviceDetail.staffId;
+        
+        if (staffId) {
+          const conflicts = await this.bookingRepository.findConflictingBookings(
+            staffId,
+            currentStartTime,
+            serviceEndTime,
+            data.merchantId,
+            undefined,
+            tx
+          );
+
+          if (conflicts.length > 0 && !data.isOverride) {
+            const conflictInfo = conflicts.map(c => ({
+              id: c.id,
+              startTime: c.timeSlot.start,
+              endTime: c.timeSlot.end,
+              status: c.status.value,
+              staffId: staffId,
+              serviceId: serviceDetail.id
+            }));
+            throw new ConflictException({
+              message: `Time slot has conflicts for staff ${staffId}`,
+              conflicts: conflictInfo,
+            });
+          }
+        }
+        
+        currentStartTime = serviceEndTime;
       }
 
       // 4. Generate booking number
       const bookingNumber = await this.generateBookingNumber(data.merchantId, tx);
 
       // 5. Create the booking domain entity
+      // For now, use the first service for the main booking (will be updated in domain entity)
+      const primaryStaffId = serviceDetails[0]?.staffId || data.staffId;
+      
       const booking = new Booking({
         id: uuidv4(),
         bookingNumber,
         merchantId: data.merchantId,
         customerId: data.customerId,
-        staffId: data.staffId,
-        serviceId: data.serviceId,
+        staffId: primaryStaffId,
+        serviceId: serviceDetails[0].id, // Temporary, will update domain to support array
         locationId: data.locationId,
         timeSlot: new TimeSlot(data.startTime, endTime),
         status: BookingStatusValue.CONFIRMED,
-        totalAmount: service.price,
+        totalAmount,
         depositAmount: 0, // TODO: Calculate based on merchant settings
         notes: data.notes,
         source: data.source,
-        createdById: data.staffId || data.createdById,
+        createdById: data.createdById,
         isOverride: data.isOverride || false,
         overrideReason: data.overrideReason,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+        services: serviceDetails, // Pass services for repository to handle
+      } as any); // Temporary cast until domain entity is updated
 
-      // 6. Persist the booking
-      const savedBooking = await this.bookingRepository.save(booking, tx);
+      // 6. Persist the booking with all services
+      const savedBooking = await this.bookingRepository.save(booking, tx, serviceDetails);
 
       // 7. Save booking created event to outbox
       const outboxEvent = OutboxEvent.create({
         aggregateId: savedBooking.id,
-        aggregateType: 'booking',  // lowercase to match handler
-        eventType: 'created',      // lowercase to match handler
+        aggregateType: 'booking',
+        eventType: 'created',
         eventData: {
           bookingId: savedBooking.id,
           bookingNumber: savedBooking.bookingNumber,
           customerId: savedBooking.customerId,
-          staffId: savedBooking.staffId,
-          serviceId: savedBooking.serviceId,
+          staffId: primaryStaffId,
+          serviceIds: serviceDetails.map(s => s.id),
           locationId: savedBooking.locationId,
           startTime: savedBooking.timeSlot.start,
           endTime: savedBooking.timeSlot.end,
