@@ -87,7 +87,8 @@ export default function ServicesPageContent() {
     categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter
   };
   
-  const { services, categories, serviceCounts, totalServices, meta, isLoading, refetch } = useServicesData(queryParams);
+  const servicesData = useServicesData(queryParams);
+  const { services, categories, serviceCounts, totalServices, meta, isLoading, refetch } = servicesData;
   
   const createService = useCreateService();
   const updateService = useUpdateService();
@@ -616,10 +617,8 @@ export default function ServicesPageContent() {
     try {
       await deleteCategory.mutateAsync(categoryId);
       
-      // If we're viewing the deleted category, switch to all
-      if (selectedCategoryFilter === categoryId) {
-        setSelectedCategoryFilter("all");
-      }
+      // Force refresh the page to ensure UI updates
+      window.location.reload();
     } catch (error: any) {
       console.error('Delete category error:', error);
       // The hook will show the appropriate error message from the backend

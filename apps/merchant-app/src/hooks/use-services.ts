@@ -199,8 +199,9 @@ export function useCreateCategory() {
   return useMutation({
     mutationFn: (data: Omit<ServiceCategory, 'id' | 'createdAt' | 'updatedAt'>) => 
       apiClient.createCategory(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+      queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
       toast({
         title: 'Success',
         description: 'Category created successfully',
@@ -224,8 +225,9 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ServiceCategory> }) => 
       apiClient.updateCategory(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+      queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
       toast({
         title: 'Success',
         description: 'Category updated successfully',
@@ -248,9 +250,15 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: (id: string) => apiClient.deleteCategory(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
-      queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
+    onSuccess: async () => {
+      // Invalidate and refetch to ensure immediate update
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      
+      // Force refetch categories to ensure immediate UI update
+      queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
+      
       toast({
         title: 'Success',
         description: 'Category deleted successfully',
