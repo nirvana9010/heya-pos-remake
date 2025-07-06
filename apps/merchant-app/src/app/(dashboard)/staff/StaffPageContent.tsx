@@ -63,6 +63,8 @@ const accessLevels = [
 ];
 
 const calendarColors = [
+  { value: 'auto', label: 'Auto', isAuto: true },
+  // Original 8 colors
   { value: '#7C3AED', label: 'Purple' },
   { value: '#14B8A6', label: 'Teal' },
   { value: '#F59E0B', label: 'Amber' },
@@ -71,6 +73,15 @@ const calendarColors = [
   { value: '#10B981', label: 'Green' },
   { value: '#EC4899', label: 'Pink' },
   { value: '#06B6D4', label: 'Cyan' },
+  // Additional 8 colors
+  { value: '#8B5CF6', label: 'Violet' },
+  { value: '#F97316', label: 'Orange' },
+  { value: '#84CC16', label: 'Lime' },
+  { value: '#A855F7', label: 'Fuchsia' },
+  { value: '#0EA5E9', label: 'Sky' },
+  { value: '#F43F5E', label: 'Rose' },
+  { value: '#22C55E', label: 'Emerald' },
+  { value: '#6366F1', label: 'Indigo' },
 ];
 
 export default function StaffPageContent() {
@@ -98,7 +109,7 @@ export default function StaffPageContent() {
     phone: '',
     pin: '',
     accessLevel: 1,
-    calendarColor: '#7C3AED',
+    calendarColor: 'auto',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
   });
 
@@ -287,7 +298,7 @@ export default function StaffPageContent() {
       phone: '',
       pin: '',
       accessLevel: 1,
-      calendarColor: '#7C3AED',
+      calendarColor: 'auto',
       status: 'ACTIVE',
     });
     setSelectedStaff(null);
@@ -305,7 +316,6 @@ export default function StaffPageContent() {
       accessLevel: member.accessLevel,
       calendarColor: member.calendarColor,
       status: member.status,
-      commissionRate: member.commissionRate || 0,
     });
     setIsEditDialogOpen(true);
   };
@@ -683,16 +693,24 @@ export default function StaffPageContent() {
             <TabsContent value="preferences" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>Calendar Color</Label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Choose a color for the calendar or select "Auto" to automatically assign an available color
+                </p>
                 <div className="grid grid-cols-4 gap-2">
                   {calendarColors.map(color => (
                     <button
                       key={color.value}
-                      className={`h-10 rounded-md border-2 ${
-                        formData.calendarColor === color.value ? 'border-gray-900' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color.value }}
+                      type="button"
+                      className={`h-10 rounded-md border-2 relative overflow-hidden ${
+                        formData.calendarColor === color.value ? 'border-gray-900' : 'border-gray-300'
+                      } ${color.isAuto ? 'bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400' : ''}`}
+                      style={color.isAuto ? {} : { backgroundColor: color.value }}
                       onClick={() => setFormData({ ...formData, calendarColor: color.value })}
-                    />
+                    >
+                      {color.isAuto && (
+                        <span className="text-white font-medium text-sm">Auto</span>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -841,16 +859,24 @@ export default function StaffPageContent() {
             <TabsContent value="preferences" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>Calendar Color</Label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Choose a color for the calendar or select "Auto" to automatically assign an available color
+                </p>
                 <div className="grid grid-cols-4 gap-2">
                   {calendarColors.map(color => (
                     <button
                       key={color.value}
-                      className={`h-10 rounded-md border-2 ${
-                        formData.calendarColor === color.value ? 'border-gray-900' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color.value }}
+                      type="button"
+                      className={`h-10 rounded-md border-2 relative overflow-hidden ${
+                        formData.calendarColor === color.value ? 'border-gray-900' : 'border-gray-300'
+                      } ${color.isAuto ? 'bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400' : ''}`}
+                      style={color.isAuto ? {} : { backgroundColor: color.value }}
                       onClick={() => setFormData({ ...formData, calendarColor: color.value })}
-                    />
+                    >
+                      {color.isAuto && (
+                        <span className="text-white font-medium text-sm">Auto</span>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>

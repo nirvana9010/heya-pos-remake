@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, Min, Max, IsArray } from 'class-validator';
+import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, Min, Max, IsArray, Matches } from 'class-validator';
 import { StaffRole } from '../../types';
 
 export class CreateStaffDto {
@@ -40,6 +40,9 @@ export class CreateStaffDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^(#[0-9A-Fa-f]{6}|auto)$/, {
+    message: 'calendarColor must be a valid hex color code or "auto"'
+  })
   calendarColor?: string;
 
   @IsArray()
