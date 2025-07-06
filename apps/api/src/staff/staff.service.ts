@@ -14,13 +14,15 @@ export class StaffService {
   ) {}
 
   async create(merchantId: string, createStaffDto: CreateStaffDto) {
-    // Check if email already exists
-    const existingStaff = await this.prisma.staff.findUnique({
-      where: { email: createStaffDto.email },
-    });
+    // Check if email already exists (only if email is provided)
+    if (createStaffDto.email) {
+      const existingStaff = await this.prisma.staff.findUnique({
+        where: { email: createStaffDto.email },
+      });
 
-    if (existingStaff) {
-      throw new ConflictException('Staff member with this email already exists');
+      if (existingStaff) {
+        throw new ConflictException('Staff member with this email already exists');
+      }
     }
 
     // Get merchant settings to check if PIN is required

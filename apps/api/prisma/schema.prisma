@@ -106,7 +106,7 @@ model Location {
 model Staff {
   id                  String               @id @default(uuid())
   merchantId          String
-  email               String               @unique
+  email               String?              @unique
   firstName           String
   lastName            String?
   phone               String?
