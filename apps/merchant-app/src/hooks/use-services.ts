@@ -54,6 +54,32 @@ export function useCategories() {
   });
 }
 
+// Hook to get service counts per category
+export function useServiceCounts() {
+  return useQuery({
+    queryKey: servicesKeys.services({ limit: 1000 }), // Get all services to count
+    queryFn: async () => {
+      const response = await apiClient.getServices({ limit: 1000 });
+      const services = response.data || [];
+      
+      // Calculate counts per category
+      const counts: Record<string, number> = {};
+      services.forEach(service => {
+        if (service.categoryId) {
+          counts[service.categoryId] = (counts[service.categoryId] || 0) + 1;
+        }
+      });
+      
+      return {
+        counts,
+        total: services.length
+      };
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 60 * 1000, // 1 minute
+  });
+}
+
 // Combined hook for both services and categories
 export function useServicesData(params?: { 
   page?: number; 
@@ -64,17 +90,21 @@ export function useServicesData(params?: {
 }) {
   const servicesQuery = useServices(params);
   const categoriesQuery = useCategories();
+  const countsQuery = useServiceCounts();
 
   return {
     services: servicesQuery.data?.data || [],
     categories: categoriesQuery.data || [],
+    serviceCounts: countsQuery.data?.counts || {},
+    totalServices: countsQuery.data?.total || 0,
     meta: servicesQuery.data?.meta,
-    isLoading: servicesQuery.isLoading || categoriesQuery.isLoading,
-    isError: servicesQuery.isError || categoriesQuery.isError,
-    error: servicesQuery.error || categoriesQuery.error,
+    isLoading: servicesQuery.isLoading || categoriesQuery.isLoading || countsQuery.isLoading,
+    isError: servicesQuery.isError || categoriesQuery.isError || countsQuery.isError,
+    error: servicesQuery.error || categoriesQuery.error || countsQuery.error,
     refetch: () => {
       servicesQuery.refetch();
       categoriesQuery.refetch();
+      countsQuery.refetch();
     }
   };
 }
@@ -89,6 +119,7 @@ export function useCreateService() {
       apiClient.createService(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
+      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
       toast({
         title: 'Success',
         description: 'Service created successfully',
@@ -115,6 +146,7 @@ export function useUpdateService() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
       queryClient.invalidateQueries({ queryKey: servicesKeys.service(id) });
+      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
       toast({
         title: 'Success',
         description: 'Service updated successfully',
@@ -131,7 +163,7 @@ export function useUpdateService() {
 }
 
 // Hook to delete a service
-export function useDeleteService() {
+export function useDeleteService(options?: { suppressToast?: boolean }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -139,17 +171,22 @@ export function useDeleteService() {
     mutationFn: (id: string) => apiClient.deleteService(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
-      toast({
-        title: 'Success',
-        description: 'Service deleted successfully',
-      });
+      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      if (!options?.suppressToast) {
+        toast({
+          title: 'Success',
+          description: 'Service deleted successfully',
+        });
+      }
     },
     onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to delete service',
-        variant: 'destructive',
-      });
+      if (!options?.suppressToast) {
+        toast({
+          title: 'Error',
+          description: error.response?.data?.message || 'Failed to delete service',
+          variant: 'destructive',
+        });
+      }
     },
   });
 }

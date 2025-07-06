@@ -394,7 +394,7 @@ export default function SettingsPage() {
       const result = await apiClient.services.executeServiceImport(
         serviceImportPreview.rows,
         {
-          duplicateAction: 'skip',
+          duplicateAction: 'create_new',
           createCategories: true,
           skipInvalidRows: false,
         }
@@ -406,8 +406,9 @@ export default function SettingsPage() {
         duration: 5000, // Show for 5 seconds
       });
 
-      // Invalidate services cache so the Services page shows the new data
+      // Invalidate services and categories cache so the Services page shows the new data
       queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['services', 'categories'] });
 
       // Reset state
       setServiceFile(null);
