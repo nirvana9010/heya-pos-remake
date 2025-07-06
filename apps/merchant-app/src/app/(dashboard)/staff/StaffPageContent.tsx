@@ -344,7 +344,7 @@ export default function StaffPageContent() {
             </div>
             <div>
               <p className="font-medium">{fullName}</p>
-              <p className="text-sm text-gray-500">{staff.email}</p>
+              <p className="text-sm text-gray-500">{staff.email || 'No email'}</p>
             </div>
           </div>
         );
@@ -591,7 +591,7 @@ export default function StaffPageContent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
+                  placeholder="Optional"
                 />
               </div>
               
@@ -774,7 +774,7 @@ export default function StaffPageContent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
+                  placeholder="Optional"
                 />
               </div>
               

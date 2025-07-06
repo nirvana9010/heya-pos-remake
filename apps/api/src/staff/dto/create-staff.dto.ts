@@ -2,8 +2,9 @@ import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, 
 import { StaffRole } from '../../types';
 
 export class CreateStaffDto {
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @IsString()
   @MinLength(1)
