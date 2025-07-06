@@ -4,6 +4,35 @@
 
 The services management system provides comprehensive functionality for creating, managing, and organizing the services that merchants offer to their customers. The system supports flexible service configuration, category-based organization, bulk operations, and advanced import/export capabilities with intelligent duplicate handling.
 
+## User Interface
+
+### Recent Improvements (2025)
+
+1. **Sidebar Navigation**
+   - Replaced horizontal scrolling category pills with vertical sidebar
+   - Collapsible design for better space utilization
+   - Inline edit/delete actions on hover
+   - Real-time service counts from database
+   - Responsive design for mobile devices
+
+2. **Search Enhancement**
+   - Case-insensitive search across all fields
+   - Searches name, description, category, and category model
+   - 500ms debounce for better performance
+   - Visual search spinner feedback
+
+3. **URL State Management**
+   - Filter persistence in URL parameters
+   - Maintains state across page refreshes
+   - Shareable filtered views
+   - Browser back/forward navigation support
+
+4. **Performance Optimizations**
+   - Separate query for accurate category counts
+   - React Query cache management
+   - Optimistic updates for inline editing
+   - Reduced re-renders with proper memoization
+
 ## Architecture
 
 ### Key Components
@@ -51,23 +80,26 @@ The services management system provides comprehensive functionality for creating
 
 2. **Read/List Services**
    - Server-side pagination with configurable page size
-   - Real-time search with debouncing
-   - Category-based filtering
+   - Case-insensitive search across name, description, and category
+   - Real-time search with 500ms debouncing
+   - Category-based filtering with accurate counts
    - Sort by display order
    - Staff count indicators
    - Visual category color coding
+   - URL parameter persistence for filters
 
 3. **Update Service**
-   - Inline editing for price and duration
+   - Inline editing for price and duration with visual feedback
+   - Success/error states with checkmarks and animations
    - Full edit dialog for all properties
    - Maintain booking history integrity
-   - Automatic cache updates
+   - Automatic cache updates via React Query
 
 4. **Delete Service**
    - Soft delete for services with bookings
    - Hard delete for unused services
    - Cascade handling for related data
-   - Bulk delete with confirmation
+   - Bulk delete with confirmation and suppressed toasts
 
 ### Advanced Features
 
@@ -96,17 +128,22 @@ The services management system provides comprehensive functionality for creating
    - Icon support for visual identification
    - Sort order management
    - Active/inactive status
+   - Inline edit/delete actions in sidebar
+   - Validation prevents deletion of categories with services
 
-2. **Category Integration**
-   - Filter services by category
-   - Category-based service counts
-   - Visual category badges
-   - Automatic category assignment
+2. **Category Navigation**
+   - Vertical sidebar navigation replacing horizontal pills
+   - Collapsible sidebar with toggle button
+   - Real-time service counts per category
+   - Visual hover effects for actions
+   - Active category highlighting
+   - "All Services" option with total count
 
 3. **Smart Category Handling**
    - Auto-create categories during import
-   - Category-based duplicate naming
+   - Category-based duplicate naming (e.g., "Facial (Category Name)")
    - Preserve category relationships
+   - Force page reload after deletion for UI consistency
 
 ## Import/Export System
 
@@ -133,7 +170,7 @@ The services management system provides comprehensive functionality for creating
 4. **Duplicate Handling Strategies**
    - **Skip**: Ignore duplicate entries
    - **Update**: Modify existing services
-   - **Create New**: Add with category-based naming
+   - **Create New**: Add with category-based naming (default)
 
 5. **Action-Based Import**
    - Add new services
@@ -348,6 +385,35 @@ interface ServiceCategory {
    - CSV format validation
    - Malicious content prevention
 
+## Troubleshooting
+
+### Common Issues
+
+1. **Category Deletion Fails**
+   - **Error**: "Cannot delete category with existing services"
+   - **Solution**: Delete or reassign all services in the category first
+   - **Note**: Backend validates all services, not just visible ones
+
+2. **Search Not Finding Services**
+   - **Issue**: Case sensitivity in older versions
+   - **Fix**: Updated to case-insensitive search with `mode: 'insensitive'`
+   - **Affected fields**: name, description, category, categoryModel.name
+
+3. **Category Counts Show Zero**
+   - **Issue**: Counts calculated from filtered results
+   - **Fix**: Separate query fetches all services for accurate counts
+   - **Implementation**: `useServiceCounts()` hook
+
+4. **Filters Lost on Refresh**
+   - **Issue**: State not persisted
+   - **Fix**: URL parameters store all filter states
+   - **Parameters**: `page`, `pageSize`, `search`, `category`
+
+5. **Inline Edit Shows Error**
+   - **Issue**: Direct API call instead of mutation hook
+   - **Fix**: Use `updateService.mutateAsync()` for proper error handling
+   - **Benefits**: Automatic cache invalidation and toast notifications
+
 ## Future Enhancements
 
 1. **Service Packages**
@@ -369,3 +435,10 @@ interface ServiceCategory {
    - Location-specific services
    - Centralized catalog management
    - Location-based pricing
+
+5. **Enhanced UI Features**
+   - Drag-and-drop service reordering
+   - Bulk price/duration updates
+   - Service templates
+   - Advanced filtering (price range, duration)
+   - Export filtered results

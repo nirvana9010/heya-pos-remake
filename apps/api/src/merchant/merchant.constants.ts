@@ -7,6 +7,8 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   loyaltyRate: 10, // 10 points per visit
   requirePinForRefunds: true,
   requirePinForCancellations: true,
+  requirePinForReports: true,
+  requirePinForStaff: true, // Default to true for backward compatibility
   timezone: 'Australia/Sydney',
   currency: 'AUD',
   dateFormat: 'DD/MM/YYYY',

@@ -27,6 +27,8 @@ export interface MerchantSettings {
   loyaltyRate: number;
   requirePinForRefunds: boolean;
   requirePinForCancellations: boolean;
+  requirePinForReports: boolean;
+  requirePinForStaff: boolean; // If false, staff can be created without PIN
   timezone: string;
   currency: string;
   dateFormat: string;
@@ -38,6 +40,15 @@ export interface MerchantSettings {
   enableTips: boolean;
   defaultTipPercentages?: number[]; // e.g., [10, 15, 20]
   allowCustomTipAmount?: boolean;
+  // Unassigned column settings
+  showUnassignedColumn: boolean;
+  // Booking behavior settings
+  allowUnassignedBookings: boolean;
+  // Calendar display settings
+  calendarStartHour: number; // 0-23 (default: 6 for 6 AM)
+  calendarEndHour: number; // 0-23 (default: 23 for 11 PM)
+  // Walk-in customer settings
+  allowWalkInBookings: boolean;
   // Import settings
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
 }

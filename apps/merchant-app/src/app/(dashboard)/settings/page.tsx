@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
   const [requirePinForCancellations, setRequirePinForCancellations] = useState(true);
   const [requirePinForReports, setRequirePinForReports] = useState(true);
+  const [requirePinForStaff, setRequirePinForStaff] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
@@ -123,6 +124,7 @@ export default function SettingsPage() {
         setRequirePinForRefunds(response.requirePinForRefunds ?? true);
         setRequirePinForCancellations(response.requirePinForCancellations ?? true);
         setRequirePinForReports(response.requirePinForReports ?? true);
+        setRequirePinForStaff(response.requirePinForStaff ?? true);
         setRequireDeposit(response.requireDeposit ?? false);
         setDepositPercentage(response.depositPercentage?.toString() || "30");
         setEnableTips(response.enableTips ?? false);
@@ -197,6 +199,8 @@ export default function SettingsPage() {
         cancellationHours: parseInt(cancellationHours),
         requirePinForRefunds,
         requirePinForCancellations,
+        requirePinForReports,
+        requirePinForStaff,
         requireDeposit,
         depositPercentage: parseInt(depositPercentage),
         timezone: selectedTimezone,
@@ -218,6 +222,31 @@ export default function SettingsPage() {
       toast({
         title: "Error",
         description: "Failed to update booking settings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSecuritySettings = async () => {
+    setLoading(true);
+    try {
+      await apiClient.put("/merchant/settings", {
+        requirePinForRefunds,
+        requirePinForCancellations,
+        requirePinForReports,
+        requirePinForStaff,
+      });
+
+      toast({
+        title: "Success",
+        description: "Security settings updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update security settings",
         variant: "destructive",
       });
     } finally {
@@ -907,28 +936,18 @@ export default function SettingsPage() {
                       Manager PIN required to access reports
                     </p>
                   </div>
-                  <Switch 
-                    checked={requirePinForReports} 
-                    onCheckedChange={(checked) => {
-                      setRequirePinForReports(checked);
-                      // Note: This is now enforced! The Reports page will require PIN when enabled
-                      apiClient.put("/merchant/settings", { requirePinForReports: checked })
-                        .then(() => {
-                          toast({
-                            title: "Success",
-                            description: checked ? "PIN required for reports" : "PIN disabled for reports",
-                          });
-                        })
-                        .catch(err => {
-                          console.error("Failed to update PIN setting:", err);
-                          toast({
-                            title: "Error",
-                            description: "Failed to update PIN setting",
-                            variant: "destructive",
-                          });
-                        });
-                    }}
-                  />
+                  <Switch checked={requirePinForReports} onCheckedChange={setRequirePinForReports} />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Require PIN for Staff Creation</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Make PIN mandatory when creating new staff members. 
+                      {requirePinForStaff ? " PIN must be set during staff creation." : " If disabled, a random PIN will be auto-generated."}
+                    </p>
+                  </div>
+                  <Switch checked={requirePinForStaff} onCheckedChange={setRequirePinForStaff} />
                 </div>
               </CardContent>
             </Card>
@@ -970,6 +989,12 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+            
+            <div className="flex justify-end">
+              <Button onClick={handleSaveSecuritySettings} disabled={loading}>
+                Save Changes
+              </Button>
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="notifications">
