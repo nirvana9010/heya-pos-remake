@@ -64,24 +64,26 @@ const accessLevels = [
 
 const calendarColors = [
   { value: 'auto', label: 'Auto', isAuto: true },
-  // Original 8 colors
+  // High contrast primary colors
+  { value: '#DC2626', label: 'Red' },
+  { value: '#059669', label: 'Green' },
+  { value: '#2563EB', label: 'Blue' },
+  { value: '#EA580C', label: 'Orange' },
+  // Secondary colors with varied saturation
   { value: '#7C3AED', label: 'Purple' },
-  { value: '#14B8A6', label: 'Teal' },
-  { value: '#F59E0B', label: 'Amber' },
-  { value: '#EF4444', label: 'Red' },
-  { value: '#3B82F6', label: 'Blue' },
-  { value: '#10B981', label: 'Green' },
-  { value: '#EC4899', label: 'Pink' },
-  { value: '#06B6D4', label: 'Cyan' },
-  // Additional 8 colors
-  { value: '#8B5CF6', label: 'Violet' },
-  { value: '#F97316', label: 'Orange' },
-  { value: '#84CC16', label: 'Lime' },
-  { value: '#A855F7', label: 'Fuchsia' },
-  { value: '#0EA5E9', label: 'Sky' },
-  { value: '#F43F5E', label: 'Rose' },
-  { value: '#22C55E', label: 'Emerald' },
-  { value: '#6366F1', label: 'Indigo' },
+  { value: '#0891B2', label: 'Cyan' },
+  { value: '#DB2777', label: 'Pink' },
+  { value: '#CA8A04', label: 'Yellow' },
+  // Darker variants for contrast
+  { value: '#7C2D12', label: 'Brown' },
+  { value: '#1E3A8A', label: 'Navy' },
+  { value: '#166534', label: 'Forest' },
+  { value: '#86198F', label: 'Magenta' },
+  // Lighter variants for variety
+  { value: '#60A5FA', label: 'Sky' },
+  { value: '#34D399', label: 'Mint' },
+  { value: '#F472B6', label: 'Rose' },
+  { value: '#A78BFA', label: 'Lavender' },
 ];
 
 export default function StaffPageContent() {

@@ -1,23 +1,29 @@
 // Staff calendar color palette - 16 distinct colors
+// Carefully selected for maximum visual distinction
 export const STAFF_CALENDAR_COLORS = [
-  // Original 8 colors
-  '#7C3AED', // Purple
-  '#14B8A6', // Teal
-  '#F59E0B', // Amber
-  '#EF4444', // Red
-  '#3B82F6', // Blue
-  '#10B981', // Green
-  '#EC4899', // Pink
-  '#06B6D4', // Cyan
-  // Additional 8 colors
-  '#8B5CF6', // Violet
-  '#F97316', // Orange
-  '#84CC16', // Lime
-  '#A855F7', // Fuchsia
-  '#0EA5E9', // Sky
-  '#F43F5E', // Rose
-  '#22C55E', // Emerald
-  '#6366F1', // Indigo
+  // High contrast primary colors
+  '#DC2626', // Red-600 - Strong, attention-grabbing
+  '#059669', // Emerald-600 - Deep green, very different from red
+  '#2563EB', // Blue-600 - Classic blue, distinct from green
+  '#EA580C', // Orange-600 - Warm, stands out from cool colors
+  
+  // Secondary colors with varied saturation
+  '#7C3AED', // Violet-600 - Purple, different from primary colors
+  '#0891B2', // Cyan-600 - Blue-green, bridge color
+  '#DB2777', // Pink-600 - Vibrant pink, very distinctive
+  '#CA8A04', // Yellow-600 - Earthy yellow, unique tone
+  
+  // Darker variants for contrast
+  '#7C2D12', // Orange-800 - Dark brown-orange
+  '#1E3A8A', // Blue-800 - Deep navy
+  '#166534', // Green-800 - Forest green
+  '#86198F', // Fuchsia-800 - Deep magenta
+  
+  // Lighter variants for variety
+  '#60A5FA', // Blue-400 - Light blue, airy
+  '#34D399', // Emerald-400 - Bright mint
+  '#F472B6', // Pink-400 - Soft pink
+  '#A78BFA', // Violet-400 - Lavender
 ];
 
 /**
