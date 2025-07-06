@@ -156,9 +156,10 @@ export class ServicesService {
     // Add search conditions if provided
     if (searchTerm && searchTerm.trim()) {
       where.OR = [
-        { name: { contains: searchTerm } },
-        { description: { contains: searchTerm } },
-        { category: { contains: searchTerm } },
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { category: { contains: searchTerm, mode: 'insensitive' } },
+        { categoryModel: { name: { contains: searchTerm, mode: 'insensitive' } } },
       ];
     }
 
@@ -998,9 +999,11 @@ export class ServicesService {
                       data: { name: existingNewName }
                     });
                     renamedServices.set(serviceData.name, existingNewName);
-                    // Update our lookup map
-                    existingServicesByName.delete(serviceData.name);
-                    existingServicesByName.set(existingNewName, existingService);
+                    // Update our lookup map - move the entry to the new name
+                    if (existingWithCategory) {
+                      existingServicesByName.delete(serviceData.name);
+                      existingServicesByName.set(existingNewName, existingWithCategory);
+                    }
                   }
                   
                   // Set the new service name with its category

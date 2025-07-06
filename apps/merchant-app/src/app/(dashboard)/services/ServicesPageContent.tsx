@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { 
   Plus, Search, MoreVertical, Edit, Trash2, DollarSign, Clock, 
   ChevronDown, ChevronRight, Users, Copy, Check, X,
-  Scissors, Package, AlertCircle
+  Scissors, Package, AlertCircle, Menu, ChevronLeft
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -21,7 +21,6 @@ import { DataTable, createSelectColumn } from "@heya-pos/ui";
 import { Skeleton, TableSkeleton } from "@heya-pos/ui";
 import { Spinner, SuccessCheck, ErrorShake, FadeIn } from "@heya-pos/ui";
 import { type Service, type ServiceCategory } from "@heya-pos/shared";
-import { apiClient } from '@/lib/api-client';
 import { useToast } from "@heya-pos/ui";
 import { SlideOutPanel } from '@/components/SlideOutPanel';
 import CategoryDialog from '@/components/CategoryDialog';
@@ -67,6 +66,8 @@ export default function ServicesPageContent() {
   const [savingInline, setSavingInline] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -86,28 +87,29 @@ export default function ServicesPageContent() {
     categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter
   };
   
-  const { services, categories, meta, isLoading, refetch } = useServicesData(queryParams);
+  const { services, categories, serviceCounts, totalServices, meta, isLoading, refetch } = useServicesData(queryParams);
   
   const createService = useCreateService();
   const updateService = useUpdateService();
   const deleteService = useDeleteService();
+  const deleteServiceBulk = useDeleteService({ suppressToast: true });
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
   
   // Set expanded categories after categories are loaded
   useEffect(() => {
-    if (categories && categories.length > 0) {
+    if (categories && categories.length > 0 && expandedCategories.length === 0) {
       setExpandedCategories(categories.map(c => c.id));
     }
-  }, [categories]);
+  }, [categories, expandedCategories.length]);
 
   // Debounced search
   const debouncedSearch = useMemo(
     () => debounce((value: string) => {
       setDebouncedSearchQuery(value);
       setIsSearching(false);
-    }, 300),
+    }, 500),
     []
   );
 
@@ -123,7 +125,7 @@ export default function ServicesPageContent() {
     if (categories.length > 0 && expandedCategories.length === 0) {
       setExpandedCategories(categories.map(c => c.id));
     }
-  }, [categories]);
+  }, [categories, expandedCategories.length]);
   
   // Reset to first page when filters change
   useEffect(() => {
@@ -208,23 +210,15 @@ export default function ServicesPageContent() {
         updateData.duration = duration;
       }
 
-      await apiClient.updateService(editingCell.id, updateData);
+      await updateService.mutateAsync({ id: editingCell.id, data: updateData });
       
       // Show success state
       setInlineSuccess(editingCell.id);
       setEditingCell(null);
       setEditValue("");
       
-      // Update local state optimistically
-      setServices(prev => prev.map(s => 
-        s.id === editingCell.id ? { ...s, ...updateData } : s
-      ));
-      
       // Remove success indicator after delay
       setTimeout(() => setInlineSuccess(null), 2000);
-      
-      // Reload data in background
-      refetch();
     } catch (error) {
       setInlineError(editingCell.id);
       toast({
@@ -609,6 +603,29 @@ export default function ServicesPageContent() {
     });
   };
 
+  const handleDeleteCategory = async (categoryId: string, visibleServiceCount: number) => {
+    // Note: visibleServiceCount only shows services on current page/filter
+    // The backend will check ALL services in the database
+    
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete this category? This action cannot be undone.'
+    );
+    
+    if (!confirmDelete) return;
+    
+    try {
+      await deleteCategory.mutateAsync(categoryId);
+      
+      // If we're viewing the deleted category, switch to all
+      if (selectedCategoryFilter === categoryId) {
+        setSelectedCategoryFilter("all");
+      }
+    } catch (error: any) {
+      console.error('Delete category error:', error);
+      // The hook will show the appropriate error message from the backend
+      // which will indicate if there are services in this category
+    }
+  };
 
   const handleBulkDelete = async () => {
     if (selectedServices.length === 0) return;
@@ -621,7 +638,7 @@ export default function ServicesPageContent() {
     
     try {
       const deletePromises = selectedServices.map(serviceId => 
-        deleteService.mutateAsync(serviceId)
+        deleteServiceBulk.mutateAsync(serviceId)
       );
       
       await Promise.all(deletePromises);
@@ -671,88 +688,186 @@ export default function ServicesPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="container max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex-1 max-w-lg">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  placeholder="Search services by name or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-10 w-full"
-                />
-                {isSearching && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Spinner className="h-4 w-4 text-gray-400" />
-                  </div>
-                )}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Category Sidebar */}
+      <div className={cn(
+        "bg-white border-r transition-all duration-300 flex-shrink-0",
+        isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
+      )}>
+        <div className="h-full flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Categories</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSidebarOpen(false)}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Category List */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {/* All Services */}
+            <button
+              onClick={() => setSelectedCategoryFilter("all")}
+              className={cn(
+                "w-full text-left p-3 rounded-lg mb-1 transition-colors flex items-center justify-between group",
+                selectedCategoryFilter === "all" 
+                  ? "bg-teal-50 text-teal-700" 
+                  : "hover:bg-gray-50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-gray-400" />
+                <span className="font-medium">All Services</span>
               </div>
-            </div>
-            <Button 
+              <Badge variant="secondary" className="bg-gray-100">
+                {totalServices}
+              </Badge>
+            </button>
+            
+            {/* Categories */}
+            {categories.map((category) => {
+              const categoryServiceCount = serviceCounts[category.id] || 0;
+              return (
+                <div
+                  key={category.id}
+                  onMouseEnter={() => setHoveredCategory(category.id)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                  className={cn(
+                    "relative rounded-lg mb-1 transition-colors flex items-center group",
+                    selectedCategoryFilter === category.id 
+                      ? "bg-teal-50" 
+                      : "hover:bg-gray-50"
+                  )}
+                >
+                  <button
+                    onClick={() => setSelectedCategoryFilter(category.id)}
+                    className="flex-1 text-left p-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: category.color || '#6B7280' }}
+                      />
+                      <span className={cn(
+                        "font-medium",
+                        selectedCategoryFilter === category.id && "text-teal-700",
+                        categoryServiceCount === 0 && "text-gray-400"
+                      )}>
+                        {category.name}
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className={cn(
+                      "bg-gray-100",
+                      categoryServiceCount === 0 && "opacity-50"
+                    )}>
+                      {categoryServiceCount}
+                    </Badge>
+                  </button>
+                  {hoveredCategory === category.id && (
+                    <div className="flex items-center gap-1 pr-3 animate-in slide-in-from-right-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCategory(category);
+                          setIsCategoryDialogOpen(true);
+                        }}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(category.id, categoryServiceCount);
+                        }}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Add Category Button */}
+          <div className="p-3 border-t">
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={() => {
-                resetForm();
-                setIsAddDialogOpen(true);
-              }} 
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+                setEditingCategory(null);
+                setIsCategoryDialogOpen(true);
+              }}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Service
+              Add Category
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Category Filters */}
-      {categories.length > 0 && (
-        <div className="bg-white border-b">
-          <div className="container max-w-7xl mx-auto px-6 py-3">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              <span className="text-sm font-medium text-gray-600 mr-2 flex-shrink-0">Filter by category:</span>
-              <Button
-                variant={selectedCategoryFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategoryFilter("all")}
-                className={cn(
-                  "flex-shrink-0",
-                  selectedCategoryFilter === "all" && "bg-teal-600 hover:bg-teal-700"
-                )}
-              >
-                All Services
-                <Badge variant="secondary" className="ml-2 bg-gray-100">
-                  {meta?.total || services.length}
-                </Badge>
-              </Button>
-              {categories.map((category) => {
-                return (
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-white border-b">
+          <div className="px-6 py-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                {!isSidebarOpen && (
                   <Button
-                    key={category.id}
-                    variant={selectedCategoryFilter === category.id ? "default" : "outline"}
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedCategoryFilter(category.id)}
-                    className={cn(
-                      "flex-shrink-0 gap-2",
-                      selectedCategoryFilter === category.id && "bg-teal-600 hover:bg-teal-700"
-                    )}
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="h-10 w-10 p-0"
                   >
-                    <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: category.color || '#6B7280' }}
-                    />
-                    {category.name}
+                    <Menu className="h-5 w-5" />
                   </Button>
-                );
-              })}
+                )}
+                <div className="flex-1 max-w-lg">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Input
+                      placeholder="Search services by name or category..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-10 h-10 w-full"
+                    />
+                    {isSearching && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <Spinner className="h-4 w-4 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button 
+                onClick={() => {
+                  resetForm();
+                  setIsAddDialogOpen(true);
+                }} 
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Service
+              </Button>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Main Content */}
-      <div className="container max-w-7xl mx-auto p-6">
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="container max-w-7xl mx-auto p-6">
         {tableData.length === 0 && !searchQuery ? (
           // Empty state
           <div className="bg-white rounded-lg shadow-sm border p-12">
@@ -953,6 +1068,8 @@ export default function ServicesPageContent() {
             )}
           </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Add/Edit Service Panel */}
@@ -1209,6 +1326,25 @@ export default function ServicesPageContent() {
           </div>
         </div>
       </SlideOutPanel>
+
+      {/* Category Dialog */}
+      <CategoryDialog
+        isOpen={isCategoryDialogOpen}
+        onClose={() => {
+          setIsCategoryDialogOpen(false);
+          setEditingCategory(null);
+        }}
+        category={editingCategory}
+        onSuccess={() => {
+          refetch();
+          setIsCategoryDialogOpen(false);
+          setEditingCategory(null);
+          toast({
+            title: "Success",
+            description: editingCategory ? "Category updated successfully" : "Category created successfully",
+          });
+        }}
+      />
     </div>
   );
 }
