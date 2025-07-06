@@ -3,6 +3,7 @@ import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MerchantService } from '../merchant/merchant.service';
+import { getNextStaffColor } from '../utils/color.utils';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -50,6 +51,23 @@ export class StaffService {
     // Extract fields for separate handling or removal
     const { locationIds, role, permissions, ...staffData } = createStaffDto;
 
+    // Handle auto color assignment
+    let calendarColor = staffData.calendarColor;
+    if (!calendarColor || calendarColor === 'auto') {
+      // Get all existing staff colors
+      const existingStaff = await this.prisma.staff.findMany({
+        where: { merchantId },
+        select: { calendarColor: true },
+      });
+      
+      const usedColors = existingStaff
+        .map(s => s.calendarColor)
+        .filter(color => color); // Filter out null/undefined colors
+      
+      const staffCount = existingStaff.length;
+      calendarColor = getNextStaffColor(usedColors, staffCount);
+    }
+
     // Create clean data object without unwanted fields
     const createData = {
       firstName: staffData.firstName,
@@ -57,7 +75,7 @@ export class StaffService {
       email: staffData.email,
       phone: staffData.phone,
       accessLevel: staffData.accessLevel || 1,
-      calendarColor: staffData.calendarColor,
+      calendarColor,
       merchantId,
       pin: hashedPin,
     };
