@@ -183,6 +183,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
           clearAuthData();
           return;
         }
+        
+        // If merchant doesn't have settings, try to fetch them
+        if (!merchant.settings) {
+          try {
+            const fullMerchant = await apiClient.get('/merchant/profile');
+            merchant = {
+              ...merchant,
+              settings: fullMerchant.settings
+            };
+            // Update localStorage with the full merchant data
+            localStorage.setItem('merchant', JSON.stringify(merchant));
+          } catch (error) {
+            console.warn('[Auth Provider] Failed to fetch merchant settings:', error);
+            // Continue with merchant data without settings
+          }
+        }
       } catch (e) {
         console.error('[Auth Provider] Failed to parse stored auth data', e);
         clearAuthData();
@@ -252,37 +268,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('merchant', JSON.stringify(response.merchant));
-
-      // Also set a cookie for middleware to check (httpOnly would be better but requires server-side)
-      const expiryDays = rememberMe ? 30 : 1;
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + expiryDays);
-      // Set cookie with proper domain for production
-      const isProduction = process.env.NODE_ENV === 'production';
-      const cookieOptions = [
-        `authToken=${response.access_token}`,
-        'path=/',
-        `expires=${expiryDate.toUTCString()}`,
-        'SameSite=Lax', // Changed from Strict to Lax for better redirect handling
-        isProduction ? 'Secure' : '', // Secure flag for HTTPS in production
-      ].filter(Boolean).join('; ');
       
-      document.cookie = cookieOptions;
+      // Fetch full merchant data with settings
+      try {
+        const fullMerchant = await apiClient.get('/merchant/profile');
+        const merchantWithSettings = {
+          ...response.merchant,
+          settings: fullMerchant.settings
+        };
+        localStorage.setItem('merchant', JSON.stringify(merchantWithSettings));
+        
+        // Also set a cookie for middleware to check (httpOnly would be better but requires server-side)
+        const expiryDays = rememberMe ? 30 : 1;
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + expiryDays);
+        // Set cookie with proper domain for production
+        const isProduction = process.env.NODE_ENV === 'production';
+        const cookieOptions = [
+          `authToken=${response.access_token}`,
+          'path=/',
+          `expires=${expiryDate.toUTCString()}`,
+          'SameSite=Lax', // Changed from Strict to Lax for better redirect handling
+          isProduction ? 'Secure' : '', // Secure flag for HTTPS in production
+        ].filter(Boolean).join('; ');
+        
+        document.cookie = cookieOptions;
 
-      // Parse token expiration
-      const payload = JSON.parse(atob(response.access_token.split('.')[1]));
-      const expiresAt = new Date(payload.exp * 1000);
+        // Parse token expiration
+        const payload = JSON.parse(atob(response.access_token.split('.')[1]));
+        const expiresAt = new Date(payload.exp * 1000);
 
-      setAuthState(prev => ({
-        ...prev,
-        user: response.user,
-        merchant: response.merchant,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-        tokenExpiresAt: expiresAt,
-      }));
+        setAuthState(prev => ({
+          ...prev,
+          user: response.user,
+          merchant: merchantWithSettings,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+          tokenExpiresAt: expiresAt,
+        }));
+      } catch (settingsError) {
+        console.error('Failed to fetch merchant settings:', settingsError);
+        // Continue with basic merchant data if settings fetch fails
+        localStorage.setItem('merchant', JSON.stringify(response.merchant));
+        
+        // Also set a cookie for middleware to check
+        const expiryDays = rememberMe ? 30 : 1;
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + expiryDays);
+        const isProduction = process.env.NODE_ENV === 'production';
+        const cookieOptions = [
+          `authToken=${response.access_token}`,
+          'path=/',
+          `expires=${expiryDate.toUTCString()}`,
+          'SameSite=Lax',
+          isProduction ? 'Secure' : '',
+        ].filter(Boolean).join('; ');
+        
+        document.cookie = cookieOptions;
+
+        const payload = JSON.parse(atob(response.access_token.split('.')[1]));
+        const expiresAt = new Date(payload.exp * 1000);
+
+        setAuthState(prev => ({
+          ...prev,
+          user: response.user,
+          merchant: response.merchant,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+          tokenExpiresAt: expiresAt,
+        }));
+      }
 
     } catch (error: any) {
       setAuthState(prev => ({

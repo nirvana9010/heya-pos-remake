@@ -10,19 +10,21 @@ export class CreateStaffDto {
   @MaxLength(100)
   firstName: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(100)
-  lastName: string;
+  lastName?: string;
 
   @IsOptional()
   @IsString()
   phone?: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(4)
   @MaxLength(4)
-  pin: string;
+  pin?: string;
 
   @IsEnum(StaffRole)
   role: StaffRole;

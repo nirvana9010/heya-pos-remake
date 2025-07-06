@@ -2,11 +2,15 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MerchantService } from '../merchant/merchant.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class StaffService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private merchantService: MerchantService,
+  ) {}
 
   async create(merchantId: string, createStaffDto: CreateStaffDto) {
     // Check if email already exists
@@ -18,13 +22,30 @@ export class StaffService {
       throw new ConflictException('Staff member with this email already exists');
     }
 
-    // Validate PIN format
-    if (!/^\d{4}$/.test(createStaffDto.pin)) {
-      throw new BadRequestException('PIN must be exactly 4 digits');
+    // Get merchant settings to check if PIN is required
+    const settings = await this.merchantService.getMerchantSettings(merchantId);
+    const requirePinForStaff = settings?.requirePinForStaff ?? true;
+
+    let pin = createStaffDto.pin;
+    let generatedPin: string | undefined;
+
+    // Handle PIN logic
+    if (!pin) {
+      if (requirePinForStaff) {
+        throw new BadRequestException('PIN is required for staff members');
+      }
+      // Generate a random 4-digit PIN
+      generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
+      pin = generatedPin;
+    } else {
+      // Validate PIN format if provided
+      if (!/^\d{4}$/.test(pin)) {
+        throw new BadRequestException('PIN must be exactly 4 digits');
+      }
     }
 
     // Hash the PIN
-    const hashedPin = await bcrypt.hash(createStaffDto.pin, 10);
+    const hashedPin = await bcrypt.hash(pin, 10);
 
     // Extract fields for separate handling or removal
     const { locationIds, role, permissions, ...staffData } = createStaffDto;
@@ -58,11 +79,12 @@ export class StaffService {
     }
 
     // Return staff WITH PIN (plain text) for display to managers
-    const { pin, ...staffWithoutPin } = staff;
+    const { pin: hashedPinField, ...staffWithoutPin } = staff;
     return {
       ...staffWithoutPin,
-      pin: createStaffDto.pin, // Return the plain text PIN for display
-      name: `${staff.firstName} ${staff.lastName}`,
+      pin: generatedPin || createStaffDto.pin, // Return the plain text PIN for display
+      generatedPin: generatedPin ? true : false, // Indicate if PIN was generated
+      name: staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName,
       isActive: staff.status === 'ACTIVE',
     };
   }
@@ -133,7 +155,7 @@ export class StaffService {
     const { pin, ...staffWithoutPin } = staff;
     return {
       ...staffWithoutPin,
-      name: `${staff.firstName} ${staff.lastName}`,
+      name: staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName,
       isActive: staff.status === 'ACTIVE',
       hasPinSet: true,
     };

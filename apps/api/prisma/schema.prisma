@@ -108,9 +108,9 @@ model Staff {
   merchantId          String
   email               String               @unique
   firstName           String
-  lastName            String
+  lastName            String?
   phone               String?
-  pin                 String
+  pin                 String?
   accessLevel         Int                  @default(1)
   calendarColor       String?
   avatar              String?

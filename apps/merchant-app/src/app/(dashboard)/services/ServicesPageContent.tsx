@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, Search, MoreVertical, Edit, Trash2, DollarSign, Clock, 
   ChevronDown, ChevronRight, Users, Copy, Check, X,
@@ -43,13 +44,27 @@ interface ServiceRow extends Service {
 
 export default function ServicesPageContent() {
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
-  // State declarations - must come before hooks that use them
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
+  // Initialize state from URL parameters
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = searchParams.get('page');
+    return page ? parseInt(page) : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const size = searchParams.get('pageSize');
+    return size ? parseInt(size) : 20;
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return searchParams.get('search') || "";
+  });
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(() => {
+    return searchParams.get('search') || "";
+  });
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>(() => {
+    return searchParams.get('category') || "all";
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -104,6 +119,17 @@ export default function ServicesPageContent() {
       setExpandedCategories(categories.map(c => c.id));
     }
   }, [categories, expandedCategories.length]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (pageSize !== 20) params.set('pageSize', pageSize.toString());
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
+    if (selectedCategoryFilter !== 'all') params.set('category', selectedCategoryFilter);
+    
+    router.replace(`/services${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
+  }, [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, router]);
 
   // Debounced search
   const debouncedSearch = useMemo(

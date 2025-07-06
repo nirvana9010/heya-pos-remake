@@ -19,6 +19,7 @@ import { Label } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@heya-pos/ui';
 import { Switch } from '@heya-pos/ui';
+import { Alert, AlertDescription } from '@heya-pos/ui';
 import { 
   Plus, 
   Search, 
@@ -35,9 +36,11 @@ import {
   UserX,
   Key,
   Eye,
-  EyeOff
+  EyeOff,
+  Info
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 interface Staff {
   id: string;
@@ -79,7 +82,13 @@ export default function StaffPageContent() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [showPin, setShowPin] = useState(false);
+  const [generatedPinDialog, setGeneratedPinDialog] = useState<{ open: boolean; pin?: string; name?: string }>({ open: false });
   const { toast } = useToast();
+  const { merchant } = useAuth();
+  
+  // Check if PIN is required for staff
+  // Only show as optional when explicitly set to false
+  const isPinRequired = !merchant || merchant.settings?.requirePinForStaff !== false;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -129,8 +138,9 @@ export default function StaffPageContent() {
   });
 
   const handleCreate = async () => {
-    // Validate PIN
-    if (!/^\d{4}$/.test(formData.pin)) {
+    
+    // Validate PIN if provided or required
+    if (formData.pin && !/^\d{4}$/.test(formData.pin)) {
       toast({
         title: "Error",
         description: "PIN must be exactly 4 digits",
@@ -139,14 +149,36 @@ export default function StaffPageContent() {
       return;
     }
 
-    try {
-      const response = await apiClient.createStaff(formData);
-      
-      // Show success message
+    // If PIN is required but not provided
+    if (isPinRequired && !formData.pin) {
       toast({
-        title: "Success",
-        description: "Staff member created successfully",
+        title: "Error",
+        description: "PIN is required",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      const response = await apiClient.createStaff({
+        ...formData,
+        pin: formData.pin || undefined, // Send undefined if no PIN
+      });
+      
+      // If a PIN was generated, show it
+      if (response.generatedPin && response.pin) {
+        setGeneratedPinDialog({
+          open: true,
+          pin: response.pin,
+          name: response.lastName ? `${response.firstName} ${response.lastName}` : response.firstName,
+        });
+      } else {
+        // Show success message
+        toast({
+          title: "Success",
+          description: "Staff member created successfully",
+        });
+      }
       
       setIsCreateDialogOpen(false);
       resetForm();
@@ -285,16 +317,21 @@ export default function StaffPageContent() {
       accessorKey: 'name',
       cell: ({ row }: any) => {
         const staff = row.original;
+        const fullName = staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName;
+        const initials = staff.lastName 
+          ? `${staff.firstName[0]}${staff.lastName[0]}` 
+          : staff.firstName.slice(0, 2).toUpperCase();
+        
         return (
           <div className="flex items-center space-x-3">
             <div 
               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
               style={{ backgroundColor: staff.calendarColor }}
             >
-              {staff.firstName[0]}{staff.lastName[0]}
+              {initials}
             </div>
             <div>
-              <p className="font-medium">{staff.firstName} {staff.lastName}</p>
+              <p className="font-medium">{fullName}</p>
               <p className="text-sm text-gray-500">{staff.email}</p>
             </div>
           </div>
@@ -505,17 +542,18 @@ export default function StaffPageContent() {
             <DialogTitle>Add New Staff Member</DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue="basic" className="mt-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="access">Access & Security</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
-            </TabsList>
+          <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+            <Tabs defaultValue="basic" className="mt-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="access">Access & Security</TabsTrigger>
+                <TabsTrigger value="preferences">Preferences</TabsTrigger>
+              </TabsList>
             
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -529,7 +567,7 @@ export default function StaffPageContent() {
                     id="lastName"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    required
+                    placeholder="Optional"
                   />
                 </div>
               </div>
@@ -557,8 +595,19 @@ export default function StaffPageContent() {
             </TabsContent>
             
             <TabsContent value="access" className="space-y-4 mt-4">
+              {!isPinRequired && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    PIN is optional for staff members. If you don't set a PIN, one will be automatically generated.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <div className="space-y-2">
-                <Label htmlFor="pin">PIN Code</Label>
+                <Label htmlFor="pin">
+                  PIN Code {isPinRequired && <span className="text-red-500">*</span>}
+                </Label>
                 <div className="relative">
                   <Input
                     id="pin"
@@ -570,9 +619,9 @@ export default function StaffPageContent() {
                         setFormData({ ...formData, pin: value });
                       }
                     }}
-                    placeholder="4-digit PIN"
+                    placeholder={isPinRequired ? "4-digit PIN (required)" : "4-digit PIN (optional)"}
                     maxLength={4}
-                    required
+                    required={isPinRequired}
                   />
                   <Button
                     type="button"
@@ -584,7 +633,12 @@ export default function StaffPageContent() {
                     {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-sm text-gray-500">Staff will use this 4-digit PIN for authorizing actions</p>
+                <p className="text-sm text-gray-500">
+                  {isPinRequired 
+                    ? "Staff will use this 4-digit PIN for authorizing actions"
+                    : "Staff will use this 4-digit PIN for authorizing actions. Leave empty to auto-generate."
+                  }
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -646,13 +700,14 @@ export default function StaffPageContent() {
           </Tabs>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate}>
+            <Button type="submit">
               Create Staff Member
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -673,7 +728,7 @@ export default function StaffPageContent() {
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -687,7 +742,7 @@ export default function StaffPageContent() {
                     id="lastName"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    required
+                    placeholder="Optional"
                   />
                 </div>
               </div>
@@ -808,6 +863,47 @@ export default function StaffPageContent() {
             </Button>
             <Button onClick={handleUpdate}>
               Update Staff Member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generated PIN Dialog */}
+      <Dialog open={generatedPinDialog.open} onOpenChange={(open) => setGeneratedPinDialog({ open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Staff Member Created Successfully</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                A PIN has been automatically generated for <strong>{generatedPinDialog.name}</strong>.
+                Please save this PIN as it will not be shown again.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="bg-gray-100 p-6 rounded-lg text-center">
+              <p className="text-sm text-gray-600 mb-2">Generated PIN</p>
+              <p className="text-3xl font-bold tracking-widest">{generatedPinDialog.pin}</p>
+            </div>
+            
+            <p className="text-sm text-gray-600">
+              This PIN is required for the staff member to log in and authorize actions. 
+              Make sure to share it securely with them.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setGeneratedPinDialog({ open: false });
+                toast({
+                  title: "Success",
+                  description: "Staff member created successfully",
+                });
+              }}
+            >
+              I've saved the PIN
             </Button>
           </DialogFooter>
         </DialogContent>

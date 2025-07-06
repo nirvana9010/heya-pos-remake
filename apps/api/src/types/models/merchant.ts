@@ -27,6 +27,8 @@ export interface MerchantSettings {
   loyaltyRate: number;
   requirePinForRefunds: boolean;
   requirePinForCancellations: boolean;
+  requirePinForReports: boolean;
+  requirePinForStaff: boolean; // If false, staff can be created without PIN
   timezone: string;
   currency: string;
   dateFormat: string;
