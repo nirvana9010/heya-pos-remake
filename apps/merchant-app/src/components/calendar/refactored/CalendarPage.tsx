@@ -263,7 +263,7 @@ function CalendarContent() {
             const searchResponse = await apiClient.searchCustomers('Walk-in');
             const customers = searchResponse?.data || [];
             const existingWalkInCustomer = customers.find((customer: any) => 
-              (customer.firstName === 'Walk-in' && customer.lastName === 'Customer') ||
+              customer.firstName === 'Walk-in' ||
               customer.source === 'WALK_IN'
             );
             
@@ -297,7 +297,7 @@ function CalendarContent() {
           const nameParts = bookingData.customerName.split(' ');
           const customerData: any = {
             firstName: nameParts[0] || 'Customer',
-            lastName: nameParts.slice(1).join(' ') || 'Customer', // Use 'Customer' as default last name
+            lastName: nameParts.slice(1).join(' ') || undefined, // No default last name
             phone: bookingData.customerPhone || '',
             email: bookingData.customerEmail || undefined,
             notes: ''
