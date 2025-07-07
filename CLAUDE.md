@@ -30,6 +30,7 @@ The project uses Supabase PostgreSQL with two connection types:
 1. **"Can't reach database server" error**
    - Check that DATABASE_URL uses port 6543 (not 5432)
    - Ensure `?pgbouncer=true` is included in the pooled connection URL
+   - **IMPORTANT: Check if PM2 is loading environment variables correctly!** (see PM2 section below)
 
 2. **SSL certificate errors**
    - Verify you're using the pooled connection (port 6543) with pgbouncer=true
@@ -39,6 +40,14 @@ The project uses Supabase PostgreSQL with two connection types:
    - Check pm2 logs for slow query warnings
    - Consider adding indexes for frequently queried columns
    - Current known issue: OutboxEvent queries need optimization
+
+4. **PM2 Not Loading Environment Variables**
+   - **This is a common cause of database connection failures!**
+   - PM2's `env_file` option doesn't always work reliably
+   - The API may fail with "Can't reach database server" even when the database is accessible
+   - **Solution**: We use a wrapper script `/scripts/start-api-with-env.sh` that explicitly loads the `.env` file before starting the API
+   - If you see database connection errors, first verify the API works when run directly with `cd apps/api && npm run start:dev`
+   - If it works directly but not with PM2, the environment variables aren't being loaded
 
 ## Commands to Run
 
@@ -93,3 +102,20 @@ pm2 restart api --update-env  # Restart with new env vars
 ```
 
 **Important**: Always use `--nostream` flag when reading PM2 logs to get immediate output instead of waiting/tailing.
+
+### PM2 Configuration
+
+The `ecosystem.config.js` file is configured to use a wrapper script for the API to ensure environment variables are loaded:
+```javascript
+{
+  name: 'api',
+  script: './scripts/start-api-with-env.sh',  // Wrapper script that loads .env
+  watch: false,
+  env: { 
+    PORT: 3000,
+    NODE_ENV: 'development'
+  }
+}
+```
+
+This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments.

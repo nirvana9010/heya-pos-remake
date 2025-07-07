@@ -187,10 +187,24 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       return {
         ...state,
         staff: action.payload,
-        // Auto-select all staff when loaded
+        // Auto-select all staff when loaded, or add new staff to existing selection
         selectedStaffIds: state.selectedStaffIds.length === 0 
           ? action.payload.map(s => s.id)
-          : state.selectedStaffIds.filter(id => action.payload.some(s => s.id === id)),
+          : (() => {
+              // Keep existing valid selections
+              const validExisting = state.selectedStaffIds.filter(id => 
+                action.payload.some(s => s.id === id)
+              );
+              
+              // Find new staff members (in payload but not in previous selection or previous staff list)
+              const previousStaffIds = state.staff.map(s => s.id);
+              const newStaffIds = action.payload
+                .filter(s => !previousStaffIds.includes(s.id))
+                .map(s => s.id);
+              
+              // Combine existing valid selections with new staff
+              return [...validExisting, ...newStaffIds];
+            })(),
       };
     
     case 'SET_SERVICES':

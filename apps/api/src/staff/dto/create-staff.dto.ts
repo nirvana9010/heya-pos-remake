@@ -1,8 +1,10 @@
 import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, Min, Max, IsArray, Matches } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { StaffRole } from '../../types';
 
 export class CreateStaffDto {
   @IsOptional()
+  @Transform(({ value }) => value === '' ? null : value)
   @IsEmail()
   email?: string;
 
@@ -12,12 +14,14 @@ export class CreateStaffDto {
   firstName: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === '' ? null : value)
   @IsString()
   @MinLength(1)
   @MaxLength(100)
   lastName?: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === '' ? null : value)
   @IsString()
   phone?: string;
 
@@ -27,17 +31,19 @@ export class CreateStaffDto {
   @MaxLength(4)
   pin?: string;
 
+  @IsOptional()
   @IsEnum(StaffRole)
-  role: StaffRole;
+  role?: StaffRole;
 
   @IsNumber()
   @Min(1)
   @Max(10)
   accessLevel: number;
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  permissions: string[];
+  permissions?: string[];
 
   @IsOptional()
   @IsString()
@@ -46,7 +52,12 @@ export class CreateStaffDto {
   })
   calendarColor?: string;
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  locationIds: string[];
+  locationIds?: string[];
+
+  @IsOptional()
+  @IsEnum(['ACTIVE', 'INACTIVE'])
+  status?: 'ACTIVE' | 'INACTIVE';
 }
