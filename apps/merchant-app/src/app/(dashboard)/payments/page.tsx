@@ -1097,56 +1097,69 @@ export default function PaymentsPage() {
               <div class="totals-box">
                 ${(() => {
                   const items = payment.order?.items || [];
-                  const subtotal = items.length > 0 ? 
-                    items.reduce((sum: number, item: any) => sum + (item.price || 0) * (item.quantity || 1), 0) :
-                    payment.amount;
-                  const discount = payment.order?.totalDiscount || payment.order?.discount || 0;
-                  const surcharge = payment.order?.totalSurcharge || payment.order?.surcharge || 0;
-                  const tax = payment.order?.totalTax || payment.order?.tax || 0;
+                  const modifiers = payment.order?.modifiers || [];
+                  
+                  // Calculate subtotal from items
+                  let subtotal = 0;
+                  if (items.length > 0) {
+                    subtotal = items.reduce((sum: number, item: any) => {
+                      const price = parseFloat(item.unitPrice || item.price || 0);
+                      const quantity = item.quantity || 1;
+                      return sum + (price * quantity);
+                    }, 0);
+                  } else {
+                    // If no items, use the payment amount as base
+                    subtotal = payment.amount;
+                  }
                   
                   let html = '';
                   
-                  // Show subtotal if there's a discount, surcharge, or tax
-                  if (discount > 0 || surcharge > 0 || tax > 0) {
+                  // Check if we have any modifiers or if we should show subtotal
+                  const hasModifiers = modifiers.length > 0;
+                  const orderSubtotal = parseFloat(payment.order?.subtotal || subtotal);
+                  const orderTax = parseFloat(payment.order?.taxAmount || 0);
+                  
+                  // Always show subtotal if there are modifiers or tax
+                  if (hasModifiers || orderTax > 0) {
                     html += `
                       <div class="totals-row">
                         <span>Subtotal:</span>
-                        <span>$${subtotal.toFixed(2)}</span>
+                        <span>$${orderSubtotal.toFixed(2)}</span>
                       </div>
                     `;
                   }
                   
-                  if (discount > 0) {
-                    html += `
-                      <div class="totals-row" style="color: green;">
-                        <span>Discount:</span>
-                        <span>-$${discount.toFixed(2)}</span>
-                      </div>
-                    `;
+                  // Display each modifier
+                  if (hasModifiers) {
+                    modifiers.forEach((modifier: any) => {
+                      const amount = parseFloat(modifier.amount || 0);
+                      const isDiscount = modifier.type === 'DISCOUNT';
+                      
+                      html += `
+                        <div class="totals-row" style="${isDiscount ? 'color: green;' : ''}">
+                          <span>${modifier.description || (isDiscount ? 'Discount' : 'Adjustment')}:</span>
+                          <span>${amount >= 0 ? '$' : '-$'}${Math.abs(amount).toFixed(2)}</span>
+                        </div>
+                      `;
+                    });
                   }
                   
-                  if (surcharge > 0) {
-                    html += `
-                      <div class="totals-row">
-                        <span>Surcharge:</span>
-                        <span>$${surcharge.toFixed(2)}</span>
-                      </div>
-                    `;
-                  }
-                  
-                  if (tax > 0) {
+                  // Show tax if present
+                  if (orderTax > 0) {
                     html += `
                       <div class="totals-row">
                         <span>Tax:</span>
-                        <span>$${tax.toFixed(2)}</span>
+                        <span>$${orderTax.toFixed(2)}</span>
                       </div>
                     `;
                   }
                   
+                  // Always show total
+                  const totalAmount = parseFloat(payment.order?.totalAmount || payment.amount);
                   html += `
                     <div class="totals-row totals-final">
                       <span>Total:</span>
-                      <span>$${payment.amount.toFixed(2)}</span>
+                      <span>$${totalAmount.toFixed(2)}</span>
                     </div>
                   `;
                   
