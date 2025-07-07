@@ -238,7 +238,7 @@ export function BookingSlideOut({
       const searchResponse = await apiClient.searchCustomers('Walk-in');
       const customers = searchResponse?.data || [];
       const existingWalkInCustomer = customers.find((customer: any) => 
-        (customer.firstName === 'Walk-in' && customer.lastName === 'Customer') ||
+        customer.firstName === 'Walk-in' ||
         customer.source === 'WALK_IN'
       );
       
@@ -247,7 +247,7 @@ export function BookingSlideOut({
         setFormData({
           ...formData,
           customerId: existingWalkInCustomer.id,
-          customerName: 'Walk-in Customer',
+          customerName: 'Walk-in',
           customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '',
           customerEmail: '', // Never use email for walk-in
           isNewCustomer: false,
@@ -258,7 +258,7 @@ export function BookingSlideOut({
         setFormData({
           ...formData,
           customerId: '', // Will be created as new customer
-          customerName: 'Walk-in Customer',
+          customerName: 'Walk-in',
           customerPhone: '', // No phone for walk-in
           customerEmail: '',
           isNewCustomer: true,
@@ -271,7 +271,7 @@ export function BookingSlideOut({
       setFormData({
         ...formData,
         customerId: '',
-        customerName: 'Walk-in Customer',
+        customerName: 'Walk-in',
         customerPhone: '',
         customerEmail: '',
         isNewCustomer: true,
@@ -435,7 +435,7 @@ export function BookingSlideOut({
                   className="gap-2"
                 >
                   <UserPlus className="h-4 w-4" />
-                  Walk-in Customer
+                  Walk-in
                 </Button>
               </div>
             )}
@@ -484,7 +484,7 @@ export function BookingSlideOut({
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
                   <UserPlus className="h-5 w-5 text-gray-600" />
-                  <h4 className="font-medium">Walk-in Customer</h4>
+                  <h4 className="font-medium">Walk-in</h4>
                 </div>
                 <p className="text-sm text-gray-600">
                   Quick booking for: <span className="font-medium">{formData.customerName}</span>
