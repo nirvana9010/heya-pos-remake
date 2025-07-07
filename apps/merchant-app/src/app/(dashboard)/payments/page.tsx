@@ -47,7 +47,6 @@ interface Payment {
   customerId?: string;
   customerPhone?: string;
   customerEmail?: string;
-  serviceName?: string;
   order?: any;
 }
 
@@ -400,11 +399,6 @@ export default function PaymentsPage() {
       customerId: payment.order?.customerId,
       customerPhone: payment.order?.customer?.phone || payment.order?.customer?.mobile || '',
       customerEmail: payment.order?.customer?.email || '',
-      serviceName: payment.order?.items?.[0]?.name || 
-        payment.order?.items?.[0]?.serviceName ||
-        payment.order?.booking?.services?.[0]?.service?.name ||
-        payment.order?.booking?.serviceName || 
-        '',
       order: payment.order,
     }));
   }, [paymentsResponse]);
@@ -650,6 +644,38 @@ export default function PaymentsPage() {
           {row.original.customerName}
         </Button>
       ),
+    },
+    {
+      accessorKey: "services",
+      header: "Services",
+      cell: ({ row }: any) => {
+        const payment = row.original;
+        const items = payment.order?.items || [];
+        const bookingServices = payment.order?.booking?.services || [];
+        
+        if (items.length > 0) {
+          const serviceNames = items.map((item: any) => 
+            item.service?.name || item.name || 'Service'
+          );
+          return (
+            <div className="text-sm">
+              {serviceNames.length === 1 ? serviceNames[0] : 
+                `${serviceNames[0]} +${serviceNames.length - 1} more`}
+            </div>
+          );
+        } else if (bookingServices.length > 0) {
+          const serviceNames = bookingServices.map((bs: any) => 
+            bs.service?.name || 'Service'
+          );
+          return (
+            <div className="text-sm">
+              {serviceNames.length === 1 ? serviceNames[0] : 
+                `${serviceNames[0]} +${serviceNames.length - 1} more`}
+            </div>
+          );
+        }
+        return <div className="text-sm">Service</div>;
+      },
     },
     {
       accessorKey: "type",
@@ -1074,22 +1100,54 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                ${payment.order?.items?.length > 0 ? 
-                  payment.order.items.map((item: any) => `
-                    <tr>
-                      <td>${item.name || item.serviceName || 'Service'}</td>
-                      <td class="text-center">${item.quantity || 1}</td>
-                      <td class="text-right">$${(item.price || 0).toFixed(2)}</td>
-                      <td class="text-right">$${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
-                    </tr>
-                  `).join('') :
-                  `<tr>
-                    <td>${payment.serviceName || payment.order?.booking?.services?.[0]?.service?.name || 'Service'}</td>
-                    <td class="text-center">1</td>
-                    <td class="text-right">$${payment.amount.toFixed(2)}</td>
-                    <td class="text-right">$${payment.amount.toFixed(2)}</td>
-                  </tr>`
-                }
+                ${(() => {
+                  // Order items are the source of truth
+                  const orderItems = payment.order?.items || [];
+                  
+                  if (orderItems.length > 0) {
+                    // Display all order items
+                    return orderItems.map((item: any) => {
+                      const itemName = item.service?.name || item.name || 'Service';
+                      const unitPrice = parseFloat(item.unitPrice || item.price || 0);
+                      const quantity = item.quantity || 1;
+                      const total = unitPrice * quantity;
+                      
+                      return `
+                        <tr>
+                          <td>${itemName}</td>
+                          <td class="text-center">${quantity}</td>
+                          <td class="text-right">$${unitPrice.toFixed(2)}</td>
+                          <td class="text-right">$${total.toFixed(2)}</td>
+                        </tr>
+                      `;
+                    }).join('');
+                  } else if (payment.order?.booking?.services?.length > 0) {
+                    // Fallback to booking services if no order items
+                    return payment.order.booking.services.map((bookingService: any) => {
+                      const serviceName = bookingService.service?.name || 'Service';
+                      const price = parseFloat(bookingService.price || bookingService.service?.price || 0);
+                      
+                      return `
+                        <tr>
+                          <td>${serviceName}</td>
+                          <td class="text-center">1</td>
+                          <td class="text-right">$${price.toFixed(2)}</td>
+                          <td class="text-right">$${price.toFixed(2)}</td>
+                        </tr>
+                      `;
+                    }).join('');
+                  } else {
+                    // Last resort: show generic entry
+                    return `
+                      <tr>
+                        <td>Service</td>
+                        <td class="text-center">1</td>
+                        <td class="text-right">$${payment.amount.toFixed(2)}</td>
+                        <td class="text-right">$${payment.amount.toFixed(2)}</td>
+                      </tr>
+                    `;
+                  }
+                })()}
               </tbody>
             </table>
 
