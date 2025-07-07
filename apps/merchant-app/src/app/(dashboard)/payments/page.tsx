@@ -33,6 +33,9 @@ import { Separator } from "@heya-pos/ui";
 import { PinVerificationDialog } from "@heya-pos/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@heya-pos/ui";
+import { useAuth } from "@/lib/auth/auth-provider";
+import { InvoicePreview } from "@/components/InvoicePreview";
+import ReactDOM from "react-dom/client";
 
 interface Payment {
   id: string;
@@ -44,6 +47,10 @@ interface Payment {
   processedAt: Date;
   type?: "booking" | "product" | "tip";
   customerId?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  serviceName?: string;
+  order?: any;
 }
 
 // Get current date for mock data
@@ -343,6 +350,7 @@ export default function PaymentsPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState<any>(null);
   const { toast } = useToast();
+  const { merchant } = useAuth();
   
   
   // Fetch real payments data
@@ -354,6 +362,26 @@ export default function PaymentsPage() {
     },
   });
 
+  // Fetch location data
+  const { data: locations } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
+      const locs = await apiClient.getLocations();
+      return locs;
+    },
+  });
+
+  // Fetch merchant profile
+  const { data: merchantProfile } = useQuery({
+    queryKey: ['merchantProfile'],
+    queryFn: async () => {
+      const profile = await apiClient.getMerchantProfile();
+      return profile;
+    },
+  });
+
+  const primaryLocation = locations?.[0];
+
   // Transform API data to match the Payment interface
   const payments = useMemo(() => {
     if (!paymentsResponse || !Array.isArray(paymentsResponse.payments)) {
@@ -364,7 +392,7 @@ export default function PaymentsPage() {
       id: payment.id,
       invoiceNumber: payment.order?.orderNumber || `PAY-${payment.id.slice(0, 8)}`,
       customerName: payment.order?.customer ? 
-        `${payment.order.customer.firstName} ${payment.order.customer.lastName}` : 
+        `${payment.order.customer.firstName} ${payment.order.customer.lastName || ''}`.trim() : 
         'Unknown Customer',
       amount: parseFloat(payment.amount),
       method: payment.paymentMethod === 'CASH' ? 'cash' : 'card-tyro',
@@ -372,6 +400,10 @@ export default function PaymentsPage() {
       processedAt: new Date(payment.processedAt),
       type: payment.order?.bookingId ? 'booking' : 'product',
       customerId: payment.order?.customerId,
+      customerPhone: payment.order?.customer?.phone || payment.order?.customer?.mobile || '',
+      customerEmail: payment.order?.customer?.email || '',
+      serviceName: payment.order?.items?.[0]?.name || payment.order?.booking?.serviceName || '',
+      order: payment.order,
     }));
   }, [paymentsResponse]);
 
@@ -761,17 +793,11 @@ export default function PaymentsPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handlePrintInvoice(payment)}
+                >
                   <FileText className="mr-2 h-4 w-4" />
                   View Invoice
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Email Receipt
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download PDF
                 </DropdownMenuItem>
                 {payment.status === "completed" && (
                   <>
@@ -951,6 +977,38 @@ export default function PaymentsPage() {
       </DialogContent>
     </Dialog>
   );
+
+  // Print invoice handler
+  const handlePrintInvoice = async (payment: Payment) => {
+    // Create a temporary div for the invoice
+    const printContainer = document.createElement('div');
+    printContainer.id = 'invoice-print-container';
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
+    printContainer.style.top = '0';
+    document.body.appendChild(printContainer);
+
+    // Render the invoice
+    const root = ReactDOM.createRoot(printContainer);
+    root.render(
+      <InvoicePreview 
+        payment={payment} 
+        merchant={merchantProfile || merchant} 
+        location={primaryLocation}
+      />
+    );
+
+    // Wait for render and then print
+    setTimeout(() => {
+      window.print();
+      
+      // Clean up after printing
+      setTimeout(() => {
+        root.unmount();
+        document.body.removeChild(printContainer);
+      }, 100);
+    }, 100);
+  };
 
   // Empty state component
   const EmptyState = () => (

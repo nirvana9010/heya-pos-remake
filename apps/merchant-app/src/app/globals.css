@@ -1511,3 +1511,53 @@ button:focus {
   pointer-events: none;
   border-radius: inherit;
 }
+
+/* Print Styles for Invoice */
+@media print {
+  /* Hide everything except the invoice */
+  body * {
+    visibility: hidden;
+  }
+  
+  #invoice-print-container,
+  #invoice-print-container * {
+    visibility: visible;
+  }
+  
+  #invoice-print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  /* Remove shadows and backgrounds for cleaner print */
+  .invoice-preview {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Ensure page breaks don't split important content */
+  .invoice-preview table,
+  .invoice-preview div {
+    page-break-inside: avoid;
+  }
+  
+  /* Set page margins */
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+  
+  /* Force black text for better print quality */
+  .invoice-preview * {
+    color: #000 !important;
+  }
+  
+  /* Keep background colors for payment status */
+  .invoice-preview [style*="background-color"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
