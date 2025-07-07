@@ -646,7 +646,7 @@ export default function PaymentsPage() {
       ),
     },
     {
-      accessorKey: "services",
+      id: "services",
       header: "Services",
       cell: ({ row }: any) => {
         const payment = row.original;
@@ -678,19 +678,45 @@ export default function PaymentsPage() {
       },
     },
     {
-      accessorKey: "type",
+      id: "type",
       header: "Type",
       cell: ({ row }: any) => {
-        const type = row.original.type || "booking";
+        const payment = row.original;
+        
+        // Determine type based on actual content
+        let type = "service";
+        let label = "Service";
+        
+        if (payment.order?.items?.length > 0) {
+          // Check the itemType of the first item
+          const firstItemType = payment.order.items[0]?.itemType;
+          if (firstItemType === 'SERVICE') {
+            type = "service";
+            label = "Service";
+          } else if (firstItemType === 'PRODUCT') {
+            type = "product";
+            label = "Product";
+          } else if (firstItemType === 'TIP') {
+            type = "tip";
+            label = "Tip";
+          }
+        } else if (payment.order?.bookingId) {
+          // Fallback to booking if no items but has bookingId
+          type = "booking";
+          label = "Booking";
+        }
+        
         const typeConfig = {
-          booking: { label: "Booking", color: "text-blue-600 bg-blue-50" },
-          product: { label: "Product", color: "text-purple-600 bg-purple-50" },
-          tip: { label: "Tip", color: "text-green-600 bg-green-50" }
+          booking: { color: "text-blue-600 bg-blue-50" },
+          service: { color: "text-indigo-600 bg-indigo-50" },
+          product: { color: "text-purple-600 bg-purple-50" },
+          tip: { color: "text-green-600 bg-green-50" }
         };
-        const config = typeConfig[type as keyof typeof typeConfig];
+        const config = typeConfig[type as keyof typeof typeConfig] || typeConfig.service;
+        
         return (
           <Badge variant="secondary" className={cn("text-xs", config.color, "border-0")}>
-            {config.label}
+            {label}
           </Badge>
         );
       },
@@ -1008,24 +1034,32 @@ export default function PaymentsPage() {
 
   // Print invoice handler
   const handlePrintInvoice = async (payment: Payment) => {
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    
-    if (!printWindow) {
-      toast({
-        title: "Unable to open print preview",
-        description: "Please check your popup blocker settings",
-        variant: "destructive",
-      });
-      return;
-    }
+    try {
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        toast({
+          title: "Unable to open print preview",
+          description: "Please check your popup blocker settings",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Create the invoice HTML
-    const invoiceHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice ${payment.invoiceNumber}</title>
+      // Safely get values with defaults
+      const businessName = merchantProfile?.name || merchant?.name || 'Business Name';
+      const invoiceNumber = payment.invoiceNumber || 'N/A';
+      const customerName = payment.customerName || 'Customer';
+      const processedDate = payment.processedAt ? new Date(payment.processedAt).toLocaleDateString() : 'N/A';
+      const processedDateTime = payment.processedAt ? new Date(payment.processedAt).toLocaleString() : 'N/A';
+
+      // Create the invoice HTML
+      const invoiceHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Invoice ${invoiceNumber}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -1067,25 +1101,25 @@ export default function PaymentsPage() {
               <h1>INVOICE</h1>
               <div class="header-flex">
                 <div>
-                  <h2>${merchantProfile?.name || merchant?.name || 'Business Name'}</h2>
+                  <h2>${businessName}</h2>
                   ${primaryLocation ? `
-                    <p>${primaryLocation.address}</p>
-                    <p>${primaryLocation.city}, ${primaryLocation.state} ${primaryLocation.zipCode}</p>
+                    <p>${primaryLocation.address || ''}</p>
+                    <p>${primaryLocation.city || ''}, ${primaryLocation.state || ''} ${primaryLocation.zipCode || ''}</p>
                   ` : ''}
                   ${merchantProfile?.phone ? `<p>Phone: ${merchantProfile.phone}</p>` : ''}
                   ${merchantProfile?.email ? `<p>Email: ${merchantProfile.email}</p>` : ''}
                   ${merchantProfile?.abn ? `<p>ABN: ${merchantProfile.abn}</p>` : ''}
                 </div>
                 <div style="text-align: right;">
-                  <p style="font-size: 18px; font-weight: bold;">Invoice #${payment.invoiceNumber}</p>
-                  <p>Date: ${new Date(payment.processedAt).toLocaleDateString()}</p>
+                  <p style="font-size: 18px; font-weight: bold;">Invoice #${invoiceNumber}</p>
+                  <p>Date: ${processedDate}</p>
                 </div>
               </div>
             </div>
 
             <div class="bill-to">
               <h3>Bill To:</h3>
-              <p style="font-weight: bold;">${payment.customerName}</p>
+              <p style="font-weight: bold;">${customerName}</p>
               ${payment.customerPhone ? `<p>Phone: ${payment.customerPhone}</p>` : ''}
               ${payment.customerEmail ? `<p>Email: ${payment.customerEmail}</p>` : ''}
             </div>
@@ -1240,7 +1274,7 @@ export default function PaymentsPage() {
               </div>
               <div class="totals-row">
                 <span>Transaction Date:</span>
-                <span>${new Date(payment.processedAt).toLocaleString()}</span>
+                <span>${processedDateTime}</span>
               </div>
             </div>
 
@@ -1253,20 +1287,28 @@ export default function PaymentsPage() {
       </html>
     `;
 
-    // Write the HTML to the new window
-    printWindow.document.write(invoiceHtml);
-    printWindow.document.close();
+      // Write the HTML to the new window
+      printWindow.document.write(invoiceHtml);
+      printWindow.document.close();
 
-    // Wait for content to load then print
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-        // Close the window after printing (user can cancel if needed)
-        printWindow.onafterprint = () => {
-          printWindow.close();
-        };
-      }, 250);
-    };
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          // Close the window after printing (user can cancel if needed)
+          printWindow.onafterprint = () => {
+            printWindow.close();
+          };
+        }, 250);
+      };
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      toast({
+        title: "Failed to generate invoice",
+        description: "Please try again or contact support",
+        variant: "destructive",
+      });
+    }
   };
 
   // Empty state component
@@ -1504,6 +1546,7 @@ export default function PaymentsPage() {
                 <DataTable
                   columns={paymentColumns}
                   data={filteredPayments}
+                  showColumnVisibility={true}
                 />
               </motion.div>
             )}
