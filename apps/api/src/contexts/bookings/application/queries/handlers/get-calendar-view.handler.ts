@@ -10,6 +10,7 @@ import {
   startOfMonth, 
   endOfMonth 
 } from 'date-fns';
+import { formatName } from '../../../../../utils/shared/format';
 
 @QueryHandler(GetCalendarViewQuery)
 export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuery> {
@@ -124,11 +125,11 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
           ? booking.paidAmount.toNumber()
           : Number(booking.paidAmount || 0),
         completedAt: booking.completedAt,
-        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        customerName: formatName(booking.customer.firstName, booking.customer.lastName),
         serviceName: service?.name || 'Unknown Service',
         serviceColor: service?.categoryModel?.color || '#6B7280',
         staffId: booking.provider.id,
-        staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
+        staffName: formatName(booking.provider.firstName, booking.provider.lastName),
         duration,
       };
     });
