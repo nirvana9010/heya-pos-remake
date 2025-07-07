@@ -13,7 +13,6 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsFutureDate } from '../../../../common/validation/decorators';
 
 export class BookingServiceDto {
   @IsUUID()
@@ -50,7 +49,6 @@ export class CreateBookingV2Dto {
 
   @IsDateString()
   @IsNotEmpty()
-  @IsFutureDate(5) // Must be at least 5 minutes in the future
   startTime: string;
 
   @IsOptional()
