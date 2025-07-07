@@ -40,8 +40,8 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
-export function formatName(firstName: string, lastName: string): string {
-  return `${firstName} ${lastName}`.trim();
+export function formatName(firstName: string, lastName?: string): string {
+  return lastName ? `${firstName} ${lastName}`.trim() : firstName;
 }
 
 export function formatInitials(firstName: string, lastName?: string): string {

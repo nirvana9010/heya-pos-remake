@@ -978,7 +978,7 @@ export default function StaffPageContent() {
       <Dialog open={isResetPinDialogOpen} onOpenChange={setIsResetPinDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset PIN for {selectedStaff?.firstName} {selectedStaff?.lastName}</DialogTitle>
+            <DialogTitle>Reset PIN for {selectedStaff?.lastName ? `${selectedStaff.firstName} ${selectedStaff.lastName}` : selectedStaff?.firstName}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

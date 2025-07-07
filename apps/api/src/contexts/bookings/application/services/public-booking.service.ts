@@ -171,7 +171,7 @@ export class PublicBookingService {
           foundAvailableStaff = true;
           console.error('AUTO-ASSIGNED STAFF:', {
             staffId: staff.id,
-            staffName: `${staff.firstName} ${staff.lastName}`,
+            staffName: staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName,
             requestedTime: `${dto.date} ${dto.startTime}`,
             duration: totalDuration,
           });
@@ -410,7 +410,9 @@ export class PublicBookingService {
         })),
         staffId: completeBooking.providerId,
         staffName: completeBooking.provider 
-          ? `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`
+          ? (completeBooking.provider.lastName 
+              ? `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`
+              : completeBooking.provider.firstName)
           : 'Unassigned',
         date: startTimeDisplay.date.split('/')[2] + '-' + 
               startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 

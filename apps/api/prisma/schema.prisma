@@ -157,7 +157,7 @@ model Customer {
   merchantId             String
   email                  String?
   firstName              String
-  lastName               String
+  lastName               String?
   phone                  String?
   mobile                 String?
   dateOfBirth            DateTime?

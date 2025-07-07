@@ -57,7 +57,7 @@ export class NotificationEventHandler {
             minute: '2-digit' 
           }),
           serviceName: firstService?.service?.name || 'Service',
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : 'Staff',
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : 'Staff',
           duration: firstService?.duration || 60,
           price: Number(booking.totalAmount),
           locationName: booking.location?.name || '',
@@ -92,7 +92,9 @@ export class NotificationEventHandler {
       );
 
       // Create merchant notification
-      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const customerName = booking.customer.lastName 
+        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+        : booking.customer.firstName;
       this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for booking ${booking.id}`);
       await this.merchantNotificationsService.createBookingNotification(
         booking.merchantId,
@@ -102,7 +104,7 @@ export class NotificationEventHandler {
           customerName,
           serviceName: firstService?.service?.name || 'Service',
           startTime: booking.startTime,
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
         }
       );
       this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
@@ -196,7 +198,7 @@ export class NotificationEventHandler {
             minute: '2-digit' 
           }),
           serviceName: firstService?.service?.name || 'Service',
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : 'Staff',
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : 'Staff',
           duration: firstService?.duration || 60,
           price: Number(booking.totalAmount),
           locationName: booking.location?.name || '',
@@ -231,7 +233,9 @@ export class NotificationEventHandler {
       );
 
       // Create merchant notification
-      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const customerName = booking.customer.lastName 
+        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+        : booking.customer.firstName;
       await this.merchantNotificationsService.createBookingNotification(
         booking.merchantId,
         'booking_cancelled',
@@ -240,7 +244,7 @@ export class NotificationEventHandler {
           customerName,
           serviceName: firstService?.service?.name || 'Service',
           startTime: booking.startTime,
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
         }
       );
 
@@ -307,7 +311,9 @@ export class NotificationEventHandler {
       }
 
       // Create merchant notification
-      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const customerName = booking.customer.lastName 
+        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+        : booking.customer.firstName;
       const firstService = booking.services[0];
       
       this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for rescheduled booking ${booking.id}`);
@@ -319,7 +325,7 @@ export class NotificationEventHandler {
           customerName,
           serviceName: firstService?.service?.name || 'Service',
           startTime: booking.startTime,
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
         },
         'has been rescheduled',
       );
@@ -365,7 +371,9 @@ export class NotificationEventHandler {
       }
 
       // Create merchant notification
-      const customerName = `${booking.customer.firstName} ${booking.customer.lastName}`.trim();
+      const customerName = booking.customer.lastName 
+        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+        : booking.customer.firstName;
       const firstService = booking.services[0];
       await this.merchantNotificationsService.createBookingNotification(
         booking.merchantId,
@@ -375,7 +383,7 @@ export class NotificationEventHandler {
           customerName,
           serviceName: firstService?.service?.name || 'Service',
           startTime: booking.startTime,
-          staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : undefined,
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
         },
         'completed their appointment',
       );

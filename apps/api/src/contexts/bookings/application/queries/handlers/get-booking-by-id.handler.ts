@@ -44,7 +44,7 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       
       customer: {
         id: booking.customer.id,
-        name: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        name: booking.customer.lastName ? `${booking.customer.firstName} ${booking.customer.lastName}` : booking.customer.firstName,
         email: booking.customer.email,
         phone: booking.customer.phone,
         loyaltyPoints: booking.customer.loyaltyPoints 
@@ -56,7 +56,7 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       
       staff: {
         id: booking.provider.id,
-        name: `${booking.provider.firstName} ${booking.provider.lastName}`,
+        name: booking.provider.lastName ? `${booking.provider.firstName} ${booking.provider.lastName}` : booking.provider.firstName,
         email: booking.provider.email,
         phone: booking.provider.phone,
       },
@@ -71,8 +71,8 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
           : Number(bookingService.price),
         staffId: bookingService.staffId || booking.provider.id,
         staffName: bookingService.staff ? 
-          `${bookingService.staff.firstName} ${bookingService.staff.lastName}` : 
-          `${booking.provider.firstName} ${booking.provider.lastName}`,
+          (bookingService.staff.lastName ? `${bookingService.staff.firstName} ${bookingService.staff.lastName}` : bookingService.staff.firstName) : 
+          (booking.provider.lastName ? `${booking.provider.firstName} ${booking.provider.lastName}` : booking.provider.firstName),
       })),
       
       location: {
@@ -99,7 +99,7 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       source: booking.source,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
-      createdBy: `${booking.createdBy.firstName} ${booking.createdBy.lastName}`,
+      createdBy: booking.createdBy.lastName ? `${booking.createdBy.firstName} ${booking.createdBy.lastName}` : booking.createdBy.firstName,
       
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
