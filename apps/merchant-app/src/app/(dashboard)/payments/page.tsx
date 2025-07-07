@@ -655,7 +655,7 @@ export default function PaymentsPage() {
         
         if (items.length > 0) {
           const serviceNames = items.map((item: any) => 
-            item.service?.name || item.name || 'Service'
+            item.name || item.description || item.service?.name || 'Service'
           );
           return (
             <div className="text-sm">
@@ -1107,7 +1107,7 @@ export default function PaymentsPage() {
                   if (orderItems.length > 0) {
                     // Display all order items
                     return orderItems.map((item: any) => {
-                      const itemName = item.service?.name || item.name || 'Service';
+                      const itemName = item.name || item.description || item.service?.name || 'Service';
                       const unitPrice = parseFloat(item.unitPrice || item.price || 0);
                       const quantity = item.quantity || 1;
                       const total = unitPrice * quantity;
