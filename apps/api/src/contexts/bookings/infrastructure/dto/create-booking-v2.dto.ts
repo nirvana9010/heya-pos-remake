@@ -43,9 +43,9 @@ export class CreateBookingV2Dto {
   @IsUUID()
   staffId?: string;
 
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  locationId: string;
+  locationId?: string;
 
   @IsDateString()
   @IsNotEmpty()

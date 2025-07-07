@@ -13,6 +13,14 @@ import { memoryLogger } from './utils/memory-logger';
 // Load environment variables
 dotenv.config();
 
+// Debug: Log environment variables
+console.log('=== ENVIRONMENT VARIABLES CHECK ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 80) + '...' : 'NOT SET');
+console.log('DIRECT_URL:', process.env.DIRECT_URL ? process.env.DIRECT_URL.substring(0, 80) + '...' : 'NOT SET');
+console.log('DATABASE_CONNECTION_LIMIT:', process.env.DATABASE_CONNECTION_LIMIT);
+console.log('===================================\n');
+
 // Log initial memory state
 memoryLogger.logMemory('Application Start');
 

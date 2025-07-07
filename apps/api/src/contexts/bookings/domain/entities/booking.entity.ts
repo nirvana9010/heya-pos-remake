@@ -11,7 +11,7 @@ export interface BookingProps {
   customerId: string;
   staffId?: string;
   serviceId: string;
-  locationId: string;
+  locationId?: string;
   merchantId: string;
   notes?: string;
   totalAmount: number;
@@ -45,7 +45,7 @@ export class Booking {
   private _customerId: string;
   private _staffId?: string;
   private _serviceId: string;
-  private _locationId: string;
+  private _locationId?: string;
   private _merchantId: string;
   private _notes?: string;
   private _totalAmount: number;
@@ -343,7 +343,7 @@ export class Booking {
   get customerId(): string { return this._customerId; }
   get staffId(): string | undefined { return this._staffId; }
   get serviceId(): string { return this._serviceId; }
-  get locationId(): string { return this._locationId; }
+  get locationId(): string | undefined { return this._locationId; }
   get merchantId(): string { return this._merchantId; }
   get notes(): string | undefined { return this._notes; }
   get totalAmount(): number { return this._totalAmount; }

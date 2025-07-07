@@ -39,7 +39,7 @@ async function addUnassignedColumnSetting() {
       await prisma.merchant.update({
         where: { id: merchant.id },
         data: {
-          settings: updatedSettings,
+          settings: updatedSettings as any,
         },
       });
 

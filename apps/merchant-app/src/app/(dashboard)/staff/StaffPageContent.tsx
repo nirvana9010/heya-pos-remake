@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { StaffScheduleTab } from './StaffScheduleTab';
 
 interface Staff {
   id: string;
@@ -817,10 +818,11 @@ export default function StaffPageContent() {
           </DialogHeader>
           
           <Tabs defaultValue="basic" className="mt-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="access">Access & Security</TabsTrigger>
               <TabsTrigger value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -960,6 +962,10 @@ export default function StaffPageContent() {
                   ))}
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="schedule" className="space-y-4 mt-4">
+              <StaffScheduleTab staffId={selectedStaff?.id || ''} />
             </TabsContent>
           </Tabs>
           

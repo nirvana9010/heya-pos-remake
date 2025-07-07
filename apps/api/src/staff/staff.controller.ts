@@ -31,6 +31,11 @@ export class StaffController {
     return this.staffService.findAll(user.merchantId, isActive);
   }
 
+  @Get('schedules')
+  getAllSchedules(@CurrentUser() user: any) {
+    return this.staffService.getAllSchedules(user.merchantId);
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
     return this.staffService.findOne(user.merchantId, id);
@@ -48,5 +53,19 @@ export class StaffController {
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
     return this.staffService.remove(user.merchantId, id);
+  }
+
+  @Get(':id/schedule')
+  getSchedule(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.staffService.getSchedule(user.merchantId, id);
+  }
+
+  @Post(':id/schedule')
+  updateSchedule(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() schedule: { schedules: Array<{ dayOfWeek: number; startTime: string; endTime: string }> },
+  ) {
+    return this.staffService.updateSchedule(user.merchantId, id, schedule);
   }
 }

@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'api',
       script: './scripts/start-api-with-env.sh',
-      watch: false,  // Let Next.js/NestJS handle hot reload
+      watch: false,
       env: { 
         PORT: 3000,
         NODE_ENV: 'development'

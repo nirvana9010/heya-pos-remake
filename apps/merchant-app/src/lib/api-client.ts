@@ -48,11 +48,6 @@ export type {
 } from './clients/reports-client';
 
 export type {
-  Location,
-  MerchantSettings,
-} from './clients/locations-client';
-
-export type {
   LoginResponse,
 } from './clients/auth-client';
 

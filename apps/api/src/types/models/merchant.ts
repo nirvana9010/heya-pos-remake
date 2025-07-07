@@ -47,6 +47,24 @@ export interface MerchantSettings {
   allowWalkInBookings: boolean;
   // Import settings
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
+  // Business hours
+  businessHours?: BusinessHours;
+}
+
+export interface BusinessHours {
+  monday: BusinessDayHours;
+  tuesday: BusinessDayHours;
+  wednesday: BusinessDayHours;
+  thursday: BusinessDayHours;
+  friday: BusinessDayHours;
+  saturday: BusinessDayHours;
+  sunday: BusinessDayHours;
+}
+
+export interface BusinessDayHours {
+  open: string; // HH:MM format
+  close: string; // HH:MM format
+  isOpen: boolean;
 }
 
 export enum MerchantStatus {

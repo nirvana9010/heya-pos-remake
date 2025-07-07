@@ -4,26 +4,39 @@ This file contains important configuration information for Claude Code to help m
 
 ## Database Configuration
 
-### Connection URLs
+### Connection URLs - BEST PRACTICES
 
-The project uses Supabase PostgreSQL with two connection types:
+**IMPORTANT: Stay on the pooler!** Both runtime and migrations should use the pooled connection:
 
-1. **Direct Connection (Port 5432)** - Used for migrations
+```
+DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
+```
+
+### Critical Configuration Points
+
+1. **Shrink Prisma's appetite** - Add to your `.env` file:
    ```
-   DIRECT_URL="postgresql://[user]:[password]@[host]:5432/postgres"
+   PRISMA_CLIENT_ENGINE_TYPE=binary   # keeps pool at 1
    ```
 
-2. **Pooled Connection (Port 6543)** - Used for runtime queries
+2. **One and only one env source** - In `ecosystem.config.js`:
+   ```javascript
+   env_file: '.env',   // in ecosystem.config.js
    ```
-   DATABASE_URL="postgresql://[user]:[password]@[host]:6543/postgres?pgbouncer=true"
+   Remove duplicate DATABASE_URL lines from everywhere else.
+
+3. **Clean restarts** - Always use:
+   ```bash
+   pm2 delete api && pm2 start ecosystem.config.js --only api
    ```
+   This fully kills abandoned workers before spawning new ones.
 
 ### Important Notes
 
-- **Always use the pooled connection for DATABASE_URL** to handle multiple concurrent connections efficiently
-- The `?pgbouncer=true` parameter is **required** for the pooled connection
+- **Always use the pooled connection for DATABASE_URL** for both runtime and migrations
+- The `?pgbouncer=true&connection_limit=1` parameters are **required** for stable connections
+- Include `sslmode=require` for security
 - Do NOT add `NODE_TLS_REJECT_UNAUTHORIZED="0"` unless absolutely necessary - it bypasses SSL verification
-- If you see SSL certificate errors, ensure you're using the correct port and connection parameters
 
 ### Common Issues and Solutions
 
@@ -105,11 +118,13 @@ pm2 restart api --update-env  # Restart with new env vars
 
 ### PM2 Configuration
 
-The `ecosystem.config.js` file is configured to use a wrapper script for the API to ensure environment variables are loaded:
+**IMPORTANT**: Use the `env_file` option in `ecosystem.config.js` and ensure it's the ONLY source of environment variables:
+
 ```javascript
 {
   name: 'api',
   script: './scripts/start-api-with-env.sh',  // Wrapper script that loads .env
+  env_file: '.env',  // This should be the ONLY env source
   watch: false,
   env: { 
     PORT: 3000,
@@ -118,4 +133,9 @@ The `ecosystem.config.js` file is configured to use a wrapper script for the API
 }
 ```
 
-This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments.
+**Clean Restart Command**: To avoid connection pool issues with abandoned workers:
+```bash
+pm2 delete api && pm2 start ecosystem.config.js --only api
+```
+
+This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments, hence the wrapper script approach.

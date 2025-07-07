@@ -32,6 +32,7 @@ export class MerchantService {
       settings.priceToDurationRatio = 1.0; // Default: $1 = 1 minute
     }
 
+    console.log('[MerchantService] getMerchantSettings returning:', JSON.stringify(settings, null, 2));
     return settings as MerchantSettings;
   }
 
@@ -39,6 +40,8 @@ export class MerchantService {
     merchantId: string,
     settings: Partial<MerchantSettings>,
   ): Promise<MerchantSettings> {
+    console.log('[MerchantService] updateMerchantSettings called with:', JSON.stringify(settings, null, 2));
+    
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
       select: { settings: true },
@@ -51,14 +54,17 @@ export class MerchantService {
     const currentSettings = merchant.settings as unknown as MerchantSettings;
     const updatedSettings = { ...currentSettings, ...settings };
 
+    console.log('[MerchantService] Saving settings:', JSON.stringify(updatedSettings, null, 2));
+
     const updated = await this.prisma.merchant.update({
       where: { id: merchantId },
       data: { 
-        settings: updatedSettings
+        settings: updatedSettings as any
       },
       select: { settings: true },
     });
 
+    console.log('[MerchantService] Settings saved successfully');
     return updated.settings as unknown as MerchantSettings;
   }
 
@@ -76,6 +82,46 @@ export class MerchantService {
     }
 
     return merchant;
+  }
+
+  async updateMerchantProfile(
+    merchantId: string,
+    profileData: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      abn?: string;
+      website?: string;
+      description?: string;
+    },
+  ) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException('Merchant not found');
+    }
+
+    // Only update provided fields
+    const updateData: any = {};
+    if (profileData.name !== undefined) updateData.name = profileData.name;
+    if (profileData.email !== undefined) updateData.email = profileData.email;
+    if (profileData.phone !== undefined) updateData.phone = profileData.phone;
+    if (profileData.abn !== undefined) updateData.abn = profileData.abn;
+    if (profileData.website !== undefined) updateData.website = profileData.website;
+    if (profileData.description !== undefined) updateData.description = profileData.description;
+
+    const updated = await this.prisma.merchant.update({
+      where: { id: merchantId },
+      data: updateData,
+      include: {
+        package: true,
+        locations: true,
+      },
+    });
+
+    return updated;
   }
 
   async debugGetMerchantSettings(merchantId: string) {

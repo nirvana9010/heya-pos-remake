@@ -100,6 +100,22 @@ export class BookingAvailabilityService {
         },
       });
   
+      // Get staff schedules (no longer location-specific)
+      const staffSchedules = await this.prisma.staffSchedule.findMany({
+        where: {
+          staffId: staffId,
+        },
+      });
+  
+      // Create a map of schedules by day of week
+      const scheduleMap = new Map<number, { startTime: string; endTime: string }>();
+      staffSchedules.forEach(schedule => {
+        scheduleMap.set(schedule.dayOfWeek, {
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+        });
+      });
+  
       // Generate time slots based on location business hours
       const slots: TimeSlot[] = [];
       const slotDuration = 15; // 15-minute intervals
@@ -126,24 +142,45 @@ export class BookingAvailabilityService {
         }).toLowerCase();
         const businessHours = location.businessHours as any;
         const dayHours = businessHours[dayOfWeek];
+        
+        // Get day number (0 = Sunday, 6 = Saturday)
+        const dayNumber = currentDate.getDay();
+        const staffSchedule = scheduleMap.get(dayNumber);
+        
+        // Use staff schedule if available, otherwise fall back to business hours
+        let openTimeStr: string;
+        let closeTimeStr: string;
+        
+        if (staffSchedule) {
+          // Staff has a specific schedule for this day
+          openTimeStr = staffSchedule.startTime;
+          closeTimeStr = staffSchedule.endTime;
+        } else if (dayHours && dayHours.open && dayHours.close) {
+          // Fall back to business hours
+          openTimeStr = dayHours.open;
+          closeTimeStr = dayHours.close;
+        } else {
+          // No hours available for this day
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
   
-        if (dayHours && dayHours.open && dayHours.close) {
-          // Parse business hours for this day
-          const [openHour, openMinute] = dayHours.open.split(':').map(Number);
-          const [closeHour, closeMinute] = dayHours.close.split(':').map(Number);
-          
-          // Use timezone-aware date creation
-          // Format the date in the target timezone to get the correct date string
-          const dateStr = currentDate.toLocaleDateString('en-CA', { timeZone: timezone });
-          const openTimeStr = `${openHour.toString().padStart(2, '0')}:${openMinute.toString().padStart(2, '0')}`;
-          const closeTimeStr = `${closeHour.toString().padStart(2, '0')}:${closeMinute.toString().padStart(2, '0')}`;
-          
-          const openTime = TimezoneUtils.createDateInTimezone(dateStr, openTimeStr, timezone);
-          const closeTime = TimezoneUtils.createDateInTimezone(dateStr, closeTimeStr, timezone);
+        // Parse hours for this day
+        const [openHour, openMinute] = openTimeStr.split(':').map(Number);
+        const [closeHour, closeMinute] = closeTimeStr.split(':').map(Number);
+        
+        // Use timezone-aware date creation
+        // Format the date in the target timezone to get the correct date string
+        const dateStr = currentDate.toLocaleDateString('en-CA', { timeZone: timezone });
+        const openTimeFormatted = `${openHour.toString().padStart(2, '0')}:${openMinute.toString().padStart(2, '0')}`;
+        const closeTimeFormatted = `${closeHour.toString().padStart(2, '0')}:${closeMinute.toString().padStart(2, '0')}`;
+        
+        const openTime = TimezoneUtils.createDateInTimezone(dateStr, openTimeFormatted, timezone);
+        const closeTime = TimezoneUtils.createDateInTimezone(dateStr, closeTimeFormatted, timezone);
   
-          // Generate slots for this day
-          let slotStart = new Date(openTime.getTime()); // Create a proper copy
-          while (addMinutes(slotStart, totalServiceDuration) <= closeTime) {
+        // Generate slots for this day
+        let slotStart = new Date(openTime.getTime()); // Create a proper copy
+        while (addMinutes(slotStart, totalServiceDuration) <= closeTime) {
             const slotEnd = addMinutes(slotStart, baseDuration);
             const effectiveStart = addMinutes(slotStart, -service.paddingBefore);
             const effectiveEnd = addMinutes(slotEnd, service.paddingAfter);
@@ -162,9 +199,8 @@ export class BookingAvailabilityService {
               conflictReason: conflict.reason,
             });
   
-            // Move to next slot
-            slotStart = addMinutes(slotStart, slotDuration);
-          }
+          // Move to next slot
+          slotStart = addMinutes(slotStart, slotDuration);
         }
   
         // Move to next day

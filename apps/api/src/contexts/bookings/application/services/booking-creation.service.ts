@@ -16,7 +16,7 @@ interface CreateBookingData {
   services?: BookingServiceData[]; // New multi-service support
   customerId: string;
   startTime: Date;
-  locationId: string;
+  locationId?: string;
   merchantId: string;
   notes?: string;
   source: string;

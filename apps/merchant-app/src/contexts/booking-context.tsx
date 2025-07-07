@@ -99,10 +99,8 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
     try {
       console.log('[BookingContext] Received bookingData:', JSON.stringify(bookingData, null, 2));
       
-      // Add locationId from merchant context
       const bookingRequest = {
         customerId: bookingData.customerId,
-        locationId: merchant?.id || '',
         services: bookingData.services,
         staffId: bookingData.staffId,
         startTime: bookingData.startTime,
