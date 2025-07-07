@@ -157,7 +157,14 @@ export const requestSchemas = {
     services: validators.array,
     staffId: validators.optional(validators.string),
     startTime: validators.isoDate,
-    notes: validators.optional(validators.string)
+    notes: validators.optional(validators.string),
+    isOverride: validators.optional((value: any, field: string) => {
+      if (typeof value !== 'boolean') {
+        return { field, message: 'must be a boolean', value };
+      }
+      return null;
+    }),
+    source: validators.optional(validators.string)
   },
 
   updateBooking: {
