@@ -22,7 +22,7 @@ export interface Booking {
 
 export interface CreateBookingRequest {
   customerId: string;
-  locationId: string;
+  locationId?: string;
   services: Array<{
     serviceId: string;
     staffId?: string;

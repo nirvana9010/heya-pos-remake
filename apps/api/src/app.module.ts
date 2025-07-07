@@ -11,7 +11,6 @@ import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
-import { LocationsModule } from './locations/locations.module';
 import { MerchantModule } from './merchant/merchant.module';
 import { AdminModule } from './admin/admin.module';
 import { ReportsModule } from './reports/reports.module';
@@ -47,7 +46,6 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     StaffModule,
     LoyaltyModule,
     PublicModule,
-    LocationsModule,
     MerchantModule,
     AdminModule,
     ReportsModule,

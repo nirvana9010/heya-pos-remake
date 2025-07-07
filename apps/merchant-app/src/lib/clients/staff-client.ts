@@ -50,4 +50,24 @@ export class StaffClient extends BaseApiClient {
   async deleteStaff(id: string): Promise<void> {
     return this.delete(`/staff/${id}`, undefined, 'v1');
   }
+
+  async getAllSchedules(): Promise<any> {
+    return this.get('/staff/schedules', undefined, 'v1');
+  }
+
+  async getSchedule(staffId: string): Promise<any> {
+    return this.get(`/staff/${staffId}/schedule`, undefined, 'v1');
+  }
+
+  async updateSchedule(staffId: string, data: { schedules: Array<{ dayOfWeek: number; startTime: string; endTime: string }> }): Promise<any> {
+    console.log('[StaffClient] updateSchedule called for staff:', staffId, 'with data:', data);
+    try {
+      const response = await this.post(`/staff/${staffId}/schedule`, data, undefined, 'v1');
+      console.log('[StaffClient] updateSchedule response:', response);
+      return response;
+    } catch (error) {
+      console.error('[StaffClient] updateSchedule error:', error);
+      throw error;
+    }
+  }
 }

@@ -10,6 +10,15 @@ import { MerchantService } from './merchant.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MerchantSettings } from '../types/models/merchant';
 
+interface UpdateMerchantProfileDto {
+  name?: string;
+  email?: string;
+  phone?: string;
+  abn?: string;
+  website?: string;
+  description?: string;
+}
+
 @Controller('merchant')
 @UseGuards(JwtAuthGuard)
 export class MerchantController {
@@ -34,6 +43,17 @@ export class MerchantController {
   @Get('profile')
   async getMerchantProfile(@Request() req) {
     return this.merchantService.getMerchantById(req.user.merchantId);
+  }
+
+  @Put('profile')
+  async updateProfile(
+    @Request() req,
+    @Body() profileData: UpdateMerchantProfileDto,
+  ) {
+    return this.merchantService.updateMerchantProfile(
+      req.user.merchantId,
+      profileData,
+    );
   }
 
   @Get('settings/debug')

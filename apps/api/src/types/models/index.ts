@@ -1,5 +1,5 @@
 export * from './merchant';
-export * from './location';
+// export * from './location'; // DEPRECATED - Location support removed
 export * from './staff';
 export * from './customer';
 export * from './service';

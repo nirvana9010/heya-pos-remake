@@ -177,25 +177,6 @@ function CalendarContent() {
   
   const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
     try {
-      // Get locationId from localStorage or fetch it
-      let locationId = null;
-      const merchantData = localStorage.getItem('merchant');
-      if (merchantData) {
-        const merchant = JSON.parse(merchantData);
-        locationId = merchant.locations?.[0];
-      }
-      
-      // If no locationId in merchant data, fetch locations
-      if (!locationId) {
-        const locations = await apiClient.getLocations();
-        if (locations && locations.length > 0) {
-          locationId = locations[0].id;
-        }
-      }
-      
-      if (!locationId) {
-        throw new Error('No location found. Please configure at least one location.');
-      }
       
       // Create booking via V2 API with correct format
       // CRITICAL: Resolve staff assignment before API call
@@ -333,7 +314,6 @@ function CalendarContent() {
       
       const bookingRequest = {
         customerId: finalCustomerId,
-        locationId: locationId,
         services: services,
         staffId: finalStaffId,
         startTime: bookingData.startTime.toISOString(),

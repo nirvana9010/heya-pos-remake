@@ -27,6 +27,7 @@ const navigation = [
   { name: 'Bookings', href: '/bookings', icon: Calendar },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Staff', href: '/staff', icon: Users },
+  { name: 'Roster', href: '/roster', icon: Calendar },
   { name: 'Services', href: '/services', icon: Package },
   { name: 'Loyalty', href: '/loyalty', icon: Gift },
   { name: 'Payments', href: '/payments', icon: DollarSign },

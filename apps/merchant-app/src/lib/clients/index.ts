@@ -7,7 +7,6 @@ export * from './services-client';
 export * from './staff-client';
 export * from './payments-client';
 export * from './reports-client';
-export * from './locations-client';
 export * from './notifications-client';
 
 // Import client classes
@@ -18,7 +17,6 @@ import { ServicesClient } from './services-client';
 import { StaffClient } from './staff-client';
 import { PaymentsClient } from './payments-client';
 import { ReportsClient } from './reports-client';
-import { LocationsClient } from './locations-client';
 import { NotificationsClient } from './notifications-client';
 
 /**
@@ -35,7 +33,6 @@ export class ApiClient {
   public staff: StaffClient;
   public payments: PaymentsClient;
   public reports: ReportsClient;
-  public locations: LocationsClient;
   public notifications: NotificationsClient;
 
   constructor() {
@@ -47,7 +44,6 @@ export class ApiClient {
     this.staff = new StaffClient();
     this.payments = new PaymentsClient();
     this.reports = new ReportsClient();
-    this.locations = new LocationsClient();
     this.notifications = new NotificationsClient();
   }
 
@@ -196,22 +192,6 @@ export class ApiClient {
     return this.reports.getDashboardStats();
   }
 
-  async getLocations() {
-    return this.locations.getLocations();
-  }
-
-  async getLocation(id: string) {
-    return this.locations.getLocation(id);
-  }
-
-  async updateLocation(id: string, data: any) {
-    return this.locations.updateLocation(id, data);
-  }
-
-  async updateLocationTimezone(id: string, timezone: string) {
-    return this.locations.updateLocationTimezone(id, timezone);
-  }
-
   // Payment methods
   async createOrder(data: { customerId?: string; bookingId?: string }) {
     return this.payments.createOrder(data);
@@ -258,11 +238,23 @@ export class ApiClient {
   }
 
   async getMerchantSettings() {
-    return this.locations.getMerchantSettings();
+    const response = await this.auth.get('/merchant/settings');
+    return response.data || response;
   }
 
   async getMerchantProfile() {
-    return this.locations.getMerchantProfile();
+    const response = await this.auth.get('/merchant/profile');
+    return response.data || response;
+  }
+
+  async updateMerchantSettings(settings: any) {
+    const response = await this.auth.put('/merchant/settings', settings);
+    return response.data || response;
+  }
+
+  async updateMerchantProfile(profileData: any) {
+    const response = await this.auth.put('/merchant/profile', profileData);
+    return response.data || response;
   }
 
   async getReportOverview(locationId?: string) {

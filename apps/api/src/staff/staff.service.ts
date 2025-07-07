@@ -361,4 +361,116 @@ export class StaffService {
     // For this implementation, we'll return null indicating PIN can't be retrieved
     return null;
   }
+
+  async getAllSchedules(merchantId: string) {
+    // Get all active staff with their schedules
+    const staff = await this.prisma.staff.findMany({
+      where: {
+        merchantId,
+        status: 'ACTIVE',
+      },
+      include: {
+        schedules: {
+          orderBy: {
+            dayOfWeek: 'asc',
+          },
+        },
+      },
+    });
+
+    return staff.map(s => ({
+      staffId: s.id,
+      staffName: `${s.firstName} ${s.lastName || ''}`.trim(),
+      schedules: s.schedules.map(schedule => ({
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+      })),
+    }));
+  }
+
+  async getSchedule(merchantId: string, staffId: string) {
+    // Verify staff belongs to merchant
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id: staffId,
+        merchantId,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    // Get schedules for this staff member
+    const schedules = await this.prisma.staffSchedule.findMany({
+      where: {
+        staffId,
+      },
+      orderBy: {
+        dayOfWeek: 'asc',
+      },
+    });
+
+    return {
+      staffId,
+      staffName: `${staff.firstName} ${staff.lastName || ''}`.trim(),
+      schedules: schedules.map(s => ({
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
+    };
+  }
+
+  async updateSchedule(
+    merchantId: string,
+    staffId: string,
+    data: { schedules: Array<{ dayOfWeek: number; startTime: string; endTime: string }> }
+  ) {
+    console.log('[StaffService] updateSchedule called for:', staffId, 'with schedules:', data.schedules.length);
+    
+    try {
+      // Verify staff belongs to merchant
+      const staff = await this.prisma.staff.findFirst({
+        where: {
+          id: staffId,
+          merchantId,
+        },
+      });
+
+      if (!staff) {
+        throw new NotFoundException('Staff member not found');
+      }
+
+      // Delete existing schedules for this staff
+      const deleteResult = await this.prisma.staffSchedule.deleteMany({
+        where: {
+          staffId,
+        },
+      });
+      console.log('[StaffService] Deleted', deleteResult.count, 'existing schedules');
+
+      // Create new schedules
+      if (data.schedules.length > 0) {
+        const createResult = await this.prisma.staffSchedule.createMany({
+          data: data.schedules.map(schedule => ({
+            staffId,
+            dayOfWeek: schedule.dayOfWeek,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+          })),
+        });
+        console.log('[StaffService] Created', createResult.count, 'new schedules');
+      }
+
+      // Return updated schedule
+      const result = await this.getSchedule(merchantId, staffId);
+      console.log('[StaffService] Returning schedule for:', staffId);
+      return result;
+    } catch (error) {
+      console.error('[StaffService] updateSchedule error:', error);
+      throw error;
+    }
+  }
 }

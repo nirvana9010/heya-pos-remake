@@ -32,7 +32,6 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
-  const [locationId, setLocationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState("30");
@@ -76,44 +75,12 @@ export default function SettingsPage() {
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
   const [lastImportResult, setLastImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
 
-  // Load location data on mount
+  // Load data on mount
   useEffect(() => {
     loadMerchantSettings();
-    loadLocationData();
     loadMerchantProfile();
   }, []);
 
-  const loadLocationData = async () => {
-    try {
-      const locations = await apiClient.getLocations();
-      if (locations.length > 0) {
-        const firstLocation = locations[0];
-        setLocationId(firstLocation.id);
-        // Location timezone will inherit from merchant if not set
-        if (firstLocation.timezone) {
-          setSelectedTimezone(firstLocation.timezone);
-        }
-        // Load business hours
-        if (firstLocation.businessHours) {
-          const formattedHours: any = {};
-          Object.entries(firstLocation.businessHours).forEach(([day, hours]: [string, any]) => {
-            if (hours) {
-              formattedHours[day] = {
-                open: hours.open || hours.openTime || "09:00",
-                close: hours.close || hours.closeTime || "17:00",
-                isOpen: hours.isOpen !== undefined ? hours.isOpen : true
-              };
-            } else {
-              formattedHours[day] = { open: "09:00", close: "17:00", isOpen: false };
-            }
-          });
-          setBusinessHours(formattedHours);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load location data:", error);
-    }
-  };
 
   const loadMerchantSettings = async () => {
     try {
@@ -138,6 +105,22 @@ export default function SettingsPage() {
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
+        }
+        // Load business hours from merchant settings
+        if (response.businessHours) {
+          const formattedHours: any = {};
+          Object.entries(response.businessHours).forEach(([day, hours]: [string, any]) => {
+            if (hours) {
+              formattedHours[day] = {
+                open: hours.open || "09:00",
+                close: hours.close || "17:00",
+                isOpen: hours.isOpen !== undefined ? hours.isOpen : true
+              };
+            } else {
+              formattedHours[day] = { open: "09:00", close: "17:00", isOpen: false };
+            }
+          });
+          setBusinessHours(formattedHours);
         }
       }
     } catch (error) {
@@ -170,11 +153,6 @@ export default function SettingsPage() {
       await apiClient.put("/merchant/settings", {
         timezone: selectedTimezone,
       });
-
-      // If we have a location, update it too
-      if (locationId) {
-        await apiClient.updateLocationTimezone(locationId, selectedTimezone);
-      }
 
       toast({
         title: "Success",
@@ -609,31 +587,31 @@ export default function SettingsPage() {
                   setLoading(true);
                   try {
                     // Update merchant profile
-                    await apiClient.put("/merchant/profile", {
+                    await apiClient.updateMerchantProfile({
                       name: businessName,
                       email: businessEmail,
                       phone: businessPhone,
                       abn: businessAbn,
                     });
                     
-                    // Update timezone
-                    await handleSaveTimezone();
-                    
-                    // Update business hours if we have a location
-                    if (locationId) {
-                      await apiClient.updateLocation(locationId, {
-                        businessHours: businessHours
-                      });
-                    }
+                    // Update timezone and business hours in merchant settings
+                    console.log('Saving business hours:', businessHours);
+                    const settingsResponse = await apiClient.updateMerchantSettings({
+                      timezone: selectedTimezone,
+                      businessHours: businessHours
+                    });
+                    console.log('Settings save response:', settingsResponse);
                     
                     toast({
                       title: "Success",
                       description: "Business information updated successfully",
                     });
-                  } catch (error) {
+                  } catch (error: any) {
+                    console.error('Settings save error:', error);
+                    console.error('Error response:', error.response?.data);
                     toast({
                       title: "Error",
-                      description: "Failed to update business information",
+                      description: error.response?.data?.message || "Failed to update business information",
                       variant: "destructive",
                     });
                   } finally {

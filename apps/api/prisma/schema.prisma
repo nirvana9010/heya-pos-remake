@@ -130,6 +130,7 @@ model Staff {
   orderPayments       OrderPayment[]
   merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   locations           StaffLocation[]
+  schedules           StaffSchedule[]
   tipAllocations      TipAllocation[]
 
   @@index([merchantId])
@@ -150,6 +151,21 @@ model StaffLocation {
   @@unique([staffId, locationId])
   @@index([staffId])
   @@index([locationId])
+}
+
+model StaffSchedule {
+  id         String   @id @default(uuid())
+  staffId    String
+  dayOfWeek  Int      // 0-6 (Sunday-Saturday)
+  startTime  String   // "09:00"
+  endTime    String   // "17:00"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@unique([staffId, dayOfWeek])
+  @@index([staffId])
+  @@index([dayOfWeek])
 }
 
 model Customer {

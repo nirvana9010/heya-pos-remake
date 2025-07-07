@@ -12,7 +12,6 @@ import { StaffModule } from './staff/staff.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
-import { LocationsModule } from './locations/locations.module';
 import { DebugModule } from './debug/debug.module';
 
 @Module({
@@ -29,7 +28,6 @@ import { DebugModule } from './debug/debug.module';
     StaffModule,
     LoyaltyModule,
     PublicModule,
-    LocationsModule,
     DebugModule // Include debug module in development
   ],
   controllers: [AppController],
