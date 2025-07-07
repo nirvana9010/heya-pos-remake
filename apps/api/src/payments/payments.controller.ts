@@ -213,11 +213,7 @@ export class PaymentsController {
           order: {
             include: {
               customer: true,
-              items: {
-                include: {
-                  service: true,
-                },
-              },
+              items: true,
               modifiers: true,
               booking: {
                 include: {
@@ -245,8 +241,45 @@ export class PaymentsController {
       this.prisma.orderPayment.count({ where }),
     ]);
 
+    // Enrich order items with service data
+    const enrichedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        if (payment.order?.items?.length > 0) {
+          // Get service IDs from items where itemType is SERVICE
+          const serviceIds = payment.order.items
+            .filter((item: any) => item.itemType === 'SERVICE')
+            .map((item: any) => item.itemId);
+          
+          if (serviceIds.length > 0) {
+            // Fetch service details
+            const services = await this.prisma.service.findMany({
+              where: { id: { in: serviceIds } },
+              select: { id: true, name: true, price: true },
+            });
+            
+            // Create a map for quick lookup
+            const serviceMap = new Map(services.map(s => [s.id, s]));
+            
+            // Enrich items with service data
+            payment.order.items = payment.order.items.map((item: any) => {
+              if (item.itemType === 'SERVICE' && serviceMap.has(item.itemId)) {
+                const service = serviceMap.get(item.itemId);
+                return {
+                  ...item,
+                  service: service,
+                  name: item.description || service?.name,
+                };
+              }
+              return item;
+            });
+          }
+        }
+        return payment;
+      })
+    );
+
     return {
-      payments,
+      payments: enrichedPayments,
       pagination: {
         page,
         limit,
