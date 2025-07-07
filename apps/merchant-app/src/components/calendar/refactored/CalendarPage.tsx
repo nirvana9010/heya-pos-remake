@@ -274,7 +274,7 @@ function CalendarContent() {
               // Create a single walk-in customer that can be reused
               const customerData = {
                 firstName: 'Walk-in',
-                lastName: 'Customer', // Use 'Customer' as last name instead of space
+                lastName: undefined, // No last name for walk-in
                 notes: 'Shared walk-in customer account',
                 source: 'WALK_IN'
               };
@@ -285,7 +285,7 @@ function CalendarContent() {
               // Update the local state with the new customer
               actions.setCustomers([...state.customers, {
                 ...newCustomer,
-                name: 'Walk-in Customer'
+                name: 'Walk-in'
               }]);
             }
           } catch (error) {
