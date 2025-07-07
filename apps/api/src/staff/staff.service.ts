@@ -14,6 +14,8 @@ export class StaffService {
   ) {}
 
   async create(merchantId: string, createStaffDto: CreateStaffDto) {
+    console.log('CreateStaffDto received:', JSON.stringify(createStaffDto, null, 2));
+    
     // Check if email already exists (only if email is provided)
     if (createStaffDto.email) {
       const existingStaff = await this.prisma.staff.findUnique({
@@ -34,10 +36,7 @@ export class StaffService {
 
     // Handle PIN logic
     if (!pin) {
-      if (requirePinForStaff) {
-        throw new BadRequestException('PIN is required for staff members');
-      }
-      // Generate a random 4-digit PIN
+      // Always generate a PIN if not provided
       generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
       pin = generatedPin;
     } else {
@@ -71,16 +70,27 @@ export class StaffService {
     }
 
     // Create clean data object without unwanted fields
-    const createData = {
+    const createData: any = {
       firstName: staffData.firstName,
-      lastName: staffData.lastName,
-      email: staffData.email,
-      phone: staffData.phone,
       accessLevel: staffData.accessLevel || 1,
       calendarColor,
       merchantId,
       pin: hashedPin,
+      status: staffData.status || 'ACTIVE',
     };
+
+    // Only add optional fields if they have values
+    if (staffData.lastName) {
+      createData.lastName = staffData.lastName;
+    }
+    if (staffData.email) {
+      createData.email = staffData.email;
+    }
+    if (staffData.phone) {
+      createData.phone = staffData.phone;
+    }
+
+    console.log('CreateData being sent to Prisma:', JSON.stringify(createData, null, 2));
 
     // Create staff member (role and permissions are handled through accessLevel)
     const staff = await this.prisma.staff.create({

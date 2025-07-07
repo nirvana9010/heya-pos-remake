@@ -45,8 +45,8 @@ import { useAuth } from '@/lib/auth/auth-provider';
 interface Staff {
   id: string;
   firstName: string;
-  lastName: string;
-  email: string;
+  lastName: string | null;
+  email: string | null;
   phone?: string;
   pin?: string;
   accessLevel: number;
@@ -96,6 +96,8 @@ export default function StaffPageContent() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [generatedPinDialog, setGeneratedPinDialog] = useState<{ open: boolean; pin?: string; name?: string }>({ open: false });
+  const [isResetPinDialogOpen, setIsResetPinDialogOpen] = useState(false);
+  const [resetPinData, setResetPinData] = useState({ pin: '', showPin: false });
   const { toast } = useToast();
   const { merchant } = useAuth();
   
@@ -139,8 +141,8 @@ export default function StaffPageContent() {
   const filteredStaff = staff.filter(member => {
     const matchesSearch = 
       member.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (member.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (member.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     
     const matchesStatus = 
       statusFilter === 'all' ||
@@ -178,8 +180,8 @@ export default function StaffPageContent() {
         pin: formData.pin || undefined, // Send undefined if no PIN
       });
       
-      // If a PIN was generated, show it
-      if (response.generatedPin && response.pin) {
+      // If a PIN was generated and PINs are required, show it
+      if (response.generatedPin && response.pin && isPinRequired) {
         setGeneratedPinDialog({
           open: true,
           pin: response.pin,
@@ -197,9 +199,27 @@ export default function StaffPageContent() {
       resetForm();
       loadStaff();
     } catch (error: any) {
+      console.error('Staff creation error:', error);
+      
+      // Extract the most helpful error message
+      let errorMessage = "Failed to create staff member";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // If it's a validation error, show field-specific errors
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        errorMessage = error.response.data.errors.join(', ');
+      }
+      
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to create staff member",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -246,9 +266,22 @@ export default function StaffPageContent() {
       resetForm();
       loadStaff();
     } catch (error: any) {
+      console.error('Staff update error:', error);
+      
+      // Extract the most helpful error message
+      let errorMessage = "Failed to update staff member";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to update staff member",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -265,9 +298,22 @@ export default function StaffPageContent() {
       });
       loadStaff();
     } catch (error: any) {
+      console.error('Staff delete error:', error);
+      
+      // Extract the most helpful error message
+      let errorMessage = "Failed to delete staff member";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to delete staff member",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -311,8 +357,8 @@ export default function StaffPageContent() {
     setSelectedStaff(member);
     setFormData({
       firstName: member.firstName,
-      lastName: member.lastName,
-      email: member.email,
+      lastName: member.lastName || '',
+      email: member.email || '',
       phone: member.phone || '',
       pin: '', // Don't show existing PIN
       accessLevel: member.accessLevel,
@@ -320,6 +366,54 @@ export default function StaffPageContent() {
       status: member.status,
     });
     setIsEditDialogOpen(true);
+  };
+
+  const openResetPinDialog = (member: Staff) => {
+    setSelectedStaff(member);
+    setResetPinData({ pin: '', showPin: false });
+    setIsResetPinDialogOpen(true);
+  };
+
+  const handleResetPin = async () => {
+    if (!selectedStaff) return;
+    
+    try {
+      let newPin = resetPinData.pin;
+      
+      // Generate PIN if not provided
+      if (!newPin) {
+        newPin = Math.floor(1000 + Math.random() * 9000).toString();
+      } else {
+        // Validate PIN if provided
+        if (!/^\d{4}$/.test(newPin)) {
+          toast({
+            title: "Error",
+            description: "PIN must be exactly 4 digits",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      // Update staff with new PIN
+      const response = await apiClient.updateStaff(selectedStaff.id, { pin: newPin });
+      
+      // Show the new PIN
+      setGeneratedPinDialog({
+        open: true,
+        pin: newPin,
+        name: selectedStaff.lastName ? `${selectedStaff.firstName} ${selectedStaff.lastName}` : selectedStaff.firstName,
+      });
+      
+      setIsResetPinDialogOpen(false);
+      loadStaff();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to reset PIN",
+        variant: "destructive",
+      });
+    }
   };
 
   const columns = [
@@ -374,22 +468,6 @@ export default function StaffPageContent() {
       }
     },
     {
-      accessorKey: 'pin',
-      header: 'PIN',
-      cell: ({ row }: any) => {
-        const staff = row.original;
-        if (!staff.pin && !staff.hasPinSet) {
-          return <span className="text-red-500 text-sm">Not Set</span>;
-        }
-        return (
-          <div className="flex items-center space-x-2">
-            <Key className="h-4 w-4 text-gray-400" />
-            <span className="font-mono">{staff.pin || '****'}</span>
-          </div>
-        );
-      }
-    },
-    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }: any) => (
@@ -425,7 +503,7 @@ export default function StaffPageContent() {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Details
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openResetPinDialog(staff)}>
                 <Key className="h-4 w-4 mr-2" />
                 Reset PIN
               </DropdownMenuItem>
@@ -896,18 +974,64 @@ export default function StaffPageContent() {
         </DialogContent>
       </Dialog>
 
+      {/* Reset PIN Dialog */}
+      <Dialog open={isResetPinDialogOpen} onOpenChange={setIsResetPinDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset PIN for {selectedStaff?.firstName} {selectedStaff?.lastName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>New PIN</Label>
+              <div className="relative">
+                <Input
+                  type={resetPinData.showPin ? "text" : "password"}
+                  placeholder="Leave blank to auto-generate"
+                  value={resetPinData.pin}
+                  onChange={(e) => setResetPinData({ ...resetPinData, pin: e.target.value })}
+                  maxLength={4}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+                  onClick={() => setResetPinData({ ...resetPinData, showPin: !resetPinData.showPin })}
+                >
+                  {resetPinData.showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">
+                Must be exactly 4 digits. Leave blank to generate a random PIN.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetPinDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPin}>
+              Reset PIN
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Generated PIN Dialog */}
       <Dialog open={generatedPinDialog.open} onOpenChange={(open) => setGeneratedPinDialog({ open })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Staff Member Created Successfully</DialogTitle>
+            <DialogTitle>PIN for {generatedPinDialog.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                A PIN has been automatically generated for <strong>{generatedPinDialog.name}</strong>.
-                Please save this PIN as it will not be shown again.
+                {isPinRequired ? (
+                  <>A PIN has been set for <strong>{generatedPinDialog.name}</strong>.
+                  Please save this PIN as it will not be shown again.</>
+                ) : (
+                  <>The PIN for <strong>{generatedPinDialog.name}</strong> has been set.
+                  Staff can use this PIN for authentication if needed.</>
+                )}
               </AlertDescription>
             </Alert>
             
@@ -916,10 +1040,12 @@ export default function StaffPageContent() {
               <p className="text-3xl font-bold tracking-widest">{generatedPinDialog.pin}</p>
             </div>
             
-            <p className="text-sm text-gray-600">
-              This PIN is required for the staff member to log in and authorize actions. 
-              Make sure to share it securely with them.
-            </p>
+            {isPinRequired && (
+              <p className="text-sm text-gray-600">
+                This PIN is required for the staff member to log in and authorize actions. 
+                Make sure to share it securely with them.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button 

@@ -126,9 +126,12 @@ export function generateColorVariation(baseColor: string, variation: number): st
  * @returns The selected color hex code
  */
 export function getNextStaffColor(usedColors: string[], staffCount: number): string {
+  // Normalize used colors to uppercase for comparison
+  const normalizedUsedColors = usedColors.map(color => color.toUpperCase());
+  
   // First, try to find an unused color from the base palette
   const unusedBaseColors = STAFF_CALENDAR_COLORS.filter(
-    color => !usedColors.includes(color.toLowerCase())
+    color => !normalizedUsedColors.includes(color.toUpperCase())
   );
   
   if (unusedBaseColors.length > 0) {
