@@ -400,7 +400,11 @@ export default function PaymentsPage() {
       customerId: payment.order?.customerId,
       customerPhone: payment.order?.customer?.phone || payment.order?.customer?.mobile || '',
       customerEmail: payment.order?.customer?.email || '',
-      serviceName: payment.order?.items?.[0]?.name || payment.order?.booking?.serviceName || '',
+      serviceName: payment.order?.items?.[0]?.name || 
+        payment.order?.items?.[0]?.serviceName ||
+        payment.order?.booking?.services?.[0]?.service?.name ||
+        payment.order?.booking?.serviceName || 
+        '',
       order: payment.order,
     }));
   }, [paymentsResponse]);
@@ -1073,14 +1077,14 @@ export default function PaymentsPage() {
                 ${payment.order?.items?.length > 0 ? 
                   payment.order.items.map((item: any) => `
                     <tr>
-                      <td>${item.name || 'Service'}</td>
+                      <td>${item.name || item.serviceName || 'Service'}</td>
                       <td class="text-center">${item.quantity || 1}</td>
                       <td class="text-right">$${(item.price || 0).toFixed(2)}</td>
                       <td class="text-right">$${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
                     </tr>
                   `).join('') :
                   `<tr>
-                    <td>${payment.serviceName || payment.type || 'Service'}</td>
+                    <td>${payment.serviceName || payment.order?.booking?.services?.[0]?.service?.name || 'Service'}</td>
                     <td class="text-center">1</td>
                     <td class="text-right">$${payment.amount.toFixed(2)}</td>
                     <td class="text-right">$${payment.amount.toFixed(2)}</td>
@@ -1091,10 +1095,63 @@ export default function PaymentsPage() {
 
             <div class="totals">
               <div class="totals-box">
-                <div class="totals-row totals-final">
-                  <span>Total:</span>
-                  <span>$${payment.amount.toFixed(2)}</span>
-                </div>
+                ${(() => {
+                  const items = payment.order?.items || [];
+                  const subtotal = items.length > 0 ? 
+                    items.reduce((sum: number, item: any) => sum + (item.price || 0) * (item.quantity || 1), 0) :
+                    payment.amount;
+                  const discount = payment.order?.totalDiscount || payment.order?.discount || 0;
+                  const surcharge = payment.order?.totalSurcharge || payment.order?.surcharge || 0;
+                  const tax = payment.order?.totalTax || payment.order?.tax || 0;
+                  
+                  let html = '';
+                  
+                  // Show subtotal if there's a discount, surcharge, or tax
+                  if (discount > 0 || surcharge > 0 || tax > 0) {
+                    html += `
+                      <div class="totals-row">
+                        <span>Subtotal:</span>
+                        <span>$${subtotal.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  
+                  if (discount > 0) {
+                    html += `
+                      <div class="totals-row" style="color: green;">
+                        <span>Discount:</span>
+                        <span>-$${discount.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  
+                  if (surcharge > 0) {
+                    html += `
+                      <div class="totals-row">
+                        <span>Surcharge:</span>
+                        <span>$${surcharge.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  
+                  if (tax > 0) {
+                    html += `
+                      <div class="totals-row">
+                        <span>Tax:</span>
+                        <span>$${tax.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  
+                  html += `
+                    <div class="totals-row totals-final">
+                      <span>Total:</span>
+                      <span>$${payment.amount.toFixed(2)}</span>
+                    </div>
+                  `;
+                  
+                  return html;
+                })()}
               </div>
             </div>
 
