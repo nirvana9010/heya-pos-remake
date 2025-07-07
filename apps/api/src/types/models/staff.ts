@@ -1,11 +1,11 @@
 export interface Staff {
   id: string;
   merchantId: string;
-  email: string;
+  email?: string;
   firstName: string;
-  lastName: string;
+  lastName?: string;
   phone?: string;
-  pin: string; // Hashed 4-6 digit PIN
+  pin?: string; // Hashed 4-6 digit PIN
   accessLevel: number; // 1=employee, 2=manager, 3=owner
   calendarColor?: string;
   avatar?: string;

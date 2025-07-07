@@ -125,7 +125,7 @@ export function useCalendarData() {
         })
         .map((member: any) => ({
           id: member.id,
-          name: `${member.firstName} ${member.lastName}`,
+          name: member.lastName ? `${member.firstName} ${member.lastName}` : member.firstName,
           email: member.email,
           role: member.role,
           color: member.calendarColor || '#7C3AED',

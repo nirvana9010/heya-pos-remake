@@ -142,7 +142,7 @@ export class StaffService {
     // For list view, don't show PINs (security best practice)
     return staff.map(({ pin, ...staffMember }) => ({
       ...staffMember,
-      name: `${staffMember.firstName} ${staffMember.lastName}`,
+      name: staffMember.lastName ? `${staffMember.firstName} ${staffMember.lastName}` : staffMember.firstName,
       isActive: staffMember.status === 'ACTIVE',
       hasPinSet: true, // Indicate PIN is set without showing it
     }));
@@ -341,7 +341,7 @@ export class StaffService {
 
     return staff.map(({ pin, ...staffMember }) => ({
       ...staffMember,
-      name: `${staffMember.firstName} ${staffMember.lastName}`,
+      name: staffMember.lastName ? `${staffMember.firstName} ${staffMember.lastName}` : staffMember.firstName,
       isActive: true,
       isAvailable: true, // Simplified - should check actual availability
     }));

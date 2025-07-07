@@ -364,7 +364,9 @@ export class PaymentsService {
       });
       
       if (order && order.customer) {
-        const customerName = `${order.customer.firstName} ${order.customer.lastName}`.trim();
+        const customerName = order.customer.lastName 
+          ? `${order.customer.firstName} ${order.customer.lastName}`.trim()
+          : order.customer.firstName;
         await this.merchantNotificationsService.createRefundNotification(
           merchantId,
           {

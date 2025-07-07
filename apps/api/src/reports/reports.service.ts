@@ -329,7 +329,7 @@ export class ReportsService {
 
     const staffMap = staff.reduce(
       (acc, s) => {
-        acc[s.id] = `${s.firstName} ${s.lastName}`;
+        acc[s.id] = s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName;
         return acc;
       },
       {} as Record<string, string>
