@@ -34,8 +34,6 @@ import { PinVerificationDialog } from "@heya-pos/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@heya-pos/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { InvoicePreview } from "@/components/InvoicePreview";
-import ReactDOM from "react-dom/client";
 
 interface Payment {
   id: string;
@@ -980,34 +978,167 @@ export default function PaymentsPage() {
 
   // Print invoice handler
   const handlePrintInvoice = async (payment: Payment) => {
-    // Create a temporary div for the invoice
-    const printContainer = document.createElement('div');
-    printContainer.id = 'invoice-print-container';
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
-    printContainer.style.top = '0';
-    document.body.appendChild(printContainer);
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+      toast({
+        title: "Unable to open print preview",
+        description: "Please check your popup blocker settings",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Render the invoice
-    const root = ReactDOM.createRoot(printContainer);
-    root.render(
-      <InvoicePreview 
-        payment={payment} 
-        merchant={merchantProfile || merchant} 
-        location={primaryLocation}
-      />
-    );
+    // Create the invoice HTML
+    const invoiceHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice ${payment.invoiceNumber}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              color: #000;
+            }
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            h1 { font-size: 32px; margin: 0 0 10px 0; }
+            h2 { font-size: 24px; margin: 0 0 10px 0; }
+            h3 { font-size: 18px; margin: 0 0 10px 0; }
+            .header { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+            .header-flex { display: flex; justify-content: space-between; }
+            .bill-to { margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 10px; text-align: left; }
+            th { border-bottom: 2px solid #000; font-weight: bold; }
+            td { border-bottom: 1px solid #ddd; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .totals { display: flex; justify-content: flex-end; margin-bottom: 30px; }
+            .totals-box { width: 300px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 5px 0; }
+            .totals-final { border-top: 2px solid #000; padding-top: 10px; font-size: 20px; font-weight: bold; }
+            .payment-info { background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+            .footer { text-align: center; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .invoice-container { max-width: 100%; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <h1>INVOICE</h1>
+              <div class="header-flex">
+                <div>
+                  <h2>${merchantProfile?.name || merchant?.name || 'Business Name'}</h2>
+                  ${primaryLocation ? `
+                    <p>${primaryLocation.address}</p>
+                    <p>${primaryLocation.city}, ${primaryLocation.state} ${primaryLocation.zipCode}</p>
+                  ` : ''}
+                  ${merchantProfile?.phone ? `<p>Phone: ${merchantProfile.phone}</p>` : ''}
+                  ${merchantProfile?.email ? `<p>Email: ${merchantProfile.email}</p>` : ''}
+                  ${merchantProfile?.abn ? `<p>ABN: ${merchantProfile.abn}</p>` : ''}
+                </div>
+                <div style="text-align: right;">
+                  <p style="font-size: 18px; font-weight: bold;">Invoice #${payment.invoiceNumber}</p>
+                  <p>Date: ${new Date(payment.processedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
 
-    // Wait for render and then print
-    setTimeout(() => {
-      window.print();
-      
-      // Clean up after printing
+            <div class="bill-to">
+              <h3>Bill To:</h3>
+              <p style="font-weight: bold;">${payment.customerName}</p>
+              ${payment.customerPhone ? `<p>Phone: ${payment.customerPhone}</p>` : ''}
+              ${payment.customerEmail ? `<p>Email: ${payment.customerEmail}</p>` : ''}
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th class="text-center">Qty</th>
+                  <th class="text-right">Price</th>
+                  <th class="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${payment.order?.items?.length > 0 ? 
+                  payment.order.items.map((item: any) => `
+                    <tr>
+                      <td>${item.name || 'Service'}</td>
+                      <td class="text-center">${item.quantity || 1}</td>
+                      <td class="text-right">$${(item.price || 0).toFixed(2)}</td>
+                      <td class="text-right">$${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
+                    </tr>
+                  `).join('') :
+                  `<tr>
+                    <td>${payment.serviceName || payment.type || 'Service'}</td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">$${payment.amount.toFixed(2)}</td>
+                    <td class="text-right">$${payment.amount.toFixed(2)}</td>
+                  </tr>`
+                }
+              </tbody>
+            </table>
+
+            <div class="totals">
+              <div class="totals-box">
+                <div class="totals-row totals-final">
+                  <span>Total:</span>
+                  <span>$${payment.amount.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="payment-info">
+              <h3>Payment Information</h3>
+              <div class="totals-row">
+                <span>Payment Method:</span>
+                <span>${payment.method === 'cash' ? 'Cash' : 'Credit Card'}</span>
+              </div>
+              <div class="totals-row">
+                <span>Payment Status:</span>
+                <span style="font-weight: bold; color: ${payment.status === 'completed' ? 'green' : '#000'};">
+                  ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                </span>
+              </div>
+              <div class="totals-row">
+                <span>Transaction Date:</span>
+                <span>${new Date(payment.processedAt).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>Thank you for your business!</p>
+              ${merchantProfile?.website ? `<p>Visit us at: ${merchantProfile.website}</p>` : ''}
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Write the HTML to the new window
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+
+    // Wait for content to load then print
+    printWindow.onload = () => {
       setTimeout(() => {
-        root.unmount();
-        document.body.removeChild(printContainer);
-      }, 100);
-    }, 100);
+        printWindow.print();
+        // Close the window after printing (user can cancel if needed)
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+      }, 250);
+    };
   };
 
   // Empty state component
