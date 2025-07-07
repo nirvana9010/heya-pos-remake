@@ -30,6 +30,8 @@ export interface CreateBookingRequest {
   staffId?: string;
   startTime: string;
   notes?: string;
+  isOverride?: boolean;
+  source?: string;
 }
 
 export interface UpdateBookingRequest {

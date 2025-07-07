@@ -338,6 +338,8 @@ function CalendarContent() {
         staffId: finalStaffId,
         startTime: bookingData.startTime.toISOString(),
         notes: bookingData.notes || '',
+        isOverride: true, // Allow time conflicts for slideout bookings
+        source: 'SLIDEOUT',
       };
       
       
