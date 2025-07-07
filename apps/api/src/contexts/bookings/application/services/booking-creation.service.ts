@@ -111,16 +111,27 @@ export class BookingCreationService {
           );
 
           if (conflicts.length > 0 && !data.isOverride) {
+            // Fetch staff name for better error message
+            const staff = await tx.staff.findUnique({
+              where: { id: staffId },
+              select: { firstName: true, lastName: true }
+            });
+            
+            const staffName = staff 
+              ? `${staff.firstName}${staff.lastName ? ' ' + staff.lastName : ''}`
+              : `Staff ID: ${staffId}`;
+            
             const conflictInfo = conflicts.map(c => ({
               id: c.id,
               startTime: c.timeSlot.start,
               endTime: c.timeSlot.end,
               status: c.status.value,
               staffId: staffId,
+              staffName: staffName,
               serviceId: serviceDetail.id
             }));
             throw new ConflictException({
-              message: `Time slot has conflicts for staff ${staffId}`,
+              message: `Time slot has conflicts for ${staffName}`,
               conflicts: conflictInfo,
             });
           }
