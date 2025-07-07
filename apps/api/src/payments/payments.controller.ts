@@ -213,6 +213,21 @@ export class PaymentsController {
           order: {
             include: {
               customer: true,
+              items: {
+                include: {
+                  service: true,
+                },
+              },
+              modifiers: true,
+              booking: {
+                include: {
+                  services: {
+                    include: {
+                      service: true,
+                    },
+                  },
+                },
+              },
             },
           },
           tipAllocations: {
