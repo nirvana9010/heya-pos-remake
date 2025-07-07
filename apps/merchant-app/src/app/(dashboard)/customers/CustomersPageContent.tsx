@@ -102,8 +102,10 @@ const stringToColor = (str: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const getInitials = (firstName: string, lastName: string) => {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+const getInitials = (firstName: string, lastName: string | null | undefined) => {
+  const firstInitial = firstName ? firstName.charAt(0) : '';
+  const lastInitial = lastName ? lastName.charAt(0) : '';
+  return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
 export default function CustomersPageContent() {
@@ -783,7 +785,7 @@ export default function CustomersPageContent() {
                       <div className="flex items-center gap-4 flex-1">
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold relative shadow-sm",
-                          isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : stringToColor(customer.firstName + customer.lastName)
+                          isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : stringToColor(customer.firstName + (customer.lastName || ''))
                         )}>
                           {getInitials(customer.firstName, customer.lastName)}
                           {isVIP && (
@@ -794,7 +796,7 @@ export default function CustomersPageContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-gray-900">{customer.firstName} {customer.lastName}</p>
+                            <p className="font-medium text-gray-900">{customer.firstName}{customer.lastName ? ` ${customer.lastName}` : ''}</p>
                             <div className="flex items-center gap-1">
                               {isNew && (
                                 <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 text-xs px-2 py-0">

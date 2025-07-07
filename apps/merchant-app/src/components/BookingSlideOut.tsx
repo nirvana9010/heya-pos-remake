@@ -238,7 +238,8 @@ export function BookingSlideOut({
       const searchResponse = await apiClient.searchCustomers('Walk-in');
       const customers = searchResponse?.data || [];
       const existingWalkInCustomer = customers.find((customer: any) => 
-        customer.firstName === 'Walk-in' ||
+        customer.firstName === 'Walk-in' && 
+        (!customer.lastName || customer.lastName === '') &&
         customer.source === 'WALK_IN'
       );
       
