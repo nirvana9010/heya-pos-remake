@@ -265,7 +265,7 @@ export function DailyView({
                   <span className="font-medium text-sm text-gray-900">{staffMember.name}</span>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-gray-600 font-medium">
-                      {confirmedCount} confirmed
+                      {confirmedCount}
                     </span>
                     {staffBookings.length > confirmedCount && (
                       <span className="text-gray-500">
