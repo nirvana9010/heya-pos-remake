@@ -247,8 +247,27 @@ export class PublicBookingController {
   ) {
     try {
       const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
-      return await this.publicBookingService.checkAvailability(dto, merchant.id);
+      
+      // Debug logging
+      console.log('[PUBLIC API] Check availability request:', {
+        date: dto.date,
+        staffId: dto.staffId,
+        services: dto.services,
+        serviceId: dto.serviceId,
+        merchantId: merchant.id,
+      });
+      
+      const result = await this.publicBookingService.checkAvailability(dto, merchant.id);
+      
+      console.log('[PUBLIC API] Availability response:', {
+        totalSlots: result.slots?.length || 0,
+        availableSlots: result.slots?.filter(s => s.available).length || 0,
+        lastAvailableSlot: result.slots?.filter(s => s.available).slice(-1)[0]?.time || 'none',
+      });
+      
+      return result;
     } catch (error: any) {
+      console.error('[PUBLIC API] Check availability error:', error.message);
       throw new BadRequestException(error.message);
     }
   }

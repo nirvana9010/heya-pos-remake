@@ -53,28 +53,36 @@ export class BookingAvailabilityService {
         throw new Error(`Service not found: ${serviceId}`);
       }
   
-      // Get staff member's location and working hours
+      // Get staff member
       const staff = await this.prisma.staff.findFirst({
         where: { 
           id: staffId,
           merchantId,
         },
-        include: {
-          locations: {
-            include: {
-              location: true,
-            },
-          },
+      });
+  
+      if (!staff) {
+        throw new Error('Staff member not found');
+      }
+  
+      // Get merchant for business hours and timezone
+      const merchant = await this.prisma.merchant.findUnique({
+        where: { id: merchantId },
+        select: {
+          settings: true,
         },
       });
   
-      if (!staff || staff.locations.length === 0) {
-        throw new Error('Staff member not found or not assigned to any location');
+      if (!merchant || !merchant.settings) {
+        throw new Error('Merchant settings not found');
       }
   
-      // Use primary location or first location
-      const staffLocation = staff.locations.find(sl => sl.isPrimary) || staff.locations[0];
-      const location = staffLocation.location;
+      const merchantSettings = merchant.settings as any;
+      const businessHours = merchantSettings.businessHours;
+      
+      if (!businessHours) {
+        throw new Error('Business hours not configured');
+      }
   
       // Get existing bookings for the staff member
       // Fix: Use proper overlap detection instead of incorrect endTime filter
@@ -140,7 +148,6 @@ export class BookingAvailabilityService {
           weekday: 'long', 
           timeZone: timezone 
         }).toLowerCase();
-        const businessHours = location.businessHours as any;
         const dayHours = businessHours[dayOfWeek];
         
         // Get day number (0 = Sunday, 6 = Saturday)
@@ -178,8 +185,28 @@ export class BookingAvailabilityService {
         const openTime = TimezoneUtils.createDateInTimezone(dateStr, openTimeFormatted, timezone);
         const closeTime = TimezoneUtils.createDateInTimezone(dateStr, closeTimeFormatted, timezone);
   
+        // Debug logging for roster hours
+        console.log('[AVAILABILITY] Slot generation for day:', {
+          dayOfWeek: dayNumber,
+          staffSchedule: staffSchedule ? {
+            startTime: staffSchedule.startTime,
+            endTime: staffSchedule.endTime
+          } : 'No schedule - using business hours',
+          openTimeStr,
+          closeTimeStr,
+          totalServiceDuration,
+          serviceDetails: {
+            baseDuration,
+            paddingBefore: service.paddingBefore,
+            paddingAfter: service.paddingAfter
+          },
+          lastPossibleSlotStart: format(addMinutes(closeTime, -totalServiceDuration), 'HH:mm'),
+          staffId
+        });
+  
         // Generate slots for this day
         let slotStart = new Date(openTime.getTime()); // Create a proper copy
+        let slotCount = 0;
         while (addMinutes(slotStart, totalServiceDuration) <= closeTime) {
             const slotEnd = addMinutes(slotStart, baseDuration);
             const effectiveStart = addMinutes(slotStart, -service.paddingBefore);
@@ -198,9 +225,22 @@ export class BookingAvailabilityService {
               available: !conflict.hasConflict,
               conflictReason: conflict.reason,
             });
+            
+            slotCount++;
   
           // Move to next slot
           slotStart = addMinutes(slotStart, slotDuration);
+        }
+        
+        // Log last slot info
+        if (slotCount > 0) {
+          const lastSlot = slots[slots.length - 1];
+          console.log('[AVAILABILITY] Last slot generated:', {
+            slotStartTime: format(lastSlot.startTime, 'HH:mm'),
+            serviceWouldEndAt: format(addMinutes(lastSlot.startTime, totalServiceDuration), 'HH:mm'),
+            rosterEndsAt: closeTimeStr,
+            fitsWithinRoster: addMinutes(lastSlot.startTime, totalServiceDuration) <= closeTime
+          });
         }
   
         // Move to next day
