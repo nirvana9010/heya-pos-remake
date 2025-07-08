@@ -12,6 +12,7 @@ export class BookingCreatedEvent {
     public readonly totalAmount: number,
     public readonly startTime: Date,
     public readonly endTime: Date,
+    public readonly source: string,
     public readonly occurredAt: Date = new Date(),
   ) {}
 }

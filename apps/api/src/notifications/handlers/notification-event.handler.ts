@@ -20,7 +20,7 @@ export class NotificationEventHandler {
   @OnEvent('booking.created')
   async handleBookingCreated(event: BookingCreatedEvent): Promise<void> {
     try {
-      this.logger.log(`[${new Date().toISOString()}] Handling booking created event: ${event.bookingId}`);
+      this.logger.log(`[${new Date().toISOString()}] Handling booking created event: ${event.bookingId}, source: ${event.source}`);
 
       // Fetch full booking details
       const booking = await this.prisma.booking.findUnique({
@@ -91,23 +91,27 @@ export class NotificationEventHandler {
         `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
       );
 
-      // Create merchant notification
-      const customerName = booking.customer.lastName 
-        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-        : booking.customer.firstName;
-      this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for booking ${booking.id}`);
-      await this.merchantNotificationsService.createBookingNotification(
-        booking.merchantId,
-        'booking_new',
-        {
-          id: booking.id,
-          customerName,
-          serviceName: firstService?.service?.name || 'Service',
-          startTime: booking.startTime,
-          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-        }
-      );
-      this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
+      // Create merchant notification only for external bookings (from booking app)
+      if (event.source === 'ONLINE') {
+        const customerName = booking.customer.lastName 
+          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+          : booking.customer.firstName;
+        this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE booking ${booking.id}`);
+        await this.merchantNotificationsService.createBookingNotification(
+          booking.merchantId,
+          'booking_new',
+          {
+            id: booking.id,
+            customerName,
+            serviceName: firstService?.service?.name || 'Service',
+            startTime: booking.startTime,
+            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+          }
+        );
+        this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
+      } else {
+        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source} booking ${booking.id}`);
+      }
 
       // Schedule reminders (if enabled)
       await this.scheduleReminders(booking.id, booking.startTime);
@@ -159,9 +163,9 @@ export class NotificationEventHandler {
   }
 
   @OnEvent('booking.cancelled')
-  async handleBookingCancelled(event: { bookingId: string }): Promise<void> {
+  async handleBookingCancelled(event: { bookingId: string; source?: string }): Promise<void> {
     try {
-      this.logger.log(`Handling booking cancelled event: ${event.bookingId}`);
+      this.logger.log(`Handling booking cancelled event: ${event.bookingId}, source: ${event.source}`);
 
       // Fetch booking details
       const booking = await this.prisma.booking.findUnique({
@@ -232,21 +236,25 @@ export class NotificationEventHandler {
         `Booking cancellation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
       );
 
-      // Create merchant notification
-      const customerName = booking.customer.lastName 
-        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-        : booking.customer.firstName;
-      await this.merchantNotificationsService.createBookingNotification(
-        booking.merchantId,
-        'booking_cancelled',
-        {
-          id: booking.id,
-          customerName,
-          serviceName: firstService?.service?.name || 'Service',
-          startTime: booking.startTime,
-          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-        }
-      );
+      // Create merchant notification only for external bookings
+      if (event.source === 'ONLINE') {
+        const customerName = booking.customer.lastName 
+          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+          : booking.customer.firstName;
+        await this.merchantNotificationsService.createBookingNotification(
+          booking.merchantId,
+          'booking_cancelled',
+          {
+            id: booking.id,
+            customerName,
+            serviceName: firstService?.service?.name || 'Service',
+            startTime: booking.startTime,
+            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+          }
+        );
+      } else {
+        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} cancelled booking ${booking.id}`);
+      }
 
       // Cancel any pending reminders
       await this.cancelReminders(booking.id);
@@ -280,12 +288,14 @@ export class NotificationEventHandler {
     newStartTime?: Date | string;
     oldEndTime?: Date | string;
     newEndTime?: Date | string;
+    source?: string;
   }): Promise<void> {
     try {
       this.logger.log(`[${new Date().toISOString()}] Handling booking rescheduled event:`, {
         bookingId: event.bookingId,
         oldStartTime: event.oldStartTime,
-        newStartTime: event.newStartTime
+        newStartTime: event.newStartTime,
+        source: event.source
       });
 
       // Fetch booking details
@@ -310,26 +320,30 @@ export class NotificationEventHandler {
         return;
       }
 
-      // Create merchant notification
-      const customerName = booking.customer.lastName 
-        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-        : booking.customer.firstName;
-      const firstService = booking.services[0];
-      
-      this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for rescheduled booking ${booking.id}`);
-      await this.merchantNotificationsService.createBookingNotification(
-        booking.merchantId,
-        'booking_modified',
-        {
-          id: booking.id,
-          customerName,
-          serviceName: firstService?.service?.name || 'Service',
-          startTime: booking.startTime,
-          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-        },
-        'has been rescheduled',
-      );
-      this.logger.log(`[${new Date().toISOString()}] Merchant notification created for rescheduled booking ${booking.id}`);
+      // Create merchant notification only for external bookings
+      if (event.source === 'ONLINE') {
+        const customerName = booking.customer.lastName 
+          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+          : booking.customer.firstName;
+        const firstService = booking.services[0];
+        
+        this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE rescheduled booking ${booking.id}`);
+        await this.merchantNotificationsService.createBookingNotification(
+          booking.merchantId,
+          'booking_modified',
+          {
+            id: booking.id,
+            customerName,
+            serviceName: firstService?.service?.name || 'Service',
+            startTime: booking.startTime,
+            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+          },
+          'has been rescheduled',
+        );
+        this.logger.log(`[${new Date().toISOString()}] Merchant notification created for rescheduled booking ${booking.id}`);
+      } else {
+        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source || 'unknown'} rescheduled booking ${booking.id}`);
+      }
 
       // Cancel old reminders and schedule new ones
       await this.cancelReminders(booking.id);
@@ -344,9 +358,9 @@ export class NotificationEventHandler {
   }
 
   @OnEvent('booking.completed')
-  async handleBookingCompleted(event: { bookingId: string }): Promise<void> {
+  async handleBookingCompleted(event: { bookingId: string; source?: string }): Promise<void> {
     try {
-      this.logger.log(`Handling booking completed event: ${event.bookingId}`);
+      this.logger.log(`Handling booking completed event: ${event.bookingId}, source: ${event.source}`);
 
       // Fetch booking details
       const booking = await this.prisma.booking.findUnique({
@@ -370,23 +384,27 @@ export class NotificationEventHandler {
         return;
       }
 
-      // Create merchant notification
-      const customerName = booking.customer.lastName 
-        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-        : booking.customer.firstName;
-      const firstService = booking.services[0];
-      await this.merchantNotificationsService.createBookingNotification(
-        booking.merchantId,
-        'booking_modified',
-        {
-          id: booking.id,
-          customerName,
-          serviceName: firstService?.service?.name || 'Service',
-          startTime: booking.startTime,
-          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-        },
-        'completed their appointment',
-      );
+      // Create merchant notification only for external bookings
+      if (event.source === 'ONLINE') {
+        const customerName = booking.customer.lastName 
+          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+          : booking.customer.firstName;
+        const firstService = booking.services[0];
+        await this.merchantNotificationsService.createBookingNotification(
+          booking.merchantId,
+          'booking_modified',
+          {
+            id: booking.id,
+            customerName,
+            serviceName: firstService?.service?.name || 'Service',
+            startTime: booking.startTime,
+            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+          },
+          'completed their appointment',
+        );
+      } else {
+        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} completed booking ${booking.id}`);
+      }
 
       this.logger.log(`Booking completed notification created for booking ${event.bookingId}`);
     } catch (error) {
