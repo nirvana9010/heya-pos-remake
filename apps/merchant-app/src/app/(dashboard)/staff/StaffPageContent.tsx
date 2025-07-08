@@ -327,9 +327,7 @@ export default function StaffPageContent() {
     if (!confirm(confirmMessage)) return;
     
     try {
-      console.log('[StaffPageContent] Deleting staff:', id, 'hardDelete:', hardDelete);
       await apiClient.deleteStaff(id, hardDelete);
-      console.log('[StaffPageContent] Delete successful, current staff count:', staff.length);
       
       // Immediately remove from local state to update UI
       setStaff(prevStaff => prevStaff.filter(s => s.id !== id));

@@ -68,10 +68,8 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       console.log('BookingContext - loaded services:', servicesData);
 
       // Transform staff data to include name property and filter out inactive staff
-      console.log('[BookingContext] Raw staff data:', staffData);
       const transformedStaff = staffData
         .filter((member: any) => {
-          console.log('[BookingContext] Filtering staff member:', member.firstName, member.lastName, 'Status:', member.status);
           return member.status === 'ACTIVE';
         })
         .map((member: any) => ({
@@ -107,7 +105,6 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
 
   const handleSaveBooking = async (bookingData: any) => {
     try {
-      console.log('[BookingContext] Received bookingData:', JSON.stringify(bookingData, null, 2));
       
       const bookingRequest = {
         customerId: bookingData.customerId,
@@ -117,7 +114,6 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         notes: bookingData.notes || ''
       };
       
-      console.log('[BookingContext] Sending bookingRequest:', JSON.stringify(bookingRequest, null, 2));
       
       await apiClient.createBooking(bookingRequest);
       toast({
