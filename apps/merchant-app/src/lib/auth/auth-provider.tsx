@@ -84,6 +84,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('session_only');
 
+    // CRITICAL: Clear the memory cache to prevent serving stale merchant data
+    if (typeof window !== 'undefined' && (window as any).memoryCache) {
+      (window as any).memoryCache.clear();
+    }
+    
+    // Also clear from imported memoryCache
+    import('@/lib/cache-config').then(({ memoryCache }) => {
+      memoryCache.clear();
+    }).catch(() => {
+      // Ignore errors if module not found
+    });
+
     // Clear auth cookie
     // Clear auth cookie with same settings as when setting
     const isProduction = process.env.NODE_ENV === 'production';
@@ -264,6 +276,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const response: LoginResponse = await apiClient.auth.login(email, password, rememberMe);
 
+      // CRITICAL: Clear any existing cached data before setting new auth
+      // This prevents serving stale data from previous logins
+      import('@/lib/cache-config').then(({ memoryCache }) => {
+        memoryCache.clear();
+      }).catch(() => {
+        // Ignore errors if module not found
+      });
+      
       // Store tokens and user data
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);

@@ -122,9 +122,19 @@ export default function StaffPageContent() {
     loadStaff();
   }, []);
 
-  const loadStaff = async () => {
+  const loadStaff = async (bypassCache = false) => {
     try {
       setLoading(true);
+      
+      // Clear cache before loading if requested
+      if (bypassCache && typeof window !== 'undefined') {
+        import('@/lib/cache-config').then(({ memoryCache }) => {
+          memoryCache.clear();
+        }).catch(() => {
+          // Ignore errors
+        });
+      }
+      
       const data = await apiClient.getStaff();
       setStaff(data);
     } catch (error) {
@@ -289,25 +299,45 @@ export default function StaffPageContent() {
   };
 
   const handleDelete = async (id: string) => {
-    const confirmMessage = 'Are you sure you want to delete this staff member?\n\nClick OK for soft delete (mark as inactive)\nClick Cancel to abort';
+    const staffMember = staff.find(s => s.id === id);
+    
+    // Check if this is the last owner
+    if (staffMember?.accessLevel === 3) {
+      const ownerCount = staff.filter(s => s.accessLevel === 3).length;
+      if (ownerCount === 1) {
+        toast({
+          title: "Cannot delete",
+          description: "Cannot delete the last owner. Please create another owner first.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // ALWAYS use hard delete for inactive staff members
+    const hardDelete = staffMember?.status === 'INACTIVE';
+    
+    let confirmMessage: string;
+    if (hardDelete) {
+      confirmMessage = 'This inactive staff member will be PERMANENTLY deleted from the database.\n\nThis action cannot be undone!\n\nAre you sure?';
+    } else {
+      confirmMessage = 'Are you sure you want to delete this staff member?\n\nThey will be marked as inactive.';
+    }
     
     if (!confirm(confirmMessage)) return;
     
-    // Check if user wants hard delete (only for inactive staff with no bookings)
-    const staffMember = staff.find(s => s.id === id);
-    let hardDelete = false;
-    
-    if (staffMember?.status === 'INACTIVE') {
-      hardDelete = confirm('This staff member is already inactive. Do you want to PERMANENTLY delete them from the database?\n\nThis action cannot be undone!');
-    }
-    
     try {
+      console.log('[StaffPageContent] Deleting staff:', id, 'hardDelete:', hardDelete);
       await apiClient.deleteStaff(id, hardDelete);
+      console.log('[StaffPageContent] Delete successful, current staff count:', staff.length);
+      
+      // Immediately remove from local state to update UI
+      setStaff(prevStaff => prevStaff.filter(s => s.id !== id));
+      
       toast({
         title: "Success",
         description: hardDelete ? "Staff member permanently deleted" : "Staff member deleted successfully",
       });
-      loadStaff();
     } catch (error: any) {
       console.error('Staff delete error:', error);
       
