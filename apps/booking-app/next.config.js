@@ -14,6 +14,14 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Provide fallback for Node.js modules in the browser
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false, // Disable crypto module in browser
+        stream: false,
+        buffer: false,
+      };
+      
       // Optimize chunk splitting
       config.optimization.splitChunks = {
         chunks: 'all',
