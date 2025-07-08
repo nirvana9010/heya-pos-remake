@@ -342,10 +342,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
     } catch (error: any) {
+      // Extract the actual error message from the API response
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message && error.message !== 'Request failed with status code 401') {
+        errorMessage = error.message;
+      }
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || 'Login failed. Please check your credentials.',
+        error: errorMessage,
       }));
       throw error;
     }
