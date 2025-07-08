@@ -65,7 +65,6 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       
       // Extract services array from paginated response
       const servicesData = servicesResponse.data || [];
-      console.log('BookingContext - loaded services:', servicesData);
 
       // Transform staff data to include name property and filter out inactive staff
       const transformedStaff = staffData
