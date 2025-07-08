@@ -23,6 +23,10 @@ export interface Customer {
   loyaltyPoints: number;
   visitCount: number;
   totalSpent: number;
+  // allergies?: string;
+  // specialRequirements?: string;
+  // referralSource?: string;
+  // lastCheckInAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

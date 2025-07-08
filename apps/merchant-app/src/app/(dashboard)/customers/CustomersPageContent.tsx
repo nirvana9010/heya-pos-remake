@@ -328,27 +328,35 @@ export default function CustomersPageContent() {
           const paidAmount = booking.paidAmount !== undefined ? booking.paidAmount : (booking.totalAmount || booking.price || 0);
           stats.totalSpent += paidAmount;
           
-          const bookingDate = new Date(booking.startTime || booking.date);
-          if (!stats.lastVisit || bookingDate > stats.lastVisit) {
-            stats.lastVisit = bookingDate;
+          const bookingDateStr = booking.startTime || booking.date;
+          if (bookingDateStr) {
+            const bookingDate = new Date(bookingDateStr);
+            if (!isNaN(bookingDate.getTime())) {
+              if (!stats.lastVisit || bookingDate > stats.lastVisit) {
+                stats.lastVisit = bookingDate;
+              }
+            }
           }
           
           const serviceName = booking.serviceName || 'Service';
           stats.services.set(serviceName, (stats.services.get(serviceName) || 0) + 1);
         }
         
-        const bookingDate = new Date(booking.startTime || booking.date);
-        const now = new Date();
-        
-        if (bookingDate > now && !['CANCELLED', 'NO_SHOW', 'cancelled', 'no_show'].includes(booking.status)) {
-          stats.upcomingBookings++;
-          stats.pendingRevenue += booking.totalAmount || booking.price || 0;
+        const bookingDateStr = booking.startTime || booking.date;
+        if (bookingDateStr) {
+          const bookingDate = new Date(bookingDateStr);
+          const now = new Date();
           
-          if (!stats.nextAppointment || bookingDate < new Date(stats.nextAppointment.date)) {
-            stats.nextAppointment = {
-              date: booking.startTime || booking.date,
-              service: booking.serviceName || 'Service'
-            };
+          if (!isNaN(bookingDate.getTime()) && bookingDate > now && !['CANCELLED', 'NO_SHOW', 'cancelled', 'no_show'].includes(booking.status)) {
+            stats.upcomingBookings++;
+            stats.pendingRevenue += booking.totalAmount || booking.price || 0;
+            
+            if (!stats.nextAppointment || bookingDate < new Date(stats.nextAppointment.date)) {
+              stats.nextAppointment = {
+                date: bookingDateStr,
+                service: booking.serviceName || 'Service'
+              };
+            }
           }
         }
       });
@@ -368,7 +376,9 @@ export default function CustomersPageContent() {
             ...customer,
             totalVisits: customer.totalVisits + stats.totalVisits,
             totalSpent: customer.totalSpent + stats.totalSpent,
-            updatedAt: stats.lastVisit ? stats.lastVisit.toISOString() : customer.updatedAt,
+            updatedAt: stats.lastVisit && stats.lastVisit instanceof Date && !isNaN(stats.lastVisit.getTime()) 
+              ? stats.lastVisit.toISOString() 
+              : customer.updatedAt,
             topServices,
             nextAppointment: stats.nextAppointment || customer.nextAppointment,
             upcomingBookings: (customer.upcomingBookings || 0) + stats.upcomingBookings,

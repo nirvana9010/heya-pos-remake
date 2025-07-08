@@ -18,6 +18,17 @@ export async function checkStaffAvailability(
   bookings: Array<any> = []
 ): Promise<StaffAvailability> {
   try {
+    // If no valid serviceId, return all staff as available
+    if (!serviceId || serviceId === 'undefined') {
+      return {
+        available: staff.filter(s => 
+          s.name.toLowerCase() !== 'unassigned' && 
+          s.id.toLowerCase() !== 'unassigned'
+        ),
+        unavailable: []
+      };
+    }
+    
     // Get the date string for the API
     const dateStr = startTime.toISOString().split('T')[0];
     

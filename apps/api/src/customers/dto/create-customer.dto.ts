@@ -97,4 +97,19 @@ export class CreateCustomerDto {
   @IsEnum(CustomerSource)
   @IsOptional()
   source?: CustomerSource;
+
+  // @IsString()
+  // @IsOptional()
+  // @MaxLength(500)
+  // allergies?: string;
+
+  // @IsString()
+  // @IsOptional()
+  // @MaxLength(500)
+  // specialRequirements?: string;
+
+  // @IsString()
+  // @IsOptional()
+  // @MaxLength(50)
+  // referralSource?: string;
 }

@@ -191,6 +191,58 @@ class BookingApi {
     const response = await apiClient.post('/public/customers/lookup', params);
     return response;
   }
+
+  // Check in customer
+  async checkIn(data: {
+    phone: string;
+    firstName: string;
+    lastName?: string;
+    email?: string;
+    // allergies?: string;
+    // specialRequirements?: string;
+    // referralSource?: string;
+  }): Promise<{
+    success: boolean;
+    customer: {
+      id: string;
+      firstName: string;
+      lastName?: string;
+      phone: string;
+      email?: string;
+      // allergies?: string;
+      // specialRequirements?: string;
+    };
+    bookings: Array<{
+      id: string;
+      bookingNumber: string;
+      serviceName: string;
+      staffName: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+    }>;
+  }> {
+    const response = await apiClient.post('/public/checkin', data);
+    return response;
+  }
+
+  // Get today's bookings for a customer
+  async getTodaysBookings(customerId: string): Promise<{
+    bookings: Array<{
+      id: string;
+      bookingNumber: string;
+      serviceName: string;
+      staffName: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+    }>;
+  }> {
+    const response = await apiClient.get('/public/bookings/today', {
+      params: { customerId }
+    });
+    return response;
+  }
 }
 
 export const bookingApi = new BookingApi();

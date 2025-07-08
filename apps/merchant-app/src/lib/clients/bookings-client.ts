@@ -179,7 +179,9 @@ export class BookingsClient extends BaseApiClient {
 
   async checkAvailability(request: AvailabilityRequest) {
     // For single day check, use same date for start and end
-    const dateStr = request.date.toISOString().split('T')[0];
+    // Handle both Date objects and date strings
+    const date = request.date instanceof Date ? request.date : new Date(request.date);
+    const dateStr = date.toISOString().split('T')[0];
     const params = new URLSearchParams({
       staffId: request.staffId || '',
       serviceId: request.serviceId,
