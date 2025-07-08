@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
-import { getAvailableStaff, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/mock-availability.service";
+import { checkStaffAvailability, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/booking-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useTimezone } from "@/contexts/timezone-context";
@@ -187,9 +187,9 @@ export function BookingSlideOut({
         startTime.setSeconds(0);
         startTime.setMilliseconds(0);
         
-        // Check availability (use first service ID or default)
-        const result = await getAvailableStaff(
-          formData.selectedServices[0] || 'default',
+        // Check availability using real API
+        const result = await checkStaffAvailability(
+          formData.selectedServices[0] || 'default-service',
           startTime,
           duration,
           filteredStaff,

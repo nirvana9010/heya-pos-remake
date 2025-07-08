@@ -93,7 +93,17 @@ export class BookingCreationService {
 
       const endTime = new Date(data.startTime.getTime() + totalDuration * 60 * 1000);
 
-      // 3. Check for conflicting bookings for each staff-service combination
+      // 3. Check staff schedules and business hours (unless merchant override)
+      if (!data.isOverride) {
+        await this.validateStaffSchedules(
+          serviceDetails,
+          data.startTime,
+          data.merchantId,
+          tx
+        );
+      }
+
+      // 4. Check for conflicting bookings for each staff-service combination
       let currentStartTime = new Date(data.startTime);
       
       for (const serviceDetail of serviceDetails) {
@@ -140,10 +150,10 @@ export class BookingCreationService {
         currentStartTime = serviceEndTime;
       }
 
-      // 4. Generate booking number
+      // 5. Generate booking number
       const bookingNumber = await this.generateBookingNumber(data.merchantId, tx);
 
-      // 5. Create the booking domain entity
+      // 6. Create the booking domain entity
       // For now, use the first service for the main booking (will be updated in domain entity)
       const primaryStaffId = serviceDetails[0]?.staffId || data.staffId;
       
@@ -169,10 +179,10 @@ export class BookingCreationService {
         services: serviceDetails, // Pass services for repository to handle
       } as any); // Temporary cast until domain entity is updated
 
-      // 6. Persist the booking with all services
+      // 7. Persist the booking with all services
       const savedBooking = await this.bookingRepository.save(booking, tx, serviceDetails);
 
-      // 7. Save booking created event to outbox
+      // 8. Save booking created event to outbox
       const outboxEvent = OutboxEvent.create({
         aggregateId: savedBooking.id,
         aggregateType: 'booking',
@@ -233,6 +243,99 @@ export class BookingCreationService {
         ? service.price.toNumber()
         : Number(service.price),
     };
+  }
+
+  /**
+   * Validate that booking times fall within staff schedules
+   */
+  private async validateStaffSchedules(
+    serviceDetails: Array<ServiceDetails & { staffId?: string }>,
+    startTime: Date,
+    merchantId: string,
+    tx: Prisma.TransactionClient
+  ): Promise<void> {
+    // Get merchant business hours
+    const merchant = await tx.merchant.findUnique({
+      where: { id: merchantId },
+      select: { settings: true },
+    });
+
+    const businessHours = (merchant?.settings as any)?.businessHours;
+    if (!businessHours) {
+      throw new Error('Business hours not configured');
+    }
+
+    const dayOfWeek = startTime.getDay();
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dayOfWeek];
+    const dayHours = businessHours[dayName];
+
+    // Check if business is open on this day
+    if (!dayHours?.isOpen) {
+      throw new ConflictException('Business is closed on this day');
+    }
+
+    let currentStartTime = new Date(startTime);
+
+    // Validate each service against staff schedule
+    for (const serviceDetail of serviceDetails) {
+      const serviceEndTime = new Date(currentStartTime.getTime() + serviceDetail.duration * 60 * 1000);
+      const staffId = serviceDetail.staffId;
+
+      if (staffId) {
+        // Get staff schedule for this day
+        const staffSchedule = await tx.staffSchedule.findFirst({
+          where: {
+            staffId,
+            dayOfWeek,
+          },
+        });
+
+        if (!staffSchedule) {
+          // Fetch staff name for better error message
+          const staff = await tx.staff.findUnique({
+            where: { id: staffId },
+            select: { firstName: true, lastName: true },
+          });
+          
+          const staffName = staff 
+            ? `${staff.firstName}${staff.lastName ? ' ' + staff.lastName : ''}`
+            : `Staff ID: ${staffId}`;
+
+          throw new ConflictException(
+            `${staffName} is not available on ${dayName}`
+          );
+        }
+
+        // Check if booking time is within staff schedule
+        const bookingStartTime = `${currentStartTime.getHours().toString().padStart(2, '0')}:${currentStartTime.getMinutes().toString().padStart(2, '0')}`;
+        const bookingEndTime = `${serviceEndTime.getHours().toString().padStart(2, '0')}:${serviceEndTime.getMinutes().toString().padStart(2, '0')}`;
+
+        if (bookingStartTime < staffSchedule.startTime || bookingEndTime > staffSchedule.endTime) {
+          const staff = await tx.staff.findUnique({
+            where: { id: staffId },
+            select: { firstName: true, lastName: true },
+          });
+          
+          const staffName = staff 
+            ? `${staff.firstName}${staff.lastName ? ' ' + staff.lastName : ''}`
+            : `Staff ID: ${staffId}`;
+
+          throw new ConflictException(
+            `${staffName} is only available from ${staffSchedule.startTime} to ${staffSchedule.endTime} on ${dayName}`
+          );
+        }
+
+        // Also check against business hours
+        if (bookingStartTime < dayHours.open || bookingEndTime > dayHours.close) {
+          throw new ConflictException(
+            `Booking time must be within business hours (${dayHours.open} - ${dayHours.close})`
+          );
+        }
+      }
+
+      currentStartTime = serviceEndTime;
+    }
   }
 
   /**

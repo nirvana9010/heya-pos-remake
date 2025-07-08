@@ -42,7 +42,7 @@ import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
 import type { Booking, BookingStatus } from './types';
-import { getAvailableStaff, ensureValidStaffId, isValidStaffId } from '@/lib/services/mock-availability.service';
+import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
