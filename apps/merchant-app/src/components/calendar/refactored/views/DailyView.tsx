@@ -214,7 +214,7 @@ export function DailyView({
     : null;
   
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Fixed header row */}
       <div 
         className="grid sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm min-w-[600px]"
@@ -281,7 +281,7 @@ export function DailyView({
       </div>
       
       {/* Calendar grid */}
-      <div ref={calendarScrollRef}>
+      <div ref={calendarScrollRef} className="flex-1 overflow-auto">
         <DndContext 
           sensors={sensors}
           collisionDetection={pointerWithin}

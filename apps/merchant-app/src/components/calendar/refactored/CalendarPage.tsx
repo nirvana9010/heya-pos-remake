@@ -801,7 +801,7 @@ function CalendarContent() {
       </div>
       
       {/* Calendar Content */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
