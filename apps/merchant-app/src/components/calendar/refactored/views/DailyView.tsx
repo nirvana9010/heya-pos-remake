@@ -113,13 +113,10 @@ export function DailyView({
   const currentTime = useMemo(() => toMerchantTime(new Date()), []);
   
   // Get visible staff - ONLY show active staff
-  console.log('[DailyView] All staff:', state.staff.map(s => ({ id: s.id, name: s.name, isActive: s.isActive })));
   const activeStaff = state.staff.filter(s => s.isActive !== false);
-  console.log('[DailyView] Active staff after filter:', activeStaff.map(s => ({ id: s.id, name: s.name, isActive: s.isActive })));
   const visibleStaff = state.selectedStaffIds.length > 0
     ? activeStaff.filter(s => state.selectedStaffIds.includes(s.id))
     : activeStaff;
-  console.log('[DailyView] Visible staff:', visibleStaff.map(s => ({ id: s.id, name: s.name, isActive: s.isActive })));
   
   // Calculate grid columns
   const gridColumns = useMemo(() => {
