@@ -139,3 +139,53 @@ pm2 delete api && pm2 start ecosystem.config.js --only api
 ```
 
 This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments, hence the wrapper script approach.
+
+## UI State Management Best Practices
+
+### Optimistic Updates for Better UX
+
+When dealing with operations where the outcome is predictable (like deletes, status toggles, etc.), update the local state immediately rather than waiting for API responses and cache invalidation.
+
+**Example: Staff Deletion Fix**
+```typescript
+// ❌ Old approach - relies on cache invalidation
+await apiClient.deleteStaff(id);
+memoryCache.clear();
+loadStaff(); // Refetch from API
+
+// ✅ Better approach - immediate local state update
+await apiClient.deleteStaff(id);
+setStaff(prevStaff => prevStaff.filter(s => s.id !== id));
+```
+
+**Benefits:**
+- Instant UI feedback (no loading states)
+- Simpler code (no complex cache management)
+- Better user experience (feels more responsive)
+- Reduces unnecessary API calls
+
+**When to use this pattern:**
+- Delete operations
+- Status toggles (active/inactive)
+- Reordering items
+- Any operation where you know the expected outcome
+
+**When NOT to use:**
+- Creating new items (need server-generated IDs)
+- Complex updates that might fail validation
+- Operations that affect multiple related entities
+
+**General Pattern:**
+```typescript
+// 1. Optimistically update UI
+setItems(current => /* update logic */);
+
+// 2. Call API (can be async)
+try {
+  await apiClient.updateItem(id, data);
+} catch (error) {
+  // 3. Revert on failure
+  setItems(previousState);
+  toast.error("Failed to update");
+}
+```
