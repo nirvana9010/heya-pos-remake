@@ -50,6 +50,10 @@ export interface AvailabilityRequest {
   date: Date;
   serviceId: string;
   staffId?: string;
+  services?: Array<{
+    id: string;
+    duration: number;
+  }>;
 }
 
 export class BookingsClient extends BaseApiClient {
@@ -174,11 +178,21 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async checkAvailability(request: AvailabilityRequest) {
-    return this.post('/bookings/check-availability', {
-      date: request.date.toISOString(),
+    // For single day check, use same date for start and end
+    const dateStr = request.date.toISOString().split('T')[0];
+    const params = new URLSearchParams({
+      staffId: request.staffId || '',
       serviceId: request.serviceId,
-      staffId: request.staffId,
-    }, undefined, 'v2');
+      startDate: dateStr,
+      endDate: dateStr,
+    });
+    
+    if (request.services && request.services.length > 0) {
+      // If services array is provided, use the first service
+      params.set('serviceId', request.services[0].id);
+    }
+    
+    return this.get(`/bookings/availability?${params.toString()}`, undefined, 'v2');
   }
 
   // Helper method to transform booking data
