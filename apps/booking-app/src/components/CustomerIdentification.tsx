@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@heya-pos/ui';
 import { Search, Mail, Phone } from 'lucide-react';
 import { bookingApi } from '../lib/booking-api';
+import { useMerchant } from '../contexts/merchant-context';
 
 interface CustomerIdentificationProps {
   onCustomerFound: (customer: {
@@ -20,22 +21,23 @@ export function CustomerIdentification({
   onCustomerFound,
   onNewCustomer,
 }: CustomerIdentificationProps) {
+  const { merchantSubdomain } = useMerchant();
   const [identificationMethod, setIdentificationMethod] = useState<'email' | 'phone'>('email');
   const [identifier, setIdentifier] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   const [showSavedCustomer, setShowSavedCustomer] = useState(false);
 
-  // Check for saved customer email on mount
+  // Check for saved customer email on mount - merchant specific
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedEmail = localStorage.getItem('bookingCustomerEmail');
+    if (typeof window !== 'undefined' && merchantSubdomain) {
+      const savedEmail = localStorage.getItem(`bookingCustomerEmail_${merchantSubdomain}`);
       if (savedEmail) {
         setIdentifier(savedEmail);
         setShowSavedCustomer(true);
       }
     }
-  }, []);
+  }, [merchantSubdomain]);
 
   const handleSearch = async () => {
     if (!identifier.trim()) {
@@ -52,17 +54,17 @@ export function CustomerIdentification({
       });
 
       if (data.found && data.customer) {
-        // Store in localStorage for future visits (with consent)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('bookingCustomerId', data.customer.id);
-          localStorage.setItem('bookingCustomerEmail', data.customer.email);
+        // Store in localStorage for future visits (with consent) - merchant specific
+        if (typeof window !== 'undefined' && merchantSubdomain) {
+          localStorage.setItem(`bookingCustomerId_${merchantSubdomain}`, data.customer.id);
+          localStorage.setItem(`bookingCustomerEmail_${merchantSubdomain}`, data.customer.email);
         }
         onCustomerFound(data.customer);
       } else {
         // Don't show an error - just clear the saved state and proceed as new customer
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('bookingCustomerId');
-          localStorage.removeItem('bookingCustomerEmail');
+        if (typeof window !== 'undefined' && merchantSubdomain) {
+          localStorage.removeItem(`bookingCustomerId_${merchantSubdomain}`);
+          localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
         }
         setShowSavedCustomer(false);
         setIdentifier('');
@@ -109,8 +111,8 @@ export function CustomerIdentification({
                 onClick={() => {
                   setShowSavedCustomer(false);
                   setIdentifier('');
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('bookingCustomerEmail');
+                  if (typeof window !== 'undefined' && merchantSubdomain) {
+                    localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
                   }
                 }}
                 className="text-sm text-blue-600 hover:text-blue-800 underline"

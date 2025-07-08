@@ -285,6 +285,7 @@ export default function BookingPageClient() {
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -307,6 +308,18 @@ export default function BookingPageClient() {
   });
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string | null>(null);
+  const [confirmationData, setConfirmationData] = useState<{
+    bookingId: string;
+    bookingNumber: string;
+    services: Service[];
+    staffName: string;
+    date: Date;
+    time: string;
+    customerName: string;
+    customerEmail: string;
+    totalPrice: number;
+    totalDuration: number;
+  } | null>(null);
 
   const selectedServicesList = services.filter(s => selectedServices.includes(s.id));
   const selectedStaffMember = staff.find(s => s.id === selectedStaff);
@@ -323,6 +336,13 @@ export default function BookingPageClient() {
       loadAvailableSlots();
     }
   }, [selectedDate, selectedServices, selectedStaff]);
+
+  // Track step changes and ensure confirmation data persists
+  useEffect(() => {
+    if (currentStep === 7 && !confirmationData) {
+      console.warn('[BookingPageClient] WARNING: On confirmation step but no confirmationData!');
+    }
+  }, [currentStep, confirmationData]);
 
   const loadInitialData = async () => {
     try {
@@ -352,6 +372,7 @@ export default function BookingPageClient() {
     if (!selectedDate || selectedServices.length === 0) return;
     
     try {
+      setLoadingSlots(true);
       const slots = await bookingApi.checkAvailability({
         date: format(selectedDate, 'yyyy-MM-dd'),
         services: selectedServices.map(id => ({ serviceId: id })),
@@ -359,6 +380,13 @@ export default function BookingPageClient() {
       });
       setAvailableSlots(slots);
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load available times. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingSlots(false);
     }
   };
 
@@ -406,8 +434,27 @@ export default function BookingPageClient() {
       
       const booking = await bookingApi.createBooking(bookingData);
       
+      // Store all confirmation data before changing step
+      const totalPrice = selectedServicesList.reduce((sum, s) => sum + s.price, 0);
+      const totalDuration = selectedServicesList.reduce((sum, s) => sum + s.duration, 0);
+      
+      setConfirmationData({
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber || booking.id,
+        services: selectedServicesList,
+        staffName: selectedStaffMember?.name || 'Any Available',
+        date: selectedDate!,
+        time: selectedTime!,
+        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerEmail: customerInfo.email,
+        totalPrice,
+        totalDuration,
+      });
+      
       setBookingId(booking.id);
       setBookingNumber(booking.bookingNumber || booking.id);
+      
+      console.log('[BookingPageClient] Booking created successfully, moving to confirmation step');
       setCurrentStep(7); // Go to confirmation step
       
       // Don't show toast - we're showing the confirmation page instead
@@ -786,9 +833,6 @@ export default function BookingPageClient() {
           selectedServicesList.some(service => s.services.includes(service.id)))
       : staff;
 
-    // Mock recommended staff (in real app, based on ratings/availability)
-    const recommendedStaffId = availableStaff[0]?.id;
-
     return (
       <RadioGroup 
         value={selectedStaff || ""} 
@@ -841,12 +885,7 @@ export default function BookingPageClient() {
           </motion.div>
           
           {availableStaff.map((member, index) => {
-            const isRecommended = member.id === recommendedStaffId;
             const isSelected = selectedStaff === member.id;
-            
-            // Mock specialties
-            const specialties = ["Color Specialist", "Senior Stylist", "Nail Artist", "Massage Therapist"];
-            const specialty = specialties[index % specialties.length];
             
             return (
               <motion.div
@@ -862,15 +901,6 @@ export default function BookingPageClient() {
                       isSelected && "ring-2 ring-primary shadow-lg"
                     )}
                 >
-                  {isRecommended && (
-                    <div className="absolute -top-2 -right-2 z-10">
-                      <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 shadow-md">
-                        <Star className="h-3 w-3 mr-1" />
-                        Recommended
-                      </Badge>
-                    </div>
-                  )}
-                  
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-lg">
@@ -878,18 +908,6 @@ export default function BookingPageClient() {
                       </div>
                       <div className="flex-1">
                         <CardTitle className="text-base font-medium">{member.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{specialty}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={cn(
-                                "h-3 w-3",
-                                i < 4 ? "fill-amber-400 text-amber-400" : "text-gray-300"
-                              )} />
-                            ))}
-                          </div>
-                          <span className="text-xs text-muted-foreground">4.8</span>
-                        </div>
                       </div>
                       <motion.div
                         animate={isSelected ? { scale: [1, 1.2, 1] } : {}}
@@ -1101,7 +1119,9 @@ export default function BookingPageClient() {
                     TimezoneUtils.formatInTimezone(selectedDate, merchantInfo.timezone, 'EEEE, MMMM d') : 
                     format(selectedDate, 'EEEE, MMMM d')}
                 </h3>
-                {hasAvailableSlots ? (
+                {loadingSlots ? (
+                  <p className="text-muted-foreground">Checking availability...</p>
+                ) : hasAvailableSlots ? (
                   <>
                     <p className="text-muted-foreground mb-3">Select your preferred appointment time</p>
                     <div className="flex justify-center">
@@ -1113,7 +1133,19 @@ export default function BookingPageClient() {
                 )}
               </div>
 
-              {hasAvailableSlots ? (
+              {loadingSlots ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center py-12"
+                >
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
+                    <div className="absolute inset-0 w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-4">Loading available times...</p>
+                </motion.div>
+              ) : hasAvailableSlots ? (
                 <div className="max-w-4xl mx-auto space-y-8">
                   {Object.entries(groupedSlots!).map(([period, slots]) => {
                     if (slots.length === 0) return null;
@@ -1162,8 +1194,6 @@ export default function BookingPageClient() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                           {slots.map((slot) => {
                             const isSelected = selectedTime === slot.time;
-                            const spotsLeft = slot.available ? Math.floor(Math.random() * 4) + 1 : 0;
-                            const isLastSpot = spotsLeft === 1;
                             const endTime = getEndTime(slot.time);
                             
                             return (
@@ -1192,15 +1222,6 @@ export default function BookingPageClient() {
                                   )}>
                                     {slot.available ? `until ${endTime}` : 'Unavailable'}
                                   </div>
-                                  
-                                  {slot.available && spotsLeft <= 2 && (
-                                    <div className={cn(
-                                      "absolute -top-2 -right-2 text-xs font-medium px-2 py-0.5 rounded-full",
-                                      isLastSpot ? "bg-red-500 text-white animate-pulse" : "bg-amber-500 text-white"
-                                    )}>
-                                      {isLastSpot ? 'Last spot!' : `${spotsLeft} left`}
-                                    </div>
-                                  )}
                                   
                                   {isSelected && (
                                     <motion.div
@@ -1246,20 +1267,59 @@ export default function BookingPageClient() {
    * to prevent re-creation on every render which was causing focus loss */
 
   const Confirmation = () => {
+    // Use confirmationData for a more stable confirmation page
+    if (!confirmationData) {
+      console.log('[Confirmation] No confirmation data available');
+      // If we somehow get here without data, show a generic success message
+      return (
+        <div className="text-center py-12">
+          <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-display font-bold mb-2">Booking Confirmed!</h2>
+          <p className="text-muted-foreground mb-4">Your appointment has been successfully booked.</p>
+          <p className="text-sm text-muted-foreground">Confirmation details have been sent to your email.</p>
+          <Button
+            className="mt-6"
+            onClick={() => {
+              // Reset and go back to start
+              setCurrentStep(1);
+              setSelectedServices([]);
+              setSelectedStaff("");
+              setSelectedDate(undefined);
+              setSelectedTime(null);
+              setCustomerInfo({
+                firstName: "",
+                lastName: "",
+                email: "",
+                phone: "",
+                notes: "",
+              });
+              setBookingId(null);
+              setBookingNumber(null);
+              setConfirmationData(null);
+              setIsReturningCustomer(false);
+            }}
+          >
+            Book Another Appointment
+          </Button>
+        </div>
+      );
+    }
+    
     const businessPhone = merchantInfo?.phone || "+1 (555) 123-4567";
     const businessEmail = merchantInfo?.email || "hello@luxespa.com";
     const businessAddress = merchantInfo?.address || "123 Main Street, Hamilton, ON L8P 1A1";
     
+    // Extract customer first name from confirmationData
+    const customerFirstName = confirmationData.customerName.split(' ')[0];
+    
     const handleAddToCalendar = () => {
       // Create calendar event details
-      const serviceNames = selectedServicesList.map(s => s.name).join(' + ');
-      const totalDuration = selectedServicesList.reduce((sum, s) => sum + s.duration, 0);
+      const serviceNames = confirmationData.services.map(s => s.name).join(' + ');
       
       const eventDetails = {
         text: `${serviceNames} at ${merchantInfo?.name || 'Luxe Spa'}`,
-        dates: selectedDate && selectedTime ? 
-          `${format(selectedDate, 'yyyyMMdd')}T${selectedTime.replace(':', '')}00/${format(selectedDate, 'yyyyMMdd')}T${selectedTime.replace(':', '')}00` : '',
-        details: `Booking ID: ${bookingId}\nStaff: ${selectedStaffMember?.name || 'Any Available'}\nDuration: ${totalDuration} minutes`,
+        dates: `${format(confirmationData.date, 'yyyyMMdd')}T${confirmationData.time.replace(':', '')}00/${format(confirmationData.date, 'yyyyMMdd')}T${confirmationData.time.replace(':', '')}00`,
+        details: `Booking ID: ${confirmationData.bookingId}\nStaff: ${confirmationData.staffName}\nDuration: ${confirmationData.totalDuration} minutes`,
         location: businessAddress
       };
       
@@ -1312,7 +1372,7 @@ export default function BookingPageClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            We can't wait to see you, {customerInfo.firstName}!
+            We can't wait to see you, {customerFirstName}!
           </motion.p>
         </motion.div>
         
@@ -1325,7 +1385,7 @@ export default function BookingPageClient() {
           <Card className="shadow-lg border-t-4 border-t-primary">
             <CardHeader className="text-center pb-2">
               <Badge variant="secondary" className="mb-2 mx-auto">
-                {bookingNumber || 'PENDING'}
+                {confirmationData.bookingNumber}
               </Badge>
               <CardTitle className="text-lg font-display">Appointment Confirmation</CardTitle>
             </CardHeader>
@@ -1334,8 +1394,8 @@ export default function BookingPageClient() {
               <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <p className="text-sm text-muted-foreground mb-2">Services</p>
                 <div className="space-y-2">
-                  {selectedServicesList.map((svc, index) => (
-                    <div key={svc.id} className="flex justify-between items-start">
+                  {confirmationData.services.map((svc, index) => (
+                    <div key={index} className="flex justify-between items-start">
                       <div>
                         <p className="font-semibold">{svc.name}</p>
                         <p className="text-sm text-muted-foreground">{svc.duration} minutes</p>
@@ -1343,22 +1403,22 @@ export default function BookingPageClient() {
                       <p className="font-semibold">${svc.price}</p>
                     </div>
                   ))}
-                  {selectedServicesList.length > 1 && (
+                  {confirmationData.services.length > 1 && (
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-semibold">Total</p>
                           <p className="text-sm text-muted-foreground">
-                            {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
+                            {confirmationData.totalDuration} minutes
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-primary">
-                            ${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}
+                            ${confirmationData.totalPrice.toFixed(2)}
                           </p>
                           {merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0 && (
                             <p className="text-sm text-muted-foreground mt-1">
-                              Deposit paid: ${Math.round(selectedServicesList.reduce((sum, s) => sum + s.price, 0) * (merchantInfo.depositPercentage / 100) * 100) / 100}
+                              Deposit paid: ${Math.round(confirmationData.totalPrice * (merchantInfo.depositPercentage / 100) * 100) / 100}
                             </p>
                           )}
                         </div>
@@ -1373,9 +1433,9 @@ export default function BookingPageClient() {
                 <Calendar className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">
-                    {selectedDate && merchantInfo ? 
-                      TimezoneUtils.formatInTimezone(selectedDate, merchantInfo.timezone, 'EEEE, MMMM d, yyyy') :
-                      selectedDate?.toLocaleDateString("en-US", { 
+                    {merchantInfo ? 
+                      TimezoneUtils.formatInTimezone(confirmationData.date, merchantInfo.timezone, 'EEEE, MMMM d, yyyy') :
+                      confirmationData.date.toLocaleDateString("en-US", { 
                         weekday: "long", 
                         month: "long", 
                         day: "numeric" 
@@ -1383,7 +1443,7 @@ export default function BookingPageClient() {
                   </p>
                   <p className="text-sm text-muted-foreground">
                     at <TimeDisplay 
-                      date={`${format(selectedDate!, 'yyyy-MM-dd')}T${selectedTime}:00`} 
+                      date={`${format(confirmationData.date, 'yyyy-MM-dd')}T${confirmationData.time}:00`} 
                       format="time" 
                       showTimezone={true} 
                     />
@@ -1395,8 +1455,8 @@ export default function BookingPageClient() {
               <div className="flex items-center gap-3">
                 <User className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium">{selectedStaffMember?.name || 'Any Available Specialist'}</p>
-                  <p className="text-sm text-muted-foreground">{selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minute session</p>
+                  <p className="font-medium">{confirmationData.staffName}</p>
+                  <p className="text-sm text-muted-foreground">{confirmationData.totalDuration} minute session</p>
                 </div>
               </div>
               
@@ -1406,7 +1466,7 @@ export default function BookingPageClient() {
                 <div className="space-y-2 text-sm">
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    <p>Confirmation email sent to {customerInfo.email}</p>
+                    <p>Confirmation email sent to {confirmationData.customerEmail}</p>
                   </div>
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
@@ -1475,6 +1535,7 @@ export default function BookingPageClient() {
               });
               setBookingId(null);
               setBookingNumber(null);
+              setConfirmationData(null);
               setIsReturningCustomer(false);
             }}
           >
