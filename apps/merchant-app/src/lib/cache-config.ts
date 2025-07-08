@@ -32,6 +32,10 @@ export const cacheConfigs: Record<string, CacheConfig> = {
     staleWhileRevalidate: 2 * 60 * 60 * 1000, // 2 hours
   },
   
+  'merchant-profile': {
+    ttl: 0, // No cache for merchant profile - critical for auth
+  },
+  
   // Dynamic data - shorter cache
   'bookings': {
     ttl: 2 * 60 * 1000, // 2 minutes
@@ -109,8 +113,22 @@ export function generateCacheKey(endpoint: string, params?: any): string {
     return config.cacheKey(params);
   }
   
-  // Default cache key
+  // Default cache key - include merchant ID to prevent cross-merchant data leaks
   const key = [endpoint];
+  
+  // Get merchant ID from localStorage to ensure cache isolation
+  const merchantStr = typeof window !== 'undefined' ? localStorage.getItem('merchant') : null;
+  if (merchantStr) {
+    try {
+      const merchant = JSON.parse(merchantStr);
+      if (merchant.id) {
+        key.unshift(`merchant:${merchant.id}`);
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  
   if (params) {
     // Sort params for consistent keys
     const sortedParams = Object.keys(params)

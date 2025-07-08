@@ -190,6 +190,9 @@ export class BaseApiClient {
     localStorage.removeItem('merchant');
     localStorage.removeItem('user');
     
+    // CRITICAL: Clear the memory cache to prevent serving stale data
+    memoryCache.clear();
+    
     // Clear the auth cookie with the same settings used when setting it
     document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
   }
@@ -443,6 +446,11 @@ export class BaseApiClient {
       if (['bookings', 'payments'].includes(resourceType)) {
         this.invalidateCache('dashboard');
         this.invalidateCache('reports');
+      }
+      
+      // For staff mutations, clear all cache to ensure consistency
+      if (resourceType === 'staff') {
+        this.clearAllCache();
       }
     }
   }
