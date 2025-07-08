@@ -21,7 +21,8 @@ export class AuthClient extends BaseApiClient {
       password,
     };
     
-    const response = await this.post('/auth/merchant/login', payload, undefined, 'v1');
+    try {
+      const response = await this.post('/auth/merchant/login', payload, undefined, 'v1');
     
     // Normalize the response to match what the frontend expects
     // The API returns user data with embedded merchant info
@@ -56,6 +57,15 @@ export class AuthClient extends BaseApiClient {
     this.scheduleTokenRefresh(response.expiresAt);
 
     return result;
+    } catch (error: any) {
+      // Re-throw the error with proper structure for auth provider
+      if (error.response?.data?.message) {
+        const authError = new Error(error.response.data.message);
+        (authError as any).response = error.response;
+        throw authError;
+      }
+      throw error;
+    }
   }
 
   async verifyAction(pin: string, action: string) {

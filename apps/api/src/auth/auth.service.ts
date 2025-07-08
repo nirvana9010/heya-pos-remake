@@ -61,12 +61,12 @@ export class AuthService {
     }
 
     if (!merchantAuth) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isValidPassword = await bcrypt.compare(password, merchantAuth.passwordHash);
     if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     // Check if merchant is active
