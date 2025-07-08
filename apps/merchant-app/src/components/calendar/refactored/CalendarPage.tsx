@@ -79,9 +79,7 @@ function CalendarContent() {
   
   // Set staff from BookingContext when it's loaded
   React.useEffect(() => {
-    console.log('[CalendarPage] BookingContext staff:', bookingContextStaff);
     if (bookingContextStaff && bookingContextStaff.length > 0) {
-      console.log('[CalendarPage] Setting staff from BookingContext:', bookingContextStaff.map(s => ({ id: s.id, name: s.name, status: s.status })));
       actions.setStaff(bookingContextStaff);
     }
   }, [bookingContextStaff, actions]);
