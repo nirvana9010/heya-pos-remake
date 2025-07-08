@@ -657,7 +657,7 @@ function CalendarContent() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-600">
-                {state.selectedStaffIds.length}/{state.staff.filter(s => s.isActive !== false).length} staff
+                {state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/{state.staff.filter(s => s.isActive !== false).length} staff
               </span>
             </div>
             
