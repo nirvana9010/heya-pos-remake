@@ -527,22 +527,87 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     dispatch,
   }), [dispatch]);
   
-  // Initialize date range on mount
+  // Initialize date range on mount and listen for storage changes
   useEffect(() => {
     const range = calculateDateRange(state.currentDate, state.currentView);
     dispatch({ type: 'SET_DATE', payload: state.currentDate });
+    
+    // Listen for storage changes to update calendar settings
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'merchant' && e.newValue) {
+        try {
+          const merchantData = JSON.parse(e.newValue);
+          if (merchantData.settings) {
+            const newSettings = {
+              ...(merchantData.settings.showUnassignedColumn !== undefined && 
+                { showUnassignedColumn: merchantData.settings.showUnassignedColumn }),
+              ...(merchantData.settings.calendarStartHour !== undefined && 
+                { calendarStartHour: merchantData.settings.calendarStartHour }),
+              ...(merchantData.settings.calendarEndHour !== undefined && 
+                { calendarEndHour: merchantData.settings.calendarEndHour }),
+            };
+            
+            if (Object.keys(newSettings).length > 0) {
+              dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing merchant data from storage event:', error);
+        }
+      }
+    };
+    
+    // Listen for custom event for same-tab updates
+    const handleMerchantSettingsUpdate = (e: CustomEvent) => {
+      if (e.detail && e.detail.settings) {
+        const newSettings = {
+          ...(e.detail.settings.showUnassignedColumn !== undefined && 
+            { showUnassignedColumn: e.detail.settings.showUnassignedColumn }),
+          ...(e.detail.settings.calendarStartHour !== undefined && 
+            { calendarStartHour: e.detail.settings.calendarStartHour }),
+          ...(e.detail.settings.calendarEndHour !== undefined && 
+            { calendarEndHour: e.detail.settings.calendarEndHour }),
+        };
+        
+        if (Object.keys(newSettings).length > 0) {
+          dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('merchantSettingsUpdated', handleMerchantSettingsUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('merchantSettingsUpdated', handleMerchantSettingsUpdate as EventListener);
+    };
   }, []);
   
-  // Update showUnassignedColumn when merchant settings change
+  // Update UI settings when merchant settings change
   useEffect(() => {
-    if (effectiveSettings?.showUnassignedColumn !== undefined && 
-        effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) {
+    const hasChanges = 
+      (effectiveSettings?.showUnassignedColumn !== undefined && 
+       effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) ||
+      (effectiveSettings?.calendarStartHour !== undefined && 
+       effectiveSettings.calendarStartHour !== state.calendarStartHour) ||
+      (effectiveSettings?.calendarEndHour !== undefined && 
+       effectiveSettings.calendarEndHour !== state.calendarEndHour);
+       
+    if (hasChanges) {
       dispatch({ 
         type: 'SET_UI_FLAGS', 
-        payload: { showUnassignedColumn: effectiveSettings.showUnassignedColumn } 
+        payload: {
+          ...(effectiveSettings?.showUnassignedColumn !== undefined && 
+            { showUnassignedColumn: effectiveSettings.showUnassignedColumn }),
+          ...(effectiveSettings?.calendarStartHour !== undefined && 
+            { calendarStartHour: effectiveSettings.calendarStartHour }),
+          ...(effectiveSettings?.calendarEndHour !== undefined && 
+            { calendarEndHour: effectiveSettings.calendarEndHour }),
+        } 
       });
     }
-  }, [effectiveSettings?.showUnassignedColumn]);
+  }, [effectiveSettings?.showUnassignedColumn, effectiveSettings?.calendarStartHour, effectiveSettings?.calendarEndHour]);
   
   // Save filter preferences to localStorage
   useEffect(() => {

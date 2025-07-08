@@ -175,7 +175,7 @@ export default function SettingsPage() {
   const handleSaveBookingSettings = async () => {
     setLoading(true);
     try {
-      await apiClient.put("/merchant/settings", {
+      const updatedSettings = {
         bookingAdvanceHours: parseInt(bookingAdvanceHours),
         cancellationHours: parseInt(cancellationHours),
         requirePinForRefunds,
@@ -193,7 +193,36 @@ export default function SettingsPage() {
         calendarStartHour,
         calendarEndHour,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
-      });
+      };
+      
+      await apiClient.put("/merchant/settings", updatedSettings);
+      
+      // Update merchant data in localStorage to reflect the changes immediately
+      const storedMerchant = localStorage.getItem('merchant');
+      if (storedMerchant) {
+        try {
+          const merchantData = JSON.parse(storedMerchant);
+          merchantData.settings = {
+            ...merchantData.settings,
+            ...updatedSettings
+          };
+          localStorage.setItem('merchant', JSON.stringify(merchantData));
+          
+          // Dispatch a custom event for same-tab updates
+          window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', { 
+            detail: { settings: merchantData.settings } 
+          }));
+          
+          // Also update the auth context if it has a refresh function
+          if (merchant && typeof window !== 'undefined') {
+            // Trigger a re-render by updating query cache
+            queryClient.invalidateQueries({ queryKey: ['merchant'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar'] });
+          }
+        } catch (e) {
+          console.error('Failed to update local merchant data:', e);
+        }
+      }
       
       toast({
         title: "Success",
