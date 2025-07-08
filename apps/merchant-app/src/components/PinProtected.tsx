@@ -72,34 +72,34 @@ export function PinProtected({
       
       switch (feature) {
         case "reports":
-          // Default to true if undefined
-          const requiresReportsPin = settings.requirePinForReports === true || settings.requirePinForReports === undefined;
+          // Default to false if undefined (PIN not required by default)
+          const requiresReportsPin = settings.requirePinForReports === true;
           if (process.env.NODE_ENV === 'development') {
             console.log(`[PinProtected] Reports PIN required: ${requiresReportsPin}`);
           }
           setRequiresPin(requiresReportsPin);
           break;
         case "refunds":
-          setRequiresPin(settings.requirePinForRefunds === true || settings.requirePinForRefunds === undefined);
+          setRequiresPin(settings.requirePinForRefunds === true);
           break;
         case "cancellations":
-          setRequiresPin(settings.requirePinForCancellations === true || settings.requirePinForCancellations === undefined);
+          setRequiresPin(settings.requirePinForCancellations === true);
           break;
         case "settings":
           // Check for settings PIN requirement (add to settings model if needed)
-          setRequiresPin(settings.requirePinForSettings === true || settings.requirePinForSettings === undefined);
+          setRequiresPin(settings.requirePinForSettings === true);
           break;
         case "void":
           // Check for void transaction PIN requirement
-          setRequiresPin(settings.requirePinForVoid === true || settings.requirePinForVoid === undefined);
+          setRequiresPin(settings.requirePinForVoid === true);
           break;
         case "discounts":
           // Check for discount override PIN requirement
-          setRequiresPin(settings.requirePinForDiscounts === true || settings.requirePinForDiscounts === undefined);
+          setRequiresPin(settings.requirePinForDiscounts === true);
           break;
         case "staff":
           // Check for staff management PIN requirement
-          setRequiresPin(settings.requirePinForStaff === true || settings.requirePinForStaff === undefined);
+          setRequiresPin(settings.requirePinForStaff === true);
           break;
         default:
           setRequiresPin(true);

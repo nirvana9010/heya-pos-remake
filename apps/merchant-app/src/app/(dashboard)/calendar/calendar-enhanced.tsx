@@ -120,15 +120,16 @@ export default function CalendarPageEnhanced() {
       try {
         setLoading(true);
         
-        // Load staff data
+        // Load staff data - only active staff
         const staffData = await apiClient.getStaff();
-        setStaff(staffData.map((s: any) => ({
+        const activeStaff = staffData.filter((s: any) => s.status === 'ACTIVE');
+        setStaff(activeStaff.map((s: any) => ({
           id: s.id,
-          name: `${s.firstName} ${s.lastName}`,
+          name: s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName,
           color: s.color || getStaffColor(s.id),
           avatar: s.avatar,
           isVisible: true,
-          isAvailable: s.status === 'ACTIVE'
+          isAvailable: true
         })));
         
         // Load bookings will be done by loadBookingsForDate

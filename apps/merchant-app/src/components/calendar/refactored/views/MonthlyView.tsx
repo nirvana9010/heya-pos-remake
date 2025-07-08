@@ -47,9 +47,11 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
   }, [filteredBookings]);
 
   // Get visible staff for utilization calculation
+  // Get visible staff - ONLY show active staff
+  const activeStaff = state.staff.filter(s => s.isActive !== false);
   const visibleStaff = state.selectedStaffIds.length > 0
-    ? state.staff.filter(s => state.selectedStaffIds.includes(s.id))
-    : state.staff;
+    ? activeStaff.filter(s => state.selectedStaffIds.includes(s.id))
+    : activeStaff;
 
   return (
     <div className="flex-1 p-4 overflow-auto">

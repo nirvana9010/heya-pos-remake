@@ -11,6 +11,10 @@ interface BookingContextType {
   openBookingSlideout: () => void;
   closeBookingSlideout: () => void;
   isBookingSlideoutOpen: boolean;
+  staff: any[];
+  services: any[];
+  customers: any[];
+  loading: boolean;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -63,17 +67,23 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       const servicesData = servicesResponse.data || [];
       console.log('BookingContext - loaded services:', servicesData);
 
-      // Transform staff data to include name property
-      const transformedStaff = staffData.map((member: any) => ({
-        id: member.id,
-        name: `${member.firstName} ${member.lastName}`.trim(),
-        color: member.calendarColor || '#7C3AED',
-        email: member.email,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        role: member.role,
-        isActive: member.isActive
-      }));
+      // Transform staff data to include name property and filter out inactive staff
+      console.log('[BookingContext] Raw staff data:', staffData);
+      const transformedStaff = staffData
+        .filter((member: any) => {
+          console.log('[BookingContext] Filtering staff member:', member.firstName, member.lastName, 'Status:', member.status);
+          return member.status === 'ACTIVE';
+        })
+        .map((member: any) => ({
+          id: member.id,
+          name: member.lastName ? `${member.firstName} ${member.lastName}`.trim() : member.firstName,
+          color: member.calendarColor || '#7C3AED',
+          email: member.email,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          role: member.role,
+          isActive: true // Already filtered for ACTIVE status above
+        }));
       
       setStaff(transformedStaff);
       setServices(servicesData);
@@ -152,6 +162,10 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         openBookingSlideout,
         closeBookingSlideout,
         isBookingSlideoutOpen,
+        staff,
+        services,
+        customers,
+        loading,
       }}
     >
       {children}

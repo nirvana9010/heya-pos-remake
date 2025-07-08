@@ -47,6 +47,7 @@ import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/b
 import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useNotifications } from '@/contexts/notifications-context';
+import { useBooking } from '@/contexts/booking-context';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -63,6 +64,7 @@ function CalendarContent() {
   const { toast } = useToast();
   const { merchant } = useAuth();
   const { refreshNotifications } = useNotifications();
+  const { staff: bookingContextStaff } = useBooking();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigateToToday,
@@ -74,6 +76,15 @@ function CalendarContent() {
   } = useCalendarNavigation();
   const { handleDragEnd } = useCalendarDragDrop();
   const { updateBookingTime } = useBookingOperations();
+  
+  // Set staff from BookingContext when it's loaded
+  React.useEffect(() => {
+    console.log('[CalendarPage] BookingContext staff:', bookingContextStaff);
+    if (bookingContextStaff && bookingContextStaff.length > 0) {
+      console.log('[CalendarPage] Setting staff from BookingContext:', bookingContextStaff.map(s => ({ id: s.id, name: s.name, status: s.status })));
+      actions.setStaff(bookingContextStaff);
+    }
+  }, [bookingContextStaff, actions]);
   
   // Drag state
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
@@ -648,7 +659,7 @@ function CalendarContent() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-600">
-                {state.selectedStaffIds.length}/{state.staff.length} staff
+                {state.selectedStaffIds.length}/{state.staff.filter(s => s.isActive !== false).length} staff
               </span>
             </div>
             
@@ -731,19 +742,20 @@ function CalendarContent() {
                       <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
                       <button
                         onClick={() => {
-                          if (state.selectedStaffIds.length === state.staff.length) {
+                          const activeStaff = state.staff.filter(s => s.isActive !== false);
+                          if (state.selectedStaffIds.length === activeStaff.length) {
                             actions.setStaffFilter([]);
                           } else {
-                            actions.setStaffFilter(state.staff.map(s => s.id));
+                            actions.setStaffFilter(activeStaff.map(s => s.id));
                           }
                         }}
                         className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                       >
-                        {state.selectedStaffIds.length === state.staff.length ? "Clear all" : "Select all"}
+                        {state.selectedStaffIds.length === state.staff.filter(s => s.isActive !== false).length ? "Clear all" : "Select all"}
                       </button>
                     </div>
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {state.staff.map(member => (
+                      {state.staff.filter(member => member.isActive !== false).map(member => (
                         <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
                           <Checkbox
                             checked={state.selectedStaffIds.includes(member.id)}

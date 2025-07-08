@@ -121,6 +121,9 @@ export function useCalendarData() {
           if (member.email && member.email.endsWith('@system.local')) return false;
           if (member.firstName === 'Unassigned' && !member.lastName) return false;
           
+          // IMPORTANT: Filter out inactive staff
+          if (member.status !== 'ACTIVE') return false;
+          
           return true;
         })
         .map((member: any) => ({
@@ -130,7 +133,7 @@ export function useCalendarData() {
           role: member.role,
           color: member.calendarColor || '#7C3AED',
           avatar: member.avatar,
-          isActive: member.isActive,
+          isActive: member.status === 'ACTIVE', // Ensure isActive is based on status
           workingHours: member.workingHours,
         }));
       
@@ -238,10 +241,13 @@ export function useCalendarData() {
   // Initial data load
   useEffect(() => {
     fetchMerchantSettings();
-    fetchStaff();
+    // Only fetch staff if not already loaded from BookingContext
+    if (state.staff.length === 0) {
+      fetchStaff();
+    }
     fetchServices();
     fetchCustomers();
-  }, [fetchMerchantSettings, fetchStaff, fetchServices, fetchCustomers]);
+  }, [fetchMerchantSettings, fetchStaff, fetchServices, fetchCustomers, state.staff.length]);
   
   // Fetch bookings when date range changes
   useEffect(() => {
@@ -312,12 +318,12 @@ export function useCalendarData() {
     actions.setRefreshing(true);
     await Promise.all([
       fetchBookings(),
-      fetchStaff(),
+      // Removed fetchStaff() - staff will be loaded from BookingContext
       fetchServices(),
       fetchCustomers(),
     ]);
     actions.setRefreshing(false);
-  }, [fetchBookings, fetchStaff, fetchServices, fetchCustomers, actions]);
+  }, [fetchBookings, fetchServices, fetchCustomers, actions]);
   
   return {
     refresh,

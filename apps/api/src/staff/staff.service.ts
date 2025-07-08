@@ -296,6 +296,50 @@ export class StaffService {
     return staffWithoutPin;
   }
 
+  async hardRemove(merchantId: string, id: string) {
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id,
+        merchantId,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    // Check if staff has any bookings (past or future)
+    const bookingsCount = await this.prisma.booking.count({
+      where: {
+        providerId: id,
+      },
+    });
+
+    if (bookingsCount > 0) {
+      throw new BadRequestException(
+        `Cannot permanently delete staff member with ${bookingsCount} booking records. This would break historical data. Use soft delete instead.`
+      );
+    }
+
+    // Delete related records first
+    await this.prisma.$transaction([
+      // Delete staff locations
+      this.prisma.staffLocation.deleteMany({
+        where: { staffId: id },
+      }),
+      // Delete staff schedules
+      this.prisma.staffSchedule.deleteMany({
+        where: { staffId: id },
+      }),
+      // Delete the staff member
+      this.prisma.staff.delete({
+        where: { id },
+      }),
+    ]);
+
+    return { message: 'Staff member permanently deleted' };
+  }
+
   async verifyPin(merchantId: string, staffId: string, pin: string): Promise<boolean> {
     const staff = await this.prisma.staff.findFirst({
       where: {

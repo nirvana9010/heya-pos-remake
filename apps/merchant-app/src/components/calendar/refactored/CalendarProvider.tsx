@@ -184,6 +184,11 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     case 'SET_STAFF':
+      console.log('[CalendarProvider] SET_STAFF action:', action.payload.map(s => ({ 
+        id: s.id, 
+        name: s.name, 
+        isActive: s.isActive 
+      })));
       return {
         ...state,
         staff: action.payload,
