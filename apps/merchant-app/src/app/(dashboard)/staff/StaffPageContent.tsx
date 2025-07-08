@@ -91,7 +91,7 @@ export default function StaffPageContent() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
@@ -103,8 +103,8 @@ export default function StaffPageContent() {
   const { merchant } = useAuth();
   
   // Check if PIN is required for staff
-  // Only show as optional when explicitly set to false
-  const isPinRequired = !merchant || merchant.settings?.requirePinForStaff !== false;
+  // Default to false (PIN not required) unless explicitly set to true
+  const isPinRequired = merchant?.settings?.requirePinForStaff === true;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -289,13 +289,23 @@ export default function StaffPageContent() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this staff member?')) return;
+    const confirmMessage = 'Are you sure you want to delete this staff member?\n\nClick OK for soft delete (mark as inactive)\nClick Cancel to abort';
+    
+    if (!confirm(confirmMessage)) return;
+    
+    // Check if user wants hard delete (only for inactive staff with no bookings)
+    const staffMember = staff.find(s => s.id === id);
+    let hardDelete = false;
+    
+    if (staffMember?.status === 'INACTIVE') {
+      hardDelete = confirm('This staff member is already inactive. Do you want to PERMANENTLY delete them from the database?\n\nThis action cannot be undone!');
+    }
     
     try {
-      await apiClient.deleteStaff(id);
+      await apiClient.deleteStaff(id, hardDelete);
       toast({
         title: "Success",
-        description: "Staff member deleted successfully",
+        description: hardDelete ? "Staff member permanently deleted" : "Staff member deleted successfully",
       });
       loadStaff();
     } catch (error: any) {

@@ -18,6 +18,16 @@ export async function checkStaffAvailability(
   bookings: Array<any> = []
 ): Promise<StaffAvailability> {
   try {
+    // Validate startTime parameter
+    if (!startTime || !(startTime instanceof Date) || isNaN(startTime.getTime())) {
+      console.error('Invalid startTime provided to checkStaffAvailability:', startTime);
+      // Return all staff as unavailable if we can't check properly
+      return {
+        available: [],
+        unavailable: staff.map(s => ({ ...s, reason: 'Invalid date/time' }))
+      };
+    }
+    
     // If no valid serviceId, return all staff as available
     if (!serviceId || serviceId === 'undefined') {
       return {
@@ -47,12 +57,17 @@ export async function checkStaffAvailability(
     // Check availability for each staff member
     const availabilityPromises = staffToCheck.map(async (staffMember) => {
       try {
-        const response = await apiClient.checkAvailability({
-          date: startTime,
+        // Validate the startTime before making the API call
+        if (!startTime || isNaN(startTime.getTime())) {
+          console.error('Invalid startTime in checkStaffAvailability:', startTime);
+          return { staffMember, isAvailable: false, reason: 'Invalid date/time' };
+        }
+        
+        const response = await apiClient.checkAvailability(
+          startTime,
           serviceId,
-          staffId: staffMember.id,
-          services: [{ id: serviceId, duration }]
-        });
+          staffMember.id
+        );
         
         if (!response || !response.availableSlots) {
           return { staffMember, isAvailable: false, reason: 'Unable to check availability' };

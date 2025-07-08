@@ -51,7 +51,11 @@ export class StaffController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: any, @Param('id') id: string) {
+  remove(@CurrentUser() user: any, @Param('id') id: string, @Query('hard') hard?: string) {
+    // Add hard delete option with ?hard=true query parameter
+    if (hard === 'true') {
+      return this.staffService.hardRemove(user.merchantId, id);
+    }
     return this.staffService.remove(user.merchantId, id);
   }
 

@@ -47,8 +47,9 @@ export class StaffClient extends BaseApiClient {
     return this.patch(`/staff/${id}`, data, undefined, 'v1');
   }
 
-  async deleteStaff(id: string): Promise<void> {
-    return this.delete(`/staff/${id}`, undefined, 'v1');
+  async deleteStaff(id: string, hardDelete: boolean = false): Promise<void> {
+    const url = hardDelete ? `/staff/${id}?hard=true` : `/staff/${id}`;
+    return this.delete(url, undefined, 'v1');
   }
 
   async getAllSchedules(): Promise<any> {

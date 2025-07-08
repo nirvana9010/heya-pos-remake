@@ -54,6 +54,9 @@ class CalendarErrorBoundary extends React.Component<
   }
 }
 
+// Import BookingProvider to ensure staff are filtered
+import { BookingProvider } from '@/contexts/booking-context';
+
 // Dynamically import the refactored calendar
 const CalendarPageContent = dynamic(
   () => import('@/components/calendar/refactored/CalendarPage').then(mod => ({ default: mod.CalendarPage })),
@@ -66,7 +69,9 @@ const CalendarPageContent = dynamic(
 export default function CalendarPage() {
   return (
     <CalendarErrorBoundary>
-      <CalendarPageContent />
+      <BookingProvider>
+        <CalendarPageContent />
+      </BookingProvider>
     </CalendarErrorBoundary>
   );
 }

@@ -180,7 +180,23 @@ export class BookingsClient extends BaseApiClient {
   async checkAvailability(request: AvailabilityRequest) {
     // For single day check, use same date for start and end
     // Handle both Date objects and date strings
-    const date = request.date instanceof Date ? request.date : new Date(request.date);
+    let date: Date;
+    
+    // Validate and parse the date
+    if (request.date instanceof Date) {
+      date = request.date;
+    } else if (typeof request.date === 'string') {
+      date = new Date(request.date);
+    } else {
+      throw new Error('Invalid date provided to checkAvailability');
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date in checkAvailability:', request.date);
+      throw new Error('Invalid date: Unable to parse the provided date');
+    }
+    
     const dateStr = date.toISOString().split('T')[0];
     const params = new URLSearchParams({
       staffId: request.staffId || '',
