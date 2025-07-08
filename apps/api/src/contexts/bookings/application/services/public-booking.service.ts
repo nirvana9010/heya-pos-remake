@@ -475,6 +475,13 @@ export class PublicBookingService {
 
     // Calculate total duration
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
+    
+    console.log('[PUBLIC BOOKING SERVICE] Check availability:', {
+      date: dto.date,
+      staffId: dto.staffId,
+      services: services.map(s => ({ id: s.id, name: s.name, duration: s.duration })),
+      totalDuration,
+    });
 
     // Get first location for merchant
     const location = await this.prisma.location.findFirst({
@@ -495,6 +502,14 @@ export class PublicBookingService {
 
       // Use first service for the availability check but with total duration
       // This ensures we check for slots that can accommodate all selected services
+      console.log('[PUBLIC BOOKING SERVICE] Calling availability service with:', {
+        staffId: dto.staffId,
+        serviceId: serviceRequests[0].serviceId,
+        totalDuration,
+        timezone: location.timezone,
+        dateRange: { start: startDate.toISOString(), end: endDate.toISOString() },
+      });
+      
       const slots = await this.bookingAvailabilityService.getAvailableSlots({
         staffId: dto.staffId,
         serviceId: serviceRequests[0].serviceId,
@@ -504,6 +519,12 @@ export class PublicBookingService {
         timezone: location.timezone,
         // Pass the total duration for multi-service bookings
         duration: totalDuration,
+      });
+      
+      console.log('[PUBLIC BOOKING SERVICE] Availability service returned:', {
+        totalSlots: slots.length,
+        availableSlots: slots.filter(s => s.available).length,
+        lastAvailableSlot: slots.filter(s => s.available).slice(-1)[0]?.startTime,
       });
 
       // Convert to simple time slots for public API

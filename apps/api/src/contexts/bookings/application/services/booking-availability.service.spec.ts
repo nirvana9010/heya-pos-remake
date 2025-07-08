@@ -16,6 +16,10 @@ describe('BookingAvailabilityService', () => {
           provide: PrismaService,
           useValue: mockDeep<PrismaService>(),
         },
+        {
+          provide: 'IBookingRepository',
+          useValue: mockDeep<any>(),
+        },
       ],
     }).compile();
 
@@ -27,7 +31,7 @@ describe('BookingAvailabilityService', () => {
     jest.clearAllMocks();
   });
 
-  describe('checkAvailability with staff schedules', () => {
+  describe('getAvailableSlots with staff schedules', () => {
     const merchantId = 'merchant-123';
     const staffId = 'staff-123';
     const serviceId = 'service-123';
@@ -81,11 +85,13 @@ describe('BookingAvailabilityService', () => {
         },
       ] as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
         staffId,
+        timezone: 'Australia/Sydney',
       });
 
       // Should only return slots within staff schedule (10:00-15:00)
@@ -112,11 +118,13 @@ describe('BookingAvailabilityService', () => {
       // Mock no schedule for this day
       prisma.staffSchedule.findMany.mockResolvedValue([]);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
         staffId,
+        timezone: 'Australia/Sydney',
       });
 
       // Should return no available slots
@@ -146,11 +154,13 @@ describe('BookingAvailabilityService', () => {
         },
       ] as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
-        // No specific staff requested
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
+        staffId: '', // No specific staff requested
+        timezone: 'Australia/Sydney',
       });
 
       // Should have slots from both staff schedules
@@ -187,11 +197,13 @@ describe('BookingAvailabilityService', () => {
         },
       ] as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
         staffId,
+        timezone: 'Australia/Sydney',
       });
 
       // Should handle the overlap and provide slots from 09:00-17:00
@@ -234,11 +246,13 @@ describe('BookingAvailabilityService', () => {
         },
       ] as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
         staffId,
+        timezone: 'Australia/Sydney',
       });
 
       // Should not have slots at 11:00
@@ -262,11 +276,13 @@ describe('BookingAvailabilityService', () => {
         },
       ] as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: testDate,
-        services: [{ id: serviceId, duration: 60 }],
+        startDate: testDate,
+        endDate: testDate,
+        serviceId,
         staffId,
+        timezone: 'Australia/Sydney',
       });
 
       // Should limit to business hours (09:00-18:00)
@@ -301,10 +317,13 @@ describe('BookingAvailabilityService', () => {
       prisma.staff.findMany.mockResolvedValue([]);
       prisma.booking.findMany.mockResolvedValue([]);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: new Date(),
-        services: [{ id: 'service-123', duration: 60 }],
+        startDate: new Date(),
+        endDate: new Date(),
+        serviceId: 'service-123',
+        staffId: '',
+        timezone: 'Australia/Sydney',
       });
 
       // Should return empty slots when no business hours
@@ -332,11 +351,13 @@ describe('BookingAvailabilityService', () => {
         isActive: true,
       } as any);
 
-      const result = await service.checkAvailability({
+      const result = await service.getAvailableSlots({
         merchantId,
-        date: new Date(),
-        services: [{ id: 'service-123', duration: 60 }],
+        startDate: new Date(),
+        endDate: new Date(),
+        serviceId: 'service-123',
         staffId: 'staff-123',
+        timezone: 'Australia/Sydney',
       });
 
       // Should return no slots for inactive staff
