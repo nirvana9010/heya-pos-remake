@@ -55,7 +55,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
       selectedStatusFilters: savedStatusFilters 
         ? JSON.parse(savedStatusFilters) 
         : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
-      selectedStaffIds: savedStaffFilter ? JSON.parse(savedStaffFilter) : [],
+      selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
       ...(showUnassignedColumn !== undefined && { showUnassignedColumn }),
       ...(calendarStartHour !== undefined && { calendarStartHour }),
@@ -187,24 +187,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       return {
         ...state,
         staff: action.payload,
-        // Auto-select all staff when loaded, or add new staff to existing selection
+        // Clean up selectedStaffIds to only include valid staff IDs
         selectedStaffIds: state.selectedStaffIds.length === 0 
-          ? action.payload.map(s => s.id)
-          : (() => {
-              // Keep existing valid selections
-              const validExisting = state.selectedStaffIds.filter(id => 
-                action.payload.some(s => s.id === id)
-              );
-              
-              // Find new staff members (in payload but not in previous selection or previous staff list)
-              const previousStaffIds = state.staff.map(s => s.id);
-              const newStaffIds = action.payload
-                .filter(s => !previousStaffIds.includes(s.id))
-                .map(s => s.id);
-              
-              // Combine existing valid selections with new staff
-              return [...validExisting, ...newStaffIds];
-            })(),
+          ? action.payload.filter(s => s.isActive !== false).map(s => s.id)
+          : state.selectedStaffIds.filter(id => 
+              action.payload.some(s => s.id === id && s.isActive !== false)
+            ),
       };
     
     case 'SET_SERVICES':
@@ -561,13 +549,24 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     if (typeof window === 'undefined') return;
     
     try {
+      // Clean up selectedStaffIds before saving - only save unique, valid staff IDs
+      const validStaffIds = state.selectedStaffIds.filter((id, index, self) => 
+        self.indexOf(id) === index && // Remove duplicates
+        state.staff.some(s => s.id === id && s.isActive !== false) // Only active staff
+      );
+      
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
-      localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(state.selectedStaffIds));
+      localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
+      
+      // If we cleaned up any invalid IDs, update the state
+      if (validStaffIds.length !== state.selectedStaffIds.length) {
+        dispatch({ type: 'SET_STAFF_FILTER', payload: validStaffIds });
+      }
     } catch (error) {
       console.error('Error saving calendar preferences:', error);
     }
-  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval]);
+  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval, state.staff]);
   
   const contextValue: CalendarContextType = {
     state,
