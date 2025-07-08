@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PublicBookingController } from './public-booking.controller';
+import { PublicCheckInController } from './public-checkin.controller';
 import { AvailabilityController } from './availability.controller';
 import { BookingsContextModule } from '../contexts/bookings/bookings.context.module';
 import { ServicesModule } from '../services/services.module';
@@ -13,6 +14,6 @@ import { PrismaModule } from '../prisma/prisma.module';
     ServicesModule,
     StaffModule,
   ],
-  controllers: [PublicBookingController, AvailabilityController],
+  controllers: [PublicBookingController, PublicCheckInController, AvailabilityController],
 })
 export class PublicModule {}

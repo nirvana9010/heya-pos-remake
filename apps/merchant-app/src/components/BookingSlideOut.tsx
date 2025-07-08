@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
-import { checkStaffAvailability, formatAvailabilityMessage, ensureValidStaffId } from "@/lib/services/booking-availability.service";
+import { checkStaffAvailability, formatAvailabilityMessage, ensureValidStaffId, type StaffAvailability } from "@/lib/services/booking-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useTimezone } from "@/contexts/timezone-context";
@@ -181,20 +181,53 @@ export function BookingSlideOut({
         }
         
         // Combine date and time
-        const startTime = new Date(formData.date);
-        startTime.setHours(formData.time.getHours());
-        startTime.setMinutes(formData.time.getMinutes());
-        startTime.setSeconds(0);
-        startTime.setMilliseconds(0);
+        let startTime: Date;
+        try {
+          // Ensure formData.date is a valid Date
+          const baseDate = formData.date instanceof Date ? formData.date : new Date(formData.date);
+          if (isNaN(baseDate.getTime())) {
+            console.error('Invalid date in formData:', formData.date);
+            return; // Exit early if date is invalid
+          }
+          
+          startTime = new Date(baseDate);
+          
+          // Ensure formData.time is a valid Date and extract hours/minutes
+          if (formData.time instanceof Date && !isNaN(formData.time.getTime())) {
+            startTime.setHours(formData.time.getHours());
+            startTime.setMinutes(formData.time.getMinutes());
+          } else {
+            console.error('Invalid time in formData:', formData.time);
+            return; // Exit early if time is invalid
+          }
+          
+          startTime.setSeconds(0);
+          startTime.setMilliseconds(0);
+        } catch (error) {
+          console.error('Error creating startTime:', error, formData);
+          return; // Exit early on any error
+        }
         
-        // Check availability using real API
-        const result = await checkStaffAvailability(
-          formData.selectedServices[0] || 'default-service',
-          startTime,
-          duration,
-          filteredStaff,
-          bookings
-        );
+        // Only check availability if we have a valid service selected
+        // Otherwise, assume all staff are available
+        let result: StaffAvailability;
+        if (formData.selectedServices.length > 0 && formData.selectedServices[0]) {
+          // Check availability using real API
+          result = await checkStaffAvailability(
+            formData.selectedServices[0],
+            startTime,
+            duration,
+            filteredStaff,
+            bookings
+          );
+        } else {
+          // No service selected - all staff are available
+          result = {
+            available: filteredStaff,
+            unavailable: [],
+            assignedStaff: filteredStaff.length > 0 ? filteredStaff[0] : undefined
+          };
+        }
         
         setAvailableStaff(result.available);
         setUnavailableStaff(result.unavailable);

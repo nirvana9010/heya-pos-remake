@@ -12,7 +12,7 @@ import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { type Booking, type Service, type Staff } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 import { toMerchantTime } from '@/lib/date-utils';
-import { fromZonedTime } from 'date-fns-tz';
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -147,7 +147,7 @@ export default function EditBookingPage() {
         const newDateInMerchantTZ = new Date(year, month - 1, day, hours, minutes, 0);
         
         // Convert to UTC for comparison
-        const newDateUTC = fromZonedTime(newDateInMerchantTZ, 'Australia/Sydney');
+        const newDateUTC = zonedTimeToUtc(newDateInMerchantTZ, 'Australia/Sydney');
         
         // Parse the original time (already in UTC)
         const originalDate = new Date(booking.startTime);
@@ -179,7 +179,7 @@ export default function EditBookingPage() {
         const dateInMerchantTZ = new Date(year, month - 1, day, hours, minutes, 0);
         
         // Convert merchant time to UTC
-        const dateUTC = fromZonedTime(dateInMerchantTZ, 'Australia/Sydney');
+        const dateUTC = zonedTimeToUtc(dateInMerchantTZ, 'Australia/Sydney');
         const startTimeISO = dateUTC.toISOString();
         
         console.log('Calling rescheduleBooking with:', {

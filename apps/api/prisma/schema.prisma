@@ -200,6 +200,10 @@ model Customer {
   emailNotifications     Boolean              @default(true)
   notificationPreference String               @default("both")
   smsNotifications       Boolean              @default(true)
+  // allergies              String?
+  // specialRequirements    String?
+  // referralSource         String?
+  // lastCheckInAt          DateTime?
   bookings               Booking[]
   merchant               Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   invoices               Invoice[]

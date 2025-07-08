@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check } from "lucide-react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [businessEmail, setBusinessEmail] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessAbn, setBusinessAbn] = useState("");
+  const [merchantSubdomain, setMerchantSubdomain] = useState("");
   
   // Business hours state
   const [businessHours, setBusinessHours] = useState<any>({
@@ -136,12 +137,14 @@ export default function SettingsPage() {
       setBusinessEmail(profile.email || "");
       setBusinessPhone(profile.phone || "");
       setBusinessAbn(profile.abn || "");
+      setMerchantSubdomain(profile.subdomain || "");
     } catch (error) {
       console.error("Failed to load merchant profile:", error);
       // Fallback to auth context merchant data if available
       if (merchant) {
         setBusinessName(merchant.name || "");
         setBusinessEmail(merchant.email || "");
+        setMerchantSubdomain(merchant.subdomain || "");
       }
     }
   };
@@ -536,6 +539,51 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Customer Check-in URL</Label>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      value={merchantSubdomain ? 
+                        `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
+                        `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`
+                      } 
+                      readOnly 
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = merchantSubdomain ? 
+                          `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
+                          `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`;
+                        navigator.clipboard.writeText(url);
+                        toast({
+                          title: "Copied!",
+                          description: "Check-in URL copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = merchantSubdomain ? 
+                          `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
+                          `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Share this URL with customers or display it on tablets for self check-in
+                  </p>
                 </div>
               </div>
 
