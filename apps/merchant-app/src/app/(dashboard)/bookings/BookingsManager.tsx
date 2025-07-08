@@ -63,7 +63,6 @@ import { PaymentStatusBadge } from '@/components/PaymentStatusBadge';
 import { displayFormats, toMerchantTime } from '@/lib/date-utils';
 
 export default function BookingsManager() {
-  console.log('[BookingsManager] Component rendering...');
   
   const router = useRouter();
   const { toast } = useToast();
@@ -93,19 +92,15 @@ export default function BookingsManager() {
   const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
-    console.log('[BookingsManager] useEffect triggered');
     
     // Check if we have a token before attempting to load bookings
     const token = localStorage.getItem('access_token');
-    console.log('[BookingsManager] Token exists:', !!token);
     
     if (!token) {
-      console.log('[BookingsManager] No token, skipping loadBookings call');
       setLoading(false);
       return;
     }
     
-    console.log('[BookingsManager] Token found, calling loadBookings...');
     loadBookings();
     loadStaff();
     loadMerchantSettings();
@@ -203,17 +198,14 @@ export default function BookingsManager() {
   };
 
   const loadBookings = async () => {
-    console.log('[BookingsPage] loadBookings called with dateFilter:', dateFilter);
     
     // Check if redirect is in progress
     if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-      console.log('[BookingsPage] Auth redirect in progress, aborting API call');
       return;
     }
     
     try {
       setLoading(true);
-      console.log('[BookingsPage] Calling apiClient.getBookings()...');
       
       let params: any = {};
       if (dateFilter === 'all') {
@@ -225,11 +217,9 @@ export default function BookingsManager() {
       // 'upcoming' is the default behavior (today and future)
       
       const allBookings = await apiClient.getBookings(params);
-      console.log('[BookingsPage] Bookings loaded successfully:', allBookings);
       // Convert to the format expected by the component
       setBookings(allBookings as any);
     } catch (error: any) {
-      console.log('[BookingsPage] Error caught in loadBookings:', {
         status: error?.response?.status,
         message: error?.message,
         fullError: error
@@ -237,25 +227,21 @@ export default function BookingsManager() {
       
       // Check for redirect error
       if (error?.message === 'UNAUTHORIZED_REDIRECT') {
-        console.log('[BookingsPage] Unauthorized redirect in progress...');
         return; // Don't process further
       }
       
       // Don't log 401 errors as they will trigger a redirect
       if (error?.response?.status !== 401 && error?.status !== 401) {
-        console.error('[BookingsPage] Non-401 error, showing toast...');
         toast({
           title: "Error",
           description: "Failed to load bookings. Please try again.",
           variant: "destructive",
         });
       } else {
-        console.log('[BookingsPage] 401 error caught, should be redirecting...');
       }
     } finally {
       // Only set loading to false if not redirecting
       if (!(window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-        console.log('[BookingsPage] Setting loading to false');
         setLoading(false);
       }
     }
