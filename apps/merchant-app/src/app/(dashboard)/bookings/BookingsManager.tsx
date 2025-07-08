@@ -220,11 +220,6 @@ export default function BookingsManager() {
       // Convert to the format expected by the component
       setBookings(allBookings as any);
     } catch (error: any) {
-        status: error?.response?.status,
-        message: error?.message,
-        fullError: error
-      });
-      
       // Check for redirect error
       if (error?.message === 'UNAUTHORIZED_REDIRECT') {
         return; // Don't process further
