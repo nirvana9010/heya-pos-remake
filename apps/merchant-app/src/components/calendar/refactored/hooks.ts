@@ -373,7 +373,7 @@ export function useTimeGrid() {
     }
     
     return slots;
-  }, [state.timeInterval, state.businessHours]);
+  }, [state.timeInterval, state.businessHours, state.calendarStartHour, state.calendarEndHour]);
   
   return { timeSlots };
 }
