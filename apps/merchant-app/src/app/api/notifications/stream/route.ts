@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-  const sseUrl = `${apiUrl}/api/v1/merchant/notifications/stream?token=${encodeURIComponent(token)}`;
+  const sseUrl = `${apiUrl}/v1/merchant/notifications/stream?token=${encodeURIComponent(token)}`;
 
   console.log('[SSE Proxy] Connecting to:', sseUrl);
 

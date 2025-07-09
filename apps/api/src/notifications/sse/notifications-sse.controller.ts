@@ -21,7 +21,7 @@ interface SSEClient {
   lastHeartbeat: Date;
 }
 
-@Controller('api/v1/merchant/notifications')
+@Controller('v1/merchant/notifications')
 export class NotificationsSseController {
   private readonly logger = new Logger(NotificationsSseController.name);
   private clients = new Map<string, SSEClient>();
