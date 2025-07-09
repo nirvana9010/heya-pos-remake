@@ -87,7 +87,7 @@ export function CustomerIdentification({
   return (
     <div className="max-w-md mx-auto">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium mb-2">Let's Get Started</h3>
+        <h3 className="text-lg font-medium mb-2">Let&apos;s Get Started</h3>
         <p className="text-sm text-muted-foreground">
           Have you booked with us before? Enter your details to check.
         </p>
@@ -105,7 +105,7 @@ export function CustomerIdentification({
                 onClick={handleSearch}
                 className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
               >
-                Yes, that's me
+                Yes, that&apos;s me
               </button>
               <button
                 onClick={() => {
@@ -217,7 +217,7 @@ export function CustomerIdentification({
             variant="outline"
             className="w-full"
           >
-            I'm a New Customer
+            I&apos;m a New Customer
           </Button>
         </div>
 

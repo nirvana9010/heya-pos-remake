@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { PinAuthManager } from '../utils/shared/pin';
 import { AuditLog } from '@prisma/client';
+import { formatName } from '@heya-pos/utils';
 
 @Injectable()
 export class PinAuthService {
@@ -100,7 +101,7 @@ export class PinAuthService {
         details: { 
           attemptedAction: action,
           staffAccessLevel: authenticatedStaff.accessLevel,
-          staffName: `${authenticatedStaff.firstName} ${authenticatedStaff.lastName}`
+          staffName: formatName(authenticatedStaff.firstName, authenticatedStaff.lastName)
         },
         ipAddress,
       });

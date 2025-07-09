@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useCalendar } from './CalendarProvider';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
+import { formatName } from '@heya-pos/utils';
 import { toMerchantTime, formatInMerchantTime } from '@/lib/date-utils';
 import { 
   startOfDay, 
@@ -128,7 +129,7 @@ export function useCalendarData() {
         })
         .map((member: any) => ({
           id: member.id,
-          name: member.lastName ? `${member.firstName} ${member.lastName}` : member.firstName,
+          name: formatName(member.firstName, member.lastName),
           email: member.email,
           role: member.role,
           color: member.calendarColor || '#7C3AED',
@@ -190,7 +191,7 @@ export function useCalendarData() {
       // Transform customers to calendar format
       const transformedCustomers = customerData.map((customer: any) => ({
         id: customer.id,
-        name: `${customer.firstName} ${customer.lastName}`,
+        name: formatName(customer.firstName, customer.lastName),
         email: customer.email,
         phone: customer.phone,
         mobile: customer.mobile,
@@ -285,9 +286,9 @@ export function useCalendarData() {
     // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
       
-      // Refresh if a booking was created or updated from external source or slideout
+      // Refresh if a booking was created or updated from ONLINE (booking app) or slideout
       if ((event.type === 'booking_created' || event.type === 'booking_updated') && 
-          (event.source === 'external' || event.source === 'slideout')) {
+          (event.source === 'ONLINE' || event.source === 'slideout')) {
         // Small delay to ensure database is updated
         setTimeout(() => {
           if (!state.isRefreshing && !state.isLoading) {

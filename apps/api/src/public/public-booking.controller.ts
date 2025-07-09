@@ -18,6 +18,7 @@ import { StaffService } from '../staff/staff.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
+import { formatName } from '@heya-pos/utils';
 
 interface PublicCreateBookingDto {
   customerName: string;
@@ -181,7 +182,7 @@ export class PublicBookingController {
     return {
       data: staff.map(member => ({
         id: member.id,
-        name: `${member.firstName} ${member.lastName}`,
+        name: formatName(member.firstName, member.lastName),
         email: member.email,
         phone: member.phone,
         role: 'Staff',
@@ -318,13 +319,13 @@ export class PublicBookingController {
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
-      customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+      customerName: formatName(booking.customer.firstName, booking.customer.lastName),
       customerEmail: booking.customer.email,
       customerPhone: booking.customer.phone,
       serviceId: service?.id,
       serviceName: service?.name,
       staffId: booking.providerId,
-      staffName: `${booking.provider.firstName} ${booking.provider.lastName}`,
+      staffName: formatName(booking.provider.firstName, booking.provider.lastName),
       date: startTimeDisplay.date.split('/')[2] + '-' + 
             startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 
             startTimeDisplay.date.split('/')[0].padStart(2, '0'), // Convert DD/MM/YYYY to YYYY-MM-DD

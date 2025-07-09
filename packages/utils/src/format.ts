@@ -40,7 +40,10 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
-export function formatName(firstName: string, lastName: string): string {
+export function formatName(firstName: string, lastName?: string | null): string {
+  if (!lastName) {
+    return firstName.trim();
+  }
   return `${firstName} ${lastName}`.trim();
 }
 

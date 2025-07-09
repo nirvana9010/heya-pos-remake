@@ -13,6 +13,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { notificationKeys } from '@/lib/query/hooks/use-bookings';
 import { apiClient } from '@/lib/api-client';
+import { bookingEvents } from '@/lib/services/booking-events';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -164,6 +165,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           // Ignore audio errors
         }
       }
+      
+      // Broadcast booking events for new booking notifications
+      newNotifications.forEach(notification => {
+        // Check if this is a booking-related notification
+        if (notification.type === 'booking_new' && notification.metadata?.bookingId) {
+          bookingEvents.broadcast({
+            type: 'booking_created',
+            bookingId: notification.metadata.bookingId,
+            source: 'ONLINE' // Notifications come from ONLINE bookings
+          });
+        } else if (notification.type === 'booking_updated' && notification.metadata?.bookingId) {
+          bookingEvents.broadcast({
+            type: 'booking_updated',
+            bookingId: notification.metadata.bookingId,
+            source: 'ONLINE'
+          });
+        }
+      });
       
       // Show browser notifications
       if (typeof window !== 'undefined' && 'Notification' in window) {

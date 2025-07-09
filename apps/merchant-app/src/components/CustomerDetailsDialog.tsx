@@ -11,6 +11,7 @@ import { Textarea } from '@heya-pos/ui';
 import { Badge } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
+import { formatName, formatInitials } from '@heya-pos/utils';
 import {
   Mail,
   Phone,
@@ -165,7 +166,7 @@ export function CustomerDetailsDialog({
                 "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
                 isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : "bg-gradient-to-br from-teal-500 to-teal-700"
               )}>
-                {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
+                {formatInitials(customer.firstName, customer.lastName)}
               </div>
               <div>
                 <DialogPrimitive.Title className="text-lg font-semibold flex items-center gap-2">
@@ -186,7 +187,7 @@ export function CustomerDetailsDialog({
                     </div>
                   ) : (
                     <>
-                      {customer.firstName} {customer.lastName}
+                      {formatName(customer.firstName, customer.lastName)}
                       {isVIP && <Crown className="h-4 w-4 text-yellow-600" />}
                     </>
                   )}
