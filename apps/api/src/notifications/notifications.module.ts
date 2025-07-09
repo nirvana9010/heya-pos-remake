@@ -14,6 +14,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TestNotificationsController } from './test-notifications.controller';
 import { MerchantNotificationsController } from './merchant-notifications.controller';
 import { MerchantNotificationsService } from './merchant-notifications.service';
+import { NotificationsSseController } from './sse/notifications-sse.controller';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MerchantNotificationsService } from './merchant-notifications.service';
   ],
   controllers: [
     MerchantNotificationsController,
+    NotificationsSseController,
     ...(process.env.NODE_ENV !== 'production' ? [TestNotificationsController] : []),
   ],
   providers: [

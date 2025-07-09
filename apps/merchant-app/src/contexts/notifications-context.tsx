@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { notificationKeys } from '@/lib/query/hooks/use-bookings';
 import { apiClient } from '@/lib/api-client';
 import { bookingEvents } from '@/lib/services/booking-events';
+import { getSSEClient, isSSESupported, SSENotificationEvent } from '@/lib/services/sse-notifications';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -270,6 +271,85 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     localStorage.removeItem('merchant-notifications');
   }, []);
+
+  // SSE connection for real-time notifications
+  useEffect(() => {
+    if (!isSSESupported()) {
+      console.log('[NotificationsContext] SSE not supported, falling back to polling');
+      return;
+    }
+
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.log('[NotificationsContext] No auth token, skipping SSE connection');
+      return;
+    }
+
+    const sseClient = getSSEClient();
+    
+    // Connect to SSE
+    sseClient.connect(token);
+
+    // Handle SSE events
+    const handleSSEMessage = (event: SSENotificationEvent) => {
+      console.log('[NotificationsContext] SSE event:', event.type);
+
+      switch (event.type) {
+        case 'notification':
+          // New notification received, refetch to update the list
+          if (event.notification) {
+            console.log('[NotificationsContext] New notification via SSE:', event.notification.id);
+            // Immediate refetch to get the new notification
+            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+            refetch();
+          }
+          break;
+
+        case 'booking_created':
+        case 'booking_updated':
+          // Booking event received, broadcast it and refetch notifications
+          if (event.bookingId) {
+            console.log(`[NotificationsContext] ${event.type} via SSE:`, event.bookingId);
+            bookingEvents.broadcast({
+              type: event.type,
+              bookingId: event.bookingId,
+              source: event.source || 'ONLINE'
+            });
+            // Refetch notifications as there might be a new one
+            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+            refetch();
+          }
+          break;
+
+        case 'initial':
+          // Initial batch of recent notifications
+          if (event.notifications && event.notifications.length > 0) {
+            console.log('[NotificationsContext] Received initial notifications via SSE:', event.notifications.length);
+            // Refetch to sync with server state
+            refetch();
+          }
+          break;
+
+        case 'connected':
+          console.log('[NotificationsContext] SSE connected successfully');
+          break;
+
+        case 'error':
+        case 'reconnecting':
+          console.log('[NotificationsContext] SSE connection issue:', event.type);
+          break;
+      }
+    };
+
+    sseClient.on('message', handleSSEMessage);
+
+    // Cleanup on unmount or token change
+    return () => {
+      console.log('[NotificationsContext] Cleaning up SSE connection');
+      sseClient.off('message', handleSSEMessage);
+      sseClient.disconnect();
+    };
+  }, [queryClient, refetch]);
 
 
   // Force update and process notifications when data timestamp changes
