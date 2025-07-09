@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as sgMail from '@sendgrid/mail';
+const sgMail = require('@sendgrid/mail');
 import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
 import { EmailTemplateService } from '../templates/email-template.service';
 

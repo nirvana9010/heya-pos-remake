@@ -10,8 +10,10 @@ export async function GET(request: NextRequest) {
     return new Response('Token required', { status: 400 });
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-  const sseUrl = `${apiUrl}/v1/merchant/notifications/stream?token=${encodeURIComponent(token)}`;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  // Remove /api from the URL if it's already included in NEXT_PUBLIC_API_URL
+  const baseUrl = apiUrl.replace(/\/api$/, '');
+  const sseUrl = `${baseUrl}/api/v1/merchant/notifications/stream?token=${encodeURIComponent(token)}`;
 
   console.log('[SSE Proxy] Connecting to:', sseUrl);
 

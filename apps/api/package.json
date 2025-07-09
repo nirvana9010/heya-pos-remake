@@ -55,6 +55,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^6.11.1",
     "@sendgrid/mail": "^8.1.5",
+    "@supabase/supabase-js": "^2.50.3",
     "@types/bcrypt": "^5.0.2",
     "@types/helmet": "^0.0.48",
     "@types/luxon": "^3.6.2",

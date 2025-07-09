@@ -285,15 +285,20 @@ export function useCalendarData() {
     
     // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
+      console.log('[Calendar] Received booking event:', event);
       
       // Refresh if a booking was created or updated from ONLINE (booking app) or slideout
       if ((event.type === 'booking_created' || event.type === 'booking_updated') && 
           (event.source === 'ONLINE' || event.source === 'slideout')) {
+        console.log('[Calendar] Refreshing bookings due to event:', event.type, 'from', event.source);
         // Small delay to ensure database is updated
         setTimeout(() => {
           if (!state.isRefreshing && !state.isLoading) {
+            console.log('[Calendar] Fetching bookings...');
             fetchBookings();
             lastFetchTime = Date.now();
+          } else {
+            console.log('[Calendar] Skipping refresh - already refreshing or loading');
           }
         }, 1000);
       }

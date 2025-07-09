@@ -21,7 +21,7 @@ interface SSEClient {
   lastHeartbeat: Date;
 }
 
-@Controller('v1/merchant/notifications')
+@Controller('merchant/notifications')
 export class NotificationsSseController {
   private readonly logger = new Logger(NotificationsSseController.name);
   private clients = new Map<string, SSEClient>();
@@ -60,23 +60,39 @@ export class NotificationsSseController {
       }
 
       const merchantId = payload.merchantId;
-      const staffId = payload.sub;
+      const authId = payload.sub;
+      const authType = payload.type || 'staff';
 
-      if (!merchantId || !staffId) {
+      if (!merchantId || !authId) {
         throw new UnauthorizedException('Invalid token payload');
       }
 
-      // Verify staff belongs to merchant
-      const staff = await this.prisma.staff.findFirst({
-        where: {
-          id: staffId,
-          merchantId: merchantId,
-          status: 'ACTIVE',
-        },
-      });
+      // Verify authentication based on type
+      if (authType === 'merchant') {
+        // For merchant auth, verify the merchant auth record
+        const merchantAuth = await this.prisma.merchantAuth.findFirst({
+          where: {
+            id: authId,
+            merchantId: merchantId,
+          },
+        });
 
-      if (!staff) {
-        throw new UnauthorizedException('Staff not found or inactive');
+        if (!merchantAuth) {
+          throw new UnauthorizedException('Merchant authentication not found');
+        }
+      } else {
+        // For staff auth, verify staff belongs to merchant
+        const staff = await this.prisma.staff.findFirst({
+          where: {
+            id: authId,
+            merchantId: merchantId,
+            status: 'ACTIVE',
+          },
+        });
+
+        if (!staff) {
+          throw new UnauthorizedException('Staff not found or inactive');
+        }
       }
 
       // Set up SSE headers
@@ -94,7 +110,7 @@ export class NotificationsSseController {
       res.flushHeaders();
 
       // Create client
-      const clientId = `${merchantId}-${staffId}-${Date.now()}`;
+      const clientId = `${merchantId}-${authId}-${Date.now()}`;
       const client: SSEClient = {
         id: clientId,
         merchantId,
@@ -109,8 +125,7 @@ export class NotificationsSseController {
       res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date() })}\n\n`);
 
       // Send any recent notifications (last 5 minutes)
-      const recentNotifications = await this.notificationsService.getNotifications({
-        merchantId,
+      const recentNotifications = await this.notificationsService.getNotifications(merchantId, {
         skip: 0,
         take: 10,
       });
@@ -142,8 +157,8 @@ export class NotificationsSseController {
 
     } catch (error) {
       this.logger.error('SSE connection error:', error);
-      res.status(error.status || 500).json({
-        message: error.message || 'Internal server error',
+      res.status((error as any).status || 500).json({
+        message: (error as any).message || 'Internal server error',
       });
     }
   }
@@ -177,15 +192,14 @@ export class NotificationsSseController {
     
     // Fetch the latest notification for this booking
     try {
-      const notifications = await this.notificationsService.getNotifications({
-        merchantId,
+      const notifications = await this.notificationsService.getNotifications(merchantId, {
         skip: 0,
         take: 5,
       });
 
       // Find the notification for this booking
       const bookingNotification = notifications.data.find(
-        n => n.metadata?.bookingId === event.bookingId
+        n => (n.metadata as any)?.bookingId === event.bookingId
       );
 
       if (bookingNotification) {
@@ -204,7 +218,7 @@ export class NotificationsSseController {
         });
       }
     } catch (error) {
-      this.logger.error(`Error handling booking event: ${error.message}`);
+      this.logger.error(`Error handling booking event: ${(error as any).message}`);
     }
   }
 

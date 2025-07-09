@@ -12,23 +12,21 @@ export interface SmsProvider {
 @Injectable()
 export class SmsProviderFactory {
   private readonly logger = new Logger(SmsProviderFactory.name);
-  private readonly provider: SmsProvider;
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly templateService: SmsTemplateService,
-  ) {
+    private readonly smsService: SmsService,
+    private readonly twilioService: TwilioSmsService,
+  ) {}
+
+  getProvider(): SmsProvider {
     // Choose provider based on configuration
     if (this.configService.get('TWILIO_ACCOUNT_SID')) {
       this.logger.log('Using Twilio as SMS provider');
-      this.provider = new TwilioSmsService(configService, templateService);
+      return this.twilioService;
     } else {
       this.logger.log('Using Mock SMS provider');
-      this.provider = new SmsService(configService, templateService);
+      return this.smsService;
     }
-  }
-
-  getProvider(): SmsProvider {
-    return this.provider;
   }
 }

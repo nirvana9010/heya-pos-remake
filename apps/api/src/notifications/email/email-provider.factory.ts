@@ -13,23 +13,21 @@ export interface EmailProvider {
 @Injectable()
 export class EmailProviderFactory {
   private readonly logger = new Logger(EmailProviderFactory.name);
-  private readonly provider: EmailProvider;
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly templateService: EmailTemplateService,
-  ) {
+    private readonly emailService: EmailService,
+    private readonly sendGridService: SendGridEmailService,
+  ) {}
+
+  getProvider(): EmailProvider {
     // Choose provider based on configuration
     if (this.configService.get('SENDGRID_API_KEY')) {
       this.logger.log('Using SendGrid as email provider');
-      this.provider = new SendGridEmailService(configService, templateService);
+      return this.sendGridService;
     } else {
       this.logger.log('Using SMTP as email provider');
-      this.provider = new EmailService(configService, templateService);
+      return this.emailService;
     }
-  }
-
-  getProvider(): EmailProvider {
-    return this.provider;
   }
 }

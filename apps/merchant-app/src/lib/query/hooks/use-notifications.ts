@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../api-client';
 import { notificationKeys } from './use-bookings';
 import React from 'react';
+import { featureFlags } from '../../feature-flags';
 
 /**
  * Hook to fetch merchant notifications
@@ -11,6 +12,10 @@ export function useNotifications(params?: {
   take?: number;
   unreadOnly?: boolean;
 }) {
+  // Use longer polling interval when Supabase Realtime is enabled
+  const useSupabase = featureFlags.isEnabled('supabaseRealtime');
+  const pollingInterval = useSupabase ? 5 * 60 * 1000 : 30 * 1000; // 5 min vs 30 sec
+
   const queryInfo = useQuery({
     queryKey: [...notificationKeys.all, params],
     queryFn: async () => {
@@ -19,8 +24,8 @@ export function useNotifications(params?: {
     },
     staleTime: 0, // Always consider data stale to force fresh fetches
     gcTime: 0, // Don't garbage collect the data (renamed from cacheTime in v5)
-    refetchInterval: 30 * 1000, // 30 seconds polling as backup (SSE handles real-time)
-    refetchIntervalInBackground: false, // Don't poll in background when using SSE
+    refetchInterval: pollingInterval, // Longer interval when using Supabase
+    refetchIntervalInBackground: false, // Don't poll in background
     refetchOnWindowFocus: true, // Refetch when tab becomes active
     refetchOnMount: 'always', // Always refetch on mount
     retry: 1,

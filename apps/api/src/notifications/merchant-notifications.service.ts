@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface CreateNotificationDto {
   type: 'booking_new' | 'booking_cancelled' | 'booking_modified' | 'payment_refunded';
@@ -14,10 +15,13 @@ export interface CreateNotificationDto {
 
 @Injectable()
 export class MerchantNotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async createNotification(merchantId: string, data: CreateNotificationDto) {
-    return this.prisma.merchantNotification.create({
+    const notification = await this.prisma.merchantNotification.create({
       data: {
         merchantId,
         type: data.type,
@@ -29,6 +33,14 @@ export class MerchantNotificationsService {
         metadata: data.metadata || {},
       },
     });
+
+    // Emit event for real-time SSE notifications
+    this.eventEmitter.emit('notification.created', {
+      merchantId,
+      notification,
+    });
+
+    return notification;
   }
 
   async getNotifications(merchantId: string, params?: {
