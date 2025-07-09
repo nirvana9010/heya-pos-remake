@@ -19,8 +19,8 @@ export function useNotifications(params?: {
     },
     staleTime: 0, // Always consider data stale to force fresh fetches
     gcTime: 0, // Don't garbage collect the data (renamed from cacheTime in v5)
-    refetchInterval: 5 * 1000, // 5 seconds polling (matches OutboxPublisher interval)
-    refetchIntervalInBackground: true, // Keep polling even when tab is not active
+    refetchInterval: 30 * 1000, // 30 seconds polling as backup (SSE handles real-time)
+    refetchIntervalInBackground: false, // Don't poll in background when using SSE
     refetchOnWindowFocus: true, // Refetch when tab becomes active
     refetchOnMount: 'always', // Always refetch on mount
     retry: 1,

@@ -1,4 +1,5 @@
 import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
 import { Booking } from '../../domain/entities/booking.entity';
@@ -38,6 +39,7 @@ export class BookingCreationService {
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
     private readonly outboxRepository: OutboxEventRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -205,6 +207,24 @@ export class BookingCreationService {
       });
 
       await this.outboxRepository.save(outboxEvent, tx);
+
+      // Emit event immediately for real-time notifications
+      // This is in addition to the OutboxPublisher which provides reliability
+      this.eventEmitter.emit('booking.created', {
+        aggregateId: savedBooking.id,
+        merchantId: savedBooking.merchantId,
+        bookingId: savedBooking.id,
+        bookingNumber: savedBooking.bookingNumber,
+        customerId: savedBooking.customerId,
+        staffId: primaryStaffId,
+        serviceIds: serviceDetails.map(s => s.id),
+        locationId: savedBooking.locationId,
+        startTime: savedBooking.timeSlot.start,
+        endTime: savedBooking.timeSlot.end,
+        status: savedBooking.status.value,
+        totalAmount: savedBooking.totalAmount,
+        source: savedBooking.source,
+      });
 
       return savedBooking;
     }, {
