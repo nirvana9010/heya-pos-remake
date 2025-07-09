@@ -14,13 +14,14 @@ import { EmailProviderFactory } from './email/email-provider.factory';
 import { SmsProviderFactory } from './sms/sms-provider.factory';
 import { NotificationType, NotificationContext } from './interfaces/notification.interface';
 import { NotificationDashboard } from './mocks/notification-mocks';
+import { MerchantNotificationsService } from './merchant-notifications.service';
 
 /**
  * Test controller for notification development and testing
  * Only available in development/test environments
  * Remove or disable in production
  */
-@Controller('api/test/notifications')
+@Controller('test/notifications')
 export class TestNotificationsController {
   private dashboard: NotificationDashboard;
 
@@ -28,6 +29,7 @@ export class TestNotificationsController {
     private readonly notificationsService: NotificationsService,
     private readonly emailProviderFactory: EmailProviderFactory,
     private readonly smsProviderFactory: SmsProviderFactory,
+    private readonly merchantNotificationsService: MerchantNotificationsService,
   ) {
     this.dashboard = NotificationDashboard.getInstance();
   }
@@ -201,6 +203,41 @@ export class TestNotificationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearDashboard() {
     this.dashboard.clearNotifications();
+  }
+
+  @Post('merchant-notification')
+  @HttpCode(HttpStatus.OK)
+  async createTestMerchantNotification(
+    @Body() body: {
+      merchantId: string;
+      type?: 'booking_new' | 'booking_cancelled' | 'booking_modified' | 'payment_refunded';
+      title?: string;
+      message?: string;
+    },
+  ) {
+    const notification = await this.merchantNotificationsService.createNotification(
+      body.merchantId,
+      {
+        type: body.type || 'booking_new',
+        priority: 'important',
+        title: body.title || 'Test Notification',
+        message: body.message || 'This is a test notification from API',
+        actionUrl: '/bookings/test-123',
+        actionLabel: 'View booking',
+        metadata: {
+          bookingId: 'test-123',
+          customerName: 'Test Customer',
+          serviceName: 'Test Service',
+          testNotification: true,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      notification,
+      sseInfo: 'Check SSE stream for real-time update',
+    };
   }
 
   @Get('verify-connections')

@@ -8,9 +8,12 @@ import {
   Query,
   UseGuards,
   Req,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MerchantNotificationsService } from './merchant-notifications.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { Request } from 'express';
 
 @Controller('merchant/notifications')
@@ -18,6 +21,7 @@ import { Request } from 'express';
 export class MerchantNotificationsController {
   constructor(
     private readonly notificationsService: MerchantNotificationsService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   @Get()
@@ -64,5 +68,63 @@ export class MerchantNotificationsController {
   async deleteAllNotifications(@Req() req: Request) {
     const merchantId = (req.user as any).merchantId;
     return this.notificationsService.deleteAllNotifications(merchantId);
+  }
+
+  // Test endpoint for development only
+  @Post('test')
+  async createTestNotification(@Req() req: Request) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new HttpException('Not available in production', HttpStatus.FORBIDDEN);
+    }
+    
+    const merchantId = (req.user as any).merchantId;
+    const notification = await this.notificationsService.createNotification(merchantId, {
+      type: 'booking_new',
+      priority: 'important',
+      title: 'Test SSE Notification',
+      message: 'This is a test to verify SSE is working',
+      actionUrl: '/bookings/test',
+      actionLabel: 'View test',
+      metadata: {
+        test: true,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    return {
+      success: true,
+      notification,
+      message: 'Check your SSE stream for the real-time update',
+    };
+  }
+
+  @Post('realtime-token')
+  async getRealtimeToken(@Req() req: Request) {
+    const merchantId = (req.user as any).merchantId;
+    const userId = (req.user as any).sub;
+
+    // Check if Supabase is configured
+    if (!this.supabaseService.isConfigured()) {
+      throw new HttpException(
+        'Realtime service not configured',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    // Generate custom token for Supabase Realtime
+    const token = await this.supabaseService.generateRealtimeToken(merchantId, userId);
+    
+    if (!token) {
+      throw new HttpException(
+        'Failed to generate realtime token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return {
+      token,
+      url: this.supabaseService.getSupabaseUrl(),
+      anonKey: this.supabaseService.getSupabaseAnonKey(),
+    };
   }
 }

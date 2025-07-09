@@ -15,6 +15,9 @@ import { notificationKeys } from '@/lib/query/hooks/use-bookings';
 import { apiClient } from '@/lib/api-client';
 import { bookingEvents } from '@/lib/services/booking-events';
 import { getSSEClient, isSSESupported, SSENotificationEvent } from '@/lib/services/sse-notifications';
+import { supabaseRealtime } from '@/lib/services/supabase';
+import { featureFlags } from '@/lib/feature-flags';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -34,6 +37,9 @@ const NotificationsContext = createContext<NotificationsContextType | undefined>
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   // Force re-render when needed
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  
+  // Optimistic notifications for immediate UI updates
+  const [optimisticNotifications, setOptimisticNotifications] = React.useState<MerchantNotification[]>([]);
   
   // Use React Query hook for fetching notifications
   const queryResult = useNotificationsQuery();
@@ -64,13 +70,23 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     metadata: apiNotification.metadata,
   }), []);
 
-  // Convert notifications data
+  // Convert notifications data and merge with optimistic updates
   const notifications = useMemo(() => {
-    if (!notificationsData?.data) return [];
-    const converted = notificationsData.data.map(convertNotification);
+    const apiNotifications = notificationsData?.data || [];
     
-    return converted;
-  }, [notificationsData, convertNotification]);
+    // Convert API notifications
+    const converted = apiNotifications.map(convertNotification);
+    
+    // Add optimistic notifications that aren't already in API data
+    const optimisticConverted = optimisticNotifications
+      .filter(opt => !apiNotifications.some(api => api.id === opt.id))
+      .map(convertNotification);
+    
+    // Merge and sort by timestamp (newest first)
+    return [...optimisticConverted, ...converted].sort((a, b) => 
+      b.timestamp.getTime() - a.timestamp.getTime()
+    );
+  }, [notificationsData, convertNotification, optimisticNotifications]);
 
   // Track previous unread count for sound notification
   const prevUnreadCountRef = React.useRef(0);
@@ -272,36 +288,115 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     localStorage.removeItem('merchant-notifications');
   }, []);
 
-  // SSE connection for real-time notifications
+  // Get auth context for merchantId
+  const { merchant } = useAuth();
+
+  // Real-time connection (SSE or Supabase)
   useEffect(() => {
-    if (!isSSESupported()) {
-      console.log('[NotificationsContext] SSE not supported, falling back to polling');
-      return;
-    }
-
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      console.log('[NotificationsContext] No auth token, skipping SSE connection');
-      return;
-    }
-
-    const sseClient = getSSEClient();
+    const useSupabase = featureFlags.isEnabled('supabaseRealtime');
     
-    // Connect to SSE
-    sseClient.connect(token);
+    if (useSupabase) {
+      console.log('[NotificationsContext] Using Supabase Realtime');
+      
+      if (!merchant?.id) {
+        console.log('[NotificationsContext] No merchantId, skipping Supabase connection');
+        return;
+      }
 
-    // Handle SSE events
-    const handleSSEMessage = (event: SSENotificationEvent) => {
-      console.log('[NotificationsContext] SSE event:', event.type);
+      // Initialize Supabase Realtime
+      const initSupabase = async () => {
+        const initialized = await supabaseRealtime.initialize();
+        if (!initialized) {
+          console.error('[NotificationsContext] Failed to initialize Supabase, falling back to polling');
+          return;
+        }
+
+        // Subscribe to notifications
+        supabaseRealtime.subscribeToNotifications(
+          merchant.id,
+          (notification) => {
+            console.log('[NotificationsContext] New notification via Supabase:', notification.id);
+            
+            // Add notification optimistically for immediate UI update
+            setOptimisticNotifications(prev => {
+              // Don't add if already exists
+              if (prev.some(n => n.id === notification.id)) {
+                return prev;
+              }
+              return [notification as MerchantNotification, ...prev];
+            });
+            
+            // Force UI update immediately
+            forceUpdate();
+            
+            // Still refetch in background to sync with server
+            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+            refetch().then(() => {
+              // Clear optimistic notifications after successful fetch
+              setOptimisticNotifications([]);
+            });
+          },
+          (error) => {
+            console.error('[NotificationsContext] Supabase error:', error);
+          }
+        );
+      };
+
+      initSupabase();
+
+      // Cleanup
+      return () => {
+        console.log('[NotificationsContext] Cleaning up Supabase connection');
+        if (merchant?.id) {
+          supabaseRealtime.unsubscribeFromNotifications(merchant.id);
+        }
+      };
+    } else {
+      // Use SSE (existing implementation)
+      if (!isSSESupported()) {
+        console.log('[NotificationsContext] SSE not supported, falling back to polling');
+        return;
+      }
+
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.log('[NotificationsContext] No auth token, skipping SSE connection');
+        return;
+      }
+
+      const sseClient = getSSEClient();
+      
+      // Connect to SSE
+      sseClient.connect(token);
+
+      // Handle SSE events
+      const handleSSEMessage = (event: SSENotificationEvent) => {
+        console.log('[NotificationsContext] SSE event:', event.type);
 
       switch (event.type) {
         case 'notification':
-          // New notification received, refetch to update the list
+          // New notification received, update optimistically
           if (event.notification) {
             console.log('[NotificationsContext] New notification via SSE:', event.notification.id);
-            // Immediate refetch to get the new notification
+            
+            // Add notification optimistically for immediate UI update
+            setOptimisticNotifications(prev => {
+              // Don't add if already exists
+              if (prev.some(n => n.id === event.notification.id)) {
+                return prev;
+              }
+              return [event.notification as MerchantNotification, ...prev];
+            });
+            
+            // Force UI update immediately
+            forceUpdate();
+            
+            // Still refetch in background to sync with server
             queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            refetch();
+            refetch().then(() => {
+              // Clear optimistic notifications after successful fetch
+              setOptimisticNotifications([]);
+            });
           }
           break;
 
@@ -341,15 +436,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       }
     };
 
-    sseClient.on('message', handleSSEMessage);
+      sseClient.on('message', handleSSEMessage);
 
-    // Cleanup on unmount or token change
-    return () => {
-      console.log('[NotificationsContext] Cleaning up SSE connection');
-      sseClient.off('message', handleSSEMessage);
-      sseClient.disconnect();
-    };
-  }, [queryClient, refetch]);
+      // Cleanup on unmount or token change
+      return () => {
+        console.log('[NotificationsContext] Cleaning up SSE connection');
+        sseClient.off('message', handleSSEMessage);
+        sseClient.disconnect();
+      };
+    }
+  }, [queryClient, refetch, merchant?.id]);
 
 
   // Force update and process notifications when data timestamp changes

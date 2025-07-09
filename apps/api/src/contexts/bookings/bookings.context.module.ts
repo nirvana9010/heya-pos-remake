@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { OutboxModule } from '../shared/outbox/outbox.module';
@@ -26,7 +25,6 @@ import { QueryHandlers } from './application/queries/handlers';
   imports: [
     PrismaModule,
     CqrsModule,
-    EventEmitterModule.forRoot(), // For domain events
     OutboxModule,
     LoyaltyModule, // For loyalty points accrual
     PaymentsModule, // For marking bookings as paid

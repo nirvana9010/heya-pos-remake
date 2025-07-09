@@ -1,5 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -22,6 +23,7 @@ import { CacheModule } from './common/cache/cache.module';
 import { ValidationModule } from './common/validation/validation.module';
 import { CommonServicesModule } from './common/services/common-services.module';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 // Bounded Contexts
 import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
@@ -32,10 +34,21 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot({
+      global: true,
+      wildcard: false,
+      delimiter: '.',
+      newListener: false,
+      removeListener: false,
+      maxListeners: 10,
+      verboseMemoryLeak: false,
+      ignoreErrors: false,
+    }),
     CacheModule, // Global cache module
     ValidationModule, // Global validation module
     CommonServicesModule, // Global common services
     MonitoringModule, // Global monitoring
+    SupabaseModule, // Global Supabase module for realtime
     PrismaModule, 
     AuthModule, 
     ServicesModule, 

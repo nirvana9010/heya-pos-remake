@@ -1,7 +1,7 @@
 # Feature: Merchant Notifications System
 
 **Date Implemented**: 2025-01-01  
-**Last Updated**: 2025-01-03  
+**Last Updated**: 2025-07-09  
 **Implemented By**: Claude Code Session  
 **Risk Level**: HIGH (due to unresolved reliability issues)  
 **Related Ticket/Issue**: #notifications-implementation
@@ -274,8 +274,25 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - The 5-second polling interval was chosen to balance responsiveness with server load
 - Browser notification behavior varies significantly across browsers and OS
 - Future optimization: Consider implementing notification batching for high-volume merchants
-- Future enhancement: Add notification preferences (email, SMS, push)
 - The outbox pattern ensures notifications are never lost, even during service disruptions
+
+### Email/SMS Implementation Status (2025-07-09)
+- **Complete Implementation**: All services, templates, and providers are coded
+- **Event Integration**: NotificationEventHandler calls email/SMS for all booking events
+- **Dependencies Installed**: SendGrid and Twilio packages installed successfully
+- **Configuration Required**:
+  ```
+  SENDGRID_API_KEY=your-key
+  SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+  TWILIO_ACCOUNT_SID=your-sid
+  TWILIO_AUTH_TOKEN=your-token
+  TWILIO_PHONE_NUMBER=+1234567890  # Must be a real Twilio number
+  ```
+- **Fixed Issues**: 
+  - SendGrid TypeScript import resolved (changed to CommonJS require)
+  - Provider factories updated to use proper dependency injection
+  - Both services initializing successfully as seen in logs
+- **To Activate**: Update Twilio phone number from placeholder to actual Twilio number
 
 ### Recent Fixes (2025-01-01)
 - Fixed race condition where all notifications were marked as "seen" preventing browser alerts
@@ -298,16 +315,50 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - Notifications confirmed working from booking app to merchant app
 - Auto-popup issue remains unresolved for all notification sources
 
+### Updates (2025-07-09)
+- Implemented optimistic updates for immediate UI feedback
+  - Added optimistic notifications state in NotificationsContext
+  - SSE and Supabase handlers now update UI immediately without waiting for API
+  - Notifications merge optimistic state with API data to prevent duplicates
+- Fixed EventEmitter2 missing in MerchantNotificationsService
+  - Backend wasn't emitting events after creating notifications
+  - Added EventEmitter2 injection and 'notification.created' event emission
+- Added Supabase environment variables to merchant app
+- Migration to Supabase Realtime attempted but incomplete:
+  - Feature flag system implemented for gradual rollout
+  - Supabase client initialization code added
+  - SQL migration for Realtime not yet applied to database
+  - SSE remains primary notification method
+
 ### Critical Unresolved Issues
-- **Notifications require page refresh to appear** - Despite polling working correctly:
-  - API creates notifications successfully
-  - React Query fetches new data every 5 seconds
-  - BUT: Notification processing doesn't trigger until manual interaction (page refresh, bell click)
-  - Root cause: React state/effect not detecting changes in query data properly
-  - **UPDATE (2025-07-03)**: This issue affects ALL notification sources:
-    - Bookings created in merchant app
-    - Bookings created through public booking app
-    - Both notification center and browser notifications affected
+- **SSE Performance Issues**:
+  - SSE notifications are slow (several seconds delay)
+  - SSE doesn't force calendar refresh reliably
+  - Console shows SSE events received but UI updates are inconsistent
+  
+- **Supabase Realtime Not Working**:
+  - Configuration is in place but Realtime not functioning
+  - Missing SQL migration for Realtime subscriptions
+  - No console logs showing Supabase connection attempts
+  - Feature flag currently disabled by default
+
+- **Calendar Auto-Refresh Issues**:
+  - Calendar doesn't update automatically with new bookings
+  - Manual refresh required to see new bookings
+  - bookingEvents.broadcast() called but calendar hooks not always responding
+
+### Current State Summary
+- **Working**: Basic notification creation and display after manual refresh
+- **Partially Working**: SSE events received but slow and unreliable UI updates
+- **Not Working**: Supabase Realtime, automatic calendar refresh, instant notification popups
+- **Email/SMS Status**: 
+  - Infrastructure fully implemented (services, templates, providers)
+  - SendGrid and Twilio packages installed (2025-07-09)
+  - Credentials configured in .env
+  - Both Twilio SMS and SendGrid email services initializing successfully
+  - SendGrid TypeScript import issue resolved (using CommonJS require)
+  - Provider factories updated to use dependency injection
+  - Ready for testing but requires updating Twilio phone number from placeholder (+1234567890)
   
 ### Technical Insights Discovered
 1. **OutboxEvent Performance**: Queries were slow (400-500ms) due to missing index on `processedAt` and `retryCount`
