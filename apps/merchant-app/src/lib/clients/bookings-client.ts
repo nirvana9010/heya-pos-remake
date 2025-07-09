@@ -1,5 +1,6 @@
 import { BaseApiClient } from './base-client';
 import { requestSchemas, responseSchemas } from './validation';
+import { formatName } from '@heya-pos/utils';
 
 export interface Booking {
   id: string;
@@ -221,7 +222,7 @@ export class BookingsClient extends BaseApiClient {
     const customerName = booking.customerName || 
       booking.customer?.name ||
       (booking.customer ? 
-        `${booking.customer.firstName} ${booking.customer.lastName}`.trim() : 
+        formatName(booking.customer.firstName, booking.customer.lastName) : 
         'Unknown Customer');
     
     // Customer phone - V2 provides it directly, V1 has it nested
@@ -239,7 +240,7 @@ export class BookingsClient extends BaseApiClient {
     const staffName = booking.staffName || 
       booking.staff?.name ||
       (booking.provider ? 
-        `${booking.provider.firstName} ${booking.provider.lastName}`.trim() : 
+        formatName(booking.provider.firstName, booking.provider.lastName) : 
         'Staff');
     
     // Service name - V2 provides it directly, V1 has it nested

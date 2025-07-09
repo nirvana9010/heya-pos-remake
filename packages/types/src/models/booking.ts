@@ -54,7 +54,8 @@ export enum BookingSource {
   WALK_IN = 'WALK_IN',
   PHONE = 'PHONE',
   POS = 'POS',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  MANUAL = 'MANUAL'
 }
 
 // Keeping BookingItem for backward compatibility with utils

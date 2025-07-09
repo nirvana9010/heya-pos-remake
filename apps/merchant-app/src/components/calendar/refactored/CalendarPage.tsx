@@ -15,6 +15,7 @@ import {
   useBookingOperations 
 } from './hooks';
 import { Button } from '@heya-pos/ui';
+import { formatName } from '@heya-pos/utils';
 import { Card, CardContent } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { Switch } from '@heya-pos/ui';
@@ -299,7 +300,7 @@ function CalendarContent() {
           // Update the local state with the new customer
           actions.setCustomers([...state.customers, {
             ...newCustomer,
-            name: `${newCustomer.firstName} ${newCustomer.lastName}`.trim()
+            name: formatName(newCustomer.firstName, newCustomer.lastName)
           }]);
         }
       }
@@ -328,7 +329,7 @@ function CalendarContent() {
         startTime: bookingData.startTime.toISOString(),
         notes: bookingData.notes || '',
         isOverride: true, // Allow time conflicts for slideout bookings
-        source: 'SLIDEOUT',
+        source: 'MANUAL',
       };
       
       

@@ -20,7 +20,7 @@ import { Textarea } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { bookingApi, type Service, type Staff, type TimeSlot, type MerchantInfo } from "../../lib/booking-api";
 import { format } from "date-fns";
-import { TimezoneUtils } from "@heya-pos/utils";
+import { TimezoneUtils, formatName } from "@heya-pos/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CustomerIdentification } from "../../components/CustomerIdentification";
 import { PaymentStep } from "../../components/PaymentStep";
@@ -191,7 +191,7 @@ const CustomerFormComponent = React.memo(({
           <CheckCircle className="absolute right-3 top-4 h-4 w-4 text-green-500" />
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          We'll send your confirmation here
+          We&apos;ll send your confirmation here
         </p>
       </div>
       
@@ -282,6 +282,11 @@ export default function BookingPageClient() {
   const { toast } = useToast();
   const { merchantSubdomain, merchant: merchantFromContext } = useMerchant();
   const apiClient = useApiClient();
+
+  // Helper function to clean staff names that contain "null"
+  const cleanStaffName = (name: string): string => {
+    return name.replace(' null', '').replace('null ', '').trim();
+  };
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -417,7 +422,7 @@ export default function BookingPageClient() {
     
     // Create booking directly
     await createBooking({
-      customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+      customerName: formatName(customerInfo.firstName, customerInfo.lastName),
       customerPhone: customerInfo.phone,
       customerEmail: customerInfo.email,
       services: selectedServices.map(id => ({ serviceId: id })),
@@ -442,10 +447,10 @@ export default function BookingPageClient() {
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber || booking.id,
         services: selectedServicesList,
-        staffName: selectedStaffMember?.name || 'Any Available',
+        staffName: selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available',
         date: selectedDate!,
         time: selectedTime!,
-        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerName: formatName(customerInfo.firstName, customerInfo.lastName),
         customerEmail: customerInfo.email,
         totalPrice,
         totalDuration,
@@ -496,7 +501,8 @@ export default function BookingPageClient() {
     }
   };
 
-  const ProgressIndicator = React.memo(() => (
+  const ProgressIndicator = React.memo(function ProgressIndicator() {
+    return (
     <div className="mb-12">
       <div className="relative max-w-3xl mx-auto">
         {/* Background gradient line */}
@@ -550,7 +556,8 @@ export default function BookingPageClient() {
         </div>
       </div>
     </div>
-  ));
+    );
+  });
 
   const ServiceSelection = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -904,10 +911,10 @@ export default function BookingPageClient() {
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-semibold text-lg">
-                        {member.name.split(' ').map(n => n[0]).join('')}
+                        {cleanStaffName(member.name).split(' ').map(n => n[0]).join('')}
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-base font-medium">{member.name}</CardTitle>
+                        <CardTitle className="text-base font-medium">{cleanStaffName(member.name)}</CardTitle>
                       </div>
                       <motion.div
                         animate={isSelected ? { scale: [1, 1.2, 1] } : {}}
@@ -986,7 +993,7 @@ export default function BookingPageClient() {
               <div className="h-12 w-px bg-gray-300" />
               <div>
                 <p className="text-sm text-muted-foreground mb-1">With</p>
-                <p className="font-medium">{selectedStaffMember?.name || 'Any Available Specialist'}</p>
+                <p className="font-medium">{selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available Specialist'}</p>
               </div>
               <div className="h-12 w-px bg-gray-300" />
               <div>
@@ -1247,10 +1254,10 @@ export default function BookingPageClient() {
                 >
                   <CalendarDays className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-lg text-muted-foreground mb-4">
-                    We're fully booked on {format(selectedDate, 'MMMM d')}
+                    We&apos;re fully booked on {format(selectedDate, 'MMMM d')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Try selecting another date or use the "Book Next Available" option above
+                    Try selecting another date or use the &quot;Book Next Available&quot; option above
                   </p>
                 </motion.div>
               )}
@@ -1364,7 +1371,7 @@ export default function BookingPageClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            You're All Set!
+            You&apos;re All Set!
           </motion.h2>
           <motion.p 
             className="text-muted-foreground"
@@ -1372,7 +1379,7 @@ export default function BookingPageClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            We can't wait to see you, {customerFirstName}!
+            We can&apos;t wait to see you, {customerFirstName}!
           </motion.p>
         </motion.div>
         
@@ -1462,7 +1469,7 @@ export default function BookingPageClient() {
               
               {/* Divider */}
               <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">What's Next?</h4>
+                <h4 className="font-medium mb-3">What&apos;s Next?</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
@@ -1470,7 +1477,7 @@ export default function BookingPageClient() {
                   </div>
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    <p>We'll send a reminder 24 hours before</p>
+                    <p>We&apos;ll send a reminder 24 hours before</p>
                   </div>
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
@@ -1732,8 +1739,8 @@ export default function BookingPageClient() {
                           services={selectedServicesList}
                           date={selectedDate!}
                           time={selectedTime!}
-                          staffName={selectedStaffMember?.name || 'Any Available'}
-                          customerName={`${customerInfo.firstName} ${customerInfo.lastName}`}
+                          staffName={selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available'}
+                          customerName={formatName(customerInfo.firstName, customerInfo.lastName)}
                         />
                         </>
                       )}

@@ -13,6 +13,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
+import { formatName } from '@heya-pos/utils';
 import { IsString, IsOptional, IsNotEmpty, IsEmail, MaxLength } from 'class-validator';
 
 class CheckInDto {
@@ -231,7 +232,7 @@ export class PublicCheckInController {
         bookingNumber: booking.bookingNumber,
         serviceName: booking.services[0]?.service?.name || 'Service',
         staffName: booking.provider 
-          ? `${booking.provider.firstName} ${booking.provider.lastName || ''}`.trim()
+          ? formatName(booking.provider.firstName, booking.provider.lastName)
           : 'Unassigned',
         startTime: startTimeDisplay.time.substring(0, 5), // HH:MM format
         endTime: endTimeDisplay.time.substring(0, 5),

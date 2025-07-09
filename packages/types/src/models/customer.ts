@@ -3,7 +3,7 @@ export interface Customer {
   merchantId: string;
   email?: string;
   firstName: string;
-  lastName: string;
+  lastName?: string;
   phone?: string;
   mobile?: string;
   dateOfBirth?: Date;

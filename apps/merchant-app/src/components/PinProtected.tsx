@@ -8,6 +8,7 @@ import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Alert, AlertDescription } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
+import { formatName } from "@heya-pos/utils";
 import { apiClient } from "@/lib/api-client";
 import { SetupOwnerPin } from "./SetupOwnerPin";
 import "@/lib/api-extensions/pin-api"; // Initialize PIN API extensions
@@ -130,7 +131,7 @@ export function PinProtected({
       
       // Store owner info for later use
       if (owner) {
-        localStorage.setItem("owner_name", `${owner.firstName} ${owner.lastName}`);
+        localStorage.setItem("owner_name", formatName(owner.firstName, owner.lastName));
       }
       
       // Check if owner has PIN set

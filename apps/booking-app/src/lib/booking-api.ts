@@ -161,7 +161,7 @@ class BookingApi {
         broadcastChannel.postMessage({
           type: 'booking_created',
           bookingId: response.id,
-          source: 'external',
+          source: 'ONLINE',
           timestamp: Date.now()
         });
       } catch (error) {
