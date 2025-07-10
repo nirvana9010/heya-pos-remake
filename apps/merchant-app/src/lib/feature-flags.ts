@@ -9,7 +9,7 @@ export interface FeatureFlags {
 
 class FeatureFlagService {
   private flags: FeatureFlags = {
-    supabaseRealtime: false, // Default to false for safety
+    supabaseRealtime: true, // Default to true - Supabase is now the primary realtime system
   };
 
   /**

@@ -311,7 +311,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const initSupabase = async () => {
         const initialized = await supabaseRealtime.initialize();
         if (!initialized) {
-          console.error('[NotificationsContext] Failed to initialize Supabase, falling back to polling');
+          console.warn('[NotificationsContext] Failed to initialize Supabase. Falling back to SSE.');
+          console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
+          
+          // Disable Supabase for this session to avoid repeated attempts
+          featureFlags.disable('supabaseRealtime');
+          
+          // Reinitialize with SSE by re-running the effect
           return;
         }
 

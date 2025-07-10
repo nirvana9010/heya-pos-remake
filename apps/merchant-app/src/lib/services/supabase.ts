@@ -18,11 +18,22 @@ class SupabaseRealtimeService {
   async initialize(): Promise<boolean> {
     try {
       // Get realtime token from our backend
-      const response = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
-      this.realtimeConfig = response.data;
+      // Note: apiClient.post returns the data directly, not a response object
+      const data = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
+      
+      console.log('[Supabase] Data from realtime-token:', data);
+      
+      // Check if data is valid
+      if (!data) {
+        console.error('[Supabase] Invalid response from realtime-token endpoint');
+        return false;
+      }
+      
+      this.realtimeConfig = data;
+      console.log('[Supabase] Config received:', this.realtimeConfig);
 
       if (!this.realtimeConfig.url || !this.realtimeConfig.anonKey) {
-        console.error('[Supabase] Missing configuration');
+        console.error('[Supabase] Missing configuration. Please ensure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY are set in the API .env file');
         return false;
       }
 
@@ -53,8 +64,12 @@ class SupabaseRealtimeService {
 
       console.log('[Supabase] Client initialized');
       return true;
-    } catch (error) {
-      console.error('[Supabase] Failed to initialize:', error);
+    } catch (error: any) {
+      if (error.response?.status === 503) {
+        console.warn('[Supabase] Realtime service not configured on backend. Please add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env file');
+      } else {
+        console.error('[Supabase] Failed to initialize:', error);
+      }
       return false;
     }
   }
@@ -173,8 +188,8 @@ class SupabaseRealtimeService {
   async refreshToken(): Promise<boolean> {
     try {
       // Get new token from our backend
-      const response = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
-      this.realtimeConfig = response.data;
+      const data = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
+      this.realtimeConfig = data;
 
       if (this.client && this.realtimeConfig.token) {
         // Update the session with new token
