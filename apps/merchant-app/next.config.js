@@ -151,12 +151,15 @@ const nextConfig = {
                   /node_modules[\\/]/.test(module.identifier());
               },
               name(module) {
-                const hash = require('crypto')
-                  .createHash('sha1')
-                  .update(module.identifier())
-                  .digest('hex')
-                  .substring(0, 8);
-                return `lib-${hash}`;
+                // Use a simple hash function instead of crypto for browser compatibility
+                const moduleId = module.identifier();
+                let hash = 0;
+                for (let i = 0; i < moduleId.length; i++) {
+                  const char = moduleId.charCodeAt(i);
+                  hash = ((hash << 5) - hash) + char;
+                  hash = hash & hash; // Convert to 32-bit integer
+                }
+                return `lib-${Math.abs(hash).toString(16).substring(0, 8)}`;
               },
               priority: 30,
               minChunks: 1,
@@ -172,12 +175,15 @@ const nextConfig = {
             // Shared chunks
             shared: {
               name(module, chunks) {
-                const hash = require('crypto')
-                  .createHash('sha1')
-                  .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
-                  .digest('hex')
-                  .substring(0, 8);
-                return `shared-${hash}`;
+                // Use a simple hash function instead of crypto for browser compatibility
+                const chunkNames = chunks.reduce((acc, chunk) => acc + chunk.name, '');
+                let hash = 0;
+                for (let i = 0; i < chunkNames.length; i++) {
+                  const char = chunkNames.charCodeAt(i);
+                  hash = ((hash << 5) - hash) + char;
+                  hash = hash & hash; // Convert to 32-bit integer
+                }
+                return `shared-${Math.abs(hash).toString(16).substring(0, 8)}`;
               },
               priority: 10,
               minChunks: 2,
