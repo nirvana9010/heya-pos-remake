@@ -110,6 +110,34 @@ Only the API service connects to the database. Frontend apps communicate through
 - `.env.postgresql` - PostgreSQL-specific configuration reference
 - `.env.development` - Development-specific overrides
 
+## Real-time Notifications
+
+The application uses **Supabase Realtime** as the default notification system. 
+
+### Configuration
+To enable Supabase Realtime, add these to `/apps/api/.env`:
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_KEY=your-service-key-here
+```
+
+Get these values from: https://app.supabase.com/project/hpvnmqvdgkfeykekosrh/settings/api
+
+### Behavior
+- **Default**: Supabase Realtime is enabled by default
+- **Automatic Fallback**: If Supabase is not configured, automatically falls back to SSE
+- **Manual Toggle**: To switch between systems:
+  ```javascript
+  // Force SSE instead of Supabase
+  localStorage.setItem('feature_supabaseRealtime', 'false');
+  location.reload();
+  
+  // Use Supabase (default)
+  localStorage.removeItem('feature_supabaseRealtime');
+  location.reload();
+  ```
+
 ## Monitoring
 
 Use PM2 for process management and monitoring:

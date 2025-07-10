@@ -10,6 +10,7 @@ This guide documents the migration from custom SSE implementation to Supabase Re
 - ✅ Frontend Supabase client wrapper created
 - ✅ NotificationsContext updated to support both SSE and Supabase
 - ✅ Feature flag system implemented
+- ✅ **Supabase Realtime is now the DEFAULT** (as of latest update)
 - ⏳ Waiting for Supabase keys from dashboard
 - ⏳ SQL migration needs to be run
 - ⏳ Testing required
@@ -32,11 +33,21 @@ This guide documents the migration from custom SSE implementation to Supabase Re
 
 ## Testing the Migration
 
-### 1. Enable Feature Flag
+### 1. Enable/Disable Feature Flag
 
+**Note: Supabase is now enabled by default!**
+
+To disable Supabase and use SSE instead:
 ```javascript
 // In browser console on merchant app:
-localStorage.setItem('feature_supabaseRealtime', 'true');
+localStorage.setItem('feature_supabaseRealtime', 'false');
+// Then refresh the page
+```
+
+To re-enable Supabase (default):
+```javascript
+// Remove the override
+localStorage.removeItem('feature_supabaseRealtime');
 // Then refresh the page
 ```
 
