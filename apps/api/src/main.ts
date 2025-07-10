@@ -10,6 +10,12 @@ import compression from 'compression';
 import helmet from 'helmet';
 import { memoryLogger } from './utils/memory-logger';
 
+// Ensure crypto is available globally for uuid package
+import * as crypto from 'crypto';
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = crypto as any;
+}
+
 // Load environment variables
 dotenv.config();
 
