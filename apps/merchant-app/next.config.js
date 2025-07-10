@@ -151,6 +151,7 @@ const nextConfig = {
                   /node_modules[\\/]/.test(module.identifier());
               },
               name(module) {
+                // WARNING: Do NOT use require('crypto') here - it causes "crypto is not defined" in production
                 // Use a simple hash function instead of crypto for browser compatibility
                 const moduleId = module.identifier();
                 let hash = 0;

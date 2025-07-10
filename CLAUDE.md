@@ -62,6 +62,11 @@ DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres
    - If you see database connection errors, first verify the API works when run directly with `cd apps/api && npm run start:dev`
    - If it works directly but not with PM2, the environment variables aren't being loaded
 
+## Known Issues to Avoid
+
+### "crypto is not defined" Error in Production
+**IMPORTANT**: Never use `require('crypto')` in Next.js webpack configuration or any client-side code. This will cause a "crypto is not defined" error in production builds. Instead, use a simple hash function for generating unique identifiers in webpack configs.
+
 ## Commands to Run
 
 When making code changes, always run these commands before committing:
