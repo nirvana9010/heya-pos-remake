@@ -127,7 +127,7 @@ Only the API service connects to the database. Frontend apps communicate through
 The application uses **Supabase Realtime** as the default notification system. 
 
 ### Configuration
-To enable Supabase Realtime, add these to `/apps/api/.env`:
+1. **Add environment variables** to `/apps/api/.env`:
 ```
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
@@ -135,6 +135,14 @@ SUPABASE_SERVICE_KEY=your-service-key-here
 ```
 
 Get these values from: https://app.supabase.com/project/hpvnmqvdgkfeykekosrh/settings/api
+
+2. **Enable Realtime on the MerchantNotification table**:
+   - Go to Supabase Dashboard > Table Editor
+   - Click on `MerchantNotification` table
+   - Enable "Realtime" 
+   - OR run the SQL migration in `/apps/api/prisma/migrations/setup_supabase_realtime.sql`
+
+**IMPORTANT**: Without step 2, Supabase will connect but won't receive any events!
 
 ### Behavior
 - **Default**: Supabase Realtime is enabled by default
