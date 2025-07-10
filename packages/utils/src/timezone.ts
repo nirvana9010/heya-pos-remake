@@ -75,6 +75,23 @@ export class TimezoneUtils {
       });
     } else if (formatStr === 'datetime') {
       return dateObj.toLocaleString('en-AU', { timeZone: timezone });
+    } else if (formatStr === 'EEEE, MMMM d') {
+      // Handle the specific format used in booking app
+      return dateObj.toLocaleDateString('en-AU', { 
+        timeZone: timezone,
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      });
+    } else if (formatStr === 'EEEE, MMMM d, yyyy') {
+      // Handle the confirmation date format
+      return dateObj.toLocaleDateString('en-AU', { 
+        timeZone: timezone,
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
     }
     
     return dateObj.toLocaleString('en-AU', options);
