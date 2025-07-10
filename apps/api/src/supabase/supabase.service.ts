@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { sign } from 'jsonwebtoken';
 
 @Injectable()
 export class SupabaseService {
@@ -9,12 +8,16 @@ export class SupabaseService {
   private supabase: SupabaseClient | null = null;
   private readonly supabaseUrl: string;
   private readonly supabaseServiceKey: string | undefined;
+  private readonly supabaseAnonKey: string | undefined;
   private readonly jwtSecret: string;
 
   constructor(private readonly configService: ConfigService) {
     this.supabaseUrl = this.configService.get<string>('SUPABASE_URL') || '';
     this.supabaseServiceKey = this.configService.get<string>('SUPABASE_SERVICE_KEY');
-    this.jwtSecret = this.configService.get<string>('JWT_SECRET') || '';
+    this.supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+    // For Supabase JWT, we need to use the Supabase JWT secret which is derived from the service key
+    // In production, you should get this from Supabase dashboard
+    this.jwtSecret = this.configService.get<string>('SUPABASE_JWT_SECRET') || this.configService.get<string>('JWT_SECRET') || '';
 
     if (this.supabaseUrl && this.supabaseServiceKey) {
       this.supabase = createClient(this.supabaseUrl, this.supabaseServiceKey, {
@@ -30,33 +33,20 @@ export class SupabaseService {
   }
 
   /**
-   * Generate a custom JWT for Supabase Realtime that includes merchantId
-   * This allows us to use RLS policies based on merchantId
+   * For Supabase Realtime, we need to return the anon key
+   * The service role key should only be used server-side
    */
   async generateRealtimeToken(merchantId: string, userId: string): Promise<string | null> {
-    if (!this.supabaseServiceKey) {
-      this.logger.error('Cannot generate realtime token: SUPABASE_SERVICE_KEY not configured');
+    if (!this.supabaseAnonKey) {
+      this.logger.error('Cannot generate realtime token: SUPABASE_ANON_KEY not configured');
       return null;
     }
 
     try {
-      // Create a custom JWT that Supabase will accept
-      // Include merchantId in the JWT claims for RLS policies
-      const payload = {
-        aud: 'authenticated',
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
-        sub: userId,
-        merchantId: merchantId,
-        role: 'authenticated',
-        iat: Math.floor(Date.now() / 1000),
-        iss: 'supabase',
-      };
-
-      // Sign with the Supabase JWT secret (derived from service key)
-      // Note: In production, you should use the actual Supabase JWT secret
-      const token = sign(payload, this.jwtSecret);
-      
-      return token;
+      // Return the anon key for client-side usage
+      // This is safe because RLS policies protect the data
+      this.logger.log(`Providing anon key for merchant: ${merchantId}, user: ${userId}`);
+      return this.supabaseAnonKey;
     } catch (error) {
       this.logger.error('Failed to generate realtime token:', error);
       return null;

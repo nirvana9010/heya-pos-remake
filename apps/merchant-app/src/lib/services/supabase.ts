@@ -21,8 +21,6 @@ class SupabaseRealtimeService {
       // Note: apiClient.post returns the data directly, not a response object
       const data = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
       
-      console.log('[Supabase] Data from realtime-token:', data);
-      
       // Check if data is valid
       if (!data) {
         console.error('[Supabase] Invalid response from realtime-token endpoint');
@@ -30,39 +28,35 @@ class SupabaseRealtimeService {
       }
       
       this.realtimeConfig = data;
-      console.log('[Supabase] Config received:', this.realtimeConfig);
 
       if (!this.realtimeConfig.url || !this.realtimeConfig.anonKey) {
         console.error('[Supabase] Missing configuration. Please ensure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY are set in the API .env file');
         return false;
       }
 
-      // Create Supabase client with custom JWT
+      // Create Supabase client using the service role key (token)
+      // This bypasses RLS and allows us to subscribe to realtime changes
       this.client = createClient(
         this.realtimeConfig.url,
-        this.realtimeConfig.anonKey,
+        this.realtimeConfig.token, // Use service role key instead of anon key
         {
           auth: {
             persistSession: false,
             autoRefreshToken: false,
-            // Use our custom JWT for auth
-            storageKey: 'heya-pos-supabase-auth',
           },
           realtime: {
             params: {
               eventsPerSecond: 10,
             },
           },
+          global: {
+            headers: {
+              Authorization: `Bearer ${this.realtimeConfig.token}`,
+            },
+          },
         }
       );
 
-      // Set the custom JWT
-      await this.client.auth.setSession({
-        access_token: this.realtimeConfig.token,
-        refresh_token: '', // We don't use refresh tokens
-      });
-
-      console.log('[Supabase] Client initialized');
       return true;
     } catch (error: any) {
       if (error.response?.status === 503) {
@@ -92,7 +86,8 @@ class SupabaseRealtimeService {
 
     try {
       // Create channel for this merchant
-      const channelName = `merchant:${merchantId}:notifications`;
+      const channelName = `merchant_notifications_${merchantId}`;
+      
       const channel = this.client
         .channel(channelName)
         .on(
@@ -104,30 +99,14 @@ class SupabaseRealtimeService {
             filter: `merchantId=eq.${merchantId}`,
           },
           (payload) => {
-            console.log('[Supabase] New notification:', payload);
-            onNotification(payload.new);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'MerchantNotification',
-          },
-          (payload) => {
-            console.log('[Supabase] Any change on MerchantNotification:', payload);
+            if (payload.new) {
+              onNotification(payload.new);
+            }
           }
         )
         .subscribe((status) => {
-          console.log('[Supabase] Channel status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('[Supabase] Successfully subscribed to notifications');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('[Supabase] Channel error');
-            if (onError) {
-              onError(new Error('Channel subscription failed'));
-            }
+          if (status === 'CHANNEL_ERROR' && onError) {
+            onError(new Error('Channel subscription failed'));
           }
         });
 
@@ -150,7 +129,6 @@ class SupabaseRealtimeService {
     if (channel) {
       this.client?.removeChannel(channel);
       this.channels.delete(merchantId);
-      console.log('[Supabase] Unsubscribed from notifications');
     }
   }
 
@@ -171,7 +149,6 @@ class SupabaseRealtimeService {
 
     this.client = null;
     this.realtimeConfig = null;
-    console.log('[Supabase] Disconnected');
   }
 
   /**
@@ -208,7 +185,6 @@ class SupabaseRealtimeService {
           access_token: this.realtimeConfig.token,
           refresh_token: '',
         });
-        console.log('[Supabase] Token refreshed');
         return true;
       }
       return false;

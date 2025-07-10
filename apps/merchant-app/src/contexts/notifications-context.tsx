@@ -300,10 +300,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const useSupabase = featureFlags.isEnabled('supabaseRealtime');
     
     if (useSupabase) {
-      console.log('[NotificationsContext] Using Supabase Realtime');
-      
       if (!merchant?.id) {
-        console.log('[NotificationsContext] No merchantId, skipping Supabase connection');
         return;
       }
 
@@ -325,8 +322,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         supabaseRealtime.subscribeToNotifications(
           merchant.id,
           (notification) => {
-            console.log('[NotificationsContext] New notification via Supabase:', notification.id);
-            
             // Add notification optimistically for immediate UI update
             setOptimisticNotifications(prev => {
               // Don't add if already exists
@@ -347,11 +342,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
               // Clear optimistic notifications after successful fetch
               setOptimisticNotifications([]);
             }).catch(error => {
-              console.error('[NotificationsContext] Supabase refresh failed:', error);
+              // Silently handle error
             });
           },
           (error) => {
-            console.error('[NotificationsContext] Supabase error:', error);
+            // Silently handle error
           }
         );
       };
