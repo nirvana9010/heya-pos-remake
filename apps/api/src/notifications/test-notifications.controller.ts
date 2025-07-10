@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 // Swagger imports removed - not installed in this project
 import { NotificationsService } from './notifications.service';
@@ -242,6 +243,172 @@ export class TestNotificationsController {
       notification,
       sseInfo: 'Check SSE stream for real-time update',
     };
+  }
+
+  @Post('staff-notification')
+  @HttpCode(HttpStatus.OK)
+  async testStaffNotification(@Body() dto: { type: 'new_booking' | 'cancellation'; merchantId: string }) {
+    try {
+      // Get merchant details
+      const merchant = await this.prisma.merchant.findUnique({
+        where: { id: dto.merchantId },
+      });
+      
+      if (!merchant) {
+        throw new BadRequestException('Merchant not found');
+      }
+      
+      const merchantSettings = merchant.settings as any;
+      let panelNotification = null;
+      let emailResult = null;
+      let smsResult = null;
+      
+      // Create test context for staff notifications
+      const testContext = {
+        booking: {
+          id: 'test-booking-id',
+          bookingNumber: 'TEST-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+          date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          time: '2:00 PM',
+          serviceName: 'Test Service',
+          staffName: 'Test Staff',
+          duration: 60,
+          price: 100,
+          locationName: 'Test Location',
+        },
+        merchant: {
+          id: merchant.id,
+          name: merchant.name,
+          email: merchant.email,
+          phone: merchant.phone,
+          website: merchant.website,
+        },
+        // For staff notifications, use hardcoded test values
+        customer: {
+          id: merchant.id,
+          email: 'lukas.tn90@gmail.com',
+          phone: '+61422627624',
+          firstName: merchant.name,
+          lastName: '',
+          preferredChannel: 'both' as const,
+        },
+      };
+      
+      if (dto.type === 'new_booking') {
+        // Panel notification
+        if (merchantSettings?.newBookingNotification !== false) {
+          panelNotification = await this.merchantNotificationsService.createNotification(dto.merchantId, {
+            type: 'booking_new',
+            priority: 'urgent',
+            title: 'New Booking',
+            message: 'Test Customer booked Test Service for tomorrow at 2:00 PM',
+            actionUrl: '/calendar',
+            actionLabel: 'View Booking',
+            metadata: {
+              bookingId: 'test-booking-id',
+              customerName: 'Test Customer',
+              serviceName: 'Test Service',
+              startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            },
+          });
+        }
+        
+        // Email/SMS notifications
+        const shouldSendEmail = merchantSettings?.newBookingNotificationEmail !== false;
+        const shouldSendSms = merchantSettings?.newBookingNotificationSms !== false;
+        
+        if (shouldSendEmail || shouldSendSms) {
+          const staffContext = {
+            ...testContext,
+            customer: {
+              ...testContext.customer,
+              preferredChannel: this.determineMerchantPreferredChannel(
+                'both',
+                shouldSendEmail,
+                shouldSendSms
+              ),
+            },
+          };
+          
+          const results = await this.notificationsService.sendNotification(
+            NotificationType.BOOKING_NEW_STAFF,
+            staffContext,
+          );
+          
+          emailResult = results.email;
+          smsResult = results.sms;
+        }
+        
+        return {
+          success: true,
+          message: 'New booking notifications sent',
+          results: {
+            panel: panelNotification ? { success: true, message: 'Panel notification created' } : { success: false, message: 'Panel notifications disabled' },
+            email: emailResult || { success: false, message: 'Email notifications disabled' },
+            sms: smsResult || { success: false, message: 'SMS notifications disabled' },
+          },
+        };
+      } else if (dto.type === 'cancellation') {
+        // Panel notification
+        if (merchantSettings?.cancellationNotification !== false) {
+          panelNotification = await this.merchantNotificationsService.createNotification(dto.merchantId, {
+            type: 'booking_cancelled',
+            priority: 'important',
+            title: 'Booking Cancelled',
+            message: 'Test Customer cancelled their appointment for Test Service',
+            actionUrl: '/calendar',
+            actionLabel: 'View Calendar',
+            metadata: {
+              bookingId: 'test-booking-id',
+              customerName: 'Test Customer',
+              serviceName: 'Test Service',
+              startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            },
+          });
+        }
+        
+        // Email/SMS notifications
+        const shouldSendEmail = merchantSettings?.cancellationNotificationEmail !== false;
+        const shouldSendSms = merchantSettings?.cancellationNotificationSms !== false;
+        
+        if (shouldSendEmail || shouldSendSms) {
+          const staffContext = {
+            ...testContext,
+            customer: {
+              ...testContext.customer,
+              preferredChannel: this.determineMerchantPreferredChannel(
+                'both',
+                shouldSendEmail,
+                shouldSendSms
+              ),
+            },
+          };
+          
+          const results = await this.notificationsService.sendNotification(
+            NotificationType.BOOKING_CANCELLED_STAFF,
+            staffContext,
+          );
+          
+          emailResult = results.email;
+          smsResult = results.sms;
+        }
+        
+        return {
+          success: true,
+          message: 'Cancellation notifications sent',
+          results: {
+            panel: panelNotification ? { success: true, message: 'Panel notification created' } : { success: false, message: 'Panel notifications disabled' },
+            email: emailResult || { success: false, message: 'Email notifications disabled' },
+            sms: smsResult || { success: false, message: 'SMS notifications disabled' },
+          },
+        };
+      }
+      
+      throw new BadRequestException('Invalid notification type');
+    } catch (error: any) {
+      console.error('Staff notification test error:', error);
+      throw new BadRequestException(error.message || 'Failed to send staff notification');
+    }
   }
 
   @Get('verify-connections')

@@ -15,7 +15,7 @@ export default function TestNotificationSettingsPage() {
   const { merchant } = useAuth();
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [testingReminder, setTestingReminder] = useState<"24s" | "2s" | "confirmation" | null>(null);
+  const [testingReminder, setTestingReminder] = useState<"24s" | "2s" | "confirmation" | "newbooking" | "cancellation" | null>(null);
   
   // Notification settings - same as real settings page
   const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(true);
@@ -25,7 +25,11 @@ export default function TestNotificationSettingsPage() {
   const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(true);
   const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(true);
   const [newBookingNotification, setNewBookingNotification] = useState(true);
+  const [newBookingNotificationEmail, setNewBookingNotificationEmail] = useState(true);
+  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(false);
   const [cancellationNotification, setCancellationNotification] = useState(true);
+  const [cancellationNotificationEmail, setCancellationNotificationEmail] = useState(true);
+  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(false);
   
   // Test results
   const [testResults, setTestResults] = useState<{
@@ -49,7 +53,11 @@ export default function TestNotificationSettingsPage() {
         setAppointmentReminder2hEmail(response.appointmentReminder2hEmail !== false);
         setAppointmentReminder2hSms(response.appointmentReminder2hSms !== false);
         setNewBookingNotification(response.newBookingNotification !== false);
+        setNewBookingNotificationEmail(response.newBookingNotificationEmail !== false);
+        setNewBookingNotificationSms(response.newBookingNotificationSms !== false);
         setCancellationNotification(response.cancellationNotification !== false);
+        setCancellationNotificationEmail(response.cancellationNotificationEmail !== false);
+        setCancellationNotificationSms(response.cancellationNotificationSms !== false);
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
@@ -72,7 +80,11 @@ export default function TestNotificationSettingsPage() {
         appointmentReminder2hEmail,
         appointmentReminder2hSms,
         newBookingNotification,
+        newBookingNotificationEmail,
+        newBookingNotificationSms,
         cancellationNotification,
+        cancellationNotificationEmail,
+        cancellationNotificationSms,
       });
       
       toast({
@@ -250,6 +262,146 @@ export default function TestNotificationSettingsPage() {
     }
   };
 
+  const testNewBookingNotification = async () => {
+    setTestingReminder("newbooking");
+    const resultKey = "new_booking_notification";
+    
+    try {
+      // Check if new booking notifications are enabled
+      if (!newBookingNotification) {
+        setTestResults(prev => ({
+          ...prev,
+          [resultKey]: {
+            success: false,
+            message: "New booking notifications are disabled",
+            timestamp: new Date(),
+          },
+        }));
+        setTestingReminder(null);
+        return;
+      }
+
+      // Send test new booking notification
+      const response = await apiClient.post("/test/notifications/staff-notification", {
+        type: "new_booking",
+        merchantId: merchant?.id,
+      });
+
+      const results = response.results || {};
+      let message = "";
+      
+      if (results.panel?.success) {
+        message += "Panel: ✓ ";
+      }
+      if (results.email?.success) {
+        message += "Email: ✓ ";
+      } else if (newBookingNotificationEmail) {
+        message += "Email: ✗ ";
+      }
+      if (results.sms?.success) {
+        message += "SMS: ✓ ";
+      } else if (newBookingNotificationSms) {
+        message += "SMS: ✗ ";
+      }
+      
+      setTestResults(prev => ({
+        ...prev,
+        [resultKey]: {
+          success: true,
+          message: message || "New booking notifications sent",
+          timestamp: new Date(),
+        },
+      }));
+
+      toast({
+        title: "🔔 New Booking Notification Sent!",
+        description: "Check the merchant app for the notification",
+      });
+
+    } catch (error: any) {
+      setTestResults(prev => ({
+        ...prev,
+        [resultKey]: {
+          success: false,
+          message: error.message || "Failed to send new booking notification",
+          timestamp: new Date(),
+        },
+      }));
+    } finally {
+      setTestingReminder(null);
+    }
+  };
+
+  const testCancellationNotification = async () => {
+    setTestingReminder("cancellation");
+    const resultKey = "cancellation_notification";
+    
+    try {
+      // Check if cancellation notifications are enabled
+      if (!cancellationNotification) {
+        setTestResults(prev => ({
+          ...prev,
+          [resultKey]: {
+            success: false,
+            message: "Cancellation notifications are disabled",
+            timestamp: new Date(),
+          },
+        }));
+        setTestingReminder(null);
+        return;
+      }
+
+      // Send test cancellation notification
+      const response = await apiClient.post("/test/notifications/staff-notification", {
+        type: "cancellation",
+        merchantId: merchant?.id,
+      });
+
+      const results = response.results || {};
+      let message = "";
+      
+      if (results.panel?.success) {
+        message += "Panel: ✓ ";
+      }
+      if (results.email?.success) {
+        message += "Email: ✓ ";
+      } else if (cancellationNotificationEmail) {
+        message += "Email: ✗ ";
+      }
+      if (results.sms?.success) {
+        message += "SMS: ✓ ";
+      } else if (cancellationNotificationSms) {
+        message += "SMS: ✗ ";
+      }
+      
+      setTestResults(prev => ({
+        ...prev,
+        [resultKey]: {
+          success: true,
+          message: message || "Cancellation notifications sent",
+          timestamp: new Date(),
+        },
+      }));
+
+      toast({
+        title: "❌ Cancellation Notification Sent!",
+        description: "Check the merchant app for the notification",
+      });
+
+    } catch (error: any) {
+      setTestResults(prev => ({
+        ...prev,
+        [resultKey]: {
+          success: false,
+          message: error.message || "Failed to send cancellation notification",
+          timestamp: new Date(),
+        },
+      }));
+    } finally {
+      setTestingReminder(null);
+    }
+  };
+
   return (
     <div className="container max-w-4xl mx-auto p-6 space-y-6">
       <div>
@@ -348,6 +500,62 @@ export default function TestNotificationSettingsPage() {
             </div>
           </div>
 
+          <div className="my-6 border-t pt-6">
+            <h3 className="text-lg font-semibold mb-4">Staff Notifications</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>New Bookings</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Alert when new booking is made from booking app
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={newBookingNotification} 
+                    onCheckedChange={setNewBookingNotification} 
+                  />
+                  <span className="text-sm text-muted-foreground">Panel</span>
+                  <Switch 
+                    checked={newBookingNotificationEmail} 
+                    onCheckedChange={setNewBookingNotificationEmail} 
+                  />
+                  <span className="text-sm text-muted-foreground">Email</span>
+                  <Switch 
+                    checked={newBookingNotificationSms} 
+                    onCheckedChange={setNewBookingNotificationSms} 
+                  />
+                  <span className="text-sm text-muted-foreground">SMS</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Cancellations</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Alert when booking is cancelled from booking app
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={cancellationNotification} 
+                    onCheckedChange={setCancellationNotification} 
+                  />
+                  <span className="text-sm text-muted-foreground">Panel</span>
+                  <Switch 
+                    checked={cancellationNotificationEmail} 
+                    onCheckedChange={setCancellationNotificationEmail} 
+                  />
+                  <span className="text-sm text-muted-foreground">Email</span>
+                  <Switch 
+                    checked={cancellationNotificationSms} 
+                    onCheckedChange={setCancellationNotificationSms} 
+                  />
+                  <span className="text-sm text-muted-foreground">SMS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <Button onClick={handleSaveSettings} disabled={savingSettings}>
               {savingSettings ? "Saving..." : "Save Settings"}
@@ -436,6 +644,53 @@ export default function TestNotificationSettingsPage() {
             </div>
           </div>
 
+          <div className="my-6 border-t pt-6">
+            <h4 className="font-medium mb-3">Staff Notifications</h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Button 
+                  onClick={testNewBookingNotification} 
+                  disabled={testingReminder === "newbooking"}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {testingReminder === "newbooking" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending new booking notification...
+                    </>
+                  ) : (
+                    "Test New Booking Alert"
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Simulates a new booking from booking app
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Button 
+                  onClick={testCancellationNotification} 
+                  disabled={testingReminder === "cancellation"}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {testingReminder === "cancellation" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending cancellation notification...
+                    </>
+                  ) : (
+                    "Test Cancellation Alert"
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Simulates a booking cancellation from booking app
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Test Results */}
           {Object.keys(testResults).length > 0 && (
             <div className="mt-6 space-y-2">
@@ -472,8 +727,9 @@ export default function TestNotificationSettingsPage() {
               <li>• Sends immediate test notifications based on enabled settings</li>
               <li>• Shows a toast notification after X seconds to simulate the reminder</li>
               <li>• If seconds-based reminders work, hours-based ones will too</li>
-              <li>• Email will be sent to: lukas.tn90@gmail.com</li>
-              <li>• SMS uses test number: +15005550006</li>
+              <li>• Customer notifications - Email: lukas.tn90@gmail.com, SMS: +61422627624</li>
+              <li>• Staff notifications - Email: lukas.tn90@gmail.com, SMS: +61422627624</li>
+              <li>• Panel notifications appear in the merchant app notification panel</li>
             </ul>
           </div>
         </CardContent>

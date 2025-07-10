@@ -25,6 +25,10 @@ export class EmailTemplateService {
         return this.renderBookingCancelled(context);
       case NotificationType.BOOKING_RESCHEDULED:
         return this.renderBookingRescheduled(context);
+      case NotificationType.BOOKING_NEW_STAFF:
+        return this.renderStaffNewBooking(context);
+      case NotificationType.BOOKING_CANCELLED_STAFF:
+        return this.renderStaffCancellation(context);
       default:
         throw new Error(`Template not found for type: ${type}`);
     }
@@ -411,6 +415,110 @@ ${merchant.name}
 
 Booking Reference: ${booking.bookingNumber}
 ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ''}
+    `.trim();
+    
+    return { subject, html, text };
+  }
+
+  private renderStaffNewBooking(context: NotificationContext): EmailTemplate {
+    const { booking, merchant } = context;
+    const formattedDate = format(booking.date, 'EEEE, MMMM d, yyyy');
+    
+    const subject = `New Booking Alert - ${booking.serviceName}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #10b981; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">New Booking Alert</h1>
+        </div>
+        
+        <div style="padding: 30px;">
+          <h2 style="color: #333;">You have a new booking!</h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="color: #10b981; margin: 0 0 15px 0;">Booking Details</h3>
+            <p style="margin: 5px 0;"><strong>Service:</strong> ${booking.serviceName}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
+            <p style="margin: 5px 0;"><strong>Time:</strong> ${booking.time}</p>
+            <p style="margin: 5px 0;"><strong>Staff:</strong> ${booking.staffName}</p>
+            <p style="margin: 5px 0;"><strong>Duration:</strong> ${booking.duration} minutes</p>
+            <p style="margin: 5px 0;"><strong>Booking #:</strong> ${booking.bookingNumber}</p>
+          </div>
+          
+          <div style="margin-top: 30px; padding: 20px; background-color: #e0f2fe; border-radius: 5px;">
+            <p style="margin: 0; text-align: center;">
+              <a href="${merchant.website || '#'}/calendar" style="display: inline-block; padding: 12px 30px; background-color: #0ea5e9; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View in Calendar</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const text = `
+New Booking Alert
+
+You have a new booking!
+
+Service: ${booking.serviceName}
+Date: ${formattedDate}
+Time: ${booking.time}
+Staff: ${booking.staffName}
+Duration: ${booking.duration} minutes
+Booking #: ${booking.bookingNumber}
+
+View this booking in your calendar to see more details.
+    `.trim();
+    
+    return { subject, html, text };
+  }
+
+  private renderStaffCancellation(context: NotificationContext): EmailTemplate {
+    const { booking, merchant } = context;
+    const formattedDate = format(booking.date, 'EEEE, MMMM d, yyyy');
+    
+    const subject = `Booking Cancelled - ${booking.serviceName}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #ef4444; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Booking Cancelled</h1>
+        </div>
+        
+        <div style="padding: 30px;">
+          <h2 style="color: #333;">A booking has been cancelled</h2>
+          
+          <div style="background-color: #fef2f2; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ef4444;">
+            <h3 style="color: #ef4444; margin: 0 0 15px 0;">Cancelled Booking Details</h3>
+            <p style="margin: 5px 0;"><strong>Service:</strong> ${booking.serviceName}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
+            <p style="margin: 5px 0;"><strong>Time:</strong> ${booking.time}</p>
+            <p style="margin: 5px 0;"><strong>Staff:</strong> ${booking.staffName}</p>
+            <p style="margin: 5px 0;"><strong>Duration:</strong> ${booking.duration} minutes</p>
+            <p style="margin: 5px 0;"><strong>Booking #:</strong> ${booking.bookingNumber}</p>
+          </div>
+          
+          <div style="margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 5px;">
+            <p style="margin: 0; text-align: center;">
+              This time slot is now available for other bookings.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const text = `
+Booking Cancelled
+
+A booking has been cancelled:
+
+Service: ${booking.serviceName}
+Date: ${formattedDate}
+Time: ${booking.time}
+Staff: ${booking.staffName}
+Duration: ${booking.duration} minutes
+Booking #: ${booking.bookingNumber}
+
+This time slot is now available for other bookings.
     `.trim();
     
     return { subject, html, text };
