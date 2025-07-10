@@ -315,14 +315,18 @@ export class StaffService {
       },
     });
 
+    // Log warning if staff has bookings but proceed with deletion
     if (bookingsCount > 0) {
-      throw new BadRequestException(
-        `Cannot permanently delete staff member with ${bookingsCount} booking records. This would break historical data. Use soft delete instead.`
-      );
+      console.warn(`[StaffService] Force deleting staff member ${id} with ${bookingsCount} booking records`);
     }
 
-    // Delete related records first
+    // Delete related records and handle bookings
     await this.prisma.$transaction([
+      // Set providerId to null for all bookings (preserve booking history but remove staff reference)
+      this.prisma.booking.updateMany({
+        where: { providerId: id },
+        data: { providerId: null },
+      }),
       // Delete staff locations
       this.prisma.staffLocation.deleteMany({
         where: { staffId: id },
@@ -337,7 +341,10 @@ export class StaffService {
       }),
     ]);
 
-    return { message: 'Staff member permanently deleted' };
+    return { 
+      message: 'Staff member permanently deleted',
+      bookingsAffected: bookingsCount 
+    };
   }
 
   async verifyPin(merchantId: string, staffId: string, pin: string): Promise<boolean> {

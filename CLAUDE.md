@@ -300,3 +300,14 @@ try {
   toast.error("Failed to update");
 }
 ```
+
+### Staff Deletion Behavior
+
+**Important**: Permanent deletion of staff members (hard delete) now works even if they have bookings:
+
+- Inactive staff CAN be permanently deleted regardless of booking history
+- When a staff member with bookings is deleted:
+  - The staff record is permanently removed
+  - All their bookings are preserved but set to `providerId: null` (unassigned)
+  - This maintains booking history while removing the staff reference
+- The system shows a warning about unassigned bookings before deletion

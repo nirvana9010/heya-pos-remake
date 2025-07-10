@@ -319,7 +319,7 @@ export default function StaffPageContent() {
     
     let confirmMessage: string;
     if (hardDelete) {
-      confirmMessage = 'This inactive staff member will be PERMANENTLY deleted from the database.\n\nThis action cannot be undone!\n\nAre you sure?';
+      confirmMessage = 'This inactive staff member will be PERMANENTLY deleted from the database.\n\n⚠️ WARNING: If this staff member has any bookings, they will be preserved but unassigned.\n\nThis action cannot be undone!\n\nAre you sure?';
     } else {
       confirmMessage = 'Are you sure you want to delete this staff member?\n\nThey will be marked as inactive.';
     }
@@ -329,7 +329,7 @@ export default function StaffPageContent() {
     try {
       await apiClient.deleteStaff(id, hardDelete);
       
-      // Immediately remove from local state to update UI
+      // Only remove from local state AFTER successful deletion
       setStaff(prevStaff => prevStaff.filter(s => s.id !== id));
       
       toast({
