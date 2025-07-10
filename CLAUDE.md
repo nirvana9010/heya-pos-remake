@@ -2,6 +2,18 @@
 
 This file contains important configuration information for Claude Code to help maintain and troubleshoot this project effectively.
 
+## Important Lessons Learned
+
+### Always Verify Before Assuming
+**Issue**: When encountering "Supabase not configured" errors, assumed environment variables were missing without checking first.
+
+**Lesson**: ALWAYS check actual system state before making assumptions:
+- If error says "not configured", first verify: `grep SUPABASE .env`
+- Look at the actual error line and trace the data flow
+- Don't add "missing configuration" fallbacks without confirming configuration is actually missing
+
+**What happened**: The real issue was `apiClient.post()` returns data directly, not `{data: ...}`, causing `response.data` to be undefined. The env vars were present all along.
+
 ## Database Configuration
 
 ### Connection URLs - BEST PRACTICES
