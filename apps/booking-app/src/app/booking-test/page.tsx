@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
 import { Textarea } from '@heya-pos/ui';
-import { CheckCircle2, XCircle, Loader2, Calendar, Play, RotateCcw, Radio } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Calendar, Play, RotateCcw, Radio, Zap } from 'lucide-react';
 import { Checkbox } from '@heya-pos/ui';
 import { format } from 'date-fns';
 import axios from 'axios';
@@ -21,7 +21,7 @@ interface TestResult {
 
 // Standalone test page for granular booking flow testing
 export default function BookingTestPage() {
-  const [merchantSubdomain, setMerchantSubdomain] = useState('hamilton');
+  const [merchantSubdomain, setMerchantSubdomain] = useState('zen-wellness');
   const [merchantInfo, setMerchantInfo] = useState<any>(null);
   
   // Test data states
@@ -33,9 +33,9 @@ export default function BookingTestPage() {
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [customerData, setCustomerData] = useState({
-    name: 'Test Customer',
-    email: 'test@example.com',
-    phone: '0400000000',
+    name: 'Lukas Nguyen',
+    email: 'lukas.tn90@gmail.com',
+    phone: '+61422627624',
     notes: 'Test booking via granular test page'
   });
   const [createdBooking, setCreatedBooking] = useState<any>(null);
@@ -329,6 +329,93 @@ export default function BookingTestPage() {
     });
   };
 
+  const createRandomBooking = async () => {
+    try {
+      // Step 1: Get merchant info
+      await getMerchantInfo();
+      
+      // Step 2: Get services and select random 1-3
+      await getServices();
+      
+      // Wait for services to be loaded
+      setTimeout(async () => {
+        if (services.length === 0) {
+          updateResult('booking', {
+            status: 'error',
+            message: 'No services available'
+          });
+          return;
+        }
+        
+        // Select random 1-3 services
+        const numServices = Math.floor(Math.random() * 3) + 1;
+        const shuffled = [...services].sort(() => 0.5 - Math.random());
+        const randomServices = shuffled.slice(0, Math.min(numServices, services.length));
+        setSelectedServices(randomServices.map(s => s.id));
+        
+        // Step 3: Get staff
+        await getStaff();
+        
+        setTimeout(async () => {
+          // Select random staff or unassigned
+          if (staff.length > 0 && Math.random() > 0.3) { // 70% chance to select staff
+            const randomStaff = staff[Math.floor(Math.random() * staff.length)];
+            setSelectedStaff(randomStaff.id);
+          } else {
+            setSelectedStaff('any');
+          }
+          
+          // Set date to ~48 hours from now
+          const futureDate = new Date();
+          futureDate.setDate(futureDate.getDate() + 2);
+          const dateStr = format(futureDate, 'yyyy-MM-dd');
+          setSelectedDate(dateStr);
+          
+          // Step 4: Check availability
+          await checkAvailability();
+          
+          setTimeout(async () => {
+            if (availableSlots.length === 0) {
+              updateResult('booking', {
+                status: 'error',
+                message: 'No available slots found'
+              });
+              return;
+            }
+            
+            // Find available slots during business hours (9am-5pm)
+            const businessSlots = availableSlots.filter(slot => {
+              if (!slot.available) return false;
+              const hour = parseInt(slot.time.split(':')[0]);
+              return hour >= 9 && hour <= 17;
+            });
+            
+            if (businessSlots.length === 0) {
+              updateResult('booking', {
+                status: 'error',
+                message: 'No available slots during business hours'
+              });
+              return;
+            }
+            
+            // Select a random available slot
+            const randomSlot = businessSlots[Math.floor(Math.random() * businessSlots.length)];
+            setSelectedTime(randomSlot.time);
+            
+            // Step 5: Create the booking
+            await createBooking();
+          }, 1000);
+        }, 1000);
+      }, 1000);
+      
+    } catch (error: any) {
+      updateResult('booking', {
+        status: 'error',
+        message: 'Failed to create random booking: ' + error.message
+      });
+    }
+  };
+
   const getStatusBadge = (status: TestResult['status']) => {
     const variants = {
       success: 'default' as const,
@@ -371,11 +458,27 @@ export default function BookingTestPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Merchant Subdomain</Label>
+                <div className="flex gap-2 mb-2">
+                  <Button 
+                    onClick={() => setMerchantSubdomain('hamilton')} 
+                    variant={merchantSubdomain === 'hamilton' ? 'default' : 'outline'}
+                    size="sm"
+                  >
+                    Hamilton
+                  </Button>
+                  <Button 
+                    onClick={() => setMerchantSubdomain('zen-wellness')} 
+                    variant={merchantSubdomain === 'zen-wellness' ? 'default' : 'outline'}
+                    size="sm"
+                  >
+                    Zen Wellness
+                  </Button>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     value={merchantSubdomain}
                     onChange={(e) => setMerchantSubdomain(e.target.value)}
-                    placeholder="hamilton"
+                    placeholder="custom-subdomain"
                     className="flex-1"
                   />
                   <Button onClick={resetAll} variant="outline" size="icon">
@@ -383,6 +486,83 @@ export default function BookingTestPage() {
                   </Button>
                 </div>
               </div>
+              
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium">Customer Information</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <Label htmlFor="customer-name">Name</Label>
+                    <Input
+                      id="customer-name"
+                      value={customerData.name}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Customer name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-email">Email</Label>
+                    <Input
+                      id="customer-email"
+                      type="email"
+                      value={customerData.email}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="customer@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-phone">Phone</Label>
+                    <Input
+                      id="customer-phone"
+                      value={customerData.phone}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="+61400000000"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-notes">Notes</Label>
+                    <Textarea
+                      id="customer-notes"
+                      value={customerData.notes}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Booking notes"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={createRandomBooking}
+                variant="default"
+                className="w-full"
+                disabled={loading.booking}
+              >
+                {loading.booking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Random Booking...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Create Random Test Booking
+                  </>
+                )}
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Automatically selects 1-3 random services, random staff, and finds an available slot ~48 hours from now
+              </p>
             </CardContent>
           </Card>
 

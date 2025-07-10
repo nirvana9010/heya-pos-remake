@@ -20,6 +20,7 @@ export class NotificationEventHandler {
   @OnEvent('booking.created')
   async handleBookingCreated(event: BookingCreatedEvent): Promise<void> {
     try {
+      this.logger.log(`[${new Date().toISOString()}] ====== BOOKING CREATED EVENT RECEIVED ======`);
       this.logger.log(`[${new Date().toISOString()}] Handling booking created event: ${event.bookingId}, source: ${event.source}`);
 
       // Fetch full booking details
@@ -133,6 +134,7 @@ export class NotificationEventHandler {
         
         // Panel notification
         if (merchantSettings?.newBookingNotification !== false) {
+          this.logger.log(`[${new Date().toISOString()}] ====== CREATING MERCHANT NOTIFICATION ======`);
           this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE booking ${booking.id}`);
           await this.merchantNotificationsService.createBookingNotification(
             booking.merchantId,
