@@ -138,9 +138,50 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
             },
           };
 
+          // Check merchant settings for reminder preferences
+          const merchantSettings = notification.booking.merchant.settings as any;
+          let shouldSendEmail = true;
+          let shouldSendSms = true;
+
+          if (notification.type === NotificationType.BOOKING_REMINDER_24H) {
+            shouldSendEmail = merchantSettings?.appointmentReminder24hEmail !== false;
+            shouldSendSms = merchantSettings?.appointmentReminder24hSms !== false;
+          } else if (notification.type === NotificationType.BOOKING_REMINDER_2H) {
+            shouldSendEmail = merchantSettings?.appointmentReminder2hEmail !== false;
+            shouldSendSms = merchantSettings?.appointmentReminder2hSms !== false;
+          }
+
+          if (!shouldSendEmail && !shouldSendSms) {
+            // Skip sending if both channels are disabled
+            await this.prisma.scheduledNotification.update({
+              where: { id: notification.id },
+              data: {
+                status: 'cancelled',
+                error: 'Merchant has disabled this reminder type',
+              },
+            });
+            this.logger.log(
+              `Skipped scheduled notification ${notification.id}: merchant settings disabled`,
+            );
+            continue;
+          }
+
+          // Override context to respect merchant settings
+          const notificationContext = {
+            ...context,
+            customer: {
+              ...context.customer,
+              preferredChannel: this.determineMerchantPreferredChannel(
+                context.customer.preferredChannel,
+                shouldSendEmail,
+                shouldSendSms
+              ),
+            },
+          };
+
           const results = await this.notificationsService.sendNotification(
             notification.type as NotificationType,
-            context,
+            notificationContext,
           );
 
           const success = results.email?.success || results.sms?.success;
@@ -196,5 +237,27 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error('Failed to cleanup old notifications', error);
     }
+  }
+
+  private determineMerchantPreferredChannel(
+    customerPreference: 'email' | 'sms' | 'both',
+    emailEnabled: boolean,
+    smsEnabled: boolean,
+  ): 'email' | 'sms' | 'both' {
+    // If merchant has disabled both channels, return 'both' to skip sending
+    if (!emailEnabled && !smsEnabled) {
+      return 'both'; // This will result in no notifications being sent
+    }
+
+    // If only one channel is enabled by merchant, use that
+    if (emailEnabled && !smsEnabled) {
+      return 'email';
+    }
+    if (!emailEnabled && smsEnabled) {
+      return 'sms';
+    }
+
+    // Both channels are enabled by merchant, respect customer preference
+    return customerPreference;
   }
 }

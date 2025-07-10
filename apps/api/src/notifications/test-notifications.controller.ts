@@ -15,6 +15,8 @@ import { SmsProviderFactory } from './sms/sms-provider.factory';
 import { NotificationType, NotificationContext } from './interfaces/notification.interface';
 import { NotificationDashboard } from './mocks/notification-mocks';
 import { MerchantNotificationsService } from './merchant-notifications.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { SimpleSchedulerService } from './simple-scheduler.service';
 
 /**
  * Test controller for notification development and testing
@@ -30,6 +32,8 @@ export class TestNotificationsController {
     private readonly emailProviderFactory: EmailProviderFactory,
     private readonly smsProviderFactory: SmsProviderFactory,
     private readonly merchantNotificationsService: MerchantNotificationsService,
+    private readonly prisma: PrismaService,
+    private readonly simpleSchedulerService: SimpleSchedulerService,
   ) {
     this.dashboard = NotificationDashboard.getInstance();
   }
@@ -362,6 +366,92 @@ export class TestNotificationsController {
     };
   }
 
+  @Post('test-reminder/:type')
+  @HttpCode(HttpStatus.OK)
+  async testReminder(
+    @Param('type') type: '24h' | '2h',
+    @Body() body: {
+      customerEmail?: string;
+      customerPhone?: string;
+      customerName?: string;
+      merchantId?: string;
+    },
+  ) {
+    // Send a test reminder immediately
+    const reminderType = type === '24h' 
+      ? NotificationType.BOOKING_REMINDER_24H 
+      : NotificationType.BOOKING_REMINDER_2H;
+
+    // Get merchant settings if merchantId provided
+    let merchantSettings: any = {};
+    if (body.merchantId) {
+      const merchant = await this.prisma.merchant.findUnique({
+        where: { id: body.merchantId },
+        select: { settings: true },
+      });
+      merchantSettings = merchant?.settings || {};
+    }
+
+    // Check merchant settings for reminder preferences
+    let shouldSendEmail = true;
+    let shouldSendSms = true;
+
+    if (type === '24h') {
+      shouldSendEmail = merchantSettings?.appointmentReminder24hEmail !== false;
+      shouldSendSms = merchantSettings?.appointmentReminder24hSms !== false;
+    } else if (type === '2h') {
+      shouldSendEmail = merchantSettings?.appointmentReminder2hEmail !== false;
+      shouldSendSms = merchantSettings?.appointmentReminder2hSms !== false;
+    }
+
+    // Build context with merchant preferences
+    const testContext = this.buildTestContext({
+      customerEmail: body.customerEmail || 'test@example.com',
+      customerPhone: body.customerPhone || '0412345678',
+      customerName: body.customerName || 'Test Customer',
+      merchantId: body.merchantId,
+      date: new Date(Date.now() + (type === '24h' ? 24 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000)),
+    });
+
+    // Override customer preferences based on merchant settings
+    const preferredChannel = this.determineMerchantPreferredChannel(
+      testContext.customer.preferredChannel || 'both',
+      shouldSendEmail,
+      shouldSendSms
+    );
+    testContext.customer.preferredChannel = preferredChannel;
+
+    const results = await this.notificationsService.sendNotification(
+      reminderType,
+      testContext,
+    );
+
+    return {
+      testMode: true,
+      reminderType: type,
+      scheduledFor: testContext.booking.date,
+      results,
+      merchantSettings: {
+        emailEnabled: shouldSendEmail,
+        smsEnabled: shouldSendSms,
+      },
+      message: `Test ${type} reminder sent immediately (simulating scheduled reminder)`,
+    };
+  }
+
+  @Post('force-process-reminders')
+  @HttpCode(HttpStatus.OK) 
+  async forceProcessReminders() {
+    // Manually trigger the scheduler to process pending reminders
+    await this.simpleSchedulerService.processScheduledNotifications();
+    
+    return {
+      success: true,
+      message: 'Forced scheduler to process pending notifications',
+      note: 'Check API logs for processing details',
+    };
+  }
+
   private buildTestContext(overrides: any = {}): NotificationContext {
     return {
       booking: {
@@ -391,5 +481,27 @@ export class TestNotificationsController {
         phone: overrides.customerPhone || '0412345678',
       },
     };
+  }
+
+  private determineMerchantPreferredChannel(
+    customerPreference: 'email' | 'sms' | 'both',
+    emailEnabled: boolean,
+    smsEnabled: boolean,
+  ): 'email' | 'sms' | 'both' {
+    // If merchant has disabled both channels, return 'both' to skip sending
+    if (!emailEnabled && !smsEnabled) {
+      return 'both'; // This will result in no notifications being sent
+    }
+
+    // If only one channel is enabled by merchant, use that
+    if (emailEnabled && !smsEnabled) {
+      return 'email';
+    }
+    if (!emailEnabled && smsEnabled) {
+      return 'sms';
+    }
+
+    // Both channels are enabled by merchant, respect customer preference
+    return customerPreference;
   }
 }

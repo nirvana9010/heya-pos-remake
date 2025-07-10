@@ -21,4 +21,13 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   calendarEndHour: 23, // 11 PM
   allowWalkInBookings: true, // Default to true for flexibility
   priceToDurationRatio: 1.0, // $1 = 1 minute (default)
+  // Notification settings - all enabled by default
+  bookingConfirmationEmail: true,
+  bookingConfirmationSms: true,
+  appointmentReminder24hEmail: true,
+  appointmentReminder24hSms: true,
+  appointmentReminder2hEmail: true,
+  appointmentReminder2hSms: true,
+  newBookingNotification: true,
+  cancellationNotification: true,
 };
