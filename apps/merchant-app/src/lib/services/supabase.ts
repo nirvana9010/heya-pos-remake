@@ -108,6 +108,17 @@ class SupabaseRealtimeService {
             onNotification(payload.new);
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'MerchantNotification',
+          },
+          (payload) => {
+            console.log('[Supabase] Any change on MerchantNotification:', payload);
+          }
+        )
         .subscribe((status) => {
           console.log('[Supabase] Channel status:', status);
           if (status === 'SUBSCRIBED') {

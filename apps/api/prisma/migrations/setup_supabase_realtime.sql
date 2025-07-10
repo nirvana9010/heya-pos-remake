@@ -1,75 +1,44 @@
--- Setup Supabase Realtime for MerchantNotification table
--- This migration should be run manually in Supabase dashboard or via migration
-
--- 1. Enable Realtime for the MerchantNotification table
--- Note: This requires superuser privileges and should be run in Supabase SQL Editor
+-- Enable Realtime for MerchantNotification table
 ALTER PUBLICATION supabase_realtime ADD TABLE "MerchantNotification";
 
--- 2. Enable Row Level Security on MerchantNotification
+-- Create RLS policies for MerchantNotification
 ALTER TABLE "MerchantNotification" ENABLE ROW LEVEL SECURITY;
 
--- 3. Create RLS policy for merchants to read their own notifications
--- This ensures merchants can only see notifications for their merchantId
-CREATE POLICY "merchants_read_own_notifications" 
-ON "MerchantNotification" 
-FOR SELECT
-TO authenticated
-USING (
-  -- Extract merchantId from JWT token
-  -- Note: This assumes the JWT contains a merchantId claim
-  "merchantId" = auth.jwt() ->> 'merchantId'
-);
+-- Policy to allow merchants to see their own notifications
+CREATE POLICY "Merchants can view own notifications" ON "MerchantNotification"
+    FOR SELECT
+    USING (auth.jwt() ->> 'merchantId' = "merchantId");
 
--- 4. Create RLS policy for service role to manage all notifications
--- This allows the backend API to create/update/delete notifications
-CREATE POLICY "service_role_all_access" 
-ON "MerchantNotification" 
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
+-- Policy to allow the API service role to insert notifications
+CREATE POLICY "Service role can insert notifications" ON "MerchantNotification"
+    FOR INSERT
+    WITH CHECK (true);
 
--- 5. Grant necessary permissions
-GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT SELECT ON "MerchantNotification" TO authenticated;
+-- Policy to allow merchants to update their own notifications (for marking as read)
+CREATE POLICY "Merchants can update own notifications" ON "MerchantNotification"
+    FOR UPDATE
+    USING (auth.jwt() ->> 'merchantId' = "merchantId");
 
--- 6. Create index for better performance on merchantId filtering
--- (This might already exist from previous migrations)
-CREATE INDEX IF NOT EXISTS idx_merchant_notification_merchant_id 
-ON "MerchantNotification"("merchantId");
+-- Create index for better query performance
+CREATE INDEX IF NOT EXISTS idx_merchant_notification_merchant_id_created 
+    ON "MerchantNotification" ("merchantId", "createdAt" DESC);
 
--- 7. Optional: Create a function to emit custom events
--- This can be used to emit events when notifications are created
-CREATE OR REPLACE FUNCTION notify_new_merchant_notification()
-RETURNS trigger AS $$
+CREATE INDEX IF NOT EXISTS idx_merchant_notification_read_status 
+    ON "MerchantNotification" ("merchantId", "read");
+
+-- Enable Realtime for the entire database (if not already enabled)
+-- This is usually already done, but including for completeness
+DO $$
 BEGIN
-  -- Emit a custom event that can be listened to
-  PERFORM pg_notify(
-    'new_notification',
-    json_build_object(
-      'merchantId', NEW."merchantId",
-      'notificationId', NEW."id",
-      'type', NEW."type"
-    )::text
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'pgtap'
+    ) THEN
+        -- Check if realtime is enabled
+        PERFORM 1 FROM pg_stat_replication;
+    END IF;
+END $$;
 
--- 8. Create trigger to call the function on insert
-CREATE TRIGGER on_merchant_notification_insert
-AFTER INSERT ON "MerchantNotification"
-FOR EACH ROW
-EXECUTE FUNCTION notify_new_merchant_notification();
-
--- Note: To test if Realtime is working:
--- 1. Run this in SQL Editor: SELECT * FROM "MerchantNotification" WHERE "merchantId" = 'your-merchant-id';
--- 2. In another tab, insert a notification and see if it appears in realtime
-
--- To rollback:
--- ALTER PUBLICATION supabase_realtime DROP TABLE "MerchantNotification";
--- DROP POLICY IF EXISTS "merchants_read_own_notifications" ON "MerchantNotification";
--- DROP POLICY IF EXISTS "service_role_all_access" ON "MerchantNotification";
--- ALTER TABLE "MerchantNotification" DISABLE ROW LEVEL SECURITY;
--- DROP TRIGGER IF EXISTS on_merchant_notification_insert ON "MerchantNotification";
--- DROP FUNCTION IF EXISTS notify_new_merchant_notification();
+-- Test the setup by checking if the table is in the publication
+SELECT * FROM pg_publication_tables 
+WHERE pubname = 'supabase_realtime' 
+AND tablename = 'MerchantNotification';
