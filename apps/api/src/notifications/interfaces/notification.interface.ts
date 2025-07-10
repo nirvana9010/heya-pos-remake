@@ -27,6 +27,7 @@ export interface NotificationContext {
     email?: string;
     phone?: string;
     website?: string;
+    address?: string;
   };
   customer: NotificationRecipient;
 }

@@ -1312,9 +1312,9 @@ export default function BookingPageClient() {
       );
     }
     
-    const businessPhone = merchantInfo?.phone || "+1 (555) 123-4567";
-    const businessEmail = merchantInfo?.email || "hello@luxespa.com";
-    const businessAddress = merchantInfo?.address || "123 Main Street, Hamilton, ON L8P 1A1";
+    const businessPhone = merchantInfo?.phone || "";
+    const businessEmail = merchantInfo?.email || "";
+    const businessAddress = merchantInfo?.address || "";
     
     // Extract customer first name from confirmationData
     const customerFirstName = confirmationData.customerName.split(' ')[0];
@@ -1505,17 +1505,19 @@ export default function BookingPageClient() {
           </Button>
           
           <div className="grid grid-cols-2 gap-3">
+            {businessAddress && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(businessAddress)}`, '_blank')}
+              >
+                <MapPin className="h-4 w-4" />
+                Get Directions
+              </Button>
+            )}
             <Button
               variant="outline"
-              className="gap-2"
-              onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(businessAddress)}`, '_blank')}
-            >
-              <MapPin className="h-4 w-4" />
-              Get Directions
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
+              className={cn("gap-2", !businessAddress && "col-span-2")}
               onClick={() => window.print()}
             >
               <Download className="h-4 w-4" />
@@ -1551,25 +1553,31 @@ export default function BookingPageClient() {
         </motion.div>
         
         {/* Contact Info */}
-        <motion.div 
-          className="mt-8 text-center space-y-2 text-sm text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-        >
-          <p className="font-medium">Need to make changes?</p>
-          <div className="flex items-center justify-center gap-4">
-            <a href={`tel:${businessPhone}`} className="flex items-center gap-1 hover:text-primary">
-              <Phone className="h-4 w-4" />
-              {businessPhone}
-            </a>
-            <a href={`mailto:${businessEmail}`} className="flex items-center gap-1 hover:text-primary">
-              <Mail className="h-4 w-4" />
-              {businessEmail}
-            </a>
-          </div>
-          <p className="text-xs">{businessAddress}</p>
-        </motion.div>
+        {(businessPhone || businessEmail || businessAddress) && (
+          <motion.div 
+            className="mt-8 text-center space-y-2 text-sm text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+          >
+            <p className="font-medium">Need to make changes?</p>
+            <div className="flex items-center justify-center gap-4">
+              {businessPhone && (
+                <a href={`tel:${businessPhone}`} className="flex items-center gap-1 hover:text-primary">
+                  <Phone className="h-4 w-4" />
+                  {businessPhone}
+                </a>
+              )}
+              {businessEmail && (
+                <a href={`mailto:${businessEmail}`} className="flex items-center gap-1 hover:text-primary">
+                  <Mail className="h-4 w-4" />
+                  {businessEmail}
+                </a>
+              )}
+            </div>
+            {businessAddress && <p className="text-xs">{businessAddress}</p>}
+          </motion.div>
+        )}
       </motion.div>
     );
   };

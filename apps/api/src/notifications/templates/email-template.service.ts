@@ -10,6 +10,36 @@ interface EmailTemplate {
 
 @Injectable()
 export class EmailTemplateService {
+  private renderEmailFooter(merchant: any, booking?: any): string {
+    const footerLines = [];
+    
+    if (booking?.bookingNumber) {
+      footerLines.push(`<p>Booking Reference: ${booking.bookingNumber}</p>`);
+    }
+    
+    if (merchant.address) {
+      footerLines.push(`<p>${merchant.address}</p>`);
+    }
+    
+    if (merchant.phone) {
+      footerLines.push(`<p>Phone: ${merchant.phone}</p>`);
+    }
+    
+    if (merchant.email) {
+      footerLines.push(`<p>Email: ${merchant.email}</p>`);
+    }
+    
+    if (merchant.website) {
+      footerLines.push(`<p>Website: ${merchant.website}</p>`);
+    }
+    
+    return `
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+        ${footerLines.join('\n')}
+      </div>
+    `;
+  }
+
   async renderEmailTemplate(
     type: NotificationType,
     context: NotificationContext,
@@ -94,10 +124,7 @@ export class EmailTemplateService {
           <p>Best regards,<br>${merchant.name}</p>
         </div>
         
-        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-          <p>Booking Reference: ${booking.bookingNumber}</p>
-          ${merchant.phone ? `<p>Questions? Call us at ${merchant.phone}</p>` : ''}
-        </div>
+${this.renderEmailFooter(merchant, booking)}
       </div>
     `;
     
@@ -235,10 +262,7 @@ ${merchant.name}
           <p>Best regards,<br>${merchant.name}</p>
         </div>
         
-        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-          <p>Booking Reference: ${booking.bookingNumber}</p>
-          ${merchant.phone ? `<p>Need to reschedule? Call us at ${merchant.phone}</p>` : ''}
-        </div>
+${this.renderEmailFooter(merchant, booking)}
       </div>
     `;
     
@@ -384,10 +408,7 @@ ${merchant.name}
           <p>Best regards,<br>${merchant.name}</p>
         </div>
         
-        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-          <p>Booking Reference: ${booking.bookingNumber}</p>
-          ${merchant.phone ? `<p>Questions? Call us at ${merchant.phone}</p>` : ''}
-        </div>
+${this.renderEmailFooter(merchant, booking)}
       </div>
     `;
     

@@ -2,24 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Separator, Badge } from '@heya-pos/ui';
-import { User, Building2, Mail, Phone, MapPin, Key, Shield, Clock, Save } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Separator, Badge, Textarea } from '@heya-pos/ui';
+import { User, Building2, Mail, Phone, MapPin, Key, Shield, Clock, Save, Globe, FileText } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { apiClient } from '@/lib/api-client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { user, merchant } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [merchantProfile, setMerchantProfile] = useState<any>(null);
+  const [primaryLocation, setPrimaryLocation] = useState<any>(null);
   
   // Business info state
   const [businessInfo, setBusinessInfo] = useState({
     name: '',
     email: '',
     phone: '',
+    abn: '',
+    website: '',
+    description: '',
+    // Location fields
     address: '',
+    suburb: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'Australia',
   });
 
   // Password change state
@@ -29,29 +41,72 @@ export default function ProfilePage() {
     confirmPassword: '',
   });
 
+  // Load merchant profile data
   useEffect(() => {
-    // Load merchant info
-    if (merchant) {
+    loadMerchantProfile();
+  }, []);
+
+  const loadMerchantProfile = async () => {
+    try {
+      setIsLoading(true);
+      const profile = await apiClient.getMerchantProfile();
+      setMerchantProfile(profile);
+      
+      // Find primary location or first location
+      const location = profile.locations?.find((loc: any) => loc.isActive) || profile.locations?.[0];
+      setPrimaryLocation(location);
+      
+      // Update form with real data - use location email/phone if available
       setBusinessInfo({
-        name: merchant.name || 'Hamilton Beauty Spa',
-        email: merchant.email || 'admin@hamiltonbeauty.com',
-        phone: '+61 2 1234 5678',
-        address: '123 Beauty Street, Sydney NSW 2000',
+        name: profile.name || '',
+        email: location?.email || profile.email || '',
+        phone: location?.phone || profile.phone || '',
+        abn: profile.abn || '',
+        website: profile.website || '',
+        description: profile.description || '',
+        // Location fields
+        address: location?.address || '',
+        suburb: location?.suburb || '',
+        city: location?.city || '',
+        state: location?.state || '',
+        postalCode: location?.postalCode || '',
+        country: location?.country || 'Australia',
       });
+    } catch (error) {
+      console.error('Failed to load merchant profile:', error);
+      toast.error('Failed to load profile information');
+    } finally {
+      setIsLoading(false);
     }
-  }, [merchant]);
+  };
 
   const handleBusinessInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
     try {
-      // TODO: Implement API call to update business info
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      alert('Business information updated successfully');
+      // Update merchant profile
+      const profileData = {
+        name: businessInfo.name,
+        email: businessInfo.email,
+        phone: businessInfo.phone,
+        abn: businessInfo.abn,
+        website: businessInfo.website,
+        description: businessInfo.description,
+      };
+      
+      await apiClient.updateMerchantProfile(profileData);
+      
+      // TODO: If we have a location update endpoint, update location here
+      // For now, we'll just show success for merchant profile update
+      
+      toast.success('Business information updated successfully');
+      
+      // Reload profile to get fresh data
+      await loadMerchantProfile();
     } catch (error) {
       console.error('Failed to update business info:', error);
-      alert('Failed to update business information');
+      toast.error('Failed to update business information');
     } finally {
       setIsSaving(false);
     }
@@ -61,12 +116,12 @@ export default function ProfilePage() {
     e.preventDefault();
     
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('New passwords do not match');
+      toast.error('New passwords do not match');
       return;
     }
     
     if (passwordForm.newPassword.length < 8) {
-      alert('Password must be at least 8 characters long');
+      toast.error('Password must be at least 8 characters long');
       return;
     }
     
@@ -74,13 +129,16 @@ export default function ProfilePage() {
     
     try {
       // TODO: Implement API call to change password
+      // The API endpoint for changing password needs to be created
+      // It should accept currentPassword and newPassword
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      alert('Password changed successfully');
+      
+      toast.success('Password changed successfully');
       setShowPasswordForm(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       console.error('Failed to change password:', error);
-      alert('Failed to change password');
+      toast.error('Failed to change password');
     } finally {
       setIsSaving(false);
     }
@@ -98,6 +156,22 @@ export default function ProfilePage() {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -125,7 +199,7 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <Label>Username</Label>
                   <div className="flex items-center gap-2">
-                    <Input value={user?.username || 'HAMILTON'} disabled />
+                    <Input value={user?.username || ''} disabled />
                     <Badge className={getRoleBadgeColor(user?.role || 'owner')}>
                       {user?.role || 'Owner'}
                     </Badge>
@@ -134,13 +208,13 @@ export default function ProfilePage() {
                 
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input value={user?.email || 'admin@hamiltonbeauty.com'} disabled />
+                  <Input value={user?.email || ''} disabled />
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Full Name</Label>
                   <Input 
-                    value={`${user?.firstName || 'Sarah'} ${user?.lastName || 'Johnson'}`} 
+                    value={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'} 
                     disabled 
                   />
                 </div>
@@ -149,7 +223,7 @@ export default function ProfilePage() {
                   <Label>Last Login</Label>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span>{format(new Date(), 'PPp')}</span>
+                    <span>{user?.lastLogin ? format(new Date(user.lastLogin), 'PPp') : format(new Date(), 'PPp')}</span>
                   </div>
                 </div>
               </div>
@@ -174,6 +248,7 @@ export default function ProfilePage() {
                       value={businessInfo.name}
                       onChange={(e) => setBusinessInfo({ ...businessInfo, name: e.target.value })}
                       placeholder="Enter business name"
+                      required
                     />
                   </div>
                   
@@ -188,6 +263,7 @@ export default function ProfilePage() {
                         onChange={(e) => setBusinessInfo({ ...businessInfo, email: e.target.value })}
                         placeholder="email@example.com"
                         className="pl-10"
+                        required
                       />
                     </div>
                   </div>
@@ -208,18 +284,116 @@ export default function ProfilePage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="businessAddress">Address</Label>
+                    <Label htmlFor="abn">ABN</Label>
+                    <Input
+                      id="abn"
+                      value={businessInfo.abn}
+                      onChange={(e) => setBusinessInfo({ ...businessInfo, abn: e.target.value })}
+                      placeholder="12 345 678 901"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Website</Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="businessAddress"
-                        value={businessInfo.address}
-                        onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
-                        placeholder="123 Main St, City"
+                        id="website"
+                        type="url"
+                        value={businessInfo.website}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, website: e.target.value })}
+                        placeholder="https://example.com"
                         className="pl-10"
                       />
                     </div>
                   </div>
+                  
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="description">Business Description</Label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Textarea
+                        id="description"
+                        value={businessInfo.description}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, description: e.target.value })}
+                        placeholder="Describe your business..."
+                        className="pl-10 min-h-[100px]"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Location Information Section */}
+                <Separator className="my-6" />
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Primary Location
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="address">Street Address</Label>
+                      <Input
+                        id="address"
+                        value={businessInfo.address}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
+                        placeholder="123 Main Street"
+                        disabled // Disabled until we have location update endpoint
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="suburb">Suburb</Label>
+                      <Input
+                        id="suburb"
+                        value={businessInfo.suburb}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, suburb: e.target.value })}
+                        placeholder="Sydney CBD"
+                        disabled // Disabled until we have location update endpoint
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={businessInfo.city}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, city: e.target.value })}
+                        placeholder="Sydney"
+                        disabled // Disabled until we have location update endpoint
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        value={businessInfo.state}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, state: e.target.value })}
+                        placeholder="NSW"
+                        disabled // Disabled until we have location update endpoint
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="postalCode">Postal Code</Label>
+                      <Input
+                        id="postalCode"
+                        value={businessInfo.postalCode}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, postalCode: e.target.value })}
+                        placeholder="2000"
+                        disabled // Disabled until we have location update endpoint
+                      />
+                    </div>
+                  </div>
+                  
+                  {primaryLocation && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Note: Location information is view-only. To update location details, please contact support.
+                    </p>
+                  )}
                 </div>
                 
                 <div className="flex justify-end">

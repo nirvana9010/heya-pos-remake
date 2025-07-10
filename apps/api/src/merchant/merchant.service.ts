@@ -121,6 +121,30 @@ export class MerchantService {
       },
     });
 
+    // Also update the primary location's email and phone if provided
+    if (profileData.email !== undefined || profileData.phone !== undefined) {
+      const primaryLocation = await this.prisma.location.findFirst({
+        where: {
+          merchantId: merchantId,
+          isActive: true,
+        },
+        orderBy: {
+          createdAt: 'asc', // Get the oldest active location as primary
+        },
+      });
+
+      if (primaryLocation) {
+        const locationUpdateData: any = {};
+        if (profileData.email !== undefined) locationUpdateData.email = profileData.email;
+        if (profileData.phone !== undefined) locationUpdateData.phone = profileData.phone;
+
+        await this.prisma.location.update({
+          where: { id: primaryLocation.id },
+          data: locationUpdateData,
+        });
+      }
+    }
+
     return updated;
   }
 
