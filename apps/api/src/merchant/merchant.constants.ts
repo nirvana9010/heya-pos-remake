@@ -31,11 +31,11 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   appointmentReminder2hSms: false,
   
   // Staff Notification settings
-  // New, Cancellations (PANEL = false, EMAIL = false, SMS = false)
+  // New, Cancellations (PANEL = false, EMAIL = true, SMS = false)
   newBookingNotification: false,
-  newBookingNotificationEmail: false,
+  newBookingNotificationEmail: true,
   newBookingNotificationSms: false,
   cancellationNotification: false,
-  cancellationNotificationEmail: false,
+  cancellationNotificationEmail: true,
   cancellationNotificationSms: false,
 };
