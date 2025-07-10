@@ -37,6 +37,8 @@ export enum NotificationType {
   BOOKING_REMINDER_2H = 'booking_reminder_2h',
   BOOKING_CANCELLED = 'booking_cancelled',
   BOOKING_RESCHEDULED = 'booking_rescheduled',
+  BOOKING_NEW_STAFF = 'booking_new_staff',
+  BOOKING_CANCELLED_STAFF = 'booking_cancelled_staff',
 }
 
 export interface NotificationResult {

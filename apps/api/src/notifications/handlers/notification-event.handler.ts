@@ -116,25 +116,62 @@ export class NotificationEventHandler {
       }
 
       // Create merchant notification only for external bookings (from booking app) and if enabled
-      if (event.source === 'ONLINE' && merchantSettings?.newBookingNotification !== false) {
+      if (event.source === 'ONLINE') {
         const customerName = booking.customer.lastName 
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName;
-        this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE booking ${booking.id}`);
-        await this.merchantNotificationsService.createBookingNotification(
-          booking.merchantId,
-          'booking_new',
-          {
-            id: booking.id,
-            customerName,
-            serviceName: firstService?.service?.name || 'Service',
-            startTime: booking.startTime,
-            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-          }
-        );
-        this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
+        
+        // Panel notification
+        if (merchantSettings?.newBookingNotification !== false) {
+          this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE booking ${booking.id}`);
+          await this.merchantNotificationsService.createBookingNotification(
+            booking.merchantId,
+            'booking_new',
+            {
+              id: booking.id,
+              customerName,
+              serviceName: firstService?.service?.name || 'Service',
+              startTime: booking.startTime,
+              staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+            }
+          );
+          this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
+        }
+        
+        // Email/SMS notifications for staff
+        const shouldSendStaffEmail = merchantSettings?.newBookingNotificationEmail !== false;
+        const shouldSendStaffSms = merchantSettings?.newBookingNotificationSms !== false;
+        
+        if (shouldSendStaffEmail || shouldSendStaffSms) {
+          const staffContext = {
+            ...context,
+            // Override customer info with merchant info for staff notifications
+            customer: {
+              id: booking.merchant.id,
+              email: booking.merchant.email,
+              phone: booking.merchant.phone,
+              firstName: booking.merchant.name,
+              lastName: '',
+              preferredChannel: this.determineMerchantPreferredChannel(
+                'both',
+                shouldSendStaffEmail,
+                shouldSendStaffSms
+              ),
+            },
+          };
+          
+          // Send staff notification for new booking
+          const results = await this.notificationsService.sendNotification(
+            NotificationType.BOOKING_NEW_STAFF,
+            staffContext,
+          );
+          
+          this.logger.log(
+            `Staff new booking notification sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+          );
+        }
       } else {
-        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source} booking ${booking.id} (source: ${event.source}, enabled: ${merchantSettings?.newBookingNotification !== false})`);
+        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source} booking ${booking.id}`);
       }
 
       // Schedule reminders (if enabled)
@@ -271,23 +308,60 @@ export class NotificationEventHandler {
 
       // Create merchant notification only for external bookings and if enabled
       const merchantSettings = booking.merchant.settings as any;
-      if (event.source === 'ONLINE' && merchantSettings?.cancellationNotification !== false) {
+      if (event.source === 'ONLINE') {
         const customerName = booking.customer.lastName 
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName;
-        await this.merchantNotificationsService.createBookingNotification(
-          booking.merchantId,
-          'booking_cancelled',
-          {
-            id: booking.id,
-            customerName,
-            serviceName: firstService?.service?.name || 'Service',
-            startTime: booking.startTime,
-            staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
-          }
-        );
+        
+        // Panel notification
+        if (merchantSettings?.cancellationNotification !== false) {
+          await this.merchantNotificationsService.createBookingNotification(
+            booking.merchantId,
+            'booking_cancelled',
+            {
+              id: booking.id,
+              customerName,
+              serviceName: firstService?.service?.name || 'Service',
+              startTime: booking.startTime,
+              staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : undefined,
+            }
+          );
+        }
+        
+        // Email/SMS notifications for staff
+        const shouldSendStaffEmail = merchantSettings?.cancellationNotificationEmail !== false;
+        const shouldSendStaffSms = merchantSettings?.cancellationNotificationSms !== false;
+        
+        if (shouldSendStaffEmail || shouldSendStaffSms) {
+          const staffContext = {
+            ...context,
+            // Override customer info with merchant info for staff notifications
+            customer: {
+              id: booking.merchant.id,
+              email: booking.merchant.email,
+              phone: booking.merchant.phone,
+              firstName: booking.merchant.name,
+              lastName: '',
+              preferredChannel: this.determineMerchantPreferredChannel(
+                'both',
+                shouldSendStaffEmail,
+                shouldSendStaffSms
+              ),
+            },
+          };
+          
+          // Send staff notification for cancellation
+          const results = await this.notificationsService.sendNotification(
+            NotificationType.BOOKING_CANCELLED_STAFF,
+            staffContext,
+          );
+          
+          this.logger.log(
+            `Staff cancellation notification sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+          );
+        }
       } else {
-        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} cancelled booking ${booking.id} (source: ${event.source}, enabled: ${merchantSettings?.cancellationNotification !== false})`);
+        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} cancelled booking ${booking.id}`);
       }
 
       // Cancel any pending reminders

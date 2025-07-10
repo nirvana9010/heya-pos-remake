@@ -23,33 +23,40 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { merchant } = useAuth();
   const queryClient = useQueryClient();
-  const [bookingAdvanceHours, setBookingAdvanceHours] = useState("48");
-  const [cancellationHours, setCancellationHours] = useState("24");
-  const [requirePinForRefunds, setRequirePinForRefunds] = useState(true);
-  const [requirePinForCancellations, setRequirePinForCancellations] = useState(true);
-  const [requirePinForReports, setRequirePinForReports] = useState(true);
-  const [requirePinForStaff, setRequirePinForStaff] = useState(true);
-  const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
-  // Notification settings
-  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(true);
-  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(false);
-  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(true);
-  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(false);
-  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(true);
-  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(true);
-  const [newBookingNotification, setNewBookingNotification] = useState(true);
-  const [cancellationNotification, setCancellationNotification] = useState(true);
+  // Initialize with merchant settings if available to prevent flicker
+  const merchantSettings = merchant?.settings || {};
+  
+  const [bookingAdvanceHours, setBookingAdvanceHours] = useState(merchantSettings.bookingAdvanceHours?.toString() || "48");
+  const [cancellationHours, setCancellationHours] = useState(merchantSettings.cancellationHours?.toString() || "24");
+  const [requirePinForRefunds, setRequirePinForRefunds] = useState(merchantSettings.requirePinForRefunds ?? true);
+  const [requirePinForCancellations, setRequirePinForCancellations] = useState(merchantSettings.requirePinForCancellations ?? true);
+  const [requirePinForReports, setRequirePinForReports] = useState(merchantSettings.requirePinForReports ?? true);
+  const [requirePinForStaff, setRequirePinForStaff] = useState(merchantSettings.requirePinForStaff ?? true);
+  const [selectedTimezone, setSelectedTimezone] = useState(merchantSettings.timezone || "Australia/Sydney");
+  // Notification settings - initialize from merchant settings to prevent flicker
+  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(merchantSettings.bookingConfirmationEmail !== false);
+  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(merchantSettings.bookingConfirmationSms !== false);
+  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(merchantSettings.appointmentReminder24hEmail !== false);
+  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(merchantSettings.appointmentReminder24hSms !== false);
+  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(merchantSettings.appointmentReminder2hEmail !== false);
+  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(merchantSettings.appointmentReminder2hSms !== false);
+  const [newBookingNotification, setNewBookingNotification] = useState(merchantSettings.newBookingNotification !== false);
+  const [newBookingNotificationEmail, setNewBookingNotificationEmail] = useState(merchantSettings.newBookingNotificationEmail !== false);
+  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(merchantSettings.newBookingNotificationSms !== false);
+  const [cancellationNotification, setCancellationNotification] = useState(merchantSettings.cancellationNotification !== false);
+  const [cancellationNotificationEmail, setCancellationNotificationEmail] = useState(merchantSettings.cancellationNotificationEmail !== false);
+  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(merchantSettings.cancellationNotificationSms !== false);
   const [loading, setLoading] = useState(false);
-  const [requireDeposit, setRequireDeposit] = useState(false);
-  const [depositPercentage, setDepositPercentage] = useState("30");
-  const [enableTips, setEnableTips] = useState(false);
-  const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>([10, 15, 20]);
-  const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(true);
-  const [showUnassignedColumn, setShowUnassignedColumn] = useState(true);
-  const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(true);
-  const [calendarStartHour, setCalendarStartHour] = useState(6);
-  const [calendarEndHour, setCalendarEndHour] = useState(23);
-  const [priceToDurationRatio, setPriceToDurationRatio] = useState("1.0");
+  const [requireDeposit, setRequireDeposit] = useState(merchantSettings.requireDeposit ?? false);
+  const [depositPercentage, setDepositPercentage] = useState(merchantSettings.depositPercentage?.toString() || "30");
+  const [enableTips, setEnableTips] = useState(merchantSettings.enableTips ?? false);
+  const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>(merchantSettings.defaultTipPercentages || [10, 15, 20]);
+  const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(merchantSettings.allowCustomTipAmount ?? true);
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(merchantSettings.showUnassignedColumn ?? true);
+  const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(merchantSettings.allowUnassignedBookings ?? true);
+  const [calendarStartHour, setCalendarStartHour] = useState(merchantSettings.calendarStartHour ?? 6);
+  const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
+  const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
   
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
@@ -59,8 +66,8 @@ export default function SettingsPage() {
   const [businessAbn, setBusinessAbn] = useState("");
   const [merchantSubdomain, setMerchantSubdomain] = useState("");
   
-  // Business hours state
-  const [businessHours, setBusinessHours] = useState<any>({
+  // Business hours state - initialize from merchant settings if available
+  const defaultHours = {
     monday: { open: "09:00", close: "17:00", isOpen: true },
     tuesday: { open: "09:00", close: "17:00", isOpen: true },
     wednesday: { open: "09:00", close: "17:00", isOpen: true },
@@ -68,6 +75,25 @@ export default function SettingsPage() {
     friday: { open: "09:00", close: "17:00", isOpen: true },
     saturday: { open: "09:00", close: "17:00", isOpen: true },
     sunday: { open: "09:00", close: "17:00", isOpen: false },
+  };
+  
+  const [businessHours, setBusinessHours] = useState<any>(() => {
+    if (merchantSettings.businessHours) {
+      const formattedHours: any = {};
+      Object.entries(merchantSettings.businessHours).forEach(([day, hours]: [string, any]) => {
+        if (hours) {
+          formattedHours[day] = {
+            open: hours.open || "09:00",
+            close: hours.close || "17:00",
+            isOpen: hours.isOpen !== undefined ? hours.isOpen : true
+          };
+        } else {
+          formattedHours[day] = defaultHours[day as keyof typeof defaultHours] || { open: "09:00", close: "17:00", isOpen: false };
+        }
+      });
+      return { ...defaultHours, ...formattedHours };
+    }
+    return defaultHours;
   });
   
   // Import states
@@ -122,7 +148,11 @@ export default function SettingsPage() {
         setAppointmentReminder2hEmail(response.appointmentReminder2hEmail !== false);
         setAppointmentReminder2hSms(response.appointmentReminder2hSms !== false);
         setNewBookingNotification(response.newBookingNotification !== false);
+        setNewBookingNotificationEmail(response.newBookingNotificationEmail !== false);
+        setNewBookingNotificationSms(response.newBookingNotificationSms !== false);
         setCancellationNotification(response.cancellationNotification !== false);
+        setCancellationNotificationEmail(response.cancellationNotificationEmail !== false);
+        setCancellationNotificationSms(response.cancellationNotificationSms !== false);
         // Load business hours from merchant settings
         if (response.businessHours) {
           const formattedHours: any = {};
@@ -1141,20 +1171,6 @@ export default function SettingsPage() {
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Loyalty Updates</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Notify about points earned and rewards
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch defaultChecked />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch />
-                      <span className="text-sm text-muted-foreground">SMS</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1170,10 +1186,23 @@ export default function SettingsPage() {
                         Alert when new booking is made from booking app
                       </p>
                     </div>
-                    <Switch 
-                      checked={newBookingNotification} 
-                      onCheckedChange={setNewBookingNotification} 
-                    />
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={newBookingNotification} 
+                        onCheckedChange={setNewBookingNotification} 
+                      />
+                      <span className="text-sm text-muted-foreground">Panel</span>
+                      <Switch 
+                        checked={newBookingNotificationEmail} 
+                        onCheckedChange={setNewBookingNotificationEmail} 
+                      />
+                      <span className="text-sm text-muted-foreground">Email</span>
+                      <Switch 
+                        checked={newBookingNotificationSms} 
+                        onCheckedChange={setNewBookingNotificationSms} 
+                      />
+                      <span className="text-sm text-muted-foreground">SMS</span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -1182,19 +1211,23 @@ export default function SettingsPage() {
                         Alert when booking is cancelled from booking app
                       </p>
                     </div>
-                    <Switch 
-                      checked={cancellationNotification} 
-                      onCheckedChange={setCancellationNotification} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Daily Summary</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send daily booking summary email
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={cancellationNotification} 
+                        onCheckedChange={setCancellationNotification} 
+                      />
+                      <span className="text-sm text-muted-foreground">Panel</span>
+                      <Switch 
+                        checked={cancellationNotificationEmail} 
+                        onCheckedChange={setCancellationNotificationEmail} 
+                      />
+                      <span className="text-sm text-muted-foreground">Email</span>
+                      <Switch 
+                        checked={cancellationNotificationSms} 
+                        onCheckedChange={setCancellationNotificationSms} 
+                      />
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
-                    <Switch />
                   </div>
                 </div>
               </div>
@@ -1211,7 +1244,11 @@ export default function SettingsPage() {
                       appointmentReminder2hEmail,
                       appointmentReminder2hSms,
                       newBookingNotification,
+                      newBookingNotificationEmail,
+                      newBookingNotificationSms,
                       cancellationNotification,
+                      cancellationNotificationEmail,
+                      cancellationNotificationSms,
                     });
                     toast({
                       title: "Success",

@@ -19,6 +19,10 @@ export class SmsTemplateService {
         return this.renderBookingCancelled(context);
       case NotificationType.BOOKING_RESCHEDULED:
         return this.renderBookingRescheduled(context);
+      case NotificationType.BOOKING_NEW_STAFF:
+        return this.renderStaffNewBooking(context);
+      case NotificationType.BOOKING_CANCELLED_STAFF:
+        return this.renderStaffCancellation(context);
       default:
         throw new Error(`SMS template not found for type: ${type}`);
     }
@@ -63,5 +67,21 @@ export class SmsTemplateService {
     
     return `${merchant.name}: Your booking has been rescheduled to ${newDate} at ${booking.time}. ` +
            `Ref: ${booking.bookingNumber}`;
+  }
+
+  private renderStaffNewBooking(context: NotificationContext): string {
+    const { booking } = context;
+    const date = format(booking.date, 'EEE d/M');
+    
+    return `NEW BOOKING: ${booking.serviceName} on ${date} at ${booking.time} ` +
+           `with ${booking.staffName}. Check your calendar for details.`;
+  }
+
+  private renderStaffCancellation(context: NotificationContext): string {
+    const { booking } = context;
+    const date = format(booking.date, 'EEE d/M');
+    
+    return `CANCELLED: ${booking.serviceName} on ${date} at ${booking.time} ` +
+           `with ${booking.staffName}. Time slot now available.`;
   }
 }
