@@ -34,7 +34,9 @@ export class BaseApiClient {
       (config) => {
         // Check if redirect is in progress
         if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-          return Promise.reject(new Error('UNAUTHORIZED_REDIRECT'));
+          const error = new Error('Authentication in progress, please wait...');
+          (error as any).code = 'AUTH_IN_PROGRESS';
+          return Promise.reject(error);
         }
         
         const token = localStorage.getItem('access_token');
@@ -201,12 +203,14 @@ export class BaseApiClient {
     if (typeof window !== 'undefined') {
       // Check if already redirecting
       if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-        throw new Error('UNAUTHORIZED_REDIRECT');
+        // Already handling redirect, just return
+        return;
       }
       
       // Don't redirect if already on login page
       if (window.location.pathname.includes('/login')) {
-        throw new Error('UNAUTHORIZED_REDIRECT');
+        // Just return silently - we're already on login page
+        return;
       }
       
       // Set a flag to prevent further API calls

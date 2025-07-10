@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans, Manrope } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@heya-pos/ui'
+import { Toaster as Sonner } from 'sonner'
 import { Providers } from '@/components/providers'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Suspense } from 'react'
@@ -45,6 +46,7 @@ export default function RootLayout({
           </ErrorBoundary>
         </Providers>
         <Toaster />
+        <Sonner richColors position="top-right" />
       </body>
     </html>
   )

@@ -54,9 +54,12 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password, rememberMe);
       // Auth provider will handle the redirect through the useEffect above
-    } catch (err) {
+    } catch (err: any) {
       // Error is handled by the auth provider and available via authError
-      console.error('Login failed:', err);
+      // Only log if it's not an expected auth error
+      if (err?.code !== 'AUTH_IN_PROGRESS' && err?.message !== 'UNAUTHORIZED_REDIRECT') {
+        console.error('Login failed:', err?.message || err);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +177,7 @@ export default function LoginPage() {
                       Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
                     </div>
                     <div>
-                      <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@zenwellness.com</code>, 
+                      <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">lukas.tn90@gmail.com</code>, 
                       Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo456</code>
                     </div>
                   </div>
@@ -212,7 +215,7 @@ export default function LoginPage() {
                   className="w-full"
                   onClick={() => {
                     setFormData({
-                      email: 'admin@zenwellness.com',
+                      email: 'lukas.tn90@gmail.com',
                       password: 'demo456'
                     });
                     // Auto submit after a short delay

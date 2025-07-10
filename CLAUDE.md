@@ -145,6 +145,72 @@ pm2 delete api && pm2 start ecosystem.config.js --only api
 
 This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments, hence the wrapper script approach.
 
+## Process Management & Clean Restart
+
+### Handling Port Conflicts and Zombie Processes
+
+**Common Issue**: The merchant app and other services frequently fail to start due to port conflicts and zombie processes. This happens "literally every other day" and requires a clean restart of all services.
+
+**Solution**: Use the `/scripts/clean-restart.sh` script that comprehensively cleans up all processes:
+
+```bash
+# Run the clean restart script
+./scripts/clean-restart.sh
+```
+
+### What the Clean Restart Script Does
+
+1. **Stops PM2 processes** - Cleanly stops and deletes all PM2 managed processes
+2. **Kills Node.js processes** - Force kills any remaining Next.js/Nest.js processes
+3. **Clears ports explicitly** - Ensures ports 3000-3003 are free
+4. **Clears PM2 logs** - Optionally flushes PM2 logs
+5. **Starts services** - Starts API first, waits for it to be ready, then starts frontend apps
+6. **Status check** - Shows running processes and port status
+
+### Manual Clean Restart Steps (if script fails)
+
+```bash
+# 1. Stop all PM2 processes
+pm2 stop all
+pm2 delete all
+
+# 2. Kill all Node.js processes
+pkill -9 -f "next"
+pkill -9 -f "nest"
+pkill -9 -f "node.*3000"
+pkill -9 -f "node.*3001"
+pkill -9 -f "node.*3002"
+pkill -9 -f "node.*3003"
+
+# 3. Clear specific ports
+lsof -ti:3000 | xargs kill -9
+lsof -ti:3001 | xargs kill -9
+lsof -ti:3002 | xargs kill -9
+lsof -ti:3003 | xargs kill -9
+
+# 4. Start services (from their respective directories)
+cd apps/api && npm run start:dev &
+cd apps/merchant-app && npm run dev:direct &
+cd apps/booking-app && npm run dev &  # optional
+```
+
+### Port Assignments
+
+- **3000**: API (NestJS backend)
+- **3001**: Booking App (Next.js customer interface)
+- **3002**: Merchant App (Next.js merchant dashboard)
+- **3003**: Admin Dashboard (Next.js admin interface)
+
+### When to Use Clean Restart
+
+- When you see "port already in use" errors
+- When PM2 shows processes as "errored" or in restart loops
+- When the merchant app won't boot
+- After system crashes or unexpected shutdowns
+- When processes become unresponsive
+
+**Note**: The clean restart script is essential for development workflow as PM2 and Node.js processes can leave zombie processes that block ports.
+
 ## UI State Management Best Practices
 
 ### Optimistic Updates for Better UX

@@ -33,11 +33,22 @@ export class MerchantNotificationsController {
   ) {
     const merchantId = (req.user as any).merchantId;
     
-    return this.notificationsService.getNotifications(merchantId, {
+    console.log('[MerchantNotificationsController] Getting notifications for merchant:', merchantId);
+    console.log('[MerchantNotificationsController] Query params:', { skip, take, unreadOnly });
+    
+    const result = await this.notificationsService.getNotifications(merchantId, {
       skip: skip ? parseInt(skip) : undefined,
       take: take ? parseInt(take) : undefined,
       unreadOnly: unreadOnly === 'true',
     });
+    
+    console.log('[MerchantNotificationsController] Returning notifications:', {
+      total: result.total,
+      dataCount: result.data.length,
+      unreadCount: result.unreadCount
+    });
+    
+    return result;
   }
 
   @Patch(':id/read')

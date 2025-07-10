@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -536,42 +537,39 @@ export default function SettingsPage() {
                 <Building2 className="h-5 w-5" />
                 Business Information
               </CardTitle>
-              <CardDescription>Manage your business details and location settings</CardDescription>
+              <CardDescription>View your business details and manage location settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="business-name">Business Name</Label>
-                  <Input 
-                    id="business-name" 
-                    value={businessName} 
-                    onChange={(e) => setBusinessName(e.target.value)}
-                  />
+              {/* Business Info - Read-only with link to Profile */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium">Basic Information</h3>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="text-xs"
+                    asChild
+                  >
+                    <Link href="/profile">Edit in Profile →</Link>
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="abn">ABN</Label>
-                  <Input 
-                    id="abn" 
-                    value={businessAbn} 
-                    onChange={(e) => setBusinessAbn(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Business Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={businessEmail} 
-                    onChange={(e) => setBusinessEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Business Phone</Label>
-                  <Input 
-                    id="phone" 
-                    value={businessPhone} 
-                    onChange={(e) => setBusinessPhone(e.target.value)}
-                  />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Business Name</Label>
+                    <p className="text-sm font-medium">{businessName || 'Not set'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">ABN</Label>
+                    <p className="text-sm font-medium">{businessAbn || 'Not set'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Business Email</Label>
+                    <p className="text-sm font-medium">{businessEmail || 'Not set'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Business Phone</Label>
+                    <p className="text-sm font-medium">{businessPhone || 'Not set'}</p>
+                  </div>
                 </div>
               </div>
 
@@ -709,15 +707,8 @@ export default function SettingsPage() {
                 <Button onClick={async () => {
                   setLoading(true);
                   try {
-                    // Update merchant profile
-                    await apiClient.updateMerchantProfile({
-                      name: businessName,
-                      email: businessEmail,
-                      phone: businessPhone,
-                      abn: businessAbn,
-                    });
-                    
-                    // Update timezone and business hours in merchant settings
+                    // Only update timezone and business hours in merchant settings
+                    // Business info is now managed in Profile page
                     console.log('Saving business hours:', businessHours);
                     const settingsResponse = await apiClient.updateMerchantSettings({
                       timezone: selectedTimezone,
@@ -727,14 +718,14 @@ export default function SettingsPage() {
                     
                     toast({
                       title: "Success",
-                      description: "Business information updated successfully",
+                      description: "Location settings updated successfully",
                     });
                   } catch (error: any) {
                     console.error('Settings save error:', error);
                     console.error('Error response:', error.response?.data);
                     toast({
                       title: "Error",
-                      description: error.response?.data?.message || "Failed to update business information",
+                      description: error.response?.data?.message || "Failed to update location settings",
                       variant: "destructive",
                     });
                   } finally {

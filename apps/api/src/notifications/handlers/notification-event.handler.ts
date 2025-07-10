@@ -27,7 +27,15 @@ export class NotificationEventHandler {
         where: { id: event.bookingId },
         include: {
           customer: true,
-          merchant: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' }, // Get the primary/first location
+              },
+            },
+          },
           provider: true,
           services: {
             include: {
@@ -70,6 +78,8 @@ export class NotificationEventHandler {
           email: booking.merchant.email,
           phone: booking.merchant.phone,
           website: booking.merchant.website,
+          // Include primary location address if available
+          address: booking.merchant.locations?.[0]?.address,
         },
         customer: {
           id: booking.customer.id,
@@ -242,7 +252,15 @@ export class NotificationEventHandler {
         where: { id: event.bookingId },
         include: {
           customer: true,
-          merchant: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' }, // Get the primary/first location
+              },
+            },
+          },
           provider: true,
           services: {
             include: {
@@ -285,6 +303,8 @@ export class NotificationEventHandler {
           email: booking.merchant.email,
           phone: booking.merchant.phone,
           website: booking.merchant.website,
+          // Include primary location address if available
+          address: booking.merchant.locations?.[0]?.address,
         },
         customer: {
           id: booking.customer.id,
@@ -411,7 +431,15 @@ export class NotificationEventHandler {
         where: { id: event.bookingId },
         include: {
           customer: true,
-          merchant: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' }, // Get the primary/first location
+              },
+            },
+          },
           provider: true,
           services: {
             include: {
@@ -475,7 +503,15 @@ export class NotificationEventHandler {
         where: { id: event.bookingId },
         include: {
           customer: true,
-          merchant: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' }, // Get the primary/first location
+              },
+            },
+          },
           provider: true,
           services: {
             include: {

@@ -292,6 +292,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const { merchant } = useAuth();
 
   // Real-time connection (SSE or Supabase)
+  // Strategy: Real-time systems (SSE/Supabase) handle immediate updates
+  // React Query polling (5 min) acts as a fallback for any missed events
+  // When a notification arrives via real-time, we use refreshNotifications()
+  // to force an immediate database fetch, bypassing the polling interval
   useEffect(() => {
     const useSupabase = featureFlags.isEnabled('supabaseRealtime');
     
@@ -331,9 +335,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             
             // Still refetch in background to sync with server
             queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            refetch().then(() => {
+            
+            // Use refreshNotifications for immediate fetch
+            refreshNotifications().then(() => {
               // Clear optimistic notifications after successful fetch
               setOptimisticNotifications([]);
+            }).catch(error => {
+              console.error('[NotificationsContext] Supabase refresh failed:', error);
             });
           },
           (error) => {
@@ -378,13 +386,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           // New notification received, update optimistically
           if (event.notification) {
             console.log('[NotificationsContext] New notification via SSE:', event.notification.id);
+            console.log('[NotificationsContext] Full notification data:', event.notification);
             
             // Add notification optimistically for immediate UI update
             setOptimisticNotifications(prev => {
               // Don't add if already exists
               if (prev.some(n => n.id === event.notification.id)) {
+                console.log('[NotificationsContext] Notification already in optimistic list, skipping');
                 return prev;
               }
+              console.log('[NotificationsContext] Adding to optimistic notifications');
               return [event.notification as MerchantNotification, ...prev];
             });
             
@@ -392,10 +403,19 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             forceUpdate();
             
             // Still refetch in background to sync with server
+            console.log('[NotificationsContext] Invalidating queries and refetching...');
+            
+            // Force immediate refetch bypassing any stale time or intervals
             queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            refetch().then(() => {
+            
+            // Use refreshNotifications which forces immediate fetch
+            refreshNotifications().then(() => {
+              console.log('[NotificationsContext] Refresh complete');
+              console.log('[NotificationsContext] Clearing optimistic notifications');
               // Clear optimistic notifications after successful fetch
               setOptimisticNotifications([]);
+            }).catch(error => {
+              console.error('[NotificationsContext] Refresh failed:', error);
             });
           }
           break;
