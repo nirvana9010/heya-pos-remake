@@ -29,9 +29,16 @@ export default function SettingsPage() {
   const [requirePinForCancellations, setRequirePinForCancellations] = useState(true);
   const [requirePinForReports, setRequirePinForReports] = useState(true);
   const [requirePinForStaff, setRequirePinForStaff] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
   const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
+  // Notification settings
+  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(true);
+  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(false);
+  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(true);
+  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(false);
+  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(true);
+  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(true);
+  const [newBookingNotification, setNewBookingNotification] = useState(true);
+  const [cancellationNotification, setCancellationNotification] = useState(true);
   const [loading, setLoading] = useState(false);
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState("30");
@@ -107,6 +114,15 @@ export default function SettingsPage() {
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
         }
+        // Load notification settings
+        setBookingConfirmationEmail(response.bookingConfirmationEmail !== false);
+        setBookingConfirmationSms(response.bookingConfirmationSms !== false);
+        setAppointmentReminder24hEmail(response.appointmentReminder24hEmail !== false);
+        setAppointmentReminder24hSms(response.appointmentReminder24hSms !== false);
+        setAppointmentReminder2hEmail(response.appointmentReminder2hEmail !== false);
+        setAppointmentReminder2hSms(response.appointmentReminder2hSms !== false);
+        setNewBookingNotification(response.newBookingNotification !== false);
+        setCancellationNotification(response.cancellationNotification !== false);
         // Load business hours from merchant settings
         if (response.businessHours) {
           const formattedHours: any = {};
@@ -1073,23 +1089,55 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch defaultChecked />
+                      <Switch 
+                        checked={bookingConfirmationEmail} 
+                        onCheckedChange={setBookingConfirmationEmail} 
+                      />
                       <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch />
+                      <Switch 
+                        checked={bookingConfirmationSms} 
+                        onCheckedChange={setBookingConfirmationSms} 
+                      />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Appointment Reminders</Label>
+                      <Label>24-Hour Appointment Reminders</Label>
                       <p className="text-sm text-muted-foreground">
                         Send reminder 24 hours before appointment
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch defaultChecked />
+                      <Switch 
+                        checked={appointmentReminder24hEmail} 
+                        onCheckedChange={setAppointmentReminder24hEmail} 
+                      />
                       <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch defaultChecked />
+                      <Switch 
+                        checked={appointmentReminder24hSms} 
+                        onCheckedChange={setAppointmentReminder24hSms} 
+                      />
+                      <span className="text-sm text-muted-foreground">SMS</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>2-Hour Appointment Reminders</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Send reminder 2 hours before appointment
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={appointmentReminder2hEmail} 
+                        onCheckedChange={setAppointmentReminder2hEmail} 
+                      />
+                      <span className="text-sm text-muted-foreground">Email</span>
+                      <Switch 
+                        checked={appointmentReminder2hSms} 
+                        onCheckedChange={setAppointmentReminder2hSms} 
+                      />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
@@ -1119,19 +1167,25 @@ export default function SettingsPage() {
                     <div className="space-y-0.5">
                       <Label>New Bookings</Label>
                       <p className="text-sm text-muted-foreground">
-                        Alert when new booking is made
+                        Alert when new booking is made from booking app
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={newBookingNotification} 
+                      onCheckedChange={setNewBookingNotification} 
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Cancellations</Label>
                       <p className="text-sm text-muted-foreground">
-                        Alert when booking is cancelled
+                        Alert when booking is cancelled from booking app
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={cancellationNotification} 
+                      onCheckedChange={setCancellationNotification} 
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -1150,8 +1204,14 @@ export default function SettingsPage() {
                   setLoading(true);
                   try {
                     await apiClient.put("/merchant/settings", {
-                      emailNotifications,
-                      smsNotifications,
+                      bookingConfirmationEmail,
+                      bookingConfirmationSms,
+                      appointmentReminder24hEmail,
+                      appointmentReminder24hSms,
+                      appointmentReminder2hEmail,
+                      appointmentReminder2hSms,
+                      newBookingNotification,
+                      cancellationNotification,
                     });
                     toast({
                       title: "Success",

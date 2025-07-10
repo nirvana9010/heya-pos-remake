@@ -49,6 +49,15 @@ export interface MerchantSettings {
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
   // Business hours
   businessHours?: BusinessHours;
+  // Notification settings
+  bookingConfirmationEmail?: boolean;
+  bookingConfirmationSms?: boolean;
+  appointmentReminder24hEmail?: boolean;
+  appointmentReminder24hSms?: boolean;
+  appointmentReminder2hEmail?: boolean;
+  appointmentReminder2hSms?: boolean;
+  newBookingNotification?: boolean;
+  cancellationNotification?: boolean;
 }
 
 export interface BusinessHours {

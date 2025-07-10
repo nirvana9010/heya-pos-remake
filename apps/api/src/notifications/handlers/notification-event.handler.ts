@@ -81,18 +81,42 @@ export class NotificationEventHandler {
         },
       };
 
-      // Send booking confirmation
-      const results = await this.notificationsService.sendNotification(
-        NotificationType.BOOKING_CONFIRMATION,
-        context,
-      );
+      // Check merchant settings before sending booking confirmation
+      const merchantSettings = booking.merchant.settings as any;
+      const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false; // Default to true
+      const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false; // Default to true
 
-      this.logger.log(
-        `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
-      );
+      if (shouldSendEmail || shouldSendSms) {
+        // Override context to respect merchant settings
+        const notificationContext = {
+          ...context,
+          customer: {
+            ...context.customer,
+            preferredChannel: this.determineMerchantPreferredChannel(
+              context.customer.preferredChannel,
+              shouldSendEmail,
+              shouldSendSms
+            ),
+          },
+        };
 
-      // Create merchant notification only for external bookings (from booking app)
-      if (event.source === 'ONLINE') {
+        // Send booking confirmation
+        const results = await this.notificationsService.sendNotification(
+          NotificationType.BOOKING_CONFIRMATION,
+          notificationContext,
+        );
+
+        this.logger.log(
+          `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+        );
+      } else {
+        this.logger.log(
+          `Booking confirmation skipped - merchant has disabled all notification channels`,
+        );
+      }
+
+      // Create merchant notification only for external bookings (from booking app) and if enabled
+      if (event.source === 'ONLINE' && merchantSettings?.newBookingNotification !== false) {
         const customerName = booking.customer.lastName 
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName;
@@ -110,18 +134,18 @@ export class NotificationEventHandler {
         );
         this.logger.log(`[${new Date().toISOString()}] Merchant notification created for booking ${booking.id}`);
       } else {
-        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source} booking ${booking.id}`);
+        this.logger.log(`[${new Date().toISOString()}] Skipping merchant notification for ${event.source} booking ${booking.id} (source: ${event.source}, enabled: ${merchantSettings?.newBookingNotification !== false})`);
       }
 
       // Schedule reminders (if enabled)
-      await this.scheduleReminders(booking.id, booking.startTime);
+      await this.scheduleReminders(booking.id, booking.startTime, booking.merchant.settings as any);
 
     } catch (error) {
       this.logger.error(`Failed to handle booking created event: ${event.bookingId}`, error);
     }
   }
 
-  private async scheduleReminders(bookingId: string, startTime: Date): Promise<void> {
+  private async scheduleReminders(bookingId: string, startTime: Date, merchantSettings: any): Promise<void> {
     try {
       // For MVP, we'll create scheduled jobs in the database
       // In production, use a proper job queue (Bull/BullMQ)
@@ -133,8 +157,12 @@ export class NotificationEventHandler {
       const reminder2h = new Date(startTime);
       reminder2h.setHours(reminder2h.getHours() - 2);
 
-      // Only schedule if in the future
-      if (reminder24h > now) {
+      // Check if 24h reminders are enabled (default to true if not set)
+      const should24hEmail = merchantSettings?.appointmentReminder24hEmail !== false;
+      const should24hSms = merchantSettings?.appointmentReminder24hSms !== false;
+
+      // Only schedule 24h reminder if in the future and at least one channel is enabled
+      if (reminder24h > now && (should24hEmail || should24hSms)) {
         await this.prisma.scheduledNotification.create({
           data: {
             bookingId,
@@ -146,7 +174,12 @@ export class NotificationEventHandler {
         this.logger.log(`Scheduled 24h reminder for booking ${bookingId}`);
       }
 
-      if (reminder2h > now) {
+      // Check if 2h reminders are enabled (default to true if not set)
+      const should2hEmail = merchantSettings?.appointmentReminder2hEmail !== false;
+      const should2hSms = merchantSettings?.appointmentReminder2hSms !== false;
+
+      // Only schedule 2h reminder if in the future and at least one channel is enabled
+      if (reminder2h > now && (should2hEmail || should2hSms)) {
         await this.prisma.scheduledNotification.create({
           data: {
             bookingId,
@@ -236,8 +269,9 @@ export class NotificationEventHandler {
         `Booking cancellation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
       );
 
-      // Create merchant notification only for external bookings
-      if (event.source === 'ONLINE') {
+      // Create merchant notification only for external bookings and if enabled
+      const merchantSettings = booking.merchant.settings as any;
+      if (event.source === 'ONLINE' && merchantSettings?.cancellationNotification !== false) {
         const customerName = booking.customer.lastName 
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName;
@@ -253,7 +287,7 @@ export class NotificationEventHandler {
           }
         );
       } else {
-        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} cancelled booking ${booking.id}`);
+        this.logger.log(`Skipping merchant notification for ${event.source || 'unknown'} cancelled booking ${booking.id} (source: ${event.source}, enabled: ${merchantSettings?.cancellationNotification !== false})`);
       }
 
       // Cancel any pending reminders
@@ -349,7 +383,7 @@ export class NotificationEventHandler {
       await this.cancelReminders(booking.id);
       if (event.newStartTime) {
         const newStartDate = typeof event.newStartTime === 'string' ? new Date(event.newStartTime) : event.newStartTime;
-        await this.scheduleReminders(booking.id, newStartDate);
+        await this.scheduleReminders(booking.id, newStartDate, booking.merchant.settings as any);
       }
 
     } catch (error) {
@@ -410,5 +444,27 @@ export class NotificationEventHandler {
     } catch (error) {
       this.logger.error(`Failed to handle booking completed event for ${event.bookingId}`, error);
     }
+  }
+
+  private determineMerchantPreferredChannel(
+    customerPreference: 'email' | 'sms' | 'both',
+    emailEnabled: boolean,
+    smsEnabled: boolean,
+  ): 'email' | 'sms' | 'both' {
+    // If merchant has disabled both channels, return 'both' to skip sending
+    if (!emailEnabled && !smsEnabled) {
+      return 'both'; // This will result in no notifications being sent
+    }
+
+    // If only one channel is enabled by merchant, use that
+    if (emailEnabled && !smsEnabled) {
+      return 'email';
+    }
+    if (!emailEnabled && smsEnabled) {
+      return 'sms';
+    }
+
+    // Both channels are enabled by merchant, respect customer preference
+    return customerPreference;
   }
 }
