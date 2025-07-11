@@ -29,8 +29,13 @@ export class BookingMapper {
    * Convert Prisma booking to domain entity
    */
   static toDomain(prismaBooking: PrismaBookingWithRelations): Booking {
-    if (!prismaBooking.customer || !prismaBooking.location) {
-      throw new Error('Booking mapping failed: missing required relations');
+    if (!prismaBooking.customer) {
+      throw new Error('Booking mapping failed: missing customer relation');
+    }
+    
+    // Location is now optional - warn if locationId exists but location relation is missing
+    if (prismaBooking.locationId && !prismaBooking.location) {
+      console.warn(`[BookingMapper] Warning: locationId ${prismaBooking.locationId} exists but location relation is null`);
     }
 
     // For now, we assume one service per booking (first service)
@@ -93,7 +98,7 @@ export class BookingMapper {
       endTime: booking.timeSlot.end,
       customerId: booking.customerId,
       providerId: booking.staffId,
-      locationId: booking.locationId,
+      locationId: booking.locationId || null, // Allow null locationId
       merchantId: booking.merchantId,
       notes: booking.notes,
       totalAmount: booking.totalAmount,

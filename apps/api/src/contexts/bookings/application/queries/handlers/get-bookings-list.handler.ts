@@ -170,7 +170,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           ? booking.totalAmount.toNumber()
           : Number(booking.totalAmount),
         totalDuration,
-        locationName: booking.location.name,
+        locationName: booking.location?.name || 'No Location',
         createdAt: booking.createdAt,
         // Payment fields
         paymentStatus: booking.paymentStatus || 'UNPAID',
