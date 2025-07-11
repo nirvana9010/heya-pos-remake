@@ -92,12 +92,15 @@ export class NotificationEventHandler {
         },
       };
 
-      // Check merchant settings before sending booking confirmation
+      // Check merchant settings and booking status before sending booking confirmation
       const merchantSettings = booking.merchant.settings as any;
       const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false; // Default to true
       const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false; // Default to true
+      
+      // Only send confirmation emails for CONFIRMED bookings, not PENDING ones
+      const isBookingConfirmed = booking.status === 'CONFIRMED';
 
-      if (shouldSendEmail || shouldSendSms) {
+      if ((shouldSendEmail || shouldSendSms) && isBookingConfirmed) {
         // Override context to respect merchant settings
         const notificationContext = {
           ...context,
@@ -119,6 +122,10 @@ export class NotificationEventHandler {
 
         this.logger.log(
           `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+        );
+      } else if (!isBookingConfirmed) {
+        this.logger.log(
+          `Booking confirmation skipped - booking status is ${booking.status}, confirmations only sent for CONFIRMED bookings`,
         );
       } else {
         this.logger.log(

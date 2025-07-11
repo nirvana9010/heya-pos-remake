@@ -217,7 +217,7 @@ export class BookingsV2Controller {
       startTime: new Date(dto.startTime),
       merchantId: user.merchantId,
       notes: dto.notes,
-      source: dto.source || 'MANUAL',
+      source: dto.source || 'IN_PERSON',
       createdById: createdById, // Use the determined createdById
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,

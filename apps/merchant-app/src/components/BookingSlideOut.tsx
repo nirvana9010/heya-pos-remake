@@ -207,6 +207,7 @@ export function BookingSlideOut({
         
         // Only check availability if we have a valid service selected
         // Otherwise, assume all staff are available
+        console.log('Checking staff availability:', {
           serviceId: formData.selectedServices[0], 
           time: startTime, 
           duration,
@@ -234,6 +235,7 @@ export function BookingSlideOut({
           };
         }
         
+        console.log('Staff availability result:', {
           available: result.available.map(s => ({ id: s.id, name: s.name })),
           unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
           assignedStaff: result.assignedStaff
@@ -372,6 +374,7 @@ export function BookingSlideOut({
     let finalStaffId: string;
     if (isNextAvailableStaff(formData.staffId)) {
       // Use the pre-assigned staff from availability check
+      console.log('Using next available staff:', {
         staffId: null,
         availableStaff: nextAvailableStaff ? [nextAvailableStaff] : [],
         filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
@@ -379,6 +382,7 @@ export function BookingSlideOut({
       finalStaffId = ensureValidStaffId(null, nextAvailableStaff ? [nextAvailableStaff] : [], filteredStaff);
     } else {
       // Use the selected staff
+      console.log('Using selected staff:', {
         staffId: formData.staffId,
         availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
         filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
@@ -397,6 +401,7 @@ export function BookingSlideOut({
     const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
     
     // Debug merchant data
+    console.log('Merchant debug info:', {
       merchantProp: merchant,
       authMerchant: authMerchant,
       hasLocations: !!(merchant?.locations || authMerchant?.locations),
@@ -422,6 +427,8 @@ export function BookingSlideOut({
       endTime: new Date(combinedDateTime.getTime() + totalDuration * 60000),
       notes: formData.notes,
       sendReminder: formData.sendReminder,
+      // Set source to IN_PERSON for merchant app bookings
+      source: 'IN_PERSON',
       // Add customer source for walk-in customers
       ...(formData.isWalkIn && { customerSource: 'WALK_IN' })
     };
@@ -577,6 +584,7 @@ export function BookingSlideOut({
                         : "border-gray-200 hover:border-gray-300"
                     )}
                     onClick={() => {
+                      console.log('Service clicked:', {
                         serviceId: service.id, 
                         serviceName: service.name,
                         isSelected,

@@ -46,6 +46,21 @@ export function useCalendarData() {
         const date = format(startTime, 'yyyy-MM-dd');
         const time = format(startTime, 'HH:mm');
         
+        // Debug logging for status transformation
+        const originalStatus = booking.status;
+        const transformedStatus = booking.status ? 
+          ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
+           booking.status.toLowerCase().replace(/_/g, '-')) : 
+          'confirmed';
+        
+        if (originalStatus === 'PENDING' || transformedStatus === 'pending') {
+          console.log('[Calendar] Booking status transformation:', {
+            bookingId: booking.id,
+            originalStatus,
+            transformedStatus,
+            customerName: booking.customerName
+          });
+        }
         
         return {
           id: booking.id,
@@ -53,10 +68,7 @@ export function useCalendarData() {
           time,
           duration: booking.duration || booking.totalDuration || 60,
           // Ensure status is always lowercase for consistent filtering
-          status: booking.status ? 
-            ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
-             booking.status.toLowerCase().replace(/_/g, '-')) : 
-            'confirmed',
+          status: transformedStatus,
           
           // Customer info
           customerId: booking.customerId,
@@ -86,6 +98,14 @@ export function useCalendarData() {
           updatedAt: booking.updatedAt,
           completedAt: booking.completedAt,
         };
+      });
+      
+      console.log('[Calendar] Setting bookings:', {
+        total: transformedBookings.length,
+        pending: transformedBookings.filter(b => b.status === 'pending').length,
+        confirmed: transformedBookings.filter(b => b.status === 'confirmed').length,
+        dateRange: { start: startDate, end: endDate },
+        currentView: state.currentView
       });
       
       actions.setBookings(transformedBookings);
@@ -286,6 +306,14 @@ export function useCalendarData() {
     // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
       console.log('[Calendar] Received booking event:', event);
+      
+      // Log current state before refresh
+      console.log('[Calendar] Current state before refresh:', {
+        totalBookings: state.bookings.length,
+        pendingCount: state.bookings.filter(b => b.status === 'pending').length,
+        isRefreshing: state.isRefreshing,
+        isLoading: state.isLoading
+      });
       
       // Refresh if a booking was created or updated from ANY source
       // This ensures immediate UI updates when SSE events arrive

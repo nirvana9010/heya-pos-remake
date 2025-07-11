@@ -187,12 +187,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       newNotifications.forEach(notification => {
         // Check if this is a booking-related notification
         if (notification.type === 'booking_new' && notification.metadata?.bookingId) {
+          console.log('[NotificationsContext] Broadcasting booking_created event for:', notification.metadata.bookingId);
           bookingEvents.broadcast({
             type: 'booking_created',
             bookingId: notification.metadata.bookingId,
             source: 'ONLINE' // Notifications come from ONLINE bookings
           });
         } else if (notification.type === 'booking_updated' && notification.metadata?.bookingId) {
+          console.log('[NotificationsContext] Broadcasting booking_updated event for:', notification.metadata.bookingId);
           bookingEvents.broadcast({
             type: 'booking_updated',
             bookingId: notification.metadata.bookingId,

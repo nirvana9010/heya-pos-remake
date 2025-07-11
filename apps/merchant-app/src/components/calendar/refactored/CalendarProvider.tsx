@@ -54,7 +54,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
     return {
       selectedStatusFilters: savedStatusFilters 
         ? JSON.parse(savedStatusFilters) 
-        : ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+        : ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
       ...(showUnassignedColumn !== undefined && { showUnassignedColumn }),
@@ -94,7 +94,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   selectedBookingId: null,
   selectedStaffIds: savedPrefs.selectedStaffIds || [],
   selectedServiceIds: [],
-  selectedStatusFilters: savedPrefs.selectedStatusFilters || ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+  selectedStatusFilters: savedPrefs.selectedStatusFilters || ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
   searchQuery: '',
   
   // Feature flags
@@ -425,6 +425,13 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   const filteredBookings = useMemo(() => {
     let filtered = state.bookings;
     
+    console.log('[CalendarProvider] Filtering bookings:', {
+      totalBookings: state.bookings.length,
+      selectedStatusFilters: state.selectedStatusFilters,
+      pendingBookings: state.bookings.filter(b => b.status === 'pending').length,
+      bookingStatuses: [...new Set(state.bookings.map(b => b.status))]
+    });
+    
     // Date range filter
     filtered = filtered.filter(booking => {
       const bookingDate = new Date(booking.date);
@@ -451,9 +458,15 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     
     // Status filter
     if (state.selectedStatusFilters.length > 0) {
+      const beforeStatusFilter = filtered.length;
       filtered = filtered.filter(booking => 
         state.selectedStatusFilters.includes(booking.status)
       );
+      console.log('[CalendarProvider] Status filter applied:', {
+        before: beforeStatusFilter,
+        after: filtered.length,
+        removed: beforeStatusFilter - filtered.length
+      });
     }
     
     // Search filter

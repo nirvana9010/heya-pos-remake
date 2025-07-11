@@ -11,7 +11,7 @@ export interface DateRange {
 }
 
 // Booking status types
-export type BookingStatus = 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+export type BookingStatus = 'pending' | 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
 
 // Core data models
 export interface Booking {

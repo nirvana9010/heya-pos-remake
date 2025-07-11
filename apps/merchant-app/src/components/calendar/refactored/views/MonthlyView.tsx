@@ -155,6 +155,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                       {dayBookings.slice(0, 3).map((booking) => {
                         const staff = state.staff.find(s => s.id === booking.staffId);
                         const isCancelled = booking.status === 'cancelled';
+                        const isPending = booking.status === 'pending' || booking.status === 'PENDING';
                         return (
                           <div
                             key={booking.id}
@@ -164,7 +165,11 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                             )}
                             style={{
                               backgroundColor: isCancelled ? '#FEE2E2' : (staff?.color || '#E5E7EB'),
-                              color: isCancelled ? '#B91C1C' : (staff?.color ? 'white' : '#4B5563')
+                              backgroundImage: isPending ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))' : undefined,
+                              backgroundBlendMode: isPending ? 'overlay' as any : undefined,
+                              color: isCancelled ? '#B91C1C' : (staff?.color ? 'white' : '#4B5563'),
+                              borderLeft: isPending ? `2px dashed ${staff?.color || '#9CA3AF'}` : undefined,
+                              opacity: isPending ? 0.7 : 1
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -176,6 +181,9 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                             )}
                             {booking.status === 'cancelled' && (
                               <X className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
+                            )}
+                            {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                              <span className="text-[8px] font-bold bg-yellow-500 text-white px-1 rounded flex-shrink-0">P</span>
                             )}
                             {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
                               <div className="w-2 h-2 bg-green-600 rounded-full flex-shrink-0" title="Paid" />

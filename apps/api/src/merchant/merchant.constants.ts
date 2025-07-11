@@ -17,6 +17,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   depositPercentage: 0,
   showUnassignedColumn: false, // Default to false - merchants can enable if needed
   allowUnassignedBookings: false, // Default to false - merchants must explicitly enable unassigned bookings
+  autoConfirmBookings: true, // Default to true for backward compatibility
   calendarStartHour: 6, // 6 AM
   calendarEndHour: 23, // 11 PM
   allowWalkInBookings: true, // Default to true for flexibility

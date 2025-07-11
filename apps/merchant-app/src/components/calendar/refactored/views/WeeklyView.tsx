@@ -124,6 +124,7 @@ export function WeeklyView({
                       let bgColor = state.staff.find(s => s.id === booking.staffId)?.color || '#9CA3AF';
                       let opacity = 0.9;
                       let borderWidth = 4;
+                      let borderStyle = 'solid';
                       let textColor = 'text-white';
                       
                       // Check status first
@@ -140,6 +141,11 @@ export function WeeklyView({
                         opacity = 0.3;
                         borderWidth = 3;
                         textColor = 'text-gray-700';
+                      } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                        // Option 1: Keep original color with overlay effect
+                        opacity = 0.65; // Reduced from 0.8
+                        borderWidth = 3;
+                        borderStyle = 'dashed';
                       }
                       
                       // Helper to convert hex to rgba
@@ -157,11 +163,17 @@ export function WeeklyView({
                             "cursor-pointer rounded relative overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-md",
                             textColor,
                             booking.status === 'cancelled' && 'cancelled-booking',
-                            booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]'
+                            booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
                           )}
                           style={{
                             backgroundColor: hexToRgba(bgColor, opacity),
-                            borderLeft: `${borderWidth}px solid ${bgColor}`,
+                            backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                              ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
+                              : undefined,
+                            backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                              ? 'overlay' as any
+                              : undefined,
+                            borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                             paddingLeft: `${borderWidth + 8}px`,
                             paddingRight: '12px',
                             paddingTop: '8px',
@@ -209,12 +221,19 @@ export function WeeklyView({
                             {booking.staffId ? (state.staff.find(s => s.id === booking.staffId)?.name || 'Unknown Staff') : 'Unassigned'}
                           </div>
                           
-                          {/* Paid badge - only show on non-cancelled bookings */}
-                          {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && booking.status !== 'cancelled' && (
-                            <div className="absolute bottom-2 right-2 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                              PAID
-                            </div>
-                          )}
+                          {/* Status badges - bottom right */}
+                          <div className="absolute bottom-2 right-2 flex gap-1">
+                            {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                              <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                PENDING
+                              </div>
+                            )}
+                            {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && booking.status !== 'cancelled' && (
+                              <div className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                PAID
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })

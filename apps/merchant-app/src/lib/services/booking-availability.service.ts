@@ -67,6 +67,9 @@ export async function checkStaffAvailability(
         
         const response = await apiClient.checkAvailability(
           startTime,
+          serviceId,
+          staffMember.id
+        );
         
         if (!response || !response.availableSlots) {
           return { staffMember, isAvailable: false, reason: 'Unable to check availability' };
@@ -124,6 +127,7 @@ export async function checkStaffAvailability(
       result.assignedStaff = result.available[0];
     }
     
+    console.log('Staff availability final result:', {
       available: result.available.map(s => ({ id: s.id, name: s.name })),
       unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
       assignedStaff: result.assignedStaff
@@ -171,6 +175,7 @@ export function ensureValidStaffId(
   availableStaff: Array<{ id: string }>,
   allStaff: Array<{ id: string }>
 ): string {
+  console.log('Ensuring valid staff ID:', {
     staffId, 
     availableStaffCount: availableStaff.length,
     availableStaff: availableStaff.map(s => s.id),

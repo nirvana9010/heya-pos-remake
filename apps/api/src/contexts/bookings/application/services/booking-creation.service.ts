@@ -155,9 +155,22 @@ export class BookingCreationService {
       // 5. Generate booking number
       const bookingNumber = await this.generateBookingNumber(data.merchantId, tx);
 
-      // 6. Create the booking domain entity
+      // 6. Get merchant settings to check auto-confirm setting
+      const merchant = await tx.merchant.findUnique({
+        where: { id: data.merchantId },
+        select: { settings: true },
+      });
+
+      const merchantSettings = merchant?.settings as any;
+      const autoConfirmBookings = merchantSettings?.autoConfirmBookings ?? true; // Default to true for backward compatibility
+
+      // 7. Create the booking domain entity
       // For now, use the first service for the main booking (will be updated in domain entity)
       const primaryStaffId = serviceDetails[0]?.staffId || data.staffId;
+      
+      // Auto-confirm only applies to ONLINE bookings (from booking app)
+      // In-person bookings created in merchant app are always CONFIRMED
+      const shouldAutoConfirm = data.source === 'ONLINE' ? autoConfirmBookings : true;
       
       const booking = new Booking({
         id: uuidv4(),
@@ -168,7 +181,7 @@ export class BookingCreationService {
         serviceId: serviceDetails[0].id, // Temporary, will update domain to support array
         locationId: data.locationId,
         timeSlot: new TimeSlot(data.startTime, endTime),
-        status: BookingStatusValue.CONFIRMED,
+        status: shouldAutoConfirm ? BookingStatusValue.CONFIRMED : BookingStatusValue.PENDING,
         totalAmount,
         depositAmount: 0, // TODO: Calculate based on merchant settings
         notes: data.notes,
@@ -181,10 +194,10 @@ export class BookingCreationService {
         services: serviceDetails, // Pass services for repository to handle
       } as any); // Temporary cast until domain entity is updated
 
-      // 7. Persist the booking with all services
+      // 8. Persist the booking with all services
       const savedBooking = await this.bookingRepository.save(booking, tx, serviceDetails);
 
-      // 8. Save booking created event to outbox
+      // 9. Save booking created event to outbox
       const outboxEvent = OutboxEvent.create({
         aggregateId: savedBooking.id,
         aggregateType: 'booking',

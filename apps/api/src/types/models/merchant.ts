@@ -40,6 +40,7 @@ export interface MerchantSettings {
   showUnassignedColumn: boolean;
   // Booking behavior settings
   allowUnassignedBookings: boolean;
+  autoConfirmBookings: boolean;
   // Calendar display settings
   calendarStartHour: number; // 0-23 (default: 6 for 6 AM)
   calendarEndHour: number; // 0-23 (default: 23 for 11 PM)

@@ -74,7 +74,7 @@ export class PublicBookingController {
       where: { 
         subdomain: merchantSubdomain,
         status: 'ACTIVE'
-      },
+      }
     });
 
     if (!merchant) {
