@@ -181,30 +181,31 @@ export function WeeklyView({
                           }}
                           onClick={() => onBookingClick(booking)}
                         >
-                          {/* Top row: Time/duration and completed indicator */}
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
+                          {/* Completed and Cancelled indicators */}
+                          {(booking.completedAt || booking.status === 'completed' || booking.status === 'cancelled') && (
+                            <div className="flex items-center justify-between mb-1">
                               {/* Completed indicator */}
                               {(booking.completedAt || booking.status === 'completed') && (
                                 <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                                   <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                 </div>
                               )}
-                              {/* Time and duration */}
-                              {booking.status !== 'cancelled' && (
-                                <div className="text-xs font-medium opacity-75">
-                                  {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                              {/* Cancelled indicator */}
+                              {booking.status === 'cancelled' && (
+                                <div className="flex items-center gap-1">
+                                  <X className="w-3 h-3 text-red-600" strokeWidth={3} />
+                                  <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
                                 </div>
                               )}
                             </div>
-                            {/* Cancelled indicator */}
-                            {booking.status === 'cancelled' && (
-                              <div className="flex items-center gap-1">
-                                <X className="w-3 h-3 text-red-600" strokeWidth={3} />
-                                <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
-                              </div>
-                            )}
-                          </div>
+                          )}
+                          
+                          {/* Time and duration on its own row */}
+                          {booking.status !== 'cancelled' && (
+                            <div className="text-xs font-medium opacity-75 mb-1">
+                              {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                            </div>
+                          )}
                           
                           {/* Customer name */}
                           <div className="font-bold truncate text-sm">
