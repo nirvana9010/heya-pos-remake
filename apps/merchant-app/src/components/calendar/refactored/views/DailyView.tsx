@@ -542,12 +542,6 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Time and duration - adjust position if cancelled */}
-                                {booking.status !== 'cancelled' && (
-                                  <div className="absolute top-2 right-2 text-sm font-medium opacity-75">
-                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                  </div>
-                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -574,10 +568,16 @@ export function DailyView({
                                     </div>
                                   )}
                                 </div>
-                                <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                {/* Time and duration - on its own row */}
+                                {booking.status !== 'cancelled' && (
+                                  <div className="text-sm font-medium opacity-75 mb-1">
+                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                  </div>
+                                )}
+                                <div className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate text-sm mt-2", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>
@@ -758,12 +758,6 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Time and duration - adjust position if cancelled */}
-                                {booking.status !== 'cancelled' && (
-                                  <div className="absolute top-2 right-2 text-sm font-medium opacity-75">
-                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                  </div>
-                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -790,10 +784,16 @@ export function DailyView({
                                     </div>
                                   )}
                                 </div>
-                                <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                {/* Time and duration - on its own row */}
+                                {booking.status !== 'cancelled' && (
+                                  <div className="text-sm font-medium opacity-75 mb-1">
+                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                  </div>
+                                )}
+                                <div className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
-                                <div className={cn("truncate text-sm mt-2", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
+                                <div className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.serviceName}
                                 </div>
                               </div>

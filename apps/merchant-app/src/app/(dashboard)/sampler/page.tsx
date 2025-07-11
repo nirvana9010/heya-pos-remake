@@ -165,6 +165,50 @@ export default function SamplerPage() {
             badgePosition="inline"
           />
         </DesignOption>
+
+        {/* Past Pending Booking */}
+        <DesignOption
+          title="Past Pending Booking (Current Implementation)"
+          description="Shows how pending bookings appear when they're in the past - combining past opacity with pending overlay"
+        >
+          <BookingCard 
+            confirmed 
+            color={staffColor}
+            textColor="text-gray-700"
+            style={{
+              backgroundColor: `${staffColor}4D`, // 30% opacity
+              borderLeft: `3px solid ${staffColor}`,
+            }}
+            past
+          />
+          <BookingCard 
+            pending 
+            color={staffColor}
+            textColor="text-gray-700"
+            style={{
+              backgroundColor: `${staffColor}4D`, // 30% opacity for past
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
+              backgroundBlendMode: 'overlay',
+              borderLeft: `3px dashed ${staffColor}`,
+            }}
+            badgePosition="bottom"
+            past
+          />
+          <BookingCard 
+            pending 
+            paid
+            color={staffColor}
+            textColor="text-gray-700"
+            style={{
+              backgroundColor: `${staffColor}4D`, // 30% opacity for past
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
+              backgroundBlendMode: 'overlay',
+              borderLeft: `3px dashed ${staffColor}`,
+            }}
+            badgePosition="bottom"
+            past
+          />
+        </DesignOption>
       </div>
     </div>
   );
@@ -205,6 +249,7 @@ function BookingCard({
   confirmed = false,
   pending = false,
   paid = false,
+  past = false,
   color,
   textColor = 'text-white',
   style = {},
@@ -216,6 +261,7 @@ function BookingCard({
   confirmed?: boolean;
   pending?: boolean;
   paid?: boolean;
+  past?: boolean;
   color: string;
   textColor?: string;
   style?: React.CSSProperties;
@@ -256,7 +302,7 @@ function BookingCard({
       {/* Content */}
       <div className={showStrip ? 'mt-6' : ''}>
         <div className="text-sm opacity-75">
-          {mockBooking.time} • {mockBooking.duration}m
+          {mockBooking.time} • {mockBooking.duration}m {past && '(Past)'}
         </div>
         <div className="font-bold text-lg mt-1">
           {mockBooking.customerName}
