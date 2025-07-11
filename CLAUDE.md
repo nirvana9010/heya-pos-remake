@@ -98,6 +98,18 @@ npm run typecheck
 - Use echo commands with proper escaping for simple content
 - Use multiple echo commands with >> for multi-line content
 
+## Git Commit and Push Policy
+
+### Automatic Commits
+- **You ARE allowed to automatically commit changes after significant work is completed**
+- Use descriptive commit messages that clearly explain what was changed and why
+- Always include the Claude Code footer in commit messages
+
+### Push Restrictions
+- **NEVER automatically push commits to remote repositories**
+- Always wait for explicit user permission before pushing
+- If push fails due to authentication, help the user set up proper authentication (SSH keys recommended)
+
 ## Project Structure
 
 - `/apps/api` - NestJS backend API (connects to database)
