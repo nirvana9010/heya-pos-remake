@@ -109,6 +109,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         customerId: bookingData.customerId,
         services: bookingData.services,
         staffId: bookingData.staffId,
+        locationId: bookingData.locationId,
         startTime: bookingData.startTime,
         notes: bookingData.notes || ''
       };
@@ -174,7 +175,11 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         customers={customers}
         bookings={bookings}
         onSave={handleSaveBooking}
-        merchant={merchantSettings ? { settings: merchantSettings.settings || merchantSettings } : undefined}
+        merchant={merchantSettings ? { 
+          settings: merchantSettings.settings || merchantSettings,
+          locations: merchant?.locations,
+          locationId: merchant?.locationId
+        } : merchant}
       />
     </BookingContext.Provider>
   );

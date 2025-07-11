@@ -11,9 +11,9 @@ export function useNotifications(params?: {
   take?: number;
   unreadOnly?: boolean;
 }) {
-  // Always use longer polling interval since we have real-time updates (SSE or Supabase)
-  // Real-time handles immediate updates, polling is just a fallback for missed events
-  const pollingInterval = 5 * 60 * 1000; // 5 minutes
+  // Use 60-second polling interval for more responsive updates
+  // Supabase Realtime handles immediate updates when available, polling is the fallback
+  const pollingInterval = 60 * 1000; // 60 seconds
 
   const queryInfo = useQuery({
     queryKey: [...notificationKeys.all, params],
@@ -25,7 +25,7 @@ export function useNotifications(params?: {
     },
     staleTime: 0, // Always consider data stale to force fresh fetches
     gcTime: 0, // Don't garbage collect the data (renamed from cacheTime in v5)
-    refetchInterval: pollingInterval, // Longer interval when using Supabase
+    refetchInterval: pollingInterval, // 60-second polling interval
     refetchIntervalInBackground: false, // Don't poll in background
     refetchOnWindowFocus: true, // Refetch when tab becomes active
     refetchOnMount: 'always', // Always refetch on mount
