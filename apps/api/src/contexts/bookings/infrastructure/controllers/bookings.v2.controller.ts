@@ -201,11 +201,19 @@ export class BookingsV2Controller {
       duration: service.duration,
     }));
     
+    // LocationId is now optional in database, but we should try to provide one
+    // Get from DTO first, then from merchant's first location
+    const locationId = dto.locationId || user.merchant?.locations?.[0]?.id;
+    
+    if (!locationId) {
+      console.log('[BookingsV2Controller] WARNING: No locationId found, will let database handle constraint');
+    }
+    
     const command = new CreateBookingCommand({
       customerId: dto.customerId,
       staffId: dto.staffId, // Optional top-level staff ID
       services: servicesWithStaff, // Pass all services
-      locationId: dto.locationId,
+      locationId: locationId,
       startTime: new Date(dto.startTime),
       merchantId: user.merchantId,
       notes: dto.notes,

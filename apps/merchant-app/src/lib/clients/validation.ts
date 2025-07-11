@@ -153,7 +153,7 @@ export function validateSchema(
 export const requestSchemas = {
   createBooking: {
     customerId: validators.required,
-    locationId: validators.required,
+    locationId: validators.optional(validators.string),
     services: validators.array,
     staffId: validators.optional(validators.string),
     startTime: validators.isoDate,
