@@ -1,8 +1,5 @@
 "use client";
 
-// Build timestamp - updates when file is saved
-const __SLIDEOUT_BUILD_TIME__ = new Date().toLocaleString();
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { 
   ChevronRight, 
@@ -210,7 +207,6 @@ export function BookingSlideOut({
         
         // Only check availability if we have a valid service selected
         // Otherwise, assume all staff are available
-        console.log('[DEBUG] Checking availability for services:', { 
           serviceId: formData.selectedServices[0], 
           time: startTime, 
           duration,
@@ -238,7 +234,6 @@ export function BookingSlideOut({
           };
         }
         
-        console.log('[DEBUG] Availability results:', { 
           available: result.available.map(s => ({ id: s.id, name: s.name })),
           unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
           assignedStaff: result.assignedStaff
@@ -254,10 +249,8 @@ export function BookingSlideOut({
         
         // Set the auto-assigned staff if using "Next Available"
         if (isNextAvailableStaff(formData.staffId)) {
-          console.log('[DEBUG] Setting nextAvailableStaff to:', result.assignedStaff);
           setNextAvailableStaff(result.assignedStaff || null);
         } else {
-          console.log('[DEBUG] Clearing nextAvailableStaff');
           setNextAvailableStaff(null);
         }
         
@@ -353,18 +346,12 @@ export function BookingSlideOut({
   };
 
   const handleSubmit = () => {
-    console.log('[DEBUG] handleSubmit called with formData:', formData);
-    console.log('[DEBUG] Available staff at submit:', availableStaff.map(s => ({ id: s.id, name: s.name })));
-    console.log('[DEBUG] Next available staff:', nextAvailableStaff);
     
     if (!formData.time || !formData.date || formData.selectedServices.length === 0) {
-      console.log('[DEBUG] Submit validation failed - missing required data');
       return;
     }
     
     // Debug: Log what's in selectedServices
-    console.log('[DEBUG] Selected services:', formData.selectedServices);
-    console.log('[DEBUG] Selected services list:', selectedServicesList);
     
     // Validate service IDs
     const invalidServiceIds = formData.selectedServices.filter(id => !id || id.trim() === '');
@@ -385,7 +372,6 @@ export function BookingSlideOut({
     let finalStaffId: string;
     if (isNextAvailableStaff(formData.staffId)) {
       // Use the pre-assigned staff from availability check
-      console.log('[DEBUG] Calling ensureValidStaffId for Next Available with:', {
         staffId: null,
         availableStaff: nextAvailableStaff ? [nextAvailableStaff] : [],
         filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
@@ -393,7 +379,6 @@ export function BookingSlideOut({
       finalStaffId = ensureValidStaffId(null, nextAvailableStaff ? [nextAvailableStaff] : [], filteredStaff);
     } else {
       // Use the selected staff
-      console.log('[DEBUG] Calling ensureValidStaffId for selected staff with:', {
         staffId: formData.staffId,
         availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
         filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
@@ -401,11 +386,9 @@ export function BookingSlideOut({
       finalStaffId = ensureValidStaffId(formData.staffId, availableStaff, filteredStaff);
     }
     
-    console.log('[DEBUG] ensureValidStaffId returned:', finalStaffId);
     
     // Check if we got a valid staff ID
     if (!finalStaffId) {
-      console.log('[DEBUG] No valid staff ID - showing alert');
       alert('Please select a staff member or ensure staff are available at the selected time.');
       return;
     }
@@ -414,7 +397,6 @@ export function BookingSlideOut({
     const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
     
     // Debug merchant data
-    console.log('[DEBUG] Merchant data:', {
       merchantProp: merchant,
       authMerchant: authMerchant,
       hasLocations: !!(merchant?.locations || authMerchant?.locations),
@@ -445,7 +427,6 @@ export function BookingSlideOut({
     };
     
     // Debug: Log the save data being sent
-    console.log('[DEBUG] Final submission data:', JSON.stringify(saveData, null, 2));
     
     
     onSave(saveData);
@@ -596,27 +577,23 @@ export function BookingSlideOut({
                         : "border-gray-200 hover:border-gray-300"
                     )}
                     onClick={() => {
-                      console.log('[DEBUG] Service clicked:', { 
                         serviceId: service.id, 
                         serviceName: service.name,
                         isSelected,
                         currentSelection: formData.selectedServices
                       });
                       if (!service.id) {
-                        console.error('[DEBUG] Service has no ID!', service);
                         return;
                       }
                       
                       if (isSelected) {
                         const newSelection = formData.selectedServices.filter(id => id !== service.id);
-                        console.log('[DEBUG] Removing service, new selection:', newSelection);
                         setFormData({
                           ...formData,
                           selectedServices: newSelection
                         });
                       } else {
                         const newSelection = [...formData.selectedServices, service.id];
-                        console.log('[DEBUG] Adding service, new selection:', newSelection);
                         setFormData({
                           ...formData,
                           selectedServices: newSelection
@@ -690,7 +667,6 @@ export function BookingSlideOut({
               <Select
                 value={formData.staffId}
                 onValueChange={(value) => {
-                  console.log('[DEBUG] Staff selection changed to:', value);
                   setFormData(prev => ({ ...prev, staffId: value }));
                 }}
                 disabled={isCheckingAvailability}

@@ -17,13 +17,6 @@ export async function checkStaffAvailability(
   staff: Array<{ id: string; name: string; color: string }>,
   bookings: Array<any> = []
 ): Promise<StaffAvailability> {
-  console.log('[DEBUG] checkStaffAvailability called', { 
-    serviceId, 
-    startTime, 
-    duration, 
-    staffCount: staff.length,
-    staff: staff.map(s => ({ id: s.id, name: s.name }))
-  });
   
   try {
     // Validate startTime parameter
@@ -49,7 +42,6 @@ export async function checkStaffAvailability(
     
     // Get the date string for the API
     const dateStr = startTime.toISOString().split('T')[0];
-    console.log(`[DEBUG] Checking availability for date: ${dateStr} (from startTime: ${startTime.toISOString()})`);
     
     // Initialize result
     const result: StaffAvailability = {
@@ -72,20 +64,9 @@ export async function checkStaffAvailability(
           return { staffMember, isAvailable: false, reason: 'Invalid date/time' };
         }
         
-        console.log(`[DEBUG] Checking availability for ${staffMember.name} (${staffMember.id})`);
         
         const response = await apiClient.checkAvailability(
           startTime,
-          serviceId,
-          staffMember.id
-        );
-        
-        console.log(`[DEBUG] API response for ${staffMember.name}:`, {
-          hasResponse: !!response,
-          hasAvailableSlots: !!(response && response.availableSlots),
-          slotsCount: response?.availableSlots?.length || 0,
-          firstFewSlots: response?.availableSlots?.slice(0, 5)
-        });
         
         if (!response || !response.availableSlots) {
           return { staffMember, isAvailable: false, reason: 'Unable to check availability' };
@@ -93,7 +74,6 @@ export async function checkStaffAvailability(
         
         // Check if the requested time slot is available
         const requestedTimeStr = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
-        console.log(`[DEBUG] Looking for time slot: ${requestedTimeStr} (ISO: ${startTime.toISOString()}, timestamp: ${startTime.getTime()})`);
         
         
         const isSlotAvailable = response.availableSlots.some((slot: any) => {
@@ -109,13 +89,11 @@ export async function checkStaffAvailability(
             slotTime.toDateString() === startTime.toDateString(); // Same day
           
           if (slotMatches) {
-            console.log(`[DEBUG] Found matching slot for ${staffMember.name}:`, slot.startTime);
           }
           
           return slotMatches;
         });
         
-        console.log(`[DEBUG] Availability result for ${staffMember.name}: ${isSlotAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
         return {
           staffMember,
           isAvailable: isSlotAvailable,
@@ -146,7 +124,6 @@ export async function checkStaffAvailability(
       result.assignedStaff = result.available[0];
     }
     
-    console.log('[DEBUG] checkStaffAvailability returning:', {
       available: result.available.map(s => ({ id: s.id, name: s.name })),
       unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
       assignedStaff: result.assignedStaff
@@ -154,7 +131,6 @@ export async function checkStaffAvailability(
     
     return result;
   } catch (error) {
-    console.error('[DEBUG] Error checking staff availability:', error);
     
     // Fallback to all staff being available if API fails
     return {
@@ -195,7 +171,6 @@ export function ensureValidStaffId(
   availableStaff: Array<{ id: string }>,
   allStaff: Array<{ id: string }>
 ): string {
-  console.log('[DEBUG] ensureValidStaffId called', { 
     staffId, 
     availableStaffCount: availableStaff.length,
     availableStaff: availableStaff.map(s => s.id),
@@ -205,30 +180,25 @@ export function ensureValidStaffId(
   
   // If Next Available is selected, keep it
   if (isNextAvailableStaff(staffId)) {
-    console.log('[DEBUG] ensureValidStaffId: Is Next Available, returning:', NEXT_AVAILABLE_STAFF_ID);
     return NEXT_AVAILABLE_STAFF_ID;
   }
   
   // If staff ID is valid and available, keep it
   if (staffId && availableStaff.some(s => s.id === staffId)) {
-    console.log('[DEBUG] ensureValidStaffId: Staff is available, returning:', staffId);
     return staffId;
   }
   
   // If staff ID exists but not available, return empty
   if (staffId && allStaff.some(s => s.id === staffId)) {
-    console.log('[DEBUG] ensureValidStaffId: Staff exists but not available, returning empty');
     return '';
   }
   
   // Default to first available staff
   if (availableStaff.length > 0) {
-    console.log('[DEBUG] ensureValidStaffId: Using first available staff:', availableStaff[0].id);
     return availableStaff[0].id;
   }
   
   // No staff available
-  console.log('[DEBUG] ensureValidStaffId: No staff available, returning empty');
   return '';
 }
 
