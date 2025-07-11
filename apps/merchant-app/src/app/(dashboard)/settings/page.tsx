@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(merchantSettings.allowCustomTipAmount ?? true);
   const [showUnassignedColumn, setShowUnassignedColumn] = useState(merchantSettings.showUnassignedColumn ?? true);
   const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(merchantSettings.allowUnassignedBookings ?? true);
+  const [autoConfirmBookings, setAutoConfirmBookings] = useState(merchantSettings.autoConfirmBookings ?? true);
   const [calendarStartHour, setCalendarStartHour] = useState(merchantSettings.calendarStartHour ?? 6);
   const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
@@ -134,6 +135,7 @@ export default function SettingsPage() {
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
         setShowUnassignedColumn(response.showUnassignedColumn ?? true);
         setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
+        setAutoConfirmBookings(response.autoConfirmBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
         setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
@@ -237,6 +239,7 @@ export default function SettingsPage() {
         allowCustomTipAmount,
         showUnassignedColumn,
         allowUnassignedBookings,
+        autoConfirmBookings,
         calendarStartHour,
         calendarEndHour,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
@@ -802,7 +805,10 @@ export default function SettingsPage() {
                       Automatically confirm new bookings without manual approval
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={autoConfirmBookings} 
+                    onCheckedChange={setAutoConfirmBookings}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">

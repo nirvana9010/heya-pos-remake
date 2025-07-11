@@ -454,6 +454,7 @@ export function DailyView({
                           let bgColor = '#9CA3AF'; // Gray for unassigned
                           let bgOpacity = 0.9;
                           let borderWidth = 4;
+                          let borderStyle = 'solid';
                           let textColor = 'text-white';
                           
                           // Check status first
@@ -470,6 +471,11 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
+                          } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                            // Option 1: Keep original color with overlay effect
+                            bgOpacity = 0.65; // Reduced from 0.8
+                            borderWidth = 4;
+                            borderStyle = 'dashed';
                           } else if (isPast) {
                             // Only fade confirmed bookings if they're in the past
                             bgOpacity = 0.3;
@@ -507,7 +513,13 @@ export function DailyView({
                                 style={{
                                   height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  borderLeft: `${borderWidth}px solid ${bgColor}`,
+                                  backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                    ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
+                                    : undefined,
+                                  backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                    ? 'overlay' as any
+                                    : undefined,
+                                  borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: '12px',
@@ -549,12 +561,19 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Paid badge */}
-                                {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                  <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                    PAID
-                                  </div>
-                                )}
+                                {/* Status badges - bottom right */}
+                                <div className="absolute bottom-3 right-3 flex gap-2">
+                                  {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                                    <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
+                                      PENDING
+                                    </div>
+                                  )}
+                                  {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                                    <div className="bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
+                                      PAID
+                                    </div>
+                                  )}
+                                </div>
                                 <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>
@@ -651,6 +670,7 @@ export function DailyView({
                           let bgColor = staff.color;
                           let bgOpacity = 0.9;
                           let borderWidth = 4;
+                          let borderStyle = 'solid';
                           let textColor = 'text-white';
                           
                           // Check status first
@@ -667,6 +687,11 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
+                          } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                            // Option 1: Keep original color with overlay effect
+                            bgOpacity = 0.65; // Reduced from 0.8
+                            borderWidth = 4;
+                            borderStyle = 'dashed';
                           } else if (isPast) {
                             // Only fade confirmed bookings if they're in the past
                             bgOpacity = 0.3;
@@ -704,7 +729,13 @@ export function DailyView({
                                 style={{
                                   height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  borderLeft: `${borderWidth}px solid ${bgColor}`,
+                                  backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                    ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
+                                    : undefined,
+                                  backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                    ? 'overlay' as any
+                                    : undefined,
+                                  borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: '12px',
@@ -746,12 +777,19 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Paid badge */}
-                                {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                  <div className="absolute bottom-3 right-3 bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                    PAID
-                                  </div>
-                                )}
+                                {/* Status badges - bottom right */}
+                                <div className="absolute bottom-3 right-3 flex gap-2">
+                                  {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                                    <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
+                                      PENDING
+                                    </div>
+                                  )}
+                                  {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
+                                    <div className="bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
+                                      PAID
+                                    </div>
+                                  )}
+                                </div>
                                 <div className={cn("font-bold truncate pr-20 text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
                                   {booking.customerName}
                                 </div>

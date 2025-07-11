@@ -59,7 +59,7 @@ interface BookingDetailsSlideOutProps {
     staffId: string;
     startTime: Date;
     endTime: Date;
-    status: "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show";
+    status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show";
     isPaid: boolean;
     totalPrice: number;
     notes?: string;
@@ -166,6 +166,7 @@ export function BookingDetailsSlideOut({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case "pending": return <Clock className="h-4 w-4" />;
       case "confirmed": return <CheckCircle className="h-4 w-4" />;
       case "in-progress": return <PlayCircle className="h-4 w-4" />;
       case "completed": return <CheckCircle className="h-4 w-4" />;
@@ -177,6 +178,7 @@ export function BookingDetailsSlideOut({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "pending": return "bg-yellow-100 text-yellow-800";
       case "confirmed": return "bg-teal-100 text-teal-800";
       case "in-progress": return "bg-teal-100 text-teal-800";
       case "completed": return "bg-green-100 text-green-800";

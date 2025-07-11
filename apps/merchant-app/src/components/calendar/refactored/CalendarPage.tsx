@@ -148,7 +148,7 @@ function CalendarContent() {
     let count = 0;
     
     // Check if we're hiding any statuses (default is to show all)
-    const allStatuses = ['confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
+    const allStatuses = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
     const hiddenStatuses = allStatuses.filter(status => !state.selectedStatusFilters.includes(status));
     
     if (hiddenStatuses.length > 0) {
@@ -690,6 +690,21 @@ function CalendarContent() {
                   <div>
                     <h4 className="font-semibold text-sm text-gray-900 mb-3">Display Options</h4>
                     <div className="space-y-2">
+                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                        <Checkbox
+                          checked={state.selectedStatusFilters.includes('pending')}
+                          onCheckedChange={(checked) => {
+                            const newFilters = checked 
+                              ? [...state.selectedStatusFilters, 'pending']
+                              : state.selectedStatusFilters.filter(s => s !== 'pending');
+                            actions.setStatusFilter(newFilters);
+                          }}
+                        />
+                        <span className="flex-1">Show pending bookings</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {state.bookings.filter(b => b.status === 'pending').length}
+                        </Badge>
+                      </label>
                       <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
                         <Checkbox
                           checked={state.selectedStatusFilters.includes('completed')}

@@ -3,6 +3,7 @@
  * Represents the possible states of a booking
  */
 export enum BookingStatusValue {
+  PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
@@ -17,6 +18,7 @@ export class BookingStatus {
     this._value = value;
   }
 
+  static PENDING = new BookingStatus(BookingStatusValue.PENDING);
   static CONFIRMED = new BookingStatus(BookingStatusValue.CONFIRMED);
   static IN_PROGRESS = new BookingStatus(BookingStatusValue.IN_PROGRESS);
   static COMPLETED = new BookingStatus(BookingStatusValue.COMPLETED);
@@ -29,6 +31,11 @@ export class BookingStatus {
 
   canTransitionTo(newStatus: BookingStatus): boolean {
     const transitions: Record<BookingStatusValue, BookingStatusValue[]> = {
+      [BookingStatusValue.PENDING]: [
+        BookingStatusValue.CONFIRMED,
+        BookingStatusValue.CANCELLED,
+        BookingStatusValue.NO_SHOW
+      ],
       [BookingStatusValue.CONFIRMED]: [
         BookingStatusValue.IN_PROGRESS,
         BookingStatusValue.CANCELLED,

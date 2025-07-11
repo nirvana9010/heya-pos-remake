@@ -292,13 +292,30 @@ export class PublicBookingService {
         // Generate booking number
         const bookingNumber = `BK${Date.now()}${Math.random().toString(36).substring(2, 5)}`.toUpperCase();
 
+        // Check merchant's auto-confirm setting
+        const merchantSettings = merchant.settings as any;
+        const autoConfirmBookings = merchantSettings?.autoConfirmBookings ?? true;
+        
+        console.log('[PublicBookingService] Creating ONLINE booking:', {
+          merchantId: merchant.id,
+          merchantSettings: merchantSettings,
+          autoConfirmBookings: autoConfirmBookings,
+          settingsType: typeof merchantSettings,
+          hasAutoConfirmSetting: merchantSettings?.hasOwnProperty('autoConfirmBookings')
+        });
+        
+        // For ONLINE bookings, respect the auto-confirm setting
+        const bookingStatus = autoConfirmBookings ? 'CONFIRMED' : 'PENDING';
+        
+        console.log('[PublicBookingService] Booking will be created with status:', bookingStatus);
+
         // Create the booking
         const bookingData: any = {
           merchantId: merchant.id,
           locationId: location.id,
           customerId: customer.id,
           bookingNumber,
-          status: 'CONFIRMED',
+          status: bookingStatus,
           startTime,
           endTime,
           totalAmount: totalPrice,
