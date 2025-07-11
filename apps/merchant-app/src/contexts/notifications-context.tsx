@@ -30,6 +30,7 @@ interface NotificationsContextType {
   refreshNotifications: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  connectSSE?: () => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -289,7 +290,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   // Get auth context for merchantId
-  const { merchant } = useAuth();
+  const { merchant, user, isAuthenticated } = useAuth();
 
   // Real-time connection (SSE or Supabase)
   // Strategy: Real-time systems (SSE/Supabase) handle immediate updates
@@ -355,7 +356,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
       // Cleanup
       return () => {
-        console.log('[NotificationsContext] Cleaning up Supabase connection');
         if (merchant?.id) {
           supabaseRealtime.unsubscribeFromNotifications(merchant.id);
         }
@@ -363,13 +363,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     } else {
       // Use SSE (existing implementation)
       if (!isSSESupported()) {
-        console.log('[NotificationsContext] SSE not supported, falling back to polling');
         return;
       }
 
       const token = localStorage.getItem('access_token');
       if (!token) {
-        console.log('[NotificationsContext] No auth token, skipping SSE connection');
         return;
       }
 
@@ -380,23 +378,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
       // Handle SSE events
       const handleSSEMessage = (event: SSENotificationEvent) => {
-        console.log('[NotificationsContext] SSE event:', event.type);
 
       switch (event.type) {
         case 'notification':
           // New notification received, update optimistically
           if (event.notification) {
-            console.log('[NotificationsContext] New notification via SSE:', event.notification.id);
-            console.log('[NotificationsContext] Full notification data:', event.notification);
             
             // Add notification optimistically for immediate UI update
             setOptimisticNotifications(prev => {
               // Don't add if already exists
               if (prev.some(n => n.id === event.notification.id)) {
-                console.log('[NotificationsContext] Notification already in optimistic list, skipping');
                 return prev;
               }
-              console.log('[NotificationsContext] Adding to optimistic notifications');
               return [event.notification as MerchantNotification, ...prev];
             });
             
@@ -404,15 +397,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             forceUpdate();
             
             // Still refetch in background to sync with server
-            console.log('[NotificationsContext] Invalidating queries and refetching...');
             
             // Force immediate refetch bypassing any stale time or intervals
             queryClient.invalidateQueries({ queryKey: notificationKeys.all });
             
             // Use refreshNotifications which forces immediate fetch
             refreshNotifications().then(() => {
-              console.log('[NotificationsContext] Refresh complete');
-              console.log('[NotificationsContext] Clearing optimistic notifications');
               // Clear optimistic notifications after successful fetch
               setOptimisticNotifications([]);
             }).catch(error => {
@@ -425,7 +415,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         case 'booking_updated':
           // Booking event received, broadcast it and refetch notifications
           if (event.bookingId) {
-            console.log(`[NotificationsContext] ${event.type} via SSE:`, event.bookingId);
             bookingEvents.broadcast({
               type: event.type,
               bookingId: event.bookingId,
@@ -440,19 +429,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         case 'initial':
           // Initial batch of recent notifications
           if (event.notifications && event.notifications.length > 0) {
-            console.log('[NotificationsContext] Received initial notifications via SSE:', event.notifications.length);
             // Refetch to sync with server state
             refetch();
           }
           break;
 
         case 'connected':
-          console.log('[NotificationsContext] SSE connected successfully');
           break;
 
         case 'error':
         case 'reconnecting':
-          console.log('[NotificationsContext] SSE connection issue:', event.type);
           break;
       }
     };
@@ -461,12 +447,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
       // Cleanup on unmount or token change
       return () => {
-        console.log('[NotificationsContext] Cleaning up SSE connection');
         sseClient.off('message', handleSSEMessage);
         sseClient.disconnect();
       };
     }
-  }, [queryClient, refetch, merchant?.id]);
+  }, [queryClient, refetch, isAuthenticated]);
 
 
   // Force update and process notifications when data timestamp changes

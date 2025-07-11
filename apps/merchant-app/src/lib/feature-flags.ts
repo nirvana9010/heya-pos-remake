@@ -24,10 +24,11 @@ class FeatureFlagService {
       }
 
       // Check localStorage for override (useful for testing)
-      const localOverride = localStorage.getItem('feature_supabase_realtime');
+      const localOverride = localStorage.getItem('feature_supabaseRealtime');
       if (localOverride !== null) {
         this.flags.supabaseRealtime = localOverride === 'true';
       }
+      
     }
   }
 

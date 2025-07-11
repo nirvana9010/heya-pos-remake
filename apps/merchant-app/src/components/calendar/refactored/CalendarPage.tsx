@@ -49,6 +49,7 @@ import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useNotifications } from '@/contexts/notifications-context';
 import { useBooking } from '@/contexts/booking-context';
+import { SSETracker } from '../SSETracker';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -1146,6 +1147,9 @@ function CalendarContent() {
         );
       })()}
       </div>
+      
+      {/* SSE Tracker (dev only) */}
+      <SSETracker />
     </TooltipProvider>
   );
 }
