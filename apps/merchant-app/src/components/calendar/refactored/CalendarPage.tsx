@@ -170,14 +170,12 @@ function CalendarContent() {
   
   // Handle time slot click
   const handleTimeSlotClick = useCallback((date: Date, time: string, staffId: string | null) => {
-    console.log('[DEBUG] handleTimeSlotClick called', { date, time, staffId });
     // Set booking slide out data before opening
     const slideOutData = {
       date,
       time,
       staffId
     };
-    console.log('[DEBUG] Opening BookingSlideOut with data:', slideOutData);
     setBookingSlideOutData(slideOutData);
     actions.openBookingSlideOut();
   }, [actions]);
@@ -189,7 +187,6 @@ function CalendarContent() {
   }, [actions]);
   
   const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
-    console.log('[DEBUG] handleBookingSlideOutSave called with:', bookingData);
     try {
       
       // Create booking via V2 API with correct format
