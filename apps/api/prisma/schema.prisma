@@ -272,7 +272,7 @@ model ServiceCategory {
 model Booking {
   id                     String                  @id @default(uuid())
   merchantId             String
-  locationId             String
+  locationId             String?
   customerId             String
   bookingNumber          String                  @unique
   status                 String                  @default("PENDING")
@@ -303,7 +303,7 @@ model Booking {
   paidAt                 DateTime?
   createdBy              Staff                   @relation("BookingCreator", fields: [createdById], references: [id])
   customer               Customer                @relation(fields: [customerId], references: [id])
-  location               Location                @relation(fields: [locationId], references: [id])
+  location               Location?               @relation(fields: [locationId], references: [id])
   merchant               Merchant                @relation(fields: [merchantId], references: [id])
   provider               Staff?                  @relation("BookingProvider", fields: [providerId], references: [id])
   services               BookingService[]
@@ -343,7 +343,7 @@ model BookingService {
 model Order {
   id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(255)
   merchantId  String          @db.VarChar(255)
-  locationId  String          @db.VarChar(255)
+  locationId  String?         @db.VarChar(255)
   customerId  String?         @db.VarChar(255)
   bookingId   String?         @unique @db.VarChar(255)
   orderNumber String          @unique @db.VarChar(255)
@@ -363,7 +363,7 @@ model Order {
   booking     Booking?        @relation(fields: [bookingId], references: [id])
   createdBy   Staff           @relation(fields: [createdById], references: [id])
   customer    Customer?       @relation(fields: [customerId], references: [id])
-  location    Location        @relation(fields: [locationId], references: [id])
+  location    Location?       @relation(fields: [locationId], references: [id])
   merchant    Merchant        @relation(fields: [merchantId], references: [id])
   items       OrderItem[]
   modifiers   OrderModifier[]
@@ -498,7 +498,7 @@ model InvoiceItem {
 model Payment {
   id                    String          @id @default(uuid())
   merchantId            String
-  locationId            String
+  locationId            String?
   invoiceId             String
   paymentMethod         String
   amount                Decimal         @db.Decimal(10, 2)
@@ -515,7 +515,7 @@ model Payment {
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   invoice               Invoice         @relation(fields: [invoiceId], references: [id])
-  location              Location        @relation(fields: [locationId], references: [id])
+  location              Location?       @relation(fields: [locationId], references: [id])
   refunds               PaymentRefund[]
 
   @@index([merchantId])

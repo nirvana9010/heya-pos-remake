@@ -145,18 +145,10 @@ Get these values from: https://app.supabase.com/project/hpvnmqvdgkfeykekosrh/set
 **IMPORTANT**: Without step 2, Supabase will connect but won't receive any events!
 
 ### Behavior
-- **Default**: Supabase Realtime is enabled by default
-- **Automatic Fallback**: If Supabase is not configured, automatically falls back to SSE
-- **Manual Toggle**: To switch between systems:
-  ```javascript
-  // Force SSE instead of Supabase
-  localStorage.setItem('feature_supabaseRealtime', 'false');
-  location.reload();
-  
-  // Use Supabase (default)
-  localStorage.removeItem('feature_supabaseRealtime');
-  location.reload();
-  ```
+- **Default**: Supabase Realtime is the only real-time notification system
+- **Polling Fallback**: If Supabase is not configured, falls back to 60-second polling
+- **SSE Removed**: Server-Sent Events (SSE) has been removed due to inconsistent delivery issues (July 2025)
+- **Configuration**: To use real-time notifications, configure Supabase as described above
 
 ## Monitoring
 

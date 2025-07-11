@@ -49,7 +49,6 @@ import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useNotifications } from '@/contexts/notifications-context';
 import { useBooking } from '@/contexts/booking-context';
-import { SSETracker } from '../SSETracker';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -171,12 +170,15 @@ function CalendarContent() {
   
   // Handle time slot click
   const handleTimeSlotClick = useCallback((date: Date, time: string, staffId: string | null) => {
+    console.log('[DEBUG] handleTimeSlotClick called', { date, time, staffId });
     // Set booking slide out data before opening
-    setBookingSlideOutData({
+    const slideOutData = {
       date,
       time,
       staffId
-    });
+    };
+    console.log('[DEBUG] Opening BookingSlideOut with data:', slideOutData);
+    setBookingSlideOutData(slideOutData);
     actions.openBookingSlideOut();
   }, [actions]);
   
@@ -187,6 +189,7 @@ function CalendarContent() {
   }, [actions]);
   
   const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
+    console.log('[DEBUG] handleBookingSlideOutSave called with:', bookingData);
     try {
       
       // Create booking via V2 API with correct format
@@ -323,10 +326,14 @@ function CalendarContent() {
         }];
       }
       
+      // LocationId is now optional in the database
+      const locationId = merchant?.locations?.[0]?.id || merchant?.locationId;
+      
       const bookingRequest = {
         customerId: finalCustomerId,
         services: services,
         staffId: finalStaffId,
+        locationId: locationId, // Always include location ID
         startTime: bookingData.startTime.toISOString(),
         notes: bookingData.notes || '',
         isOverride: true, // Allow time conflicts for slideout bookings
@@ -1148,8 +1155,6 @@ function CalendarContent() {
       })()}
       </div>
       
-      {/* SSE Tracker (dev only) */}
-      <SSETracker />
     </TooltipProvider>
   );
 }

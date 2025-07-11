@@ -210,6 +210,15 @@ export function BookingSlideOut({
         
         // Only check availability if we have a valid service selected
         // Otherwise, assume all staff are available
+        console.log('[DEBUG] Checking availability for services:', { 
+          serviceId: formData.selectedServices[0], 
+          time: startTime, 
+          duration,
+          staffId: formData.staffId,
+          isNextAvailable: isNextAvailableStaff(formData.staffId),
+          filteredStaffCount: filteredStaff.length
+        });
+        
         let result: StaffAvailability;
         if (formData.selectedServices.length > 0 && formData.selectedServices[0]) {
           // Check availability using real API
@@ -229,14 +238,26 @@ export function BookingSlideOut({
           };
         }
         
+        console.log('[DEBUG] Availability results:', { 
+          available: result.available.map(s => ({ id: s.id, name: s.name })),
+          unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
+          assignedStaff: result.assignedStaff
+        });
+        
         setAvailableStaff(result.available);
-        setUnavailableStaff(result.unavailable);
+        // Convert unavailable format to match component's expected structure
+        setUnavailableStaff(result.unavailable.map(u => ({ 
+          staff: { id: u.id, name: u.name, color: u.color },
+          reason: u.reason 
+        })));
         setAvailabilityMessage(formatAvailabilityMessage(result));
         
         // Set the auto-assigned staff if using "Next Available"
         if (isNextAvailableStaff(formData.staffId)) {
+          console.log('[DEBUG] Setting nextAvailableStaff to:', result.assignedStaff);
           setNextAvailableStaff(result.assignedStaff || null);
         } else {
+          console.log('[DEBUG] Clearing nextAvailableStaff');
           setNextAvailableStaff(null);
         }
         
@@ -332,13 +353,18 @@ export function BookingSlideOut({
   };
 
   const handleSubmit = () => {
+    console.log('[DEBUG] handleSubmit called with formData:', formData);
+    console.log('[DEBUG] Available staff at submit:', availableStaff.map(s => ({ id: s.id, name: s.name })));
+    console.log('[DEBUG] Next available staff:', nextAvailableStaff);
+    
     if (!formData.time || !formData.date || formData.selectedServices.length === 0) {
+      console.log('[DEBUG] Submit validation failed - missing required data');
       return;
     }
     
     // Debug: Log what's in selectedServices
-    console.log('BookingSlideOut - selectedServices:', formData.selectedServices);
-    console.log('BookingSlideOut - selectedServicesList:', selectedServicesList);
+    console.log('[DEBUG] Selected services:', formData.selectedServices);
+    console.log('[DEBUG] Selected services list:', selectedServicesList);
     
     // Validate service IDs
     const invalidServiceIds = formData.selectedServices.filter(id => !id || id.trim() === '');
@@ -357,22 +383,43 @@ export function BookingSlideOut({
     
     // Resolve the final staff ID - this is CRITICAL for API compatibility
     let finalStaffId: string;
-    try {
-      if (isNextAvailableStaff(formData.staffId)) {
-        // Use the pre-assigned staff from availability check
-        finalStaffId = ensureValidStaffId(null, nextAvailableStaff);
-      } else {
-        // Use the selected staff
-        finalStaffId = ensureValidStaffId(formData.staffId, null);
-      }
-    } catch (error) {
-      // This should rarely happen as UI prevents it, but we need to handle it
+    if (isNextAvailableStaff(formData.staffId)) {
+      // Use the pre-assigned staff from availability check
+      console.log('[DEBUG] Calling ensureValidStaffId for Next Available with:', {
+        staffId: null,
+        availableStaff: nextAvailableStaff ? [nextAvailableStaff] : [],
+        filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
+      });
+      finalStaffId = ensureValidStaffId(null, nextAvailableStaff ? [nextAvailableStaff] : [], filteredStaff);
+    } else {
+      // Use the selected staff
+      console.log('[DEBUG] Calling ensureValidStaffId for selected staff with:', {
+        staffId: formData.staffId,
+        availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
+        filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
+      });
+      finalStaffId = ensureValidStaffId(formData.staffId, availableStaff, filteredStaff);
+    }
+    
+    console.log('[DEBUG] ensureValidStaffId returned:', finalStaffId);
+    
+    // Check if we got a valid staff ID
+    if (!finalStaffId) {
+      console.log('[DEBUG] No valid staff ID - showing alert');
       alert('Please select a staff member or ensure staff are available at the selected time.');
       return;
     }
     
     // Calculate total duration
     const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
+    
+    // Debug merchant data
+    console.log('[DEBUG] Merchant data:', {
+      merchantProp: merchant,
+      authMerchant: authMerchant,
+      hasLocations: !!(merchant?.locations || authMerchant?.locations),
+      locationCount: (merchant?.locations || authMerchant?.locations)?.length || 0
+    });
     
     // Build the save data with services array format for V2 API
     const saveData = {
@@ -387,6 +434,8 @@ export function BookingSlideOut({
         staffId: finalStaffId
       })),
       staffId: finalStaffId,
+      // LocationId is now optional in the database
+      locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
       startTime: combinedDateTime,
       endTime: new Date(combinedDateTime.getTime() + totalDuration * 60000),
       notes: formData.notes,
@@ -396,7 +445,7 @@ export function BookingSlideOut({
     };
     
     // Debug: Log the save data being sent
-    console.log('BookingSlideOut - saveData being sent:', JSON.stringify(saveData, null, 2));
+    console.log('[DEBUG] Final submission data:', JSON.stringify(saveData, null, 2));
     
     
     onSave(saveData);
@@ -547,21 +596,30 @@ export function BookingSlideOut({
                         : "border-gray-200 hover:border-gray-300"
                     )}
                     onClick={() => {
-                      console.log('Service clicked:', service.id, service);
+                      console.log('[DEBUG] Service clicked:', { 
+                        serviceId: service.id, 
+                        serviceName: service.name,
+                        isSelected,
+                        currentSelection: formData.selectedServices
+                      });
                       if (!service.id) {
-                        console.error('Service has no ID!', service);
+                        console.error('[DEBUG] Service has no ID!', service);
                         return;
                       }
                       
                       if (isSelected) {
+                        const newSelection = formData.selectedServices.filter(id => id !== service.id);
+                        console.log('[DEBUG] Removing service, new selection:', newSelection);
                         setFormData({
                           ...formData,
-                          selectedServices: formData.selectedServices.filter(id => id !== service.id)
+                          selectedServices: newSelection
                         });
                       } else {
+                        const newSelection = [...formData.selectedServices, service.id];
+                        console.log('[DEBUG] Adding service, new selection:', newSelection);
                         setFormData({
                           ...formData,
-                          selectedServices: [...formData.selectedServices, service.id]
+                          selectedServices: newSelection
                         });
                       }
                     }}
@@ -631,7 +689,10 @@ export function BookingSlideOut({
               <Label>Staff Member</Label>
               <Select
                 value={formData.staffId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, staffId: value }))}
+                onValueChange={(value) => {
+                  console.log('[DEBUG] Staff selection changed to:', value);
+                  setFormData(prev => ({ ...prev, staffId: value }));
+                }}
                 disabled={isCheckingAvailability}
               >
                 <SelectTrigger className={cn("mt-1", isCheckingAvailability && "opacity-70")}>
@@ -678,7 +739,7 @@ export function BookingSlideOut({
                       )}
                   
                   {/* Show available staff */}
-                  {availableStaff.map((member) => (
+                  {availableStaff && availableStaff.map((member) => member && (
                     <SelectItem key={member.id} value={member.id}>
                       <div className="flex items-center gap-2">
                         <div 
@@ -696,7 +757,7 @@ export function BookingSlideOut({
                     <Separator className="my-1" />
                   )}
                   
-                  {unavailableStaff.map(({ staff: member, reason }) => (
+                  {unavailableStaff && unavailableStaff.map(({ staff: member, reason }) => member && (
                     <SelectItem key={member.id} value={member.id} disabled>
                       <div className="flex items-center gap-2 opacity-50">
                         <div 

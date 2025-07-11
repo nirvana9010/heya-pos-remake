@@ -9,7 +9,7 @@ export interface FeatureFlags {
 
 class FeatureFlagService {
   private flags: FeatureFlags = {
-    supabaseRealtime: false, // Default to false - SSE is the primary realtime system
+    supabaseRealtime: false, // Default to false - when disabled, falls back to 60-second polling
   };
 
   /**

@@ -14,7 +14,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { notificationKeys } from '@/lib/query/hooks/use-bookings';
 import { apiClient } from '@/lib/api-client';
 import { bookingEvents } from '@/lib/services/booking-events';
-import { getSSEClient, isSSESupported, SSENotificationEvent } from '@/lib/services/sse-notifications';
 import { supabaseRealtime } from '@/lib/services/supabase';
 import { featureFlags } from '@/lib/feature-flags';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -292,166 +291,66 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // Get auth context for merchantId
   const { merchant, user, isAuthenticated } = useAuth();
 
-  // Real-time connection (SSE or Supabase)
-  // Strategy: Real-time systems (SSE/Supabase) handle immediate updates
-  // React Query polling (5 min) acts as a fallback for any missed events
+  // Real-time connection (Supabase Realtime only)
+  // Strategy: Supabase Realtime handles immediate updates
+  // React Query polling (60 seconds) acts as a fallback for any missed events
   // When a notification arrives via real-time, we use refreshNotifications()
   // to force an immediate database fetch, bypassing the polling interval
   useEffect(() => {
-    const useSupabase = featureFlags.isEnabled('supabaseRealtime');
-    
-    if (useSupabase) {
-      if (!merchant?.id) {
+    if (!merchant?.id) {
+      return;
+    }
+
+    // Initialize Supabase Realtime
+    const initSupabase = async () => {
+      const initialized = await supabaseRealtime.initialize();
+      if (!initialized) {
+        console.warn('[NotificationsContext] Failed to initialize Supabase Realtime.');
+        console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
+        console.warn('[NotificationsContext] Falling back to 60-second polling only.');
         return;
       }
 
-      // Initialize Supabase Realtime
-      const initSupabase = async () => {
-        const initialized = await supabaseRealtime.initialize();
-        if (!initialized) {
-          console.warn('[NotificationsContext] Failed to initialize Supabase. Falling back to SSE.');
-          console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
+      // Subscribe to notifications
+      supabaseRealtime.subscribeToNotifications(
+        merchant.id,
+        (notification) => {
+          // Add notification optimistically for immediate UI update
+          setOptimisticNotifications(prev => {
+            // Don't add if already exists
+            if (prev.some(n => n.id === notification.id)) {
+              return prev;
+            }
+            return [notification as MerchantNotification, ...prev];
+          });
           
-          // Disable Supabase for this session to avoid repeated attempts
-          featureFlags.disable('supabaseRealtime');
+          // Force UI update immediately
+          forceUpdate();
           
-          // Reinitialize with SSE by re-running the effect
-          return;
-        }
-
-        // Subscribe to notifications
-        supabaseRealtime.subscribeToNotifications(
-          merchant.id,
-          (notification) => {
-            // Add notification optimistically for immediate UI update
-            setOptimisticNotifications(prev => {
-              // Don't add if already exists
-              if (prev.some(n => n.id === notification.id)) {
-                return prev;
-              }
-              return [notification as MerchantNotification, ...prev];
-            });
-            
-            // Force UI update immediately
-            forceUpdate();
-            
-            // Still refetch in background to sync with server
-            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            
-            // Use refreshNotifications for immediate fetch
-            refreshNotifications().then(() => {
-              // Clear optimistic notifications after successful fetch
-              setOptimisticNotifications([]);
-            }).catch(error => {
-              // Silently handle error
-            });
-          },
-          (error) => {
+          // Still refetch in background to sync with server
+          queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+          
+          // Use refreshNotifications for immediate fetch
+          refreshNotifications().then(() => {
+            // Clear optimistic notifications after successful fetch
+            setOptimisticNotifications([]);
+          }).catch(error => {
             // Silently handle error
-          }
-        );
-      };
-
-      initSupabase();
-
-      // Cleanup
-      return () => {
-        if (merchant?.id) {
-          supabaseRealtime.unsubscribeFromNotifications(merchant.id);
+          });
+        },
+        (error) => {
+          // Silently handle error
         }
-      };
-    } else {
-      // Use SSE (existing implementation)
-      if (!isSSESupported()) {
-        return;
-      }
-
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        return;
-      }
-
-      const sseClient = getSSEClient();
-      
-      // Connect to SSE
-      sseClient.connect(token);
-
-      // Handle SSE events
-      const handleSSEMessage = (event: SSENotificationEvent) => {
-
-      switch (event.type) {
-        case 'notification':
-          // New notification received, update optimistically
-          if (event.notification) {
-            
-            // Add notification optimistically for immediate UI update
-            setOptimisticNotifications(prev => {
-              // Don't add if already exists
-              if (prev.some(n => n.id === event.notification.id)) {
-                return prev;
-              }
-              return [event.notification as MerchantNotification, ...prev];
-            });
-            
-            // Force UI update immediately
-            forceUpdate();
-            
-            // Still refetch in background to sync with server
-            
-            // Force immediate refetch bypassing any stale time or intervals
-            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            
-            // Use refreshNotifications which forces immediate fetch
-            refreshNotifications().then(() => {
-              // Clear optimistic notifications after successful fetch
-              setOptimisticNotifications([]);
-            }).catch(error => {
-              console.error('[NotificationsContext] Refresh failed:', error);
-            });
-          }
-          break;
-
-        case 'booking_created':
-        case 'booking_updated':
-          // Booking event received, broadcast it and refetch notifications
-          if (event.bookingId) {
-            bookingEvents.broadcast({
-              type: event.type,
-              bookingId: event.bookingId,
-              source: event.source || 'ONLINE'
-            });
-            // Refetch notifications as there might be a new one
-            queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-            refetch();
-          }
-          break;
-
-        case 'initial':
-          // Initial batch of recent notifications
-          if (event.notifications && event.notifications.length > 0) {
-            // Refetch to sync with server state
-            refetch();
-          }
-          break;
-
-        case 'connected':
-          break;
-
-        case 'error':
-        case 'reconnecting':
-          break;
-      }
+      );
     };
 
-      sseClient.on('message', handleSSEMessage);
+    initSupabase();
 
-      // Cleanup on unmount or token change
-      return () => {
-        sseClient.off('message', handleSSEMessage);
-        sseClient.disconnect();
-      };
-    }
-  }, [queryClient, refetch, isAuthenticated]);
+    // Cleanup
+    return () => {
+      supabaseRealtime.unsubscribeFromNotifications(merchant.id);
+    };
+  }, [queryClient, refetch, merchant?.id]);
 
 
   // Force update and process notifications when data timestamp changes

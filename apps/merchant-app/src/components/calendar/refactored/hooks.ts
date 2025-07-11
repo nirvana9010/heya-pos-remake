@@ -287,9 +287,9 @@ export function useCalendarData() {
     const unsubscribe = bookingEvents.subscribe((event) => {
       console.log('[Calendar] Received booking event:', event);
       
-      // Refresh if a booking was created or updated from ONLINE (booking app) or slideout
-      if ((event.type === 'booking_created' || event.type === 'booking_updated') && 
-          (event.source === 'ONLINE' || event.source === 'slideout')) {
+      // Refresh if a booking was created or updated from ANY source
+      // This ensures immediate UI updates when SSE events arrive
+      if (event.type === 'booking_created' || event.type === 'booking_updated') {
         console.log('[Calendar] Refreshing bookings due to event:', event.type, 'from', event.source);
         // Small delay to ensure database is updated
         setTimeout(() => {
@@ -300,7 +300,7 @@ export function useCalendarData() {
           } else {
             console.log('[Calendar] Skipping refresh - already refreshing or loading');
           }
-        }, 1000);
+        }, 500); // Reduced delay for faster updates
       }
     });
     
