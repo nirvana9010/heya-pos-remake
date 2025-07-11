@@ -30,8 +30,8 @@ class SSENotificationsClient extends EventEmitter {
   }
 
   connect(token: string) {
+    
     if (this.isConnecting || this.eventSource?.readyState === EventSource.OPEN) {
-      console.log('[SSE] Already connected or connecting');
       return;
     }
 
@@ -43,11 +43,9 @@ class SSENotificationsClient extends EventEmitter {
       // This avoids issues with Next.js rewrites not handling SSE properly
       const sseUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
 
-      console.log('[SSE] Connecting via local proxy');
       this.eventSource = new EventSource(sseUrl);
 
       this.eventSource.onopen = () => {
-        console.log('[SSE] Connection opened');
         this.isConnecting = false;
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
@@ -58,7 +56,6 @@ class SSENotificationsClient extends EventEmitter {
         try {
           this.lastEventTime = Date.now();
           const data = JSON.parse(event.data);
-          console.log('[SSE] Message received:', data.type);
           
           // Emit the event
           this.emit('message', data);
@@ -84,7 +81,6 @@ class SSENotificationsClient extends EventEmitter {
         this.isConnecting = false;
 
         if (this.eventSource?.readyState === EventSource.CLOSED) {
-          console.log('[SSE] Connection closed, will attempt to reconnect');
           this.cleanup();
           this.scheduleReconnect(token);
         }
@@ -110,7 +106,6 @@ class SSENotificationsClient extends EventEmitter {
     const timeSinceLastEvent = now - this.lastEventTime;
     
     if (this.eventSource && timeSinceLastEvent > 90000) {
-      console.log('[SSE] No events received for 90 seconds, reconnecting...');
       this.disconnect();
       // The error handler will trigger reconnection
     }
@@ -135,7 +130,6 @@ class SSENotificationsClient extends EventEmitter {
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
 
-    console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     this.emit('message', {
       type: 'reconnecting',
@@ -148,7 +142,6 @@ class SSENotificationsClient extends EventEmitter {
   }
 
   disconnect() {
-    console.log('[SSE] Disconnecting');
     this.cleanup();
     
     // Clear reconnect timer
@@ -176,21 +169,45 @@ class SSENotificationsClient extends EventEmitter {
   }
 
   isConnected(): boolean {
+    if (typeof window === 'undefined' || !('EventSource' in window)) {
+      return false;
+    }
     return this.eventSource?.readyState === EventSource.OPEN;
   }
 
-  getConnectionState(): string {
-    if (!this.eventSource) return 'disconnected';
+  getConnectionState(): any {
+    if (typeof window === 'undefined' || !('EventSource' in window)) {
+      return { readyState: 'server-side', reconnectAttempts: 0, maxReconnectAttempts: 10 };
+    }
+    
+    if (!this.eventSource) {
+      return { 
+        readyState: 'disconnected',
+        reconnectAttempts: this.reconnectAttempts,
+        maxReconnectAttempts: this.maxReconnectAttempts,
+        lastEventTime: this.lastEventTime
+      };
+    }
+    
+    let readyState = 'unknown';
     switch (this.eventSource.readyState) {
       case EventSource.CONNECTING:
-        return 'connecting';
+        readyState = 'connecting';
+        break;
       case EventSource.OPEN:
-        return 'connected';
+        readyState = 'connected';
+        break;
       case EventSource.CLOSED:
-        return 'closed';
-      default:
-        return 'unknown';
+        readyState = 'closed';
+        break;
     }
+    
+    return {
+      readyState,
+      reconnectAttempts: this.reconnectAttempts,
+      maxReconnectAttempts: this.maxReconnectAttempts,
+      lastEventTime: this.lastEventTime
+    };
   }
 }
 

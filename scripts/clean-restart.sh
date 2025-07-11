@@ -69,11 +69,20 @@ nohup npm run dev:direct > merchant.log 2>&1 &
 MERCHANT_PID=$!
 echo -e "${GREEN}✓ Merchant app starting with PID: $MERCHANT_PID${NC}"
 
-# Optional: Start other apps
-read -p "Start booking app? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}Starting Booking App...${NC}"
+# Check if we should start booking app
+START_BOOKING=false
+if [[ "$1" == "--with-booking" ]] || [[ "$1" == "-b" ]]; then
+    START_BOOKING=true
+elif [[ "$1" == "--all" ]] || [[ "$1" == "-a" ]]; then
+    START_BOOKING=true
+elif [[ -z "$1" ]]; then
+    # No argument provided, start just API and merchant by default
+    START_BOOKING=false
+fi
+
+# Start booking app if requested
+if [[ $START_BOOKING == true ]]; then
+    echo -e "\n${YELLOW}Starting Booking App...${NC}"
     cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/booking-app
     nohup npm run dev > booking.log 2>&1 &
     BOOKING_PID=$!
@@ -99,12 +108,18 @@ echo -e "\n${GREEN}🚀 Clean restart complete!${NC}"
 echo -e "${YELLOW}Access your apps at:${NC}"
 echo -e "  API:          http://localhost:3000"
 echo -e "  Merchant App: http://localhost:3002"
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ $START_BOOKING == true ]]; then
     echo -e "  Booking App:  http://localhost:3001"
 fi
 echo -e "\n${YELLOW}Logs available at:${NC}"
 echo -e "  API:          apps/api/api.log"
 echo -e "  Merchant:     apps/merchant-app/merchant.log"
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ $START_BOOKING == true ]]; then
     echo -e "  Booking:      apps/booking-app/booking.log"
 fi
+
+echo -e "\n${YELLOW}Usage:${NC}"
+echo -e "  ./clean-restart.sh              # Start API and Merchant only"
+echo -e "  ./clean-restart.sh --with-booking  # Start all apps including Booking"
+echo -e "  ./clean-restart.sh -b           # Short form for --with-booking"
+echo -e "  ./clean-restart.sh --all        # Start all services"
