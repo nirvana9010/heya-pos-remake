@@ -71,7 +71,7 @@ class ErrorReporter {
           (report.metadata && Object.keys(report.metadata).length === 0)) {
         return;
       }
-      console.error('[ErrorReporter]', report);
+      // console.error('[ErrorReporter]', report);
       return;
     }
     

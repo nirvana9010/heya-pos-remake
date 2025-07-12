@@ -26,7 +26,7 @@ import { CacheBuster } from '@/components/CacheBuster'
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const { logout, merchant, user } = useAuth()
-  const { openBookingSlideout } = useBooking()
+  const { openBookingSlideout, openQuickSale } = useBooking()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -63,14 +63,14 @@ export function Topbar() {
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button> */}
 
-        {/* Quick Booking Button */}
+        {/* Quick Sale Button */}
         <Button 
           size="sm" 
-          onClick={openBookingSlideout}
+          onClick={openQuickSale}
           className="gap-2"
         >
           <Plus className="h-4 w-4" />
-          Quick Booking
+          Quick Sale
         </Button>
 
         {/* Cache Buster (Dev only) */}
