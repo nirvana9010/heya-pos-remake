@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { BookingSlideOut } from '@/components/BookingSlideOut';
+import { QuickSaleSlideOut } from '@/components/QuickSaleSlideOut';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -11,6 +12,9 @@ interface BookingContextType {
   openBookingSlideout: () => void;
   closeBookingSlideout: () => void;
   isBookingSlideoutOpen: boolean;
+  openQuickSale: () => void;
+  closeQuickSale: () => void;
+  isQuickSaleOpen: boolean;
   staff: any[];
   services: any[];
   customers: any[];
@@ -35,6 +39,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
   const { toast } = useToast();
   const { user, merchant } = useAuth();
   const [isBookingSlideoutOpen, setIsBookingSlideoutOpen] = useState(false);
+  const [isQuickSaleOpen, setIsQuickSaleOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -102,6 +107,14 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
     setIsBookingSlideoutOpen(false);
   };
 
+  const openQuickSale = () => {
+    setIsQuickSaleOpen(true);
+  };
+
+  const closeQuickSale = () => {
+    setIsQuickSaleOpen(false);
+  };
+
   const handleSaveBooking = async (bookingData: any) => {
     try {
       
@@ -152,12 +165,23 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
     }
   };
 
+  const handleSaleComplete = () => {
+    // Optionally refresh data or show success message
+    toast({
+      title: "Sale Completed",
+      description: "The sale has been processed successfully.",
+    });
+  };
+
   return (
     <BookingContext.Provider
       value={{
         openBookingSlideout,
         closeBookingSlideout,
         isBookingSlideoutOpen,
+        openQuickSale,
+        closeQuickSale,
+        isQuickSaleOpen,
         staff,
         services,
         customers,
@@ -180,6 +204,15 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
           locations: merchant?.locations,
           locationId: merchant?.locationId
         } : merchant}
+      />
+      
+      {/* Global Quick Sale Slideout */}
+      <QuickSaleSlideOut
+        isOpen={isQuickSaleOpen}
+        onClose={closeQuickSale}
+        services={services}
+        staff={staff}
+        onSaleComplete={handleSaleComplete}
       />
     </BookingContext.Provider>
   );

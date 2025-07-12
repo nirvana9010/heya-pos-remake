@@ -14,7 +14,8 @@ import { Building2, Loader2 } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading, error: authError, clearError } = useAuth();
+  const authContext = useAuth();
+  const { login, isAuthenticated, isLoading, error: authError, clearError } = authContext || {};
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -40,7 +41,9 @@ export default function LoginPage() {
 
   // Clear auth errors when component mounts
   useEffect(() => {
-    clearError();
+    if (clearError) {
+      clearError();
+    }
     // Clear the redirect flag when login page loads
     if (typeof window !== 'undefined') {
       (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = false;
@@ -52,13 +55,15 @@ export default function LoginPage() {
     
     setIsSubmitting(true);
     try {
-      await login(formData.email, formData.password, rememberMe);
-      // Auth provider will handle the redirect through the useEffect above
+      if (login) {
+        await login(formData.email, formData.password, rememberMe);
+        // Auth provider will handle the redirect through the useEffect above
+      }
     } catch (err: any) {
       // Error is handled by the auth provider and available via authError
       // Only log if it's not an expected auth error
       if (err?.code !== 'AUTH_IN_PROGRESS' && err?.message !== 'UNAUTHORIZED_REDIRECT') {
-        console.error('Login failed:', err?.message || err);
+        // console.error('Login failed:', err?.message || err);
       }
     } finally {
       setIsSubmitting(false);

@@ -172,6 +172,14 @@ export class BookingCreationService {
       // In-person bookings created in merchant app are always CONFIRMED
       const shouldAutoConfirm = data.source === 'ONLINE' ? autoConfirmBookings : true;
       
+      // Debug logging
+      console.log('[BookingCreationService] Status determination:', {
+        bookingSource: data.source,
+        autoConfirmBookings: autoConfirmBookings,
+        shouldAutoConfirm: shouldAutoConfirm,
+        resultingStatus: shouldAutoConfirm ? 'CONFIRMED' : 'PENDING',
+      });
+      
       const booking = new Booking({
         id: uuidv4(),
         bookingNumber,

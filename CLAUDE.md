@@ -2,6 +2,34 @@
 
 This file contains important configuration information for Claude Code to help maintain and troubleshoot this project effectively.
 
+## API Endpoints Quick Reference
+
+### Base URL and Versioning
+- **Base URL**: `http://localhost:3000/api`
+- **Default version**: v1 (implicit)
+- **Format**: `/api/v{version}/{endpoint}` or `/api/{endpoint}` for v1
+
+### Authentication Endpoints (ALL use v1)
+- **Login**: `POST /api/v1/auth/merchant/login`
+  - Body: `{"email": "user@example.com", "password": "password"}`
+- **Refresh**: `POST /api/v1/auth/refresh`
+- **Logout**: `POST /api/v1/auth/logout`
+- **Current User**: `GET /api/v1/auth/me`
+
+### Common V1 Endpoints (default)
+- Services: `/api/v1/services`
+- Staff: `/api/v1/staff`
+- Customers: `/api/v1/customers`
+- Payments: `/api/v1/payments`
+- Orders: `/api/v1/orders`
+
+### V2 Endpoints (must specify version)
+- Bookings: `/api/v2/bookings` (uses CQRS pattern)
+
+### Public Endpoints (no version)
+- `/api/public/services`
+- `/api/public/availability`
+
 ## Important Lessons Learned
 
 ### Always Verify Before Assuming
@@ -13,6 +41,25 @@ This file contains important configuration information for Claude Code to help m
 - Don't add "missing configuration" fallbacks without confirming configuration is actually missing
 
 **What happened**: The real issue was `apiClient.post()` returns data directly, not `{data: ...}`, causing `response.data` to be undefined. The env vars were present all along.
+
+## React Development Best Practices
+
+### Infinite Loop Prevention
+1. **Always check useEffect dependencies** - Unstable references (arrays, objects, functions) in dependency arrays cause infinite loops
+2. **Default parameters create new references** - Never use `= []` or `= {}` in component parameters
+3. **Compare working vs broken components** - When debugging, always check how similar working components handle the same pattern
+4. **Use stable references** - Memoize arrays/objects with useMemo, callbacks with useCallback
+
+### Debugging React Issues
+- Add console.logs in useEffects to track what's firing
+- Check the dependency arrays first when seeing "Maximum update depth exceeded"
+- Look for components creating new objects/arrays on every render
+- Verify all props are being passed correctly - missing props can cause default values to trigger bugs
+
+### State Management
+- Use functional setState `setState(prev => ...)` to avoid dependencies in callbacks
+- Prefer disabled state over conditional rendering for form inputs
+- Always validate that state updates are actually needed before setting
 
 ## Database Configuration
 

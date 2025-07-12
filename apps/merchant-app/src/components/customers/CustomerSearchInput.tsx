@@ -110,6 +110,12 @@ export function CustomerSearchInput({
   useEffect(() => {
     console.log('🔄 CustomerSearchInput useEffect triggered:', { searchQuery, value: !!value });
     
+    // Early return if disabled to prevent any state updates
+    if (disabled) {
+      console.log('🚫 CustomerSearchInput is disabled, skipping search logic');
+      return;
+    }
+    
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -136,7 +142,7 @@ export function CustomerSearchInput({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, value, searchCustomers]);
+  }, [searchQuery, value, searchCustomers, disabled]);
 
   // Handle click outside
   useEffect(() => {

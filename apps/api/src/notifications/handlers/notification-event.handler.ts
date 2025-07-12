@@ -99,6 +99,15 @@ export class NotificationEventHandler {
       
       // Only send confirmation emails for CONFIRMED bookings, not PENDING ones
       const isBookingConfirmed = booking.status === 'CONFIRMED';
+      
+      // Debug logging
+      this.logger.log(`[${new Date().toISOString()}] ====== NOTIFICATION DECISION ======`);
+      this.logger.log(`Booking ${booking.id} status: ${booking.status}`);
+      this.logger.log(`Auto-confirm setting: ${merchantSettings?.autoConfirmBookings}`);
+      this.logger.log(`Is booking confirmed: ${isBookingConfirmed}`);
+      this.logger.log(`Should send email: ${shouldSendEmail}`);
+      this.logger.log(`Should send SMS: ${shouldSendSms}`);
+      this.logger.log(`Will send notification: ${(shouldSendEmail || shouldSendSms) && isBookingConfirmed}`);
 
       if ((shouldSendEmail || shouldSendSms) && isBookingConfirmed) {
         // Override context to respect merchant settings
