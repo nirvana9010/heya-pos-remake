@@ -9,6 +9,7 @@ import type { Customer } from './customers';
 import { Button, Input, Badge, Label, Spinner } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { debounce } from 'lodash';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   staff,
   onSaleComplete,
 }) => {
+  const { merchant } = useAuth();
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -110,42 +112,33 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     
     setLoading(true);
     try {
-      // Handle walk-in customer
-      let customerId = selectedCustomer?.id;
+      // Handle customer selection
+      let customerId: string | undefined;
       
-      if (isWalkIn) {
-        // Search for existing walk-in customer
+      if (isWalkIn && !selectedCustomer) {
+        // Need to create a new walk-in customer
+        console.log('Creating new walk-in customer...');
         try {
-          const searchResponse = await apiClient.searchCustomers('Walk-in');
-          const customers = searchResponse?.data || [];
-          const existingWalkInCustomer = customers.find((customer: any) => 
-            customer.firstName === 'Walk-in' && 
-            (!customer.lastName || customer.lastName === 'Customer') &&
-            customer.source === 'WALK_IN'
-          );
-          
-          if (existingWalkInCustomer) {
-            customerId = existingWalkInCustomer.id;
-            console.log('Using existing walk-in customer:', customerId);
-          } else {
-            // Create new walk-in customer
-            const walkInCustomer = await apiClient.createCustomer({
-              firstName: 'Walk-in',
-              // lastName is optional - omit it entirely
-              phone: '',
-              email: '',
-              source: 'WALK_IN'
-            });
-            customerId = walkInCustomer.id;
-            console.log('Created new walk-in customer:', customerId);
-          }
-        } catch (error) {
-          console.error('Error handling walk-in customer:', error);
-          // Continue with selected customer or throw error
-          if (!customerId) {
-            throw new Error('Failed to set up walk-in customer');
-          }
+          const walkInCustomer = await apiClient.createCustomer({
+            firstName: 'Walk-in',
+            lastName: 'Customer', // BookingSlideOut uses this
+            source: 'WALK_IN'
+            // Don't send phone or email for walk-in
+          });
+          customerId = walkInCustomer.id;
+          console.log('Created new walk-in customer:', customerId);
+        } catch (error: any) {
+          console.error('Error creating walk-in customer:', error);
+          console.error('Error response:', error?.response?.data);
+          const errorMessage = error?.response?.data?.message?.[0] || error?.message || 'Failed to create walk-in customer';
+          throw new Error(errorMessage);
         }
+      } else if (selectedCustomer) {
+        // Use the selected customer (either regular or existing walk-in)
+        customerId = selectedCustomer.id;
+        console.log('Using selected customer:', customerId);
+      } else {
+        throw new Error('Please select a customer');
       }
       
       // Step 1: Create order
@@ -160,9 +153,13 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         itemType: 'SERVICE',
         itemId: service.id,
         description: service.name,
-        price: service.price,
+        unitPrice: typeof service.price === 'object' && service.price.toNumber 
+          ? service.price.toNumber() 
+          : Number(service.price || 0),
         quantity: service.quantity,
         staffId: service.staffId,
+        discount: 0,
+        taxRate: 0
       }));
       console.log('Adding order items:', items);
 
@@ -388,9 +385,32 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     </div>
   );
 
-  const handleWalkIn = () => {
-    setIsWalkIn(true);
-    setSelectedCustomer(null); // Don't set a fake customer object
+  const handleWalkIn = async () => {
+    try {
+      // Search for existing walk-in customer
+      const searchResponse = await apiClient.searchCustomers('Walk-in');
+      const customers = searchResponse?.data || [];
+      const existingWalkInCustomer = customers.find((customer: any) => 
+        customer.firstName === 'Walk-in' && 
+        (!customer.lastName || customer.lastName === '') &&
+        customer.source === 'WALK_IN'
+      );
+      
+      if (existingWalkInCustomer) {
+        // Use existing walk-in customer
+        setSelectedCustomer(existingWalkInCustomer);
+        setIsWalkIn(true);
+      } else {
+        // No existing walk-in customer found, mark as walk-in but don't create yet
+        setSelectedCustomer(null);
+        setIsWalkIn(true);
+      }
+    } catch (error) {
+      console.error('Failed to search for existing walk-in customer:', error);
+      // Fallback to marking as walk-in
+      setSelectedCustomer(null);
+      setIsWalkIn(true);
+    }
   };
 
   const handleCustomerSelect = useCallback((customer: Customer | null) => {

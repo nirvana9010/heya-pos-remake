@@ -112,12 +112,36 @@ export class PaymentsController {
     @Body() dto: { customerId?: string; bookingId?: string },
     @CurrentUser() user: any,
   ) {
+    let createdById: string;
+    
+    // If user is staff, use their ID
+    if (user.type === 'staff' && user.staffId) {
+      createdById = user.staffId;
+    } else {
+      // For merchant users, find the first active staff member
+      const firstStaff = await this.prisma.staff.findFirst({
+        where: {
+          merchantId: user.merchantId,
+          status: 'ACTIVE',
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+      
+      if (!firstStaff) {
+        throw new BadRequestException('No active staff members found. Please create a staff member first.');
+      }
+      
+      createdById = firstStaff.id;
+    }
+    
     return this.ordersService.createOrder({
       merchantId: user.merchantId,
-      locationId: user.currentLocationId || user.locations[0]?.id,
+      locationId: user.currentLocationId || user.merchant?.locations?.[0]?.id,
       customerId: dto.customerId,
       bookingId: dto.bookingId,
-      createdById: user.id,
+      createdById,
     });
   }
 

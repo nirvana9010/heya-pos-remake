@@ -24,12 +24,16 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: string;
-  orderId: string;
-  serviceId?: string;
-  name: string;
-  price: number;
+  id?: string;
+  orderId?: string;
+  itemType?: string;
+  itemId?: string;
+  description?: string;
+  unitPrice?: number;
   quantity: number;
+  staffId?: string;
+  discount?: number;
+  taxRate?: number;
 }
 
 export interface CreateOrderRequest {
