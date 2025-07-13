@@ -370,3 +370,93 @@ try {
   - All their bookings are preserved but set to `providerId: null` (unassigned)
   - This maintains booking history while removing the staff reference
 - The system shows a warning about unassigned bookings before deletion
+
+## TypeScript/API Contract Mismatches - Prevention Guide
+
+### Common Issues That Cause "Invalid argument" Errors
+
+#### 1. Prisma Decimal Objects vs Numbers
+**Problem**: Prisma returns Decimal objects, but frontend expects plain numbers.
+
+**Example Error**: `[DecimalError] Invalid argument: undefined`
+
+**Solution**: Always convert Decimal objects to numbers:
+```typescript
+// ❌ Wrong
+unitPrice: service.price
+
+// ✅ Correct
+unitPrice: typeof service.price === 'object' && service.price.toNumber 
+  ? service.price.toNumber() 
+  : Number(service.price || 0)
+```
+
+#### 2. Missing Required Fields
+**Problem**: API expects fields that frontend doesn't send.
+
+**Example**: Order items need `discount` and `taxRate` even if they default to 0.
+
+**Solution**: Always check the API service implementation, not just TypeScript interfaces:
+```typescript
+// Check what the Prisma create expects:
+// apps/api/src/payments/orders.service.ts
+new Decimal(item.discount || 0)  // This means discount is required!
+```
+
+#### 3. Frontend/Backend Type Mismatches
+**Problem**: TypeScript interfaces don't match actual API expectations.
+
+**Debug Steps**:
+1. Check API logs for the actual payload being sent
+2. Compare with what the service method expects
+3. Look for field name differences (e.g., `price` vs `unitPrice`)
+
+#### 4. User Context Issues
+**Problem**: JWT payload structure doesn't match controller expectations.
+
+**Example**: `user.locations[0]` vs `user.merchant.locations[0]`
+
+**Solution**: Check the JWT strategy to understand the user object structure:
+```typescript
+// apps/api/src/auth/strategies/jwt.strategy.ts shows actual structure
+```
+
+### Debugging Checklist for API Errors
+
+1. **Check the exact error line in API logs**
+   ```bash
+   pm2 logs api --nostream --lines 100 | grep -B 20 "Error"
+   ```
+
+2. **Verify the payload structure**
+   - What's being sent (check browser Network tab)
+   - What the API expects (check service method parameters)
+   - What Prisma expects (check schema and service implementation)
+
+3. **Look for data transformations**
+   - Decimal conversions
+   - Default values
+   - Required vs optional fields
+
+4. **Compare with working similar features**
+   - How does BookingSlideOut create orders?
+   - What's different in the data flow?
+
+### Best Practices to Avoid These Issues
+
+1. **Use shared type definitions** between frontend and backend
+2. **Transform Prisma types at API boundaries** (Decimals → numbers)
+3. **Add explicit validation** with clear error messages
+4. **Test the complete data flow** when copying patterns
+5. **Document field requirements** in interfaces
+
+### When Copying Features (e.g., BookingSlideOut → QuickSaleSlideOut)
+
+**ALWAYS verify**:
+- Exact API endpoints used
+- Data transformations at each layer
+- Field naming conventions
+- Required vs optional fields
+- How Prisma Decimal fields are handled
+
+**Never assume** similar UI means identical API contracts!
