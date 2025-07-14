@@ -31,7 +31,7 @@ import {
   OrderModifierType,
   OrderModifierCalculation,
 } from '@heya-pos/types';
-import { CreditCard, DollarSign, Percent, Plus, Minus, Edit2, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { CreditCard, DollarSign, Percent, Plus, Minus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useToast, cn } from '@heya-pos/ui';
 
@@ -65,7 +65,6 @@ export function PaymentDialog({
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [itemAdjustments, setItemAdjustments] = useState<Record<string, number>>({});
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
 
@@ -258,99 +257,109 @@ export function PaymentDialog({
                   const originalPrice = item.unitPrice * item.quantity;
                   const adjustedPrice = itemAdjustments[item.id] ?? originalPrice;
                   const difference = adjustedPrice - originalPrice;
-                  const isEditing = editingItemId === item.id;
 
                   return (
-                    <div key={item.id} className={cn(
-                      "flex items-center justify-between p-3 rounded-lg transition-colors",
-                      isEditing ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
-                    )}>
-                      <div className="flex-1">
-                        <span className="text-sm font-medium">{item.description || item.name}</span>
-                        <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
+                    <div key={item.id} className="bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{item.description || item.name}</span>
+                          <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">
+                            ${adjustedPrice.toFixed(2)}
+                          </div>
+                          <div className={cn(
+                            "text-xs h-4",
+                            difference !== 0 ? (difference < 0 ? "text-green-600" : "text-red-600") : "text-gray-400"
+                          )}>
+                            {difference !== 0 ? `${difference < 0 ? '-' : '+'}$${Math.abs(difference).toFixed(2)}` : 'No adjustment'}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {isEditing ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">$</span>
-                            <div className="flex items-center">
-                              <Input
-                                type="number"
-                                step="1"
-                                value={adjustedPrice.toFixed(2)}
-                                onChange={(e) => {
-                                  const newPrice = parseFloat(e.target.value) || 0;
-                                  setItemAdjustments(prev => ({
-                                    ...prev,
-                                    [item.id]: newPrice
-                                  }));
-                                }}
-                                className="w-24 h-10 text-sm font-medium rounded-r-none"
-                                autoFocus
-                                onBlur={() => setEditingItemId(null)}
-                              />
-                              <div className="flex flex-col">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setItemAdjustments(prev => ({
-                                      ...prev,
-                                      [item.id]: (prev[item.id] || originalPrice) + 1
-                                    }));
-                                  }}
-                                  className="h-5 w-8 p-0 rounded-none rounded-tr border-l-0 hover:bg-gray-100"
-                                  onMouseDown={(e) => e.preventDefault()} // Prevent blur
-                                >
-                                  <ChevronUp className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const currentPrice = itemAdjustments[item.id] || originalPrice;
-                                    if (currentPrice > 1) {
-                                      setItemAdjustments(prev => ({
-                                        ...prev,
-                                        [item.id]: currentPrice - 1
-                                      }));
-                                    }
-                                  }}
-                                  className="h-5 w-8 p-0 rounded-none rounded-br border-l-0 border-t-0 hover:bg-gray-100"
-                                  onMouseDown={(e) => e.preventDefault()} // Prevent blur
-                                >
-                                  <ChevronDown className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 text-right">
-                              <div className="text-sm font-medium">
-                                ${adjustedPrice.toFixed(2)}
-                              </div>
-                              {difference !== 0 && (
-                                <div className={cn(
-                                  "text-xs h-4",
-                                  difference < 0 ? "text-green-600" : "text-red-600"
-                                )}>
-                                  {difference < 0 ? '-' : '+'}${Math.abs(difference).toFixed(2)}
-                                </div>
-                              )}
-                              {difference === 0 && (
-                                <div className="h-4"></div>
-                              )}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingItemId(item.id)}
-                              className="h-8 w-8 p-0 hover:bg-gray-200"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments(prev => ({
+                              ...prev,
+                              [item.id]: Math.max(0, (prev[item.id] || originalPrice) - 5)
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        >
+                          -$5
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments(prev => ({
+                              ...prev,
+                              [item.id]: Math.max(0, (prev[item.id] || originalPrice) - 1)
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        >
+                          -$1
+                        </Button>
+                        <div className="flex-1 text-center">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={adjustedPrice.toFixed(2)}
+                            onChange={(e) => {
+                              const newPrice = parseFloat(e.target.value) || 0;
+                              setItemAdjustments(prev => ({
+                                ...prev,
+                                [item.id]: Math.max(0, newPrice)
+                              }));
+                            }}
+                            className="h-7 text-sm text-center"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments(prev => ({
+                              ...prev,
+                              [item.id]: (prev[item.id] || originalPrice) + 1
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                        >
+                          +$1
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments(prev => ({
+                              ...prev,
+                              [item.id]: (prev[item.id] || originalPrice) + 5
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                        >
+                          +$5
+                        </Button>
+                        {difference !== 0 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setItemAdjustments(prev => {
+                                const next = { ...prev };
+                                delete next[item.id];
+                                return next;
+                              });
+                            }}
+                            className="h-7 px-2 text-xs hover:bg-gray-200"
+                          >
+                            Reset
+                          </Button>
                         )}
                       </div>
                     </div>
