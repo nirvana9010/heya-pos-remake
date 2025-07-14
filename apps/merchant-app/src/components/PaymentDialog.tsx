@@ -174,7 +174,7 @@ export function PaymentDialog({
         });
       } else {
         // Process single payment
-        const paymentData = {
+        const paymentData: any = {
           orderId: order.id,
           amount: updatedBalanceDue,
           method: paymentMethod,
@@ -345,22 +345,23 @@ export function PaymentDialog({
                         >
                           +$5
                         </Button>
-                        {difference !== 0 && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setItemAdjustments(prev => {
-                                const next = { ...prev };
-                                delete next[item.id];
-                                return next;
-                              });
-                            }}
-                            className="h-7 px-2 text-xs hover:bg-gray-200"
-                          >
-                            Reset
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setItemAdjustments(prev => {
+                              const next = { ...prev };
+                              delete next[item.id];
+                              return next;
+                            });
+                          }}
+                          className={cn(
+                            "h-7 px-2 text-xs hover:bg-gray-200",
+                            difference === 0 && "opacity-0 pointer-events-none"
+                          )}
+                        >
+                          Reset
+                        </Button>
                       </div>
                     </div>
                   );
@@ -372,7 +373,7 @@ export function PaymentDialog({
           {/* Order-level Adjustment */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm text-gray-700">Order Adjustment</h3>
+              <h3 className="font-medium text-sm text-gray-700">Discount and Surcharge</h3>
               <Button
                 size="sm"
                 variant="ghost"

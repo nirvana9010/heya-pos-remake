@@ -493,26 +493,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
           </div>
         </div>
       )}
-      
-      {/* Order summary */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="font-semibold text-gray-700 mb-3">Order Summary</h4>
-        <div className="space-y-2">
-          {selectedServices.map((service, index) => (
-            <div key={index} className="flex justify-between text-sm">
-              <span className="text-gray-600">
-                {service.name} 
-                <span className="text-gray-500"> × {service.quantity}</span>
-              </span>
-              <span className="font-medium">${(service.price * service.quantity).toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 pt-3 border-t border-gray-300 flex justify-between">
-          <span className="font-semibold text-gray-900">Total</span>
-          <span className="text-xl font-bold text-gray-900">${calculateTotal().toFixed(2)}</span>
-        </div>
-      </div>
     </div>
   );
 

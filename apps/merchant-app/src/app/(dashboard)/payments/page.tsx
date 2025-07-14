@@ -1221,16 +1221,27 @@ export default function PaymentsPage() {
                     `;
                   }
                   
-                  // Display each modifier
+                  // Display each modifier (with order-level modifiers last)
                   if (hasModifiers) {
-                    modifiers.forEach((modifier: any) => {
+                    // Sort modifiers: item-level first, then order-level
+                    const sortedModifiers = [...modifiers].sort((a: any, b: any) => {
+                      const aIsOrderLevel = !a.appliesTo || a.appliesTo.length === 0;
+                      const bIsOrderLevel = !b.appliesTo || b.appliesTo.length === 0;
+                      
+                      // Order-level modifiers should appear last
+                      if (aIsOrderLevel && !bIsOrderLevel) return 1;
+                      if (!aIsOrderLevel && bIsOrderLevel) return -1;
+                      return 0;
+                    });
+                    
+                    sortedModifiers.forEach((modifier: any) => {
                       const amount = parseFloat(modifier.amount || 0);
                       const isDiscount = modifier.type === 'DISCOUNT';
                       
                       html += `
                         <div class="totals-row" style="${isDiscount ? 'color: green;' : ''}">
                           <span>${modifier.description || (isDiscount ? 'Discount' : 'Adjustment')}:</span>
-                          <span>${amount >= 0 ? '$' : '-$'}${Math.abs(amount).toFixed(2)}</span>
+                          <span>${isDiscount ? '-$' : '$'}${Math.abs(amount).toFixed(2)}</span>
                         </div>
                       `;
                     });

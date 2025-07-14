@@ -16,11 +16,24 @@ export interface Order {
   customerId?: string;
   bookingId?: string;
   status: string;
+  state?: string;
   totalAmount: number;
+  subtotal?: number;
+  taxAmount?: number;
+  paidAmount?: number;
+  balanceDue?: number;
   items: OrderItem[];
+  modifiers?: OrderModifier[];
   payments: Payment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderModifier {
+  id: string;
+  type: string;
+  amount: number;
+  description?: string;
 }
 
 export interface OrderItem {
@@ -47,6 +60,8 @@ export interface ProcessPaymentRequest {
   amount: number;
   method: string;
   tipAmount?: number;
+  reference?: string;
+  metadata?: any;
 }
 
 export interface RefundPaymentRequest {
