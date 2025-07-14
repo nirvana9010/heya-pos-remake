@@ -108,7 +108,7 @@ export function PaymentDialog({
     return 0;
   }, [enableTips, customTipAmount, selectedTipPercentage, order?.totalAmount]);
 
-  const totalWithTip = balanceDue + tipAmount;
+  const totalWithTip = enableTips ? balanceDue + tipAmount : balanceDue;
   const changeAmount = cashReceived ? parseFloat(cashReceived) - totalWithTip : 0;
 
   const handlePayment = async () => {
@@ -261,15 +261,18 @@ export function PaymentDialog({
                   const isEditing = editingItemId === item.id;
 
                   return (
-                    <div key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div>
+                    <div key={item.id} className={cn(
+                      "flex items-center justify-between p-3 rounded-lg transition-colors",
+                      isEditing ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
+                    )}>
+                      <div className="flex-1">
                         <span className="text-sm font-medium">{item.description || item.name}</span>
                         <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         {isEditing ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm">$</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">$</span>
                             <div className="flex items-center">
                               <Input
                                 type="number"
@@ -282,8 +285,9 @@ export function PaymentDialog({
                                     [item.id]: newPrice
                                   }));
                                 }}
-                                className="w-20 h-8 text-sm rounded-r-none"
+                                className="w-24 h-10 text-sm font-medium rounded-r-none"
                                 autoFocus
+                                onBlur={() => setEditingItemId(null)}
                               />
                               <div className="flex flex-col">
                                 <Button
@@ -295,9 +299,10 @@ export function PaymentDialog({
                                       [item.id]: (prev[item.id] || originalPrice) + 1
                                     }));
                                   }}
-                                  className="h-4 w-6 p-0 rounded-none rounded-tr border-l-0"
+                                  className="h-5 w-8 p-0 rounded-none rounded-tr border-l-0 hover:bg-gray-100"
+                                  onMouseDown={(e) => e.preventDefault()} // Prevent blur
                                 >
-                                  <ChevronUp className="h-3 w-3" />
+                                  <ChevronUp className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   size="sm"
@@ -311,58 +316,41 @@ export function PaymentDialog({
                                       }));
                                     }
                                   }}
-                                  className="h-4 w-6 p-0 rounded-none rounded-br border-l-0 border-t-0"
+                                  className="h-5 w-8 p-0 rounded-none rounded-br border-l-0 border-t-0 hover:bg-gray-100"
+                                  onMouseDown={(e) => e.preventDefault()} // Prevent blur
                                 >
-                                  <ChevronDown className="h-3 w-3" />
+                                  <ChevronDown className="h-4 w-4" />
                                 </Button>
                               </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 text-right">
+                              <div className="text-sm font-medium">
+                                ${adjustedPrice.toFixed(2)}
+                              </div>
+                              {difference !== 0 && (
+                                <div className={cn(
+                                  "text-xs h-4",
+                                  difference < 0 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  {difference < 0 ? '-' : '+'}${Math.abs(difference).toFixed(2)}
+                                </div>
+                              )}
+                              {difference === 0 && (
+                                <div className="h-4"></div>
+                              )}
                             </div>
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setEditingItemId(null)}
-                              className="h-8 w-8 p-0"
+                              onClick={() => setEditingItemId(item.id)}
+                              className="h-8 w-8 p-0 hover:bg-gray-200"
                             >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setItemAdjustments(prev => {
-                                  const next = { ...prev };
-                                  delete next[item.id];
-                                  return next;
-                                });
-                                setEditingItemId(null);
-                              }}
-                              className="h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        ) : (
-                          <>
-                            <span className="text-sm font-medium">
-                              ${adjustedPrice.toFixed(2)}
-                              {difference !== 0 && (
-                                <span className={cn(
-                                  "ml-1 text-xs",
-                                  difference < 0 ? "text-green-600" : "text-red-600"
-                                )}>
-                                  ({difference < 0 ? '-' : '+'}${Math.abs(difference).toFixed(2)})
-                                </span>
-                              )}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingItemId(item.id)}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                          </>
                         )}
                       </div>
                     </div>

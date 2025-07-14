@@ -10,6 +10,7 @@ import { Button, Input, Badge, Label, Spinner } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { debounce } from 'lodash';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { PaymentDialog } from './PaymentDialog';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isWalkIn, setIsWalkIn] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // Stable empty array for CustomerSearchInput fallback
   const fallbackCustomers = useMemo(() => [], []);
@@ -74,6 +76,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setSearchQuery('');
       setSelectedCategory('all');
       setIsWalkIn(false);
+      setPaymentDialogOpen(false);
     }
   }, [isOpen]);
 
@@ -171,7 +174,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       await apiClient.updateOrderState(orderData.id, 'LOCKED');
       
       setOrder(updatedOrder);
-      setCurrentStep(3); // Move to payment step
+      setPaymentDialogOpen(true); // Open payment dialog instead of moving to step 3
     } catch (error: any) {
       console.error('Failed to create order:', error);
       console.error('Error details:', {
@@ -189,26 +192,18 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     }
   };
 
-  const handleProcessPayment = async (method: string) => {
-    if (!order) return;
+  const handlePaymentComplete = async (updatedOrder: any) => {
+    // Payment completed successfully
+    setPaymentDialogOpen(false);
+    onSaleComplete();
+    onClose();
     
-    setLoading(true);
-    try {
-      await apiClient.processPayment({
-        orderId: order.id,
-        amount: calculateTotal(),
-        method: method,
-      });
-
-      // Success!
-      onSaleComplete();
-      onClose();
-    } catch (error) {
-      console.error('Payment failed:', error);
-      alert('Payment processing failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    // Reset state
+    setSelectedServices([]);
+    setSelectedCustomer(null);
+    setOrder(null);
+    setCurrentStep(1);
+    setIsWalkIn(false);
   };
 
   const renderServiceSelection = () => (
@@ -521,51 +516,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     </div>
   );
 
-  const renderPayment = () => (
-    <div className="space-y-4">
-      {/* Payment amount */}
-      <div className="bg-teal-50 border border-teal-200 rounded-lg p-6 text-center">
-        <p className="text-sm text-teal-700 mb-2">Amount Due</p>
-        <div className="text-3xl font-bold text-teal-700">
-          ${calculateTotal().toFixed(2)}
-        </div>
-      </div>
-      
-      {/* Payment methods */}
-      <div className="space-y-3">
-        <h4 className="font-semibold text-gray-700">Select Payment Method</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            onClick={() => handleProcessPayment('CASH')}
-            disabled={loading}
-            className="h-auto py-4 bg-green-600 hover:bg-green-700 text-white"
-          >
-            <div className="space-y-1">
-              <DollarSign className="h-6 w-6 mx-auto" />
-              <div>Cash</div>
-            </div>
-          </Button>
-          <Button
-            onClick={() => handleProcessPayment('CARD')}
-            disabled={loading}
-            className="h-auto py-4 bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <div className="space-y-1">
-              <CreditCard className="h-6 w-6 mx-auto" />
-              <div>Card</div>
-            </div>
-          </Button>
-        </div>
-      </div>
-      
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <Spinner className="h-5 w-5" />
-          <span className="text-gray-600">Processing payment...</span>
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <>
@@ -617,7 +567,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                     Services
                   </span>
                 </div>
-                <div className="flex-1 h-0.5 bg-gray-200 mx-2" />
+                <div className="flex-1 h-0.5 bg-gray-200 mx-4" />
                 <div className="flex items-center gap-2">
                   <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
@@ -629,22 +579,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                     "text-sm font-medium",
                     currentStep >= 2 ? "text-gray-900" : "text-gray-500"
                   )}>
-                    Customer
-                  </span>
-                </div>
-                <div className="flex-1 h-0.5 bg-gray-200 mx-2" />
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                    currentStep >= 3 ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-500"
-                  )}>
-                    3
-                  </div>
-                  <span className={cn(
-                    "text-sm font-medium",
-                    currentStep >= 3 ? "text-gray-900" : "text-gray-500"
-                  )}>
-                    Payment
+                    Customer & Payment
                   </span>
                 </div>
               </div>
@@ -654,14 +589,13 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
             <div className="flex-1 overflow-y-auto px-6 py-6">
               {currentStep === 1 && renderServiceSelection()}
               {currentStep === 2 && renderCustomerSelection()}
-              {currentStep === 3 && renderPayment()}
             </div>
 
             {/* Footer */}
             <div className="sticky bottom-0 bg-white border-t px-6 py-4">
               <div className="flex gap-3 justify-between">
                 <div>
-                  {currentStep > 1 && currentStep < 3 && (
+                  {currentStep === 2 && (
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(currentStep - 1)}
@@ -694,7 +628,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                           Creating...
                         </>
                       ) : (
-                        'Create Order'
+                        'Create Order & Pay'
                       )}
                     </Button>
                   )}
@@ -704,6 +638,17 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      {order && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          order={order}
+          onPaymentComplete={handlePaymentComplete}
+          enableTips={merchant?.settings?.enableTips || false}
+        />
+      )}
     </>
   );
 };
