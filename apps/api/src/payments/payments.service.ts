@@ -135,6 +135,13 @@ export class PaymentsService {
    * Process card payment via gateway
    */
   private async processCardPayment(orderId: string, dto: ProcessPaymentDto, staffId: string) {
+    // Get or create payment reference
+    let reference = dto.reference;
+    if (!reference) {
+      // Create terminal payment first to get reference
+      reference = await this.gatewayService.createTerminalPayment(dto.amount, orderId);
+    }
+
     // Create pending payment record
     const payment = await this.prisma.orderPayment.create({
       data: {
@@ -143,14 +150,14 @@ export class PaymentsService {
         amount: new Decimal(dto.amount),
         tipAmount: new Decimal(dto.tipAmount || 0),
         status: PaymentStatus.PROCESSING,
-        reference: dto.reference,
+        reference: reference,
         processedById: staffId,
       },
     });
 
     try {
       // Process through gateway
-      const gatewayResult = await this.gatewayService.getTerminalStatus(dto.reference!);
+      const gatewayResult = await this.gatewayService.getTerminalStatus(reference);
 
       if (gatewayResult.success) {
         // Update payment as completed
