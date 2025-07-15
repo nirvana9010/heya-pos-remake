@@ -17,6 +17,13 @@ class SupabaseRealtimeService {
    */
   async initialize(): Promise<boolean> {
     try {
+      // Check if user is authenticated first
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.warn('[Supabase] No access token found, skipping initialization');
+        return false;
+      }
+
       // Get realtime token from our backend
       // Note: apiClient.post returns the data directly, not a response object
       const data = await apiClient.post<RealtimeConfig>('/merchant/notifications/realtime-token');
@@ -59,8 +66,12 @@ class SupabaseRealtimeService {
 
       return true;
     } catch (error: any) {
-      if (error.response?.status === 503) {
+      if (error.response?.status === 401) {
+        console.warn('[Supabase] Authentication error - user may not be logged in yet or token expired');
+      } else if (error.response?.status === 503) {
         console.warn('[Supabase] Realtime service not configured on backend. Please add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env file');
+      } else if (error.code === 'AUTH_IN_PROGRESS') {
+        console.warn('[Supabase] Authentication redirect in progress, skipping initialization');
       } else {
         console.error('[Supabase] Failed to initialize:', error);
       }

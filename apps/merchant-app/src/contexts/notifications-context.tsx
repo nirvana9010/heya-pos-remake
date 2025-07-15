@@ -303,6 +303,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       return;
     }
 
+    // Check if user is authenticated before initializing Supabase
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.warn('[NotificationsContext] No auth token found, skipping Supabase initialization');
+      return;
+    }
+
     // Initialize Supabase Realtime
     const initSupabase = async () => {
       const initialized = await supabaseRealtime.initialize();
