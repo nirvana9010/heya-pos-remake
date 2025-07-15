@@ -47,6 +47,14 @@ export class BookingCreationService {
    * This is a transactional script that orchestrates the entire booking creation process.
    */
   async createBooking(data: CreateBookingData): Promise<Booking> {
+    // Handle special walk-in customer ID
+    let finalCustomerId = data.customerId;
+    if (data.customerId === 'WALK_IN') {
+      // For bookings, we need to create/find an actual walk-in customer
+      const walkInCustomer = await this.findOrCreateWalkInCustomer(data.merchantId);
+      finalCustomerId = walkInCustomer.id;
+    }
+    
     // Convert legacy single service to services array
     const services: BookingServiceData[] = data.services || (data.serviceId ? [{
       serviceId: data.serviceId,
@@ -184,7 +192,7 @@ export class BookingCreationService {
         id: uuidv4(),
         bookingNumber,
         merchantId: data.merchantId,
-        customerId: data.customerId,
+        customerId: finalCustomerId,
         staffId: primaryStaffId,
         serviceId: serviceDetails[0].id, // Temporary, will update domain to support array
         locationId: data.locationId,
@@ -391,5 +399,55 @@ export class BookingCreationService {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 5);
     return `BK${timestamp}${random}`.toUpperCase();
+  }
+
+  /**
+   * Find or create a walk-in customer for the merchant
+   */
+  private async findOrCreateWalkInCustomer(merchantId: string) {
+    // First, try to find existing walk-in customer for this merchant
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { subdomain: true }
+    });
+    
+    const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
+    
+    // Try to find existing walk-in customer
+    let walkInCustomer = await this.prisma.customer.findFirst({
+      where: {
+        merchantId,
+        OR: [
+          { email: walkInEmail },
+          {
+            firstName: 'Walk-in',
+            lastName: 'Customer',
+            source: 'WALK_IN'
+          }
+        ]
+      }
+    });
+
+    // If not found, create new walk-in customer
+    if (!walkInCustomer) {
+      walkInCustomer = await this.prisma.customer.create({
+        data: {
+          merchantId,
+          firstName: 'Walk-in',
+          lastName: 'Customer',
+          email: walkInEmail,
+          source: 'WALK_IN',
+          status: 'ACTIVE',
+          marketingConsent: false,
+          preferredLanguage: 'en',
+          loyaltyPoints: 0,
+          visitCount: 0,
+          totalSpent: 0,
+          tags: []
+        }
+      });
+    }
+
+    return walkInCustomer;
   }
 }

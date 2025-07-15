@@ -11,6 +11,7 @@ import { cn } from '@heya-pos/ui';
 import { debounce } from 'lodash';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { PaymentDialog } from './PaymentDialog';
+import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from '@/lib/constants/customer';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -122,41 +123,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       // Handle customer selection
       let customerId: string | undefined;
       
-      if (isWalkIn && !selectedCustomer) {
-        // Need to create a new walk-in customer with unique email
-        console.log('=== WALK-IN CUSTOMER CREATION ===');
-        console.log('Merchant for walk-in:', merchant);
-        console.log('Merchant subdomain:', merchant?.subdomain);
-        const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
-        console.log('Walk-in email will be:', walkInEmail);
-        try {
-          const walkInCustomer = await apiClient.createCustomer({
-            firstName: 'Walk-in',
-            lastName: 'Customer',
-            email: walkInEmail,
-            source: 'WALK_IN'
-          });
-          customerId = walkInCustomer.id;
-          console.log('Created new walk-in customer:', customerId);
-        } catch (error: any) {
-          // If customer already exists with this email, try to fetch it
-          if (error?.response?.status === 409 || error?.response?.data?.message?.includes('email')) {
-            console.log('Walk-in customer already exists, fetching...');
-            const searchResponse = await apiClient.searchCustomers(walkInEmail);
-            const existingCustomer = searchResponse?.data?.[0];
-            if (existingCustomer) {
-              customerId = existingCustomer.id;
-              console.log('Using existing walk-in customer:', customerId);
-            } else {
-              throw new Error('Could not find or create walk-in customer');
-            }
-          } else {
-            console.error('Error creating walk-in customer:', error);
-            console.error('Error response:', error?.response?.data);
-            const errorMessage = error?.response?.data?.message?.[0] || error?.message || 'Failed to create walk-in customer';
-            throw new Error(errorMessage);
-          }
-        }
+      if (isWalkIn) {
+        // Use the special walk-in customer ID
+        customerId = WALK_IN_CUSTOMER_ID;
+        console.log('Using walk-in customer ID:', customerId);
       } else if (selectedCustomer) {
         // Use the selected customer (either regular or existing walk-in)
         customerId = selectedCustomer.id;
@@ -438,45 +408,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     </div>
   );
 
-  const handleWalkIn = async () => {
-    try {
-      // Search for existing walk-in customer by unique email
-      const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
-      console.log('Searching for walk-in customer with email:', walkInEmail);
-      const searchResponse = await apiClient.searchCustomers(walkInEmail);
-      const customers = searchResponse?.data || [];
-      
-      // First try to find by exact email match
-      let existingWalkInCustomer = customers.find((customer: any) => 
-        customer.email === walkInEmail
-      );
-      
-      // Fallback to old search method for backwards compatibility
-      if (!existingWalkInCustomer) {
-        const fallbackSearch = await apiClient.searchCustomers('Walk-in');
-        const fallbackCustomers = fallbackSearch?.data || [];
-        existingWalkInCustomer = fallbackCustomers.find((customer: any) => 
-          customer.firstName === 'Walk-in' && 
-          customer.lastName === 'Customer' &&
-          customer.source === 'WALK_IN'
-        );
-      }
-      
-      if (existingWalkInCustomer) {
-        // Use existing walk-in customer
-        setSelectedCustomer(existingWalkInCustomer);
-        setIsWalkIn(true);
-      } else {
-        // No existing walk-in customer found, mark as walk-in but don't create yet
-        setSelectedCustomer(null);
-        setIsWalkIn(true);
-      }
-    } catch (error) {
-      console.error('Failed to search for existing walk-in customer:', error);
-      // Fallback to marking as walk-in
-      setSelectedCustomer(null);
-      setIsWalkIn(true);
-    }
+  const handleWalkIn = () => {
+    // Instant walk-in selection - no API calls needed
+    setSelectedCustomer(null);
+    setIsWalkIn(true);
   };
 
   const handleCustomerSelect = useCallback((customer: Customer | null) => {
