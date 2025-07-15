@@ -14,12 +14,20 @@ export class OrdersService {
     bookingId?: string;
     createdById: string;
   }) {
+    // Handle special walk-in customer ID
+    let finalCustomerId = data.customerId;
+    if (data.customerId === 'WALK_IN') {
+      // For orders, we can use null customerId for walk-in
+      finalCustomerId = undefined;
+    }
+    
     // Generate unique order number
     const orderNumber = await this.generateOrderNumber(data.merchantId);
 
     return this.prisma.order.create({
       data: {
         ...data,
+        customerId: finalCustomerId,
         orderNumber,
         state: OrderState.DRAFT,
         subtotal: new Decimal(0),

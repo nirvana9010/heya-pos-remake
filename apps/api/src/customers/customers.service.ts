@@ -344,6 +344,11 @@ export class CustomersService {
   }
 
   async findOne(merchantId: string, id: string) {
+    // Handle special walk-in customer ID
+    if (id === 'WALK_IN') {
+      return this.findOrCreateWalkInCustomer(merchantId);
+    }
+    
     const customer = await this.prisma.customer.findFirst({
       where: {
         id,
@@ -659,5 +664,52 @@ export class CustomersService {
       tags: item['Tags'] ? item['Tags'].split(',').map((t: string) => t.trim()) : [],
       preferredLanguage: item['Preferred Language'] || 'en',
     };
+  }
+
+  private async findOrCreateWalkInCustomer(merchantId: string) {
+    // First, try to find existing walk-in customer for this merchant
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { subdomain: true }
+    });
+    
+    const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
+    
+    // Try to find existing walk-in customer
+    let walkInCustomer = await this.prisma.customer.findFirst({
+      where: {
+        merchantId,
+        OR: [
+          { email: walkInEmail },
+          {
+            firstName: 'Walk-in',
+            lastName: 'Customer',
+            source: 'WALK_IN'
+          }
+        ]
+      }
+    });
+
+    // If not found, create new walk-in customer
+    if (!walkInCustomer) {
+      walkInCustomer = await this.prisma.customer.create({
+        data: {
+          merchantId,
+          firstName: 'Walk-in',
+          lastName: 'Customer',
+          email: walkInEmail,
+          source: 'WALK_IN',
+          status: 'ACTIVE',
+          marketingConsent: false,
+          preferredLanguage: 'en',
+          loyaltyPoints: 0,
+          visitCount: 0,
+          totalSpent: 0,
+          tags: []
+        }
+      });
+    }
+
+    return walkInCustomer;
   }
 }

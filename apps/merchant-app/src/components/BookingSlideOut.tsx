@@ -31,6 +31,7 @@ import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
 import { checkStaffAvailability, formatAvailabilityMessage, ensureValidStaffId, type StaffAvailability } from "@/lib/services/booking-availability.service";
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
+import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useTimezone } from "@/contexts/timezone-context";
 
@@ -281,65 +282,17 @@ export function BookingSlideOut({
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const selectedStaff = filteredStaff.find(s => s.id === formData.staffId);
 
-  const generateWalkInCustomer = async () => {
-    try {
-      // Search for existing walk-in customer by unique email
-      const walkInEmail = `walkin@${authMerchant?.subdomain || merchant?.subdomain || 'unknown'}.local`;
-      const searchResponse = await apiClient.searchCustomers(walkInEmail);
-      const customers = searchResponse?.data || [];
-      
-      // First try to find by exact email match
-      let existingWalkInCustomer = customers.find((customer: any) => 
-        customer.email === walkInEmail
-      );
-      
-      // Fallback to old search method for backwards compatibility
-      if (!existingWalkInCustomer) {
-        const fallbackSearch = await apiClient.searchCustomers('Walk-in');
-        const fallbackCustomers = fallbackSearch?.data || [];
-        existingWalkInCustomer = fallbackCustomers.find((customer: any) => 
-          customer.firstName === 'Walk-in' && 
-          customer.lastName === 'Customer' &&
-          customer.source === 'WALK_IN'
-        );
-      }
-      
-      if (existingWalkInCustomer) {
-        // Use existing walk-in customer
-        setFormData({
-          ...formData,
-          customerId: existingWalkInCustomer.id,
-          customerName: 'Walk-in',
-          customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '',
-          customerEmail: walkInEmail, // Use the unique email
-          isNewCustomer: false,
-          isWalkIn: true
-        });
-      } else {
-        // No existing walk-in customer found, will create one on first use
-        setFormData({
-          ...formData,
-          customerId: '', // Will be created as new customer
-          customerName: 'Walk-in',
-          customerPhone: '', // No phone for walk-in
-          customerEmail: walkInEmail, // Use the unique email
-          isNewCustomer: true,
-          isWalkIn: true
-        });
-      }
-    } catch (error) {
-      console.error('Failed to search for existing walk-in customer:', error);
-      // Fallback to creating new walk-in customer
-      setFormData({
-        ...formData,
-        customerId: '',
-        customerName: 'Walk-in',
-        customerPhone: '',
-        customerEmail: '',
-        isNewCustomer: true,
-        isWalkIn: true
-      });
-    }
+  const generateWalkInCustomer = () => {
+    // Instant walk-in selection - no API calls needed
+    setFormData({
+      ...formData,
+      customerId: WALK_IN_CUSTOMER_ID,
+      customerName: 'Walk-in Customer',
+      customerPhone: '',
+      customerEmail: '',
+      isNewCustomer: false,
+      isWalkIn: true
+    });
     
     // Auto-proceed to next step
     handleNext();
