@@ -13,11 +13,22 @@ export interface User {
   email?: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  merchantId: string;
+  address?: string;
+  timezone?: string;
+  isActive: boolean;
+}
+
 export interface Merchant {
   id: string;
   name: string;
   email: string;
   subdomain: string;
+  locations?: Location[];
+  locationId?: string; // Legacy field for backward compatibility
   settings?: {
     showUnassignedColumn?: boolean;
     allowUnassignedBookings?: boolean;
@@ -436,7 +447,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       if (response.user) {
         localStorage.setItem('user', JSON.stringify(response.user));
-        localStorage.setItem('merchant', JSON.stringify(response.user));
+      }
+      
+      if (response.merchant) {
+        localStorage.setItem('merchant', JSON.stringify(response.merchant));
+        // Update state with full merchant data including locations
+        setAuthState(prev => ({
+          ...prev,
+          merchant: response.merchant,
+        }));
       }
 
       // Parse new token expiration

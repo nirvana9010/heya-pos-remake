@@ -18,6 +18,7 @@ export interface AuthSession {
   token: string;
   refreshToken?: string;
   expiresAt: Date;
+  merchant?: any; // Full merchant object with locations
 }
 
 export interface LoginRequest {

@@ -136,9 +136,49 @@ export class PaymentsController {
       createdById = firstStaff.id;
     }
     
+    // Ensure locationId is available - create default location if needed
+    console.log('[Order Creation] User data:', {
+      merchantId: user.merchantId,
+      currentLocationId: user.currentLocationId,
+      merchantLocations: user.merchant?.locations,
+      merchantName: user.merchant?.name
+    });
+    
+    let locationId = user.currentLocationId || user.merchant?.locations?.[0]?.id;
+    
+    if (!locationId) {
+      console.warn(`[Order Creation] Merchant ${user.merchantId} has no locations. Creating default location.`);
+      
+      // Create a default location for this merchant
+      const defaultLocation = await this.prisma.location.create({
+        data: {
+          merchantId: user.merchantId,
+          name: `${user.merchant?.name || 'Main'} Location`,
+          address: '123 Main Street',
+          suburb: 'Default Suburb',
+          city: 'Default City',
+          country: 'Australia',
+          isActive: true,
+          businessHours: {
+            monday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            tuesday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            wednesday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            thursday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            friday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            saturday: { isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            sunday: { isOpen: false, openTime: '09:00', closeTime: '17:00' }
+          },
+          settings: {}
+        }
+      });
+      
+      locationId = defaultLocation.id;
+      console.log(`Created default location ${locationId} for merchant ${user.merchantId}`);
+    }
+
     return this.ordersService.createOrder({
       merchantId: user.merchantId,
-      locationId: user.currentLocationId || user.merchant?.locations?.[0]?.id,
+      locationId,
       customerId: dto.customerId,
       bookingId: dto.bookingId,
       createdById,

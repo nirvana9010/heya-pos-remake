@@ -25,7 +25,7 @@ export class AuthClient extends BaseApiClient {
       const response = await this.post('/auth/merchant/login', payload, undefined, 'v1');
     
     // Normalize the response to match what the frontend expects
-    // The API returns user data with embedded merchant info
+    // The API now returns the full merchant object with locations
     const result = {
       access_token: response.token,
       refresh_token: response.refreshToken,
@@ -37,11 +37,12 @@ export class AuthClient extends BaseApiClient {
         lastName: response.user.lastName,
         email: response.user.email
       },
-      merchant: {
+      merchant: response.merchant || {
         id: response.merchantId,
-        name: response.user.firstName, // In this system, firstName holds the merchant name
+        name: response.user.firstName,
         email: response.user.email,
-        subdomain: 'hamilton' // Default subdomain, update if needed
+        subdomain: 'hamilton',
+        locations: [] // Empty array if no locations
       },
       expiresAt: response.expiresAt
     };
