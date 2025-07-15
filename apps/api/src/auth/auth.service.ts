@@ -135,6 +135,15 @@ export class AuthService {
       token,
       refreshToken,
       expiresAt,
+      merchant: {
+        id: merchant.id,
+        name: merchant.name,
+        email: merchant.email,
+        subdomain: merchant.subdomain,
+        locations: merchant.locations,
+        settings: merchant.settings,
+        package: merchant.package,
+      },
     };
   }
 
@@ -156,6 +165,7 @@ export class AuthService {
               locations: {
                 where: { isActive: true },
               },
+              package: true,
             },
           },
         },
@@ -203,6 +213,15 @@ export class AuthService {
         token: newToken,
         refreshToken: newRefreshToken,
         expiresAt,
+        merchant: {
+          id: merchantAuth.merchant.id,
+          name: merchantAuth.merchant.name,
+          email: merchantAuth.merchant.email,
+          subdomain: merchantAuth.merchant.subdomain,
+          locations: merchantAuth.merchant.locations,
+          settings: merchantAuth.merchant.settings,
+          package: merchantAuth.merchant.package,
+        },
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');

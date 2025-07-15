@@ -286,33 +286,65 @@ export class OrdersService {
     }
   }
 
-  private async generateOrderNumber(merchantId: string): Promise<string> {
+  private async generateOrderNumber(merchantId: string, retryCount: number = 0): Promise<string> {
+    // Prevent infinite loops
+    if (retryCount > 10) {
+      throw new Error('Unable to generate unique order number after 10 attempts');
+    }
+
     // Get the current date
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
+    const datePrefix = `OR-${year}${month}${day}`;
 
-    // Get today's order count for this merchant
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    console.log(`[generateOrderNumber] Generating for prefix: ${datePrefix}, retry: ${retryCount}`);
 
-    const orderCount = await this.prisma.order.count({
+    // Find the highest sequence number for this date prefix
+    // This handles cases where orders might exist from different timezone contexts
+    const lastOrder = await this.prisma.order.findFirst({
       where: {
         merchantId,
-        createdAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+        orderNumber: {
+          startsWith: datePrefix,
         },
+      },
+      orderBy: {
+        orderNumber: 'desc',
+      },
+      select: {
+        orderNumber: true,
       },
     });
 
+    let sequenceNumber = 1;
+    if (lastOrder) {
+      // Extract the sequence number from the last order
+      const lastSequence = parseInt(lastOrder.orderNumber.split('-')[2] || '0', 10);
+      sequenceNumber = lastSequence + 1;
+      console.log(`[generateOrderNumber] Last order: ${lastOrder.orderNumber}, next sequence: ${sequenceNumber}`);
+    }
+
+    // Add retry count to sequence number if retrying
+    sequenceNumber += retryCount;
+
     // Generate order number: OR-YYMMDD-XXXX
-    const sequenceNumber = (orderCount + 1).toString().padStart(4, '0');
-    return `OR-${year}${month}${day}-${sequenceNumber}`;
+    const orderNumber = `${datePrefix}-${sequenceNumber.toString().padStart(4, '0')}`;
+    console.log(`[generateOrderNumber] Trying order number: ${orderNumber}`);
+
+    // Double-check for uniqueness (in case of race conditions)
+    const existingOrder = await this.prisma.order.findUnique({
+      where: { orderNumber },
+    });
+
+    if (existingOrder) {
+      console.log(`[generateOrderNumber] Order number ${orderNumber} already exists, retrying...`);
+      // If there's a collision, try the next number
+      return this.generateOrderNumber(merchantId, retryCount + 1);
+    }
+
+    return orderNumber;
   }
 
   async createOrderFromBooking(bookingId: string, merchantId: string, staffId: string) {

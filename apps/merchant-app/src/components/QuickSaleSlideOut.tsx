@@ -113,28 +113,49 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const handleCreateOrder = async () => {
     if (!selectedServices.length) return;
     
+    console.log('===============================================');
+    console.log('=== STARTING ORDER CREATION PROCESS ===');
+    console.log('===============================================');
+    
     setLoading(true);
     try {
       // Handle customer selection
       let customerId: string | undefined;
       
       if (isWalkIn && !selectedCustomer) {
-        // Need to create a new walk-in customer
-        console.log('Creating new walk-in customer...');
+        // Need to create a new walk-in customer with unique email
+        console.log('=== WALK-IN CUSTOMER CREATION ===');
+        console.log('Merchant for walk-in:', merchant);
+        console.log('Merchant subdomain:', merchant?.subdomain);
+        const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
+        console.log('Walk-in email will be:', walkInEmail);
         try {
           const walkInCustomer = await apiClient.createCustomer({
             firstName: 'Walk-in',
-            lastName: 'Customer', // BookingSlideOut uses this
+            lastName: 'Customer',
+            email: walkInEmail,
             source: 'WALK_IN'
-            // Don't send phone or email for walk-in
           });
           customerId = walkInCustomer.id;
           console.log('Created new walk-in customer:', customerId);
         } catch (error: any) {
-          console.error('Error creating walk-in customer:', error);
-          console.error('Error response:', error?.response?.data);
-          const errorMessage = error?.response?.data?.message?.[0] || error?.message || 'Failed to create walk-in customer';
-          throw new Error(errorMessage);
+          // If customer already exists with this email, try to fetch it
+          if (error?.response?.status === 409 || error?.response?.data?.message?.includes('email')) {
+            console.log('Walk-in customer already exists, fetching...');
+            const searchResponse = await apiClient.searchCustomers(walkInEmail);
+            const existingCustomer = searchResponse?.data?.[0];
+            if (existingCustomer) {
+              customerId = existingCustomer.id;
+              console.log('Using existing walk-in customer:', customerId);
+            } else {
+              throw new Error('Could not find or create walk-in customer');
+            }
+          } else {
+            console.error('Error creating walk-in customer:', error);
+            console.error('Error response:', error?.response?.data);
+            const errorMessage = error?.response?.data?.message?.[0] || error?.message || 'Failed to create walk-in customer';
+            throw new Error(errorMessage);
+          }
         }
       } else if (selectedCustomer) {
         // Use the selected customer (either regular or existing walk-in)
@@ -145,11 +166,48 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       }
       
       // Step 1: Create order
-      console.log('Creating order with customerId:', customerId);
-      const orderData = await apiClient.createOrder({
+      console.log('=== ORDER CREATION DEBUG ===');
+      console.log('Merchant object:', merchant);
+      console.log('Merchant ID:', merchant?.id);
+      console.log('Merchant subdomain:', merchant?.subdomain);
+      console.log('Merchant locations:', merchant?.locations);
+      console.log('Customer ID being used:', customerId);
+      
+      // Check JWT token
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('JWT payload:', payload);
+        } catch (e) {
+          console.log('Could not decode JWT');
+        }
+      }
+      
+      const orderPayload = {
         customerId: customerId
-      });
-      console.log('Order created:', orderData);
+      };
+      console.log('API call payload:', orderPayload);
+      console.log('About to call apiClient.createOrder...');
+      
+      let orderData;
+      try {
+        orderData = await apiClient.createOrder(orderPayload);
+        console.log('Order created successfully:', orderData);
+      } catch (orderError: any) {
+        console.error('=== ORDER CREATION ERROR ===');
+        console.error('Error response status:', orderError?.response?.status);
+        console.error('Error response headers:', orderError?.response?.headers);
+        console.error('Error response data:', orderError?.response?.data);
+        console.error('Error message:', orderError?.message);
+        console.error('Full error object:', orderError);
+        console.error('Error data field:', orderError?.data);
+        console.error('Error originalError:', orderError?.originalError);
+        if (orderError?.originalError?.response) {
+          console.error('Original error response:', orderError.originalError.response);
+        }
+        throw orderError;
+      }
 
       // Step 2: Add services as order items
       const items = selectedServices.map(service => ({
@@ -382,14 +440,27 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
 
   const handleWalkIn = async () => {
     try {
-      // Search for existing walk-in customer
-      const searchResponse = await apiClient.searchCustomers('Walk-in');
+      // Search for existing walk-in customer by unique email
+      const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
+      console.log('Searching for walk-in customer with email:', walkInEmail);
+      const searchResponse = await apiClient.searchCustomers(walkInEmail);
       const customers = searchResponse?.data || [];
-      const existingWalkInCustomer = customers.find((customer: any) => 
-        customer.firstName === 'Walk-in' && 
-        (!customer.lastName || customer.lastName === '') &&
-        customer.source === 'WALK_IN'
+      
+      // First try to find by exact email match
+      let existingWalkInCustomer = customers.find((customer: any) => 
+        customer.email === walkInEmail
       );
+      
+      // Fallback to old search method for backwards compatibility
+      if (!existingWalkInCustomer) {
+        const fallbackSearch = await apiClient.searchCustomers('Walk-in');
+        const fallbackCustomers = fallbackSearch?.data || [];
+        existingWalkInCustomer = fallbackCustomers.find((customer: any) => 
+          customer.firstName === 'Walk-in' && 
+          customer.lastName === 'Customer' &&
+          customer.source === 'WALK_IN'
+        );
+      }
       
       if (existingWalkInCustomer) {
         // Use existing walk-in customer

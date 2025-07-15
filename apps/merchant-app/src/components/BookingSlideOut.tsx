@@ -283,14 +283,26 @@ export function BookingSlideOut({
 
   const generateWalkInCustomer = async () => {
     try {
-      // Search for existing walk-in customer
-      const searchResponse = await apiClient.searchCustomers('Walk-in');
+      // Search for existing walk-in customer by unique email
+      const walkInEmail = `walkin@${authMerchant?.subdomain || merchant?.subdomain || 'unknown'}.local`;
+      const searchResponse = await apiClient.searchCustomers(walkInEmail);
       const customers = searchResponse?.data || [];
-      const existingWalkInCustomer = customers.find((customer: any) => 
-        customer.firstName === 'Walk-in' && 
-        (!customer.lastName || customer.lastName === '') &&
-        customer.source === 'WALK_IN'
+      
+      // First try to find by exact email match
+      let existingWalkInCustomer = customers.find((customer: any) => 
+        customer.email === walkInEmail
       );
+      
+      // Fallback to old search method for backwards compatibility
+      if (!existingWalkInCustomer) {
+        const fallbackSearch = await apiClient.searchCustomers('Walk-in');
+        const fallbackCustomers = fallbackSearch?.data || [];
+        existingWalkInCustomer = fallbackCustomers.find((customer: any) => 
+          customer.firstName === 'Walk-in' && 
+          customer.lastName === 'Customer' &&
+          customer.source === 'WALK_IN'
+        );
+      }
       
       if (existingWalkInCustomer) {
         // Use existing walk-in customer
@@ -299,7 +311,7 @@ export function BookingSlideOut({
           customerId: existingWalkInCustomer.id,
           customerName: 'Walk-in',
           customerPhone: existingWalkInCustomer.phone || existingWalkInCustomer.mobile || '',
-          customerEmail: '', // Never use email for walk-in
+          customerEmail: walkInEmail, // Use the unique email
           isNewCustomer: false,
           isWalkIn: true
         });
@@ -310,7 +322,7 @@ export function BookingSlideOut({
           customerId: '', // Will be created as new customer
           customerName: 'Walk-in',
           customerPhone: '', // No phone for walk-in
-          customerEmail: '',
+          customerEmail: walkInEmail, // Use the unique email
           isNewCustomer: true,
           isWalkIn: true
         });
