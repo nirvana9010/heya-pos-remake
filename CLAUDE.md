@@ -12,9 +12,17 @@ This file contains important configuration information for Claude Code to help m
 ### Authentication Endpoints (ALL use v1)
 - **Login**: `POST /api/v1/auth/merchant/login`
   - Body: `{"email": "user@example.com", "password": "password"}`
+  - **IMPORTANT**: Users log in with their merchant EMAIL address, NOT the username stored in MerchantAuth table
+  - The auth system accepts EITHER email OR username, but users typically use email
+  - Example: Zen Wellness logs in with `lukas.tn90@gmail.com`, not "ZENWELLNESS"
 - **Refresh**: `POST /api/v1/auth/refresh`
 - **Logout**: `POST /api/v1/auth/logout`
 - **Current User**: `GET /api/v1/auth/me`
+
+### Common Test Account Credentials
+**ALWAYS provide the EMAIL for login, not the username!**
+- Hamilton Beauty Spa: `admin@hamiltonbeauty.com` / `demo123`
+- Zen Wellness: `lukas.tn90@gmail.com` / `demo456`
 
 ### Common V1 Endpoints (default)
 - Services: `/api/v1/services`

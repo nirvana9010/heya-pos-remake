@@ -108,6 +108,9 @@ export class StaffService {
       });
     }
 
+    // Auto-create staff schedules based on merchant business hours
+    await this.createDefaultSchedules(staff.id, merchantId);
+
     // Return staff WITH PIN (plain text) for display to managers
     const { pin: hashedPinField, ...staffWithoutPin } = staff;
     return {
@@ -117,6 +120,60 @@ export class StaffService {
       name: staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName,
       isActive: staff.status === 'ACTIVE',
     };
+  }
+
+  /**
+   * Create default schedules for a staff member based on merchant business hours
+   */
+  private async createDefaultSchedules(staffId: string, merchantId: string) {
+    try {
+      // Get merchant settings
+      const merchant = await this.prisma.merchant.findUnique({
+        where: { id: merchantId },
+        select: { settings: true }
+      });
+
+      if (!merchant?.settings) {
+        console.warn(`No merchant settings found for ${merchantId}, skipping schedule creation`);
+        return;
+      }
+
+      const settings = merchant.settings as any;
+      const businessHours = settings.businessHours;
+
+      if (!businessHours) {
+        console.warn(`No business hours configured for merchant ${merchantId}, skipping schedule creation`);
+        return;
+      }
+
+      // Create schedules based on business hours
+      const scheduleData = [];
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      
+      for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+        const dayName = dayNames[dayOfWeek];
+        const dayHours = businessHours[dayName] || businessHours[dayName.charAt(0).toUpperCase() + dayName.slice(1)];
+        
+        if (dayHours && dayHours.isOpen) {
+          scheduleData.push({
+            staffId: staffId,
+            dayOfWeek: dayOfWeek,
+            startTime: dayHours.open,
+            endTime: dayHours.close
+          });
+        }
+      }
+
+      if (scheduleData.length > 0) {
+        await this.prisma.staffSchedule.createMany({
+          data: scheduleData
+        });
+        console.log(`Created ${scheduleData.length} default schedules for staff ${staffId}`);
+      }
+    } catch (error) {
+      console.error('Error creating default schedules:', error);
+      // Don't throw - staff creation should still succeed even if schedule creation fails
+    }
   }
 
   async findAll(merchantId: string, isActive?: boolean) {
