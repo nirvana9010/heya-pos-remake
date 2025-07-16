@@ -11,7 +11,7 @@ import { cn } from '@heya-pos/ui';
 import { debounce } from 'lodash';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { PaymentDialog } from './PaymentDialog';
-import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from '@/lib/constants/customer';
+import { WALK_IN_CUSTOMER_ID, WALK_IN_CUSTOMER, isWalkInCustomer } from '../lib/constants/customer';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
