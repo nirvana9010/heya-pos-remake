@@ -32,6 +32,7 @@ import { CustomValidationPipe } from '../../../../common/validation/validation.p
 import { CreateBookingV2Dto } from '../dto/create-booking-v2.dto';
 import { UpdateBookingV2Dto } from '../dto/update-booking-v2.dto';
 import { QueryBookingsDto, CalendarViewDto } from '../dto/query-bookings.dto';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Controller({
   path: 'bookings',
@@ -47,6 +48,7 @@ export class BookingsV2Controller {
     private readonly bookingAvailabilityService: BookingAvailabilityService,
     @Inject('IBookingRepository')
     private readonly bookingRepository: IBookingRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -169,6 +171,34 @@ export class BookingsV2Controller {
   async create(@CurrentUser() user: any, @Body() dto: CreateBookingV2Dto) {
     console.log('[BookingsV2Controller] Received DTO:', JSON.stringify(dto, null, 2));
     console.log('[BookingsV2Controller] Services array:', JSON.stringify(dto.services, null, 2));
+    
+    // Handle walk-in customer - create or find actual walk-in customer for merchant
+    if (dto.customerId === 'WALK_IN') {
+      // Check if walk-in customer exists for this merchant
+      const walkInEmail = `walkin@${user.merchantId}.local`;
+      let walkInCustomer = await this.prisma.customer.findFirst({
+        where: {
+          merchantId: user.merchantId,
+          email: walkInEmail,
+        },
+      });
+      
+      if (!walkInCustomer) {
+        // Create walk-in customer for this merchant
+        walkInCustomer = await this.prisma.customer.create({
+          data: {
+            merchantId: user.merchantId,
+            firstName: 'Walk-in',
+            lastName: 'Customer',
+            email: walkInEmail,
+            source: 'WALK_IN',
+          },
+        });
+      }
+      
+      dto.customerId = walkInCustomer.id;
+      console.log('[BookingsV2Controller] Resolved walk-in customer to:', dto.customerId);
+    }
     
     // Validate that at least one service has a staff ID
     const hasStaffAssignment = dto.services.some(s => s.staffId) || dto.staffId;

@@ -1,22 +1,24 @@
 /**
- * Customer-related constants used across the merchant app
+ * Customer-related constants
  */
 
-// Special customer ID that backend recognizes as walk-in
+// Special identifier for walk-in customers
+// This is recognized by the backend and handled specially
 export const WALK_IN_CUSTOMER_ID = 'WALK_IN';
 
-// Walk-in customer display object for UI consistency
+// Virtual walk-in customer object for UI display
 export const WALK_IN_CUSTOMER = {
   id: WALK_IN_CUSTOMER_ID,
   firstName: 'Walk-in',
   lastName: 'Customer',
-  name: 'Walk-in Customer',
-  email: '',
+  email: 'walkin@customer.local',
   phone: '',
-  source: 'WALK_IN'
+  source: 'WALK_IN' as const,
+  // Display name for UI
+  name: 'Walk-in Customer',
 } as const;
 
-// Check if a customer ID represents a walk-in customer
-export const isWalkInCustomer = (customerId?: string | null): boolean => {
+// Type guard to check if a customer ID is the walk-in customer
+export function isWalkInCustomer(customerId: string | null | undefined): boolean {
   return customerId === WALK_IN_CUSTOMER_ID;
-};
+}

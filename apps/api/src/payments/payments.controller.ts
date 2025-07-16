@@ -176,10 +176,17 @@ export class PaymentsController {
       console.log(`Created default location ${locationId} for merchant ${user.merchantId}`);
     }
 
+    // Handle walk-in customer - convert WALK_IN to null for orders
+    let customerId = dto.customerId;
+    if (customerId === 'WALK_IN') {
+      // For orders, we can have null customerId
+      customerId = undefined;
+    }
+    
     return this.ordersService.createOrder({
       merchantId: user.merchantId,
       locationId,
-      customerId: dto.customerId,
+      customerId,
       bookingId: dto.bookingId,
       createdById,
     });
