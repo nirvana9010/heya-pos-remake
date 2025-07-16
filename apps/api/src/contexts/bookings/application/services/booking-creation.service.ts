@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
 import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 import { BookingServiceData } from '../commands/create-booking.command';
+import { OrdersService } from '../../../../payments/orders.service';
 
 interface CreateBookingData {
   staffId?: string; // Optional for multi-service bookings
@@ -40,6 +41,7 @@ export class BookingCreationService {
     private readonly bookingRepository: IBookingRepository,
     private readonly outboxRepository: OutboxEventRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly ordersService: OrdersService,
   ) {}
 
   /**
@@ -261,6 +263,29 @@ export class BookingCreationService {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
 
+    // Pre-create order for the booking outside of the transaction
+    // This is non-blocking and improves payment modal performance
+    try {
+      console.log('[BookingCreationService] Pre-creating order for booking:', savedBooking.id);
+      
+      // Get the first staff member assigned for order creation
+      const staffId = serviceDetails[0]?.staffId || data.staffId;
+      
+      // Create the order in the background
+      this.ordersService.createOrderFromBooking(
+        savedBooking.id,
+        data.merchantId,
+        staffId
+      ).then(order => {
+        console.log('[BookingCreationService] Pre-created order:', order.id, 'for booking:', savedBooking.id);
+      }).catch(error => {
+        console.error('[BookingCreationService] Failed to pre-create order:', error);
+        // Don't throw - this is a non-critical optimization
+      });
+    } catch (error) {
+      console.error('[BookingCreationService] Error initiating order pre-creation:', error);
+      // Don't throw - this is a non-critical optimization
+    }
 
     return savedBooking;
   }

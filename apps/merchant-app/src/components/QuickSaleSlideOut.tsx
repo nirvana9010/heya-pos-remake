@@ -38,6 +38,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
+  const [draftOrderTimeout, setDraftOrderTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Stable empty array for CustomerSearchInput fallback
   const fallbackCustomers = useMemo(() => [], []);
@@ -67,6 +69,47 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     });
   }, [services, searchQuery, selectedCategory]);
 
+  // Helper function to clean up draft order
+  const cleanupDraftOrder = useCallback(async () => {
+    if (draftOrderTimeout) {
+      clearTimeout(draftOrderTimeout);
+      setDraftOrderTimeout(null);
+    }
+    
+    if (draftOrderId) {
+      try {
+        // Delete the draft order
+        await apiClient.updateOrderState(draftOrderId, 'CANCELLED');
+        console.log('Draft order cancelled:', draftOrderId);
+      } catch (error) {
+        console.error('Failed to cancel draft order:', error);
+      }
+      setDraftOrderId(null);
+    }
+  }, [draftOrderId, draftOrderTimeout]);
+
+  // Create draft order when slideout opens
+  const createDraftOrder = useCallback(async () => {
+    try {
+      console.log('Creating draft order for Quick Sale...');
+      const orderData = await apiClient.createOrder({
+        customerId: WALK_IN_CUSTOMER_ID // Temporary, will be updated when customer selected
+      });
+      console.log('Draft order created:', orderData);
+      setDraftOrderId(orderData.id);
+      
+      // Set 5-minute timeout
+      const timeout = setTimeout(() => {
+        cleanupDraftOrder();
+      }, 5 * 60 * 1000); // 5 minutes
+      
+      setDraftOrderTimeout(timeout);
+    } catch (error) {
+      console.error('Failed to create draft order:', error);
+      // Continue without pre-created order
+    }
+  }, [cleanupDraftOrder]);
+
   // Reset when opening
   useEffect(() => {
     if (isOpen) {
@@ -78,8 +121,15 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setSelectedCategory('all');
       setIsWalkIn(false);
       setPaymentDialogOpen(false);
+      
+      // Create draft order immediately
+      createDraftOrder();
+    } else {
+      // Cleanup when closing
+      cleanupDraftOrder();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Only depend on isOpen to avoid infinite loops
 
   const handleAddService = (service: any) => {
     setSelectedServices([...selectedServices, {
@@ -135,48 +185,25 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         throw new Error('Please select a customer');
       }
       
-      // Step 1: Create order
-      console.log('=== ORDER CREATION DEBUG ===');
-      console.log('Merchant object:', merchant);
-      console.log('Merchant ID:', merchant?.id);
-      console.log('Merchant subdomain:', merchant?.subdomain);
-      console.log('Merchant locations:', merchant?.locations);
-      console.log('Customer ID being used:', customerId);
-      
-      // Check JWT token
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('JWT payload:', payload);
-        } catch (e) {
-          console.log('Could not decode JWT');
-        }
-      }
-      
-      const orderPayload = {
-        customerId: customerId
-      };
-      console.log('API call payload:', orderPayload);
-      console.log('About to call apiClient.createOrder...');
-      
+      // Step 1: Use pre-created draft order or create new one
       let orderData;
-      try {
-        orderData = await apiClient.createOrder(orderPayload);
-        console.log('Order created successfully:', orderData);
-      } catch (orderError: any) {
-        console.error('=== ORDER CREATION ERROR ===');
-        console.error('Error response status:', orderError?.response?.status);
-        console.error('Error response headers:', orderError?.response?.headers);
-        console.error('Error response data:', orderError?.response?.data);
-        console.error('Error message:', orderError?.message);
-        console.error('Full error object:', orderError);
-        console.error('Error data field:', orderError?.data);
-        console.error('Error originalError:', orderError?.originalError);
-        if (orderError?.originalError?.response) {
-          console.error('Original error response:', orderError.originalError.response);
+      
+      if (draftOrderId) {
+        console.log('Using pre-created draft order:', draftOrderId);
+        try {
+          // Fetch the existing order
+          orderData = await apiClient.getOrder(draftOrderId);
+          console.log('Draft order fetched successfully:', orderData);
+        } catch (error) {
+          console.log('Failed to fetch draft order, creating new one');
+          // Fall back to creating new order
+          orderData = await apiClient.createOrder({ customerId });
         }
-        throw orderError;
+      } else {
+        console.log('No draft order available, creating new order');
+        // Create order the traditional way
+        orderData = await apiClient.createOrder({ customerId });
+        console.log('Order created successfully:', orderData);
       }
 
       // Step 2: Add services as order items
@@ -197,11 +224,18 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       const updatedOrder = await apiClient.addOrderItems(orderData.id, items);
       console.log('Order items added:', updatedOrder);
       
-      // Step 3: Lock the order for payment
-      console.log('Locking order for payment...');
-      await apiClient.updateOrderState(orderData.id, 'LOCKED');
+      // Step 3: Use optimized payment init endpoint to get all data
+      console.log('Initializing payment with optimized endpoint...');
+      const paymentData = await apiClient.initializePayment({
+        orderId: orderData.id
+      });
       
-      setOrder(updatedOrder);
+      // Lock the order for payment
+      console.log('Locking order for payment...');
+      await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
+      paymentData.order.state = 'LOCKED';
+      
+      setOrder(paymentData.order);
       setPaymentDialogOpen(true); // Open payment dialog instead of moving to step 3
     } catch (error: any) {
       console.error('Failed to create order:', error);
@@ -223,6 +257,14 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const handlePaymentComplete = async (updatedOrder: any) => {
     // Payment completed successfully
     setPaymentDialogOpen(false);
+    
+    // Clear the draft order since it's been used
+    setDraftOrderId(null);
+    if (draftOrderTimeout) {
+      clearTimeout(draftOrderTimeout);
+      setDraftOrderTimeout(null);
+    }
+    
     onSaleComplete();
     onClose();
     

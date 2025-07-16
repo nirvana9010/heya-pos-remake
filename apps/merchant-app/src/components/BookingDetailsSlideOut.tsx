@@ -256,23 +256,70 @@ export function BookingDetailsSlideOut({
   };
 
   const handleProcessPayment = async (bookingId: string) => {
-    // Show the payment dialog immediately with loading state
+    // Create a temporary order object from booking data for immediate display
+    const tempOrder = {
+      id: 'temp-' + bookingId,
+      orderNumber: 'Loading...',
+      state: 'DRAFT',
+      subtotal: booking.totalPrice,
+      taxAmount: 0,
+      totalAmount: booking.totalPrice,
+      paidAmount: 0,
+      balanceDue: booking.totalPrice,
+      items: booking.services?.map((service, index) => ({
+        id: `temp-item-${index}`,
+        description: service.name,
+        quantity: 1,
+        unitPrice: service.price,
+        taxAmount: 0,
+        total: service.price,
+        staffId: booking.staffId,
+        staff: { name: booking.staffName }
+      })) || [{
+        id: 'temp-item-0',
+        description: booking.serviceName,
+        quantity: 1,
+        unitPrice: booking.totalPrice,
+        taxAmount: 0,
+        total: booking.totalPrice,
+        staffId: booking.staffId,
+        staff: { name: booking.staffName }
+      }],
+      payments: [],
+      customer: {
+        name: booking.customerName,
+        phone: booking.customerPhone,
+        email: booking.customerEmail
+      },
+      isLoading: true // Custom flag to indicate this is temporary data
+    };
+    
+    // Show the payment dialog immediately with temporary order data
     setPaymentDialogOpen(true);
-    setSelectedOrderForPayment(null); // Will show loading state in dialog
+    setSelectedOrderForPayment(tempOrder);
     setIsProcessingPayment(true);
     
+    // Fetch payment initialization data using optimized endpoint
     try {
-      // Create order from booking if not exists
+      // First create order if not exists
       const order = await apiClient.createOrderFromBooking(bookingId);
       
+      // Use optimized payment init endpoint to get all data at once
+      const paymentData = await apiClient.initializePayment({
+        orderId: order.id,
+        bookingId: bookingId
+      });
+      
       // Lock the order if it's in DRAFT state
-      if (order.state === 'DRAFT') {
-        await apiClient.updateOrderState(order.id, 'LOCKED');
+      if (paymentData.order.state === 'DRAFT') {
+        await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
+        // Update the order state in the payment data
+        paymentData.order.state = 'LOCKED';
       }
       
-      // Update the associated order state so we can show adjusted prices
-      setAssociatedOrder(order);
-      setSelectedOrderForPayment(order);
+      // Update with real order data
+      setAssociatedOrder(paymentData.order);
+      setSelectedOrderForPayment(paymentData.order);
     } catch (error) {
       // Close dialog on error
       setPaymentDialogOpen(false);
@@ -612,15 +659,13 @@ export function BookingDetailsSlideOut({
       </div>
 
       {/* Payment Dialog */}
-      {selectedOrderForPayment && (
-        <PaymentDialog
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
-          order={selectedOrderForPayment}
-          onPaymentComplete={handlePaymentComplete}
-          enableTips={false}
-        />
-      )}
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        order={selectedOrderForPayment}
+        onPaymentComplete={handlePaymentComplete}
+        enableTips={false}
+      />
     </SlideOutPanel>
   );
 }
