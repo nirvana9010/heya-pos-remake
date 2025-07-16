@@ -24,6 +24,7 @@ import { ValidationModule } from './common/validation/validation.module';
 import { CommonServicesModule } from './common/services/common-services.module';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { RedisModule } from './common/redis/redis.module';
 
 // Bounded Contexts
 import { BookingsContextModule } from './contexts/bookings/bookings.context.module';
@@ -44,6 +45,7 @@ import { OutboxModule } from './contexts/shared/outbox/outbox.module';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
+    RedisModule, // Global Redis caching module
     CacheModule, // Global cache module
     ValidationModule, // Global validation module
     CommonServicesModule, // Global common services

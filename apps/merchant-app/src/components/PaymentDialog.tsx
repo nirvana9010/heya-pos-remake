@@ -24,6 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
 } from '@heya-pos/ui';
 import {
   PaymentMethod,
@@ -237,9 +238,6 @@ export function PaymentDialog({
     setSplitPayments(updated);
   };
 
-  const splitTotal = splitPayments.reduce((sum, sp) => sum + (parseFloat(sp.amount) || 0), 0);
-  const splitRemaining = totalWithTip - splitTotal;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -249,7 +247,32 @@ export function PaymentDialog({
 
         <div className="space-y-4">
           {/* Order Items */}
-          {order?.items && order.items.length > 0 && (
+          {!order || order.isLoading ? (
+            <div className="space-y-2">
+              <h3 className="font-medium text-sm text-gray-700">Order Items</h3>
+              <div className="space-y-2">
+                {/* Show skeleton for 2 items */}
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-32 mb-1" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((j) => (
+                        <Skeleton key={j} className="h-7 w-10" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : order?.items && order.items.length > 0 ? (
             <div className="space-y-2">
               <h3 className="font-medium text-sm text-gray-700">Order Items</h3>
               <div className="space-y-2">
@@ -368,7 +391,7 @@ export function PaymentDialog({
                 })}
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Order-level Adjustment */}
           <div className="space-y-2">
@@ -450,11 +473,31 @@ export function PaymentDialog({
 
           {/* Order Summary */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
+            {!order || order.isLoading ? (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+                <div className="border-t pt-2 flex justify-between">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
               </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
+                </div>
               {order?.modifiers?.map((modifier: any) => (
                 <div key={modifier.id} className="flex justify-between text-sm">
                   <span>{modifier.description}:</span>
@@ -488,6 +531,7 @@ export function PaymentDialog({
                 <span>${balanceDue.toFixed(2)}</span>
               </div>
             </div>
+            )}
           </div>
 
           {/* Split Payment Toggle */}
@@ -636,11 +680,15 @@ export function PaymentDialog({
                 Add Payment Method
               </Button>
               
-              {splitRemaining !== 0 && (
-                <div className={`text-center font-medium ${splitRemaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {splitRemaining > 0 ? 'Remaining' : 'Overpayment'}: ${Math.abs(splitRemaining).toFixed(2)}
-                </div>
-              )}
+              {(() => {
+                const splitTotal = splitPayments.reduce((sum, sp) => sum + (parseFloat(sp.amount) || 0), 0);
+                const splitRemaining = totalWithTip - splitTotal;
+                return splitRemaining !== 0 && (
+                  <div className={`text-center font-medium ${splitRemaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {splitRemaining > 0 ? 'Remaining' : 'Overpayment'}: ${Math.abs(splitRemaining).toFixed(2)}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -703,9 +751,22 @@ export function PaymentDialog({
           </Button>
           <Button
             onClick={handlePayment}
-            disabled={processing || (isSplitPayment && splitRemaining !== 0)}
+            disabled={!order || order.isLoading || processing || (isSplitPayment && (() => {
+              const splitTotal = splitPayments.reduce((sum, sp) => sum + (parseFloat(sp.amount) || 0), 0);
+              const splitRemaining = totalWithTip - splitTotal;
+              return splitRemaining !== 0;
+            })())}
           >
-            {processing ? 'Processing...' : `Process Payment${totalWithTip > 0 ? ` $${totalWithTip.toFixed(2)}` : ''}`}
+            {!order || order.isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading order...
+              </>
+            ) : processing ? (
+              'Processing...'
+            ) : (
+              `Process Payment${totalWithTip > 0 ? ` $${totalWithTip.toFixed(2)}` : ''}`
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

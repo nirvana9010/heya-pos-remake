@@ -2,10 +2,14 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderState, OrderModifierType, OrderModifierCalculation } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
+import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redisService: RedisService,
+  ) {}
 
   async createOrder(data: {
     merchantId: string;
@@ -43,6 +47,36 @@ export class OrdersService {
         booking: true,
       },
     });
+  }
+
+  async findOrderForPayment(orderId: string, merchantId: string) {
+    // Try to get from cache first
+    const cacheKey = RedisService.getOrderCacheKey(orderId);
+    const cachedOrder = await this.redisService.get(cacheKey);
+    
+    if (cachedOrder) {
+      // Validate merchant ID matches
+      if (cachedOrder['merchantId'] === merchantId) {
+        return cachedOrder;
+      }
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, merchantId },
+      include: {
+        items: true, // Only basic item info, no staff details
+        payments: true, // Only payment info, no tip allocations
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Cache the order for 5 minutes
+    await this.redisService.set(cacheKey, order, 300);
+
+    return order;
   }
 
   async findOrder(orderId: string, merchantId: string) {
@@ -102,7 +136,7 @@ export class OrdersService {
       updateData.cancelledAt = new Date();
     }
 
-    return this.prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: updateData,
       include: {
@@ -111,6 +145,14 @@ export class OrdersService {
         payments: true,
       },
     });
+
+    // Invalidate cache
+    await this.redisService.del(RedisService.getOrderCacheKey(orderId));
+    if (order.bookingId) {
+      await this.redisService.del(RedisService.getOrderByBookingCacheKey(order.bookingId));
+    }
+
+    return updatedOrder;
   }
 
   async addOrderItems(orderId: string, merchantId: string, items: any[]) {
@@ -145,6 +187,12 @@ export class OrdersService {
 
     // Recalculate order totals
     await this.recalculateOrderTotals(orderId);
+
+    // Invalidate cache
+    await this.redisService.del(RedisService.getOrderCacheKey(orderId));
+    if (order.bookingId) {
+      await this.redisService.del(RedisService.getOrderByBookingCacheKey(order.bookingId));
+    }
 
     return this.findOrder(orderId, merchantId);
   }
@@ -401,57 +449,70 @@ export class OrdersService {
       }
     }
 
-    // Check if order already exists for this booking - lightweight query first
+    // Check if order already exists for this booking - try cache first
     const orderCheckStart = Date.now();
-    const existingOrderCheck = await this.prisma.order.findFirst({
-      where: { bookingId },
-      select: { id: true }, // Only select ID for quick check
-    });
-    console.log(`[PERF] Order existence check took ${Date.now() - orderCheckStart}ms`);
+    const bookingCacheKey = RedisService.getOrderByBookingCacheKey(bookingId);
+    const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
+    
+    let existingOrderCheck = null;
+    if (cachedOrderId) {
+      existingOrderCheck = { id: cachedOrderId };
+      console.log(`[PERF] Order existence check (cached) took ${Date.now() - orderCheckStart}ms`);
+    } else {
+      existingOrderCheck = await this.prisma.order.findFirst({
+        where: { bookingId },
+        select: { id: true }, // Only select ID for quick check
+      });
+      console.log(`[PERF] Order existence check (DB) took ${Date.now() - orderCheckStart}ms`);
+      
+      // Cache the order ID if found
+      if (existingOrderCheck) {
+        await this.redisService.set(bookingCacheKey, existingOrderCheck.id, 300); // 5 minutes
+      }
+    }
 
     if (existingOrderCheck) {
-      // Fetch full order details
       console.log('[OrdersService] Order already exists for booking:', bookingId);
-      const existingOrder = await this.prisma.order.findFirst({
-        where: { bookingId },
-        include: {
-          items: true,
-      },
-    });
-    console.log(`[PERF] Order check took ${Date.now() - orderCheckStart}ms`);
+      
+      // Check if order has items using a lightweight query
+      const itemCheckStart = Date.now();
+      const itemCount = await this.prisma.orderItem.count({
+        where: { orderId: existingOrderCheck.id }
+      });
+      console.log(`[PERF] Item count check took ${Date.now() - itemCheckStart}ms`);
 
-    if (existingOrder) {
-      // Check if order has items, if not and it's still in DRAFT, add them
-      if ((!existingOrder.items || existingOrder.items.length === 0) && existingOrder.state === 'DRAFT') {
-        // Add booking services as order items
-        const items = booking.services.map(bs => ({
-          itemType: 'SERVICE',
-          itemId: bs.serviceId,
-          description: bs.service.name,
-          quantity: 1,
-          unitPrice: typeof bs.price === 'object' && bs.price.toNumber ? bs.price.toNumber() : Number(bs.price),
-          staffId: bs.staffId,
-          metadata: {
-            bookingServiceId: bs.id,
-            duration: bs.duration,
-          },
-        }));
+      // If no items and order is in DRAFT, add them
+      if (itemCount === 0) {
+        const orderStateCheck = await this.prisma.order.findUnique({
+          where: { id: existingOrderCheck.id },
+          select: { state: true }
+        });
+        
+        if (orderStateCheck?.state === 'DRAFT') {
+          // Add booking services as order items
+          const items = booking.services.map(bs => ({
+            itemType: 'SERVICE',
+            itemId: bs.serviceId,
+            description: bs.service.name,
+            quantity: 1,
+            unitPrice: typeof bs.price === 'object' && bs.price.toNumber ? bs.price.toNumber() : Number(bs.price),
+            staffId: bs.staffId,
+            metadata: {
+              bookingServiceId: bs.id,
+              duration: bs.duration,
+            },
+          }));
 
-        const addItemsStart = Date.now();
-        await this.addOrderItems(existingOrder.id, merchantId, items);
-        console.log(`[PERF] Add items took ${Date.now() - addItemsStart}ms`);
+          const addItemsStart = Date.now();
+          await this.addOrderItems(existingOrderCheck.id, merchantId, items);
+          console.log(`[PERF] Add items took ${Date.now() - addItemsStart}ms`);
+        }
       }
       
-      // For performance, just return the basic order data we need
+      // Return order with minimal includes for payment
       const findOrderStart = Date.now();
-      const result = await this.prisma.order.findFirst({
-        where: { id: existingOrder.id, merchantId },
-        include: {
-          items: true,
-          payments: true,
-        },
-      });
-      console.log(`[PERF] Find order (optimized) took ${Date.now() - findOrderStart}ms`);
+      const result = await this.findOrderForPayment(existingOrderCheck.id, merchantId);
+      console.log(`[PERF] Find order for payment took ${Date.now() - findOrderStart}ms`);
       console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms`);
       return result;
     }
@@ -481,6 +542,12 @@ export class OrdersService {
 
     await this.addOrderItems(order.id, merchantId, items);
 
-    return this.findOrder(order.id, merchantId);
+    // Cache the booking-order relationship
+    await this.redisService.set(bookingCacheKey, order.id, 300); // 5 minutes
+
+    // Use lightweight query for new orders too
+    const result = await this.findOrderForPayment(order.id, merchantId);
+    console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms (new order)`);
+    return result;
   }
 }

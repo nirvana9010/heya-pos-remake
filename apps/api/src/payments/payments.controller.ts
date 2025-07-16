@@ -24,6 +24,9 @@ import {
   OrderState,
 } from '@heya-pos/types';
 import { BadRequestException } from '@nestjs/common';
+import { PaymentInitDto, PaymentInitResponseDto } from './dto/payment-init.dto';
+import { PaymentGatewayService } from './payment-gateway.service';
+import { RedisService } from '../common/redis/redis.service';
 
 // @ApiTags('payments')
 @Controller('payments')
@@ -34,6 +37,8 @@ export class PaymentsController {
     private readonly paymentsService: PaymentsService,
     private readonly ordersService: OrdersService,
     private readonly prisma: PrismaService,
+    private readonly paymentGatewayService: PaymentGatewayService,
+    private readonly redisService: RedisService,
   ) {}
 
   @Post('process')
@@ -358,6 +363,89 @@ export class PaymentsController {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  @Post('init')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Initialize payment modal with all required data in one request' })
+  async initializePayment(
+    @Body() dto: PaymentInitDto,
+    @CurrentUser() user: any,
+  ): Promise<PaymentInitResponseDto> {
+    const startTime = Date.now();
+    const { orderId, bookingId } = dto;
+
+    // Try to get from cache first
+    const cacheKey = `payment:init:${orderId}`;
+    const cached = await this.redisService.get<PaymentInitResponseDto>(cacheKey);
+    if (cached) {
+      console.log(`[PaymentInit] Cache HIT, took ${Date.now() - startTime}ms`);
+      return cached;
+    }
+
+    // Fetch all data in parallel
+    const [order, paymentGateway, merchant, location] = await Promise.all([
+      // Get order with minimal relations
+      this.ordersService.findOrderForPayment(orderId, user.merchantId),
+      
+      // Get payment gateway config
+      this.paymentGatewayService.getGatewayConfig(user.merchantId),
+      
+      // Get merchant info
+      this.prisma.merchant.findUnique({
+        where: { id: user.merchantId },
+        select: {
+          id: true,
+          name: true,
+          settings: true,
+        },
+      }),
+      
+      // Get location info if user has location
+      user.locationId ? this.prisma.location.findUnique({
+        where: { id: user.locationId },
+        select: {
+          id: true,
+          name: true,
+          settings: true,
+        },
+      }) : null,
+    ]);
+
+    if (!order) {
+      throw new BadRequestException('Order not found');
+    }
+
+    // Build response
+    const response: PaymentInitResponseDto = {
+      order,
+      paymentGateway: {
+        provider: paymentGateway.provider,
+        config: paymentGateway.config,
+      },
+      merchant: merchant!,
+      location: location || {
+        id: user.locationId || '',
+        name: 'Default',
+        settings: {},
+      },
+    };
+
+    // If order has customer, include it
+    if (order.customer) {
+      response.customer = order.customer;
+    }
+
+    // If order has booking, include basic booking info
+    if (order.booking) {
+      response.booking = order.booking;
+    }
+
+    // Cache for 2 minutes
+    await this.redisService.set(cacheKey, response, 120);
+
+    console.log(`[PaymentInit] Fetched fresh data, took ${Date.now() - startTime}ms`);
+    return response;
   }
 
 }
