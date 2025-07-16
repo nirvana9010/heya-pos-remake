@@ -174,8 +174,14 @@ export class BookingsV2Controller {
     
     // Handle walk-in customer - create or find actual walk-in customer for merchant
     if (dto.customerId === 'WALK_IN') {
+      // Get merchant subdomain for proper email format
+      const merchant = await this.prisma.merchant.findUnique({
+        where: { id: user.merchantId },
+        select: { subdomain: true }
+      });
+      
       // Check if walk-in customer exists for this merchant
-      const walkInEmail = `walkin@${user.merchantId}.local`;
+      const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
       let walkInCustomer = await this.prisma.customer.findFirst({
         where: {
           merchantId: user.merchantId,

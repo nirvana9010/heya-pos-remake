@@ -570,7 +570,7 @@ export function PaymentDialog({
                 <div className="text-center p-8 bg-gray-50 rounded">
                   <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-600">
-                    Please process the payment on the Tyro terminal
+                    Please process payment on the card reader
                   </p>
                   <p className="text-lg font-semibold mt-2">
                     Amount: ${totalWithTip.toFixed(2)}
