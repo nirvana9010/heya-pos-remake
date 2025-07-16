@@ -401,12 +401,21 @@ export class OrdersService {
       }
     }
 
-    // Check if order already exists for this booking
+    // Check if order already exists for this booking - lightweight query first
     const orderCheckStart = Date.now();
-    const existingOrder = await this.prisma.order.findFirst({
+    const existingOrderCheck = await this.prisma.order.findFirst({
       where: { bookingId },
-      include: {
-        items: true,
+      select: { id: true }, // Only select ID for quick check
+    });
+    console.log(`[PERF] Order existence check took ${Date.now() - orderCheckStart}ms`);
+
+    if (existingOrderCheck) {
+      // Fetch full order details
+      console.log('[OrdersService] Order already exists for booking:', bookingId);
+      const existingOrder = await this.prisma.order.findFirst({
+        where: { bookingId },
+        include: {
+          items: true,
       },
     });
     console.log(`[PERF] Order check took ${Date.now() - orderCheckStart}ms`);
