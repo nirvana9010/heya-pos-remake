@@ -160,6 +160,11 @@ export function BookingSlideOut({
   // Check staff availability when services and datetime are selected
   useEffect(() => {
     const checkAvailability = async () => {
+      // Only check availability on datetime step
+      if (currentStep !== "datetime") {
+        return;
+      }
+      
       // Check availability even without service (use default duration)
       if (!formData.date || !formData.time) {
         setAvailableStaff(staff);
@@ -237,6 +242,7 @@ export function BookingSlideOut({
         }
         
         console.log('Staff availability result:', {
+          currentStep,
           available: result.available.map(s => ({ id: s.id, name: s.name })),
           unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
           assignedStaff: result.assignedStaff
@@ -257,12 +263,8 @@ export function BookingSlideOut({
           setNextAvailableStaff(null);
         }
         
-        // If the currently selected staff is not available, clear selection
-        if (formData.staffId && 
-            !isNextAvailableStaff(formData.staffId) && 
-            !result.available.find(s => s.id === formData.staffId)) {
-          setFormData(prev => ({ ...prev, staffId: '' }));
-        }
+        // For manual bookings, we allow staff selection even if they're not available
+        // So we don't clear the selection
         
       } finally {
         setIsCheckingAvailability(false);
@@ -270,7 +272,7 @@ export function BookingSlideOut({
     };
     
     checkAvailability();
-  }, [formData.selectedServices, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings]);
+  }, [formData.selectedServices, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings, currentStep]);
 
   const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
     { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
@@ -394,6 +396,9 @@ export function BookingSlideOut({
       sendReminder: formData.sendReminder,
       // Set source to IN_PERSON for merchant app bookings
       source: 'IN_PERSON',
+      // Override conflict and business hours checks for manual bookings
+      isOverride: true,
+      overrideReason: 'Manual booking created by merchant',
       // Add customer source for walk-in customers
       ...(formData.isWalkIn && { customerSource: 'WALK_IN' })
     };
@@ -805,6 +810,13 @@ export function BookingSlideOut({
         );
 
       case "confirm":
+        console.log('Rendering confirm step - Staff availability state:', {
+          availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
+          unavailableStaff: unavailableStaff.map(({ staff, reason }) => ({ id: staff.id, name: staff.name, reason })),
+          nextAvailableStaff,
+          selectedStaffId: formData.staffId,
+          isNextAvailable: isNextAvailableStaff(formData.staffId)
+        });
         return (
           <div className="space-y-4">
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
