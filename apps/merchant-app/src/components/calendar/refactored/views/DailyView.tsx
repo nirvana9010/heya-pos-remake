@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check, X } from 'lucide-react';
+import { Users, Check, X, AlertTriangle } from 'lucide-react';
 import { BookingTooltip } from '../BookingTooltip';
 
 interface DailyViewProps {
@@ -542,6 +542,14 @@ export function DailyView({
                                   }
                                 }}
                               >
+                                {/* Overlap warning indicator */}
+                                {hasOverlaps && booking.status !== 'cancelled' && (
+                                  <div className="absolute top-1 right-1 z-30">
+                                    <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                                      <AlertTriangle className="w-3 h-3" />
+                                    </div>
+                                  </div>
+                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -758,6 +766,14 @@ export function DailyView({
                                   }
                                 }}
                               >
+                                {/* Overlap warning indicator */}
+                                {hasOverlaps && booking.status !== 'cancelled' && (
+                                  <div className="absolute top-1 right-1 z-30">
+                                    <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                                      <AlertTriangle className="w-3 h-3" />
+                                    </div>
+                                  </div>
+                                )}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
