@@ -256,7 +256,11 @@ export function BookingDetailsSlideOut({
   };
 
   const handleProcessPayment = async (bookingId: string) => {
+    // Show the payment dialog immediately with loading state
+    setPaymentDialogOpen(true);
+    setSelectedOrderForPayment(null); // Will show loading state in dialog
     setIsProcessingPayment(true);
+    
     try {
       // Create order from booking if not exists
       const order = await apiClient.createOrderFromBooking(bookingId);
@@ -269,8 +273,9 @@ export function BookingDetailsSlideOut({
       // Update the associated order state so we can show adjusted prices
       setAssociatedOrder(order);
       setSelectedOrderForPayment(order);
-      setPaymentDialogOpen(true);
     } catch (error) {
+      // Close dialog on error
+      setPaymentDialogOpen(false);
       toast({
         title: "Error",
         description: "Failed to create order for payment.",

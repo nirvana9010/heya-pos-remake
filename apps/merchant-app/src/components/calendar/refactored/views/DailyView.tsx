@@ -436,6 +436,21 @@ export function DailyView({
                             });
                             
                             const hasOverlaps = overlappingBookings.length > 1;
+                            
+                            // Debug logging for overlap detection
+                            if (overlappingBookings.length > 1) {
+                              console.log('Overlap detected for unassigned booking:', booking.id, {
+                                bookingTime: booking.time,
+                                bookingDuration: booking.duration,
+                                overlappingCount: overlappingBookings.length,
+                                overlappingBookings: overlappingBookings.map(b => ({
+                                  id: b.id,
+                                  time: b.time,
+                                  duration: b.duration,
+                                  customer: b.customerName
+                                }))
+                              });
+                            }
                             // Simple stacking: find this booking's index in the overlapping set
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
@@ -660,6 +675,21 @@ export function DailyView({
                             });
                             
                             const hasOverlaps = overlappingBookings.length > 1;
+                            
+                            // Debug logging for overlap detection
+                            if (overlappingBookings.length > 1) {
+                              console.log('Overlap detected for booking:', booking.id, {
+                                bookingTime: booking.time,
+                                bookingDuration: booking.duration,
+                                overlappingCount: overlappingBookings.length,
+                                overlappingBookings: overlappingBookings.map(b => ({
+                                  id: b.id,
+                                  time: b.time,
+                                  duration: b.duration,
+                                  customer: b.customerName
+                                }))
+                              });
+                            }
                             // Simple stacking: find this booking's index in the overlapping set
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
