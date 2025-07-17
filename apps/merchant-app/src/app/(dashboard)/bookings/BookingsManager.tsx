@@ -9,7 +9,7 @@ import { Input } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
-import { PaymentDialog } from '@/components/PaymentDialog';
+import { PaymentDialogPortal } from '@/components/PaymentDialogPortal';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { BookingSlideOut } from '@/components/BookingSlideOut';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
@@ -61,6 +61,7 @@ import { apiClient } from '@/lib/api-client';
 import { BookingActions } from '@/components/BookingActions';
 import { PaymentStatusBadge } from '@/components/PaymentStatusBadge';
 import { displayFormats, toMerchantTime } from '@/lib/date-utils';
+import { invalidateBookingsCache } from '@/lib/cache-config';
 
 export default function BookingsManager() {
   
@@ -1240,9 +1241,9 @@ export default function BookingsManager() {
         </CardContent>
       </Card>
 
-      {/* Payment Dialog */}
+      {/* Payment Dialog - Using Portal to prevent parent re-renders */}
       {selectedOrderForPayment && (
-        <PaymentDialog
+        <PaymentDialogPortal
           open={paymentDialogOpen}
           onOpenChange={setPaymentDialogOpen}
           order={selectedOrderForPayment}
@@ -1265,6 +1266,9 @@ export default function BookingsManager() {
         bookings={bookings}
         onSave={async (bookingData) => {
           try {
+            // Invalidate bookings cache immediately to ensure new booking appears
+            invalidateBookingsCache();
+            
             await apiClient.createBooking(bookingData);
             toast({
               title: "Booking Created",

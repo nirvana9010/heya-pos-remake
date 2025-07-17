@@ -15,12 +15,10 @@ import {
 export function safeFormat(date: Date | null | undefined, formatString: string): string {
   try {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-      console.warn('Invalid date passed to safeFormat:', date);
       return '';
     }
     return format(date, formatString);
   } catch (error) {
-    console.error('Date formatting error:', error, { date, formatString });
     return '';
   }
 }
@@ -44,7 +42,6 @@ export function getSafeNavigationLabel(
 ): string {
   try {
     if (!isValidDate(currentDate)) {
-      console.error('Invalid currentDate in getSafeNavigationLabel');
       return '';
     }
 
@@ -72,7 +69,6 @@ export function getSafeNavigationLabel(
         return "";
     }
   } catch (error) {
-    console.error('Error in getSafeNavigationLabel:', error);
     return '';
   }
 }

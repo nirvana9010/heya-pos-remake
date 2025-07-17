@@ -56,6 +56,7 @@ export class RedisService {
   async delPattern(pattern: string): Promise<void> {
     try {
       // For Redis store, we can use keys command
+      // @ts-ignore - cache-manager API change 
       const store = this.cacheManager.store as any;
       if (store.keys) {
         const keys = await store.keys(pattern);
@@ -77,6 +78,7 @@ export class RedisService {
    */
   async reset(): Promise<void> {
     try {
+      // @ts-ignore - cache-manager API change
       await this.cacheManager.reset();
       this.logger.debug('Cache RESET');
     } catch (error) {

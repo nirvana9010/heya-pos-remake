@@ -1328,6 +1328,51 @@ button:focus {
   }
 }
 
+/* Modal and Overlay Animations */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animation classes for modals */
+.animate-slide-up {
+  animation: modalSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: modalFadeIn 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-overlay-fade {
+  animation: overlayFadeIn 0.2s ease-out forwards;
+}
+
 /* 🌸 HEYA Blush + Sage Theme - Warm & Natural Color System */
 .theme-blush-sage {
   /* =================================

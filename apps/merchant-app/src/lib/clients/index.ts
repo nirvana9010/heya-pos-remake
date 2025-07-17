@@ -217,6 +217,14 @@ export class ApiClient {
     return this.payments.updateOrderState(orderId, state);
   }
 
+  async initializePayment(data: { orderId: string; bookingId?: string }) {
+    return this.payments.initializePayment(data);
+  }
+
+  async prepareOrderForPayment(data: any) {
+    return this.payments.prepareOrderForPayment(data);
+  }
+
   async processPayment(data: any) {
     return this.payments.processPayment(data);
   }

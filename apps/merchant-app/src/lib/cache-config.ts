@@ -205,3 +205,19 @@ class MemoryCache {
 
 // Export singleton cache instance
 export const memoryCache = new MemoryCache();
+
+// Cache invalidation helpers
+export function invalidateBookingsCache() {
+  memoryCache.delete('bookings');
+  console.log('[CacheInvalidation] Invalidated bookings cache');
+}
+
+export function invalidateCustomersCache() {
+  memoryCache.delete('customers');
+  console.log('[CacheInvalidation] Invalidated customers cache');
+}
+
+export function invalidateAllCache() {
+  memoryCache.clear();
+  console.log('[CacheInvalidation] Cleared all cache');
+}

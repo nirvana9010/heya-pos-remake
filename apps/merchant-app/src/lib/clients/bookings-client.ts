@@ -96,7 +96,6 @@ export class BookingsClient extends BaseApiClient {
         ...params
       };
       
-      console.log('[BookingsClient] Fetching bookings with params:', requestParams);
       
       const response = await this.get('/bookings', { params: requestParams }, 'v2');
       
@@ -121,7 +120,6 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async createBooking(data: CreateBookingRequest): Promise<Booking> {
-    console.log('[BookingsClient] createBooking called with:', JSON.stringify(data, null, 2));
     const booking = await this.post(
       '/bookings', 
       data, 
@@ -130,26 +128,16 @@ export class BookingsClient extends BaseApiClient {
       requestSchemas.createBooking,
       responseSchemas.booking
     );
-    console.log('[BookingsClient] Raw response:', JSON.stringify(booking, null, 2));
     const transformed = this.transformBooking(booking);
-    console.log('[BookingsClient] Transformed response:', JSON.stringify(transformed, null, 2));
     
     // If this is a PENDING booking, trigger a debug fetch to see what the API returns
     if (booking.status === 'PENDING') {
-      console.log('[BookingsClient] Created PENDING booking, will check if it appears in list...');
       setTimeout(async () => {
         try {
           const allBookings = await this.get('/bookings', { params: { limit: 100 } }, 'v2');
           const bookingsData = allBookings.data || allBookings;
           const pendingBookings = bookingsData.filter((b: any) => b.status === 'PENDING');
-          console.log('[BookingsClient] Debug fetch after PENDING creation:', {
-            totalBookings: bookingsData.length,
-            pendingCount: pendingBookings.length,
-            createdBookingFound: bookingsData.some((b: any) => b.id === booking.id),
-            pendingBookingIds: pendingBookings.map((b: any) => b.id)
-          });
         } catch (e) {
-          console.error('[BookingsClient] Debug fetch failed:', e);
         }
       }, 1000);
     }
@@ -216,7 +204,6 @@ export class BookingsClient extends BaseApiClient {
     
     // Check if the date is valid
     if (isNaN(date.getTime())) {
-      console.error('Invalid date in checkAvailability:', request.date);
       throw new Error('Invalid date: Unable to parse the provided date');
     }
     

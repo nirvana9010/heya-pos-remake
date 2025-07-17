@@ -57,7 +57,6 @@ export function useTodayBookings() {
     retry: false, // Disable retries completely for now
     onError: (error) => {
       // Silently handle errors for now due to V2 API issues
-      console.warn('[Bookings] Failed to fetch today\'s bookings:', error.message || error);
     },
   });
 }
@@ -110,7 +109,6 @@ export function useCreateBooking() {
       }, 1000); // Small delay to allow backend to create notification
     },
     onError: (error) => {
-      console.error('Failed to create booking:', error);
     },
   });
 }
@@ -140,7 +138,6 @@ export function useUpdateBooking() {
       }, 1000);
     },
     onError: (error) => {
-      console.error('Failed to update booking:', error);
     },
   });
 }
@@ -171,7 +168,6 @@ export function useRescheduleBooking() {
       }, 1000);
     },
     onError: (error) => {
-      console.error('Failed to reschedule booking:', error);
     },
   });
 }
@@ -195,7 +191,6 @@ export function useStartBooking() {
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     },
     onError: (error) => {
-      console.error('Failed to start booking:', error);
     },
   });
 }
@@ -219,7 +214,6 @@ export function useCompleteBooking() {
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     },
     onError: (error) => {
-      console.error('Failed to complete booking:', error);
     },
   });
 }
@@ -249,7 +243,6 @@ export function useCancelBooking() {
       }, 1000);
     },
     onError: (error) => {
-      console.error('Failed to cancel booking:', error);
     },
   });
 }

@@ -95,6 +95,35 @@ export interface PaymentInitResponse {
   };
 }
 
+export interface PrepareOrderRequest {
+  // For existing orders
+  orderId?: string;
+  
+  // For new orders
+  customerId?: string;
+  isWalkIn?: boolean;
+  bookingId?: string;
+  
+  // Items to add
+  items?: Array<{
+    itemType: string;
+    itemId: string;
+    description: string;
+    unitPrice: number;
+    quantity: number;
+    discount?: number;
+    staffId?: string;
+    metadata?: any;
+  }>;
+  
+  // Order-level adjustment
+  orderModifier?: {
+    type: 'DISCOUNT' | 'SURCHARGE';
+    amount: number;
+    description: string;
+  };
+}
+
 export class PaymentsClient extends BaseApiClient {
   // Orders
   async createOrder(data: CreateOrderRequest): Promise<Order> {
@@ -124,6 +153,11 @@ export class PaymentsClient extends BaseApiClient {
   // Payment Initialization - Optimized endpoint for faster modal loading
   async initializePayment(data: PaymentInitRequest): Promise<PaymentInitResponse> {
     return this.post('/payments/init', data, undefined, 'v1');
+  }
+
+  // Prepare order for payment - single endpoint for all order preparation
+  async prepareOrderForPayment(data: PrepareOrderRequest): Promise<PaymentInitResponse> {
+    return this.post('/payments/prepare-order', data, undefined, 'v1');
   }
 
   // Payments

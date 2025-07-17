@@ -90,7 +90,9 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
             data: {
               state: OrderState.CANCELLED,
               cancelledAt: new Date(),
-              notes: 'Auto-cancelled: Abandoned draft order',
+              metadata: {
+                cancellationReason: 'Auto-cancelled: Abandoned draft order',
+              },
             },
           });
 

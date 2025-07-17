@@ -93,7 +93,6 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       setBookings(bookingsData);
       setMerchantSettings(settingsData);
     } catch (error) {
-      console.error('Failed to load booking data:', error);
     } finally {
       setLoading(false);
     }

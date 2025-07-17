@@ -25,12 +25,12 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   }
 
   private startPolling() {
-    // Poll every 30 seconds instead of 5 to reduce database load
+    // Poll every 5 seconds for faster booking visibility
     this.intervalId = setInterval(() => {
       this.publishUnprocessedEvents().catch(error => {
         this.logger.error('Error publishing outbox events', error);
       });
-    }, 30000);
+    }, 5000);
 
     // Also publish immediately on startup
     this.publishUnprocessedEvents().catch(error => {
