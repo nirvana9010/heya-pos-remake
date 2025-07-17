@@ -42,6 +42,13 @@ export function PaymentDialogEnhanced({
   const [cachedData, setCachedData] = useState<any>(null);
   const [usedDraftOrderId, setUsedDraftOrderId] = useState<string | null>(null);
 
+  // Update order when existingOrder prop changes
+  useEffect(() => {
+    if (existingOrder) {
+      setOrder(existingOrder);
+    }
+  }, [existingOrder]);
+
   // Read from localStorage on mount
   useEffect(() => {
     if (open && !existingOrder) {
