@@ -128,9 +128,15 @@ function BookingDetailsSlideOutComponent({
         if (order) {
           setAssociatedOrder(order);
         }
-      } catch (error) {
-        // Order might not exist yet, which is fine
-        setAssociatedOrder(null);
+      } catch (error: any) {
+        // Check if it's a "order already exists" error - if so, we need to fetch it differently
+        if (error.message?.includes('already exists') || error.code === 'DUPLICATE_RESOURCE') {
+          console.log('Order already exists for booking, will be fetched when processing payment');
+          // Don't set null here - we'll get the order when processing payment
+        } else {
+          console.log('No order exists for booking yet');
+          setAssociatedOrder(null);
+        }
       } finally {
         setIsLoadingOrder(false);
       }
@@ -300,17 +306,50 @@ function BookingDetailsSlideOutComponent({
     
     // Fetch payment initialization data using optimized endpoint
     try {
-      // Use prepareOrderForPayment which handles both new and existing orders
-      console.log('Preparing order for payment with bookingId:', bookingId);
+      let paymentData;
       
-      const paymentData = await apiClient.prepareOrderForPayment({
-        bookingId: bookingId
-      });
+      // Check if we already have an associated order
+      if (associatedOrder && associatedOrder.id) {
+        console.log('Using existing associated order:', associatedOrder.id);
+        
+        // Use initializePayment with the existing order
+        paymentData = await apiClient.initializePayment({
+          orderId: associatedOrder.id,
+          bookingId: bookingId
+        });
+      } else {
+        // No order exists yet, try to create one
+        console.log('No associated order found, creating new order from booking');
+        
+        try {
+          // First try to create the order
+          const order = await apiClient.createOrderFromBooking(bookingId);
+          console.log('Created new order:', order);
+          
+          // Then initialize payment with the new order
+          paymentData = await apiClient.initializePayment({
+            orderId: order.id,
+            bookingId: bookingId
+          });
+        } catch (createError: any) {
+          // If order creation fails due to duplicate, use initializePayment with just bookingId
+          if (createError.message?.includes('already exists') || createError.code === 'DUPLICATE_RESOURCE') {
+            console.log('Order already exists, fetching via initializePayment');
+            
+            paymentData = await apiClient.initializePayment({
+              orderId: '', // Empty orderId will make the backend find it by bookingId
+              bookingId: bookingId
+            });
+          } else {
+            throw createError;
+          }
+        }
+      }
       
       console.log('Payment data received:', paymentData);
       
       if (!paymentData || !paymentData.order) {
-        throw new Error('No order data received from prepareOrderForPayment');
+        throw new Error('No order data received from payment initialization');
       }
       
       // Lock the order if it's in DRAFT state
