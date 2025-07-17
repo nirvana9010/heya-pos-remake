@@ -300,38 +300,22 @@ function BookingDetailsSlideOutComponent({
     
     // Fetch payment initialization data using optimized endpoint
     try {
-      let order;
+      // Use prepareOrderForPayment which handles both new and existing orders
+      console.log('Preparing order for payment with bookingId:', bookingId);
       
-      // Try to create order from booking, but it might already exist
-      try {
-        order = await apiClient.createOrderFromBooking(bookingId);
-        console.log('Created new order from booking:', order);
-      } catch (createError: any) {
-        // If order already exists, use the initializePayment endpoint to get it
-        console.log('Order might already exist, fetching via initializePayment');
-        
-        // Use initializePayment which should return the existing order
-        const paymentData = await apiClient.initializePayment({
-          orderId: '', // We don't have the order ID yet
-          bookingId: bookingId
-        });
-        
-        if (paymentData.order) {
-          order = paymentData.order;
-          console.log('Found existing order:', order);
-        } else {
-          throw new Error('Unable to find or create order for booking');
-        }
-      }
-      
-      // Now fetch full payment initialization data with the order
-      const paymentData = await apiClient.initializePayment({
-        orderId: order.id,
+      const paymentData = await apiClient.prepareOrderForPayment({
         bookingId: bookingId
       });
       
+      console.log('Payment data received:', paymentData);
+      
+      if (!paymentData || !paymentData.order) {
+        throw new Error('No order data received from prepareOrderForPayment');
+      }
+      
       // Lock the order if it's in DRAFT state
       if (paymentData.order.state === 'DRAFT') {
+        console.log('Locking order in DRAFT state');
         await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
         // Update the order state in the payment data
         paymentData.order.state = 'LOCKED';
@@ -340,13 +324,19 @@ function BookingDetailsSlideOutComponent({
       // Update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to process payment:', error);
+      console.error('Error details:', error.response || error.message);
+      
       // Close dialog on error
       setPaymentDialogOpen(false);
+      
+      // Show more specific error message
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to prepare order for payment.';
+      
       toast({
         title: "Error",
-        description: "Failed to prepare order for payment.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
