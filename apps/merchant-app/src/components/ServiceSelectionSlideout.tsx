@@ -40,7 +40,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
       const matchesCategory = selectedCategory === 'all' || 
         service.categoryId === selectedCategory;
       
-      return matchesSearch && matchesCategory && service.isActive;
+      return matchesSearch && matchesCategory && (service.isActive !== false);
     });
   }, [services, searchQuery, selectedCategory]);
 
@@ -118,7 +118,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
                   )}
                   onClick={() => setSelectedCategory('all')}
                 >
-                  All Services ({services.filter(s => s.isActive).length})
+                  All Services ({services.filter(s => s.isActive !== false).length})
                 </Badge>
                 {categories.map(cat => (
                   <Badge

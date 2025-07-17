@@ -361,33 +361,18 @@ export function BookingSlideOut({
   const handlePayNow = async () => {
     if (!createdBookingId) return;
     
-    // Create order for the booking
+    // Create order from the booking
     try {
-      const orderData = {
-        bookingId: createdBookingId,
-        customerId: finalCustomerId,
-        isWalkIn: isWalkIn,
-        items: selectedServices.map(service => ({
-          itemType: 'SERVICE',
-          itemId: service.serviceId,
-          description: service.name,
-          unitPrice: service.adjustedPrice,
-          quantity: 1,
-          staffId: service.staffId,
-          discount: 0,
-          taxRate: 0
-        }))
-      };
-      
-      // Create the order using the payments client
-      const order = await apiClient.createOrder(orderData);
-      console.log('Order created for booking:', order);
+      // Use createOrderFromBooking which creates an order from an existing booking
+      // This prevents the "bookingId already exists" error
+      const order = await apiClient.createOrderFromBooking(createdBookingId);
+      console.log('Order created from booking:', order);
       
       // Store order ID for payment dialog
       setCreatedOrderId(order.id);
       setPaymentDialogOpen(true);
     } catch (error) {
-      console.error('Failed to create order:', error);
+      console.error('Failed to create order from booking:', error);
       alert('Failed to create order. Please try again.');
     }
   };

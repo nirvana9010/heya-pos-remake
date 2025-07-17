@@ -8,6 +8,7 @@ interface PaymentDialogPortalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order?: any;
+  bookingId?: string; // For post-booking payment
   onPaymentComplete?: (order: any) => void;
   enableTips?: boolean;
   defaultTipPercentages?: number[];
