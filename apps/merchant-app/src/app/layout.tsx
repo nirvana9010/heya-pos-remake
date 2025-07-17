@@ -47,6 +47,8 @@ export default function RootLayout({
         </Providers>
         <Toaster />
         <Sonner richColors position="top-right" />
+        {/* Portal container for modals to prevent parent re-renders */}
+        <div id="modal-portal" />
       </body>
     </html>
   )

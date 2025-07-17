@@ -54,12 +54,6 @@ export function useCalendarData() {
           'confirmed';
         
         if (originalStatus === 'PENDING' || transformedStatus === 'pending') {
-          console.log('[Calendar] Booking status transformation:', {
-            bookingId: booking.id,
-            originalStatus,
-            transformedStatus,
-            customerName: booking.customerName
-          });
         }
         
         return {
@@ -100,13 +94,6 @@ export function useCalendarData() {
         };
       });
       
-      console.log('[Calendar] Setting bookings:', {
-        total: transformedBookings.length,
-        pending: transformedBookings.filter(b => b.status === 'pending').length,
-        confirmed: transformedBookings.filter(b => b.status === 'confirmed').length,
-        dateRange: { start: startDate, end: endDate },
-        currentView: state.currentView
-      });
       
       actions.setBookings(transformedBookings);
     } catch (error) {
@@ -160,12 +147,6 @@ export function useCalendarData() {
       
       actions.setStaff(transformedStaff || []);
     } catch (error: any) {
-      console.error('Failed to fetch staff:', {
-        message: error?.message,
-        response: error?.response,
-        data: error?.data,
-        originalError: error
-      });
       toast({
         title: 'Error',
         description: error?.message || 'Failed to load staff. Please try again.',
@@ -305,28 +286,18 @@ export function useCalendarData() {
     
     // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
-      console.log('[Calendar] Received booking event:', event);
       
       // Log current state before refresh
-      console.log('[Calendar] Current state before refresh:', {
-        totalBookings: state.bookings.length,
-        pendingCount: state.bookings.filter(b => b.status === 'pending').length,
-        isRefreshing: state.isRefreshing,
-        isLoading: state.isLoading
-      });
       
       // Refresh if a booking was created or updated from ANY source
       // This ensures immediate UI updates when SSE events arrive
       if (event.type === 'booking_created' || event.type === 'booking_updated') {
-        console.log('[Calendar] Refreshing bookings due to event:', event.type, 'from', event.source);
         // Small delay to ensure database is updated
         setTimeout(() => {
           if (!state.isRefreshing && !state.isLoading) {
-            console.log('[Calendar] Fetching bookings...');
             fetchBookings();
             lastFetchTime = Date.now();
           } else {
-            console.log('[Calendar] Skipping refresh - already refreshing or loading');
           }
         }, 500); // Reduced delay for faster updates
       }

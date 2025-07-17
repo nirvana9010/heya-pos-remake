@@ -19,13 +19,7 @@ class CalendarErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Calendar Page Error:", error);
-    console.error("Error Info:", errorInfo);
-    
-    // Log the error message to help debug
-    if (error.message.includes('Objects are not valid as a React child')) {
-      console.error('Date rendering error detected. Check for Date objects being rendered directly.');
-    }
+    // Silently handle errors - no console logging
   }
 
   render() {

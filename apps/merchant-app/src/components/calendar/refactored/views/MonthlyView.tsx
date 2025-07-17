@@ -69,7 +69,6 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
         <div className="grid grid-cols-7">
           {days.map((day) => {
             if (!day || !(day instanceof Date)) {
-              console.error("Invalid day in calendar grid:", day);
               return null;
             }
             

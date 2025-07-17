@@ -34,6 +34,7 @@ import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/b
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useTimezone } from "@/contexts/timezone-context";
+import { invalidateBookingsCache } from "@/lib/cache-config";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -189,7 +190,6 @@ export function BookingSlideOut({
           // Ensure formData.date is a valid Date
           const baseDate = formData.date instanceof Date ? formData.date : new Date(formData.date);
           if (isNaN(baseDate.getTime())) {
-            console.error('Invalid date in formData:', formData.date);
             return; // Exit early if date is invalid
           }
           
@@ -200,27 +200,17 @@ export function BookingSlideOut({
             startTime.setHours(formData.time.getHours());
             startTime.setMinutes(formData.time.getMinutes());
           } else {
-            console.error('Invalid time in formData:', formData.time);
             return; // Exit early if time is invalid
           }
           
           startTime.setSeconds(0);
           startTime.setMilliseconds(0);
         } catch (error) {
-          console.error('Error creating startTime:', error, formData);
           return; // Exit early on any error
         }
         
         // Only check availability if we have a valid service selected
         // Otherwise, assume all staff are available
-        console.log('Checking staff availability:', {
-          serviceId: formData.selectedServices[0], 
-          time: startTime, 
-          duration,
-          staffId: formData.staffId,
-          isNextAvailable: isNextAvailableStaff(formData.staffId),
-          filteredStaffCount: filteredStaff.length
-        });
         
         let result: StaffAvailability;
         if (formData.selectedServices.length > 0 && formData.selectedServices[0]) {
@@ -241,12 +231,6 @@ export function BookingSlideOut({
           };
         }
         
-        console.log('Staff availability result:', {
-          currentStep,
-          available: result.available.map(s => ({ id: s.id, name: s.name })),
-          unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
-          assignedStaff: result.assignedStaff
-        });
         
         setAvailableStaff(result.available);
         // Convert unavailable format to match component's expected structure
@@ -325,7 +309,6 @@ export function BookingSlideOut({
     // Validate service IDs
     const invalidServiceIds = formData.selectedServices.filter(id => !id || id.trim() === '');
     if (invalidServiceIds.length > 0) {
-      console.error('Invalid service IDs found:', invalidServiceIds);
       alert('Error: Some selected services have invalid IDs. Please try selecting services again.');
       return;
     }
@@ -341,19 +324,9 @@ export function BookingSlideOut({
     let finalStaffId: string;
     if (isNextAvailableStaff(formData.staffId)) {
       // Use the pre-assigned staff from availability check
-      console.log('Using next available staff:', {
-        staffId: null,
-        availableStaff: nextAvailableStaff ? [nextAvailableStaff] : [],
-        filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
-      });
       finalStaffId = ensureValidStaffId(null, nextAvailableStaff ? [nextAvailableStaff] : [], filteredStaff);
     } else {
       // Use the selected staff
-      console.log('Using selected staff:', {
-        staffId: formData.staffId,
-        availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
-        filteredStaff: filteredStaff.map(s => ({ id: s.id, name: s.name }))
-      });
       finalStaffId = ensureValidStaffId(formData.staffId, availableStaff, filteredStaff);
     }
     
@@ -366,14 +339,6 @@ export function BookingSlideOut({
     
     // Calculate total duration
     const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
-    
-    // Debug merchant data
-    console.log('Merchant debug info:', {
-      merchantProp: merchant,
-      authMerchant: authMerchant,
-      hasLocations: !!(merchant?.locations || authMerchant?.locations),
-      locationCount: (merchant?.locations || authMerchant?.locations)?.length || 0
-    });
     
     // Build the save data with services array format for V2 API
     const saveData = {
@@ -405,8 +370,20 @@ export function BookingSlideOut({
     
     // Debug: Log the save data being sent
     
+    // Invalidate bookings cache immediately to ensure new booking appears
+    invalidateBookingsCache();
     
-    onSave(saveData);
+    // Create optimistic booking for immediate UI update
+    const optimisticBooking = {
+      ...saveData,
+      id: `temp-${Date.now()}`, // Temporary ID
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      _isOptimistic: true // Flag to identify optimistic updates
+    };
+    
+    // Call onSave with optimistic booking data for immediate UI update
+    onSave(optimisticBooking);
     onClose();
   };
 
@@ -554,12 +531,6 @@ export function BookingSlideOut({
                         : "border-gray-200 hover:border-gray-300"
                     )}
                     onClick={() => {
-                      console.log('Service clicked:', {
-                        serviceId: service.id, 
-                        serviceName: service.name,
-                        isSelected,
-                        currentSelection: formData.selectedServices
-                      });
                       if (!service.id) {
                         return;
                       }
@@ -810,13 +781,6 @@ export function BookingSlideOut({
         );
 
       case "confirm":
-        console.log('Rendering confirm step - Staff availability state:', {
-          availableStaff: availableStaff.map(s => ({ id: s.id, name: s.name })),
-          unavailableStaff: unavailableStaff.map(({ staff, reason }) => ({ id: staff.id, name: staff.name, reason })),
-          nextAvailableStaff,
-          selectedStaffId: formData.staffId,
-          isNextAvailable: isNextAvailableStaff(formData.staffId)
-        });
         return (
           <div className="space-y-4">
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">

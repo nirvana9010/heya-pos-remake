@@ -345,17 +345,23 @@ export class BaseApiClient {
 
     console.log('[BaseApiClient] POST to', url, 'with data:', JSON.stringify(data, null, 2));
 
-    const response = await this.axiosInstance.post(this.addVersionPrefix(url, version), data, config);
-    
-    // Invalidate related cache on mutations
-    this.invalidateCacheForMutation(url);
-    
-    // Validate response if schema provided
-    if (responseSchema && process.env.NODE_ENV === 'development') {
-      return validateResponse(response.data, responseSchema, url);
+    try {
+      const response = await this.axiosInstance.post(this.addVersionPrefix(url, version), data, config);
+      console.log('[BaseApiClient] POST response from', url, ':', response.data);
+      
+      // Invalidate related cache on mutations
+      this.invalidateCacheForMutation(url);
+      
+      // Validate response if schema provided
+      if (responseSchema && process.env.NODE_ENV === 'development') {
+        return validateResponse(response.data, responseSchema, url);
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[BaseApiClient] POST error to', url, ':', error.response?.data || error.message);
+      throw error;
     }
-    
-    return response.data;
   }
 
   protected async put<T = any>(

@@ -62,7 +62,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
       ...(calendarEndHour !== undefined && { calendarEndHour }),
     };
   } catch (error) {
-    console.error('Error loading calendar preferences:', error);
     return {};
   }
 }
@@ -393,7 +392,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       try {
         const headers = getAuthHeader();
         if (!headers.Authorization) {
-          console.error('[CalendarProvider] No auth token found');
           return;
         }
         
@@ -405,10 +403,8 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
           const settings = await response.json();
           setMerchantSettings(settings);
         } else {
-          console.error('[CalendarProvider] Failed to load settings, status:', response.status);
         }
       } catch (error) {
-        console.error('[CalendarProvider] Failed to load merchant settings:', error);
       }
     };
     
@@ -425,12 +421,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   const filteredBookings = useMemo(() => {
     let filtered = state.bookings;
     
-    console.log('[CalendarProvider] Filtering bookings:', {
-      totalBookings: state.bookings.length,
-      selectedStatusFilters: state.selectedStatusFilters,
-      pendingBookings: state.bookings.filter(b => b.status === 'pending').length,
-      bookingStatuses: [...new Set(state.bookings.map(b => b.status))]
-    });
     
     // Date range filter
     filtered = filtered.filter(booking => {
@@ -462,11 +452,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       filtered = filtered.filter(booking => 
         state.selectedStatusFilters.includes(booking.status)
       );
-      console.log('[CalendarProvider] Status filter applied:', {
-        before: beforeStatusFilter,
-        after: filtered.length,
-        removed: beforeStatusFilter - filtered.length
-      });
     }
     
     // Search filter
@@ -565,7 +550,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
             }
           }
         } catch (error) {
-          console.error('Error parsing merchant data from storage event:', error);
         }
       }
     };
@@ -642,7 +626,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
         dispatch({ type: 'SET_STAFF_FILTER', payload: validStaffIds });
       }
     } catch (error) {
-      console.error('Error saving calendar preferences:', error);
     }
   }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval, state.staff]);
   

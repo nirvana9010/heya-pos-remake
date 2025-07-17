@@ -111,4 +111,14 @@ export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
   getProvider(): string {
     return this.provider;
   }
+
+  async getGatewayConfig(merchantId: string): Promise<{ provider: string; config: any }> {
+    return {
+      provider: this.provider,
+      config: {
+        merchantId,
+        connected: await this.isConnected(),
+      },
+    };
+  }
 }

@@ -59,7 +59,6 @@ export function CalendarDragOverlay({ activeBooking, dragOverSlot }: CalendarDra
                     const startTime = new Date(`${activeBooking.date}T${activeBooking.time}:00`);
                     return displayFormats.time(startTime);
                   } catch (error) {
-                    console.error('Error formatting booking time:', error, activeBooking);
                     return activeBooking.time || 'N/A';
                   }
                 })()}</span>

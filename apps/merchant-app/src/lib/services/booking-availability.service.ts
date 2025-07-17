@@ -21,7 +21,6 @@ export async function checkStaffAvailability(
   try {
     // Validate startTime parameter
     if (!startTime || !(startTime instanceof Date) || isNaN(startTime.getTime())) {
-      console.error('Invalid startTime provided to checkStaffAvailability:', startTime);
       // Return all staff as unavailable if we can't check properly
       return {
         available: [],
@@ -60,7 +59,6 @@ export async function checkStaffAvailability(
       try {
         // Validate the startTime before making the API call
         if (!startTime || isNaN(startTime.getTime())) {
-          console.error('Invalid startTime in checkStaffAvailability:', startTime);
           return { staffMember, isAvailable: false, reason: 'Invalid date/time' };
         }
         
@@ -103,7 +101,6 @@ export async function checkStaffAvailability(
           reason: isSlotAvailable ? null : 'Not available at this time'
         };
       } catch (error) {
-        console.error(`Error checking availability for ${staffMember.name}:`, error);
         return { staffMember, isAvailable: false, reason: 'Error checking availability' };
       }
     });
@@ -126,12 +123,6 @@ export async function checkStaffAvailability(
     if (result.available.length > 0) {
       result.assignedStaff = result.available[0];
     }
-    
-    console.log('Staff availability final result:', {
-      available: result.available.map(s => ({ id: s.id, name: s.name })),
-      unavailable: result.unavailable.map(s => ({ id: s.id, name: s.name, reason: s.reason })),
-      assignedStaff: result.assignedStaff
-    });
     
     return result;
   } catch (error) {
@@ -175,13 +166,6 @@ export function ensureValidStaffId(
   availableStaff: Array<{ id: string }>,
   allStaff: Array<{ id: string }>
 ): string {
-  console.log('Ensuring valid staff ID:', {
-    staffId, 
-    availableStaffCount: availableStaff.length,
-    availableStaff: availableStaff.map(s => s.id),
-    allStaffCount: allStaff.length,
-    allStaff: allStaff.map(s => s.id)
-  });
   
   // If Next Available is selected, keep it
   if (isNextAvailableStaff(staffId)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useNotifications } from '@/contexts/notifications-context';
 import { 
   X,
@@ -34,7 +34,7 @@ import { useToast } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { BookingActions } from "./BookingActions";
-import { PaymentDialog } from "./PaymentDialog";
+import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
 
@@ -71,7 +71,7 @@ interface BookingDetailsSlideOutProps {
   onPaymentStatusChange: (bookingId: string, isPaid: boolean) => void;
 }
 
-export function BookingDetailsSlideOut({
+function BookingDetailsSlideOutComponent({
   isOpen,
   onClose,
   booking,
@@ -219,7 +219,6 @@ export function BookingDetailsSlideOut({
       }, 2000);
     }).catch(error => {
       // If save fails, re-enter edit mode
-      console.error('Failed to save booking:', error);
       setIsEditing(true);
     });
   };
@@ -658,8 +657,8 @@ export function BookingDetailsSlideOut({
         </div>
       </div>
 
-      {/* Payment Dialog */}
-      <PaymentDialog
+      {/* Payment Dialog - Using Portal to prevent parent re-renders */}
+      <PaymentDialogPortal
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
         order={selectedOrderForPayment}
@@ -669,3 +668,16 @@ export function BookingDetailsSlideOut({
     </SlideOutPanel>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders when payment dialog state changes
+export const BookingDetailsSlideOut = memo(BookingDetailsSlideOutComponent, (prevProps, nextProps) => {
+  // Only re-render if these critical props change
+  return (
+    prevProps.isOpen === nextProps.isOpen &&
+    prevProps.booking?.id === nextProps.booking?.id &&
+    prevProps.booking?.status === nextProps.booking?.status &&
+    prevProps.booking?.isPaid === nextProps.booking?.isPaid &&
+    prevProps.staff === nextProps.staff &&
+    prevProps.services === nextProps.services
+  );
+});

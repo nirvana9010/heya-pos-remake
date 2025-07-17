@@ -3,12 +3,24 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrderState, OrderModifierType, OrderModifierCalculation } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RedisService } from '../common/redis/redis.service';
+import { Order, Customer, Booking, OrderItem, OrderPayment } from '@prisma/client';
+import { PrepareOrderDto } from './dto/prepare-order.dto';
+import { PaymentInitResponseDto } from './dto/payment-init.dto';
+import { PaymentGatewayService } from './payment-gateway.service';
+
+type OrderWithRelations = Order & {
+  customer?: Customer | null;
+  booking?: Booking | null;
+  items: OrderItem[];
+  payments: OrderPayment[];
+};
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private paymentGatewayService: PaymentGatewayService,
   ) {}
 
   async createOrder(data: {
@@ -49,7 +61,7 @@ export class OrdersService {
     });
   }
 
-  async findOrderForPayment(orderId: string, merchantId: string) {
+  async findOrderForPayment(orderId: string, merchantId: string): Promise<OrderWithRelations> {
     // Try to get from cache first
     const cacheKey = RedisService.getOrderCacheKey(orderId);
     const cachedOrder = await this.redisService.get(cacheKey);
@@ -57,7 +69,7 @@ export class OrdersService {
     if (cachedOrder) {
       // Validate merchant ID matches
       if (cachedOrder['merchantId'] === merchantId) {
-        return cachedOrder;
+        return cachedOrder as OrderWithRelations;
       }
     }
 
@@ -66,6 +78,8 @@ export class OrdersService {
       include: {
         items: true, // Only basic item info, no staff details
         payments: true, // Only payment info, no tip allocations
+        customer: true, // Include customer for payment display
+        booking: true, // Include booking for payment display
       },
     });
 
@@ -549,5 +563,297 @@ export class OrdersService {
     const result = await this.findOrderForPayment(order.id, merchantId);
     console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms (new order)`);
     return result;
+  }
+
+  async prepareOrderForPayment(dto: PrepareOrderDto, user: any): Promise<PaymentInitResponseDto> {
+    const startTime = Date.now();
+    
+    // Pre-fetch data that doesn't need to be in transaction
+    let createdById: string;
+    let orderNumber: string | undefined;
+    
+    // Get staff ID for order creation (outside transaction)
+    if (!dto.orderId) {
+      if (user.type === 'staff' && user.staffId) {
+        createdById = user.staffId;
+      } else {
+        const firstStaff = await this.prisma.staff.findFirst({
+          where: {
+            merchantId: user.merchantId,
+            status: 'ACTIVE',
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        });
+        
+        if (!firstStaff) {
+          throw new BadRequestException('No active staff members found. Please create a staff member first.');
+        }
+        
+        createdById = firstStaff.id;
+      }
+      
+      // Generate order number (outside transaction)
+      orderNumber = await this.generateOrderNumber(user.merchantId);
+    }
+    
+    // Execute the core database operations in transaction
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      let order: OrderWithRelations;
+      
+      // Step 1: Get or create order
+      if (dto.orderId) {
+        // Existing order
+        order = await tx.order.findFirst({
+          where: { id: dto.orderId, merchantId: user.merchantId },
+          include: {
+            items: true,
+            payments: true,
+            customer: true,
+            booking: true,
+          },
+        });
+        
+        if (!order) {
+          throw new NotFoundException('Order not found');
+        }
+        
+        if (order.state !== OrderState.DRAFT) {
+          throw new BadRequestException('Cannot modify a locked order');
+        }
+      } else {
+        // Create new order
+        const customerId = dto.isWalkIn ? null : dto.customerId || null;
+        
+        const newOrder = await tx.order.create({
+          data: {
+            merchantId: user.merchantId,
+            locationId: user.locationId || user.locations?.[0]?.id,
+            customerId,
+            bookingId: dto.bookingId,
+            orderNumber: orderNumber!,
+            state: OrderState.DRAFT,
+            subtotal: new Decimal(0),
+            taxAmount: new Decimal(0),
+            totalAmount: new Decimal(0),
+            balanceDue: new Decimal(0),
+            createdById: createdById!,
+          },
+          include: {
+            items: true,
+            payments: true,
+            customer: true,
+            booking: true,
+          },
+        });
+        
+        order = newOrder;
+      }
+      
+      // Step 2: Add items if provided
+      if (dto.items && dto.items.length > 0) {
+        const createdItems = await Promise.all(
+          dto.items.map((item, index) =>
+            tx.orderItem.create({
+              data: {
+                orderId: order.id,
+                itemType: item.itemType,
+                itemId: item.itemId,
+                description: item.description,
+                quantity: new Decimal(item.quantity),
+                unitPrice: new Decimal(item.unitPrice),
+                discount: new Decimal(item.discount || 0),
+                taxRate: new Decimal(item.taxRate || 0),
+                taxAmount: new Decimal(0),
+                total: new Decimal(0),
+                staffId: item.staffId,
+                metadata: item.metadata,
+                sortOrder: index,
+              },
+            })
+          )
+        );
+        
+        // Add created items to order object
+        order.items.push(...createdItems);
+      }
+      
+      // Step 3: Add order modifier if provided
+      if (dto.orderModifier) {
+        await tx.orderModifier.create({
+          data: {
+            orderId: order.id,
+            type: dto.orderModifier.type,
+            calculation: OrderModifierCalculation.FIXED_AMOUNT,
+            value: new Decimal(dto.orderModifier.amount),
+            amount: new Decimal(0), // Will be calculated
+            description: dto.orderModifier.description,
+          },
+        });
+      }
+      
+      // Step 4: Recalculate order totals
+      await this.recalculateOrderTotalsInTransaction(tx, order.id);
+      
+      // Step 5: Fetch the updated order with calculated totals
+      const finalOrder = await tx.order.findUnique({
+        where: { id: order.id },
+        include: {
+          items: true,
+          payments: true,
+          customer: true,
+          booking: true,
+          modifiers: true,
+        },
+      });
+      
+      if (!finalOrder) {
+        throw new Error('Failed to fetch updated order');
+      }
+      
+      return finalOrder;
+    }, {
+      timeout: 10000 // 10 second timeout
+    });
+    
+    // Step 6: Get payment gateway config and merchant/location info (outside transaction)
+    const [paymentGateway, merchant, location] = await Promise.all([
+      // Get payment gateway config
+      this.paymentGatewayService.getGatewayConfig(user.merchantId),
+      
+      // Get merchant info
+      this.prisma.merchant.findUnique({
+        where: { id: user.merchantId },
+        select: {
+          id: true,
+          name: true,
+          settings: true,
+        },
+      }),
+      
+      // Get location info
+      user.locationId ? this.prisma.location.findUnique({
+        where: { id: user.locationId },
+        select: {
+          id: true,
+          name: true,
+          settings: true,
+        },
+      }) : null,
+    ]);
+    
+    // Build response
+    const response: PaymentInitResponseDto = {
+      order: updatedOrder,
+      paymentGateway: {
+        provider: paymentGateway.provider,
+        config: paymentGateway.config,
+      },
+      merchant: merchant!,
+      location: location || {
+        id: user.locationId || '',
+        name: 'Default',
+        settings: {},
+      },
+    };
+    
+    // Include customer if present
+    if (updatedOrder.customer) {
+      response.customer = updatedOrder.customer;
+    }
+    
+    // Include booking if present
+    if (updatedOrder.booking) {
+      response.booking = updatedOrder.booking;
+    }
+    
+    console.log(`[PrepareOrder] Completed in ${Date.now() - startTime}ms`);
+    return response;
+  }
+  
+  // Helper method for recalculating totals within a transaction
+  private async recalculateOrderTotalsInTransaction(tx: any, orderId: string) {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        modifiers: true,
+        payments: true,
+      },
+    });
+    
+    if (!order) {
+      throw new Error('Order not found for recalculation');
+    }
+    
+    // Calculate subtotal from items
+    let subtotal = new Decimal(0);
+    let taxAmount = new Decimal(0);
+    
+    for (const item of order.items) {
+      const itemSubtotal = new Decimal(item.unitPrice)
+        .mul(new Decimal(item.quantity))
+        .sub(new Decimal(item.discount || 0));
+      
+      const itemTax = itemSubtotal.mul(new Decimal(item.taxRate || 0));
+      const itemTotal = itemSubtotal.add(itemTax);
+      
+      await tx.orderItem.update({
+        where: { id: item.id },
+        data: {
+          taxAmount: itemTax,
+          total: itemTotal,
+        },
+      });
+      
+      subtotal = subtotal.add(itemSubtotal);
+      taxAmount = taxAmount.add(itemTax);
+    }
+    
+    // Start with subtotal + tax
+    let totalAmount = subtotal.add(taxAmount);
+    
+    // Apply modifiers
+    for (const modifier of order.modifiers || []) {
+      let modifierAmount = new Decimal(0);
+      
+      if (modifier.calculation === OrderModifierCalculation.PERCENTAGE) {
+        modifierAmount = subtotal.mul(new Decimal(modifier.value).div(100));
+      } else {
+        modifierAmount = new Decimal(modifier.value);
+      }
+      
+      if (modifier.type === OrderModifierType.DISCOUNT) {
+        modifierAmount = modifierAmount.neg();
+      }
+      
+      await tx.orderModifier.update({
+        where: { id: modifier.id },
+        data: { amount: modifierAmount },
+      });
+      
+      totalAmount = totalAmount.add(modifierAmount);
+    }
+    
+    // Calculate paid amount and balance due
+    const paidAmount = order.payments.reduce(
+      (sum, payment) => sum.add(new Decimal(payment.amount)),
+      new Decimal(0)
+    );
+    
+    const balanceDue = totalAmount.sub(paidAmount);
+    
+    // Update order totals
+    await tx.order.update({
+      where: { id: orderId },
+      data: {
+        subtotal,
+        taxAmount,
+        totalAmount,
+        paidAmount,
+        balanceDue,
+      },
+    });
   }
 }

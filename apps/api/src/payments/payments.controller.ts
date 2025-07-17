@@ -13,6 +13,14 @@ import {
 import { PaymentsService } from './payments.service';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Order, Customer, Booking, OrderItem, OrderPayment } from '@prisma/client';
+
+type OrderWithRelations = Order & {
+  customer?: Customer | null;
+  booking?: Booking | null;
+  items: OrderItem[];
+  payments: OrderPayment[];
+};
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PinRequiredGuard } from '../auth/guards/pin-required.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -25,6 +33,7 @@ import {
 } from '@heya-pos/types';
 import { BadRequestException } from '@nestjs/common';
 import { PaymentInitDto, PaymentInitResponseDto } from './dto/payment-init.dto';
+import { PrepareOrderDto } from './dto/prepare-order.dto';
 import { PaymentGatewayService } from './payment-gateway.service';
 import { RedisService } from '../common/redis/redis.service';
 
@@ -384,7 +393,12 @@ export class PaymentsController {
     }
 
     // Fetch all data in parallel
-    const [order, paymentGateway, merchant, location] = await Promise.all([
+    const [order, paymentGateway, merchant, location]: [
+      OrderWithRelations,
+      { provider: string; config: any },
+      any,
+      any
+    ] = await Promise.all([
       // Get order with minimal relations
       this.ordersService.findOrderForPayment(orderId, user.merchantId),
       
@@ -446,6 +460,16 @@ export class PaymentsController {
 
     console.log(`[PaymentInit] Fetched fresh data, took ${Date.now() - startTime}ms`);
     return response;
+  }
+
+  @Post('prepare-order')
+  @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Prepare order for payment - handles both new and existing orders' })
+  async prepareOrderForPayment(
+    @Body() dto: PrepareOrderDto,
+    @CurrentUser() user: any,
+  ): Promise<PaymentInitResponseDto> {
+    return this.ordersService.prepareOrderForPayment(dto, user);
   }
 
 }

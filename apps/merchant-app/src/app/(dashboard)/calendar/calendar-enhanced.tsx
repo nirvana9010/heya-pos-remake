@@ -135,7 +135,6 @@ export default function CalendarPageEnhanced() {
         // Load bookings will be done by loadBookingsForDate
         setLastUpdated(new Date());
       } catch (error) {
-        console.error('Failed to load calendar data:', error);
         toast({
           title: "Error loading calendar",
           description: "Please try refreshing the page",
@@ -202,7 +201,6 @@ export default function CalendarPageEnhanced() {
       setBookings(transformedBookings);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Failed to load bookings:', error);
       toast({
         title: "Error loading bookings",
         description: "Please try refreshing the page",
@@ -252,7 +250,6 @@ export default function CalendarPageEnhanced() {
       // Trigger immediate notification check (we also poll every 5 seconds)
       refreshNotifications();
     } catch (error) {
-      console.error('Failed to update booking status:', error);
       toast({
         title: "Update failed",
         description: error instanceof Error ? error.message : "Please try again",

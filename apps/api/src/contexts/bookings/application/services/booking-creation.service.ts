@@ -268,8 +268,8 @@ export class BookingCreationService {
     try {
       console.log('[BookingCreationService] Pre-creating order for booking:', savedBooking.id);
       
-      // Get the first staff member assigned for order creation
-      const staffId = serviceDetails[0]?.staffId || data.staffId;
+      // Get the first staff member assigned for order creation  
+      const staffId = savedBooking.staffId || data.staffId;
       
       // Create the order in the background
       this.ordersService.createOrderFromBooking(
