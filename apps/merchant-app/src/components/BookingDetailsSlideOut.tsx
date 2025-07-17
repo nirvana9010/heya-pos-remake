@@ -716,15 +716,18 @@ function BookingDetailsSlideOutComponent({
       {console.log('PaymentDialogPortal props:', {
         open: paymentDialogOpen,
         order: selectedOrderForPayment?.id,
-        hasOrder: !!selectedOrderForPayment
+        hasOrder: !!selectedOrderForPayment,
+        orderDetails: selectedOrderForPayment
       })}
-      <PaymentDialogPortal
-        open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
-        order={selectedOrderForPayment}
-        onPaymentComplete={handlePaymentComplete}
-        enableTips={false}
-      />
+      {paymentDialogOpen && selectedOrderForPayment && (
+        <PaymentDialogPortal
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          order={selectedOrderForPayment}
+          onPaymentComplete={handlePaymentComplete}
+          enableTips={false}
+        />
+      )}
     </SlideOutPanel>
   );
 }
