@@ -300,10 +300,31 @@ function BookingDetailsSlideOutComponent({
     
     // Fetch payment initialization data using optimized endpoint
     try {
-      // First create order if not exists
-      const order = await apiClient.createOrderFromBooking(bookingId);
+      let order;
       
-      // Use optimized payment init endpoint to get all data at once
+      // Try to create order from booking, but it might already exist
+      try {
+        order = await apiClient.createOrderFromBooking(bookingId);
+        console.log('Created new order from booking:', order);
+      } catch (createError: any) {
+        // If order already exists, use the initializePayment endpoint to get it
+        console.log('Order might already exist, fetching via initializePayment');
+        
+        // Use initializePayment which should return the existing order
+        const paymentData = await apiClient.initializePayment({
+          orderId: '', // We don't have the order ID yet
+          bookingId: bookingId
+        });
+        
+        if (paymentData.order) {
+          order = paymentData.order;
+          console.log('Found existing order:', order);
+        } else {
+          throw new Error('Unable to find or create order for booking');
+        }
+      }
+      
+      // Now fetch full payment initialization data with the order
       const paymentData = await apiClient.initializePayment({
         orderId: order.id,
         bookingId: bookingId
@@ -320,11 +341,12 @@ function BookingDetailsSlideOutComponent({
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
     } catch (error) {
+      console.error('Failed to process payment:', error);
       // Close dialog on error
       setPaymentDialogOpen(false);
       toast({
         title: "Error",
-        description: "Failed to create order for payment.",
+        description: "Failed to prepare order for payment.",
         variant: "destructive",
       });
     } finally {

@@ -7,12 +7,8 @@ import {
   Clock, 
   Scissors, 
   Calendar,
-  DollarSign,
   Phone,
   Mail,
-  AlertCircle,
-  CheckCircle,
-  Users,
   Loader2,
   UserPlus,
   Plus,
@@ -35,7 +31,6 @@ import { CustomerSearchInput, type Customer } from "@/components/customers";
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { invalidateBookingsCache } from "@/lib/cache-config";
-import { PaymentDialogPortal } from "./PaymentDialogPortal";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -137,10 +132,6 @@ export function BookingSlideOut({
   // UI state
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [finalCustomerId, setFinalCustomerId] = useState<string>("");
   
   // Calculate totals
@@ -168,10 +159,6 @@ export function BookingSlideOut({
       setIsWalkIn(false);
       setNotes("");
       setSendReminder(true);
-      setShowPaymentOptions(false);
-      setCreatedBookingId(null);
-      setCreatedOrderId(null);
-      setPaymentDialogOpen(false);
       setFinalCustomerId("");
     }
   }, [isOpen, initialDate, initialTime, defaultDate, defaultTime]);
@@ -331,24 +318,16 @@ export function BookingSlideOut({
       // Actually create the booking
       const response = await apiClient.bookings.createBooking(bookingData);
       console.log('Booking created successfully:', response);
-      setCreatedBookingId(response.id);
       
-      // Show payment options first (this is the important part)
-      setShowPaymentOptions(true);
-      
-      // Cache invalidation only - no onSave callback to prevent duplicate API calls
+      // Cache invalidation
       try {
-        // Invalidate cache after successful creation
         invalidateBookingsCache();
-        
-        // IMPORTANT: Skip onSave callback to prevent duplicate booking creation
-        // Parent components were making additional API calls with the booking response data
-        // The booking is already created, so we just need to invalidate cache
-        console.log('[BookingSlideOut] Skipping onSave callback to prevent duplicate API calls');
       } catch (callbackError) {
-        console.error('Error in post-creation callbacks:', callbackError);
-        // Don't show error to user - booking was created successfully
+        console.error('Error invalidating cache:', callbackError);
       }
+      
+      // Close the slideout after successful creation
+      onClose();
       
     } catch (error) {
       console.error('Failed to create booking:', error);
@@ -358,29 +337,6 @@ export function BookingSlideOut({
     }
   };
   
-  const handlePayNow = async () => {
-    if (!createdBookingId) return;
-    
-    // Create order from the booking
-    try {
-      // Use createOrderFromBooking which creates an order from an existing booking
-      // This prevents the "bookingId already exists" error
-      const order = await apiClient.createOrderFromBooking(createdBookingId);
-      console.log('Order created from booking:', order);
-      
-      // Store order ID for payment dialog
-      setCreatedOrderId(order.id);
-      setPaymentDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to create order from booking:', error);
-      alert('Failed to create order. Please try again.');
-    }
-  };
-  
-  const handlePaymentComplete = () => {
-    setPaymentDialogOpen(false);
-    onClose();
-  };
   
   const canCreateBooking = () => {
     return date && time && selectedServices.length > 0 && customerName && !isSaving;
@@ -395,49 +351,28 @@ export function BookingSlideOut({
         width="wide"
         preserveState={false}
         footer={
-          !showPaymentOptions ? (
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCreateBooking}
-                disabled={!canCreateBooking()}
-                className="bg-teal-600 hover:bg-teal-700"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    Create Booking
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-800 font-medium">Booking created successfully!</span>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={onClose}>
-                  Complete
-                </Button>
-                <Button 
-                  onClick={handlePayNow}
-                  className="bg-teal-600 hover:bg-teal-700"
-                >
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  Pay Now
-                </Button>
-              </div>
-            </div>
-          )
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateBooking}
+              disabled={!canCreateBooking()}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Create Booking
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         }
       >
         <div className="space-y-6">
@@ -735,17 +670,6 @@ export function BookingSlideOut({
         services={services}
         onSelectService={handleServiceSelect}
       />
-      
-      {/* Payment Dialog */}
-      {createdOrderId && (
-        <PaymentDialogPortal
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
-          order={{ id: createdOrderId }}
-          onPaymentComplete={handlePaymentComplete}
-          enableTips={merchant?.settings?.enableTips || false}
-        />
-      )}
     </>
   );
 }
