@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
   ChevronRight, 
   User, 
@@ -14,7 +14,10 @@ import {
   CheckCircle,
   Users,
   Loader2,
-  UserPlus
+  UserPlus,
+  Plus,
+  Trash2,
+  X
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -23,18 +26,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
-import { Checkbox } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
+import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { apiClient } from "@/lib/api-client";
 import { CustomerSearchInput, type Customer } from "@/components/customers";
-import { checkStaffAvailability, formatAvailabilityMessage, ensureValidStaffId, type StaffAvailability } from "@/lib/services/booking-availability.service";
-import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from "@/lib/constants/booking-constants";
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { useTimezone } from "@/contexts/timezone-context";
 import { invalidateBookingsCache } from "@/lib/cache-config";
+import { PaymentDialogPortal } from "./PaymentDialogPortal";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -57,7 +58,16 @@ interface BookingSlideOutProps {
   };
 }
 
-type Step = "datetime" | "service" | "customer" | "confirm";
+interface SelectedService {
+  id: string; // Temporary UI ID
+  serviceId: string;
+  name: string;
+  duration: number;
+  basePrice: number;
+  staffId: string;
+  adjustedPrice: number;
+  categoryName?: string;
+}
 
 export function BookingSlideOut({
   isOpen,
@@ -73,7 +83,6 @@ export function BookingSlideOut({
   merchant: merchantProp
 }: BookingSlideOutProps) {
   const { merchant: authMerchant } = useAuth();
-  const { formatInMerchantTz } = useTimezone();
   
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
@@ -109,340 +118,527 @@ export function BookingSlideOut({
     now.setSeconds(0);
     now.setMilliseconds(0);
     
-    
     return now;
   });
   
-  const [currentStep, setCurrentStep] = useState<Step>("datetime");
-  const [formData, setFormData] = useState({
-    customerId: "",
-    customerName: "",
-    customerPhone: "",
-    customerEmail: "",
-    isNewCustomer: true,
-    isWalkIn: false,
-    selectedServices: [] as string[],
-    staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
-    date: initialDate || defaultDate,
-    time: initialTime || defaultTime,
-    notes: "",
-    sendReminder: true
-  });
+  // Form state
+  const [date, setDate] = useState<Date>(initialDate || defaultDate);
+  const [time, setTime] = useState<Date>(initialTime || defaultTime);
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+  const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [isNewCustomer, setIsNewCustomer] = useState(true);
+  const [isWalkIn, setIsWalkIn] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [sendReminder, setSendReminder] = useState(true);
   
-  const [availableStaff, setAvailableStaff] = useState<typeof staff>([]);
-  const [unavailableStaff, setUnavailableStaff] = useState<Array<{ staff: typeof staff[0]; reason: string }>>([]);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [availabilityMessage, setAvailabilityMessage] = useState<string>("");
-  const [nextAvailableStaff, setNextAvailableStaff] = useState<typeof staff[0] | null>(null);
-
-
-  // Reset to first step and update initial values when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentStep("datetime");
-      // Update date/time/staff from props when dialog opens
-      setFormData(prev => ({
-        ...prev,
-        date: initialDate || defaultDate,
-        time: initialTime || defaultTime,
-        staffId: initialStaffId || NEXT_AVAILABLE_STAFF_ID,
-        // Reset selectedServices when dialog opens to avoid stale data
-        selectedServices: []
-      }));
-    }
-  }, [isOpen, initialDate, initialTime, initialStaffId, defaultDate, defaultTime]);
+  // UI state
+  const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [finalCustomerId, setFinalCustomerId] = useState<string>("");
   
-  // Memoize selected services list to avoid infinite loops
-  const selectedServicesList = useMemo(
-    () => services.filter(s => formData.selectedServices.includes(s.id)),
-    [services, formData.selectedServices]
+  // Calculate totals
+  const totalDuration = useMemo(() => 
+    selectedServices.reduce((sum, s) => sum + s.duration, 0), 
+    [selectedServices]
   );
   
-  // Check staff availability when services and datetime are selected
+  const totalPrice = useMemo(() => 
+    selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0), 
+    [selectedServices]
+  );
+  
+  // Reset form when dialog opens
   useEffect(() => {
-    const checkAvailability = async () => {
-      // Only check availability on datetime step
-      if (currentStep !== "datetime") {
-        return;
-      }
-      
-      // Check availability even without service (use default duration)
-      if (!formData.date || !formData.time) {
-        setAvailableStaff(staff);
-        setUnavailableStaff([]);
-        setAvailabilityMessage("");
-        setNextAvailableStaff(null);
-        return;
-      }
-      
-      setIsCheckingAvailability(true);
-      
-      try {
-        // Calculate total duration from all selected services or use default
-        let duration = 30; // Default 30 minutes when no service selected
-        if (formData.selectedServices.length > 0) {
-          duration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
-        }
-        
-        // Combine date and time
-        let startTime: Date;
-        try {
-          // Ensure formData.date is a valid Date
-          const baseDate = formData.date instanceof Date ? formData.date : new Date(formData.date);
-          if (isNaN(baseDate.getTime())) {
-            return; // Exit early if date is invalid
-          }
-          
-          startTime = new Date(baseDate);
-          
-          // Ensure formData.time is a valid Date and extract hours/minutes
-          if (formData.time instanceof Date && !isNaN(formData.time.getTime())) {
-            startTime.setHours(formData.time.getHours());
-            startTime.setMinutes(formData.time.getMinutes());
-          } else {
-            return; // Exit early if time is invalid
-          }
-          
-          startTime.setSeconds(0);
-          startTime.setMilliseconds(0);
-        } catch (error) {
-          return; // Exit early on any error
-        }
-        
-        // Only check availability if we have a valid service selected
-        // Otherwise, assume all staff are available
-        
-        let result: StaffAvailability;
-        if (formData.selectedServices.length > 0 && formData.selectedServices[0]) {
-          // Check availability using real API
-          result = await checkStaffAvailability(
-            formData.selectedServices[0],
-            startTime,
-            duration,
-            filteredStaff,
-            bookings
-          );
-        } else {
-          // No service selected - all staff are available
-          result = {
-            available: filteredStaff,
-            unavailable: [],
-            assignedStaff: filteredStaff.length > 0 ? filteredStaff[0] : undefined
-          };
-        }
-        
-        
-        setAvailableStaff(result.available);
-        // Convert unavailable format to match component's expected structure
-        setUnavailableStaff(result.unavailable.map(u => ({ 
-          staff: { id: u.id, name: u.name, color: u.color },
-          reason: u.reason 
-        })));
-        setAvailabilityMessage(formatAvailabilityMessage(result));
-        
-        // Set the auto-assigned staff if using "Next Available"
-        if (isNextAvailableStaff(formData.staffId)) {
-          setNextAvailableStaff(result.assignedStaff || null);
-        } else {
-          setNextAvailableStaff(null);
-        }
-        
-        // For manual bookings, we allow staff selection even if they're not available
-        // So we don't clear the selection
-        
-      } finally {
-        setIsCheckingAvailability(false);
-      }
+    if (isOpen) {
+      setDate(initialDate || defaultDate);
+      setTime(initialTime || defaultTime);
+      setSelectedServices([]);
+      setCustomerId("");
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setIsNewCustomer(true);
+      setIsWalkIn(false);
+      setNotes("");
+      setSendReminder(true);
+      setShowPaymentOptions(false);
+      setCreatedBookingId(null);
+      setCreatedOrderId(null);
+      setPaymentDialogOpen(false);
+      setFinalCustomerId("");
+    }
+  }, [isOpen, initialDate, initialTime, defaultDate, defaultTime]);
+  
+  
+  const handleServiceSelect = (service: any) => {
+    const newService: SelectedService = {
+      id: `service-${Date.now()}-${Math.random()}`,
+      serviceId: service.id,
+      name: service.name,
+      duration: service.duration,
+      basePrice: service.price,
+      adjustedPrice: service.price,
+      staffId: filteredStaff[0]?.id || '', // Default to first staff member
+      categoryName: service.categoryName
     };
     
-    checkAvailability();
-  }, [formData.selectedServices, formData.date, formData.time, formData.staffId, filteredStaff, services, bookings, currentStep]);
-
-  const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
-    { id: "datetime", label: "Date & Time", icon: <Calendar className="h-4 w-4" /> },
-    { id: "service", label: "Service", icon: <Scissors className="h-4 w-4" /> },
-    { id: "customer", label: "Customer", icon: <User className="h-4 w-4" /> },
-    { id: "confirm", label: "Confirm", icon: <CheckCircle className="h-4 w-4" /> }
-  ];
-
-  const currentStepIndex = steps.findIndex(s => s.id === currentStep);
-  const selectedStaff = filteredStaff.find(s => s.id === formData.staffId);
-
+    setSelectedServices([...selectedServices, newService]);
+    setIsServiceSlideoutOpen(false);
+  };
+  
+  const removeService = (serviceId: string) => {
+    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
+  };
+  
+  const updateServiceStaff = (serviceId: string, staffId: string) => {
+    setSelectedServices(selectedServices.map(s => 
+      s.id === serviceId ? { ...s, staffId } : s
+    ));
+  };
+  
+  const updateServicePrice = (serviceId: string, price: string) => {
+    const numPrice = parseFloat(price) || 0;
+    setSelectedServices(selectedServices.map(s => 
+      s.id === serviceId ? { ...s, adjustedPrice: numPrice } : s
+    ));
+  };
+  
   const generateWalkInCustomer = () => {
-    // Instant walk-in selection - no API calls needed
-    setFormData({
-      ...formData,
-      customerId: WALK_IN_CUSTOMER_ID,
-      customerName: 'Walk-in Customer',
-      customerPhone: '',
-      customerEmail: '',
-      isNewCustomer: false,
-      isWalkIn: true
-    });
-    
-    // Auto-proceed to next step
-    handleNext();
+    setCustomerId('WALK_IN'); // Use 'WALK_IN' for V2 API
+    setCustomerName('Walk-in Customer');
+    setCustomerPhone('');
+    setCustomerEmail('');
+    setIsNewCustomer(false);
+    setIsWalkIn(true);
   };
-
-  const handleNext = () => {
-    const stepIndex = steps.findIndex(s => s.id === currentStep);
-    if (stepIndex < steps.length - 1) {
-      setCurrentStep(steps[stepIndex + 1].id);
+  
+  
+  const handleCreateBooking = async () => {
+    // Early return if already saving (prevent duplicate calls)
+    if (isSaving) {
+      console.log('[BookingSlideOut] Already saving, ignoring duplicate call');
+      return;
     }
-  };
 
-  const handleBack = () => {
-    const stepIndex = steps.findIndex(s => s.id === currentStep);
-    if (stepIndex > 0) {
-      setCurrentStep(steps[stepIndex - 1].id);
-    }
-  };
-
-  const handleSubmit = () => {
-    
-    if (!formData.time || !formData.date || formData.selectedServices.length === 0) {
+    if (!time || !date || selectedServices.length === 0 || !customerName) {
       return;
     }
     
-    // Debug: Log what's in selectedServices
-    
-    // Validate service IDs
-    const invalidServiceIds = formData.selectedServices.filter(id => !id || id.trim() === '');
-    if (invalidServiceIds.length > 0) {
-      alert('Error: Some selected services have invalid IDs. Please try selecting services again.');
+    // Validate customerId for non-walk-in customers
+    if (!isWalkIn && !customerId) {
+      alert('Please select or create a customer');
       return;
     }
     
-    // Properly combine the selected date with the selected time
-    const combinedDateTime = new Date(formData.date);
-    combinedDateTime.setHours(formData.time.getHours());
-    combinedDateTime.setMinutes(formData.time.getMinutes());
-    combinedDateTime.setSeconds(0);
-    combinedDateTime.setMilliseconds(0);
-    
-    // Resolve the final staff ID - this is CRITICAL for API compatibility
-    let finalStaffId: string;
-    if (isNextAvailableStaff(formData.staffId)) {
-      // Use the pre-assigned staff from availability check
-      finalStaffId = ensureValidStaffId(null, nextAvailableStaff ? [nextAvailableStaff] : [], filteredStaff);
-    } else {
-      // Use the selected staff
-      finalStaffId = ensureValidStaffId(formData.staffId, availableStaff, filteredStaff);
-    }
-    
-    
-    // Check if we got a valid staff ID
-    if (!finalStaffId) {
-      alert('Please select a staff member or ensure staff are available at the selected time.');
+    // Validate all services have staff assigned
+    const servicesWithoutStaff = selectedServices.filter(s => !s.staffId);
+    if (servicesWithoutStaff.length > 0) {
+      alert('Please select a staff member for all services');
       return;
     }
     
-    // Calculate total duration
-    const totalDuration = selectedServicesList.reduce((total, service) => total + service.duration, 0);
+    setIsSaving(true);
     
-    // Build the save data with services array format for V2 API
-    const saveData = {
-      customerId: formData.customerId,
-      customerName: formData.customerName,
-      customerPhone: formData.customerPhone,
-      customerEmail: formData.customerEmail,
-      isNewCustomer: formData.isNewCustomer,
-      isWalkIn: formData.isWalkIn,
-      services: formData.selectedServices.map(serviceId => ({
-        serviceId,
-        staffId: finalStaffId
-      })),
-      staffId: finalStaffId,
-      // LocationId is now optional in the database
-      locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
-      startTime: combinedDateTime,
-      endTime: new Date(combinedDateTime.getTime() + totalDuration * 60000),
-      notes: formData.notes,
-      sendReminder: formData.sendReminder,
-      // Set source to IN_PERSON for merchant app bookings
-      source: 'IN_PERSON',
-      // Override conflict and business hours checks for manual bookings
-      isOverride: true,
-      overrideReason: 'Manual booking created by merchant',
-      // Add customer source for walk-in customers
-      ...(formData.isWalkIn && { customerSource: 'WALK_IN' })
-    };
+    try {
+      // Create new customer if needed
+      let resolvedCustomerId = customerId;
+      if (isNewCustomer && !isWalkIn) {
+        try {
+          const newCustomer = await apiClient.customers.createCustomer({
+            firstName: customerName.split(' ')[0] || customerName,
+            lastName: customerName.split(' ').slice(1).join(' ') || '',
+            phone: customerPhone,
+            email: customerEmail
+          });
+          resolvedCustomerId = newCustomer.id;
+        } catch (error) {
+          console.error('Failed to create customer:', error);
+          alert('Failed to create customer. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+      }
+      
+      // Store the final customer ID for order creation
+      setFinalCustomerId(isWalkIn ? 'WALK_IN' : resolvedCustomerId);
+      
+      // Combine date and time
+      const combinedDateTime = new Date(date);
+      combinedDateTime.setHours(time.getHours());
+      combinedDateTime.setMinutes(time.getMinutes());
+      combinedDateTime.setSeconds(0);
+      combinedDateTime.setMilliseconds(0);
+      
+      // Build booking data for V2 API
+      const startTimeISO = combinedDateTime.toISOString();
+      console.log('Start time ISO:', startTimeISO, 'Type:', typeof startTimeISO);
+      console.log('Customer ID debug:', {
+        isWalkIn,
+        customerId: customerId,
+        resolvedCustomerId: resolvedCustomerId,
+        isNewCustomer,
+        finalCustomerIdForBooking: isWalkIn ? 'WALK_IN' : resolvedCustomerId
+      });
+      
+      const finalCustomerIdForBooking = isWalkIn ? 'WALK_IN' : resolvedCustomerId;
+      
+      console.log('Final booking data validation:', {
+        isWalkIn,
+        customerId: customerId,
+        resolvedCustomerId: resolvedCustomerId,
+        finalCustomerIdForBooking: finalCustomerIdForBooking,
+        isValidCustomerId: finalCustomerIdForBooking && finalCustomerIdForBooking.length > 0
+      });
+      
+      // Strict validation to prevent API validation errors
+      if (!finalCustomerIdForBooking || finalCustomerIdForBooking.trim() === '') {
+        console.error('[BookingSlideOut] Customer ID validation failed:', {
+          isWalkIn,
+          customerId,
+          resolvedCustomerId,
+          finalCustomerIdForBooking
+        });
+        throw new Error('Customer ID is required for booking creation');
+      }
+      
+      const bookingData: any = {
+        // Use 'WALK_IN' as customerId for walk-in customers
+        customerId: finalCustomerIdForBooking,
+        services: selectedServices.map(service => ({
+          serviceId: service.serviceId,
+          staffId: service.staffId,
+          // Include price override if changed (V2 uses 'price' not 'priceOverride')
+          ...(service.adjustedPrice !== service.basePrice && {
+            price: service.adjustedPrice
+          })
+        })),
+        locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
+        startTime: startTimeISO,
+        notes,
+        source: 'IN_PERSON',
+        isOverride: true
+      };
+      
+      console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
+      
+      // Actually create the booking
+      const response = await apiClient.bookings.createBooking(bookingData);
+      console.log('Booking created successfully:', response);
+      setCreatedBookingId(response.id);
+      
+      // Show payment options first (this is the important part)
+      setShowPaymentOptions(true);
+      
+      // Cache invalidation only - no onSave callback to prevent duplicate API calls
+      try {
+        // Invalidate cache after successful creation
+        invalidateBookingsCache();
+        
+        // IMPORTANT: Skip onSave callback to prevent duplicate booking creation
+        // Parent components were making additional API calls with the booking response data
+        // The booking is already created, so we just need to invalidate cache
+        console.log('[BookingSlideOut] Skipping onSave callback to prevent duplicate API calls');
+      } catch (callbackError) {
+        console.error('Error in post-creation callbacks:', callbackError);
+        // Don't show error to user - booking was created successfully
+      }
+      
+    } catch (error) {
+      console.error('Failed to create booking:', error);
+      alert('Failed to create booking. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handlePayNow = async () => {
+    if (!createdBookingId) return;
     
-    // Debug: Log the save data being sent
-    
-    // Invalidate bookings cache immediately to ensure new booking appears
-    invalidateBookingsCache();
-    
-    // Create optimistic booking for immediate UI update
-    const optimisticBooking = {
-      ...saveData,
-      id: `temp-${Date.now()}`, // Temporary ID
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-      _isOptimistic: true // Flag to identify optimistic updates
-    };
-    
-    // Call onSave with optimistic booking data for immediate UI update
-    onSave(optimisticBooking);
+    // Create order for the booking
+    try {
+      const orderData = {
+        bookingId: createdBookingId,
+        customerId: finalCustomerId,
+        isWalkIn: isWalkIn,
+        items: selectedServices.map(service => ({
+          itemType: 'SERVICE',
+          itemId: service.serviceId,
+          description: service.name,
+          unitPrice: service.adjustedPrice,
+          quantity: 1,
+          staffId: service.staffId,
+          discount: 0,
+          taxRate: 0
+        }))
+      };
+      
+      // Create the order using the payments client
+      const order = await apiClient.createOrder(orderData);
+      console.log('Order created for booking:', order);
+      
+      // Store order ID for payment dialog
+      setCreatedOrderId(order.id);
+      setPaymentDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      alert('Failed to create order. Please try again.');
+    }
+  };
+  
+  const handlePaymentComplete = () => {
+    setPaymentDialogOpen(false);
     onClose();
   };
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case "customer":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Find or Create Customer</Label>
+  
+  const canCreateBooking = () => {
+    return date && time && selectedServices.length > 0 && customerName && !isSaving;
+  };
+  
+  return (
+    <>
+      <SlideOutPanel
+        isOpen={isOpen}
+        onClose={onClose}
+        title="New Booking"
+        width="wide"
+        preserveState={false}
+        footer={
+          !showPaymentOptions ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateBooking}
+                disabled={!canCreateBooking()}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    Create Booking
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-green-800 font-medium">Booking created successfully!</span>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={onClose}>
+                  Complete
+                </Button>
+                <Button 
+                  onClick={handlePayNow}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Pay Now
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      >
+        <div className="space-y-6">
+          {/* Date & Time Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Date & Time
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date ? format(date, "yyyy-MM-dd") : ""}
+                  onChange={(e) => setDate(new Date(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="time">Time</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={time ? format(time, "HH:mm") : ""}
+                  onChange={(e) => {
+                    const [hours, minutes] = e.target.value.split(':');
+                    const newTime = new Date(date || new Date());
+                    newTime.setHours(parseInt(hours), parseInt(minutes));
+                    setTime(newTime);
+                  }}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            {totalDuration > 0 && (
+              <div className="mt-3 text-sm text-gray-600">
+                Duration: <span className="font-medium">{totalDuration} minutes</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Services Section */}
+          <div>
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Scissors className="h-4 w-4" />
+              Services
+            </h3>
+            
+            <Button
+              onClick={() => setIsServiceSlideoutOpen(true)}
+              variant="outline"
+              className="w-full justify-start gap-2 mb-3"
+            >
+              <Plus className="h-4 w-4" />
+              Add Services
+            </Button>
+            
+            {selectedServices.length > 0 && (
+              <div className="space-y-2">
+                {selectedServices.map((service) => (
+                  <div key={service.id} className="p-3 border rounded-lg space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-medium">{service.name}</div>
+                          <div className="text-sm text-gray-600">
+                            {service.duration} min • ${service.basePrice}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeService(service.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <Label className="text-xs">Staff</Label>
+                          <Select
+                            value={service.staffId}
+                            onValueChange={(value) => updateServiceStaff(service.id, value)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredStaff.map((member) => (
+                                <SelectItem key={member.id} value={member.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full" 
+                                      style={{ backgroundColor: member.color }}
+                                    />
+                                    <span>{member.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="w-24">
+                          <Label className="text-xs">Price</Label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                            <Input
+                              type="number"
+                              value={service.adjustedPrice}
+                              onChange={(e) => updateServicePrice(service.id, e.target.value)}
+                              className="h-9 pl-6"
+                              step="0.01"
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                ))}
+                
+                {/* Total Summary */}
+                <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                  <div className="flex justify-between font-medium">
+                    <span>Total ({selectedServices.length} services)</span>
+                    <div className="text-right">
+                      <div>${totalPrice.toFixed(2)}</div>
+                      <div className="text-xs font-normal text-teal-700">
+                        {totalDuration} minutes
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Customer Section */}
+          <div>
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Customer
+            </h3>
+            
+            {!isWalkIn && (
               <CustomerSearchInput
-                value={formData.customerId ? {
-                  id: formData.customerId,
-                  firstName: formData.isWalkIn ? 'Walk-in' : (formData.customerName.split(' ')[0] || ''),
-                  lastName: formData.isWalkIn ? 'Customer' : (formData.customerName.split(' ').slice(1).join(' ') || ''),
-                  name: formData.customerName,
-                  phone: formData.customerPhone,
-                  email: formData.customerEmail
+                value={customerId && customerId !== 'WALK_IN' ? {
+                  id: customerId,
+                  firstName: customerName.split(' ')[0] || '',
+                  lastName: customerName.split(' ').slice(1).join(' ') || '',
+                  name: customerName,
+                  phone: customerPhone,
+                  email: customerEmail
                 } : null}
                 onSelect={(customer) => {
                   if (customer) {
                     const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
-                    setFormData({
-                      ...formData,
-                      customerId: customer.id,
-                      customerName: fullName,
-                      customerPhone: customer.mobile || customer.phone || '',
-                      customerEmail: customer.email || "",
-                      isNewCustomer: false,
-                      isWalkIn: false
-                    });
-                    handleNext();
+                    setCustomerId(customer.id);
+                    setCustomerName(fullName);
+                    setCustomerPhone(customer.mobile || customer.phone || '');
+                    setCustomerEmail(customer.email || "");
+                    setIsNewCustomer(false);
+                    setIsWalkIn(false);
                   } else {
                     // Clear selection
-                    setFormData({
-                      ...formData,
-                      customerId: '',
-                      customerName: '',
-                      customerPhone: '',
-                      customerEmail: '',
-                      isNewCustomer: true,
-                      isWalkIn: false
-                    });
+                    setCustomerId('');
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setCustomerEmail('');
+                    setIsNewCustomer(true);
+                    setIsWalkIn(false);
                   }
                 }}
                 onCreateNew={() => {
-                  setFormData({
-                    ...formData,
-                    isNewCustomer: true
-                  });
+                  setIsNewCustomer(true);
                 }}
                 fallbackCustomers={customers}
-                className="mt-1"
-                autoFocus
+                className="mb-3"
               />
-            </div>
-
+            )}
+            
             {/* Walk-in Customer Button */}
-            {merchant?.settings?.allowWalkInBookings !== false && (
+            {merchant?.settings?.allowWalkInBookings !== false && !isWalkIn && (
               <div className="flex items-center justify-center py-2">
                 <span className="text-sm text-gray-500 mr-3">or</span>
                 <Button
@@ -457,27 +653,28 @@ export function BookingSlideOut({
                 </Button>
               </div>
             )}
-
-            {formData.isNewCustomer && !formData.isWalkIn && (
-              <div className="pt-4 border-t">
-                <h4 className="font-medium mb-3">Create New Customer</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="customerName">Name *</Label>
-                    <Input
-                      id="customerName"
-                      value={formData.customerName}
-                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      placeholder="John Doe"
-                      className="mt-1"
-                    />
-                  </div>
+            
+            {/* New Customer Form */}
+            {isNewCustomer && !isWalkIn && (
+              <div className="mt-3 space-y-3 p-3 border rounded-lg">
+                <h4 className="font-medium text-sm">New Customer Details</h4>
+                <div>
+                  <Label htmlFor="customerName">Name *</Label>
+                  <Input
+                    id="customerName"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="John Doe"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="customerPhone">Phone</Label>
                     <Input
                       id="customerPhone"
-                      value={formData.customerPhone}
-                      onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="0400 123 456"
                       className="mt-1"
                     />
@@ -487,8 +684,8 @@ export function BookingSlideOut({
                     <Input
                       id="customerEmail"
                       type="email"
-                      value={formData.customerEmail}
-                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
                       placeholder="john@example.com"
                       className="mt-1"
                     />
@@ -496,487 +693,74 @@ export function BookingSlideOut({
                 </div>
               </div>
             )}
-
-            {/* Walk-in Customer Indicator */}
-            {formData.isWalkIn && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserPlus className="h-5 w-5 text-gray-600" />
-                  <h4 className="font-medium">Walk-in</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Quick booking for: <span className="font-medium">{formData.customerName}</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  No contact details will be stored for this customer
-                </p>
-              </div>
-            )}
-          </div>
-        );
-
-      case "service":
-        return (
-          <div className="space-y-4">
-            <div className="grid gap-3">
-              {services.map((service) => {
-                const isSelected = formData.selectedServices.includes(service.id);
-                return (
-                  <div
-                    key={service.id}
-                    className={cn(
-                      "p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      isSelected
-                        ? "border-teal-500 bg-teal-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    )}
-                    onClick={() => {
-                      if (!service.id) {
-                        return;
-                      }
-                      
-                      if (isSelected) {
-                        const newSelection = formData.selectedServices.filter(id => id !== service.id);
-                        setFormData({
-                          ...formData,
-                          selectedServices: newSelection
-                        });
-                      } else {
-                        const newSelection = [...formData.selectedServices, service.id];
-                        setFormData({
-                          ...formData,
-                          selectedServices: newSelection
-                        });
-                      }
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <Checkbox 
-                            checked={isSelected}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-0.5"
-                          />
-                          <div>
-                            <h4 className="font-medium">{service.name}</h4>
-                            {service.categoryName && (
-                              <Badge variant="secondary" className="mt-1">
-                                {service.categoryName}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold">${service.price}</div>
-                        <div className="text-sm text-gray-600">{service.duration} min</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
             
-            {/* Selected Services Summary */}
-            {formData.selectedServices.length > 0 && (
-              <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                <h4 className="font-medium text-teal-900 mb-2">
-                  Selected Services ({formData.selectedServices.length})
-                </h4>
-                <div className="space-y-2">
-                  {selectedServicesList.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between text-sm">
-                      <span>{service.name}</span>
-                      <span className="font-medium">${service.price}</span>
-                    </div>
-                  ))}
-                  <div className="pt-2 border-t border-teal-200">
-                    <div className="flex items-center justify-between font-semibold">
-                      <span>Total</span>
-                      <div className="text-right">
-                        <div>${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}</div>
-                        <div className="text-xs font-normal text-teal-700">
-                          {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case "datetime":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Staff Member</Label>
-              <Select
-                value={formData.staffId}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, staffId: value }));
-                }}
-                disabled={isCheckingAvailability}
-              >
-                <SelectTrigger className={cn("mt-1", isCheckingAvailability && "opacity-70")}>
-                  <SelectValue placeholder={isCheckingAvailability ? "Checking availability..." : "Select staff member"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Check if we're still loading */}
-                  {isCheckingAvailability ? (
-                    <div className="p-4 text-center">
-                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Checking availability...</p>
-                    </div>
-                  ) : formData.serviceId && availableStaff.length === 0 ? (
-                    /* No staff available at all */
-                    <div className="p-4 text-center">
-                      <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-red-700">No staff available</p>
-                      <p className="text-xs text-red-600 mt-1">Please select a different time</p>
-                    </div>
-                  ) : (
-                    /* Normal staff selection */
-                    <>
-                      {/* Only show Next Available if we have available staff */}
-                      {(!formData.serviceId || availableStaff.length > 0) && (
-                        <>
-                          <SelectItem value={NEXT_AVAILABLE_STAFF_ID}>
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-gray-600" />
-                              <span>Next Available</span>
-                              {availableStaff.length > 0 && (
-                                <>
-                                  <span className="text-xs text-gray-500">({availableStaff.length} available)</span>
-                                  {nextAvailableStaff && (
-                                    <span className="text-xs text-teal-600 font-medium ml-1">
-                                      → {nextAvailableStaff.name}
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </SelectItem>
-                          <Separator className="my-1" />
-                        </>
-                      )}
-                  
-                  {/* Show available staff */}
-                  {availableStaff && availableStaff.map((member) => member && (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: member.color }}
-                        />
-                        <span>{member.name}</span>
-                        <CheckCircle className="w-3 h-3 text-green-600 ml-auto" />
-                      </div>
-                    </SelectItem>
-                  ))}
-                  
-                  {/* Show unavailable staff if any */}
-                  {unavailableStaff.length > 0 && availableStaff.length > 0 && (
-                    <Separator className="my-1" />
-                  )}
-                  
-                  {unavailableStaff && unavailableStaff.map(({ staff: member, reason }) => member && (
-                    <SelectItem key={member.id} value={member.id} disabled>
-                      <div className="flex items-center gap-2 opacity-50">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: member.color }}
-                        />
-                        <span>{member.name}</span>
-                        <span className="text-xs text-red-600 ml-auto">{reason}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-              
-              {/* Availability message */}
-              {(formData.date && formData.time) && (
-                <div className={cn(
-                  "mt-2 text-sm",
-                  !isCheckingAvailability && availableStaff.length === 0 ? "text-red-600" : "text-gray-600"
-                )}>
-                  {isCheckingAvailability ? (
+            {/* Walk-in Indicator */}
+            {isWalkIn && (
+              <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
                     <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Checking staff availability...</span>
+                      <UserPlus className="h-4 w-4 text-gray-600" />
+                      <span className="font-medium text-sm">Walk-in Customer</span>
                     </div>
-                  ) : availabilityMessage ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        {availableStaff.length === 0 ? (
-                          <AlertCircle className="w-4 h-4" />
-                        ) : (
-                          <CheckCircle className="w-4 h-4" />
-                        )}
-                        {availabilityMessage}
-                      </div>
-                      
-                      {/* Show auto-assignment details when Next Available is selected */}
-                      {isNextAvailableStaff(formData.staffId) && nextAvailableStaff && (
-                        <div className="mt-2 p-2 bg-teal-50 border border-teal-200 rounded-md">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: nextAvailableStaff.color }}
-                            />
-                            <span className="text-teal-800 font-medium">
-                              Will be assigned to: {nextAvailableStaff.name}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label>Date</Label>
-              <Input
-                type="date"
-                value={formData.date ? format(formData.date, "yyyy-MM-dd") : ""}
-                onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value) })}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Time</Label>
-              <Input
-                type="time"
-                value={formData.time ? format(formData.time, "HH:mm") : ""}
-                onChange={(e) => {
-                  const [hours, minutes] = e.target.value.split(':');
-                  const newTime = new Date(formData.date || new Date());
-                  newTime.setHours(parseInt(hours), parseInt(minutes));
-                  setFormData({ ...formData, time: newTime });
-                }}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Add any special requests or notes..."
-                rows={3}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        );
-
-      case "confirm":
-        return (
-          <div className="space-y-4">
-            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-              <h4 className="font-medium text-teal-900 mb-3">Booking Summary</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Customer:</span>
-                  <span className="font-medium">{formData.customerName}</span>
-                </div>
-                {formData.customerPhone && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Phone:</span>
-                    <span className="font-medium">{formData.customerPhone}</span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      No contact details will be stored
+                    </p>
                   </div>
-                )}
-                {selectedServicesList.length > 0 && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Services:</span>
-                      <span className="font-medium">{selectedServicesList.length} selected</span>
-                    </div>
-                    {selectedServicesList.map((service) => (
-                      <div key={service.id} className="ml-4 text-sm flex justify-between">
-                        <span className="text-gray-600">{service.name}</span>
-                        <span>${service.price}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-600">Total Duration:</span>
-                      <span className="font-medium">
-                        {selectedServicesList.reduce((sum, s) => sum + s.duration, 0)} minutes
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Price:</span>
-                      <span className="font-medium">
-                        ${selectedServicesList.reduce((sum, s) => sum + s.price, 0).toFixed(2)}
-                      </span>
-                    </div>
-                  </>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Staff:</span>
-                  <span className="font-medium">
-                    {isNextAvailableStaff(formData.staffId) ? (
-                      nextAvailableStaff ? 
-                        `${nextAvailableStaff.name} (auto-assigned)` : 
-                        availableStaff.length > 0 ?
-                          `Next Available (${availableStaff[0].name})` :
-                          'No staff available'
-                    ) : (
-                      selectedStaff?.name || 'Select staff'
-                    )}
-                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsWalkIn(false);
+                      setCustomerId('');
+                      setCustomerName('');
+                      setCustomerPhone('');
+                      setCustomerEmail('');
+                      setIsNewCustomer(true);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Date & Time:</span>
-                  <span className="font-medium">
-                    {formData.date && formData.time ? 
-                      `${format(formData.date, "MMM d, yyyy")} at ${format(formData.time, "h:mm a")}` : 
-                      "Not selected"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {formData.notes && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-1">Notes</h4>
-                <p className="text-sm text-gray-600">{formData.notes}</p>
-              </div>
-            )}
-
-            {/* Show warning if no staff available */}
-            {isNextAvailableStaff(formData.staffId) && !nextAvailableStaff ? (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <span className="text-sm text-red-800">
-                  No staff available at this time. Please go back and select a different time.
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-800">
-                  A confirmation will be sent to the customer
-                </span>
               </div>
             )}
           </div>
-        );
-    }
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case "datetime":
-        // Must have date, time, and either a selected staff OR available staff for "next available"
-        const hasDateTime = formData.date && formData.time;
-        const hasValidStaff = formData.staffId && (
-          // If Next Available is selected, ensure we have someone to assign
-          isNextAvailableStaff(formData.staffId) ? nextAvailableStaff !== null : true
-        );
-        return hasDateTime && hasValidStaff && !isCheckingAvailability;
-      case "service":
-        return formData.selectedServices.length > 0;
-      case "customer":
-        return formData.customerName; // Only name is required
-      default:
-        return true;
-    }
-  };
-
-  return (
-    <SlideOutPanel
-      isOpen={isOpen}
-      onClose={onClose}
-      title="New Booking"
-      width="wide"
-      preserveState={false}
-      footer={
-        <div className="flex justify-between">
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-            disabled={currentStepIndex === 0}
-          >
-            Back
-          </Button>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            {currentStep !== "confirm" ? (
-              <Button 
-                onClick={handleNext}
-                disabled={!canProceed()}
-                className="bg-teal-600 hover:bg-teal-700"
-              >
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleSubmit}
-                className="bg-teal-600 hover:bg-teal-700"
-                disabled={isNextAvailableStaff(formData.staffId) && !nextAvailableStaff}
-              >
-                Confirm Booking
-              </Button>
-            )}
+          
+          {/* Notes Section */}
+          <div>
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any special requests or notes..."
+              rows={3}
+              className="mt-1"
+            />
           </div>
         </div>
-      }
-    >
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div
-              key={step.id}
-              className={cn(
-                "flex items-center",
-                index < steps.length - 1 && "flex-1"
-              )}
-            >
-              <button
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",
-                  currentStep === step.id
-                    ? "bg-teal-100 text-teal-700"
-                    : index < currentStepIndex
-                    ? "text-green-600"
-                    : "text-gray-400"
-                )}
-                onClick={() => index <= currentStepIndex && setCurrentStep(step.id)}
-                disabled={index > currentStepIndex}
-              >
-                {step.icon}
-                <span className="font-medium">{step.label}</span>
-              </button>
-              {index < steps.length - 1 && (
-                <div
-                  className={cn(
-                    "flex-1 h-0.5 mx-2",
-                    index < currentStepIndex ? "bg-green-500" : "bg-gray-200"
-                  )}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Step Content */}
-      {renderStepContent()}
-    </SlideOutPanel>
+      </SlideOutPanel>
+      
+      {/* Service Selection Slideout */}
+      <ServiceSelectionSlideout
+        isOpen={isServiceSlideoutOpen}
+        onClose={() => setIsServiceSlideoutOpen(false)}
+        services={services}
+        onSelectService={handleServiceSelect}
+      />
+      
+      {/* Payment Dialog */}
+      {createdOrderId && (
+        <PaymentDialogPortal
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          order={{ id: createdOrderId }}
+          onPaymentComplete={handlePaymentComplete}
+          enableTips={merchant?.settings?.enableTips || false}
+        />
+      )}
+    </>
   );
 }
