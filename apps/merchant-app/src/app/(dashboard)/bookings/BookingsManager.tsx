@@ -1266,10 +1266,10 @@ export default function BookingsManager() {
         bookings={bookings}
         onSave={async (bookingData) => {
           try {
-            // Invalidate bookings cache immediately to ensure new booking appears
+            // Booking is already created by BookingSlideOut component
+            // Just handle the UI updates and cache invalidation
             invalidateBookingsCache();
             
-            await apiClient.createBooking(bookingData);
             toast({
               title: "Booking Created",
               description: "The booking has been created successfully.",

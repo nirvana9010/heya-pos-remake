@@ -128,21 +128,7 @@ export class BookingsClient extends BaseApiClient {
       requestSchemas.createBooking,
       responseSchemas.booking
     );
-    const transformed = this.transformBooking(booking);
-    
-    // If this is a PENDING booking, trigger a debug fetch to see what the API returns
-    if (booking.status === 'PENDING') {
-      setTimeout(async () => {
-        try {
-          const allBookings = await this.get('/bookings', { params: { limit: 100 } }, 'v2');
-          const bookingsData = allBookings.data || allBookings;
-          const pendingBookings = bookingsData.filter((b: any) => b.status === 'PENDING');
-        } catch (e) {
-        }
-      }, 1000);
-    }
-    
-    return transformed;
+    return this.transformBooking(booking);
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {

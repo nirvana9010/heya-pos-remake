@@ -116,18 +116,8 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
 
   const handleSaveBooking = async (bookingData: any) => {
     try {
-      
-      const bookingRequest = {
-        customerId: bookingData.customerId,
-        services: bookingData.services,
-        staffId: bookingData.staffId,
-        locationId: bookingData.locationId,
-        startTime: bookingData.startTime,
-        notes: bookingData.notes || ''
-      };
-      
-      
-      await apiClient.createBooking(bookingRequest);
+      // Booking is already created by BookingSlideOut component
+      // Just handle the UI updates and data refresh
       toast({
         title: "Booking Created",
         description: "The booking has been created successfully.",
