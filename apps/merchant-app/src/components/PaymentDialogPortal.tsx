@@ -30,22 +30,13 @@ export function PaymentDialogPortal(props: PaymentDialogPortalProps) {
   }, []);
 
   if (!mounted) {
-    console.log('[PaymentDialogPortal] Not mounted yet');
     return null;
   }
 
   const portalElement = document.getElementById('modal-portal');
   if (!portalElement) {
-    console.error('[PaymentDialogPortal] No modal-portal element found!');
     return null;
   }
-
-  console.log('[PaymentDialogPortal] Rendering with props:', {
-    open: props.open,
-    hasOrder: !!props.order,
-    orderId: props.order?.id,
-    orderState: props.order?.state
-  });
 
   return ReactDOM.createPortal(
     <PaymentDialogEnhanced {...props} />,
