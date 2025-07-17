@@ -363,6 +363,10 @@ function BookingDetailsSlideOutComponent({
       // Update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
+      
+      // Ensure dialog stays open
+      console.log('Payment dialog should be open with order:', paymentData.order.id);
+      setPaymentDialogOpen(true);
     } catch (error: any) {
       console.error('Failed to process payment:', error);
       console.error('Error details:', error.response || error.message);
@@ -709,6 +713,11 @@ function BookingDetailsSlideOutComponent({
       </div>
 
       {/* Payment Dialog - Using Portal to prevent parent re-renders */}
+      {console.log('PaymentDialogPortal props:', {
+        open: paymentDialogOpen,
+        order: selectedOrderForPayment?.id,
+        hasOrder: !!selectedOrderForPayment
+      })}
       <PaymentDialogPortal
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
