@@ -427,6 +427,9 @@ export function DailyView({
                             const bookingEnd = bookingStart + booking.duration;
                             
                             const overlappingBookings = allUnassignedBookings.filter(other => {
+                              // Skip the booking itself
+                              if (other.id === booking.id) return true;
+                              
                               const [otherHour, otherMin] = other.time.split(':').map(Number);
                               const otherStart = otherHour * 60 + otherMin;
                               const otherEnd = otherStart + other.duration;
@@ -435,7 +438,8 @@ export function DailyView({
                               return otherStart < bookingEnd && otherEnd > bookingStart;
                             });
                             
-                            const hasOverlaps = overlappingBookings.length > 1;
+                            // Only has overlaps if there are OTHER bookings overlapping (not counting itself)
+                            const hasOverlaps = overlappingBookings.filter(b => b.id !== booking.id).length > 0;
                             
                             // Debug logging for overlap detection
                             if (overlappingBookings.length > 1) {
@@ -655,6 +659,9 @@ export function DailyView({
                             const bookingEnd = bookingStart + booking.duration;
                             
                             const overlappingBookings = allStaffBookings.filter(other => {
+                              // Skip the booking itself
+                              if (other.id === booking.id) return true;
+                              
                               const [otherHour, otherMin] = other.time.split(':').map(Number);
                               const otherStart = otherHour * 60 + otherMin;
                               const otherEnd = otherStart + other.duration;
@@ -663,7 +670,8 @@ export function DailyView({
                               return otherStart < bookingEnd && otherEnd > bookingStart;
                             });
                             
-                            const hasOverlaps = overlappingBookings.length > 1;
+                            // Only has overlaps if there are OTHER bookings overlapping (not counting itself)
+                            const hasOverlaps = overlappingBookings.filter(b => b.id !== booking.id).length > 0;
                             
                             // Debug logging for overlap detection
                             if (overlappingBookings.length > 1) {
