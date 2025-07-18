@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { IPaymentGateway, PaymentGatewayConfig, PaymentResult, RefundResult } from '@heya-pos/types';
 import { TyroPaymentService } from './tyro-payment.service';
 import { MockPaymentService } from './mock-payment.service';
+import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
 export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
@@ -13,6 +14,7 @@ export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
     private configService: ConfigService,
     private tyroService: TyroPaymentService,
     private mockService: MockPaymentService,
+    private redisService: RedisService,
   ) {}
 
   async initialize(config: PaymentGatewayConfig): Promise<void> {
@@ -113,12 +115,25 @@ export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
   }
 
   async getGatewayConfig(merchantId: string): Promise<{ provider: string; config: any }> {
-    return {
+    // Cache payment gateway config for 5 minutes
+    const cacheKey = `payment-gateway:${merchantId}`;
+    const cached = await this.redisService.get(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+    
+    const config = {
       provider: this.provider,
       config: {
         merchantId,
         connected: await this.isConnected(),
       },
     };
+    
+    // Cache for 5 minutes
+    await this.redisService.set(cacheKey, config, 300);
+    
+    return config;
   }
 }

@@ -257,6 +257,7 @@ export class BookingsV2Controller {
       createdById: createdById, // Use the determined createdById
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,
+      orderId: dto.orderId, // Pass pre-created order ID if provided
     });
 
     const booking = await this.createBookingHandler.execute(command);
@@ -412,6 +413,36 @@ export class BookingsV2Controller {
         `Failed to mark booking as paid: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+
+  private async resolveWalkInCustomer(merchantId: string): Promise<string> {
+    const walkInCustomer = await this.prisma.customer.findFirst({
+      where: {
+        merchantId: merchantId,
+        OR: [
+          { firstName: 'Walk-in' },
+          { firstName: 'Walk In' },
+        ],
+      },
+    });
+    
+    if (!walkInCustomer) {
+      const newWalkIn = await this.prisma.customer.create({
+        data: {
+          merchantId: merchantId,
+          firstName: 'Walk-in',
+          lastName: 'Customer',
+          phone: '',
+          email: '',
+          tags: [],
+          source: 'WALK_IN',
+        },
+      });
+      return newWalkIn.id;
+    }
+    
+    return walkInCustomer.id;
   }
 
   /**
