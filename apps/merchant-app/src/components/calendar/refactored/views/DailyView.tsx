@@ -450,6 +450,9 @@ export function DailyView({
                             // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
                             
+                            // Determine if this is a short booking that needs compact layout
+                            const isCompactBooking = booking.duration <= 30;
+                            
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
                             }
@@ -524,7 +527,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${slotsSpanned * 40 - 4}px`,
+                                  height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   backgroundImage: booking.status === 'PENDING'
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
@@ -537,8 +540,8 @@ export function DailyView({
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
-                                  paddingTop: '12px',
-                                  paddingBottom: '12px',
+                                  paddingTop: isCompactBooking ? '8px' : '12px',
+                                  paddingBottom: isCompactBooking ? '8px' : '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -596,18 +599,53 @@ export function DailyView({
                                     </div>
                                   )}
                                 </div>
-                                {/* Time and duration - on its own row */}
-                                {booking.status !== 'cancelled' && (
-                                  <div className="text-sm font-medium opacity-75 mb-1">
-                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                  </div>
+                                {/* Compact layout for short bookings */}
+                                {isCompactBooking ? (
+                                  <>
+                                    {/* Inline time for compact bookings */}
+                                    {booking.status !== 'cancelled' && (
+                                      <div className="text-xs font-medium opacity-75 mb-0.5">
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <div 
+                                        className={cn("font-semibold truncate text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.customerName}
+                                      >
+                                        {booking.customerName}
+                                      </div>
+                                    </div>
+                                    <div 
+                                      className={cn("truncate text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={`${booking.serviceName} (${booking.duration}min)`}
+                                    >
+                                      {booking.serviceName}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    {/* Regular layout for longer bookings */}
+                                    {/* Time and duration - on its own row */}
+                                    {booking.status !== 'cancelled' && (
+                                      <div className="text-sm font-medium opacity-75 mb-1">
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                      </div>
+                                    )}
+                                    <div 
+                                      className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={booking.customerName}
+                                    >
+                                      {booking.customerName}
+                                    </div>
+                                    <div 
+                                      className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={booking.serviceName}
+                                    >
+                                      {booking.serviceName}
+                                    </div>
+                                  </>
                                 )}
-                                <div className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                                  {booking.customerName}
-                                </div>
-                                <div className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                                  {booking.serviceName}
-                                </div>
                               </div>
                             </DraggableBooking>
                           );
@@ -694,6 +732,9 @@ export function DailyView({
                             // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
                             
+                            // Determine if this is a short booking that needs compact layout
+                            const isCompactBooking = booking.duration <= 30;
+                            
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
                             }
@@ -768,7 +809,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${slotsSpanned * 40 - 4}px`,
+                                  height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   backgroundImage: booking.status === 'PENDING'
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
@@ -781,8 +822,8 @@ export function DailyView({
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
-                                  paddingTop: '12px',
-                                  paddingBottom: '12px',
+                                  paddingTop: isCompactBooking ? '8px' : '12px',
+                                  paddingBottom: isCompactBooking ? '8px' : '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -840,18 +881,53 @@ export function DailyView({
                                     </div>
                                   )}
                                 </div>
-                                {/* Time and duration - on its own row */}
-                                {booking.status !== 'cancelled' && (
-                                  <div className="text-sm font-medium opacity-75 mb-1">
-                                    {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                  </div>
+                                {/* Compact layout for short bookings */}
+                                {isCompactBooking ? (
+                                  <>
+                                    {/* Inline time for compact bookings */}
+                                    {booking.status !== 'cancelled' && (
+                                      <div className="text-xs font-medium opacity-75 mb-0.5">
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <div 
+                                        className={cn("font-semibold truncate text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.customerName}
+                                      >
+                                        {booking.customerName}
+                                      </div>
+                                    </div>
+                                    <div 
+                                      className={cn("truncate text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={`${booking.serviceName} (${booking.duration}min)`}
+                                    >
+                                      {booking.serviceName}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    {/* Regular layout for longer bookings */}
+                                    {/* Time and duration - on its own row */}
+                                    {booking.status !== 'cancelled' && (
+                                      <div className="text-sm font-medium opacity-75 mb-1">
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                      </div>
+                                    )}
+                                    <div 
+                                      className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={booking.customerName}
+                                    >
+                                      {booking.customerName}
+                                    </div>
+                                    <div 
+                                      className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      title={booking.serviceName}
+                                    >
+                                      {booking.serviceName}
+                                    </div>
+                                  </>
                                 )}
-                                <div className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                                  {booking.customerName}
-                                </div>
-                                <div className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}>
-                                  {booking.serviceName}
-                                </div>
                               </div>
                             </DraggableBooking>
                           );
