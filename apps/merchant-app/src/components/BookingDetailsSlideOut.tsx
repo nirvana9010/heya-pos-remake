@@ -131,10 +131,8 @@ function BookingDetailsSlideOutComponent({
       } catch (error: any) {
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
         if (error.message?.includes('already exists') || error.code === 'DUPLICATE_RESOURCE') {
-          console.log('Order already exists for booking, will be fetched when processing payment');
           // Don't set null here - we'll get the order when processing payment
         } else {
-          console.log('No order exists for booking yet');
           setAssociatedOrder(null);
         }
       } finally {
@@ -265,23 +263,10 @@ function BookingDetailsSlideOutComponent({
     
     try {
       // Use the optimized prepareOrderForPayment endpoint
-      console.log('[BookingDetailsSlideOut] Preparing order for payment for booking:', bookingId);
       
       // This endpoint creates order if needed and returns all payment data in one call
       const paymentData = await apiClient.prepareOrderForPayment({
         bookingId: bookingId
-      });
-      
-      console.log('[BookingDetailsSlideOut] Payment data received:', {
-        hasData: !!paymentData,
-        hasOrder: !!paymentData?.order,
-        orderId: paymentData?.order?.id,
-        orderState: paymentData?.order?.state,
-        totalAmount: paymentData?.order?.totalAmount,
-        itemCount: paymentData?.order?.items?.length,
-        hasPaymentGateway: !!paymentData?.paymentGateway,
-        hasMerchant: !!paymentData?.merchant,
-        hasLocation: !!paymentData?.location
       });
       
       if (!paymentData || !paymentData.order) {
@@ -290,7 +275,6 @@ function BookingDetailsSlideOutComponent({
       
       // Lock the order if it's in DRAFT state
       if (paymentData.order.state === 'DRAFT') {
-        console.log('Locking order in DRAFT state');
         await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
         // Update the order state in the payment data
         paymentData.order.state = 'LOCKED';
@@ -303,8 +287,6 @@ function BookingDetailsSlideOutComponent({
       // Show the payment dialog with the loaded order
       setPaymentDialogOpen(true);
     } catch (error: any) {
-      console.error('Failed to process payment:', error);
-      console.error('Error details:', error.response || error.message);
       
       // Close dialog on error
       setPaymentDialogOpen(false);
@@ -648,12 +630,6 @@ function BookingDetailsSlideOutComponent({
       </div>
 
       {/* Payment Dialog - Using Portal to prevent parent re-renders */}
-      {console.log('[BookingDetailsSlideOut] PaymentDialogPortal props:', {
-        open: paymentDialogOpen,
-        hasOrder: !!selectedOrderForPayment,
-        orderId: selectedOrderForPayment?.id,
-        orderState: selectedOrderForPayment?.state
-      })}
       <PaymentDialogPortal
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}

@@ -44,7 +44,6 @@ export function PaymentDialogEnhanced({
 
   // Update order when existingOrder prop changes
   useEffect(() => {
-    console.log('[PaymentDialogEnhanced] existingOrder changed:', existingOrder);
     if (existingOrder) {
       setOrder(existingOrder);
     }
@@ -62,7 +61,7 @@ export function PaymentDialogEnhanced({
             setCachedData(parsed);
           }
         } catch (e) {
-          console.error('Failed to parse localStorage data:', e);
+          // Silently ignore parse errors
         }
       }
     }
@@ -83,14 +82,6 @@ export function PaymentDialogEnhanced({
         const adjustedTotal = itemAdjustments[index] || originalTotal;
         const discount = originalTotal - adjustedTotal; // This can be positive (discount) or negative (surcharge)
         
-        console.log(`[PaymentDialogEnhanced] Service ${index} (${service.name}):`, {
-          originalPrice,
-          quantity: service.quantity,
-          originalTotal,
-          adjustedTotal,
-          discount,
-          itemAdjustments: itemAdjustments[index]
-        });
         
         const baseItem: any = {
           itemType: 'SERVICE',
@@ -138,12 +129,10 @@ export function PaymentDialogEnhanced({
       }
 
       // Single API call to prepare everything
-      console.log(`[PaymentDialogEnhanced] Preparing order with single API call`);
       const paymentData = await apiClient.prepareOrderForPayment(requestData);
       
-      console.log('[PaymentDialogEnhanced] Payment data received:', {
-        orderId: paymentData.order?.id,
-        itemCount: paymentData.order?.items?.length || 0,
+      setOrder({
+        ...paymentData.order,
         items: paymentData.order?.items?.map((item: any) => ({
           id: item.id,
           description: item.description,
@@ -164,11 +153,6 @@ export function PaymentDialogEnhanced({
       // Clear cached data since we now have real order
       setCachedData(null);
     } catch (err: any) {
-      console.error('Failed to prepare order:', err);
-      console.error('Error response:', err?.response);
-      console.error('Error details:', err?.response?.data || err);
-      console.error('Error status:', err?.response?.status);
-      console.error('Full error object:', JSON.stringify(err, null, 2));
       setError(err?.response?.data?.message || err?.message || 'Failed to prepare order');
     } finally {
       setIsCreatingOrder(false);
@@ -200,13 +184,6 @@ export function PaymentDialogEnhanced({
 
   // If we have selectedServices but no order, create order when dialog opens
   useEffect(() => {
-    console.log('[PaymentDialogEnhanced] Order creation check:', {
-      open,
-      hasSelectedServices: !!selectedServices,
-      hasOrder: !!order,
-      isCreatingOrder,
-      existingOrder: !!existingOrder
-    });
     // Only create order from services if we don't have an existing order
     if (open && selectedServices && !order && !isCreatingOrder && !existingOrder) {
       createOrderFromServices();
@@ -285,14 +262,6 @@ export function PaymentDialogEnhanced({
 
   // Always render the dialog when open is true, even if order isn't ready yet
   // This prevents the race condition where the dialog unmounts/remounts
-  console.log('[PaymentDialogEnhanced] Final render state:', {
-    open,
-    hasOrder: !!order,
-    orderId: order?.id,
-    orderState: order?.state,
-    hasCachedData: !!cachedData,
-    isLoading: order?.isLoading || false
-  });
   
   return (
     <PaymentDialog
