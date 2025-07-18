@@ -82,4 +82,8 @@ export class CreateBookingV2Dto {
   @IsString()
   @MaxLength(200)
   overrideReason?: string;
+
+  @IsOptional()
+  @IsUUID()
+  orderId?: string;
 }

@@ -298,4 +298,5 @@ export class BookingsClient extends BaseApiClient {
     const booking = await this.patch(`/bookings/${id}/complete`, {}, undefined, 'v2');
     return this.transformBooking(booking);
   }
+
 }

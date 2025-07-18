@@ -25,6 +25,7 @@ interface CreateBookingData {
   createdById: string;
   isOverride?: boolean;
   overrideReason?: string;
+  orderId?: string; // Pre-created order ID to link
 }
 
 interface ServiceDetails {
@@ -257,37 +258,92 @@ export class BookingCreationService {
         source: savedBooking.source,
       });
 
+      // 10. Link pre-created order if provided
+      if (data.orderId) {
+        await this.linkOrderToBooking(data.orderId, savedBooking.id, tx);
+      }
+
       return savedBooking;
     }, {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
 
-    // Pre-create order for the booking outside of the transaction
-    // This is non-blocking and improves payment modal performance
-    try {
-      console.log('[BookingCreationService] Pre-creating order for booking:', savedBooking.id);
-      
-      // Get the first staff member assigned for order creation  
-      const staffId = savedBooking.staffId || data.staffId;
-      
-      // Create the order in the background
-      this.ordersService.createOrderFromBooking(
-        savedBooking.id,
-        data.merchantId,
-        staffId
-      ).then(order => {
-        console.log('[BookingCreationService] Pre-created order:', order.id, 'for booking:', savedBooking.id);
-      }).catch(error => {
-        console.error('[BookingCreationService] Failed to pre-create order:', error);
-        // Don't throw - this is a non-critical optimization
-      });
-    } catch (error) {
-      console.error('[BookingCreationService] Error initiating order pre-creation:', error);
-      // Don't throw - this is a non-critical optimization
+    // Order creation moved to background process for better performance
+    // Order will be created when payment is initiated or by background job
+    // Unless a pre-created order was already linked above
+    
+    return savedBooking;
+  }
+
+  /**
+   * Link a pre-created order to a booking
+   */
+  private async linkOrderToBooking(
+    orderId: string,
+    bookingId: string,
+    tx: Prisma.TransactionClient
+  ): Promise<void> {
+    // Get the booking details to update the order
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        services: {
+          include: {
+            service: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found for order linking');
     }
 
-    return savedBooking;
+    // Calculate totals from booking services
+    let subtotal = 0;
+    const orderItems = [];
+
+    for (const bookingService of booking.services) {
+      const price = typeof bookingService.price === 'object' && bookingService.price !== null && 'toNumber' in bookingService.price
+        ? bookingService.price.toNumber()
+        : Number(bookingService.price);
+      
+      subtotal += price;
+      
+      orderItems.push({
+        serviceId: bookingService.serviceId,
+        name: bookingService.service.name,
+        quantity: 1,
+        unitPrice: price,
+        totalPrice: price,
+        discount: 0,
+        taxRate: 0,
+        taxAmount: 0,
+      });
+    }
+
+    // Update the order with booking details
+    await tx.order.update({
+      where: { id: orderId },
+      data: { 
+        bookingId: bookingId,
+        customerId: booking.customerId,
+        subtotal: subtotal,
+        totalAmount: subtotal, // Will be recalculated with tax/discounts later
+        balanceDue: subtotal,
+      },
+    });
+
+    // Create order items
+    if (orderItems.length > 0) {
+      await tx.orderItem.createMany({
+        data: orderItems.map(item => ({
+          orderId: orderId,
+          ...item,
+        })),
+      });
+    }
   }
 
   /**
@@ -475,4 +531,6 @@ export class BookingCreationService {
 
     return walkInCustomer;
   }
+
+
 }

@@ -325,59 +325,96 @@ function CalendarContent() {
       // LocationId is now optional in the database
       const locationId = merchant?.locations?.[0]?.id || merchant?.locationId;
       
-      const bookingRequest = {
-        customerId: finalCustomerId,
-        services: services,
-        staffId: finalStaffId,
-        locationId: locationId, // Always include location ID
-        startTime: bookingData.startTime.toISOString(),
-        notes: bookingData.notes || '',
-        isOverride: true, // Allow time conflicts for slideout bookings
-        source: 'MANUAL',
-      };
+      // BookingSlideOut now handles booking creation internally with optimistic updates
+      // We just need to handle the response data that was passed to onSave
       
+      // If bookingData has _isOptimistic flag, it's the initial optimistic update
+      if (bookingData._isOptimistic) {
+        // Transform and add optimistic booking to state immediately
+        const startTime = new Date(bookingData.startTime);
+        const transformedOptimistic = {
+          id: bookingData.id,
+          date: format(startTime, 'yyyy-MM-dd'),
+          time: format(startTime, 'HH:mm'),
+          duration: bookingData.services?.[0]?.duration || 30,
+          status: 'pending' as BookingStatus,
+          customerId: bookingData.customerId,
+          customerName: bookingData.customerName,
+          customerPhone: bookingData.customerPhone || '',
+          customerEmail: bookingData.customerEmail || '',
+          serviceId: bookingData.services?.[0]?.id || '',
+          serviceName: bookingData.services?.[0]?.name || '',
+          servicePrice: bookingData.totalPrice || 0,
+          staffId: bookingData.staffId || null,
+          staffName: bookingData.staffName || 'Unassigned',
+          notes: bookingData.notes || '',
+          paymentStatus: 'pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        actions.addBooking(transformedOptimistic);
+        return; // Don't do anything else for optimistic updates
+      }
       
-      const newBooking = await apiClient.createBooking(bookingRequest);
+      // If bookingData has _remove flag, remove the optimistic booking
+      if (bookingData._remove) {
+        // Remove failed optimistic booking
+        actions.removeBooking(bookingData.id);
+        return;
+      }
       
-      // Transform and add to local state
-      // The response is already transformed by the bookings client
-      const startTime = new Date(newBooking.startTime);
+      // Otherwise, it's the real booking data after successful creation
+      // Update the optimistic booking with real data
+      const existingOptimistic = state.bookings.find(b => b.id.startsWith('temp-'));
+      if (existingOptimistic) {
+        // Remove the optimistic booking
+        actions.removeBooking(existingOptimistic.id);
+      }
+      
+      // Transform the booking data for calendar display
+      const startTime = new Date(bookingData.startTime);
       
       // For multi-service bookings, we need to get the first service info for display
       // The calendar currently shows single bookings, so we'll use the first service
       let serviceId = bookingData.serviceId;
-      let serviceName = newBooking.serviceName;
-      let servicePrice = newBooking.price || newBooking.totalAmount || 0;
+      let serviceName = bookingData.serviceName;
+      let servicePrice = bookingData.totalPrice || 0;
+      let duration = bookingData.totalDuration || 30;
       
       if (bookingData.services && Array.isArray(bookingData.services) && bookingData.services.length > 0) {
         // Multi-service booking - use first service for display
-        serviceId = bookingData.services[0].serviceId;
-        // TODO: The API response for multi-service bookings might need adjustment
-        // For now, we'll use the response fields as-is
+        const firstService = bookingData.services[0];
+        serviceId = firstService.id || firstService.serviceId;
+        serviceName = firstService.name || serviceName;
+        duration = firstService.duration || duration;
+        servicePrice = firstService.price || servicePrice;
       }
       
       const transformedBooking = {
-        id: newBooking.id,
+        id: bookingData.id,
         date: format(startTime, 'yyyy-MM-dd'),
         time: format(startTime, 'HH:mm'),
-        duration: newBooking.duration || 30,
-        status: newBooking.status as BookingStatus,
-        customerId: newBooking.customerId,
-        customerName: newBooking.customerName,
-        customerPhone: newBooking.customerPhone || '',
-        customerEmail: newBooking.customerEmail || '',
+        duration: duration,
+        status: (bookingData.status || 'confirmed') as BookingStatus,
+        customerId: bookingData.customerId,
+        customerName: bookingData.customerName,
+        customerPhone: bookingData.customerPhone || '',
+        customerEmail: bookingData.customerEmail || '',
         serviceId: serviceId,
         serviceName: serviceName,
         servicePrice: servicePrice,
-        staffId: newBooking.staffId || null,
-        staffName: newBooking.staffName || 'Unassigned',
-        notes: newBooking.notes || '',
-        paymentStatus: 'pending',
+        staffId: bookingData.staffId || null,
+        staffName: bookingData.staffName || 'Unassigned',
+        notes: bookingData.notes || '',
+        paymentStatus: bookingData.isPaid ? 'paid' : 'pending',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       
-      actions.addBooking(transformedBooking);
+      // Don't add if it's already been added (for real booking updates)
+      if (!bookingData._isOptimistic) {
+        actions.addBooking(transformedBooking);
+      }
       actions.closeBookingSlideOut();
       
       // Broadcast the booking creation to other tabs

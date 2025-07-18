@@ -261,95 +261,21 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handleProcessPayment = async (bookingId: string) => {
-    // Create a temporary order object from booking data for immediate display
-    const tempOrder = {
-      id: 'temp-' + bookingId,
-      orderNumber: 'Loading...',
-      state: 'DRAFT',
-      subtotal: booking.totalPrice,
-      taxAmount: 0,
-      totalAmount: booking.totalPrice,
-      paidAmount: 0,
-      balanceDue: booking.totalPrice,
-      items: booking.services?.map((service, index) => ({
-        id: `temp-item-${index}`,
-        description: service.name,
-        quantity: 1,
-        unitPrice: service.price,
-        taxAmount: 0,
-        total: service.price,
-        staffId: booking.staffId,
-        staff: { name: booking.staffName }
-      })) || [{
-        id: 'temp-item-0',
-        description: booking.serviceName,
-        quantity: 1,
-        unitPrice: booking.totalPrice,
-        taxAmount: 0,
-        total: booking.totalPrice,
-        staffId: booking.staffId,
-        staff: { name: booking.staffName }
-      }],
-      payments: [],
-      customer: {
-        name: booking.customerName,
-        phone: booking.customerPhone,
-        email: booking.customerEmail
-      },
-      isLoading: true // Custom flag to indicate this is temporary data
-    };
-    
-    // Show the payment dialog immediately with temporary order data
-    setPaymentDialogOpen(true);
-    setSelectedOrderForPayment(tempOrder);
     setIsProcessingPayment(true);
     
-    // Fetch payment initialization data using optimized endpoint
     try {
-      let paymentData;
+      // Use the optimized prepareOrderForPayment endpoint
+      console.log('Preparing order for payment for booking:', bookingId);
       
-      // Check if we already have an associated order
-      if (associatedOrder && associatedOrder.id) {
-        console.log('Using existing associated order:', associatedOrder.id);
-        
-        // Use initializePayment with the existing order
-        paymentData = await apiClient.initializePayment({
-          orderId: associatedOrder.id,
-          bookingId: bookingId
-        });
-      } else {
-        // No order exists yet, try to create one
-        console.log('No associated order found, creating new order from booking');
-        
-        try {
-          // First try to create the order
-          const order = await apiClient.createOrderFromBooking(bookingId);
-          console.log('Created new order:', order);
-          
-          // Then initialize payment with the new order
-          paymentData = await apiClient.initializePayment({
-            orderId: order.id,
-            bookingId: bookingId
-          });
-        } catch (createError: any) {
-          // If order creation fails due to duplicate, use initializePayment with just bookingId
-          if (createError.message?.includes('already exists') || createError.code === 'DUPLICATE_RESOURCE') {
-            console.log('Order already exists, fetching via initializePayment');
-            
-            paymentData = await apiClient.initializePayment({
-              orderId: '', // Empty orderId will make the backend find it by bookingId
-              bookingId: bookingId
-            });
-          } else {
-            throw createError;
-          }
-        }
-      }
+      // This endpoint creates order if needed and returns all payment data in one call
+      const paymentData = await apiClient.prepareOrderForPayment({
+        bookingId: bookingId
+      });
       
       console.log('Payment data received:', paymentData);
       
       if (!paymentData || !paymentData.order) {
-        throw new Error('No order data received from payment initialization');
+        throw new Error('No order data received from payment preparation');
       }
       
       // Lock the order if it's in DRAFT state
@@ -363,6 +289,9 @@ function BookingDetailsSlideOutComponent({
       // Update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
+      
+      // Show the payment dialog with the loaded order
+      setPaymentDialogOpen(true);
     } catch (error: any) {
       console.error('Failed to process payment:', error);
       console.error('Error details:', error.response || error.message);
@@ -709,6 +638,12 @@ function BookingDetailsSlideOutComponent({
       </div>
 
       {/* Payment Dialog - Using Portal to prevent parent re-renders */}
+      {console.log('[BookingDetailsSlideOut] PaymentDialogPortal props:', {
+        open: paymentDialogOpen,
+        hasOrder: !!selectedOrderForPayment,
+        orderId: selectedOrderForPayment?.id,
+        orderState: selectedOrderForPayment?.state
+      })}
       <PaymentDialogPortal
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}

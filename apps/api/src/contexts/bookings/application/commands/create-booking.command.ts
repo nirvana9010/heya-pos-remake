@@ -20,6 +20,7 @@ export class CreateBookingCommand {
       createdById: string;
       isOverride?: boolean;
       overrideReason?: string;
+      orderId?: string; // Pre-created order ID to link
     }
   ) {
     // Validate that either serviceId or services is provided

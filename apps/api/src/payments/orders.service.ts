@@ -421,6 +421,23 @@ export class OrdersService {
     console.log(`[PERF] createOrderFromBooking - start`);
     const bookingStart = Date.now();
     
+    // Check cache first for existing order
+    const bookingCacheKey = RedisService.getOrderByBookingCacheKey(bookingId);
+    const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
+    
+    if (cachedOrderId) {
+      console.log(`[PERF] Found cached order ID in ${Date.now() - bookingStart}ms`);
+      // Verify the order still exists and return it
+      try {
+        const cachedOrder = await this.findOrderForPayment(cachedOrderId, merchantId);
+        console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms (cached)`);
+        return cachedOrder;
+      } catch (e) {
+        // Order doesn't exist anymore, continue with creation
+        await this.redisService.del(bookingCacheKey);
+      }
+    }
+    
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, merchantId },
       include: {
@@ -463,27 +480,13 @@ export class OrdersService {
       }
     }
 
-    // Check if order already exists for this booking - try cache first
+    // Check if order already exists for this booking (only DB check since cache was already checked above)
     const orderCheckStart = Date.now();
-    const bookingCacheKey = RedisService.getOrderByBookingCacheKey(bookingId);
-    const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
-    
-    let existingOrderCheck = null;
-    if (cachedOrderId) {
-      existingOrderCheck = { id: cachedOrderId };
-      console.log(`[PERF] Order existence check (cached) took ${Date.now() - orderCheckStart}ms`);
-    } else {
-      existingOrderCheck = await this.prisma.order.findFirst({
-        where: { bookingId },
-        select: { id: true }, // Only select ID for quick check
-      });
-      console.log(`[PERF] Order existence check (DB) took ${Date.now() - orderCheckStart}ms`);
-      
-      // Cache the order ID if found
-      if (existingOrderCheck) {
-        await this.redisService.set(bookingCacheKey, existingOrderCheck.id, 300); // 5 minutes
-      }
-    }
+    const existingOrderCheck = await this.prisma.order.findFirst({
+      where: { bookingId },
+      select: { id: true }, // Only select ID for quick check
+    });
+    console.log(`[PERF] Order existence check (DB) took ${Date.now() - orderCheckStart}ms`);
 
     if (existingOrderCheck) {
       console.log('[OrdersService] Order already exists for booking:', bookingId);
@@ -557,7 +560,8 @@ export class OrdersService {
     await this.addOrderItems(order.id, merchantId, items);
 
     // Cache the booking-order relationship
-    await this.redisService.set(bookingCacheKey, order.id, 300); // 5 minutes
+    const newBookingCacheKey = RedisService.getOrderByBookingCacheKey(bookingId);
+    await this.redisService.set(newBookingCacheKey, order.id, 300); // 5 minutes
 
     // Use lightweight query for new orders too
     const result = await this.findOrderForPayment(order.id, merchantId);
@@ -568,35 +572,83 @@ export class OrdersService {
   async prepareOrderForPayment(dto: PrepareOrderDto, user: any): Promise<PaymentInitResponseDto> {
     const startTime = Date.now();
     
-    // Pre-fetch data that doesn't need to be in transaction
-    let createdById: string;
+    // Pre-fetch ALL data that doesn't need to be in transaction for better performance
+    let createdById: string | undefined;
     let orderNumber: string | undefined;
+    let paymentGateway: any;
+    let merchant: any;
+    let location: any;
     
-    // Get staff ID for order creation (outside transaction)
+    // Start parallel fetches for non-transactional data
+    const parallelFetches = [];
+    
+    // 1. Payment gateway fetch (always needed)
+    parallelFetches.push(
+      this.paymentGatewayService.getGatewayConfig(user.merchantId)
+        .then(config => { paymentGateway = config; })
+    );
+    
+    // 2. Merchant info fetch (always needed)
+    parallelFetches.push(
+      this.prisma.merchant.findUnique({
+        where: { id: user.merchantId },
+        select: {
+          id: true,
+          name: true,
+          settings: true,
+        },
+      }).then(m => { merchant = m; })
+    );
+    
+    // 3. Location info fetch (if available)
+    if (user.locationId) {
+      parallelFetches.push(
+        this.prisma.location.findUnique({
+          where: { id: user.locationId },
+          select: {
+            id: true,
+            name: true,
+            settings: true,
+          },
+        }).then(l => { location = l; })
+      );
+    }
+    
+    // 4. Staff ID and order number for new orders
     if (!dto.orderId) {
+      // Get staff ID
       if (user.type === 'staff' && user.staffId) {
         createdById = user.staffId;
       } else {
-        const firstStaff = await this.prisma.staff.findFirst({
-          where: {
-            merchantId: user.merchantId,
-            status: 'ACTIVE',
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        });
-        
-        if (!firstStaff) {
-          throw new BadRequestException('No active staff members found. Please create a staff member first.');
-        }
-        
-        createdById = firstStaff.id;
+        parallelFetches.push(
+          this.prisma.staff.findFirst({
+            where: {
+              merchantId: user.merchantId,
+              status: 'ACTIVE',
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          }).then(firstStaff => {
+            if (!firstStaff) {
+              throw new BadRequestException('No active staff members found. Please create a staff member first.');
+            }
+            createdById = firstStaff.id;
+          })
+        );
       }
       
-      // Generate order number (outside transaction)
-      orderNumber = await this.generateOrderNumber(user.merchantId);
+      // Generate order number in parallel
+      parallelFetches.push(
+        this.generateOrderNumber(user.merchantId)
+          .then(num => { orderNumber = num; })
+      );
     }
+    
+    // Execute all parallel fetches
+    await Promise.all(parallelFetches);
+    
+    console.log(`[PrepareOrder] Pre-fetch completed in ${Date.now() - startTime}ms`);
     
     // Execute the core database operations in transaction
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
@@ -717,31 +769,7 @@ export class OrdersService {
       timeout: 10000 // 10 second timeout
     });
     
-    // Step 6: Get payment gateway config and merchant/location info (outside transaction)
-    const [paymentGateway, merchant, location] = await Promise.all([
-      // Get payment gateway config
-      this.paymentGatewayService.getGatewayConfig(user.merchantId),
-      
-      // Get merchant info
-      this.prisma.merchant.findUnique({
-        where: { id: user.merchantId },
-        select: {
-          id: true,
-          name: true,
-          settings: true,
-        },
-      }),
-      
-      // Get location info
-      user.locationId ? this.prisma.location.findUnique({
-        where: { id: user.locationId },
-        select: {
-          id: true,
-          name: true,
-          settings: true,
-        },
-      }) : null,
-    ]);
+    console.log(`[PrepareOrder] Transaction completed in ${Date.now() - startTime}ms`);
     
     // Build response
     const response: PaymentInitResponseDto = {
@@ -787,9 +815,10 @@ export class OrdersService {
       throw new Error('Order not found for recalculation');
     }
     
-    // Calculate subtotal from items
+    // Calculate subtotal from items and prepare batch updates
     let subtotal = new Decimal(0);
     let taxAmount = new Decimal(0);
+    const itemUpdates = [];
     
     for (const item of order.items) {
       const itemSubtotal = new Decimal(item.unitPrice)
@@ -799,7 +828,8 @@ export class OrdersService {
       const itemTax = itemSubtotal.mul(new Decimal(item.taxRate || 0));
       const itemTotal = itemSubtotal.add(itemTax);
       
-      await tx.orderItem.update({
+      // Prepare update for batch execution
+      itemUpdates.push({
         where: { id: item.id },
         data: {
           taxAmount: itemTax,
@@ -811,10 +841,20 @@ export class OrdersService {
       taxAmount = taxAmount.add(itemTax);
     }
     
+    // Execute all item updates in parallel
+    if (itemUpdates.length > 0) {
+      await Promise.all(
+        itemUpdates.map(update => 
+          tx.orderItem.update(update)
+        )
+      );
+    }
+    
     // Start with subtotal + tax
     let totalAmount = subtotal.add(taxAmount);
     
-    // Apply modifiers
+    // Apply modifiers and prepare batch updates
+    const modifierUpdates = [];
     for (const modifier of order.modifiers || []) {
       let modifierAmount = new Decimal(0);
       
@@ -828,12 +868,21 @@ export class OrdersService {
         modifierAmount = modifierAmount.neg();
       }
       
-      await tx.orderModifier.update({
+      modifierUpdates.push({
         where: { id: modifier.id },
         data: { amount: modifierAmount },
       });
       
       totalAmount = totalAmount.add(modifierAmount);
+    }
+    
+    // Execute all modifier updates in parallel
+    if (modifierUpdates.length > 0) {
+      await Promise.all(
+        modifierUpdates.map(update => 
+          tx.orderModifier.update(update)
+        )
+      );
     }
     
     // Calculate paid amount and balance due

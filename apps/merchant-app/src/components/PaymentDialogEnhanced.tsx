@@ -44,6 +44,7 @@ export function PaymentDialogEnhanced({
 
   // Update order when existingOrder prop changes
   useEffect(() => {
+    console.log('[PaymentDialogEnhanced] existingOrder changed:', existingOrder);
     if (existingOrder) {
       setOrder(existingOrder);
     }
@@ -197,6 +198,13 @@ export function PaymentDialogEnhanced({
 
   // If we have selectedServices but no order, create order when dialog opens
   useEffect(() => {
+    console.log('[PaymentDialogEnhanced] Order creation check:', {
+      open,
+      hasSelectedServices: !!selectedServices,
+      hasOrder: !!order,
+      isCreatingOrder,
+      existingOrder: !!existingOrder
+    });
     if (open && selectedServices && !order && !isCreatingOrder) {
       createOrderFromServices();
     }
@@ -266,11 +274,27 @@ export function PaymentDialogEnhanced({
   // Show normal payment dialog once order is ready
   // If we started with cached data, the dialog is already open
   // This will update it with the real order data
-  return (order || (open && cachedData)) ? (
+  // IMPORTANT: Always render the dialog when open=true to prevent unmounting issues
+  if (!open) {
+    return null;
+  }
+
+  // Always render the dialog when open is true, even if order isn't ready yet
+  // This prevents the race condition where the dialog unmounts/remounts
+  console.log('[PaymentDialogEnhanced] Final render state:', {
+    open,
+    hasOrder: !!order,
+    orderId: order?.id,
+    orderState: order?.state,
+    hasCachedData: !!cachedData,
+    isLoading: order?.isLoading || false
+  });
+  
+  return (
     <PaymentDialog
       open={open}
       onOpenChange={onOpenChange}
-      order={order || {
+      order={order || (cachedData ? {
         isCached: true,
         totalAmount: cachedData?.totals?.total || cachedData?.totals?.subtotal || 0,
         items: cachedData?.services?.map((s: any, index: number) => {
@@ -291,10 +315,15 @@ export function PaymentDialogEnhanced({
         }) || [],
         customer: cachedData?.customer,
         hasAdjustments: true // Flag to prevent further adjustments
-      }}
+      } : {
+        // Show loading state while waiting for order
+        isLoading: true,
+        totalAmount: 0,
+        items: []
+      })}
       onPaymentComplete={onPaymentComplete}
       enableTips={enableTips}
       defaultTipPercentages={defaultTipPercentages}
     />
-  ) : null;
+  );
 }

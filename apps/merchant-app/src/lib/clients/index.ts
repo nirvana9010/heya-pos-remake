@@ -193,7 +193,7 @@ export class ApiClient {
   }
 
   // Payment methods
-  async createOrder(data: { customerId?: string; bookingId?: string }) {
+  async createOrder(data: { customerId?: string; bookingId?: string; locationId?: string }) {
     return this.payments.createOrder(data);
   }
 

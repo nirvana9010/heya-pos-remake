@@ -82,6 +82,16 @@ export function BookingSlideOut({
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
   
+  // Debug logging for component lifecycle
+  React.useEffect(() => {
+    console.log('[BookingSlideOut] Component mounted/updated. isOpen:', isOpen);
+    return () => {
+      console.log('[BookingSlideOut] Component cleanup. isOpen:', isOpen);
+    };
+  });
+  
+  // Removed draft order logic - bookings create their own orders
+  
   // Filter out "Unassigned" staff when allowUnassignedBookings is false
   const filteredStaff = React.useMemo(() => {
     if (merchant?.settings?.allowUnassignedBookings === false) {
@@ -145,26 +155,64 @@ export function BookingSlideOut({
     [selectedServices]
   );
   
-  // Reset form when dialog opens
+
+  // Track previous open state to detect transitions
+  const prevIsOpenRef = React.useRef(isOpen);
+  const hasInitializedRef = React.useRef(false);
+
+  // Reset form only when transitioning from closed to open
   useEffect(() => {
-    if (isOpen) {
-      setDate(initialDate || defaultDate);
-      setTime(initialTime || defaultTime);
-      setSelectedServices([]);
-      setCustomerId("");
-      setCustomerName("");
-      setCustomerPhone("");
-      setCustomerEmail("");
-      setIsNewCustomer(true);
-      setIsWalkIn(false);
-      setNotes("");
-      setSendReminder(true);
-      setFinalCustomerId("");
+    const wasClosedNowOpen = !prevIsOpenRef.current && isOpen;
+    const wasOpenNowClosed = prevIsOpenRef.current && !isOpen;
+    
+    if (wasClosedNowOpen && !hasInitializedRef.current) {
+      console.log('[BookingSlideOut] Opening - resetting form');
+      console.log('[BookingSlideOut] Current selectedServices:', selectedServices.length);
+      
+      // Only reset if we don't have services selected (prevent accidental reset)
+      if (selectedServices.length === 0) {
+        // Reset form when opening
+        setDate(initialDate || defaultDate);
+        setTime(initialTime || defaultTime);
+        setSelectedServices([]);
+        setCustomerId("");
+        setCustomerName("");
+        setCustomerPhone("");
+        setCustomerEmail("");
+        setIsNewCustomer(true);
+        setIsWalkIn(false);
+        setNotes("");
+        setSendReminder(true);
+        setFinalCustomerId("");
+      } else {
+        console.log('[BookingSlideOut] Preserving existing services:', selectedServices.map(s => s.name));
+      }
+      
+      hasInitializedRef.current = true;
+    } else if (wasOpenNowClosed) {
+      console.log('[BookingSlideOut] Closing - cleaning up');
+      hasInitializedRef.current = false;
+    } else if (isOpen) {
+      console.log('[BookingSlideOut] Already open - no reset needed');
     }
-  }, [isOpen, initialDate, initialTime, defaultDate, defaultTime]);
+    
+    // Update the ref for next render
+    prevIsOpenRef.current = isOpen;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Only depend on isOpen
   
   
   const handleServiceSelect = (service: any) => {
+    console.log('[BookingSlideOut] Service selected:', service.name);
+    console.log('[BookingSlideOut] Current selected services:', selectedServices.length);
+    console.log('[BookingSlideOut] isOpen state:', isOpen);
+    
+    // Defensive check to ensure slideout is still open
+    if (!isOpen) {
+      console.warn('[BookingSlideOut] Attempting to select service but slideout is closed');
+      return;
+    }
+    
     const newService: SelectedService = {
       id: `service-${Date.now()}-${Math.random()}`,
       serviceId: service.id,
@@ -176,8 +224,17 @@ export function BookingSlideOut({
       categoryName: service.categoryName
     };
     
-    setSelectedServices([...selectedServices, newService]);
-    setIsServiceSlideoutOpen(false);
+    setSelectedServices(prev => {
+      const updated = [...prev, newService];
+      console.log('[BookingSlideOut] Updated selected services:', updated.length);
+      console.log('[BookingSlideOut] New services array:', updated.map(s => s.name));
+      return updated;
+    });
+    
+    // Close service slideout with a small delay to ensure state is saved
+    setTimeout(() => {
+      setIsServiceSlideoutOpen(false);
+    }, 50);
   };
   
   const removeService = (serviceId: string) => {
@@ -232,6 +289,9 @@ export function BookingSlideOut({
     }
     
     setIsSaving(true);
+    
+    // Declare optimisticBooking outside try block so it's accessible in catch
+    let optimisticBooking: any;
     
     try {
       // Create new customer if needed
@@ -315,23 +375,76 @@ export function BookingSlideOut({
       
       console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
       
-      // Actually create the booking
-      const response = await apiClient.bookings.createBooking(bookingData);
-      console.log('Booking created successfully:', response);
+      // Create optimistic booking for immediate UI update
+      optimisticBooking = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        bookingNumber: 'PENDING',
+        customerName: isWalkIn ? 'Walk-in Customer' : customerName,
+        customerPhone: customerPhone || '',
+        customerEmail: customerEmail || '',
+        services: selectedServices.map(s => ({
+          id: s.serviceId,
+          name: s.name,
+          duration: s.duration,
+          price: s.adjustedPrice
+        })),
+        staffName: selectedServices[0] ? staff.find(s => s.id === selectedServices[0].staffId)?.name || '' : '',
+        staffId: selectedServices[0]?.staffId || '',
+        startTime: combinedDateTime,
+        endTime: new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
+        status: 'pending' as const,
+        isPaid: false,
+        totalPrice: totalPrice,
+        notes: notes || '',
+        _isOptimistic: true // Flag to identify optimistic updates
+      };
       
-      // Cache invalidation
+      // Immediately update UI with optimistic booking
+      onSave(optimisticBooking);
+      
+      // Cache invalidation before API call
       try {
         invalidateBookingsCache();
       } catch (callbackError) {
         console.error('Error invalidating cache:', callbackError);
       }
       
-      // Close the slideout after successful creation
+      // Close the slideout immediately for better UX
       onClose();
+      
+      // Create the booking
+      const response = await apiClient.bookings.createBooking(bookingData);
+      
+      console.log('Booking created successfully:', response);
+      
+      // Update with real booking data (parent component should handle replacing optimistic with real)
+      if (response && response.id) {
+        // Map the API response to the expected format
+        const realBooking = {
+          ...optimisticBooking,
+          id: response.id,
+          bookingNumber: response.bookingNumber || 'PENDING',
+          status: response.status?.toLowerCase() || 'confirmed',
+          _isOptimistic: false
+        };
+        onSave(realBooking);
+      }
       
     } catch (error) {
       console.error('Failed to create booking:', error);
+      
+      // Remove the optimistic booking on error
+      // Parent component should handle removing bookings with matching temp ID
+      onSave({ 
+        id: optimisticBooking.id, 
+        _isOptimistic: true, 
+        _remove: true 
+      });
+      
       alert('Failed to create booking. Please try again.');
+      
+      // Re-open the slideout so user can try again
+      // Note: This assumes parent provides a way to re-open, otherwise user needs to start over
     } finally {
       setIsSaving(false);
     }
@@ -349,7 +462,7 @@ export function BookingSlideOut({
         onClose={onClose}
         title="New Booking"
         width="wide"
-        preserveState={false}
+        preserveState={true}
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={onClose}>
