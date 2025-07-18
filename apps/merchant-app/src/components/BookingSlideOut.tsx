@@ -85,13 +85,6 @@ export function BookingSlideOut({
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
   
-  // Debug logging for component lifecycle
-  React.useEffect(() => {
-    console.log('[BookingSlideOut] Component mounted/updated. isOpen:', isOpen);
-    return () => {
-      console.log('[BookingSlideOut] Component cleanup. isOpen:', isOpen);
-    };
-  });
   
   // Removed draft order logic - bookings create their own orders
   
@@ -170,8 +163,6 @@ export function BookingSlideOut({
     const wasOpenNowClosed = prevIsOpenRef.current && !isOpen;
     
     if (wasClosedNowOpen && !hasInitializedRef.current) {
-      console.log('[BookingSlideOut] Opening - resetting form');
-      console.log('[BookingSlideOut] Current selectedServices:', selectedServices.length);
       
       // Only reset if we don't have services selected (prevent accidental reset)
       if (selectedServices.length === 0) {
@@ -188,16 +179,11 @@ export function BookingSlideOut({
         setSendReminder(true);
         setFinalCustomerId("");
         setSelectedCustomer(null);
-      } else {
-        console.log('[BookingSlideOut] Preserving existing services:', selectedServices.map(s => s.name));
       }
       
       hasInitializedRef.current = true;
     } else if (wasOpenNowClosed) {
-      console.log('[BookingSlideOut] Closing - cleaning up');
       hasInitializedRef.current = false;
-    } else if (isOpen) {
-      console.log('[BookingSlideOut] Already open - no reset needed');
     }
     
     // Update the ref for next render
@@ -207,13 +193,9 @@ export function BookingSlideOut({
   
   
   const handleServiceSelect = (service: any) => {
-    console.log('[BookingSlideOut] Service selected:', service.name);
-    console.log('[BookingSlideOut] Current selected services:', selectedServices.length);
-    console.log('[BookingSlideOut] isOpen state:', isOpen);
     
     // Defensive check to ensure slideout is still open
     if (!isOpen) {
-      console.warn('[BookingSlideOut] Attempting to select service but slideout is closed');
       return;
     }
     
@@ -230,8 +212,6 @@ export function BookingSlideOut({
     
     setSelectedServices(prev => {
       const updated = [...prev, newService];
-      console.log('[BookingSlideOut] Updated selected services:', updated.length);
-      console.log('[BookingSlideOut] New services array:', updated.map(s => s.name));
       return updated;
     });
     
@@ -282,7 +262,6 @@ export function BookingSlideOut({
   const handleCreateBooking = async () => {
     // Early return if already saving (prevent duplicate calls)
     if (isSaving) {
-      console.log('[BookingSlideOut] Already saving, ignoring duplicate call');
       return;
     }
 
@@ -325,32 +304,11 @@ export function BookingSlideOut({
       
       // Build booking data for V2 API
       const startTimeISO = combinedDateTime.toISOString();
-      console.log('Start time ISO:', startTimeISO, 'Type:', typeof startTimeISO);
-      console.log('Customer ID debug:', {
-        isWalkIn,
-        selectedCustomer: selectedCustomer?.id,
-        resolvedCustomerId: resolvedCustomerId,
-        finalCustomerIdForBooking: resolvedCustomerId
-      });
       
       const finalCustomerIdForBooking = resolvedCustomerId;
       
-      console.log('Final booking data validation:', {
-        isWalkIn,
-        selectedCustomer: selectedCustomer?.id,
-        resolvedCustomerId: resolvedCustomerId,
-        finalCustomerIdForBooking: finalCustomerIdForBooking,
-        isValidCustomerId: finalCustomerIdForBooking && finalCustomerIdForBooking.length > 0
-      });
-      
       // Strict validation to prevent API validation errors
       if (!finalCustomerIdForBooking || finalCustomerIdForBooking.trim() === '') {
-        console.error('[BookingSlideOut] Customer ID validation failed:', {
-          isWalkIn,
-          selectedCustomer: selectedCustomer?.id,
-          resolvedCustomerId,
-          finalCustomerIdForBooking
-        });
         throw new Error('Customer ID is required for booking creation');
       }
       
@@ -371,8 +329,6 @@ export function BookingSlideOut({
         source: 'IN_PERSON',
         isOverride: true
       };
-      
-      console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
       
       // Create optimistic booking for immediate UI update
       optimisticBooking = {
@@ -406,7 +362,7 @@ export function BookingSlideOut({
       try {
         invalidateBookingsCache();
       } catch (callbackError) {
-        console.error('Error invalidating cache:', callbackError);
+        // Silently ignore cache invalidation errors
       }
       
       // Show immediate loading toast and store the function to dismiss it
@@ -422,8 +378,6 @@ export function BookingSlideOut({
       
       // Create the booking
       const response = await apiClient.bookings.createBooking(bookingData);
-      
-      console.log('Booking created successfully:', response);
       
       // Update with real booking data (parent component should handle replacing optimistic with real)
       if (response && response.id) {
@@ -441,7 +395,6 @@ export function BookingSlideOut({
       }
       
     } catch (error) {
-      console.error('Failed to create booking:', error);
       
       // Dismiss the loading toast
       if (dismissLoadingToast) {

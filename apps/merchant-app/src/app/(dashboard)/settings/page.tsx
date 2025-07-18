@@ -231,12 +231,12 @@ export default function SettingsPage() {
         requirePinForCancellations,
         requirePinForReports,
         requirePinForStaff,
-        requireDeposit,
-        depositPercentage: parseInt(depositPercentage),
+        // requireDeposit, // Hidden - not functional
+        // depositPercentage: parseInt(depositPercentage), // Hidden - not functional
         timezone: selectedTimezone,
-        enableTips,
-        defaultTipPercentages,
-        allowCustomTipAmount,
+        // enableTips, // Hidden - not functional
+        // defaultTipPercentages, // Hidden - not functional
+        // allowCustomTipAmount, // Hidden - not functional
         showUnassignedColumn,
         allowUnassignedBookings,
         autoConfirmBookings,
@@ -602,6 +602,7 @@ export default function SettingsPage() {
                       All bookings and appointments will be displayed in this timezone
                     </p>
                   </div>
+                  {/* Currency setting hidden - not currently functional
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
                     <Select defaultValue="AUD">
@@ -615,6 +616,7 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  */}
                 </div>
                 
                 <div className="space-y-2">
@@ -810,6 +812,7 @@ export default function SettingsPage() {
                     onCheckedChange={setAutoConfirmBookings}
                   />
                 </div>
+                {/* Buffer Time setting hidden - not currently functional
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Buffer Time Between Appointments</Label>
@@ -828,6 +831,7 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Show Unassigned Column</Label>
@@ -902,6 +906,10 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-medium">Payment Settings</h3>
                 
                 <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Payment settings are managed through your payment provider configuration.
+                  </p>
+                {/* Require Deposit setting hidden - not currently functional
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Require Deposit</Label>
@@ -935,9 +943,11 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   )}
+                */}
 
                   <Separator />
 
+                  {/* Enable Tips setting hidden - not currently functional
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Enable Tips</Label>
@@ -987,6 +997,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
+                  */}
                 </div>
               </div>
 

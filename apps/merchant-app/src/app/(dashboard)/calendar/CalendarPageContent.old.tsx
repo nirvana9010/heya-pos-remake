@@ -78,7 +78,6 @@ import { BookingDetailsSlideOut } from "@/components/BookingDetailsSlideOut";
 // Safe component wrapper that prevents Date objects from being rendered
 const SafeRender: React.FC<{ children: any }> = ({ children }) => {
   if (children instanceof Date) {
-    console.error('Attempted to render Date object:', children);
     return <>{safeFormat(children, 'PPP')}</>;
   }
   
@@ -350,9 +349,6 @@ const bookingSummary = mockBookings.reduce((acc, booking) => {
   return acc;
 }, {} as Record<string, { total: number; byStaff: Record<string, number> }>);
 
-// Commenting out console.logs that might cause issues in some environments
-// console.log(`Generated ${mockBookings.length} mock bookings for 14 days`);
-// console.log('Booking distribution by day:', bookingSummary);
 
 // Keep original mock bookings as fallback
 const originalMockBookings: Booking[] = [
@@ -806,13 +802,11 @@ const calculateBookingLayout = (dayBookings: Booking[]) => {
 export default function CalendarPageContent() {
   const { toast } = useToast();
   
-  console.log('🔄 CalendarPageContent rendering at', new Date().toISOString());
   
   // Ensure initial date is valid 
   const [currentDate, setCurrentDate] = useState(() => {
     const date = new Date();
     if (!isValidDate(date)) {
-      console.error('Invalid initial date, using fallback');
       return new Date('2025-01-01');
     }
     return date;
@@ -838,7 +832,6 @@ export default function CalendarPageContent() {
   }>({});
   const [currentTime, setCurrentTime] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>(() => {
-    console.log('📅 Initial bookings state: empty array');
     return [];
   });
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -917,7 +910,6 @@ export default function CalendarPageContent() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
-    console.log('Drag ended:', { active: active?.id, over: over?.id });
     
     // Quick debug - write to file
     if (typeof window !== 'undefined') {
@@ -942,15 +934,12 @@ export default function CalendarPageContent() {
     setDragOverSlot(null);
     
     if (!over || !activeBooking) {
-      console.log('No over target or active booking');
       return;
     }
     
     const targetSlot = over.data.current;
-    console.log('Target slot:', targetSlot);
     
     if (!targetSlot || targetSlot.type !== 'timeSlot') {
-      console.log('Invalid target slot type');
       return;
     }
     
@@ -969,8 +958,6 @@ export default function CalendarPageContent() {
       }
     );
     
-    console.log('Validation result:', validation);
-    console.log('Active booking:', activeBooking);
     
     if (!validation.canDrop) {
       toast({
@@ -983,7 +970,6 @@ export default function CalendarPageContent() {
     
     // Optimistic update
     const previousBookings = [...bookings];
-    console.log('Previous bookings count:', previousBookings.length);
     
     const updatedBooking = {
       ...activeBooking,
@@ -993,20 +979,17 @@ export default function CalendarPageContent() {
       endTime: new Date(targetSlot.startTime.getTime() + (activeBooking.duration || 60) * 60000),
     };
     
-    console.log('Updating booking:', {
       id: activeBooking.id,
       oldTime: activeBooking.startTime,
       newTime: targetSlot.startTime
     });
     
     const newBookings = bookings.map(b => b.id === activeBooking.id ? updatedBooking : b);
-    console.log('New bookings count:', newBookings.length);
     
     setBookings(newBookings);
     
     try {
       // Call API to update booking
-      console.log('Calling API to reschedule booking:', {
         bookingId: activeBooking.id,
         oldStaffId: activeBooking.staffId,
         newStaffId: targetSlot.staffId,
@@ -1020,7 +1003,6 @@ export default function CalendarPageContent() {
       let reschedulePromise;
       
       // V2 API now properly handles both time and staff updates together
-      console.log('Updating booking with V2 API - time and staff together');
       reschedulePromise = apiClient.rescheduleBooking(activeBooking.id, {
         startTime: targetSlot.startTime.toISOString(),
         staffId: targetSlot.staffId, // V2 API accepts staffId directly
@@ -1033,7 +1015,6 @@ export default function CalendarPageContent() {
       
       const result = await Promise.race([reschedulePromise, timeoutPromise]);
       
-      console.log('Reschedule successful, result:', result);
       
       // Debug logging removed for production
       
@@ -1043,13 +1024,9 @@ export default function CalendarPageContent() {
       });
       
       // Refresh bookings to get latest data
-      console.log('Refreshing bookings after successful reschedule...');
       await loadBookings();
     } catch (error: any) {
       // Rollback on failure
-      console.error('Reschedule error:', error);
-      console.error('Error response:', error?.response);
-      console.error('Full error object:', {
         message: error?.message,
         stack: error?.stack,
         config: error?.config,
@@ -1058,17 +1035,12 @@ export default function CalendarPageContent() {
       
       // Debug logging removed for production
       
-      console.log('Rolling back to previous bookings...');
-      console.log('Bookings before rollback:', bookings.length);
-      console.log('Rolling back to:', previousBookings.length);
       
       setBookings(previousBookings);
       
       // Double-check the booking wasn't lost
       setTimeout(() => {
-        console.log('Bookings after rollback:', bookings.length);
         if (bookings.length === 0 && previousBookings.length > 0) {
-          console.error('CRITICAL: Bookings were lost! Reloading...');
           loadBookings();
         }
       }, 100);
@@ -1092,7 +1064,6 @@ export default function CalendarPageContent() {
 
   // Load bookings from API
   const loadBookings = async () => {
-    console.log('📚 loadBookings called');
     
     // Remove local token check - AuthGuard handles authentication
     // The apiClient will use the token from localStorage automatically
@@ -1103,7 +1074,6 @@ export default function CalendarPageContent() {
       // Pass date parameters based on view type
       let params: any = {};
       
-      console.log('Loading bookings for:', {
         viewType,
         currentDate: currentDate.toISOString(),
         currentDateLocal: currentDate.toLocaleDateString()
@@ -1112,7 +1082,6 @@ export default function CalendarPageContent() {
       if (viewType === 'day') {
         // For day view, get bookings for the specific date
         params.date = currentDate.toISOString().split('T')[0];
-        console.log('Day view params:', params);
         } else if (viewType === 'week') {
           // For week view, get bookings for the week
           const weekStart = startOfWeek(currentDate);
@@ -1127,20 +1096,10 @@ export default function CalendarPageContent() {
           params.endDate = monthEnd.toISOString().split('T')[0];
         }
         
-        console.log('🔍 Calling apiClient.getBookings with params:', params);
         const apiBookings = await apiClient.getBookings(params);
         
-        console.log('=== API BOOKINGS LOADED ===');
-        console.log('Number of bookings from API:', apiBookings.length);
-        console.log('API response:', apiBookings);
         if (apiBookings.length > 0) {
-          console.log('First booking from API:', apiBookings[0]);
-          console.log('Booking fields:', Object.keys(apiBookings[0]));
-          console.log('First booking startTime raw:', apiBookings[0].startTime);
-          console.log('First booking startTime as Date:', new Date(apiBookings[0].startTime));
-          console.log('User timezone offset:', new Date().getTimezoneOffset());
         }
-        console.log('=== END API BOOKINGS ===');
         
         // API client already transforms the data, just adjust for calendar view
         const transformedBookings = apiBookings.map((booking: any) => {
@@ -1150,7 +1109,6 @@ export default function CalendarPageContent() {
           
           // Debug unassigned bookings (commented out to reduce console noise)
           // if (booking.staffName === 'Unassigned' || (!booking.staffId && !booking.providerId)) {
-          //   console.log('[DEBUG] Unassigned booking detected:', {
           //     id: booking.id,
           //     staffId: booking.staffId,
           //     providerId: booking.providerId,
@@ -1186,26 +1144,17 @@ export default function CalendarPageContent() {
         });
         
         setBookings(transformedBookings);
-        console.log('Successfully loaded', transformedBookings.length, 'bookings from API');
         
         // Debug Daily view specifically
         if (viewType === 'day') {
-          console.log('[DEBUG] Daily View - currentDate:', currentDate);
-          console.log('[DEBUG] Daily View - currentDate ISO:', currentDate.toISOString());
           const todayBookings = transformedBookings.filter(b => {
             const sameDay = isSameDay(b.startTime, currentDate);
             if (transformedBookings.length < 5) { // Only log first few to avoid spam
-              console.log(`Booking ${b.id}: startTime=${b.startTime}, startTime ISO=${b.startTime.toISOString()}, sameDay=${sameDay}`);
             }
             return sameDay;
           });
-          console.log('[DEBUG] Daily View - bookings for today:', todayBookings.length);
         }
       } catch (error: any) {
-        console.error('Failed to load bookings:', error);
-        console.error('Error type:', Object.prototype.toString.call(error));
-        console.error('Error keys:', Object.keys(error || {}));
-        console.error('Error details:', {
           message: error?.message,
           response: error?.response,
           status: error?.response?.status,
@@ -1215,7 +1164,6 @@ export default function CalendarPageContent() {
         
         // If it's a 401, the auth interceptor will handle it
         if (error?.response?.status === 401 || error?.status === 401) {
-          console.error('Authentication failed - auth provider will handle redirect');
           return;
         }
         
@@ -1233,7 +1181,6 @@ export default function CalendarPageContent() {
         });
         // Only use mock data in development
         if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ Using MOCK bookings - drag and drop will not work with API!');
           setBookings(mockBookings);
         }
       } finally {
@@ -1254,7 +1201,6 @@ export default function CalendarPageContent() {
           setShowUnassignedColumn(settings.showUnassignedColumn);
         }
       } catch (error) {
-        console.error('Failed to load merchant settings:', error);
       }
     };
 
@@ -1284,7 +1230,6 @@ export default function CalendarPageContent() {
           selectedStaffIds: transformedStaff.map((s: Staff) => s.id)
         }));
       } catch (error) {
-        console.error('Failed to load staff:', error);
         
         // Provide specific error messages based on the error type
         let errorMessage = "Unable to load staff data. Please try again.";
@@ -1370,13 +1315,11 @@ export default function CalendarPageContent() {
                   end: latestEnd,
                   days: openDays
                 });
-                console.log('Loaded business hours:', { start: earliestStart, end: latestEnd, days: openDays });
               }
             }
           }
         }
       } catch (error) {
-        console.error('Failed to load location data:', error);
         // Keep using mock business hours if load fails
       }
     };
@@ -1424,9 +1367,6 @@ export default function CalendarPageContent() {
     : staff.filter(s => filters.selectedStaffIds.includes(s.id));
   
   const filteredBookings = useMemo(() => {
-    console.log('=== FILTERING BOOKINGS ===');
-    console.log('Total bookings to filter:', bookings.length);
-    console.log('Filter settings:', {
       showCompleted: filters.showCompleted,
       showCancelled: filters.showCancelled,
       selectedStaffIds: filters.selectedStaffIds,
@@ -1436,7 +1376,6 @@ export default function CalendarPageContent() {
     const filtered = bookings.filter((booking, index) => {
       // Log first 3 bookings in detail
       if (index < 3) {
-        console.log(`Booking ${index}:`, {
           id: booking.id,
           staffId: booking.staffId,
           status: booking.status,
@@ -1445,11 +1384,9 @@ export default function CalendarPageContent() {
       }
       
       if (!filters.showCompleted && booking.status === "completed") {
-        console.log(`Filtered out booking ${booking.id} - completed and showCompleted=false`);
         return false;
       }
       if (!filters.showCancelled && booking.status === "cancelled") {
-        console.log(`Filtered out booking ${booking.id} - cancelled and showCancelled=false`);
         return false;
       }
       // If no staff are selected (initial state), show all bookings
@@ -1463,7 +1400,6 @@ export default function CalendarPageContent() {
         // For assigned bookings, check if staff is selected
         if (!filters.selectedStaffIds.includes(booking.staffId)) {
           if (index < 3) {
-            console.log(`Filtered out booking ${booking.id} - staffId ${booking.staffId} not in selected:`, filters.selectedStaffIds);
           }
           return false;
         }
@@ -1471,8 +1407,6 @@ export default function CalendarPageContent() {
       return true;
     });
     
-    console.log('Filtered bookings count:', filtered.length);
-    console.log('=== END FILTERING ===');
     
     return filtered;
   }, [filters, bookings]);
@@ -1742,10 +1676,6 @@ export default function CalendarPageContent() {
                     const todayBookings = filteredBookings.filter(b => isSameDay(b.startTime, currentDate));
                     
                     // Log EVERYTHING to find the issue
-                    console.log('=== CALENDAR DEBUG ===');
-                    console.log('View Type:', viewType);
-                    console.log('Current Date:', currentDate.toDateString());
-                    console.log('Staff Info:', {
                       totalStaff: staff.length,
                       visibleStaffCount: visibleStaff.length,
                       visibleStaffIds: visibleStaff.map(s => s.id),
@@ -1753,7 +1683,6 @@ export default function CalendarPageContent() {
                       currentStaffName: staffMember.name
                     });
                     
-                    console.log('Booking Info:', {
                       totalBookings: bookings.length,
                       filteredBookings: filteredBookings.length,
                       bookingsForToday: todayBookings.length,
@@ -1775,7 +1704,6 @@ export default function CalendarPageContent() {
                       }))
                     });
                     
-                    console.log('Time Slot Info:', {
                       slotTime: slot.time,
                       slotHour: slot.hour,
                       slotMinute: slot.minute,
@@ -1791,7 +1719,6 @@ export default function CalendarPageContent() {
                       
                       if (!sameStaff || !sameDay) return false;
                       
-                      console.log('Checking booking match:', {
                         bookingId: b.id,
                         sameStaff,
                         sameDay,
@@ -1806,8 +1733,6 @@ export default function CalendarPageContent() {
                       return true;
                     });
                     
-                    console.log('Potential matches for this staff today:', potentialMatches.length);
-                    console.log('=== END DEBUG ===');
                   }
                   
                   // Find bookings that match this time slot
@@ -2490,7 +2415,6 @@ export default function CalendarPageContent() {
           <div className="grid grid-cols-7">
             {days.map((day) => {
               if (!day || !(day instanceof Date)) {
-                console.error("Invalid day in calendar grid:", day);
                 return null;
               }
               const dayBookings = filteredBookings.filter(b => 
@@ -2906,7 +2830,6 @@ export default function CalendarPageContent() {
             services={mockServices}
             customers={mockCustomers}
             onSave={(booking) => {
-              console.log("New booking:", booking);
               setIsBookingOpen(false);
               setNewBookingData({});
             }}
@@ -2921,7 +2844,6 @@ export default function CalendarPageContent() {
             booking={selectedBooking}
             staff={visibleStaff}
             onSave={(updatedBooking) => {
-              console.log("Updated booking:", updatedBooking);
               // Update the booking in the list
               setBookings(prev => prev.map(b => 
                 b.id === updatedBooking.id ? updatedBooking : b
@@ -2929,7 +2851,6 @@ export default function CalendarPageContent() {
               setSelectedBooking(null);
             }}
             onDelete={(bookingId) => {
-              console.log("Delete booking:", bookingId);
               // Remove the booking from the list
               setBookings(prev => prev.filter(b => b.id !== bookingId));
               setSelectedBooking(null);
