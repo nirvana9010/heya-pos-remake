@@ -677,12 +677,15 @@ export class OrdersService {
           throw new BadRequestException('Cannot modify a locked order');
         }
       } else if (dto.bookingId) {
+        console.log(`[PrepareOrder] Looking for order by bookingId: ${dto.bookingId}`);
+        
         // Check cache first for booking order
         const bookingCacheKey = RedisService.getOrderByBookingCacheKey(dto.bookingId);
         const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
         
         let existingBookingOrder = null;
         if (cachedOrderId) {
+          console.log(`[PrepareOrder] Cache hit for booking ${dto.bookingId}: orderId ${cachedOrderId}`);
           // Try to get the cached order
           existingBookingOrder = await tx.order.findFirst({
             where: { 
@@ -699,11 +702,15 @@ export class OrdersService {
           
           if (existingBookingOrder) {
             console.log(`[PrepareOrder] Found cached order ${cachedOrderId} for booking ${dto.bookingId}`);
+          } else {
+            console.log(`[PrepareOrder] Cached order ${cachedOrderId} not found, clearing cache`);
+            await this.redisService.del(bookingCacheKey);
           }
         }
         
         // If not in cache or cache miss, check database
         if (!existingBookingOrder) {
+          console.log(`[PrepareOrder] Checking database for order with bookingId ${dto.bookingId}`);
           existingBookingOrder = await tx.order.findFirst({
             where: { 
               bookingId: dto.bookingId,
@@ -719,12 +726,15 @@ export class OrdersService {
           
           // Cache the order ID if found
           if (existingBookingOrder) {
+            console.log(`[PrepareOrder] Found order ${existingBookingOrder.id} in database for booking ${dto.bookingId}`);
             await this.redisService.set(bookingCacheKey, existingBookingOrder.id, 300); // 5 minutes
+          } else {
+            console.log(`[PrepareOrder] No existing order found for booking ${dto.bookingId}, will create new one`);
           }
         }
         
         if (existingBookingOrder) {
-          console.log(`[PrepareOrder] Found existing order for booking ${dto.bookingId}`);
+          console.log(`[PrepareOrder] Using existing order ${existingBookingOrder.id} for booking ${dto.bookingId}`);
           order = existingBookingOrder;
         } else {
           // Create new order for booking - use createOrderFromBooking logic
