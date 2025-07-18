@@ -1054,7 +1054,7 @@ export default function BookingPageClient() {
             )}
           </div>
           
-          <div className="w-full">
+          <div className="w-full flex justify-center">
             <HorizontalDatePicker
               selectedDate={selectedDate}
               onSelectDate={(date) => {

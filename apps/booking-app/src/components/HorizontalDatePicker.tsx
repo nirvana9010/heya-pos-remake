@@ -97,10 +97,10 @@ export const HorizontalDatePicker: React.FC<HorizontalDatePickerProps> = ({
       {/* Date Scroll Container */}
       <div 
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide px-12"
+        className="overflow-x-auto scrollbar-hide px-12 mx-auto"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <div className="flex gap-3 py-4">
+        <div className="flex gap-3 py-4 justify-center">
           {dates.map((date) => {
             const isSelected = selectedDate && isSameDay(date, selectedDate);
             const isDisabled = disabledDates?.(date) ?? false;
