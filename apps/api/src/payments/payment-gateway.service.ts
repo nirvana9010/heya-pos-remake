@@ -117,9 +117,9 @@ export class PaymentGatewayService implements IPaymentGateway, OnModuleInit {
   async getGatewayConfig(merchantId: string): Promise<{ provider: string; config: any }> {
     // Cache payment gateway config for 5 minutes
     const cacheKey = `payment-gateway:${merchantId}`;
-    const cached = await this.redisService.get(cacheKey);
+    const cached = await this.redisService.get<{ provider: string; config: any }>(cacheKey);
     
-    if (cached) {
+    if (cached && cached.provider && cached.config) {
       return cached;
     }
     

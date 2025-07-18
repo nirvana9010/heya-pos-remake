@@ -189,12 +189,14 @@ export function PaymentDialogEnhanced({
 
   // Clear order when services or adjustments change (user made changes)
   useEffect(() => {
-    if (order && open) {
+    // Only clear if we're in quick sale mode (have selectedServices)
+    // Don't clear for existing orders from bookings
+    if (order && open && selectedServices && !existingOrder) {
       // Services or adjustments changed while modal is open - clear order to force re-creation
       setOrder(null);
       setError(null);
     }
-  }, [selectedServices, itemAdjustments, orderAdjustment, open]);
+  }, [selectedServices, itemAdjustments, orderAdjustment, open, existingOrder]);
 
   // If we have selectedServices but no order, create order when dialog opens
   useEffect(() => {
@@ -205,13 +207,15 @@ export function PaymentDialogEnhanced({
       isCreatingOrder,
       existingOrder: !!existingOrder
     });
-    if (open && selectedServices && !order && !isCreatingOrder) {
+    // Only create order from services if we don't have an existing order
+    if (open && selectedServices && !order && !isCreatingOrder && !existingOrder) {
       createOrderFromServices();
     }
-  }, [open, selectedServices, order, isCreatingOrder, createOrderFromServices]);
+  }, [open, selectedServices, order, isCreatingOrder, createOrderFromServices, existingOrder]);
 
   // Show cached data immediately while creating order in background
-  if (open && (cachedData || isCreatingOrder) && !order) {
+  // But only if we don't have an existing order (from booking)
+  if (open && (cachedData || isCreatingOrder) && !order && !existingOrder) {
     const displayData = cachedData || {
       services: selectedServices || [],
       totals: {

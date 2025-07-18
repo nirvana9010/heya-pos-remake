@@ -278,7 +278,10 @@ function BookingDetailsSlideOutComponent({
         orderId: paymentData?.order?.id,
         orderState: paymentData?.order?.state,
         totalAmount: paymentData?.order?.totalAmount,
-        itemCount: paymentData?.order?.items?.length
+        itemCount: paymentData?.order?.items?.length,
+        hasPaymentGateway: !!paymentData?.paymentGateway,
+        hasMerchant: !!paymentData?.merchant,
+        hasLocation: !!paymentData?.location
       });
       
       if (!paymentData || !paymentData.order) {
