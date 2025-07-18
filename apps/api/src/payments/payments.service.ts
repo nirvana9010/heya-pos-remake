@@ -25,7 +25,27 @@ export class PaymentsService {
    * Process a single payment for an order
    */
   async processPayment(dto: ProcessPaymentDto, merchantId: string, staffId: string) {
-    const order = await this.ordersService.findOrder(dto.orderId, merchantId);
+    const startTime = Date.now();
+    
+    // Step 1: Get order with minimal data for validation (no heavy includes)
+    const order = await this.prisma.order.findFirst({
+      where: { 
+        id: dto.orderId, 
+        merchantId 
+      },
+      select: {
+        id: true,
+        state: true,
+        balanceDue: true,
+        subtotal: true,
+        totalAmount: true,
+        paidAmount: true,
+      }
+    });
+
+    if (!order) {
+      throw new BadRequestException('Order not found');
+    }
 
     // Validate order state
     if (order.state !== OrderState.PENDING_PAYMENT && 
@@ -43,6 +63,8 @@ export class PaymentsService {
       throw new BadRequestException('Payment amount exceeds balance due');
     }
 
+    console.log(`[ProcessPayment] Validation done in ${Date.now() - startTime}ms`);
+
     // Lock the order if it's still in draft state
     if (order.state === OrderState.LOCKED) {
       await this.ordersService.updateOrderState(order.id, merchantId, OrderState.PENDING_PAYMENT);
@@ -50,6 +72,8 @@ export class PaymentsService {
 
     // Process based on payment method
     let paymentResult;
+    const paymentStartTime = Date.now();
+    
     switch (dto.method) {
       case PaymentMethod.CASH:
         paymentResult = await this.processCashPayment(order.id, dto, staffId);
@@ -62,11 +86,32 @@ export class PaymentsService {
       default:
         paymentResult = await this.processGenericPayment(order.id, dto, staffId);
     }
+    
+    console.log(`[ProcessPayment] Payment processed in ${Date.now() - paymentStartTime}ms`);
 
-    // Update order state based on payment result
-    await this.updateOrderPaymentState(order.id, merchantId);
+    // Update order state in background (non-blocking)
+    // This includes recalculating totals which is expensive
+    this.updateOrderPaymentStateAsync(order.id, merchantId)
+      .catch(error => {
+        console.error('[ProcessPayment] Failed to update order state:', error);
+        // Don't throw - payment is already processed
+      });
 
+    console.log(`[ProcessPayment] Total time: ${Date.now() - startTime}ms`);
+    
     return paymentResult;
+  }
+  
+  /**
+   * Async version of updateOrderPaymentState that doesn't block the response
+   */
+  private async updateOrderPaymentStateAsync(orderId: string, merchantId: string) {
+    try {
+      await this.updateOrderPaymentState(orderId, merchantId);
+    } catch (error) {
+      console.error(`[UpdateOrderState] Failed for order ${orderId}:`, error);
+      // Log but don't throw - payment is already processed
+    }
   }
 
   /**

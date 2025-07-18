@@ -381,7 +381,7 @@ export function BookingSlideOut({
       // Create optimistic booking for immediate UI update
       optimisticBooking = {
         id: `temp-${Date.now()}`, // Temporary ID
-        bookingNumber: 'PENDING',
+        bookingNumber: `TEMP-${Date.now()}`, // Temporary booking number to avoid PENDING badge
         customerName: isWalkIn ? 'Walk-in Customer' : customerName,
         customerPhone: customerPhone || '',
         customerEmail: customerEmail || '',
@@ -395,7 +395,7 @@ export function BookingSlideOut({
         staffId: selectedServices[0]?.staffId || '',
         startTime: combinedDateTime,
         endTime: new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
-        status: 'pending' as const,
+        status: 'optimistic' as any, // Temporary status for optimistic bookings
         isPaid: false,
         totalPrice: totalPrice,
         notes: notes || '',
@@ -435,7 +435,8 @@ export function BookingSlideOut({
           ...optimisticBooking,
           id: response.id,
           bookingNumber: response.bookingNumber || 'PENDING',
-          status: response.status || 'CONFIRMED',
+          // Normalize status to lowercase to match our BookingStatus type
+          status: (response.status || 'CONFIRMED').toLowerCase() as any,
           _isOptimistic: false,
           _dismissLoadingToast: dismissLoadingToast // Pass the dismiss function
         };
