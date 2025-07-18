@@ -614,7 +614,7 @@ export class OrdersService {
       );
     }
     
-    // 4. Staff ID and order number for new orders
+    // 4. Staff ID and order number for new orders (or orders from bookings)
     if (!dto.orderId) {
       // Get staff ID
       if (user.type === 'staff' && user.staffId) {
@@ -638,11 +638,13 @@ export class OrdersService {
         );
       }
       
-      // Generate order number in parallel
-      parallelFetches.push(
-        this.generateOrderNumber(user.merchantId)
-          .then(num => { orderNumber = num; })
-      );
+      // Generate order number in parallel (only if not checking for existing booking order)
+      if (!dto.bookingId) {
+        parallelFetches.push(
+          this.generateOrderNumber(user.merchantId)
+            .then(num => { orderNumber = num; })
+        );
+      }
     }
     
     // Execute all parallel fetches
@@ -656,7 +658,7 @@ export class OrdersService {
       
       // Step 1: Get or create order
       if (dto.orderId) {
-        // Existing order
+        // Existing order by ID
         order = await tx.order.findFirst({
           where: { id: dto.orderId, merchantId: user.merchantId },
           include: {
@@ -674,8 +676,147 @@ export class OrdersService {
         if (order.state !== OrderState.DRAFT) {
           throw new BadRequestException('Cannot modify a locked order');
         }
+      } else if (dto.bookingId) {
+        // Check cache first for booking order
+        const bookingCacheKey = RedisService.getOrderByBookingCacheKey(dto.bookingId);
+        const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
+        
+        let existingBookingOrder = null;
+        if (cachedOrderId) {
+          // Try to get the cached order
+          existingBookingOrder = await tx.order.findFirst({
+            where: { 
+              id: cachedOrderId,
+              merchantId: user.merchantId 
+            },
+            include: {
+              items: true,
+              payments: true,
+              customer: true,
+              booking: true,
+            },
+          });
+          
+          if (existingBookingOrder) {
+            console.log(`[PrepareOrder] Found cached order ${cachedOrderId} for booking ${dto.bookingId}`);
+          }
+        }
+        
+        // If not in cache or cache miss, check database
+        if (!existingBookingOrder) {
+          existingBookingOrder = await tx.order.findFirst({
+            where: { 
+              bookingId: dto.bookingId,
+              merchantId: user.merchantId 
+            },
+            include: {
+              items: true,
+              payments: true,
+              customer: true,
+              booking: true,
+            },
+          });
+          
+          // Cache the order ID if found
+          if (existingBookingOrder) {
+            await this.redisService.set(bookingCacheKey, existingBookingOrder.id, 300); // 5 minutes
+          }
+        }
+        
+        if (existingBookingOrder) {
+          console.log(`[PrepareOrder] Found existing order for booking ${dto.bookingId}`);
+          order = existingBookingOrder;
+        } else {
+          // Create new order for booking - use createOrderFromBooking logic
+          console.log(`[PrepareOrder] Creating new order for booking ${dto.bookingId}`);
+          
+          // Generate order number if not already generated
+          if (!orderNumber) {
+            orderNumber = await this.generateOrderNumber(user.merchantId);
+          }
+          
+          // Get booking details
+          const booking = await tx.booking.findFirst({
+            where: { 
+              id: dto.bookingId,
+              merchantId: user.merchantId 
+            },
+            include: {
+              services: {
+                include: {
+                  service: true,
+                  staff: true,
+                },
+              },
+              customer: true,
+            },
+          });
+          
+          if (!booking) {
+            throw new NotFoundException('Booking not found');
+          }
+          
+          // Create the order
+          order = await tx.order.create({
+            data: {
+              merchantId: user.merchantId,
+              locationId: booking.locationId,
+              customerId: booking.customerId,
+              bookingId: booking.id,
+              orderNumber: orderNumber!,
+              state: OrderState.DRAFT,
+              subtotal: new Decimal(0),
+              taxAmount: new Decimal(0),
+              totalAmount: new Decimal(0),
+              balanceDue: new Decimal(0),
+              createdById: createdById!,
+            },
+            include: {
+              items: true,
+              payments: true,
+              customer: true,
+              booking: true,
+            },
+          });
+          
+          // Add booking services as order items
+          const items = booking.services.map(bs => ({
+            orderId: order.id,
+            itemType: 'SERVICE',
+            itemId: bs.serviceId,
+            description: bs.service.name,
+            quantity: new Decimal(1),
+            unitPrice: new Decimal(typeof bs.price === 'object' && bs.price.toNumber ? bs.price.toNumber() : Number(bs.price)),
+            discount: new Decimal(0),
+            taxRate: new Decimal(0),
+            taxAmount: new Decimal(0),
+            total: new Decimal(0),
+            staffId: bs.staffId,
+            metadata: {
+              bookingServiceId: bs.id,
+              duration: bs.duration,
+            },
+            sortOrder: 0,
+          }));
+          
+          if (items.length > 0) {
+            const createdItems = await tx.orderItem.createMany({
+              data: items,
+            });
+            
+            // Fetch the created items to include in the order
+            const orderItems = await tx.orderItem.findMany({
+              where: { orderId: order.id },
+            });
+            
+            order.items = orderItems;
+          }
+          
+          // Cache the new order ID
+          await this.redisService.set(bookingCacheKey, order.id, 300); // 5 minutes
+        }
       } else {
-        // Create new order
+        // Create new order without booking
         const customerId = dto.isWalkIn ? null : dto.customerId || null;
         
         const newOrder = await tx.order.create({
