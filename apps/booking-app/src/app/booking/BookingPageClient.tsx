@@ -1818,120 +1818,118 @@ export default function BookingPageClient() {
                   </AnimatePresence>
                 )}
 
-                  {currentStep < 7 && currentStep !== 6 && (
-                    <>
-                      {/* Add padding to prevent content from being hidden behind sticky footer */}
-                      {currentStep === 1 && <div className="h-24" />}
-                      
-                      {/* Sticky footer for service selection */}
-                      {currentStep === 1 ? (
-                        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-lg">
-                          <div className="container max-w-4xl mx-auto px-4 py-4">
-                            <div className="flex justify-between items-center">
+                  {/* Add padding to prevent content from being hidden behind sticky footer */}
+                  {currentStep === 1 && <div className="h-24" />}
+                  
+                  {/* Regular navigation for non-service selection steps */}
+                  {currentStep < 7 && currentStep !== 6 && currentStep !== 1 && (
+                    <div className="flex justify-between mt-12 px-2">
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <Button
+                          variant="outline"
+                          onClick={handleBack}
+                          disabled={currentStep === 1}
+                          className="group px-6 py-3 rounded-full border-2 hover:border-primary/50 transition-all duration-300"
+                        >
+                          <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                          <span className="font-medium">Back</span>
+                        </Button>
+                      </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <Button
+                          onClick={handleNext}
+                          disabled={!canProceed() || submitting}
+                          className="btn-luxury px-8 py-3 rounded-full text-white font-medium group disabled:opacity-50"
+                        >
+                          {submitting ? (
+                            <>
                               <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 }}
-                              >
-                                <Button
-                                  variant="outline"
-                                  onClick={handleBack}
-                                  disabled={currentStep === 1}
-                                  className="group px-4 sm:px-6 py-2 sm:py-3 rounded-full border-2 hover:border-primary/50 transition-all duration-300"
-                                >
-                                  <ChevronLeft className="mr-1 sm:mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                                  <span className="font-medium text-sm sm:text-base">Back</span>
-                                </Button>
-                              </motion.div>
-                              <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 }}
-                              >
-                                <Button
-                                  onClick={handleNext}
-                                  disabled={!canProceed() || submitting}
-                                  className="btn-luxury px-6 sm:px-8 py-2 sm:py-3 rounded-full text-white font-medium group disabled:opacity-50"
-                                >
-                                  {submitting ? (
-                                    <>
-                                      <motion.div
-                                        className="mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                      />
-                                      Processing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-sm sm:text-base">
-                                        Continue
-                                        {selectedServices.length > 0 && (
-                                          <span className="ml-1">({selectedServices.length} selected)</span>
-                                        )}
-                                      </span>
-                                      <ChevronRight className="ml-1 sm:ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                    </>
-                                  )}
-                                </Button>
-                              </motion.div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Regular navigation for other steps */
-                        <div className="flex justify-between mt-12 px-2">
-                          <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                          >
-                            <Button
-                              variant="outline"
-                              onClick={handleBack}
-                              disabled={currentStep === 1}
-                              className="group px-6 py-3 rounded-full border-2 hover:border-primary/50 transition-all duration-300"
-                            >
-                              <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                              <span className="font-medium">Back</span>
-                            </Button>
-                          </motion.div>
-                          <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                          >
-                            <Button
-                              onClick={handleNext}
-                              disabled={!canProceed() || submitting}
-                              className="btn-luxury px-8 py-3 rounded-full text-white font-medium group disabled:opacity-50"
-                            >
-                              {submitting ? (
-                                <>
-                                  <motion.div
-                                    className="mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                  />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  {currentStep === 5 ? "Complete Booking" : "Continue"}
-                                  <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                </>
-                              )}
-                            </Button>
-                          </motion.div>
-                        </div>
-                      )}
-                    </>
+                                className="mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              {currentStep === 5 ? "Complete Booking" : "Continue"}
+                              <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                    </div>
                   )}
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+      
+      {/* Sticky footer for service selection - Outside of Card to be truly fixed */}
+      {currentStep === 1 && currentStep < 7 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t shadow-lg">
+          <div className="container max-w-4xl mx-auto px-4 py-4">
+            <div className="flex justify-between items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={currentStep === 1}
+                  className="group px-4 sm:px-6 py-2 sm:py-3 rounded-full border-2 hover:border-primary/50 transition-all duration-300"
+                >
+                  <ChevronLeft className="mr-1 sm:mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                  <span className="font-medium text-sm sm:text-base">Back</span>
+                </Button>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceed() || submitting}
+                  className="btn-luxury px-6 sm:px-8 py-2 sm:py-3 rounded-full text-white font-medium group disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <motion.div
+                        className="mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm sm:text-base">
+                        Continue
+                        {selectedServices.length > 0 && (
+                          <span className="ml-1">({selectedServices.length} selected)</span>
+                        )}
+                      </span>
+                      <ChevronRight className="ml-1 sm:ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
