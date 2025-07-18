@@ -27,8 +27,9 @@ import { useToast } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
+import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { apiClient } from "@/lib/api-client";
-import { CustomerSearchInput, type Customer } from "@/components/customers";
+import type { Customer } from "@/components/customers";
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { invalidateBookingsCache } from "@/lib/cache-config";
@@ -136,15 +137,16 @@ export function BookingSlideOut({
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [isNewCustomer, setIsNewCustomer] = useState(true);
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [notes, setNotes] = useState("");
   const [sendReminder, setSendReminder] = useState(true);
   
   // UI state
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
+  const [isCustomerSlideoutOpen, setIsCustomerSlideoutOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [finalCustomerId, setFinalCustomerId] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
   // Calculate totals
   const totalDuration = useMemo(() => 
@@ -181,11 +183,11 @@ export function BookingSlideOut({
         setCustomerName("");
         setCustomerPhone("");
         setCustomerEmail("");
-        setIsNewCustomer(true);
         setIsWalkIn(false);
         setNotes("");
         setSendReminder(true);
         setFinalCustomerId("");
+        setSelectedCustomer(null);
       } else {
         console.log('[BookingSlideOut] Preserving existing services:', selectedServices.map(s => s.name));
       }
@@ -256,13 +258,24 @@ export function BookingSlideOut({
     ));
   };
   
-  const generateWalkInCustomer = () => {
-    setCustomerId('WALK_IN'); // Use 'WALK_IN' for V2 API
-    setCustomerName('Walk-in Customer');
-    setCustomerPhone('');
-    setCustomerEmail('');
-    setIsNewCustomer(false);
-    setIsWalkIn(true);
+  const handleSelectCustomer = (customer: Customer | null, walkIn: boolean) => {
+    if (walkIn) {
+      setCustomerId('WALK_IN'); // Use 'WALK_IN' for V2 API
+      setCustomerName('Walk-in Customer');
+      setCustomerPhone('');
+      setCustomerEmail('');
+      setIsWalkIn(true);
+      setSelectedCustomer(null);
+    } else if (customer) {
+      const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+      setCustomerId(customer.id);
+      setCustomerName(fullName);
+      setCustomerPhone(customer.mobile || customer.phone || '');
+      setCustomerEmail(customer.email || '');
+      setIsWalkIn(false);
+      setSelectedCustomer(customer);
+    }
+    setIsCustomerSlideoutOpen(false);
   };
   
   
@@ -273,13 +286,13 @@ export function BookingSlideOut({
       return;
     }
 
-    if (!time || !date || selectedServices.length === 0 || !customerName) {
+    if (!time || !date || selectedServices.length === 0) {
       return;
     }
     
-    // Validate customerId for non-walk-in customers
-    if (!isWalkIn && !customerId) {
-      alert('Please select or create a customer');
+    // Validate customer selection
+    if (!isWalkIn && !selectedCustomer) {
+      alert('Please select a customer');
       return;
     }
     
@@ -297,27 +310,11 @@ export function BookingSlideOut({
     let dismissLoadingToast: (() => void) | undefined;
     
     try {
-      // Create new customer if needed
-      let resolvedCustomerId = customerId;
-      if (isNewCustomer && !isWalkIn) {
-        try {
-          const newCustomer = await apiClient.customers.createCustomer({
-            firstName: customerName.split(' ')[0] || customerName,
-            lastName: customerName.split(' ').slice(1).join(' ') || '',
-            phone: customerPhone,
-            email: customerEmail
-          });
-          resolvedCustomerId = newCustomer.id;
-        } catch (error) {
-          console.error('Failed to create customer:', error);
-          alert('Failed to create customer. Please try again.');
-          setIsSaving(false);
-          return;
-        }
-      }
+      // Customer is already resolved from the selection slideout
+      const resolvedCustomerId = isWalkIn ? 'WALK_IN' : selectedCustomer?.id || customerId;
       
       // Store the final customer ID for order creation
-      setFinalCustomerId(isWalkIn ? 'WALK_IN' : resolvedCustomerId);
+      setFinalCustomerId(resolvedCustomerId);
       
       // Combine date and time
       const combinedDateTime = new Date(date);
@@ -331,17 +328,16 @@ export function BookingSlideOut({
       console.log('Start time ISO:', startTimeISO, 'Type:', typeof startTimeISO);
       console.log('Customer ID debug:', {
         isWalkIn,
-        customerId: customerId,
+        selectedCustomer: selectedCustomer?.id,
         resolvedCustomerId: resolvedCustomerId,
-        isNewCustomer,
-        finalCustomerIdForBooking: isWalkIn ? 'WALK_IN' : resolvedCustomerId
+        finalCustomerIdForBooking: resolvedCustomerId
       });
       
-      const finalCustomerIdForBooking = isWalkIn ? 'WALK_IN' : resolvedCustomerId;
+      const finalCustomerIdForBooking = resolvedCustomerId;
       
       console.log('Final booking data validation:', {
         isWalkIn,
-        customerId: customerId,
+        selectedCustomer: selectedCustomer?.id,
         resolvedCustomerId: resolvedCustomerId,
         finalCustomerIdForBooking: finalCustomerIdForBooking,
         isValidCustomerId: finalCustomerIdForBooking && finalCustomerIdForBooking.length > 0
@@ -351,7 +347,7 @@ export function BookingSlideOut({
       if (!finalCustomerIdForBooking || finalCustomerIdForBooking.trim() === '') {
         console.error('[BookingSlideOut] Customer ID validation failed:', {
           isWalkIn,
-          customerId,
+          selectedCustomer: selectedCustomer?.id,
           resolvedCustomerId,
           finalCustomerIdForBooking
         });
@@ -382,9 +378,10 @@ export function BookingSlideOut({
       optimisticBooking = {
         id: `temp-${Date.now()}`, // Temporary ID
         bookingNumber: `TEMP-${Date.now()}`, // Temporary booking number to avoid PENDING badge
-        customerName: isWalkIn ? 'Walk-in Customer' : customerName,
-        customerPhone: customerPhone || '',
-        customerEmail: customerEmail || '',
+        customerName: isWalkIn ? 'Walk-in Customer' : (selectedCustomer?.name || 
+          `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()),
+        customerPhone: isWalkIn ? '' : (selectedCustomer?.phone || selectedCustomer?.mobile || ''),
+        customerEmail: isWalkIn ? '' : (selectedCustomer?.email || ''),
         services: selectedServices.map(s => ({
           id: s.serviceId,
           name: s.name,
@@ -652,136 +649,46 @@ export function BookingSlideOut({
           
           {/* Customer Section */}
           <div>
-            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Customer
-            </h3>
-            
-            {!isWalkIn && (
-              <CustomerSearchInput
-                value={customerId && customerId !== 'WALK_IN' ? {
-                  id: customerId,
-                  firstName: customerName.split(' ')[0] || '',
-                  lastName: customerName.split(' ').slice(1).join(' ') || '',
-                  name: customerName,
-                  phone: customerPhone,
-                  email: customerEmail
-                } : null}
-                onSelect={(customer) => {
-                  if (customer) {
-                    const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
-                    setCustomerId(customer.id);
-                    setCustomerName(fullName);
-                    setCustomerPhone(customer.mobile || customer.phone || '');
-                    setCustomerEmail(customer.email || "");
-                    setIsNewCustomer(false);
-                    setIsWalkIn(false);
-                  } else {
-                    // Clear selection
-                    setCustomerId('');
-                    setCustomerName('');
-                    setCustomerPhone('');
-                    setCustomerEmail('');
-                    setIsNewCustomer(true);
-                    setIsWalkIn(false);
-                  }
-                }}
-                onCreateNew={() => {
-                  setIsNewCustomer(true);
-                }}
-                fallbackCustomers={customers}
-                className="mb-3"
-              />
-            )}
-            
-            {/* Walk-in Customer Button */}
-            {merchant?.settings?.allowWalkInBookings !== false && !isWalkIn && (
-              <div className="flex items-center justify-center py-2">
-                <span className="text-sm text-gray-500 mr-3">or</span>
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">Customer</Label>
+            {selectedCustomer || isWalkIn ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center">
+                    {isWalkIn ? (
+                      <UserPlus className="h-5 w-5 text-white" />
+                    ) : (
+                      <User className="h-5 w-5 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {isWalkIn ? 'Walk-in Customer' : (
+                        selectedCustomer?.name || 
+                        `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()
+                      )}
+                    </p>
+                    {!isWalkIn && selectedCustomer?.phone && (
+                      <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                    )}
+                  </div>
+                </div>
                 <Button
-                  type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={generateWalkInCustomer}
-                  className="gap-2"
+                  onClick={() => setIsCustomerSlideoutOpen(true)}
                 >
-                  <UserPlus className="h-4 w-4" />
-                  Walk-in
+                  Change
                 </Button>
               </div>
-            )}
-            
-            {/* New Customer Form */}
-            {isNewCustomer && !isWalkIn && (
-              <div className="mt-3 space-y-3 p-3 border rounded-lg">
-                <h4 className="font-medium text-sm">New Customer Details</h4>
-                <div>
-                  <Label htmlFor="customerName">Name *</Label>
-                  <Input
-                    id="customerName"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="John Doe"
-                    className="mt-1"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="customerPhone">Phone</Label>
-                    <Input
-                      id="customerPhone"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="0400 123 456"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="customerEmail">Email</Label>
-                    <Input
-                      id="customerEmail"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="john@example.com"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Walk-in Indicator */}
-            {isWalkIn && (
-              <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4 text-gray-600" />
-                      <span className="font-medium text-sm">Walk-in Customer</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      No contact details will be stored
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsWalkIn(false);
-                      setCustomerId('');
-                      setCustomerName('');
-                      setCustomerPhone('');
-                      setCustomerEmail('');
-                      setIsNewCustomer(true);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+            ) : (
+              <Button
+                onClick={() => setIsCustomerSlideoutOpen(true)}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Select Customer
+              </Button>
             )}
           </div>
           
@@ -806,6 +713,15 @@ export function BookingSlideOut({
         onClose={() => setIsServiceSlideoutOpen(false)}
         services={services}
         onSelectService={handleServiceSelect}
+      />
+      
+      {/* Customer Selection Slideout */}
+      <CustomerSelectionSlideout
+        isOpen={isCustomerSlideoutOpen}
+        onClose={() => setIsCustomerSlideoutOpen(false)}
+        onSelectCustomer={handleSelectCustomer}
+        currentCustomer={selectedCustomer}
+        isCurrentWalkIn={isWalkIn}
       />
     </>
   );

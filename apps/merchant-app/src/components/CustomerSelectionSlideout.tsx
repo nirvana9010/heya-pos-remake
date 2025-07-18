@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, UserPlus, User, Phone, Mail, Check, ChevronLeft } from 'lucide-react';
-import { Button, Input } from '@heya-pos/ui';
+import { X, Search, UserPlus, User, Phone, Mail, Check, ChevronLeft, Plus } from 'lucide-react';
+import { Button, Input, Label } from '@heya-pos/ui';
 import { apiClient } from '../lib/api-client';
 import { WALK_IN_CUSTOMER } from '../lib/constants/customer';
 import type { Customer } from './customers';
@@ -25,10 +25,28 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  
+  // New customer form state
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerEmail, setNewCustomerEmail] = useState('');
+
+  // Reset form when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setShowCreateForm(false);
+      setNewCustomerName('');
+      setNewCustomerPhone('');
+      setNewCustomerEmail('');
+      setSearchQuery('');
+    }
+  }, [isOpen]);
 
   // Search customers with debounce
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || showCreateForm) return;
 
     // Clear previous timeout
     if (searchTimeout) {
@@ -72,6 +90,55 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
     onSelectCustomer(customer, false);
   };
 
+  const handleCreateCustomer = async () => {
+    if (!newCustomerName.trim()) {
+      return;
+    }
+
+    setCreatingCustomer(true);
+    try {
+      // Build customer data object, only including non-empty fields
+      const customerData: any = {
+        firstName: newCustomerName.split(' ')[0] || newCustomerName,
+      };
+      
+      // Only add lastName if there's actually a last name
+      const lastName = newCustomerName.split(' ').slice(1).join(' ');
+      if (lastName) {
+        customerData.lastName = lastName;
+      }
+      
+      // Only add phone if it's not empty
+      if (newCustomerPhone.trim()) {
+        customerData.phone = newCustomerPhone.trim();
+      }
+      
+      // Only add email if it's not empty
+      if (newCustomerEmail.trim()) {
+        customerData.email = newCustomerEmail.trim();
+      }
+      
+      const newCustomer = await apiClient.customers.createCustomer(customerData);
+      
+      // Select the newly created customer
+      onSelectCustomer(newCustomer, false);
+    } catch (error: any) {
+      console.error('Failed to create customer:', error);
+      
+      // Show more specific error message if available
+      let errorMessage = 'Failed to create customer.';
+      if (error.message && Array.isArray(error.message)) {
+        errorMessage += ' ' + error.message.join(', ');
+      } else if (error.message) {
+        errorMessage += ' ' + error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setCreatingCustomer(false);
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -97,13 +164,13 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={onClose}
+                    onClick={showCreateForm ? () => setShowCreateForm(false) : onClose}
                     className="h-8 w-8 p-0"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Select Customer
+                    {showCreateForm ? 'New Customer' : 'Select Customer'}
                   </h2>
                 </div>
                 <Button
@@ -117,20 +184,80 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
               </div>
               
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by name, email, or phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  autoFocus
-                />
-              </div>
+              {!showCreateForm && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by name, email, or phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Customer List */}
+            {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
+              {showCreateForm ? (
+                // Create Customer Form
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="customerName">Name *</Label>
+                    <Input
+                      id="customerName"
+                      value={newCustomerName}
+                      onChange={(e) => setNewCustomerName(e.target.value)}
+                      placeholder="John Doe"
+                      className="mt-1"
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="customerPhone">Phone</Label>
+                    <Input
+                      id="customerPhone"
+                      value={newCustomerPhone}
+                      onChange={(e) => setNewCustomerPhone(e.target.value)}
+                      placeholder="0400 123 456"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="customerEmail">Email</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={newCustomerEmail}
+                      onChange={(e) => setNewCustomerEmail(e.target.value)}
+                      placeholder="john@example.com"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={handleCreateCustomer}
+                      disabled={!newCustomerName.trim() || creatingCustomer}
+                      className="flex-1"
+                    >
+                      {creatingCustomer ? 'Creating...' : 'Create Customer'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCreateForm(false)}
+                      disabled={creatingCustomer}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Customer List
+                <>
               {/* Walk-in Option */}
               <button
                 onClick={handleSelectWalkIn}
@@ -178,6 +305,15 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                 <div className="text-center py-8 text-gray-500">
                   <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>Enter at least 2 characters to search</p>
+                  <p className="text-sm text-gray-400 mt-1">or</p>
+                  <Button
+                    onClick={() => setShowCreateForm(true)}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Customer
+                  </Button>
                 </div>
               )}
 
@@ -187,6 +323,14 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                   <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-500">No customers found</p>
                   <p className="text-sm text-gray-400 mt-1">Try a different search term</p>
+                  <Button
+                    onClick={() => setShowCreateForm(true)}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Customer
+                  </Button>
                 </div>
               )}
 
@@ -249,6 +393,8 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                     );
                   })}
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>
