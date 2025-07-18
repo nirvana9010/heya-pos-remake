@@ -318,6 +318,7 @@ export default function BookingPageClient() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isReturningCustomer, setIsReturningCustomer] = useState(false);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     firstName: "",
     lastName: "",
@@ -496,6 +497,18 @@ export default function BookingPageClient() {
 
   const handleBack = () => {
     if (currentStep > 1) {
+      // If going back from customer details step, reset the form state
+      if (currentStep === 4) {
+        setShowCustomerForm(false);
+        setIsReturningCustomer(false);
+        setCustomerInfo({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          notes: "",
+        });
+      }
       setCurrentStep(currentStep - 1);
     }
   };
@@ -1366,6 +1379,7 @@ export default function BookingPageClient() {
               setBookingNumber(null);
               setConfirmationData(null);
               setIsReturningCustomer(false);
+              setShowCustomerForm(false);
             }}
           >
             Book Another Appointment
@@ -1608,6 +1622,7 @@ export default function BookingPageClient() {
               setBookingNumber(null);
               setConfirmationData(null);
               setIsReturningCustomer(false);
+              setShowCustomerForm(false);
             }}
           >
             Book Another Appointment
@@ -1745,31 +1760,60 @@ export default function BookingPageClient() {
               </CardHeader>
               <CardContent>
                 {currentStep === 4 ? (
-                  // Combined customer identification and details
+                  // Progressive customer details step
                   <>
                     <SelectedServicesSummary services={selectedServicesList} />
-                    <CustomerIdentification
-                      onCustomerFound={(customer) => {
-                        setIsReturningCustomer(true);
-                        setCustomerInfo({
-                          firstName: customer.firstName,
-                          lastName: customer.lastName,
-                          email: customer.email,
-                          phone: customer.phone,
-                          notes: customerInfo.notes,
-                        });
-                      }}
-                      onNewCustomer={() => {
-                        setIsReturningCustomer(false);
-                      }}
-                    />
-                    <div className="mt-8">
-                      <CustomerFormComponent 
-                        customerInfo={customerInfo} 
-                        onCustomerInfoChange={setCustomerInfo}
-                        isReturningCustomer={isReturningCustomer}
+                    {/* Show identification first, then form based on result */}
+                    {!showCustomerForm ? (
+                      <CustomerIdentification
+                        onCustomerFound={(customer) => {
+                          setIsReturningCustomer(true);
+                          setCustomerInfo({
+                            firstName: customer.firstName,
+                            lastName: customer.lastName,
+                            email: customer.email,
+                            phone: customer.phone,
+                            notes: customerInfo.notes,
+                          });
+                          setShowCustomerForm(true);
+                        }}
+                        onNewCustomer={() => {
+                          setIsReturningCustomer(false);
+                          setShowCustomerForm(true);
+                        }}
                       />
-                    </div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {/* Back to identification button */}
+                        <button
+                          onClick={() => {
+                            setShowCustomerForm(false);
+                            setIsReturningCustomer(false);
+                            // Keep email if they entered it
+                            setCustomerInfo({
+                              ...customerInfo,
+                              firstName: "",
+                              lastName: "",
+                              phone: "",
+                              notes: "",
+                            });
+                          }}
+                          className="mb-6 text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Back to identification
+                        </button>
+                        <CustomerFormComponent 
+                          customerInfo={customerInfo} 
+                          onCustomerInfoChange={setCustomerInfo}
+                          isReturningCustomer={isReturningCustomer}
+                        />
+                      </motion.div>
+                    )}
                   </>
                 ) : (
                   <AnimatePresence mode="wait">
