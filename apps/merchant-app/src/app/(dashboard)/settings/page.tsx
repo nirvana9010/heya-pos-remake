@@ -622,14 +622,18 @@ export default function SettingsPage() {
                   */}
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Customer Check-in URL</Label>
+                {/* Customer Booking App - Main URL */}
+                <div className="space-y-2 p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
+                  <Label className="text-base font-semibold">🌟 Customer Booking App</Label>
                   <div className="flex items-center gap-2">
                     <Input 
-                      value={merchantSubdomain ? 
-                        `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
-                        `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`
-                      } 
+                      value={(() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
+                        return merchantSubdomain ? 
+                          `${baseUrl}/${merchantSubdomain}/booking` :
+                          `${baseUrl}/booking`;
+                      })()} 
                       readOnly 
                       className="font-mono text-sm"
                     />
@@ -637,9 +641,64 @@ export default function SettingsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
                         const url = merchantSubdomain ? 
-                          `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
-                          `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`;
+                          `${baseUrl}/${merchantSubdomain}/booking` :
+                          `${baseUrl}/booking`;
+                        navigator.clipboard.writeText(url);
+                        toast({
+                          title: "Copied!",
+                          description: "Booking app URL copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
+                        const url = merchantSubdomain ? 
+                          `${baseUrl}/${merchantSubdomain}/booking` :
+                          `${baseUrl}/booking`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm font-medium text-primary">
+                    Share this link with customers to allow them to book appointments online 24/7
+                  </p>
+                </div>
+
+                {/* Customer Check-in URL - Secondary */}
+                <div className="space-y-2 mt-4">
+                  <Label>Customer Check-in URL</Label>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      value={(() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
+                        return merchantSubdomain ? 
+                          `${baseUrl}/${merchantSubdomain}/checkin` :
+                          `${baseUrl}/checkin`;
+                      })()} 
+                      readOnly 
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
+                        const url = merchantSubdomain ? 
+                          `${baseUrl}/${merchantSubdomain}/checkin` :
+                          `${baseUrl}/checkin`;
                         navigator.clipboard.writeText(url);
                         toast({
                           title: "Copied!",
@@ -653,9 +712,11 @@ export default function SettingsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        const isLocal = window.location.hostname === 'localhost';
+                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
                         const url = merchantSubdomain ? 
-                          `${window.location.origin.replace('merchant-app', 'booking-app')}/${merchantSubdomain}/checkin` :
-                          `${window.location.origin.replace('merchant-app', 'booking-app')}/checkin`;
+                          `${baseUrl}/${merchantSubdomain}/checkin` :
+                          `${baseUrl}/checkin`;
                         window.open(url, '_blank');
                       }}
                     >
@@ -663,7 +724,7 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Share this URL with customers or display it on tablets for self check-in
+                    Display this URL on tablets for customer self check-in at your location
                   </p>
                 </div>
               </div>
