@@ -25,6 +25,7 @@ interface PaymentStepProps {
   time: string;
   staffName?: string;
   customerName: string;
+  cancellationHours?: number;
 }
 
 export function PaymentStep({
@@ -38,6 +39,7 @@ export function PaymentStep({
   time,
   staffName,
   customerName,
+  cancellationHours = 24,
 }: PaymentStepProps) {
   // Support both single service (legacy) and multiple services
   const servicesList = services || (service ? [service] : []);
@@ -138,6 +140,12 @@ export function PaymentStep({
               <CardDescription>
                 Enter your card details to pay the deposit and confirm your booking
               </CardDescription>
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-800">
+                  <strong>Cancellation Policy:</strong> We require at least {cancellationHours} hours notice for cancellations. 
+                  Please contact us if you need to reschedule or cancel your appointment.
+                </p>
+              </div>
             </CardHeader>
             <CardContent>
               <MockPaymentForm

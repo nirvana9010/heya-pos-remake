@@ -68,10 +68,15 @@ class SupabaseRealtimeService {
     } catch (error: any) {
       if (error.response?.status === 401) {
         console.warn('[Supabase] Authentication error - user may not be logged in yet or token expired');
+      } else if (error.response?.status === 403) {
+        console.warn('[Supabase] Forbidden error - likely auth state not fully loaded. Will retry later.');
       } else if (error.response?.status === 503) {
         console.warn('[Supabase] Realtime service not configured on backend. Please add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env file');
       } else if (error.code === 'AUTH_IN_PROGRESS') {
         console.warn('[Supabase] Authentication redirect in progress, skipping initialization');
+      } else if (error.isAuthRedirect) {
+        // Ignore auth redirect errors - these are expected during initialization
+        console.warn('[Supabase] Auth redirect triggered during initialization, skipping');
       } else {
         console.error('[Supabase] Failed to initialize:', error);
       }

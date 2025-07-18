@@ -24,6 +24,27 @@ This file contains important configuration information for Claude Code to help m
 - Hamilton Beauty Spa: `admin@hamiltonbeauty.com` / `demo123`
 - Zen Wellness: `lukas.tn90@gmail.com` / `demo456`
 
+### Authentication Response Format
+**CRITICAL**: The login response returns `token`, NOT `accessToken`!
+```javascript
+// ❌ WRONG - This will fail every time
+const { accessToken } = loginResponse.data;
+
+// ✅ CORRECT - The response field is called 'token'
+const { token } = loginResponse.data;
+```
+The login response structure:
+```json
+{
+  "user": {...},
+  "merchantId": "...",
+  "token": "eyJhbGci...",  // <-- It's 'token', NOT 'accessToken'!
+  "refreshToken": "...",
+  "expiresAt": "...",
+  "merchant": {...}
+}
+```
+
 ### Common V1 Endpoints (default)
 - Services: `/api/v1/services`
 - Staff: `/api/v1/staff`

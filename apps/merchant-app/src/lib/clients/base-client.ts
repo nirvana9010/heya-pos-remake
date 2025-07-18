@@ -89,6 +89,12 @@ export class BaseApiClient {
 
         // Handle 403 errors - likely corrupted auth state
         if (error.response?.status === 403 && !originalRequest._retry) {
+          // Special handling for realtime-token endpoint during initialization
+          if (originalRequest.url?.includes('/realtime-token')) {
+            console.warn('[BaseApiClient] 403 on realtime-token endpoint - likely during initialization');
+            return Promise.reject(error);
+          }
+          
           this.clearAuthData();
           this.redirectToLogin();
           return Promise.reject(error);
@@ -343,11 +349,8 @@ export class BaseApiClient {
       validateRequest(data, requestSchema, url);
     }
 
-    console.log('[BaseApiClient] POST to', url, 'with data:', JSON.stringify(data, null, 2));
-
     try {
       const response = await this.axiosInstance.post(this.addVersionPrefix(url, version), data, config);
-      console.log('[BaseApiClient] POST response from', url, ':', response.data);
       
       // Invalidate related cache on mutations
       this.invalidateCacheForMutation(url);
@@ -359,7 +362,6 @@ export class BaseApiClient {
       
       return response.data;
     } catch (error: any) {
-      console.error('[BaseApiClient] POST error to', url, ':', error.response?.data || error.message);
       throw error;
     }
   }

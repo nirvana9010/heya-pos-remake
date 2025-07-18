@@ -15,6 +15,8 @@ export interface Service {
   categoryName?: string;
   isActive: boolean;
   displayOrder?: number;
+  maxAdvanceBooking?: number; // Maximum days in advance this service can be booked
+  minAdvanceBooking?: number; // Minimum hours notice required
 }
 
 export interface ServiceCategory {
@@ -96,6 +98,11 @@ export interface MerchantInfo {
   requireDeposit: boolean;
   depositPercentage: number;
   allowUnassignedBookings: boolean;
+  settings?: {
+    bookingAdvanceHours?: number;
+    cancellationHours?: number;
+    [key: string]: any;
+  };
 }
 
 class BookingApi {
