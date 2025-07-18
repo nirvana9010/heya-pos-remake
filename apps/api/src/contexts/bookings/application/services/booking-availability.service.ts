@@ -79,6 +79,7 @@ export class BookingAvailabilityService {
   
       const merchantSettings = merchant.settings as any;
       const businessHours = merchantSettings.businessHours;
+      const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0;
       
       if (!businessHours) {
         throw new Error('Business hours not configured');
@@ -218,12 +219,20 @@ export class BookingAvailabilityService {
               effectiveEnd,
               existingBookings,
             );
+            
+            // Check if slot meets minimum booking notice requirement
+            const now = new Date();
+            const minutesUntilSlot = (slotStart.getTime() - now.getTime()) / (1000 * 60);
+            const isPastSlot = slotStart < now;
+            const meetsMinimumNotice = minimumBookingNotice === 0 || minutesUntilSlot >= minimumBookingNotice;
   
             slots.push({
               startTime: slotStart,
               endTime: slotEnd,
-              available: !conflict.hasConflict,
-              conflictReason: conflict.reason,
+              available: !conflict.hasConflict && !isPastSlot && meetsMinimumNotice,
+              conflictReason: conflict.hasConflict ? conflict.reason : 
+                           isPastSlot ? 'Slot is in the past' : 
+                           !meetsMinimumNotice ? 'Does not meet minimum booking notice' : undefined,
             });
             
             slotCount++;

@@ -41,6 +41,12 @@ export class PublicBookingService {
     // Verify merchant exists and is active
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
+      include: {
+        locations: {
+          where: { isActive: true },
+          take: 1,
+        },
+      },
     });
 
     if (!merchant || merchant.status !== 'ACTIVE') {
@@ -125,9 +131,78 @@ export class PublicBookingService {
     
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + totalDuration);
+    
+    // Validate that booking is not in the past
+    const now = new Date();
+    if (startTime < now) {
+      throw new Error('Cannot create bookings in the past. Please select a future date and time.');
+    }
+    
+    // Validate booking advance hours with timezone consideration
+    const merchantSettings = merchant.settings as any;
+    const bookingAdvanceHours = merchantSettings?.bookingAdvanceHours || 168; // Default 7 days
+    const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0; // Default no restriction (in minutes)
+    const merchantTimezone = merchant.locations?.[0]?.timezone || 'Australia/Sydney';
+    
+    // Calculate the time difference in hours and minutes
+    const timeDifferenceMs = startTime.getTime() - now.getTime();
+    const hoursUntilBooking = timeDifferenceMs / (1000 * 60 * 60);
+    const minutesUntilBooking = timeDifferenceMs / (1000 * 60);
+    
+    // Check if booking is too far in advance
+    if (hoursUntilBooking > bookingAdvanceHours) {
+      throw new Error(`Bookings can only be made up to ${bookingAdvanceHours > 168 
+        ? Math.floor(bookingAdvanceHours / 168) + ' weeks' 
+        : bookingAdvanceHours > 24 
+        ? Math.floor(bookingAdvanceHours / 24) + ' days'
+        : bookingAdvanceHours + ' hours'} in advance`);
+    }
+    
+    // Check minimum booking notice
+    if (minimumBookingNotice > 0 && minutesUntilBooking < minimumBookingNotice) {
+      let noticeText;
+      if (minimumBookingNotice >= 1440) {
+        // 24 hours or more
+        const days = Math.floor(minimumBookingNotice / 1440);
+        noticeText = days === 1 ? '24 hours' : `${days} days`;
+      } else if (minimumBookingNotice >= 60) {
+        // 1 hour or more
+        const hours = Math.floor(minimumBookingNotice / 60);
+        noticeText = hours === 1 ? '1 hour' : `${hours} hours`;
+      } else {
+        // Less than 1 hour
+        noticeText = `${minimumBookingNotice} minutes`;
+      }
+      throw new Error(`Bookings must be made at least ${noticeText} in advance`);
+    }
+    
+    // Legacy check for very short advance booking limits (< 24 hours)
+    // This is kept for backward compatibility
+    if (bookingAdvanceHours < 24 && hoursUntilBooking < bookingAdvanceHours) {
+      throw new Error(`Bookings must be made at least ${bookingAdvanceHours} hours in advance`);
+    }
+    
+    // Check service-specific booking limits
+    for (const service of serviceRequests) {
+      const serviceDetails = await this.prisma.service.findUnique({
+        where: { id: service.serviceId }
+      });
+      
+      if (serviceDetails?.maxAdvanceBooking) {
+        const daysUntilBooking = hoursUntilBooking / 24;
+        if (daysUntilBooking > serviceDetails.maxAdvanceBooking) {
+          throw new Error(`Service "${serviceDetails.name}" can only be booked up to ${serviceDetails.maxAdvanceBooking} days in advance`);
+        }
+      }
+      
+      if (serviceDetails?.minAdvanceBooking) {
+        if (hoursUntilBooking < serviceDetails.minAdvanceBooking) {
+          throw new Error(`Service "${serviceDetails.name}" requires at least ${serviceDetails.minAdvanceBooking} hours advance notice`);
+        }
+      }
+    }
 
     // Check merchant settings for unassigned bookings
-    const merchantSettings = merchant.settings as any;
     const allowUnassignedBookings = merchantSettings?.allowUnassignedBookings ?? true;
     
     // Use provided staff or leave unassigned (null) if not specified
@@ -463,6 +538,12 @@ export class PublicBookingService {
     // Verify merchant exists and is active
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
+      include: {
+        locations: {
+          where: { isActive: true },
+          take: 1,
+        },
+      },
     });
 
     if (!merchant || merchant.status !== 'ACTIVE') {
@@ -619,6 +700,21 @@ export class PublicBookingService {
         
         const slotEnd = new Date(slotStart);
         slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
+        
+        // Skip time slots that are in the past
+        const now = new Date();
+        if (slotStart < now) {
+          continue;
+        }
+        
+        // Skip time slots that don't meet minimum booking notice requirement
+        const minimumBookingNotice = (merchant.settings as any)?.minimumBookingNotice || 0;
+        if (minimumBookingNotice > 0) {
+          const minutesUntilSlot = (slotStart.getTime() - now.getTime()) / (1000 * 60);
+          if (minutesUntilSlot < minimumBookingNotice) {
+            continue;
+          }
+        }
         
         // Check which staff are busy during this slot
         const busyStaffIds = new Set<string>();

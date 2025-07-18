@@ -29,6 +29,7 @@ export default function SettingsPage() {
   
   const [bookingAdvanceHours, setBookingAdvanceHours] = useState(merchantSettings.bookingAdvanceHours?.toString() || "48");
   const [cancellationHours, setCancellationHours] = useState(merchantSettings.cancellationHours?.toString() || "24");
+  const [minimumBookingNotice, setMinimumBookingNotice] = useState(merchantSettings.minimumBookingNotice?.toString() || "0");
   const [requirePinForRefunds, setRequirePinForRefunds] = useState(merchantSettings.requirePinForRefunds ?? true);
   const [requirePinForCancellations, setRequirePinForCancellations] = useState(merchantSettings.requirePinForCancellations ?? true);
   const [requirePinForReports, setRequirePinForReports] = useState(merchantSettings.requirePinForReports ?? true);
@@ -124,6 +125,7 @@ export default function SettingsPage() {
       if (response) {
         setBookingAdvanceHours(response.bookingAdvanceHours?.toString() || "48");
         setCancellationHours(response.cancellationHours?.toString() || "24");
+        setMinimumBookingNotice(response.minimumBookingNotice?.toString() || "0");
         setRequirePinForRefunds(response.requirePinForRefunds ?? true);
         setRequirePinForCancellations(response.requirePinForCancellations ?? true);
         setRequirePinForReports(response.requirePinForReports ?? true);
@@ -227,6 +229,7 @@ export default function SettingsPage() {
       const updatedSettings = {
         bookingAdvanceHours: parseInt(bookingAdvanceHours),
         cancellationHours: parseInt(cancellationHours),
+        minimumBookingNotice: parseInt(minimumBookingNotice),
         requirePinForRefunds,
         requirePinForCancellations,
         requirePinForReports,
@@ -786,6 +789,27 @@ export default function SettingsPage() {
                   </Select>
                   <p className="text-sm text-muted-foreground">
                     Minimum notice required for cancellations
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="minimum-notice">Minimum Booking Notice</Label>
+                  <Select value={minimumBookingNotice} onValueChange={setMinimumBookingNotice}>
+                    <SelectTrigger id="minimum-notice">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No restriction</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="240">4 hours</SelectItem>
+                      <SelectItem value="720">12 hours</SelectItem>
+                      <SelectItem value="1440">24 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Minimum advance notice required for bookings
                   </p>
                 </div>
               </div>

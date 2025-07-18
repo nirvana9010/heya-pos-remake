@@ -297,7 +297,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // When a notification arrives via real-time, we use refreshNotifications()
   // to force an immediate database fetch, bypassing the polling interval
   useEffect(() => {
-    if (!merchant?.id) {
+    // Check if authentication is fully loaded
+    if (!isAuthenticated || !merchant?.id) {
       return;
     }
 
@@ -308,15 +309,25 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       return;
     }
 
-    // Initialize Supabase Realtime
-    const initSupabase = async () => {
-      const initialized = await supabaseRealtime.initialize();
-      if (!initialized) {
-        console.warn('[NotificationsContext] Failed to initialize Supabase Realtime.');
-        console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
-        console.warn('[NotificationsContext] Falling back to 60-second polling only.');
-        return;
-      }
+    // Add a small delay to ensure auth state is fully propagated
+    const initTimer = setTimeout(async () => {
+      // Initialize Supabase Realtime with retry logic
+      const initSupabase = async (retryCount = 0) => {
+        try {
+          const initialized = await supabaseRealtime.initialize();
+          if (!initialized) {
+            // If it's a temporary auth issue and we haven't retried much, try again
+            if (retryCount < 3) {
+              console.warn(`[NotificationsContext] Supabase initialization failed, retrying in ${(retryCount + 1) * 2} seconds...`);
+              setTimeout(() => initSupabase(retryCount + 1), (retryCount + 1) * 2000);
+              return;
+            }
+            
+            console.warn('[NotificationsContext] Failed to initialize Supabase Realtime after retries.');
+            console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
+            console.warn('[NotificationsContext] Falling back to 60-second polling only.');
+            return;
+          }
 
       // Subscribe to notifications
       supabaseRealtime.subscribeToNotifications(
@@ -349,15 +360,27 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           // Silently handle error
         }
       );
-    };
+        } catch (error) {
+          console.error('[NotificationsContext] Error during Supabase initialization:', error);
+          // If it's a temporary error and we haven't retried much, try again
+          if (retryCount < 3) {
+            console.warn(`[NotificationsContext] Will retry in ${(retryCount + 1) * 2} seconds...`);
+            setTimeout(() => initSupabase(retryCount + 1), (retryCount + 1) * 2000);
+          }
+        }
+      };
 
-    initSupabase();
+      initSupabase();
+    }, 500); // 500ms delay to ensure auth state is fully propagated
 
     // Cleanup
     return () => {
-      supabaseRealtime.unsubscribeFromNotifications(merchant.id);
+      clearTimeout(initTimer);
+      if (merchant?.id) {
+        supabaseRealtime.unsubscribeFromNotifications(merchant.id);
+      }
     };
-  }, [queryClient, refetch, merchant?.id]);
+  }, [queryClient, refetch, merchant?.id, isAuthenticated]);
 
 
   // Force update and process notifications when data timestamp changes

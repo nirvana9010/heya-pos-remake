@@ -1030,6 +1030,28 @@ export default function BookingPageClient() {
           <div className="text-center">
             <h3 className="font-display text-2xl font-semibold mb-2">Choose Your Perfect Time</h3>
             <p className="text-muted-foreground">Select a date to see available appointment times</p>
+            {(merchantInfo?.settings?.bookingAdvanceHours || merchantInfo?.settings?.minimumBookingNotice) && (
+              <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                {merchantInfo?.settings?.bookingAdvanceHours && (
+                  <p>
+                    Bookings can be made up to {merchantInfo.settings.bookingAdvanceHours > 168 
+                      ? `${Math.floor(merchantInfo.settings.bookingAdvanceHours / 168)} weeks` 
+                      : merchantInfo.settings.bookingAdvanceHours > 24 
+                      ? `${Math.floor(merchantInfo.settings.bookingAdvanceHours / 24)} days`
+                      : `${merchantInfo.settings.bookingAdvanceHours} hours`} in advance
+                  </p>
+                )}
+                {merchantInfo?.settings?.minimumBookingNotice > 0 && (
+                  <p>
+                    Minimum notice required: {merchantInfo.settings.minimumBookingNotice >= 1440
+                      ? `${Math.floor(merchantInfo.settings.minimumBookingNotice / 1440)} day${Math.floor(merchantInfo.settings.minimumBookingNotice / 1440) > 1 ? 's' : ''}`
+                      : merchantInfo.settings.minimumBookingNotice >= 60
+                      ? `${Math.floor(merchantInfo.settings.minimumBookingNotice / 60)} hour${Math.floor(merchantInfo.settings.minimumBookingNotice / 60) > 1 ? 's' : ''}`
+                      : `${merchantInfo.settings.minimumBookingNotice} minute${merchantInfo.settings.minimumBookingNotice > 1 ? 's' : ''}`}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="max-w-2xl mx-auto">
@@ -1042,14 +1064,52 @@ export default function BookingPageClient() {
                   setSelectedTime(null); // Reset time when date changes
                 }}
                 disabled={(date) => {
-                  // Get today in merchant timezone
+                  // Get today's start of day in merchant timezone
                   const today = merchantInfo ? 
                     TimezoneUtils.startOfDayInTimezone(new Date(), merchantInfo.timezone) :
                     new Date();
-                  today.setHours(0, 0, 0, 0);
-                  // Only disable dates in the past, not based on day of week
-                  // The API will handle business hours validation
-                  return date < today;
+                  
+                  // Compare the date's start of day with today's start of day in merchant timezone
+                  const dateStartOfDay = merchantInfo ?
+                    TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone) :
+                    new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                  
+                  // Disable dates in the past
+                  if (dateStartOfDay < today) {
+                    return true;
+                  }
+                  
+                  // Apply advance booking limit from merchant settings
+                  if (merchantInfo?.settings?.bookingAdvanceHours) {
+                    // Get current time in UTC
+                    const now = new Date();
+                    
+                    // Add the advance booking hours
+                    const maxDateUTC = new Date(now.getTime() + (merchantInfo.settings.bookingAdvanceHours * 60 * 60 * 1000));
+                    
+                    // Convert both dates to start of day in merchant timezone for comparison
+                    const dateStartOfDay = TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone);
+                    const maxDateStartOfDay = TimezoneUtils.startOfDayInTimezone(maxDateUTC, merchantInfo.timezone);
+                    
+                    // If the selected date is after the max allowed date, disable it
+                    if (dateStartOfDay.getTime() > maxDateStartOfDay.getTime()) {
+                      return true;
+                    }
+                  }
+                  
+                  // Apply service-specific max advance booking if available
+                  // Check if any selected service has a max advance booking limit
+                  for (const service of selectedServicesList) {
+                    if (service.maxAdvanceBooking) {
+                      const maxServiceDate = new Date(today);
+                      maxServiceDate.setDate(maxServiceDate.getDate() + service.maxAdvanceBooking);
+                      if (date > maxServiceDate) {
+                        return true;
+                      }
+                    }
+                  }
+                  
+                  return false;
                 }}
                 className="w-full max-w-[600px] mx-auto"
                 classNames={{
@@ -1749,6 +1809,7 @@ export default function BookingPageClient() {
                           time={selectedTime!}
                           staffName={selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available'}
                           customerName={formatName(customerInfo.firstName, customerInfo.lastName)}
+                          cancellationHours={merchantInfo?.settings?.cancellationHours}
                         />
                         </>
                       )}

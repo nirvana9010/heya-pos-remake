@@ -122,6 +122,11 @@ export class PublicBookingController {
       requireDeposit: settings?.requireDeposit || false,
       depositPercentage: settings?.depositPercentage || 0,
       allowUnassignedBookings: settings?.allowUnassignedBookings ?? true,
+      settings: {
+        bookingAdvanceHours: settings?.bookingAdvanceHours || 168, // Default 7 days
+        cancellationHours: settings?.cancellationHours || 24, // Default 24 hours
+        minimumBookingNotice: settings?.minimumBookingNotice || 0, // Default no restriction
+      },
     };
   }
 
