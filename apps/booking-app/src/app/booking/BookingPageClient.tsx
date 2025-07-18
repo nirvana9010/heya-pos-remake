@@ -502,6 +502,23 @@ export default function BookingPageClient() {
   };
 
   const ProgressIndicator = React.memo(function ProgressIndicator() {
+    const handleStepClick = (stepId: number) => {
+      // Only allow navigation to completed steps or the next step
+      if (stepId < currentStep || (stepId === currentStep + 1 && canProceed())) {
+        // Don't allow navigation to payment or confirmation steps directly
+        if (stepId === 6 || stepId === 7) {
+          return;
+        }
+        
+        // Don't allow going back from customer details if returning customer
+        if (currentStep === 5 && stepId < 5 && isReturningCustomer) {
+          return;
+        }
+        
+        setCurrentStep(stepId);
+      }
+    };
+    
     return (
     <div className="mb-12">
       <div className="relative max-w-3xl mx-auto">
@@ -521,28 +538,34 @@ export default function BookingPageClient() {
             const Icon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
+            const isClickable = (step.id < currentStep || (step.id === currentStep + 1 && canProceed())) 
+              && step.id !== 6 && step.id !== 7;
             
             return (
               <div 
                 key={step.id} 
                 className="flex flex-col items-center"
               >
-                <div
+                <button
+                  onClick={() => handleStepClick(step.id)}
+                  disabled={!isClickable}
                   className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
+                    "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2",
                     isActive && "bg-gradient-to-r from-primary to-secondary shadow-lg scale-125",
                     isCompleted && "bg-gradient-to-r from-primary/80 to-secondary/80",
-                    !isActive && !isCompleted && "bg-muted"
+                    !isActive && !isCompleted && "bg-muted",
+                    isClickable && "cursor-pointer hover:scale-110",
+                    !isClickable && "cursor-not-allowed"
                   )}
                 >
                   <Icon className={cn(
                     "h-5 w-5 transition-colors",
                     (isActive || isCompleted) ? "text-white" : "text-gray-400"
                   )} />
-                </div>
+                </button>
                 <span
                   className={cn(
-                    "text-xs mt-3 font-medium transition-all duration-300 hidden sm:block",
+                    "text-xs mt-3 font-medium transition-all duration-300 hidden sm:block select-none",
                     isActive && "text-primary font-semibold scale-110",
                     isCompleted && "text-primary/80",
                     !isActive && !isCompleted && "text-muted-foreground"
