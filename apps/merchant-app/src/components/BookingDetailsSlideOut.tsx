@@ -265,14 +265,21 @@ function BookingDetailsSlideOutComponent({
     
     try {
       // Use the optimized prepareOrderForPayment endpoint
-      console.log('Preparing order for payment for booking:', bookingId);
+      console.log('[BookingDetailsSlideOut] Preparing order for payment for booking:', bookingId);
       
       // This endpoint creates order if needed and returns all payment data in one call
       const paymentData = await apiClient.prepareOrderForPayment({
         bookingId: bookingId
       });
       
-      console.log('Payment data received:', paymentData);
+      console.log('[BookingDetailsSlideOut] Payment data received:', {
+        hasData: !!paymentData,
+        hasOrder: !!paymentData?.order,
+        orderId: paymentData?.order?.id,
+        orderState: paymentData?.order?.state,
+        totalAmount: paymentData?.order?.totalAmount,
+        itemCount: paymentData?.order?.items?.length
+      });
       
       if (!paymentData || !paymentData.order) {
         throw new Error('No order data received from payment preparation');
