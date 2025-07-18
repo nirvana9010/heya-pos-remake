@@ -23,6 +23,7 @@ import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
 import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
@@ -78,6 +79,7 @@ export function BookingSlideOut({
   merchant: merchantProp
 }: BookingSlideOutProps) {
   const { merchant: authMerchant } = useAuth();
+  const { toast } = useToast();
   
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
@@ -290,8 +292,9 @@ export function BookingSlideOut({
     
     setIsSaving(true);
     
-    // Declare optimisticBooking outside try block so it's accessible in catch
+    // Declare optimisticBooking and dismissLoadingToast outside try block so they're accessible in catch
     let optimisticBooking: any;
+    let dismissLoadingToast: (() => void) | undefined;
     
     try {
       // Create new customer if needed
@@ -410,11 +413,12 @@ export function BookingSlideOut({
       }
       
       // Show immediate loading toast and store the function to dismiss it
-      const { dismiss: dismissLoadingToast } = toast({
+      const toastResult = toast({
         title: "Creating booking...",
         description: "Please wait while we create your booking",
         duration: 10000, // Long duration, will be dismissed when complete
       });
+      dismissLoadingToast = toastResult.dismiss;
       
       // Close the slideout immediately for better UX
       onClose();
