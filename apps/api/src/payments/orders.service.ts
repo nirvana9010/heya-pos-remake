@@ -572,94 +572,99 @@ export class OrdersService {
   async prepareOrderForPayment(dto: PrepareOrderDto, user: any): Promise<PaymentInitResponseDto> {
     const startTime = Date.now();
     
-    // Pre-fetch ALL data that doesn't need to be in transaction for better performance
-    let createdById: string | undefined;
-    let orderNumber: string | undefined;
-    let paymentGateway: any;
-    let merchant: any;
-    let location: any;
-    
-    // Start parallel fetches for non-transactional data
-    const parallelFetches = [];
-    
-    // 1. Payment gateway fetch (always needed)
-    parallelFetches.push(
-      this.paymentGatewayService.getGatewayConfig(user.merchantId)
-        .then(config => { paymentGateway = config; })
-    );
-    
-    // 2. Merchant info fetch (always needed)
-    parallelFetches.push(
-      this.prisma.merchant.findUnique({
-        where: { id: user.merchantId },
-        select: {
-          id: true,
-          name: true,
-          settings: true,
-        },
-      }).then(m => { merchant = m; })
-    );
-    
-    // 3. Location info fetch (if available)
-    if (user.locationId) {
+    try {
+      // Pre-fetch ALL data that doesn't need to be in transaction for better performance
+      let createdById: string | undefined;
+      let orderNumber: string | undefined;
+      let paymentGateway: any;
+      let merchant: any;
+      let location: any;
+      
+      // Start parallel fetches for non-transactional data
+      const parallelFetches = [];
+      
+      // 1. Payment gateway fetch (always needed)
       parallelFetches.push(
-        this.prisma.location.findUnique({
-          where: { id: user.locationId },
+        this.paymentGatewayService.getGatewayConfig(user.merchantId)
+          .then(config => { paymentGateway = config; })
+          .catch(err => {
+            console.error('[PrepareOrder] Failed to fetch payment gateway:', err);
+            paymentGateway = { provider: 'stripe', config: {} }; // Fallback
+          })
+      );
+      
+      // 2. Merchant info fetch (always needed)
+      parallelFetches.push(
+        this.prisma.merchant.findUnique({
+          where: { id: user.merchantId },
           select: {
             id: true,
             name: true,
             settings: true,
           },
-        }).then(l => { location = l; })
+        }).then(m => { merchant = m; })
       );
-    }
-    
-    // 4. Staff ID and order number for new orders (or orders from bookings)
-    if (!dto.orderId) {
-      // Get staff ID
-      if (user.type === 'staff' && user.staffId) {
-        createdById = user.staffId;
-      } else {
+      
+      // 3. Location info fetch (if available)
+      if (user.locationId) {
         parallelFetches.push(
-          this.prisma.staff.findFirst({
-            where: {
-              merchantId: user.merchantId,
-              status: 'ACTIVE',
+          this.prisma.location.findUnique({
+            where: { id: user.locationId },
+            select: {
+              id: true,
+              name: true,
+              settings: true,
             },
-            orderBy: {
-              createdAt: 'asc',
-            },
-          }).then(firstStaff => {
-            if (!firstStaff) {
-              throw new BadRequestException('No active staff members found. Please create a staff member first.');
-            }
-            createdById = firstStaff.id;
-          })
+          }).then(l => { location = l; })
         );
       }
       
-      // Generate order number in parallel (only if not checking for existing booking order)
-      if (!dto.bookingId) {
-        parallelFetches.push(
-          this.generateOrderNumber(user.merchantId)
-            .then(num => { orderNumber = num; })
-        );
+      // 4. Staff ID and order number for new orders (or orders from bookings)
+      if (!dto.orderId) {
+        // Get staff ID
+        if (user.type === 'staff' && user.staffId) {
+          createdById = user.staffId;
+        } else {
+          parallelFetches.push(
+            this.prisma.staff.findFirst({
+              where: {
+                merchantId: user.merchantId,
+                status: 'ACTIVE',
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+            }).then(firstStaff => {
+              if (!firstStaff) {
+                throw new BadRequestException('No active staff members found. Please create a staff member first.');
+              }
+              createdById = firstStaff.id;
+            })
+          );
+        }
+        
+        // Generate order number in parallel (only if not checking for existing booking order)
+        if (!dto.bookingId) {
+          parallelFetches.push(
+            this.generateOrderNumber(user.merchantId)
+              .then(num => { orderNumber = num; })
+          );
+        }
       }
-    }
-    
-    // Execute all parallel fetches
-    await Promise.all(parallelFetches);
-    
-    console.log(`[PrepareOrder] Pre-fetch completed in ${Date.now() - startTime}ms`);
-    
-    // Execute the core database operations in transaction
-    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      
+      // Execute all parallel fetches
+      await Promise.all(parallelFetches);
+      
+      console.log(`[PrepareOrder] Pre-fetch completed in ${Date.now() - startTime}ms`);
+      
+      // IMPORTANT: With connection_limit=1, we avoid large transactions
+      // Execute operations sequentially to prevent connection pool exhaustion
       let order: OrderWithRelations;
       
-      // Step 1: Get or create order
+      // Step 1: Get or create order (NO TRANSACTION for reads)
       if (dto.orderId) {
         // Existing order by ID
-        order = await tx.order.findFirst({
+        order = await this.prisma.order.findFirst({
           where: { id: dto.orderId, merchantId: user.merchantId },
           include: {
             items: true,
@@ -679,63 +684,72 @@ export class OrdersService {
       } else if (dto.bookingId) {
         console.log(`[PrepareOrder] Looking for order by bookingId: ${dto.bookingId}`);
         
-        // Check cache first for booking order
-        const bookingCacheKey = RedisService.getOrderByBookingCacheKey(dto.bookingId);
-        const cachedOrderId = await this.redisService.get<string>(bookingCacheKey);
+        // Check for existing order (NO TRANSACTION for reads)
+        console.log(`[PrepareOrder] Checking for existing order with bookingId ${dto.bookingId}`);
+        let existingBookingOrder = await this.prisma.order.findFirst({
+          where: { 
+            bookingId: dto.bookingId,
+            merchantId: user.merchantId 
+          },
+          select: {
+            id: true,
+            state: true,
+            subtotal: true,
+            taxAmount: true,
+            totalAmount: true,
+            paidAmount: true,
+            balanceDue: true,
+            customerId: true,
+            bookingId: true,
+            items: {
+              select: {
+                id: true,
+                itemType: true,
+                itemId: true,
+                description: true,
+                quantity: true,
+                unitPrice: true,
+                discount: true,
+                taxRate: true,
+                taxAmount: true,
+                total: true,
+                staffId: true,
+              }
+            },
+            payments: {
+              select: {
+                id: true,
+                amount: true,
+                status: true,
+              }
+            },
+          },
+        });
         
-        let existingBookingOrder = null;
-        if (cachedOrderId) {
-          console.log(`[PrepareOrder] Cache hit for booking ${dto.bookingId}: orderId ${cachedOrderId}`);
-          // Try to get the cached order
-          existingBookingOrder = await tx.order.findFirst({
-            where: { 
-              id: cachedOrderId,
-              merchantId: user.merchantId 
-            },
-            include: {
-              items: true,
-              payments: true,
-              customer: true,
-              booking: true,
-            },
-          });
-          
-          if (existingBookingOrder) {
-            console.log(`[PrepareOrder] Found cached order ${cachedOrderId} for booking ${dto.bookingId}`);
-          } else {
-            console.log(`[PrepareOrder] Cached order ${cachedOrderId} not found, clearing cache`);
-            await this.redisService.del(bookingCacheKey);
-          }
-        }
-        
-        // If not in cache or cache miss, check database
-        if (!existingBookingOrder) {
-          console.log(`[PrepareOrder] Checking database for order with bookingId ${dto.bookingId}`);
-          existingBookingOrder = await tx.order.findFirst({
-            where: { 
-              bookingId: dto.bookingId,
-              merchantId: user.merchantId 
-            },
-            include: {
-              items: true,
-              payments: true,
-              customer: true,
-              booking: true,
-            },
-          });
-          
-          // Cache the order ID if found
-          if (existingBookingOrder) {
-            console.log(`[PrepareOrder] Found order ${existingBookingOrder.id} in database for booking ${dto.bookingId}`);
-            await this.redisService.set(bookingCacheKey, existingBookingOrder.id, 300); // 5 minutes
-          } else {
-            console.log(`[PrepareOrder] No existing order found for booking ${dto.bookingId}, will create new one`);
-          }
+        if (existingBookingOrder) {
+          console.log(`[PrepareOrder] Found existing order ${existingBookingOrder.id} for booking ${dto.bookingId}`);
+        } else {
+          console.log(`[PrepareOrder] No existing order found for booking ${dto.bookingId}, will create new one`);
         }
         
         if (existingBookingOrder) {
           console.log(`[PrepareOrder] Using existing order ${existingBookingOrder.id} for booking ${dto.bookingId}`);
-          order = existingBookingOrder;
+          // Fetch complete order data (NO TRANSACTION for reads)
+          const completeExistingOrder = await this.prisma.order.findUnique({
+            where: { id: existingBookingOrder.id },
+            include: {
+              items: true,
+              payments: true,
+              customer: true,
+              booking: true,
+            },
+          });
+          
+          if (!completeExistingOrder) {
+            throw new Error('Failed to fetch complete existing order');
+          }
+          
+          order = completeExistingOrder;
         } else {
           // Create new order for booking - use createOrderFromBooking logic
           console.log(`[PrepareOrder] Creating new order for booking ${dto.bookingId}`);
@@ -745,20 +759,30 @@ export class OrdersService {
             orderNumber = await this.generateOrderNumber(user.merchantId);
           }
           
-          // Get booking details
-          const booking = await tx.booking.findFirst({
+          // Get booking details (NO TRANSACTION for reads)
+          const booking = await this.prisma.booking.findFirst({
             where: { 
               id: dto.bookingId,
               merchantId: user.merchantId 
             },
-            include: {
+            select: {
+              id: true,
+              locationId: true,
+              customerId: true,
               services: {
-                include: {
-                  service: true,
-                  staff: true,
-                },
+                select: {
+                  id: true,
+                  serviceId: true,
+                  staffId: true,
+                  price: true,
+                  duration: true,
+                  service: {
+                    select: {
+                      name: true,
+                    }
+                  }
+                }
               },
-              customer: true,
             },
           });
           
@@ -766,8 +790,9 @@ export class OrdersService {
             throw new NotFoundException('Booking not found');
           }
           
-          // Create the order
-          order = await tx.order.create({
+          // Create the order (SMALL TRANSACTION just for creation)
+          order = await this.prisma.$transaction(async (tx) => {
+            const newOrder = await tx.order.create({
             data: {
               merchantId: user.merchantId,
               locationId: booking.locationId,
@@ -791,7 +816,7 @@ export class OrdersService {
           
           // Add booking services as order items
           const items = booking.services.map(bs => ({
-            orderId: order.id,
+            orderId: newOrder.id,
             itemType: 'SERVICE',
             itemId: bs.serviceId,
             description: bs.service.name,
@@ -810,26 +835,30 @@ export class OrdersService {
           }));
           
           if (items.length > 0) {
-            const createdItems = await tx.orderItem.createMany({
+            await tx.orderItem.createMany({
               data: items,
             });
             
             // Fetch the created items to include in the order
             const orderItems = await tx.orderItem.findMany({
-              where: { orderId: order.id },
+              where: { orderId: newOrder.id },
             });
             
-            order.items = orderItems;
+            newOrder.items = orderItems;
           }
           
-          // Cache the new order ID
-          await this.redisService.set(bookingCacheKey, order.id, 300); // 5 minutes
+          return newOrder;
+          }); // End small transaction
+          
+          // Cache the new order ID (OUTSIDE transaction)
+          const newBookingCacheKey = RedisService.getOrderByBookingCacheKey(booking.id);
+          await this.redisService.set(newBookingCacheKey, order.id, 300); // 5 minutes
         }
       } else {
         // Create new order without booking
         const customerId = dto.isWalkIn ? null : dto.customerId || null;
         
-        const newOrder = await tx.order.create({
+        order = await this.prisma.order.create({
           data: {
             merchantId: user.merchantId,
             locationId: user.locationId || user.locations?.[0]?.id,
@@ -850,15 +879,13 @@ export class OrdersService {
             booking: true,
           },
         });
-        
-        order = newOrder;
       }
       
-      // Step 2: Add items if provided
+      // Step 2: Add items if provided (OUTSIDE transaction)
       if (dto.items && dto.items.length > 0) {
         const createdItems = await Promise.all(
           dto.items.map((item, index) =>
-            tx.orderItem.create({
+            this.prisma.orderItem.create({
               data: {
                 orderId: order.id,
                 itemType: item.itemType,
@@ -882,9 +909,9 @@ export class OrdersService {
         order.items.push(...createdItems);
       }
       
-      // Step 3: Add order modifier if provided
+      // Step 3: Add order modifier if provided (OUTSIDE transaction)
       if (dto.orderModifier) {
-        await tx.orderModifier.create({
+        await this.prisma.orderModifier.create({
           data: {
             orderId: order.id,
             type: dto.orderModifier.type,
@@ -896,11 +923,11 @@ export class OrdersService {
         });
       }
       
-      // Step 4: Recalculate order totals
-      await this.recalculateOrderTotalsInTransaction(tx, order.id);
+      // Step 4: Recalculate order totals (OUTSIDE transaction)
+      await this.recalculateOrderTotals(order.id);
       
       // Step 5: Fetch the updated order with calculated totals
-      const finalOrder = await tx.order.findUnique({
+      const updatedOrder = await this.prisma.order.findUnique({
         where: { id: order.id },
         include: {
           items: true,
@@ -911,20 +938,18 @@ export class OrdersService {
         },
       });
       
-      if (!finalOrder) {
+      if (!updatedOrder) {
         throw new Error('Failed to fetch updated order');
       }
       
-      return finalOrder;
-    }, {
-      timeout: 10000 // 10 second timeout
-    });
-    
-    console.log(`[PrepareOrder] Transaction completed in ${Date.now() - startTime}ms`);
+      console.log(`[PrepareOrder] Order prepared in ${Date.now() - startTime}ms`);
+      
+      // Use the already fetched complete order
+      const completeOrder = updatedOrder;
     
     // Build response
     const response: PaymentInitResponseDto = {
-      order: updatedOrder,
+      order: completeOrder,
       paymentGateway: {
         provider: paymentGateway.provider,
         config: paymentGateway.config,
@@ -938,17 +963,32 @@ export class OrdersService {
     };
     
     // Include customer if present
-    if (updatedOrder.customer) {
-      response.customer = updatedOrder.customer;
+    if (completeOrder.customer) {
+      response.customer = completeOrder.customer;
     }
     
     // Include booking if present
-    if (updatedOrder.booking) {
-      response.booking = updatedOrder.booking;
+    if (completeOrder.booking) {
+      response.booking = completeOrder.booking;
     }
     
     console.log(`[PrepareOrder] Completed in ${Date.now() - startTime}ms`);
     return response;
+    } catch (error: any) {
+      console.error('[PrepareOrder] Error:', error);
+      
+      // Handle specific database errors
+      if (error.code === 'P2024' || error.message?.includes('pool')) {
+        throw new Error('Database connection pool exhausted. Please try again in a moment.');
+      }
+      
+      if (error.code === 'P2034' || error.message?.includes('timeout')) {
+        throw new Error('Database operation timed out. Please try again.');
+      }
+      
+      // Re-throw other errors
+      throw error;
+    }
   }
   
   // Helper method for recalculating totals within a transaction
