@@ -409,6 +409,13 @@ export function BookingSlideOut({
         console.error('Error invalidating cache:', callbackError);
       }
       
+      // Show immediate loading toast and store the function to dismiss it
+      const { dismiss: dismissLoadingToast } = toast({
+        title: "Creating booking...",
+        description: "Please wait while we create your booking",
+        duration: 10000, // Long duration, will be dismissed when complete
+      });
+      
       // Close the slideout immediately for better UX
       onClose();
       
@@ -424,14 +431,20 @@ export function BookingSlideOut({
           ...optimisticBooking,
           id: response.id,
           bookingNumber: response.bookingNumber || 'PENDING',
-          status: response.status?.toLowerCase() || 'confirmed',
-          _isOptimistic: false
+          status: response.status || 'CONFIRMED',
+          _isOptimistic: false,
+          _dismissLoadingToast: dismissLoadingToast // Pass the dismiss function
         };
         onSave(realBooking);
       }
       
     } catch (error) {
       console.error('Failed to create booking:', error);
+      
+      // Dismiss the loading toast
+      if (dismissLoadingToast) {
+        dismissLoadingToast();
+      }
       
       // Remove the optimistic booking on error
       // Parent component should handle removing bookings with matching temp ID
@@ -441,7 +454,13 @@ export function BookingSlideOut({
         _remove: true 
       });
       
-      alert('Failed to create booking. Please try again.');
+      // Show error toast instead of alert
+      toast({
+        title: "Failed to create booking",
+        description: "Please try again",
+        variant: "destructive",
+        duration: 5000,
+      });
       
       // Re-open the slideout so user can try again
       // Note: This assumes parent provides a way to re-open, otherwise user needs to start over
