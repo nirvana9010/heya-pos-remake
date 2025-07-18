@@ -29,14 +29,13 @@ import { useMerchant } from "@/contexts/merchant-context";
 import { useApiClient } from "@/hooks/use-api-client";
 
 
-const steps = [
+// Base steps without payment
+const baseSteps = [
   { id: 1, name: "Service", icon: CheckCircle },
   { id: 2, name: "Staff", icon: User },
   { id: 3, name: "Date & Time", icon: Calendar },
   { id: 4, name: "Identify", icon: UserCircle },
   { id: 5, name: "Your Details", icon: UserCircle },
-  { id: 6, name: "Payment", icon: DollarSign },
-  { id: 7, name: "Confirmation", icon: CheckCircle },
 ];
 
 // Customer Form Component - Outside of BookingPage to prevent re-creation
@@ -296,6 +295,22 @@ export default function BookingPageClient() {
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(merchantFromContext);
   
+  // Create dynamic steps based on merchant settings
+  const steps = React.useMemo(() => {
+    const dynamicSteps = [...baseSteps];
+    
+    // Only add payment step if merchant requires deposit
+    if (merchantInfo?.requireDeposit && merchantInfo?.depositPercentage > 0) {
+      dynamicSteps.push({ id: 6, name: "Payment", icon: DollarSign });
+    }
+    
+    // Always add confirmation as the last step
+    const confirmationId = merchantInfo?.requireDeposit && merchantInfo?.depositPercentage > 0 ? 7 : 6;
+    dynamicSteps.push({ id: confirmationId, name: "Confirmation", icon: CheckCircle });
+    
+    return dynamicSteps;
+  }, [merchantInfo?.requireDeposit, merchantInfo?.depositPercentage]);
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedServices, setSelectedServices] = useState<string[]>(
     searchParams.get("service") ? [searchParams.get("service")!] : []
@@ -344,10 +359,11 @@ export default function BookingPageClient() {
 
   // Track step changes and ensure confirmation data persists
   useEffect(() => {
-    if (currentStep === 7 && !confirmationData) {
+    const confirmationStepId = steps[steps.length - 1]?.id;
+    if (currentStep === confirmationStepId && !confirmationData) {
       console.warn('[BookingPageClient] WARNING: On confirmation step but no confirmationData!');
     }
-  }, [currentStep, confirmationData]);
+  }, [currentStep, confirmationData, steps]);
 
   const loadInitialData = async () => {
     try {
@@ -396,6 +412,9 @@ export default function BookingPageClient() {
   };
 
   const handleNext = async () => {
+    const lastStepBeforeConfirmation = steps[steps.length - 2].id;
+    const confirmationStepId = steps[steps.length - 1].id;
+    
     if (currentStep === 5) {
       // Move to payment step if deposit required, otherwise skip to booking creation
       if (merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0) {
@@ -404,10 +423,10 @@ export default function BookingPageClient() {
         // Skip payment, create booking directly
         await handleBookingSubmit();
       }
-    } else if (currentStep === 6) {
+    } else if (currentStep === 6 && merchantInfo?.requireDeposit) {
       // Payment step - handled by payment form submission
       return;
-    } else if (currentStep < 7) {
+    } else if (currentStep < lastStepBeforeConfirmation) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -460,7 +479,9 @@ export default function BookingPageClient() {
       setBookingNumber(booking.bookingNumber || booking.id);
       
       console.log('[BookingPageClient] Booking created successfully, moving to confirmation step');
-      setCurrentStep(7); // Go to confirmation step
+      // Set to the last step (confirmation), which could be 6 or 7 depending on payment requirement
+      const confirmationStepId = steps[steps.length - 1].id;
+      setCurrentStep(confirmationStepId);
       
       // Don't show toast - we're showing the confirmation page instead
     } catch (error: any) {
@@ -506,7 +527,8 @@ export default function BookingPageClient() {
       // Only allow navigation to completed steps or the next step
       if (stepId < currentStep || (stepId === currentStep + 1 && canProceed())) {
         // Don't allow navigation to payment or confirmation steps directly
-        if (stepId === 6 || stepId === 7) {
+        const lastTwoSteps = steps.slice(-2).map(s => s.id);
+        if (lastTwoSteps.includes(stepId)) {
           return;
         }
         
@@ -538,8 +560,9 @@ export default function BookingPageClient() {
             const Icon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
+            const lastTwoSteps = steps.slice(-2).map(s => s.id);
             const isClickable = (step.id < currentStep || (step.id === currentStep + 1 && canProceed())) 
-              && step.id !== 6 && step.id !== 7;
+              && !lastTwoSteps.includes(step.id);
             
             return (
               <div 
@@ -1710,7 +1733,8 @@ export default function BookingPageClient() {
                   {currentStep === 3 && "Schedule Your Visit"}
                   {currentStep === 4 && "Your Information"}
                   {currentStep === 5 && "Complete Your Booking"}
-                  {currentStep === 6 && "Secure Payment"}
+                  {currentStep === 6 && merchantInfo?.requireDeposit && "Secure Payment"}
+                  {currentStep === 6 && !merchantInfo?.requireDeposit && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
                   {currentStep === 7 && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
                 </CardTitle>
                 <CardDescription className="text-lg text-foreground/60 max-w-2xl mx-auto">
@@ -1719,7 +1743,8 @@ export default function BookingPageClient() {
                   {currentStep === 3 && "Find the perfect time for your moment of relaxation"}
                   {currentStep === 4 && "Are you a returning customer? Let's check"}
                   {currentStep === 5 && "Just a few details to secure your appointment"}
-                  {currentStep === 6 && "Pay deposit to secure your booking"}
+                  {currentStep === 6 && merchantInfo?.requireDeposit && "Pay deposit to secure your booking"}
+                  {currentStep === 6 && !merchantInfo?.requireDeposit && "Your journey to wellness begins here"}
                   {currentStep === 7 && "Your journey to wellness begins here"}
                 </CardDescription>
               </CardHeader>
@@ -1778,7 +1803,7 @@ export default function BookingPageClient() {
                         />
                         </>
                       )}
-                      {currentStep === 6 && selectedServicesList.length > 0 && (
+                      {currentStep === 6 && merchantInfo?.requireDeposit && selectedServicesList.length > 0 && (
                         <>
                           <SelectedServicesSummary services={selectedServicesList} />
                         <PaymentStep
@@ -1795,6 +1820,7 @@ export default function BookingPageClient() {
                         />
                         </>
                       )}
+                      {(currentStep === 6 && !merchantInfo?.requireDeposit) && <Confirmation />}
                       {currentStep === 7 && <Confirmation />}
                     </motion.div>
                   </AnimatePresence>
@@ -1804,7 +1830,13 @@ export default function BookingPageClient() {
                   {currentStep === 1 && <div className="h-24" />}
                   
                   {/* Regular navigation for non-service selection steps */}
-                  {currentStep < 7 && currentStep !== 6 && currentStep !== 1 && (
+                  {(() => {
+                    const lastStepId = steps[steps.length - 1].id;
+                    const paymentStepExists = steps.some(s => s.name === "Payment");
+                    const paymentStepId = paymentStepExists ? 6 : null;
+                    
+                    return currentStep < lastStepId && currentStep !== paymentStepId && currentStep !== 1;
+                  })() && (
                     <div className="flex justify-between mt-12 px-2">
                       <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -1857,7 +1889,7 @@ export default function BookingPageClient() {
       </div>
       
       {/* Sticky footer for service selection - Outside of Card to be truly fixed */}
-      {currentStep === 1 && currentStep < 7 && (
+      {currentStep === 1 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t shadow-lg">
           <div className="container max-w-4xl mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
