@@ -424,6 +424,11 @@ function CalendarContent() {
         source: 'slideout'
       });
       
+      // Dismiss loading toast if provided
+      if (bookingData._dismissLoadingToast && typeof bookingData._dismissLoadingToast === 'function') {
+        bookingData._dismissLoadingToast();
+      }
+      
       // Show success toast with icon
       const toastMessage = (
         <div className="flex items-start gap-3">

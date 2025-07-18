@@ -141,7 +141,7 @@ export function WeeklyView({
                         opacity = 0.3;
                         borderWidth = 3;
                         textColor = 'text-gray-700';
-                      } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                      } else if (booking.status?.toLowerCase() === 'pending') {
                         // Option 1: Keep original color with overlay effect
                         opacity = 0.65; // Reduced from 0.8
                         borderWidth = 3;
@@ -167,10 +167,10 @@ export function WeeklyView({
                           )}
                           style={{
                             backgroundColor: hexToRgba(bgColor, opacity),
-                            backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                            backgroundImage: (booking.status?.toLowerCase() === 'pending') 
                               ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
                               : undefined,
-                            backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                            backgroundBlendMode: (booking.status?.toLowerCase() === 'pending') 
                               ? 'overlay' as any
                               : undefined,
                             borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -224,7 +224,7 @@ export function WeeklyView({
                           
                           {/* Status badges - bottom right */}
                           <div className="absolute bottom-2 right-2 flex gap-1">
-                            {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                            {(booking.status?.toLowerCase() === 'pending') && (
                               <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                                 PENDING
                               </div>
