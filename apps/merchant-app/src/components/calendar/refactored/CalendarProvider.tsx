@@ -182,6 +182,15 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         bookings: state.bookings.filter(b => b.id !== action.payload),
       };
     
+    case 'REPLACE_BOOKING':
+      // Atomically replace one booking with another (used for optimistic updates)
+      return {
+        ...state,
+        bookings: state.bookings.map(b => 
+          b.id === action.payload.oldId ? action.payload.newBooking : b
+        ),
+      };
+    
     case 'SET_STAFF':
       return {
         ...state,
@@ -488,6 +497,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     updateBooking: (id: string, updates: any) => dispatch({ type: 'UPDATE_BOOKING', payload: { id, updates } }),
     addBooking: (booking: any) => dispatch({ type: 'ADD_BOOKING', payload: booking }),
     removeBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
+    replaceBooking: (oldId: string, newBooking: any) => dispatch({ type: 'REPLACE_BOOKING', payload: { oldId, newBooking } }),
     setStaff: (staff: any[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
     setServices: (services: any[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
     setCustomers: (customers: any[]) => dispatch({ type: 'SET_CUSTOMERS', payload: customers }),

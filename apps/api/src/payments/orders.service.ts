@@ -250,6 +250,8 @@ export class OrdersService {
   }
 
   async recalculateOrderTotals(orderId: string) {
+    const startTime = Date.now();
+    
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -263,9 +265,10 @@ export class OrdersService {
 
     if (!order) return;
 
-    // Calculate item totals
+    // Calculate item totals and prepare batch updates
     let subtotal = new Decimal(0);
     let taxAmount = new Decimal(0);
+    const itemUpdates = [];
 
     for (const item of order.items) {
       // Convert to Decimal if needed
@@ -278,20 +281,24 @@ export class OrdersService {
       const itemTax = itemSubtotal.mul(taxRate);
       const itemTotal = itemSubtotal.add(itemTax);
 
-      await this.prisma.orderItem.update({
-        where: { id: item.id },
-        data: {
-          taxAmount: itemTax,
-          total: itemTotal,
-        },
-      });
+      // Prepare update for batch execution
+      itemUpdates.push(
+        this.prisma.orderItem.update({
+          where: { id: item.id },
+          data: {
+            taxAmount: itemTax,
+            total: itemTotal,
+          },
+        })
+      );
 
       subtotal = subtotal.add(itemSubtotal);
       taxAmount = taxAmount.add(itemTax);
     }
 
-    // Apply modifiers
+    // Apply modifiers and prepare batch updates
     let totalAmount = subtotal.add(taxAmount);
+    const modifierUpdates = [];
     
     for (const modifier of order.modifiers) {
       let modifierAmount = new Decimal(0);
@@ -307,10 +314,13 @@ export class OrdersService {
         modifierAmount = modifierAmount.neg();
       }
 
-      await this.prisma.orderModifier.update({
-        where: { id: modifier.id },
-        data: { amount: modifierAmount },
-      });
+      // Prepare update for batch execution
+      modifierUpdates.push(
+        this.prisma.orderModifier.update({
+          where: { id: modifier.id },
+          data: { amount: modifierAmount },
+        })
+      );
 
       totalAmount = totalAmount.add(modifierAmount);
     }
@@ -323,17 +333,25 @@ export class OrdersService {
 
     const balanceDue = totalAmount.sub(paidAmount);
 
-    // Update order totals
-    await this.prisma.order.update({
-      where: { id: orderId },
-      data: {
-        subtotal,
-        taxAmount,
-        totalAmount,
-        paidAmount,
-        balanceDue,
-      },
-    });
+    // Execute all updates in parallel
+    const allUpdates = [
+      ...itemUpdates,
+      ...modifierUpdates,
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          subtotal,
+          taxAmount,
+          totalAmount,
+          paidAmount,
+          balanceDue,
+        },
+      })
+    ];
+
+    await Promise.all(allUpdates);
+    
+    console.log(`[RecalculateTotals] Completed in ${Date.now() - startTime}ms for order ${orderId}`);
   }
 
   private validateStateTransition(currentState: OrderState, newState: OrderState) {

@@ -479,11 +479,16 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
-                          } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                          } else if (booking.status === 'PENDING') {
                             // Option 1: Keep original color with overlay effect
                             bgOpacity = 0.65; // Reduced from 0.8
                             borderWidth = 4;
                             borderStyle = 'dashed';
+                          } else if (booking.status === 'optimistic') {
+                            // Optimistic bookings show with subtle animation
+                            bgOpacity = 0.7;
+                            borderWidth = 3;
+                            borderStyle = 'solid';
                           } else if (isPast) {
                             // Only fade confirmed bookings if they're in the past
                             bgOpacity = 0.3;
@@ -521,10 +526,12 @@ export function DailyView({
                                 style={{
                                   height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                  backgroundImage: booking.status === 'PENDING'
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
+                                    : booking.status === 'optimistic'
+                                    ? 'linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0.2))'
                                     : undefined,
-                                  backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                  backgroundBlendMode: booking.status === 'PENDING' || booking.status === 'optimistic'
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -551,7 +558,7 @@ export function DailyView({
                                 }}
                               >
                                 {/* Overlap warning indicator */}
-                                {hasOverlaps && booking.status !== 'cancelled' && (
+                                {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
                                   <div className="absolute top-1 right-1 z-30">
                                     <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
                                       <AlertTriangle className="w-3 h-3" />
@@ -573,9 +580,14 @@ export function DailyView({
                                 )}
                                 {/* Status badges - bottom right */}
                                 <div className="absolute bottom-3 right-3 flex gap-2">
-                                  {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                                  {booking.status === 'PENDING' && (
                                     <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
                                       PENDING
+                                    </div>
+                                  )}
+                                  {booking.status === 'optimistic' && (
+                                    <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
+                                      Creating...
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
@@ -711,11 +723,16 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
-                          } else if (booking.status === 'pending' || booking.status === 'PENDING') {
+                          } else if (booking.status === 'PENDING') {
                             // Option 1: Keep original color with overlay effect
                             bgOpacity = 0.65; // Reduced from 0.8
                             borderWidth = 4;
                             borderStyle = 'dashed';
+                          } else if (booking.status === 'optimistic') {
+                            // Optimistic bookings show with subtle animation
+                            bgOpacity = 0.7;
+                            borderWidth = 3;
+                            borderStyle = 'solid';
                           } else if (isPast) {
                             // Only fade confirmed bookings if they're in the past
                             bgOpacity = 0.3;
@@ -753,10 +770,12 @@ export function DailyView({
                                 style={{
                                   height: `${slotsSpanned * 40 - 4}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  backgroundImage: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                  backgroundImage: booking.status === 'PENDING'
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
+                                    : booking.status === 'optimistic'
+                                    ? 'linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0.2))'
                                     : undefined,
-                                  backgroundBlendMode: (booking.status === 'pending' || booking.status === 'PENDING') 
+                                  backgroundBlendMode: booking.status === 'PENDING' || booking.status === 'optimistic'
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -783,7 +802,7 @@ export function DailyView({
                                 }}
                               >
                                 {/* Overlap warning indicator */}
-                                {hasOverlaps && booking.status !== 'cancelled' && (
+                                {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
                                   <div className="absolute top-1 right-1 z-30">
                                     <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
                                       <AlertTriangle className="w-3 h-3" />
@@ -805,9 +824,14 @@ export function DailyView({
                                 )}
                                 {/* Status badges - bottom right */}
                                 <div className="absolute bottom-3 right-3 flex gap-2">
-                                  {(booking.status === 'pending' || booking.status === 'PENDING') && (
+                                  {booking.status === 'PENDING' && (
                                     <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
                                       PENDING
+                                    </div>
+                                  )}
+                                  {booking.status === 'optimistic' && (
+                                    <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
+                                      Creating...
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (

@@ -154,6 +154,7 @@ export type CalendarAction =
   | { type: 'UPDATE_BOOKING'; payload: { id: string; updates: Partial<Booking> } }
   | { type: 'ADD_BOOKING'; payload: Booking }
   | { type: 'REMOVE_BOOKING'; payload: string }
+  | { type: 'REPLACE_BOOKING'; payload: { oldId: string; newBooking: Booking } }
   | { type: 'SET_STAFF'; payload: Staff[] }
   | { type: 'SET_SERVICES'; payload: Service[] }
   | { type: 'SET_CUSTOMERS'; payload: Customer[] }
@@ -204,6 +205,7 @@ export interface CalendarActions {
   updateBooking: (id: string, updates: Partial<Booking>) => void;
   addBooking: (booking: Booking) => void;
   removeBooking: (id: string) => void;
+  replaceBooking: (oldId: string, newBooking: Booking) => void;
   setStaff: (staff: Staff[]) => void;
   setServices: (services: Service[]) => void;
   setCustomers: (customers: Customer[]) => void;

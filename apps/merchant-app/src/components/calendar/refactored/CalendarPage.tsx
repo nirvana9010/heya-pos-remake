@@ -337,7 +337,7 @@ function CalendarContent() {
           date: format(startTime, 'yyyy-MM-dd'),
           time: format(startTime, 'HH:mm'),
           duration: bookingData.services?.[0]?.duration || 30,
-          status: 'pending' as BookingStatus,
+          status: 'optimistic' as BookingStatus, // Preserve optimistic status to prevent PENDING badge
           customerId: bookingData.customerId,
           customerName: bookingData.customerName,
           customerPhone: bookingData.customerPhone || '',
@@ -364,12 +364,8 @@ function CalendarContent() {
       }
       
       // Otherwise, it's the real booking data after successful creation
-      // Update the optimistic booking with real data
+      // Find the optimistic booking to replace
       const existingOptimistic = state.bookings.find(b => b.id.startsWith('temp-'));
-      if (existingOptimistic) {
-        // Remove the optimistic booking
-        actions.removeBooking(existingOptimistic.id);
-      }
       
       // Transform the booking data for calendar display
       const startTime = new Date(bookingData.startTime);
@@ -395,7 +391,8 @@ function CalendarContent() {
         date: format(startTime, 'yyyy-MM-dd'),
         time: format(startTime, 'HH:mm'),
         duration: duration,
-        status: (bookingData.status || 'confirmed') as BookingStatus,
+        // Normalize status to lowercase to match our BookingStatus type
+        status: (bookingData.status || 'confirmed').toLowerCase() as BookingStatus,
         customerId: bookingData.customerId,
         customerName: bookingData.customerName,
         customerPhone: bookingData.customerPhone || '',
@@ -411,8 +408,12 @@ function CalendarContent() {
         updatedAt: new Date().toISOString(),
       };
       
-      // Don't add if it's already been added (for real booking updates)
-      if (!bookingData._isOptimistic) {
+      // Replace optimistic booking with real booking or add new booking
+      if (existingOptimistic) {
+        // Use atomic replace to avoid flicker
+        actions.replaceBooking(existingOptimistic.id, transformedBooking);
+      } else if (!bookingData._isOptimistic) {
+        // Only add if it's not an optimistic update
         actions.addBooking(transformedBooking);
       }
       actions.closeBookingSlideOut();
