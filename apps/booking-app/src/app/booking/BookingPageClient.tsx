@@ -14,7 +14,7 @@ import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { RadioGroup, RadioGroupItem } from "@heya-pos/ui";
 import { Checkbox } from "@heya-pos/ui";
-import { Calendar as CalendarComponent } from "@heya-pos/ui";
+import { HorizontalDatePicker } from "../../components/HorizontalDatePicker";
 import { cn } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
@@ -1054,118 +1054,77 @@ export default function BookingPageClient() {
             )}
           </div>
           
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-10">
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setSelectedTime(null); // Reset time when date changes
-                }}
-                disabled={(date) => {
-                  // Get today's start of day in merchant timezone
-                  const today = merchantInfo ? 
-                    TimezoneUtils.startOfDayInTimezone(new Date(), merchantInfo.timezone) :
-                    new Date();
+          <div className="w-full">
+            <HorizontalDatePicker
+              selectedDate={selectedDate}
+              onSelectDate={(date) => {
+                setSelectedDate(date);
+                setSelectedTime(null); // Reset time when date changes
+              }}
+              maxAdvanceDays={(() => {
+                // Calculate max advance days based on merchant settings
+                const settings = merchantInfo?.settings || {};
+                const bookingAdvanceHours = settings.bookingAdvanceHours || 168; // Default 7 days
+                let maxDays = Math.ceil(bookingAdvanceHours / 24);
+                
+                // Apply service-specific max advance booking if available
+                for (const service of selectedServicesList) {
+                  if (service.maxAdvanceBooking && service.maxAdvanceBooking < maxDays) {
+                    maxDays = service.maxAdvanceBooking;
+                  }
+                }
+                
+                return Math.min(maxDays, 60); // Cap at 60 days for UI performance
+              })()}
+              disabledDates={(date) => {
+                // Get today's start of day in merchant timezone
+                const today = merchantInfo ? 
+                  TimezoneUtils.startOfDayInTimezone(new Date(), merchantInfo.timezone) :
+                  new Date();
+                
+                // Compare the date's start of day with today's start of day in merchant timezone
+                const dateStartOfDay = merchantInfo ?
+                  TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone) :
+                  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                
+                // Disable dates in the past
+                if (dateStartOfDay < today) {
+                  return true;
+                }
+                
+                // Apply advance booking limit from merchant settings
+                if (merchantInfo?.settings?.bookingAdvanceHours) {
+                  // Get current time in UTC
+                  const now = new Date();
                   
-                  // Compare the date's start of day with today's start of day in merchant timezone
-                  const dateStartOfDay = merchantInfo ?
-                    TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone) :
-                    new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                  // Add the advance booking hours
+                  const maxDateUTC = new Date(now.getTime() + (merchantInfo.settings.bookingAdvanceHours * 60 * 60 * 1000));
                   
-                  // Disable dates in the past
-                  if (dateStartOfDay < today) {
+                  // Convert both dates to start of day in merchant timezone for comparison
+                  const dateStartOfDay = TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone);
+                  const maxDateStartOfDay = TimezoneUtils.startOfDayInTimezone(maxDateUTC, merchantInfo.timezone);
+                  
+                  // If the selected date is after the max allowed date, disable it
+                  if (dateStartOfDay.getTime() > maxDateStartOfDay.getTime()) {
                     return true;
                   }
-                  
-                  // Apply advance booking limit from merchant settings
-                  if (merchantInfo?.settings?.bookingAdvanceHours) {
-                    // Get current time in UTC
-                    const now = new Date();
-                    
-                    // Add the advance booking hours
-                    const maxDateUTC = new Date(now.getTime() + (merchantInfo.settings.bookingAdvanceHours * 60 * 60 * 1000));
-                    
-                    // Convert both dates to start of day in merchant timezone for comparison
-                    const dateStartOfDay = TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone);
-                    const maxDateStartOfDay = TimezoneUtils.startOfDayInTimezone(maxDateUTC, merchantInfo.timezone);
-                    
-                    // If the selected date is after the max allowed date, disable it
-                    if (dateStartOfDay.getTime() > maxDateStartOfDay.getTime()) {
+                }
+                
+                // Apply service-specific max advance booking if available
+                for (const service of selectedServicesList) {
+                  if (service.maxAdvanceBooking) {
+                    const maxServiceDate = new Date(today);
+                    maxServiceDate.setDate(maxServiceDate.getDate() + service.maxAdvanceBooking);
+                    if (date > maxServiceDate) {
                       return true;
                     }
                   }
-                  
-                  // Apply service-specific max advance booking if available
-                  // Check if any selected service has a max advance booking limit
-                  for (const service of selectedServicesList) {
-                    if (service.maxAdvanceBooking) {
-                      const maxServiceDate = new Date(today);
-                      maxServiceDate.setDate(maxServiceDate.getDate() + service.maxAdvanceBooking);
-                      if (date > maxServiceDate) {
-                        return true;
-                      }
-                    }
-                  }
-                  
-                  return false;
-                }}
-                className="w-full max-w-[600px] mx-auto"
-                classNames={{
-                  months: "space-y-6",
-                  month: "space-y-6 w-full",
-                  caption: "flex justify-center pt-2 relative items-center mb-8",
-                  caption_label: "font-display text-xl font-semibold text-gray-900",
-                  nav: "space-x-1 flex items-center",
-                  nav_button: "h-12 w-12 bg-card hover:bg-primary/5 rounded-full transition-all duration-200 flex items-center justify-center border border-border hover:border-primary/30 hover:scale-110",
-                  nav_button_previous: "absolute left-1",
-                  nav_button_next: "absolute right-1",
-                  table: "w-full border-collapse",
-                  head_row: "flex justify-between mb-4",
-                  head_cell: "text-gray-500 font-medium text-sm w-[14.28%] flex items-center justify-center",
-                  row: "flex justify-between w-full mb-3",
-                  cell: cn(
-                    "relative p-0 text-center text-base w-[14.28%] flex items-center justify-center",
-                    "[&:has([aria-selected])]:bg-transparent",
-                    "focus-within:relative focus-within:z-20"
-                  ),
-                  day: cn(
-                    "h-14 w-14 p-0 font-normal text-base rounded-xl",
-                    "transition-all duration-200",
-                    "hover:bg-primary/5 hover:scale-105",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2",
-                    "aria-selected:opacity-100"
-                  ),
-                  day_selected: "bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:from-primary/90 hover:to-secondary/90 shadow-lg",
-                  day_today: "bg-primary/10 text-primary font-bold ring-2 ring-primary/30 ring-offset-2",
-                  day_outside: "text-gray-300 opacity-50",
-                  day_disabled: "text-gray-300 opacity-40 cursor-not-allowed hover:bg-transparent hover:scale-100",
-                  day_hidden: "invisible",
-                  day_range_middle: "aria-selected:bg-primary/10 aria-selected:text-primary",
-                }}
-                components={{
-                  IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5 text-gray-600" />,
-                  IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5 text-gray-600" />,
-                }}
-              />
-              
-              {/* Weekend indicator */}
-              <div className="mt-6 flex items-center justify-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-primary/10" />
-                  <span className="text-gray-600">Today</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-gradient-to-r from-primary to-secondary" />
-                  <span className="text-gray-600">Selected</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-gray-100" />
-                  <span className="text-gray-600">Unavailable</span>
-                </div>
-              </div>
-            </div>
+                }
+                
+                return false;
+              }}
+              className="max-w-5xl mx-auto"
+            />
           </div>
         </motion.div>
 
