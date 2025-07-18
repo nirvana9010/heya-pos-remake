@@ -41,11 +41,15 @@ const baseSteps = [
 const CustomerFormComponent = React.memo(({ 
   customerInfo, 
   onCustomerInfoChange,
-  isReturningCustomer = false
+  isReturningCustomer = false,
+  isEditMode = false,
+  onEditModeChange
 }: { 
   customerInfo: any, 
   onCustomerInfoChange: (info: any) => void,
-  isReturningCustomer?: boolean
+  isReturningCustomer?: boolean,
+  isEditMode?: boolean,
+  onEditModeChange?: (editMode: boolean) => void
 }) => {
   const [touched, setTouched] = useState({
     firstName: false,
@@ -69,38 +73,71 @@ const CustomerFormComponent = React.memo(({
     onCustomerInfoChange({ ...customerInfo, [field]: value });
   };
   
-  return (
-    <div className="max-w-md mx-auto space-y-6">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-medium mb-2">
-          {isReturningCustomer ? 'Welcome back!' : 'Almost there!'}
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          {isReturningCustomer 
-            ? 'Please confirm your details are correct'
-            : 'We just need a few details to confirm your booking'}
-        </p>
-      </div>
-
-      {/* Show simplified view for returning customers */}
-      {isReturningCustomer && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-blue-900">Your Information:</p>
-            <p className="text-sm text-blue-800">
-              {customerInfo.firstName} {customerInfo.lastName}
-            </p>
-            <p className="text-sm text-blue-800">{customerInfo.email}</p>
-            <p className="text-sm text-blue-800">{customerInfo.phone}</p>
+  // Show read-only summary for returning customers (unless in edit mode)
+  if (isReturningCustomer && !isEditMode) {
+    return (
+      <div className="max-w-md mx-auto space-y-6">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-medium mb-2">Welcome back!</h3>
+          <p className="text-sm text-muted-foreground">
+            We have your details on file
+          </p>
+        </div>
+        
+        <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <UserCircle className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-lg">
+                {customerInfo.firstName} {customerInfo.lastName}
+              </p>
+              <p className="text-sm text-muted-foreground">Valued Customer</p>
+            </div>
           </div>
+          
+          <div className="space-y-3 pt-2 border-t border-primary/10">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{customerInfo.email}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{customerInfo.phone}</span>
+            </div>
+          </div>
+          
           <button
-            onClick={() => setTouched({ firstName: true, lastName: true, email: true, phone: true })}
-            className="text-sm text-blue-600 hover:text-blue-800 underline mt-3"
+            onClick={() => onEditModeChange?.(true)}
+            className="w-full mt-4 text-sm text-primary hover:text-primary/80 font-medium py-2 px-4 rounded-lg border border-primary/20 hover:border-primary/40 transition-colors"
           >
             Need to update these details?
           </button>
         </div>
-      )}
+        
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            Your information is secure and will only be used for this booking
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show full form for new customers or when editing
+  return (
+    <div className="max-w-md mx-auto space-y-6">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-medium mb-2">
+          {isReturningCustomer && isEditMode ? 'Update Your Details' : 'Almost there!'}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {isReturningCustomer && isEditMode
+            ? 'Make any necessary changes to your information'
+            : 'We just need a few details to confirm your booking'}
+        </p>
+      </div>
       
       <div className="grid grid-cols-2 gap-4">
         <div className="relative">
@@ -319,6 +356,7 @@ export default function BookingPageClient() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isReturningCustomer, setIsReturningCustomer] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     firstName: "",
     lastName: "",
@@ -501,6 +539,7 @@ export default function BookingPageClient() {
       if (currentStep === 4) {
         setShowCustomerForm(false);
         setIsReturningCustomer(false);
+        setIsEditMode(false);
         setCustomerInfo({
           firstName: "",
           lastName: "",
@@ -1380,6 +1419,7 @@ export default function BookingPageClient() {
               setConfirmationData(null);
               setIsReturningCustomer(false);
               setShowCustomerForm(false);
+              setIsEditMode(false);
             }}
           >
             Book Another Appointment
@@ -1623,6 +1663,7 @@ export default function BookingPageClient() {
               setConfirmationData(null);
               setIsReturningCustomer(false);
               setShowCustomerForm(false);
+              setIsEditMode(false);
             }}
           >
             Book Another Appointment
@@ -1793,6 +1834,7 @@ export default function BookingPageClient() {
                           onClick={() => {
                             setShowCustomerForm(false);
                             setIsReturningCustomer(false);
+                            setIsEditMode(false);
                             // Keep email if they entered it
                             setCustomerInfo({
                               ...customerInfo,
@@ -1811,6 +1853,8 @@ export default function BookingPageClient() {
                           customerInfo={customerInfo} 
                           onCustomerInfoChange={setCustomerInfo}
                           isReturningCustomer={isReturningCustomer}
+                          isEditMode={isEditMode}
+                          onEditModeChange={setIsEditMode}
                         />
                       </motion.div>
                     )}
