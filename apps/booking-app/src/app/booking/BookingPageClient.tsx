@@ -34,8 +34,7 @@ const baseSteps = [
   { id: 1, name: "Service", icon: CheckCircle },
   { id: 2, name: "Staff", icon: User },
   { id: 3, name: "Date & Time", icon: Calendar },
-  { id: 4, name: "Identify", icon: UserCircle },
-  { id: 5, name: "Your Details", icon: UserCircle },
+  { id: 4, name: "Your Details", icon: UserCircle },
 ];
 
 // Customer Form Component - Outside of BookingPage to prevent re-creation
@@ -301,11 +300,11 @@ export default function BookingPageClient() {
     
     // Only add payment step if merchant requires deposit
     if (merchantInfo?.requireDeposit && merchantInfo?.depositPercentage > 0) {
-      dynamicSteps.push({ id: 6, name: "Payment", icon: DollarSign });
+      dynamicSteps.push({ id: 5, name: "Payment", icon: DollarSign });
     }
     
     // Always add confirmation as the last step
-    const confirmationId = merchantInfo?.requireDeposit && merchantInfo?.depositPercentage > 0 ? 7 : 6;
+    const confirmationId = merchantInfo?.requireDeposit && merchantInfo?.depositPercentage > 0 ? 6 : 5;
     dynamicSteps.push({ id: confirmationId, name: "Confirmation", icon: CheckCircle });
     
     return dynamicSteps;
@@ -415,15 +414,15 @@ export default function BookingPageClient() {
     const lastStepBeforeConfirmation = steps[steps.length - 2].id;
     const confirmationStepId = steps[steps.length - 1].id;
     
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       // Move to payment step if deposit required, otherwise skip to booking creation
       if (merchantInfo?.requireDeposit && merchantInfo.depositPercentage > 0) {
-        setCurrentStep(6); // Go to payment step
+        setCurrentStep(5); // Go to payment step
       } else {
         // Skip payment, create booking directly
         await handleBookingSubmit();
       }
-    } else if (currentStep === 6 && merchantInfo?.requireDeposit) {
+    } else if (currentStep === 5 && merchantInfo?.requireDeposit) {
       // Payment step - handled by payment form submission
       return;
     } else if (currentStep < lastStepBeforeConfirmation) {
@@ -512,10 +511,8 @@ export default function BookingPageClient() {
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:
-        return true; // Customer identification step - always can proceed
-      case 5:
         return customerInfo.firstName && customerInfo.lastName && customerInfo.email && customerInfo.phone;
-      case 6:
+      case 5:
         return true; // Payment step - validation handled by payment form
       default:
         return true;
@@ -533,7 +530,7 @@ export default function BookingPageClient() {
         }
         
         // Don't allow going back from customer details if returning customer
-        if (currentStep === 5 && stepId < 5 && isReturningCustomer) {
+        if (currentStep === 4 && stepId < 4 && isReturningCustomer) {
           return;
         }
         
@@ -1732,32 +1729,47 @@ export default function BookingPageClient() {
                   {currentStep === 2 && "Choose Your Specialist"}
                   {currentStep === 3 && "Schedule Your Visit"}
                   {currentStep === 4 && "Your Information"}
-                  {currentStep === 5 && "Complete Your Booking"}
-                  {currentStep === 6 && merchantInfo?.requireDeposit && "Secure Payment"}
-                  {currentStep === 6 && !merchantInfo?.requireDeposit && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
-                  {currentStep === 7 && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
+                  {currentStep === 5 && merchantInfo?.requireDeposit && "Secure Payment"}
+                  {currentStep === 5 && !merchantInfo?.requireDeposit && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
+                  {currentStep === 6 && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
                 </CardTitle>
                 <CardDescription className="text-lg text-foreground/60 max-w-2xl mx-auto">
                   {currentStep === 1 && "Indulge in our curated collection of rejuvenating treatments"}
                   {currentStep === 2 && "Our expert therapists are here to provide you with an exceptional experience"}
                   {currentStep === 3 && "Find the perfect time for your moment of relaxation"}
-                  {currentStep === 4 && "Are you a returning customer? Let's check"}
-                  {currentStep === 5 && "Just a few details to secure your appointment"}
-                  {currentStep === 6 && merchantInfo?.requireDeposit && "Pay deposit to secure your booking"}
-                  {currentStep === 6 && !merchantInfo?.requireDeposit && "Your journey to wellness begins here"}
-                  {currentStep === 7 && "Your journey to wellness begins here"}
+                  {currentStep === 4 && "Just a few details to secure your appointment"}
+                  {currentStep === 5 && merchantInfo?.requireDeposit && "Pay deposit to secure your booking"}
+                  {currentStep === 5 && !merchantInfo?.requireDeposit && "Your journey to wellness begins here"}
+                  {currentStep === 6 && "Your journey to wellness begins here"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {currentStep === 5 ? (
-                  // No animation wrapper for the form to prevent focus loss
+                {currentStep === 4 ? (
+                  // Combined customer identification and details
                   <>
                     <SelectedServicesSummary services={selectedServicesList} />
-                    <CustomerFormComponent 
-                      customerInfo={customerInfo} 
-                      onCustomerInfoChange={setCustomerInfo}
-                      isReturningCustomer={isReturningCustomer}
+                    <CustomerIdentification
+                      onCustomerFound={(customer) => {
+                        setIsReturningCustomer(true);
+                        setCustomerInfo({
+                          firstName: customer.firstName,
+                          lastName: customer.lastName,
+                          email: customer.email,
+                          phone: customer.phone,
+                          notes: customerInfo.notes,
+                        });
+                      }}
+                      onNewCustomer={() => {
+                        setIsReturningCustomer(false);
+                      }}
                     />
+                    <div className="mt-8">
+                      <CustomerFormComponent 
+                        customerInfo={customerInfo} 
+                        onCustomerInfoChange={setCustomerInfo}
+                        isReturningCustomer={isReturningCustomer}
+                      />
+                    </div>
                   </>
                 ) : (
                   <AnimatePresence mode="wait">
@@ -1781,36 +1793,14 @@ export default function BookingPageClient() {
                           <DateTimeSelection />
                         </>
                       )}
-                      {currentStep === 4 && (
-                        <>
-                          <SelectedServicesSummary services={selectedServicesList} />
-                          <CustomerIdentification
-                            onCustomerFound={(customer) => {
-                              setIsReturningCustomer(true);
-                              setCustomerInfo({
-                              firstName: customer.firstName,
-                              lastName: customer.lastName,
-                              email: customer.email,
-                              phone: customer.phone,
-                              notes: customerInfo.notes,
-                            });
-                            setCurrentStep(5);
-                          }}
-                          onNewCustomer={() => {
-                            setIsReturningCustomer(false);
-                            setCurrentStep(5);
-                          }}
-                        />
-                        </>
-                      )}
-                      {currentStep === 6 && merchantInfo?.requireDeposit && selectedServicesList.length > 0 && (
+                      {currentStep === 5 && merchantInfo?.requireDeposit && selectedServicesList.length > 0 && (
                         <>
                           <SelectedServicesSummary services={selectedServicesList} />
                         <PaymentStep
                           amount={Math.round(selectedServicesList.reduce((sum, s) => sum + s.price, 0) * (merchantInfo?.depositPercentage || 0) / 100 * 100) / 100}
                           currency={merchantInfo?.currency || 'AUD'}
                           onPaymentSuccess={handleBookingSubmit}
-                          onCancel={() => setCurrentStep(5)}
+                          onCancel={() => setCurrentStep(4)}
                           services={selectedServicesList}
                           date={selectedDate!}
                           time={selectedTime!}
@@ -1820,8 +1810,7 @@ export default function BookingPageClient() {
                         />
                         </>
                       )}
-                      {(currentStep === 6 && !merchantInfo?.requireDeposit) && <Confirmation />}
-                      {currentStep === 7 && <Confirmation />}
+                      {((currentStep === 5 && !merchantInfo?.requireDeposit) || currentStep === 6) && <Confirmation />}
                     </motion.div>
                   </AnimatePresence>
                 )}
@@ -1833,7 +1822,7 @@ export default function BookingPageClient() {
                   {(() => {
                     const lastStepId = steps[steps.length - 1].id;
                     const paymentStepExists = steps.some(s => s.name === "Payment");
-                    const paymentStepId = paymentStepExists ? 6 : null;
+                    const paymentStepId = paymentStepExists ? 5 : null;
                     
                     return currentStep < lastStepId && currentStep !== paymentStepId && currentStep !== 1;
                   })() && (
@@ -1874,7 +1863,7 @@ export default function BookingPageClient() {
                             </>
                           ) : (
                             <>
-                              {currentStep === 5 ? "Complete Booking" : "Continue"}
+                              {currentStep === 4 ? "Complete Booking" : "Continue"}
                               <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                             </>
                           )}
