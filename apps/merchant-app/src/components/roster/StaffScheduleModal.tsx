@@ -50,6 +50,27 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Saturday', short: 'Sat' },
 ];
 
+// Helper function to convert 24h to 12h format
+const formatTime12Hour = (time24: string): string => {
+  if (!time24) return '';
+  const [hourStr, minute] = time24.split(':');
+  const hour = parseInt(hourStr);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minute} ${ampm}`;
+};
+
+// Helper function to convert 12h to 24h format for storage
+const formatTime24Hour = (hour12: number, minute: string, ampm: string): string => {
+  let hour = hour12;
+  if (ampm === 'PM' && hour !== 12) {
+    hour += 12;
+  } else if (ampm === 'AM' && hour === 12) {
+    hour = 0;
+  }
+  return `${hour.toString().padStart(2, '0')}:${minute}`;
+};
+
 export function StaffScheduleModal({ 
   isOpen, 
   onClose, 
@@ -187,31 +208,46 @@ export function StaffScheduleModal({
               </div>
 
               <div className="space-y-2">
-                {DAYS_OF_WEEK.map(day => (
-                  <div key={day.value} className="grid grid-cols-3 gap-2 items-center">
-                    <Label className="text-sm">{day.label}</Label>
-                    <div className="relative">
-                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                      <Input
-                        type="time"
-                        value={editableSchedule[day.value]?.startTime || ''}
-                        onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
-                        className="pl-8"
-                        placeholder="Start time"
-                      />
+                {DAYS_OF_WEEK.map(day => {
+                  const startTime = editableSchedule[day.value]?.startTime;
+                  const endTime = editableSchedule[day.value]?.endTime;
+                  
+                  return (
+                    <div key={day.value} className="grid grid-cols-3 gap-2 items-center">
+                      <Label className="text-sm">{day.label}</Label>
+                      <div className="relative">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input
+                          type="time"
+                          value={startTime || ''}
+                          onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
+                          className="pl-8"
+                          placeholder="Start time"
+                        />
+                        {startTime && (
+                          <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                            {formatTime12Hour(startTime)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input
+                          type="time"
+                          value={endTime || ''}
+                          onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
+                          className="pl-8"
+                          placeholder="End time"
+                        />
+                        {endTime && (
+                          <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                            {formatTime12Hour(endTime)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="relative">
-                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                      <Input
-                        type="time"
-                        value={editableSchedule[day.value]?.endTime || ''}
-                        onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
-                        className="pl-8"
-                        placeholder="End time"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <Alert>

@@ -42,10 +42,41 @@ interface StaffSchedule {
 }
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Helper function to convert 24h to 12h format
+const formatTime12Hour = (time24: string): string => {
+  if (!time24) return '';
+  const [hourStr, minute] = time24.split(':');
+  const hour = parseInt(hourStr);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minute} ${ampm}`;
+};
+
+// Helper function to convert 12h to 24h format for storage
+const formatTime24Hour = (time12: string): string => {
+  if (!time12) return '';
+  const [time, ampm] = time12.split(' ');
+  const [hourStr, minute] = time.split(':');
+  let hour = parseInt(hourStr);
+  
+  if (ampm === 'PM' && hour !== 12) {
+    hour += 12;
+  } else if (ampm === 'AM' && hour === 12) {
+    hour = 0;
+  }
+  
+  return `${hour.toString().padStart(2, '0')}:${minute}`;
+};
+
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const hour = Math.floor(i / 2);
   const minute = i % 2 === 0 ? '00' : '30';
-  return `${hour.toString().padStart(2, '0')}:${minute}`;
+  const time24 = `${hour.toString().padStart(2, '0')}:${minute}`;
+  return {
+    value: time24,
+    label: formatTime12Hour(time24)
+  };
 });
 
 export default function RosterPage() {
@@ -352,10 +383,10 @@ export default function RosterPage() {
   const formatScheduleTime = (schedule: Schedule | undefined, override: ScheduleOverride | undefined) => {
     if (override) {
       if (!override.startTime || !override.endTime) return 'Day off';
-      return `${override.startTime} - ${override.endTime}`;
+      return `${formatTime12Hour(override.startTime)} - ${formatTime12Hour(override.endTime)}`;
     }
     if (!schedule) return '-';
-    return `${schedule.startTime} - ${schedule.endTime}`;
+    return `${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)}`;
   };
 
   if (loading) {
@@ -533,8 +564,8 @@ export default function RosterPage() {
                                 disabled={isSaving}
                               >
                                 <option value="">Off</option>
-                                {TIME_OPTIONS.slice(0, 36).map(time => (
-                                  <option key={time} value={time}>{time}</option>
+                                {TIME_OPTIONS.slice(0, 36).map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                               </select>
                               <select
@@ -544,8 +575,8 @@ export default function RosterPage() {
                                 disabled={isSaving}
                               >
                                 <option value="">Off</option>
-                                {TIME_OPTIONS.slice(12).map(time => (
-                                  <option key={time} value={time}>{time}</option>
+                                {TIME_OPTIONS.slice(12).map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                               </select>
                               <div className="flex gap-1 mt-1">
