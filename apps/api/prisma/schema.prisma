@@ -131,6 +131,7 @@ model Staff {
   merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   locations           StaffLocation[]
   schedules           StaffSchedule[]
+  scheduleOverrides   ScheduleOverride[]
   tipAllocations      TipAllocation[]
 
   @@index([merchantId])
@@ -739,4 +740,21 @@ model MerchantNotification {
   @@index([read])
   @@index([type])
   @@index([createdAt])
+}
+
+model ScheduleOverride {
+  id         String   @id @default(uuid())
+  staffId    String
+  date       DateTime @db.Date
+  startTime  String?  // null means day off
+  endTime    String?  // null means day off
+  reason     String?  // Optional reason for the override
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@unique([staffId, date])
+  @@index([staffId])
+  @@index([date])
 }

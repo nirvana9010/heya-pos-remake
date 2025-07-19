@@ -11,6 +11,7 @@ import { cn } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { apiClient } from '@/lib/api-client';
 import { StaffClient } from '@/lib/clients/staff-client';
+import { StaffScheduleModal } from '@/components/roster/StaffScheduleModal';
 
 interface Staff {
   id: string;
@@ -18,12 +19,21 @@ interface Staff {
   lastName: string;
   color: string;
   status: string;
+  calendarColor?: string;
 }
 
 interface Schedule {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+}
+
+interface ScheduleOverride {
+  staffId: string;
+  date: string; // ISO date string
+  startTime: string | null;
+  endTime: string | null;
+  reason?: string;
 }
 
 interface StaffSchedule {
@@ -44,14 +54,19 @@ export default function RosterPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [schedules, setSchedules] = useState<Map<string, Schedule[]>>(new Map());
-  const [editingCell, setEditingCell] = useState<{ staffId: string; dayOfWeek: number } | null>(null);
+  const [overrides, setOverrides] = useState<Map<string, ScheduleOverride[]>>(new Map());
+  const [editingCell, setEditingCell] = useState<{ staffId: string; dayOfWeek: number; date: Date } | null>(null);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [businessHours, setBusinessHours] = useState<any>(null);
   
   const staffClient = new StaffClient();
 
   // Load staff and their schedules
   useEffect(() => {
     loadData();
+    loadBusinessHours();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
@@ -67,7 +82,12 @@ export default function RosterPage() {
       console.log('Loaded staff data:', staffData);
       const activeStaff = staffData.filter((s: any) => s.status === 'ACTIVE' || s.isActive === true);
       console.log('Active staff:', activeStaff);
-      setStaff(activeStaff);
+      // Ensure color is set for each staff member
+      const staffWithColors = activeStaff.map((s: any) => ({
+        ...s,
+        color: s.calendarColor || s.color || '#4F46E5'
+      }));
+      setStaff(staffWithColors);
       
       // Create schedule map from bulk data
       const scheduleMap = new Map<string, Schedule[]>();
@@ -108,37 +128,74 @@ export default function RosterPage() {
     }
   };
 
-  const updateSchedule = async (staffId: string, dayOfWeek: number, startTime: string | null, endTime: string | null) => {
+  const loadBusinessHours = async () => {
     try {
-      setSaving(`${staffId}-${dayOfWeek}`);
+      const response = await apiClient.getMerchantSettings();
+      const hours = response.businessHours;
+      setBusinessHours(hours);
+    } catch (error) {
+      console.error('Failed to load business hours:', error);
+    }
+  };
+
+  const handleScheduleModalUpdate = (staffId: string, newSchedules: Schedule[]) => {
+    setSchedules(prev => new Map(prev).set(staffId, newSchedules));
+  };
+
+  const updateSchedule = async (staffId: string, dayOfWeek: number, date: Date, startTime: string | null, endTime: string | null) => {
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      setSaving(`${staffId}-${dateStr}`);
       
-      const currentSchedules = schedules.get(staffId) || [];
-      let newSchedules: Schedule[];
+      // Get the regular schedule for this day
+      const regularSchedule = getScheduleForDay(staffId, dayOfWeek);
       
-      if (!startTime || !endTime) {
-        // Remove this day's schedule
-        newSchedules = currentSchedules.filter(s => s.dayOfWeek !== dayOfWeek);
-      } else {
-        // Update or add this day's schedule
-        const existingIndex = currentSchedules.findIndex(s => s.dayOfWeek === dayOfWeek);
-        if (existingIndex >= 0) {
-          newSchedules = [...currentSchedules];
-          newSchedules[existingIndex] = { dayOfWeek, startTime, endTime };
+      // Check if this is different from the regular schedule
+      const isOverride = !regularSchedule || 
+        regularSchedule.startTime !== startTime || 
+        regularSchedule.endTime !== endTime;
+      
+      if (isOverride) {
+        // Create or update override
+        // TODO: Call API to save override
+        console.log('Creating override for', staffId, dateStr, startTime, endTime);
+        
+        // Update local overrides state
+        const staffOverrides = overrides.get(staffId) || [];
+        const existingOverrideIndex = staffOverrides.findIndex(o => o.date === dateStr);
+        
+        const newOverride: ScheduleOverride = {
+          staffId,
+          date: dateStr,
+          startTime,
+          endTime,
+        };
+        
+        let newOverrides: ScheduleOverride[];
+        if (existingOverrideIndex >= 0) {
+          newOverrides = [...staffOverrides];
+          newOverrides[existingOverrideIndex] = newOverride;
         } else {
-          newSchedules = [...currentSchedules, { dayOfWeek, startTime, endTime }];
+          newOverrides = [...staffOverrides, newOverride];
         }
+        
+        setOverrides(prev => new Map(prev).set(staffId, newOverrides));
+        
+        toast({
+          title: 'Schedule override created',
+          description: `Schedule changed for ${format(date, 'MMM d, yyyy')}`
+        });
+      } else {
+        // If it matches regular schedule, remove any existing override
+        const staffOverrides = overrides.get(staffId) || [];
+        const newOverrides = staffOverrides.filter(o => o.date !== dateStr);
+        setOverrides(prev => new Map(prev).set(staffId, newOverrides));
+        
+        toast({
+          title: 'Schedule reset',
+          description: 'Returned to regular schedule'
+        });
       }
-      
-      // Update on server
-      await staffClient.updateSchedule(staffId, { schedules: newSchedules });
-      
-      // Update local state
-      setSchedules(prev => new Map(prev).set(staffId, newSchedules));
-      
-      toast({
-        title: 'Schedule updated',
-        description: 'Changes saved successfully'
-      });
     } catch (error) {
       console.error('Failed to update schedule:', error);
       toast({
@@ -286,7 +343,17 @@ export default function RosterPage() {
     return staffSchedules.find(s => s.dayOfWeek === dayOfWeek);
   };
 
-  const formatScheduleTime = (schedule: Schedule | undefined) => {
+  const getOverrideForDate = (staffId: string, date: Date): ScheduleOverride | undefined => {
+    const staffOverrides = overrides.get(staffId) || [];
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return staffOverrides.find(o => o.date === dateStr);
+  };
+
+  const formatScheduleTime = (schedule: Schedule | undefined, override: ScheduleOverride | undefined) => {
+    if (override) {
+      if (!override.startTime || !override.endTime) return 'Day off';
+      return `${override.startTime} - ${override.endTime}`;
+    }
     if (!schedule) return '-';
     return `${schedule.startTime} - ${schedule.endTime}`;
   };
@@ -416,7 +483,10 @@ export default function RosterPage() {
                 {staff.map((staffMember) => (
                   <tr key={staffMember.id} className="border-b hover:bg-gray-50">
                     <td className="p-4 sticky left-0 bg-white z-10 border-r">
-                      <div className="flex items-center gap-3">
+                      <button
+                        className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors w-full text-left"
+                        onClick={() => setSelectedStaff(staffMember)}
+                      >
                         <div 
                           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
                           style={{ backgroundColor: staffMember.color }}
@@ -428,14 +498,23 @@ export default function RosterPage() {
                             {staffMember.firstName} {staffMember.lastName}
                           </p>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     {Array.from({ length: 7 }, (_, dayIndex) => {
-                      const schedule = getScheduleForDay(staffMember.id, dayIndex);
-                      const isEditing = editingCell?.staffId === staffMember.id && editingCell?.dayOfWeek === dayIndex;
-                      const isSaving = saving === `${staffMember.id}-${dayIndex}`;
                       const date = addDays(weekStart, dayIndex);
+                      const schedule = getScheduleForDay(staffMember.id, dayIndex);
+                      const override = getOverrideForDate(staffMember.id, date);
+                      const isEditing = editingCell?.staffId === staffMember.id && 
+                        editingCell?.dayOfWeek === dayIndex &&
+                        isSameDay(editingCell.date, date);
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      const isSaving = saving === `${staffMember.id}-${dateStr}`;
                       const isCurrentDay = isToday(date);
+                      const hasOverride = !!override;
+                      
+                      // Determine current values
+                      const currentStartTime = override ? override.startTime : schedule?.startTime;
+                      const currentEndTime = override ? override.endTime : schedule?.endTime;
                       
                       return (
                         <td 
@@ -446,16 +525,11 @@ export default function RosterPage() {
                           )}
                         >
                           {isEditing ? (
-                            <div className="flex flex-col gap-1 p-2 bg-white rounded border">
+                            <div className="flex flex-col gap-1 p-2 bg-white rounded border shadow-lg">
                               <select
                                 className="text-sm border rounded px-2 py-1"
-                                defaultValue={schedule?.startTime || ''}
-                                onChange={(e) => {
-                                  const endTime = schedule?.endTime || '17:00';
-                                  if (e.target.value) {
-                                    updateSchedule(staffMember.id, dayIndex, e.target.value, endTime);
-                                  }
-                                }}
+                                defaultValue={currentStartTime || ''}
+                                id={`start-${staffMember.id}-${dayIndex}`}
                                 disabled={isSaving}
                               >
                                 <option value="">Off</option>
@@ -465,40 +539,55 @@ export default function RosterPage() {
                               </select>
                               <select
                                 className="text-sm border rounded px-2 py-1"
-                                defaultValue={schedule?.endTime || ''}
-                                onChange={(e) => {
-                                  const startTime = schedule?.startTime || '09:00';
-                                  if (e.target.value) {
-                                    updateSchedule(staffMember.id, dayIndex, startTime, e.target.value);
-                                  }
-                                }}
-                                disabled={isSaving || !schedule?.startTime}
+                                defaultValue={currentEndTime || ''}
+                                id={`end-${staffMember.id}-${dayIndex}`}
+                                disabled={isSaving}
                               >
-                                <option value="">-</option>
+                                <option value="">Off</option>
                                 {TIME_OPTIONS.slice(12).map(time => (
                                   <option key={time} value={time}>{time}</option>
                                 ))}
                               </select>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-xs"
-                                onClick={() => setEditingCell(null)}
-                                disabled={isSaving}
-                              >
-                                Cancel
-                              </Button>
+                              <div className="flex gap-1 mt-1">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="text-xs flex-1"
+                                  onClick={() => {
+                                    const startSelect = document.getElementById(`start-${staffMember.id}-${dayIndex}`) as HTMLSelectElement;
+                                    const endSelect = document.getElementById(`end-${staffMember.id}-${dayIndex}`) as HTMLSelectElement;
+                                    const newStart = startSelect.value || null;
+                                    const newEnd = endSelect.value || null;
+                                    updateSchedule(staffMember.id, dayIndex, date, newStart, newEnd);
+                                  }}
+                                  disabled={isSaving}
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs flex-1"
+                                  onClick={() => setEditingCell(null)}
+                                  disabled={isSaving}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
                             </div>
                           ) : (
                             <button
                               className={cn(
                                 "w-full py-2 px-3 rounded text-sm transition-colors",
-                                schedule 
-                                  ? "bg-teal-100 text-teal-700 hover:bg-teal-200" 
-                                  : "text-gray-400 hover:bg-gray-100",
-                                "group-hover:ring-2 group-hover:ring-teal-300"
+                                hasOverride 
+                                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" 
+                                  : schedule 
+                                    ? "bg-teal-100 text-teal-700 hover:bg-teal-200" 
+                                    : "text-gray-400 hover:bg-gray-100",
+                                "group-hover:ring-2",
+                                hasOverride ? "group-hover:ring-yellow-300" : "group-hover:ring-teal-300"
                               )}
-                              onClick={() => setEditingCell({ staffId: staffMember.id, dayOfWeek: dayIndex })}
+                              onClick={() => setEditingCell({ staffId: staffMember.id, dayOfWeek: dayIndex, date })}
                               disabled={isSaving}
                             >
                               {isSaving ? (
@@ -506,7 +595,7 @@ export default function RosterPage() {
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />
                                 </div>
                               ) : (
-                                formatScheduleTime(schedule)
+                                formatScheduleTime(schedule, override)
                               )}
                             </button>
                           )}
@@ -589,6 +678,18 @@ export default function RosterPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Staff Schedule Modal */}
+      {selectedStaff && (
+        <StaffScheduleModal
+          isOpen={!!selectedStaff}
+          onClose={() => setSelectedStaff(null)}
+          staff={selectedStaff}
+          schedules={schedules.get(selectedStaff.id) || []}
+          businessHours={businessHours}
+          onScheduleUpdate={handleScheduleModalUpdate}
+        />
+      )}
     </div>
   );
 }
