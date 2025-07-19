@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@heya-pos/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
@@ -93,6 +93,7 @@ export default function BookingsManager() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     
@@ -119,6 +120,11 @@ export default function BookingsManager() {
         console.error('Failed to parse recent searches');
       }
     }
+    
+    // Cleanup function
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -440,16 +446,23 @@ export default function BookingsManager() {
         )
       );
       
+      console.log(`[Mark as Paid] Starting payment process for booking ${bookingId}`);
+      
       // Create order from booking if not exists
       const order = await apiClient.createOrderFromBooking(bookingId);
+      console.log(`[Mark as Paid] Order created/retrieved:`, order);
       
       // Lock the order if it's in DRAFT state
       if (order.state === 'DRAFT') {
+        console.log(`[Mark as Paid] Locking order ${order.id}`);
         await apiClient.updateOrderState(order.id, 'LOCKED');
       }
       
       // Quick cash payment
-      await apiClient.processPayment({
+      console.log(`[Mark as Paid] Processing payment for ${order.balanceDue}`);
+      
+      // Add timeout to prevent hanging
+      const paymentPromise = apiClient.processPayment({
         orderId: order.id,
         amount: order.balanceDue,
         method: 'CASH',
@@ -458,6 +471,19 @@ export default function BookingsManager() {
         }
       });
       
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Payment request timed out after 30 seconds')), 30000);
+      });
+      
+      const paymentResult = await Promise.race([paymentPromise, timeoutPromise]);
+      console.log(`[Mark as Paid] Payment result:`, paymentResult);
+      
+      // Only update UI if component is still mounted
+      if (!mountedRef.current) {
+        console.log(`[Mark as Paid] Component unmounted, skipping UI updates`);
+        return;
+      }
+      
       toast({
         title: "Payment Recorded",
         description: "Payment has been recorded successfully.",
@@ -465,26 +491,36 @@ export default function BookingsManager() {
       
       // Reload bookings after a short delay to ensure backend has updated
       setTimeout(() => {
-        loadBookings();
+        if (mountedRef.current) {
+          console.log(`[Mark as Paid] Reloading bookings...`);
+          loadBookings();
+        }
       }, 1000);
     } catch (error: any) {
-      // Rollback on error
-      setBookings(previousBookings);
+      console.error(`[Mark as Paid] Error occurred:`, error);
       
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to record payment.";
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Only update UI if component is still mounted
+      if (mountedRef.current) {
+        // Rollback on error
+        setBookings(previousBookings);
+        
+        const errorMessage = error?.response?.data?.message || error?.message || "Failed to record payment.";
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
-      // Remove from processing set
-      setProcessingPayments(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(bookingId);
-        return newSet;
-      });
+      // Remove from processing set only if component is still mounted
+      if (mountedRef.current) {
+        setProcessingPayments(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(bookingId);
+          return newSet;
+        });
+      }
     }
   };
 
