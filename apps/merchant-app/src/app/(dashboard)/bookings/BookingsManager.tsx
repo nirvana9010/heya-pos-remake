@@ -491,13 +491,45 @@ export default function BookingsManager() {
         description: "Payment has been recorded successfully.",
       });
       
-      // Reload bookings after a short delay to ensure backend has updated
-      setTimeout(() => {
+      // Check if backend actually updated the booking
+      setTimeout(async () => {
         if (mountedRef.current) {
-          console.log(`[Mark as Paid] Reloading bookings...`);
-          loadBookings();
+          console.log('[Mark as Paid] Checking backend update after 2s');
+          // Invalidate cache before reloading
+          invalidateBookingsCache();
+          
+          // Load fresh bookings
+          await loadBookings();
+          
+          // Check if the specific booking was updated
+          const params: any = {};
+          if (dateFilter === 'all') {
+            params.includeAll = true;
+          } else if (dateFilter === 'past') {
+            params.endDate = new Date().toISOString().split('T')[0];
+            params.includeAll = true;
+          }
+          
+          const freshBookings = await apiClient.getBookings(params);
+          const updatedBooking = freshBookings.find(b => b.id === bookingId);
+          
+          if (updatedBooking && (!updatedBooking.isPaid || updatedBooking.paidAmount !== amount)) {
+            console.error('[Mark as Paid] Backend did not update booking payment status:', {
+              bookingId,
+              isPaid: updatedBooking.isPaid,
+              paidAmount: updatedBooking.paidAmount,
+              expectedAmount: amount
+            });
+            
+            // Show a warning to the user
+            toast({
+              title: "Payment Processing",
+              description: "Payment recorded but booking status is still updating. Please refresh in a moment.",
+              variant: "default",
+            });
+          }
         }
-      }, 1000);
+      }, 2000);
     } catch (error: any) {
       // Create a proper error log with all available details
       const errorDetails = {
