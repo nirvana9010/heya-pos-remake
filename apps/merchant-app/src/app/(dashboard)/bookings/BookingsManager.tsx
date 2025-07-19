@@ -91,6 +91,7 @@ export default function BookingsManager() {
   const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
   const [services, setServices] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     
@@ -422,7 +423,22 @@ export default function BookingsManager() {
   };
 
   const handleMarkPaid = async (bookingId: string, amount: number) => {
+    // Store previous state for rollback
+    const previousBookings = [...bookings];
+    
+    // Mark this booking as processing
+    setProcessingPayments(prev => new Set(prev).add(bookingId));
+    
     try {
+      // Optimistically update the UI immediately
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, isPaid: true, paidAmount: amount }
+            : booking
+        )
+      );
+      
       // Create order from booking if not exists
       const order = await apiClient.createOrderFromBooking(bookingId);
       
@@ -445,14 +461,28 @@ export default function BookingsManager() {
         title: "Payment Recorded",
         description: "Payment has been recorded successfully.",
       });
-      loadBookings();
+      
+      // Reload bookings after a short delay to ensure backend has updated
+      setTimeout(() => {
+        loadBookings();
+      }, 1000);
     } catch (error: any) {
+      // Rollback on error
+      setBookings(previousBookings);
+      
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to record payment.";
       
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
+      });
+    } finally {
+      // Remove from processing set
+      setProcessingPayments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookingId);
+        return newSet;
       });
     }
   };
@@ -1199,6 +1229,7 @@ export default function BookingsManager() {
                                 showEdit={false}
                                 showDelete={false}
                                 showPayment={booking.status?.toLowerCase() !== 'cancelled'}
+                                isPaymentProcessing={processingPayments.has(booking.id)}
                                 onStatusChange={async (bookingId, status) => {
                                   try {
                                     switch (status) {
