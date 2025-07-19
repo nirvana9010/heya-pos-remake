@@ -116,12 +116,33 @@ export class BookingAvailabilityService {
         },
       });
   
+      // Get schedule overrides for the date range
+      const scheduleOverrides = await this.prisma.scheduleOverride.findMany({
+        where: {
+          staffId: staffId,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      });
+  
       // Create a map of schedules by day of week
       const scheduleMap = new Map<number, { startTime: string; endTime: string }>();
       staffSchedules.forEach(schedule => {
         scheduleMap.set(schedule.dayOfWeek, {
           startTime: schedule.startTime,
           endTime: schedule.endTime,
+        });
+      });
+  
+      // Create a map of overrides by date
+      const overrideMap = new Map<string, { startTime: string | null; endTime: string | null }>();
+      scheduleOverrides.forEach(override => {
+        const dateStr = override.date.toISOString().split('T')[0];
+        overrideMap.set(dateStr, {
+          startTime: override.startTime,
+          endTime: override.endTime,
         });
       });
   
@@ -155,12 +176,25 @@ export class BookingAvailabilityService {
         const dayNumber = currentDate.getDay();
         const staffSchedule = scheduleMap.get(dayNumber);
         
+        // Check for schedule override first
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const scheduleOverride = overrideMap.get(dateStr);
+        
         // Use staff schedule if available, otherwise fall back to business hours
         let openTimeStr: string;
         let closeTimeStr: string;
         
-        if (staffSchedule) {
-          // Staff has a specific schedule for this day
+        if (scheduleOverride) {
+          // Staff has an override for this specific date
+          if (!scheduleOverride.startTime || !scheduleOverride.endTime) {
+            // Day off override - skip this day
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
+          openTimeStr = scheduleOverride.startTime;
+          closeTimeStr = scheduleOverride.endTime;
+        } else if (staffSchedule) {
+          // Staff has a regular schedule for this day
           openTimeStr = staffSchedule.startTime;
           closeTimeStr = staffSchedule.endTime;
         } else if (dayHours && dayHours.open && dayHours.close) {
@@ -189,6 +223,12 @@ export class BookingAvailabilityService {
         // Debug logging for roster hours
         console.log('[AVAILABILITY] Slot generation for day:', {
           dayOfWeek: dayNumber,
+          date: dateStr,
+          scheduleType: scheduleOverride ? 'override' : staffSchedule ? 'regular' : 'business hours',
+          scheduleOverride: scheduleOverride ? {
+            startTime: scheduleOverride.startTime,
+            endTime: scheduleOverride.endTime
+          } : null,
           staffSchedule: staffSchedule ? {
             startTime: staffSchedule.startTime,
             endTime: staffSchedule.endTime
