@@ -72,4 +72,32 @@ export class StaffController {
   ) {
     return this.staffService.updateSchedule(user.merchantId, id, schedule);
   }
+
+  @Get(':id/overrides')
+  getScheduleOverrides(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.staffService.getScheduleOverrides(user.merchantId, id, startDate, endDate);
+  }
+
+  @Post(':id/overrides')
+  createOrUpdateScheduleOverride(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() override: { date: string; startTime: string | null; endTime: string | null; reason?: string },
+  ) {
+    return this.staffService.createOrUpdateScheduleOverride(user.merchantId, id, override);
+  }
+
+  @Delete(':id/overrides/:date')
+  deleteScheduleOverride(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Param('date') date: string,
+  ) {
+    return this.staffService.deleteScheduleOverride(user.merchantId, id, date);
+  }
 }

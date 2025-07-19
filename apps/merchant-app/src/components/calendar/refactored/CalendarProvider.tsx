@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
   staffFilter: 'calendar_staffFilter',
   timeInterval: 'calendar_timeInterval',
+  showOnlyRosteredStaff: 'calendar_showOnlyRosteredStaff',
 } as const;
 
 // Load saved preferences from localStorage
@@ -25,6 +26,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
     const savedStatusFilters = localStorage.getItem(STORAGE_KEYS.statusFilters);
     const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
+    const savedShowOnlyRosteredStaff = localStorage.getItem(STORAGE_KEYS.showOnlyRosteredStaff);
     
     // Load merchant settings to get showUnassignedColumn preference and calendar hours
     let showUnassignedColumn = undefined;
@@ -57,6 +59,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
         : ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
+      showOnlyRosteredStaff: savedShowOnlyRosteredStaff !== null ? savedShowOnlyRosteredStaff === 'true' : true,
       ...(showUnassignedColumn !== undefined && { showUnassignedColumn }),
       ...(calendarStartHour !== undefined && { calendarStartHour }),
       ...(calendarEndHour !== undefined && { calendarEndHour }),
@@ -100,6 +103,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   showUnassignedColumn: savedPrefs.showUnassignedColumn ?? false, // Default to false to prevent flash
   showBlockedTime: true,
   showBreaks: true,
+  showOnlyRosteredStaff: savedPrefs.showOnlyRosteredStaff ?? true, // Default to showing only rostered staff
   
   // Calendar display settings - use saved preferences or defaults
   calendarStartHour: savedPrefs.calendarStartHour ?? 6,
@@ -263,6 +267,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       return {
         ...state,
         showBreaks: !state.showBreaks,
+      };
+    
+    case 'TOGGLE_ROSTERED_ONLY':
+      return {
+        ...state,
+        showOnlyRosteredStaff: !state.showOnlyRosteredStaff,
       };
     
     // Drag actions
@@ -512,6 +522,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     toggleUnassignedColumn: () => dispatch({ type: 'TOGGLE_UNASSIGNED' }),
     toggleBlockedTime: () => dispatch({ type: 'TOGGLE_BLOCKED' }),
     toggleBreaks: () => dispatch({ type: 'TOGGLE_BREAKS' }),
+    toggleRosteredOnly: () => dispatch({ type: 'TOGGLE_ROSTERED_ONLY' }),
     
     // Drag actions
     startDrag: (bookingId: string) => dispatch({ type: 'START_DRAG', payload: bookingId }),
@@ -630,6 +641,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
+      localStorage.setItem(STORAGE_KEYS.showOnlyRosteredStaff, state.showOnlyRosteredStaff.toString());
       
       // If we cleaned up any invalid IDs, update the state
       if (validStaffIds.length !== state.selectedStaffIds.length) {
@@ -637,7 +649,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       }
     } catch (error) {
     }
-  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval, state.staff]);
+  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval, state.showOnlyRosteredStaff, state.staff]);
   
   const contextValue: CalendarContextType = {
     state,

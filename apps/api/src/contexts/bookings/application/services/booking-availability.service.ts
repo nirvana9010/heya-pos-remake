@@ -139,8 +139,8 @@ export class BookingAvailabilityService {
       // Create a map of overrides by date
       const overrideMap = new Map<string, { startTime: string | null; endTime: string | null }>();
       scheduleOverrides.forEach(override => {
-        const dateStr = override.date.toISOString().split('T')[0];
-        overrideMap.set(dateStr, {
+        const overrideDateKey = override.date.toISOString().split('T')[0];
+        overrideMap.set(overrideDateKey, {
           startTime: override.startTime,
           endTime: override.endTime,
         });
@@ -177,8 +177,8 @@ export class BookingAvailabilityService {
         const staffSchedule = scheduleMap.get(dayNumber);
         
         // Check for schedule override first
-        const dateStr = currentDate.toISOString().split('T')[0];
-        const scheduleOverride = overrideMap.get(dateStr);
+        const overrideDateStr = currentDate.toISOString().split('T')[0];
+        const scheduleOverride = overrideMap.get(overrideDateStr);
         
         // Use staff schedule if available, otherwise fall back to business hours
         let openTimeStr: string;

@@ -60,6 +60,11 @@ export interface Staff {
   avatar?: string;
   isActive: boolean;
   workingHours?: WorkingHours;
+  schedules?: Array<{
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }>;
 }
 
 export interface Service {
@@ -121,6 +126,7 @@ export interface CalendarState {
   showUnassignedColumn: boolean;
   showBlockedTime: boolean;
   showBreaks: boolean;
+  showOnlyRosteredStaff: boolean;
   
   // Calendar display settings
   calendarStartHour: number;
@@ -166,10 +172,11 @@ export type CalendarAction =
   | { type: 'SET_SEARCH'; payload: string }
   
   // UI actions
-  | { type: 'SET_UI_FLAGS'; payload: Partial<Pick<CalendarState, 'showUnassignedColumn' | 'showBlockedTime' | 'showBreaks'>> }
+  | { type: 'SET_UI_FLAGS'; payload: Partial<Pick<CalendarState, 'showUnassignedColumn' | 'showBlockedTime' | 'showBreaks' | 'showOnlyRosteredStaff'>> }
   | { type: 'TOGGLE_UNASSIGNED' }
   | { type: 'TOGGLE_BLOCKED' }
   | { type: 'TOGGLE_BREAKS' }
+  | { type: 'TOGGLE_ROSTERED_ONLY' }
   
   // Drag actions
   | { type: 'START_DRAG'; payload: string }
@@ -220,6 +227,7 @@ export interface CalendarActions {
   toggleUnassignedColumn: () => void;
   toggleBlockedTime: () => void;
   toggleBreaks: () => void;
+  toggleRosteredOnly: () => void;
   
   // Drag actions
   startDrag: (bookingId: string) => void;

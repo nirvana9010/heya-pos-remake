@@ -114,9 +114,25 @@ export function DailyView({
   
   // Get visible staff - ONLY show active staff
   const activeStaff = state.staff.filter(s => s.isActive !== false);
+  
+  // Filter by roster if enabled
+  const rosteredStaff = useMemo(() => {
+    if (!state.showOnlyRosteredStaff) return activeStaff;
+    
+    const currentDayOfWeek = state.currentDate.getDay();
+    return activeStaff.filter(staff => {
+      // If staff has schedules, check if they work on this day
+      if (staff.schedules && staff.schedules.length > 0) {
+        return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+      }
+      // If no schedules defined, assume they work (backward compatibility)
+      return true;
+    });
+  }, [activeStaff, state.showOnlyRosteredStaff, state.currentDate]);
+  
   const visibleStaff = state.selectedStaffIds.length > 0
-    ? activeStaff.filter(s => state.selectedStaffIds.includes(s.id))
-    : activeStaff;
+    ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
+    : rosteredStaff;
   
   // Calculate grid columns
   const gridColumns = useMemo(() => {
@@ -602,10 +618,10 @@ export function DailyView({
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (
                                   <>
-                                    {/* Inline time for compact bookings */}
+                                    {/* Inline time and duration for compact bookings */}
                                     {booking.status !== 'cancelled' && (
                                       <div className="text-xs font-medium opacity-75 mb-0.5">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')}
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div className="flex items-center gap-1">
@@ -884,10 +900,10 @@ export function DailyView({
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (
                                   <>
-                                    {/* Inline time for compact bookings */}
+                                    {/* Inline time and duration for compact bookings */}
                                     {booking.status !== 'cancelled' && (
                                       <div className="text-xs font-medium opacity-75 mb-0.5">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')}
+                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div className="flex items-center gap-1">

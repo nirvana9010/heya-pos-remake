@@ -42,6 +42,9 @@ export class BaseApiClient {
         const token = localStorage.getItem('access_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[BaseApiClient] Request with auth:', config.method?.toUpperCase(), config.url);
+        } else {
+          console.warn('[BaseApiClient] No auth token for request:', config.method?.toUpperCase(), config.url);
         }
 
         return config;
@@ -296,21 +299,32 @@ export class BaseApiClient {
       return cached.data;
     }
     
-    // Fetch from network
-    const response = await this.axiosInstance.get(versionedUrl, config);
-    
-    // Validate response if schema provided
-    let data = response.data;
-    if (responseSchema && process.env.NODE_ENV === 'development') {
-      data = validateResponse(response.data, responseSchema, url);
+    try {
+      // Fetch from network
+      const response = await this.axiosInstance.get(versionedUrl, config);
+      
+      // Validate response if schema provided
+      let data = response.data;
+      if (responseSchema && process.env.NODE_ENV === 'development') {
+        data = validateResponse(response.data, responseSchema, url);
+      }
+      
+      // Cache if appropriate
+      if (shouldCacheData(url, data)) {
+        memoryCache.set(cacheKey, data);
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error('[BaseApiClient] GET request failed:', {
+        url: versionedUrl,
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        code: error.code
+      });
+      throw error;
     }
-    
-    // Cache if appropriate
-    if (shouldCacheData(url, data)) {
-      memoryCache.set(cacheKey, data);
-    }
-    
-    return data;
   }
   
   private async revalidateInBackground(
