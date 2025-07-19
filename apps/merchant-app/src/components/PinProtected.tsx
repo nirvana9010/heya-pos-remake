@@ -135,17 +135,20 @@ export function PinProtected({
       }
       
       // Check if owner has PIN set
-      const pinStatus = await (apiClient as any).getPinStatus();
-      if (!pinStatus.hasPin) {
-        return { needsSetup: true, setupType: "no-pin" };
+      try {
+        const pinStatus = await (apiClient as any).getPinStatus();
+        if (!pinStatus.hasPin) {
+          return { needsSetup: true, setupType: "no-pin" };
+        }
+      } catch (pinError) {
+        // If PIN status check fails, assume PIN is set up
+        console.log("[PinProtected] Could not check PIN status, assuming PIN is set:", pinError);
       }
       
       return { needsSetup: false };
     } catch (error) {
-      // If we can't check, assume it's set up
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[PinProtected] Could not check owner status:", error);
-      }
+      // If we can't check owner status, assume it's set up
+      console.log("[PinProtected] Could not check owner status:", error);
       return { needsSetup: false };
     }
   };

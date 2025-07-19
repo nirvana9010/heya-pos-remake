@@ -316,13 +316,22 @@ export class BaseApiClient {
       
       return data;
     } catch (error: any) {
-      console.error('[BaseApiClient] GET request failed:', {
+      // Ensure error object is properly logged
+      const errorDetails = {
         url: versionedUrl,
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        code: error.code
-      });
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status || 'No status',
+        data: error?.response?.data || null,
+        code: error?.code || 'No code'
+      };
+      
+      console.error('[BaseApiClient] GET request failed:', errorDetails);
+      
+      // If error object is malformed, create a proper error
+      if (!error || typeof error !== 'object') {
+        throw new Error(`Request failed: ${versionedUrl}`);
+      }
+      
       throw error;
     }
   }
