@@ -174,8 +174,8 @@ export default function CustomersPageContent() {
         const mappedCustomers = customersData.map((customer: any) => ({
           ...customer,
           totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
-          totalSpent: parseFloat(customer.totalSpent || '0'),
-          loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
+          totalSpent: customer.totalSpent || 0,
+          loyaltyPoints: customer.loyaltyPoints || 0,
           loyaltyVisits: customer.loyaltyVisits || 0,
         }));
         
@@ -257,8 +257,8 @@ export default function CustomersPageContent() {
       const mappedCustomers = customersData.map((customer: any) => ({
         ...customer,
         totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
-        totalSpent: parseFloat(customer.totalSpent || '0'),
-        loyaltyPoints: parseInt(customer.loyaltyPoints || '0', 10),
+        totalSpent: customer.totalSpent || 0,
+        loyaltyPoints: customer.loyaltyPoints || 0,
         loyaltyVisits: customer.loyaltyVisits || 0,
       }));
       

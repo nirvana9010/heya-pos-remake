@@ -20,6 +20,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   autoConfirmBookings: true, // Default to true for backward compatibility
   calendarStartHour: 6, // 6 AM
   calendarEndHour: 23, // 11 PM
+  showOnlyRosteredStaffDefault: true, // Default to showing only rostered staff
   allowWalkInBookings: true, // Default to true for flexibility
   priceToDurationRatio: 1.0, // $1 = 1 minute (default)
   // Customer Notification settings
