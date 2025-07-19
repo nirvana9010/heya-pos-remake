@@ -472,7 +472,9 @@ export default function BookingsManager() {
       });
       
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Payment request timed out after 30 seconds')), 30000);
+        const timeoutError = new Error('Payment request timed out after 30 seconds');
+        timeoutError.name = 'TimeoutError';
+        setTimeout(() => reject(timeoutError), 30000);
       });
       
       const paymentResult = await Promise.race([paymentPromise, timeoutPromise]);
@@ -497,14 +499,36 @@ export default function BookingsManager() {
         }
       }, 1000);
     } catch (error: any) {
-      console.error(`[Mark as Paid] Error occurred:`, error);
+      // Create a proper error log with all available details
+      const errorDetails = {
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status || 'No status',
+        data: error?.response?.data || null,
+        code: error?.code || 'No code',
+        stack: error?.stack || 'No stack trace'
+      };
+      
+      console.error(`[Mark as Paid] Error occurred:`, errorDetails);
+      console.error(`[Mark as Paid] Full error object:`, error);
       
       // Only update UI if component is still mounted
       if (mountedRef.current) {
         // Rollback on error
         setBookings(previousBookings);
         
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to record payment.";
+        // Extract error message with better fallbacks
+        let errorMessage = "Failed to record payment.";
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error?.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error?.message && error.message !== 'Network Error') {
+          errorMessage = error.message;
+        } else if (error?.response?.status === 404) {
+          errorMessage = "Payment endpoint not found. Please contact support.";
+        } else if (error?.response?.status === 500) {
+          errorMessage = "Server error occurred. Please try again.";
+        }
         
         toast({
           title: "Error",

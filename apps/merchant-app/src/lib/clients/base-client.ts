@@ -372,8 +372,10 @@ export class BaseApiClient {
       validateRequest(data, requestSchema, url);
     }
 
+    const versionedUrl = this.addVersionPrefix(url, version);
+    
     try {
-      const response = await this.axiosInstance.post(this.addVersionPrefix(url, version), data, config);
+      const response = await this.axiosInstance.post(versionedUrl, data, config);
       
       // Invalidate related cache on mutations
       this.invalidateCacheForMutation(url);
@@ -385,6 +387,24 @@ export class BaseApiClient {
       
       return response.data;
     } catch (error: any) {
+      // Ensure error object is properly logged
+      const errorDetails = {
+        url: versionedUrl,
+        method: 'POST',
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status || 'No status',
+        data: error?.response?.data || null,
+        code: error?.code || 'No code',
+        requestData: data
+      };
+      
+      console.error('[BaseApiClient] POST request failed:', errorDetails);
+      
+      // If error object is malformed, create a proper error
+      if (!error || typeof error !== 'object') {
+        throw new Error(`POST request failed: ${versionedUrl}`);
+      }
+      
       throw error;
     }
   }
@@ -428,17 +448,41 @@ export class BaseApiClient {
       validateRequest(data, requestSchema, url);
     }
 
-    const response = await this.axiosInstance.patch(this.addVersionPrefix(url, version), data, config);
+    const versionedUrl = this.addVersionPrefix(url, version);
     
-    // Invalidate related cache on mutations
-    this.invalidateCacheForMutation(url);
-    
-    // Validate response if schema provided
-    if (responseSchema && process.env.NODE_ENV === 'development') {
-      return validateResponse(response.data, responseSchema, url);
+    try {
+      const response = await this.axiosInstance.patch(versionedUrl, data, config);
+      
+      // Invalidate related cache on mutations
+      this.invalidateCacheForMutation(url);
+      
+      // Validate response if schema provided
+      if (responseSchema && process.env.NODE_ENV === 'development') {
+        return validateResponse(response.data, responseSchema, url);
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      // Ensure error object is properly logged
+      const errorDetails = {
+        url: versionedUrl,
+        method: 'PATCH',
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status || 'No status',
+        data: error?.response?.data || null,
+        code: error?.code || 'No code',
+        requestData: data
+      };
+      
+      console.error('[BaseApiClient] PATCH request failed:', errorDetails);
+      
+      // If error object is malformed, create a proper error
+      if (!error || typeof error !== 'object') {
+        throw new Error(`PATCH request failed: ${versionedUrl}`);
+      }
+      
+      throw error;
     }
-    
-    return response.data;
   }
 
   protected async delete<T = any>(
