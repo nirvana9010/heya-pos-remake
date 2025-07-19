@@ -10,6 +10,10 @@ export interface Customer {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  visitCount?: number;
+  totalSpent?: number;
+  loyaltyPoints?: number;
+  loyaltyVisits?: number;
 }
 
 export interface CreateCustomerRequest {

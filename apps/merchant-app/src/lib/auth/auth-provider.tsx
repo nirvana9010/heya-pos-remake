@@ -53,6 +53,7 @@ export interface AuthActions {
   clearError: () => void;
   refreshToken: () => Promise<void>;
   verifyAction: (pin: string, action: string) => Promise<any>;
+  refreshMerchantData: () => Promise<void>;
 }
 
 export type AuthContextType = AuthState & AuthActions;
@@ -519,6 +520,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const verifyAction = useCallback(async (pin: string, action: string) => {
     return apiClient.auth.verifyAction(pin, action);
   }, []);
+  
+  const refreshMerchantData = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/merchant/profile');
+      if (response) {
+        // Update both state and localStorage
+        localStorage.setItem('merchant', JSON.stringify(response));
+        setAuthState(prev => ({
+          ...prev,
+          merchant: response,
+        }));
+        
+        // Dispatch custom event for other components
+        window.dispatchEvent(new CustomEvent('merchantDataRefreshed', { 
+          detail: { merchant: response } 
+        }));
+      }
+    } catch (error) {
+      console.error('[Auth Provider] Failed to refresh merchant data:', error);
+    }
+  }, []);
 
   const contextValue: AuthContextType = {
     ...authState,
@@ -527,6 +549,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearError,
     refreshToken,
     verifyAction,
+    refreshMerchantData,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

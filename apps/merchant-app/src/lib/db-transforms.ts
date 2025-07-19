@@ -103,6 +103,7 @@ function isMoneyField(fieldName: string): boolean {
     'credit',
     'debit',
     'spent',
+    'totalSpent',
     'earnings',
     'salary',
     'wage',
@@ -112,7 +113,8 @@ function isMoneyField(fieldName: string): boolean {
     'yearlyRevenue',
     'avgServiceValue',
     'unitPrice',
-    'tipAmount'
+    'tipAmount',
+    'loyaltyPoints'
   ];
   
   const fieldLower = fieldName.toLowerCase();

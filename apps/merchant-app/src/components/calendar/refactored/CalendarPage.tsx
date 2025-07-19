@@ -2,6 +2,7 @@
 
 // Build timestamp - updates when file is saved
 const __BUILD_TIME__ = new Date().toLocaleString();
+// Checkbox removed - rostered staff filter now controlled by merchant settings only
 
 import React, { useCallback } from 'react';
 import { CalendarProvider, useCalendar } from './CalendarProvider';
@@ -708,15 +709,6 @@ function CalendarContent() {
                 {state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/{state.staff.filter(s => s.isActive !== false).length} staff
               </span>
             </div>
-            
-            {/* Show rostered staff toggle - separated out for visibility */}
-            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-3 py-1.5 rounded-md">
-              <Checkbox
-                checked={state.showOnlyRosteredStaff}
-                onCheckedChange={() => actions.toggleRosteredOnly()}
-              />
-              <span className="text-gray-700">Show rostered staff only</span>
-            </label>
             
             {/* Filter button */}
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>

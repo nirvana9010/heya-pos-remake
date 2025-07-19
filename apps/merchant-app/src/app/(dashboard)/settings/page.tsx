@@ -59,6 +59,7 @@ export default function SettingsPage() {
   const [autoConfirmBookings, setAutoConfirmBookings] = useState(merchantSettings.autoConfirmBookings ?? true);
   const [calendarStartHour, setCalendarStartHour] = useState(merchantSettings.calendarStartHour ?? 6);
   const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
+  const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] = useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
   
   // Merchant profile state
@@ -140,6 +141,7 @@ export default function SettingsPage() {
         setAutoConfirmBookings(response.autoConfirmBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
+        setShowOnlyRosteredStaffDefault(response.showOnlyRosteredStaffDefault ?? true);
         setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
         // Set timezone from merchant settings
         if (response.timezone) {
@@ -245,6 +247,7 @@ export default function SettingsPage() {
         autoConfirmBookings,
         calendarStartHour,
         calendarEndHour,
+        showOnlyRosteredStaffDefault,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
       };
       
@@ -983,6 +986,21 @@ export default function SettingsPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Only Rostered Staff by Default</Label>
+                      <p className="text-sm text-muted-foreground">
+                        When opening the calendar, show only staff members who are scheduled to work that day
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={showOnlyRosteredStaffDefault} 
+                      onCheckedChange={setShowOnlyRosteredStaffDefault}
+                    />
                   </div>
                 </div>
               </div>

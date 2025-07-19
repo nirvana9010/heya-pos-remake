@@ -15,7 +15,6 @@ const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
   staffFilter: 'calendar_staffFilter',
   timeInterval: 'calendar_timeInterval',
-  showOnlyRosteredStaff: 'calendar_showOnlyRosteredStaff',
 } as const;
 
 // Load saved preferences from localStorage
@@ -26,32 +25,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
     const savedStatusFilters = localStorage.getItem(STORAGE_KEYS.statusFilters);
     const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
-    const savedShowOnlyRosteredStaff = localStorage.getItem(STORAGE_KEYS.showOnlyRosteredStaff);
-    
-    // Load merchant settings to get showUnassignedColumn preference and calendar hours
-    let showUnassignedColumn = undefined;
-    let calendarStartHour = undefined;
-    let calendarEndHour = undefined;
-    
-    const merchantData = localStorage.getItem('merchant');
-    if (merchantData) {
-      try {
-        const merchant = JSON.parse(merchantData);
-        if (merchant.settings) {
-          if (merchant.settings.showUnassignedColumn !== undefined) {
-            showUnassignedColumn = merchant.settings.showUnassignedColumn;
-          }
-          if (merchant.settings.calendarStartHour !== undefined) {
-            calendarStartHour = merchant.settings.calendarStartHour;
-          }
-          if (merchant.settings.calendarEndHour !== undefined) {
-            calendarEndHour = merchant.settings.calendarEndHour;
-          }
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    }
     
     return {
       selectedStatusFilters: savedStatusFilters 
@@ -59,10 +32,6 @@ function loadSavedPreferences(): Partial<CalendarState> {
         : ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
-      showOnlyRosteredStaff: savedShowOnlyRosteredStaff !== null ? savedShowOnlyRosteredStaff === 'true' : true,
-      ...(showUnassignedColumn !== undefined && { showUnassignedColumn }),
-      ...(calendarStartHour !== undefined && { calendarStartHour }),
-      ...(calendarEndHour !== undefined && { calendarEndHour }),
     };
   } catch (error) {
     return {};
@@ -73,6 +42,23 @@ function loadSavedPreferences(): Partial<CalendarState> {
 const getInitialState = (merchantSettings?: any): CalendarState => {
   const savedPrefs = loadSavedPreferences();
   
+  // Always get the freshest merchant settings from localStorage
+  let freshMerchantSettings = merchantSettings;
+  if (typeof window !== 'undefined') {
+    const storedMerchant = localStorage.getItem('merchant');
+    if (storedMerchant) {
+      try {
+        const merchant = JSON.parse(storedMerchant);
+        if (merchant.settings) {
+          freshMerchantSettings = merchant.settings;
+        }
+      } catch (e) {
+        // Use passed settings if parse fails
+      }
+    }
+  }
+  
+  console.log('[CalendarProvider] Creating initial state with merchant settings:', freshMerchantSettings);
   
   return {
   // View management
@@ -99,15 +85,15 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   selectedStatusFilters: savedPrefs.selectedStatusFilters || ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
   searchQuery: '',
   
-  // Feature flags
-  showUnassignedColumn: savedPrefs.showUnassignedColumn ?? false, // Default to false to prevent flash
+  // Feature flags - Use fresh merchant settings directly
+  showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
   showBlockedTime: true,
   showBreaks: true,
-  showOnlyRosteredStaff: savedPrefs.showOnlyRosteredStaff ?? true, // Default to showing only rostered staff
+  showOnlyRosteredStaff: freshMerchantSettings?.showOnlyRosteredStaffDefault ?? true,
   
-  // Calendar display settings - use saved preferences or defaults
-  calendarStartHour: savedPrefs.calendarStartHour ?? 6,
-  calendarEndHour: savedPrefs.calendarEndHour ?? 23,
+  // Calendar display settings - use fresh merchant settings
+  calendarStartHour: freshMerchantSettings?.calendarStartHour ?? 6,
+  calendarEndHour: freshMerchantSettings?.calendarEndHour ?? 23,
   
   // Loading states
   isLoading: false,
@@ -270,10 +256,8 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     case 'TOGGLE_ROSTERED_ONLY':
-      return {
-        ...state,
-        showOnlyRosteredStaff: !state.showOnlyRosteredStaff,
-      };
+      // No longer allow toggling - controlled by merchant settings only
+      return state;
     
     // Drag actions
     case 'START_DRAG':
@@ -403,38 +387,11 @@ interface CalendarProviderProps {
 
 export function CalendarProvider({ children }: CalendarProviderProps) {
   const { merchant } = useAuth();
-  const [merchantSettings, setMerchantSettings] = React.useState<any>(null);
   
-  // Load merchant settings on mount
-  React.useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const headers = getAuthHeader();
-        if (!headers.Authorization) {
-          return;
-        }
-        
-        const response = await fetch(API_ENDPOINTS.MERCHANT_SETTINGS, {
-          headers
-        });
-        
-        if (response.ok) {
-          const settings = await response.json();
-          setMerchantSettings(settings);
-        } else {
-        }
-      } catch (error) {
-      }
-    };
-    
-    loadSettings();
-  }, []);
+  // Use merchant settings from auth context/localStorage only
+  const merchantSettings = merchant?.settings;
   
-  // Use merchant settings if loaded, otherwise fallback to auth context
-  const effectiveSettings = merchantSettings || merchant?.settings;
-  
-  
-  const [state, dispatch] = useReducer(calendarReducer, getInitialState(effectiveSettings));
+  const [state, dispatch] = useReducer(calendarReducer, getInitialState(merchantSettings));
   
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
@@ -546,86 +503,45 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     dispatch,
   }), [dispatch]);
   
-  // Initialize date range on mount and listen for storage changes
+  // Initialize date range on mount and listen for merchant settings updates
   useEffect(() => {
     const range = calculateDateRange(state.currentDate, state.currentView);
     dispatch({ type: 'SET_DATE', payload: state.currentDate });
     
-    // Listen for storage changes to update calendar settings
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'merchant' && e.newValue) {
-        try {
-          const merchantData = JSON.parse(e.newValue);
-          if (merchantData.settings) {
-            const newSettings = {
-              ...(merchantData.settings.showUnassignedColumn !== undefined && 
-                { showUnassignedColumn: merchantData.settings.showUnassignedColumn }),
-              ...(merchantData.settings.calendarStartHour !== undefined && 
-                { calendarStartHour: merchantData.settings.calendarStartHour }),
-              ...(merchantData.settings.calendarEndHour !== undefined && 
-                { calendarEndHour: merchantData.settings.calendarEndHour }),
-            };
-            
-            if (Object.keys(newSettings).length > 0) {
-              dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
-            }
-          }
-        } catch (error) {
-        }
-      }
-    };
-    
-    // Listen for custom event for same-tab updates
+    // Listen for custom event for same-tab updates only
+    let updateTimeout: NodeJS.Timeout;
     const handleMerchantSettingsUpdate = (e: CustomEvent) => {
       if (e.detail && e.detail.settings) {
-        const newSettings = {
-          ...(e.detail.settings.showUnassignedColumn !== undefined && 
-            { showUnassignedColumn: e.detail.settings.showUnassignedColumn }),
-          ...(e.detail.settings.calendarStartHour !== undefined && 
-            { calendarStartHour: e.detail.settings.calendarStartHour }),
-          ...(e.detail.settings.calendarEndHour !== undefined && 
-            { calendarEndHour: e.detail.settings.calendarEndHour }),
-        };
-        
-        if (Object.keys(newSettings).length > 0) {
-          dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
-        }
+        // Debounce updates to prevent flickering
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+          const newSettings = {
+            ...(e.detail.settings.showUnassignedColumn !== undefined && 
+              { showUnassignedColumn: e.detail.settings.showUnassignedColumn }),
+            ...(e.detail.settings.calendarStartHour !== undefined && 
+              { calendarStartHour: e.detail.settings.calendarStartHour }),
+            ...(e.detail.settings.calendarEndHour !== undefined && 
+              { calendarEndHour: e.detail.settings.calendarEndHour }),
+            ...(e.detail.settings.showOnlyRosteredStaffDefault !== undefined && 
+              { showOnlyRosteredStaff: e.detail.settings.showOnlyRosteredStaffDefault }),
+          };
+          
+          if (Object.keys(newSettings).length > 0) {
+            dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
+          }
+        }, 100); // Small delay to debounce rapid updates
       }
     };
     
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('merchantSettingsUpdated', handleMerchantSettingsUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      clearTimeout(updateTimeout);
       window.removeEventListener('merchantSettingsUpdated', handleMerchantSettingsUpdate as EventListener);
     };
   }, []);
   
-  // Update UI settings when merchant settings change
-  useEffect(() => {
-    const hasChanges = 
-      (effectiveSettings?.showUnassignedColumn !== undefined && 
-       effectiveSettings.showUnassignedColumn !== state.showUnassignedColumn) ||
-      (effectiveSettings?.calendarStartHour !== undefined && 
-       effectiveSettings.calendarStartHour !== state.calendarStartHour) ||
-      (effectiveSettings?.calendarEndHour !== undefined && 
-       effectiveSettings.calendarEndHour !== state.calendarEndHour);
-       
-    if (hasChanges) {
-      dispatch({ 
-        type: 'SET_UI_FLAGS', 
-        payload: {
-          ...(effectiveSettings?.showUnassignedColumn !== undefined && 
-            { showUnassignedColumn: effectiveSettings.showUnassignedColumn }),
-          ...(effectiveSettings?.calendarStartHour !== undefined && 
-            { calendarStartHour: effectiveSettings.calendarStartHour }),
-          ...(effectiveSettings?.calendarEndHour !== undefined && 
-            { calendarEndHour: effectiveSettings.calendarEndHour }),
-        } 
-      });
-    }
-  }, [effectiveSettings?.showUnassignedColumn, effectiveSettings?.calendarStartHour, effectiveSettings?.calendarEndHour]);
+  // Remove this useEffect entirely - we're setting initial state correctly now
   
   // Save filter preferences to localStorage
   useEffect(() => {
@@ -641,7 +557,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
-      localStorage.setItem(STORAGE_KEYS.showOnlyRosteredStaff, state.showOnlyRosteredStaff.toString());
       
       // If we cleaned up any invalid IDs, update the state
       if (validStaffIds.length !== state.selectedStaffIds.length) {
@@ -653,7 +568,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     JSON.stringify(state.selectedStatusFilters),
     JSON.stringify(state.selectedStaffIds),
     state.timeInterval,
-    state.showOnlyRosteredStaff,
     state.staff.length // Only depend on staff length, not the entire array
   ]);
   
