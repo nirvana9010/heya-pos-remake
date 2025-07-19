@@ -100,6 +100,14 @@ export default function RosterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reload data when week changes to get overrides for the new date range
+  useEffect(() => {
+    if (staff.length > 0) {
+      loadOverridesForWeek();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStart]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -156,6 +164,21 @@ export default function RosterPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOverridesForWeek = async () => {
+    try {
+      // For now, we'll simulate loading overrides from the local state
+      // TODO: When API is ready, fetch overrides for the date range:
+      // const startDate = weekStart;
+      // const endDate = addDays(weekStart, 6);
+      // const overridesData = await staffClient.getScheduleOverrides(startDate, endDate);
+      
+      // Simulate some test data for demo purposes
+      console.log('Loading overrides for week starting:', format(weekStart, 'yyyy-MM-dd'));
+    } catch (error) {
+      console.error('Failed to load overrides:', error);
     }
   };
 
@@ -241,10 +264,81 @@ export default function RosterPage() {
   };
 
   const copyPreviousWeek = async () => {
-    toast({
-      title: 'Coming soon',
-      description: 'Copy previous week functionality will be available soon'
-    });
+    try {
+      const previousWeekStart = addDays(weekStart, -7);
+      const previousWeekEnd = addDays(previousWeekStart, 6);
+      
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `This will copy all schedule overrides from the week of ${format(previousWeekStart, 'MMM d')} - ${format(previousWeekEnd, 'MMM d')} to the current week. Regular schedules will not be affected. Continue?`
+      );
+      
+      if (!confirmed) return;
+      
+      setLoading(true);
+      
+      // Create new overrides for the current week based on previous week
+      const newOverrides: ScheduleOverride[] = [];
+      
+      // For each staff member
+      for (const staffMember of staff) {
+        const staffOverrides = overrides.get(staffMember.id) || [];
+        
+        // For each day of the week
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+          const previousDate = addDays(previousWeekStart, dayOffset);
+          const currentDate = addDays(weekStart, dayOffset);
+          const previousDateStr = format(previousDate, 'yyyy-MM-dd');
+          const currentDateStr = format(currentDate, 'yyyy-MM-dd');
+          
+          // Find override for this day in previous week
+          const previousOverride = staffOverrides.find(o => o.date === previousDateStr);
+          
+          if (previousOverride) {
+            // Create new override for current week
+            const newOverride: ScheduleOverride = {
+              staffId: staffMember.id,
+              date: currentDateStr,
+              startTime: previousOverride.startTime,
+              endTime: previousOverride.endTime,
+              reason: previousOverride.reason ? `Copied from ${format(previousDate, 'MMM d')}` : undefined
+            };
+            
+            newOverrides.push(newOverride);
+            
+            // Update local state
+            const currentStaffOverrides = overrides.get(staffMember.id) || [];
+            const filteredOverrides = currentStaffOverrides.filter(o => o.date !== currentDateStr);
+            const updatedOverrides = [...filteredOverrides, newOverride];
+            setOverrides(prev => new Map(prev).set(staffMember.id, updatedOverrides));
+          }
+        }
+      }
+      
+      if (newOverrides.length === 0) {
+        toast({
+          title: 'No overrides to copy',
+          description: 'The previous week has no schedule overrides',
+        });
+      } else {
+        // TODO: Save overrides to API
+        console.log('Copying overrides:', newOverrides);
+        
+        toast({
+          title: 'Success',
+          description: `Copied ${newOverrides.length} schedule override${newOverrides.length > 1 ? 's' : ''} from previous week`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to copy previous week:', error);
+      toast({
+        title: 'Copy failed',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const applyBusinessHours = async () => {
@@ -422,6 +516,9 @@ export default function RosterPage() {
             <h2 className="text-lg font-medium">
               {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
             </h2>
+            {isSameDay(weekStart, startOfWeek(new Date())) && (
+              <p className="text-sm text-gray-500">Current Week</p>
+            )}
           </div>
           
           <Button
