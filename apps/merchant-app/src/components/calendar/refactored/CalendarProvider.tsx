@@ -649,7 +649,13 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       }
     } catch (error) {
     }
-  }, [state.selectedStatusFilters, state.selectedStaffIds, state.timeInterval, state.showOnlyRosteredStaff, state.staff]);
+  }, [
+    JSON.stringify(state.selectedStatusFilters),
+    JSON.stringify(state.selectedStaffIds),
+    state.timeInterval,
+    state.showOnlyRosteredStaff,
+    state.staff.length // Only depend on staff length, not the entire array
+  ]);
   
   const contextValue: CalendarContextType = {
     state,
