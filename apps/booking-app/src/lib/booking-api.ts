@@ -101,6 +101,11 @@ export interface MerchantInfo {
   settings?: {
     bookingAdvanceHours?: number;
     cancellationHours?: number;
+    minimumBookingNotice?: number;
+    appointmentReminder24hEmail?: boolean;
+    appointmentReminder24hSms?: boolean;
+    appointmentReminder2hEmail?: boolean;
+    appointmentReminder2hSms?: boolean;
     [key: string]: any;
   };
 }

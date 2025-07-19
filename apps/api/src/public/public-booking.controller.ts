@@ -126,6 +126,10 @@ export class PublicBookingController {
         bookingAdvanceHours: settings?.bookingAdvanceHours || 168, // Default 7 days
         cancellationHours: settings?.cancellationHours || 24, // Default 24 hours
         minimumBookingNotice: settings?.minimumBookingNotice || 0, // Default no restriction
+        appointmentReminder24hEmail: settings?.appointmentReminder24hEmail ?? true,
+        appointmentReminder24hSms: settings?.appointmentReminder24hSms ?? false,
+        appointmentReminder2hEmail: settings?.appointmentReminder2hEmail ?? true,
+        appointmentReminder2hSms: settings?.appointmentReminder2hSms ?? false,
       },
     };
   }

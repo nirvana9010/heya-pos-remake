@@ -1591,10 +1591,33 @@ export default function BookingPageClient() {
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
                     <p>Confirmation email sent to {confirmationData.customerEmail}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    <p>We&apos;ll send a reminder 24 hours before</p>
-                  </div>
+                  {(merchantInfo?.settings?.appointmentReminder24hEmail || 
+                    merchantInfo?.settings?.appointmentReminder24hSms ||
+                    merchantInfo?.settings?.appointmentReminder2hEmail ||
+                    merchantInfo?.settings?.appointmentReminder2hSms) && (
+                    <div className="flex gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <p>
+                        {(() => {
+                          const reminders = [];
+                          if (merchantInfo?.settings?.appointmentReminder24hEmail || merchantInfo?.settings?.appointmentReminder24hSms) {
+                            reminders.push('24 hours');
+                          }
+                          if (merchantInfo?.settings?.appointmentReminder2hEmail || merchantInfo?.settings?.appointmentReminder2hSms) {
+                            reminders.push('2 hours');
+                          }
+                          
+                          if (reminders.length === 0) {
+                            return null;
+                          } else if (reminders.length === 1) {
+                            return `We'll send a reminder ${reminders[0]} before`;
+                          } else {
+                            return `We'll send reminders ${reminders.join(' and ')} before`;
+                          }
+                        })()}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
                     <p>Arrive 10 minutes early for check-in</p>
