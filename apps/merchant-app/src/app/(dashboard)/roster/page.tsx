@@ -100,17 +100,20 @@ export default function RosterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload data when week changes to get overrides for the new date range
+  // Load overrides when staff data is available or week changes
   useEffect(() => {
     if (staff.length > 0) {
       loadOverridesForWeek();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekStart]);
+  }, [weekStart, staff.length]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Test authentication first
+      console.log('[Roster] Loading staff data...');
       
       // Load all staff and their schedules in parallel
       const [staffData, schedulesData] = await Promise.all([
@@ -169,14 +172,36 @@ export default function RosterPage() {
 
   const loadOverridesForWeek = async () => {
     try {
-      // For now, we'll simulate loading overrides from the local state
-      // TODO: When API is ready, fetch overrides for the date range:
-      // const startDate = weekStart;
-      // const endDate = addDays(weekStart, 6);
-      // const overridesData = await staffClient.getScheduleOverrides(startDate, endDate);
+      const startDate = format(weekStart, 'yyyy-MM-dd');
+      const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
       
-      // Simulate some test data for demo purposes
-      console.log('Loading overrides for week starting:', format(weekStart, 'yyyy-MM-dd'));
+      console.log('[Roster] Loading overrides for week:', startDate, 'to', endDate, 'for', staff.length, 'staff members');
+      console.log('[Roster] Staff IDs:', staff.map(s => s.id));
+      
+      // Load overrides for all staff in parallel
+      const overridesMap = new Map<string, ScheduleOverride[]>();
+      
+      await Promise.all(
+        staff.map(async (staffMember) => {
+          try {
+            const overrides = await staffClient.getScheduleOverrides(staffMember.id, startDate, endDate);
+            console.log(`[Roster] Overrides for ${staffMember.firstName} (${staffMember.id}):`, overrides);
+            if (overrides && overrides.length > 0) {
+              overridesMap.set(staffMember.id, overrides);
+            }
+          } catch (error: any) {
+            console.error(`Failed to load overrides for ${staffMember.firstName}:`, {
+              error,
+              message: error?.message,
+              response: error?.response,
+              status: error?.response?.status
+            });
+          }
+        })
+      );
+      
+      console.log('[Roster] Total overrides loaded:', overridesMap.size, 'staff with overrides');
+      setOverrides(overridesMap);
     } catch (error) {
       console.error('Failed to load overrides:', error);
     }
@@ -211,8 +236,13 @@ export default function RosterPage() {
       
       if (isOverride) {
         // Create or update override
-        // TODO: Call API to save override
-        console.log('Creating override for', staffId, dateStr, startTime, endTime);
+        console.log('[Roster] Creating override:', { staffId, date: dateStr, startTime, endTime });
+        const override = await staffClient.createOrUpdateScheduleOverride(staffId, {
+          date: dateStr,
+          startTime,
+          endTime,
+        });
+        console.log('[Roster] Override created:', override);
         
         // Update local overrides state
         const staffOverrides = overrides.get(staffId) || [];
@@ -241,6 +271,11 @@ export default function RosterPage() {
         });
       } else {
         // If it matches regular schedule, remove any existing override
+        const existingOverride = overrides.get(staffId)?.find(o => o.date === dateStr);
+        if (existingOverride) {
+          await staffClient.deleteScheduleOverride(staffId, dateStr);
+        }
+        
         const staffOverrides = overrides.get(staffId) || [];
         const newOverrides = staffOverrides.filter(o => o.date !== dateStr);
         setOverrides(prev => new Map(prev).set(staffId, newOverrides));
@@ -267,22 +302,33 @@ export default function RosterPage() {
     try {
       const previousWeekStart = addDays(weekStart, -7);
       const previousWeekEnd = addDays(previousWeekStart, 6);
-      
-      // Show confirmation dialog
-      const confirmed = window.confirm(
-        `This will copy all schedule overrides from the week of ${format(previousWeekStart, 'MMM d')} - ${format(previousWeekEnd, 'MMM d')} to the current week. Regular schedules will not be affected. Continue?`
-      );
-      
-      if (!confirmed) return;
+      const previousStartDate = format(previousWeekStart, 'yyyy-MM-dd');
+      const previousEndDate = format(previousWeekEnd, 'yyyy-MM-dd');
       
       setLoading(true);
+      
+      // First, load overrides from the previous week
+      const previousWeekOverrides = new Map<string, ScheduleOverride[]>();
+      
+      await Promise.all(
+        staff.map(async (staffMember) => {
+          try {
+            const overrides = await staffClient.getScheduleOverrides(staffMember.id, previousStartDate, previousEndDate);
+            if (overrides && overrides.length > 0) {
+              previousWeekOverrides.set(staffMember.id, overrides);
+            }
+          } catch (error) {
+            console.error(`Failed to load overrides for ${staffMember.firstName}:`, error);
+          }
+        })
+      );
       
       // Create new overrides for the current week based on previous week
       const newOverrides: ScheduleOverride[] = [];
       
       // For each staff member
       for (const staffMember of staff) {
-        const staffOverrides = overrides.get(staffMember.id) || [];
+        const staffOverrides = previousWeekOverrides.get(staffMember.id) || [];
         
         // For each day of the week
         for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
@@ -321,8 +367,17 @@ export default function RosterPage() {
           description: 'The previous week has no schedule overrides',
         });
       } else {
-        // TODO: Save overrides to API
-        console.log('Copying overrides:', newOverrides);
+        // Save all overrides to API
+        await Promise.all(
+          newOverrides.map(override => 
+            staffClient.createOrUpdateScheduleOverride(override.staffId, {
+              date: override.date,
+              startTime: override.startTime,
+              endTime: override.endTime,
+              reason: override.reason
+            })
+          )
+        );
         
         toast({
           title: 'Success',

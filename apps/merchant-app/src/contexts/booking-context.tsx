@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { BookingSlideOut } from '@/components/BookingSlideOut';
 import { QuickSaleSlideOut } from '@/components/QuickSaleSlideOut';
 import { apiClient } from '@/lib/api-client';
+import { StaffClient } from '@/lib/clients/staff-client';
 import { useToast } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { format } from 'date-fns';
@@ -60,16 +61,27 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
     setLoading(true);
     try {
       // Load all required data in parallel
-      const [staffData, servicesResponse, customersData, bookingsData, settingsData] = await Promise.all([
+      const [staffData, servicesResponse, customersData, bookingsData, settingsData, schedulesData] = await Promise.all([
         apiClient.getStaff().catch(() => []),
         apiClient.getServices().catch(() => ({ data: [] })),
         apiClient.getCustomers().catch(() => []),
         apiClient.getBookings().catch(() => []),
-        apiClient.getMerchantSettings().catch(() => null)
+        apiClient.getMerchantSettings().catch(() => null),
+        new StaffClient().getAllSchedules().catch(() => [])
       ]);
       
       // Extract services array from paginated response
       const servicesData = servicesResponse.data || [];
+
+      // Create a map of schedules by staff ID
+      const scheduleMap = new Map();
+      if (Array.isArray(schedulesData)) {
+        schedulesData.forEach((staffSchedule: any) => {
+          if (staffSchedule.staffId && staffSchedule.schedules) {
+            scheduleMap.set(staffSchedule.staffId, staffSchedule.schedules);
+          }
+        });
+      }
 
       // Transform staff data to include name property and filter out inactive staff
       const transformedStaff = staffData
@@ -84,7 +96,8 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
           firstName: member.firstName,
           lastName: member.lastName,
           role: member.role,
-          isActive: true // Already filtered for ACTIVE status above
+          isActive: true, // Already filtered for ACTIVE status above
+          schedules: scheduleMap.get(member.id) || []
         }));
       
       setStaff(transformedStaff);

@@ -581,4 +581,135 @@ export class StaffService {
       throw error;
     }
   }
+
+  async getScheduleOverrides(merchantId: string, staffId: string, startDate?: string, endDate?: string) {
+    // Verify staff belongs to merchant
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id: staffId,
+        merchantId,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    const where: any = { staffId };
+    
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) {
+        where.date.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.date.lte = new Date(endDate);
+      }
+    }
+
+    const overrides = await this.prisma.scheduleOverride.findMany({
+      where,
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    const result = overrides.map(override => ({
+      ...override,
+      date: override.date.toISOString().split('T')[0],
+    }));
+    
+    console.log('[StaffService] Overrides found:', result.length, 'for staff:', staffId);
+    return result;
+  }
+
+  async createOrUpdateScheduleOverride(
+    merchantId: string, 
+    staffId: string,
+    data: { date: string; startTime: string | null; endTime: string | null; reason?: string }
+  ) {
+    console.log('[StaffService] createOrUpdateScheduleOverride called:', { merchantId, staffId, data });
+    
+    // Verify staff belongs to merchant
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id: staffId,
+        merchantId,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    // Validate times if provided
+    if (data.startTime && data.endTime) {
+      const start = new Date(`2000-01-01T${data.startTime}`);
+      const end = new Date(`2000-01-01T${data.endTime}`);
+      if (start >= end) {
+        throw new BadRequestException('End time must be after start time');
+      }
+    }
+
+    const override = await this.prisma.scheduleOverride.upsert({
+      where: {
+        staffId_date: {
+          staffId,
+          date: new Date(data.date),
+        },
+      },
+      update: {
+        startTime: data.startTime,
+        endTime: data.endTime,
+        reason: data.reason,
+      },
+      create: {
+        staffId,
+        date: new Date(data.date),
+        startTime: data.startTime,
+        endTime: data.endTime,
+        reason: data.reason,
+      },
+    });
+
+    const result = {
+      ...override,
+      date: override.date.toISOString().split('T')[0],
+    };
+    
+    console.log('[StaffService] Override created/updated:', result);
+    return result;
+  }
+
+  async deleteScheduleOverride(merchantId: string, staffId: string, date: string) {
+    // Verify staff belongs to merchant
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id: staffId,
+        merchantId,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+
+    try {
+      await this.prisma.scheduleOverride.delete({
+        where: {
+          staffId_date: {
+            staffId,
+            date: new Date(date),
+          },
+        },
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Schedule override not found');
+      }
+      throw error;
+    }
+  }
 }

@@ -709,6 +709,15 @@ function CalendarContent() {
               </span>
             </div>
             
+            {/* Show rostered staff toggle - separated out for visibility */}
+            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-3 py-1.5 rounded-md">
+              <Checkbox
+                checked={state.showOnlyRosteredStaff}
+                onCheckedChange={() => actions.toggleRosteredOnly()}
+              />
+              <span className="text-gray-700">Show rostered staff only</span>
+            </label>
+            
             {/* Filter button */}
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
               <PopoverTrigger asChild>
