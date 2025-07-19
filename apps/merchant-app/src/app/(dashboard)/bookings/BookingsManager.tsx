@@ -92,6 +92,7 @@ export default function BookingsManager() {
   const [services, setServices] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
+  const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     
@@ -488,16 +489,42 @@ export default function BookingsManager() {
   };
 
   const handleProcessPayment = async (bookingId: string) => {
+    // Mark this booking as processing
+    setProcessingOrders(prev => new Set(prev).add(bookingId));
+    
     try {
-      // Create order from booking if not exists
-      const order = await apiClient.createOrderFromBooking(bookingId);
-      setSelectedOrderForPayment(order);
+      // Use the optimized prepareOrderForPayment endpoint
+      // This endpoint creates order if needed and returns all payment data in one call
+      const paymentData = await apiClient.prepareOrderForPayment({
+        bookingId: bookingId
+      });
+      
+      if (!paymentData || !paymentData.order) {
+        throw new Error('No order data received from payment preparation');
+      }
+      
+      // Lock the order if it's in DRAFT state
+      if (paymentData.order.state === 'DRAFT') {
+        await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
+        // Update the order state in the payment data
+        paymentData.order.state = 'LOCKED';
+      }
+      
+      setSelectedOrderForPayment(paymentData.order);
       setPaymentDialogOpen(true);
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to prepare payment.";
       toast({
         title: "Error",
-        description: "Failed to create order for payment.",
+        description: errorMessage,
         variant: "destructive",
+      });
+    } finally {
+      // Remove from processing set
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookingId);
+        return newSet;
       });
     }
   };
@@ -1230,6 +1257,7 @@ export default function BookingsManager() {
                                 showDelete={false}
                                 showPayment={booking.status?.toLowerCase() !== 'cancelled'}
                                 isPaymentProcessing={processingPayments.has(booking.id)}
+                                isProcessingPayment={processingOrders.has(booking.id)}
                                 onStatusChange={async (bookingId, status) => {
                                   try {
                                     switch (status) {
