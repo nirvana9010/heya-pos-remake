@@ -699,6 +699,26 @@ export class OrdersService {
         if (order.state !== OrderState.DRAFT) {
           throw new BadRequestException('Cannot modify a locked order');
         }
+        
+        // Update customerId if provided and different from current
+        const newCustomerId = dto.isWalkIn ? null : dto.customerId || null;
+        if (order.customerId !== newCustomerId) {
+          console.log(`[PrepareOrder] Updating order ${dto.orderId} customerId from ${order.customerId} to ${newCustomerId}`);
+          await this.prisma.order.update({
+            where: { id: dto.orderId },
+            data: { customerId: newCustomerId }
+          });
+          order.customerId = newCustomerId;
+          
+          // Update the customer object if customerId changed
+          if (newCustomerId) {
+            order.customer = await this.prisma.customer.findUnique({
+              where: { id: newCustomerId }
+            });
+          } else {
+            order.customer = null;
+          }
+        }
       } else if (dto.bookingId) {
         console.log(`[PrepareOrder] Looking for order by bookingId: ${dto.bookingId}`);
         
