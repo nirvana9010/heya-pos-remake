@@ -347,38 +347,9 @@ export class PaymentsService {
 
     await this.ordersService.updateOrderState(orderId, merchantId, newState);
 
-    // If order is PAID and has a bookingId, update the booking's payment status
-    if (newState === OrderState.PAID && order.bookingId) {
-      console.log(`[UpdateOrderState] Order ${orderId} is PAID, updating booking ${order.bookingId}`);
-      try {
-        // Get the primary payment method from the order's payments
-        const primaryPayment = order.payments
-          .filter(p => p.status === PaymentStatus.COMPLETED)
-          .sort((a, b) => new Date(b.processedAt || 0).getTime() - new Date(a.processedAt || 0).getTime())[0];
-
-        const paymentMethod = primaryPayment?.paymentMethod || 'CASH';
-        const paymentReference = primaryPayment?.reference;
-
-        // Update the booking's payment fields directly using Prisma
-        await this.prisma.booking.update({
-          where: { 
-            id: order.bookingId,
-            merchantId: merchantId,
-          },
-          data: {
-            paymentStatus: 'PAID',
-            paidAmount: totalAmount,
-            paymentMethod: paymentMethod,
-            paymentReference: paymentReference,
-            paidAt: new Date(),
-          },
-        });
-        console.log(`[UpdateOrderState] Successfully updated booking ${order.bookingId} payment status`);
-      } catch (error) {
-        console.error(`[UpdateOrderState] Failed to update booking ${order.bookingId} payment status:`, error);
-        // Don't throw - payment is already processed, this is just a sync issue
-      }
-    }
+    // Note: Booking payment sync removed - "Mark as Paid" now uses direct booking update
+    // If full payment processing is used (Process Payment flow), the booking remains
+    // linked to the order for proper payment tracking and reporting
   }
 
   /**
