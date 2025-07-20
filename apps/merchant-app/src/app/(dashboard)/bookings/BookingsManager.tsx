@@ -11,7 +11,6 @@ import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { PaymentDialogPortal } from '@/components/PaymentDialogPortal';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { BookingSlideOut } from '@/components/BookingSlideOut';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
 import { 
   DropdownMenu, 
@@ -22,7 +21,6 @@ import {
 } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { 
-  Plus, 
   Search, 
   Calendar, 
   Clock, 
@@ -88,7 +86,6 @@ export default function BookingsManager() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
   const [merchantSettings, setMerchantSettings] = useState<any>(null);
-  const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
   const [services, setServices] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
@@ -917,10 +914,6 @@ export default function BookingsManager() {
       <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Bookings</h1>
-        <Button onClick={() => setIsQuickBookingOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Quick Booking
-        </Button>
       </div>
 
       {/* Quick Stats Dashboard */}
@@ -1352,54 +1345,6 @@ export default function BookingsManager() {
         />
       )}
 
-      {/* Booking Slideout */}
-      <BookingSlideOut
-        isOpen={isQuickBookingOpen}
-        onClose={() => setIsQuickBookingOpen(false)}
-        staff={staff}
-        services={services}
-        customers={customers}
-        bookings={bookings}
-        onSave={async (bookingData) => {
-          try {
-            // Booking is already created by BookingSlideOut component
-            // Just handle the UI updates and cache invalidation
-            invalidateBookingsCache();
-            
-            toast({
-              title: "Booking Created",
-              description: "The booking has been created successfully.",
-            });
-            setIsQuickBookingOpen(false);
-            loadBookings(); // Refresh the bookings list
-          } catch (error: any) {
-            // Extract error message from the API response
-            const errorMessage = error?.response?.data?.message || 
-                               error?.message || 
-                               "Failed to create booking. Please try again.";
-            
-            // Check if this is a conflict error with detailed information
-            const conflicts = error?.response?.data?.conflicts;
-            let description = errorMessage;
-            
-            if (conflicts && Array.isArray(conflicts)) {
-              // Show the first conflict details
-              const firstConflict = conflicts[0];
-              if (firstConflict) {
-                const conflictStart = new Date(firstConflict.startTime);
-                const conflictTime = format(conflictStart, 'h:mm a');
-                description = `${errorMessage}. There's already a booking at ${conflictTime}.`;
-              }
-            }
-            
-            toast({
-              title: "Error",
-              description,
-              variant: "destructive",
-            });
-          }
-        }}
-      />
     </div>
     </ErrorBoundary>
   );
