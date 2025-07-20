@@ -441,44 +441,20 @@ export default function BookingsManager() {
       setBookings(prevBookings => 
         prevBookings.map(booking => 
           booking.id === bookingId 
-            ? { ...booking, isPaid: true, paidAmount: amount }
+            ? { ...booking, isPaid: true, paidAmount: amount, paymentStatus: 'PAID' }
             : booking
         )
       );
       
-      console.log(`[Mark as Paid] Starting payment process for booking ${bookingId}`);
+      console.log(`[Mark as Paid] Marking booking ${bookingId} as paid with amount ${amount}`);
       
-      // Create order from booking if not exists
-      const order = await apiClient.createOrderFromBooking(bookingId);
-      console.log(`[Mark as Paid] Order created/retrieved:`, order);
-      
-      // Lock the order if it's in DRAFT state
-      if (order.state === 'DRAFT') {
-        console.log(`[Mark as Paid] Locking order ${order.id}`);
-        await apiClient.updateOrderState(order.id, 'LOCKED');
-      }
-      
-      // Quick cash payment
-      console.log(`[Mark as Paid] Processing payment for ${order.balanceDue}`);
-      
-      // Add timeout to prevent hanging
-      const paymentPromise = apiClient.processPayment({
-        orderId: order.id,
-        amount: order.balanceDue,
-        method: 'CASH',
-        metadata: {
-          cashReceived: order.balanceDue,
-        }
+      // Simple direct API call to mark booking as paid
+      const response = await apiClient.post(`/v2/bookings/${bookingId}/mark-paid`, {
+        paymentMethod: 'CASH',
+        amount: amount
       });
       
-      const timeoutPromise = new Promise((_, reject) => {
-        const timeoutError = new Error('Payment request timed out after 30 seconds');
-        timeoutError.name = 'TimeoutError';
-        setTimeout(() => reject(timeoutError), 30000);
-      });
-      
-      const paymentResult = await Promise.race([paymentPromise, timeoutPromise]);
-      console.log(`[Mark as Paid] Payment result:`, paymentResult);
+      console.log(`[Mark as Paid] Response:`, response);
       
       // Only update UI if component is still mounted
       if (!mountedRef.current) {
@@ -488,48 +464,17 @@ export default function BookingsManager() {
       
       toast({
         title: "Payment Recorded",
-        description: "Payment has been recorded successfully.",
+        description: "Booking has been marked as paid.",
       });
       
-      // Check if backend actually updated the booking
+      // Reload bookings to ensure UI is in sync
       setTimeout(async () => {
         if (mountedRef.current) {
-          console.log('[Mark as Paid] Checking backend update after 2s');
-          // Invalidate cache before reloading
+          console.log('[Mark as Paid] Reloading bookings after 1s');
           invalidateBookingsCache();
-          
-          // Load fresh bookings
           await loadBookings();
-          
-          // Check if the specific booking was updated
-          const params: any = {};
-          if (dateFilter === 'all') {
-            params.includeAll = true;
-          } else if (dateFilter === 'past') {
-            params.endDate = new Date().toISOString().split('T')[0];
-            params.includeAll = true;
-          }
-          
-          const freshBookings = await apiClient.getBookings(params);
-          const updatedBooking = freshBookings.find(b => b.id === bookingId);
-          
-          if (updatedBooking && (!updatedBooking.isPaid || updatedBooking.paidAmount !== amount)) {
-            console.error('[Mark as Paid] Backend did not update booking payment status:', {
-              bookingId,
-              isPaid: updatedBooking.isPaid,
-              paidAmount: updatedBooking.paidAmount,
-              expectedAmount: amount
-            });
-            
-            // Show a warning to the user
-            toast({
-              title: "Payment Processing",
-              description: "Payment recorded but booking status is still updating. Please refresh in a moment.",
-              variant: "default",
-            });
-          }
         }
-      }, 2000);
+      }, 1000);
     } catch (error: any) {
       // Create a proper error log with all available details
       const errorDetails = {
