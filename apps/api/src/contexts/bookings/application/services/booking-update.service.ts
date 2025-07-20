@@ -292,7 +292,39 @@ export class BookingUpdateService {
     await this.cacheService.deletePattern(`${merchantId}:calendar-view:.*`);
     console.log(`[BookingUpdateService] Cache invalidated for merchant ${merchantId}`);
     
-    // Process loyalty points/visits accrual
+    // Update customer stats (visits and total spent)
+    try {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { 
+          customerId: true, 
+          totalAmount: true,
+          paidAmount: true,
+          paymentStatus: true 
+        }
+      });
+      
+      if (booking?.customerId) {
+        // Only update stats if booking wasn't already paid (to avoid double counting)
+        if (booking.paymentStatus !== 'PAID') {
+          await this.prisma.customer.update({
+            where: { id: booking.customerId },
+            data: {
+              visitCount: { increment: 1 },
+              lifetimeVisits: { increment: 1 },
+              totalSpent: { increment: booking.paidAmount || booking.totalAmount || 0 }
+            }
+          });
+          console.log(`[BookingUpdateService] Customer stats updated for completed booking ${bookingId}`);
+        } else {
+          console.log(`[BookingUpdateService] Skipping stats update for booking ${bookingId} - already counted when paid`);
+        }
+      }
+    } catch (error) {
+      console.error(`[BookingUpdateService] Failed to update customer stats for booking ${bookingId}:`, error);
+    }
+    
+    // Process loyalty points/visits accrual (if loyalty program exists)
     try {
       await this.loyaltyService.processBookingCompletion(bookingId);
       console.log(`[BookingUpdateService] Loyalty processed for booking ${bookingId}`);
@@ -427,6 +459,33 @@ export class BookingUpdateService {
       }
 
       // paidAmount is already set in the update above
+
+      // Update customer stats when booking is marked as paid
+      try {
+        const booking = await this.prisma.booking.findUnique({
+          where: { id: bookingId },
+          select: { 
+            customerId: true,
+            totalAmount: true,
+            paidAmount: true
+          }
+        });
+        
+        if (booking?.customerId) {
+          // Increment visit count and total spent when booking is paid
+          await this.prisma.customer.update({
+            where: { id: booking.customerId },
+            data: {
+              visitCount: { increment: 1 },
+              lifetimeVisits: { increment: 1 },
+              totalSpent: { increment: booking.paidAmount || booking.totalAmount || 0 }
+            }
+          });
+          console.log(`[BookingUpdateService] Customer stats updated for paid booking ${bookingId}`);
+        }
+      } catch (error) {
+        console.error(`[BookingUpdateService] Failed to update customer stats for paid booking ${bookingId}:`, error);
+      }
 
       // Invalidate cache for this merchant's bookings
       await this.cacheService.deletePattern(`${merchantId}:bookings-list:.*`);

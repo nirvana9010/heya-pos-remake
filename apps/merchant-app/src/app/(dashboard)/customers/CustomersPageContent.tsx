@@ -54,10 +54,10 @@ const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetails
 // Import types
 interface Customer {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
   dateOfBirth?: string;
   notes?: string;
   tags?: string[];
@@ -153,16 +153,23 @@ export default function CustomersPageContent() {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // If empty query, just filter the existing customers instead of reloading all
+    // If empty query, reload all customers to reset from search results
     if (!query || query.trim().length === 0) {
       setIsSearching(false);
-      // Filter will be handled by the filterCustomers function via the useEffect
+      // Reload all customers to clear search results
+      loadCustomersRef.current?.({ limit: itemsPerPage, page: currentPage });
       return;
     }
 
     // Debounce search
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
+      
+      // Store current selection position before search
+      const input = searchInputRef.current;
+      const selectionStart = input?.selectionStart;
+      const selectionEnd = input?.selectionEnd;
+      
       try {
         const response = await apiClient.customers.getCustomers({ search: query, limit: 100, page: 1 });
         
@@ -192,9 +199,17 @@ export default function CustomersPageContent() {
         });
       } finally {
         setIsSearching(false);
+        
+        // Restore focus and cursor position
+        setTimeout(() => {
+          if (input && selectionStart !== undefined && selectionEnd !== undefined) {
+            input.focus();
+            input.setSelectionRange(selectionStart, selectionEnd);
+          }
+        }, 0);
       }
     }, 300); // 300ms debounce
-  }, [toast]);
+  }, [toast, itemsPerPage, currentPage]);
 
   // Load customers and stats immediately on mount
   useEffect(() => {
@@ -406,10 +421,10 @@ export default function CustomersPageContent() {
     if (searchQuery && searchQuery.trim().length > 0 && !isSearching) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(customer =>
-        customer.firstName.toLowerCase().includes(query) ||
-        customer.lastName.toLowerCase().includes(query) ||
-        customer.email?.toLowerCase().includes(query) ||
-        customer.phone?.includes(query)
+        (customer.firstName?.toLowerCase() || '').includes(query) ||
+        (customer.lastName?.toLowerCase() || '').includes(query) ||
+        (customer.email?.toLowerCase() || '').includes(query) ||
+        (customer.phone || '').includes(query)
       );
     }
 
@@ -700,7 +715,6 @@ export default function CustomersPageContent() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 pr-24"
-            disabled={isSearching}
           />
           {isSearching && (
             <div className="absolute right-20 top-1/2 transform -translate-y-1/2">
@@ -806,7 +820,7 @@ export default function CustomersPageContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-gray-900">{customer.firstName}{customer.lastName ? ` ${customer.lastName}` : ''}</p>
+                            <p className="font-medium text-gray-900">{customer.firstName || 'Unknown'}{customer.lastName ? ` ${customer.lastName}` : ''}</p>
                             <div className="flex items-center gap-1">
                               {isNew && (
                                 <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 text-xs px-2 py-0">
@@ -821,7 +835,7 @@ export default function CustomersPageContent() {
                             </div>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="truncate">{customer.email}</span>
+                            <span className="truncate">{customer.email || 'No email'}</span>
                             {customer.phone && (
                               <>
                                 <span className="text-gray-300">•</span>
