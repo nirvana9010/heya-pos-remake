@@ -57,6 +57,37 @@ export class LoyaltyService {
     }
   }
 
+  // Process order completion (for direct sales)
+  async processOrderCompletion(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { 
+        customer: true,
+        createdBy: true
+      }
+    });
+
+    if (!order || order.state !== 'PAID' || !order.customerId) return;
+
+    const program = await this.getProgram(order.merchantId);
+    if (!program?.isActive) return;
+
+    // Create a booking-like object for compatibility with existing methods
+    const orderData = {
+      id: order.id,
+      merchantId: order.merchantId,
+      customerId: order.customerId,
+      totalAmount: order.totalAmount,
+      createdById: order.createdById
+    };
+
+    if (program.type === 'VISITS') {
+      await this.earnVisitFromOrder(orderData, program);
+    } else {
+      await this.earnPointsFromOrder(orderData, program);
+    }
+  }
+
   // Earn a visit (punch card)
   private async earnVisit(booking: any, program: any) {
     // Check if this booking already earned a visit
@@ -154,6 +185,112 @@ export class LoyaltyService {
         balance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned),
         description: `Earned ${pointsEarned} points from booking`,
         createdByStaffId: booking.createdById
+      }
+    });
+
+    return { 
+      pointsEarned,
+      newBalance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned)
+    };
+  }
+
+  // Earn a visit from order (punch card)
+  private async earnVisitFromOrder(order: any, program: any) {
+    // Check if this order already earned a visit
+    const existingTransaction = await this.prisma.loyaltyTransaction.findFirst({
+      where: {
+        orderId: order.id,
+        type: 'EARNED',
+        visitsDelta: { gt: 0 }
+      }
+    });
+
+    if (existingTransaction) {
+      return { alreadyEarned: true };
+    }
+    
+    // Increment visit count and update stats
+    const customer = await this.prisma.customer.update({
+      where: { id: order.customerId },
+      data: {
+        loyaltyVisits: { increment: 1 },
+        lifetimeVisits: { increment: 1 },
+        visitCount: { increment: 1 },
+        totalSpent: { increment: order.totalAmount || 0 }
+      }
+    });
+
+    // Record transaction
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId: order.customerId,
+        merchantId: order.merchantId,
+        orderId: order.id,
+        type: 'EARNED',
+        visitsDelta: 1,
+        description: 'Visit earned from order',
+        createdByStaffId: order.createdById
+      }
+    });
+
+    // Check if reward earned
+    const newVisitCount = customer.loyaltyVisits + 1; // Account for increment
+    if (program.visitsRequired && newVisitCount >= program.visitsRequired) {
+      return { 
+        rewardAvailable: true,
+        visitsCompleted: newVisitCount,
+        visitsRequired: program.visitsRequired
+      };
+    }
+
+    return { 
+      rewardAvailable: false,
+      visitsCompleted: newVisitCount,
+      visitsRequired: program.visitsRequired || 10
+    };
+  }
+
+  // Earn points from order
+  private async earnPointsFromOrder(order: any, program: any) {
+    // Check if this order already earned points
+    const existingTransaction = await this.prisma.loyaltyTransaction.findFirst({
+      where: {
+        orderId: order.id,
+        type: 'EARNED',
+        points: { gt: 0 }
+      }
+    });
+
+    if (existingTransaction) {
+      return { alreadyEarned: true };
+    }
+
+    const pointsPerDollar = program.pointsPerDollar || 1;
+    const pointsEarned = Math.floor(order.totalAmount * pointsPerDollar);
+
+    if (pointsEarned === 0) return { pointsEarned: 0 };
+
+    // Add points and update stats
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { id: order.customerId },
+      data: {
+        loyaltyPoints: { increment: pointsEarned },
+        visitCount: { increment: 1 },
+        totalSpent: { increment: order.totalAmount || 0 }
+      }
+    });
+
+    // Record transaction
+    await this.prisma.loyaltyTransaction.create({
+      data: {
+        customerId: order.customerId,
+        merchantId: order.merchantId,
+        orderId: order.id,
+        type: 'EARNED',
+        points: pointsEarned,
+        balance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned),
+        description: `Earned ${pointsEarned} points from order`,
+        createdByStaffId: order.createdById
       }
     });
 
