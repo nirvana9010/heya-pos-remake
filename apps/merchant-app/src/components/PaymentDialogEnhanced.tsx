@@ -110,12 +110,12 @@ export function PaymentDialogEnhanced({
       if (draftOrderId && draftOrderId !== usedDraftOrderId) {
         requestData.orderId = draftOrderId;
         setUsedDraftOrderId(draftOrderId); // Mark this draft order as used
-      } else {
-        // For new orders (or when we can't reuse the draft order)
-        requestData.isWalkIn = isWalkIn;
-        if (!isWalkIn && customerId) {
-          requestData.customerId = customerId;
-        }
+      }
+      
+      // Always include customer information (for both draft and new orders)
+      requestData.isWalkIn = isWalkIn;
+      if (!isWalkIn && customerId) {
+        requestData.customerId = customerId;
       }
 
       // Add order modifier if needed
