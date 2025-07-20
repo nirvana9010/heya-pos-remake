@@ -14,6 +14,7 @@ import { PaymentDialogPortal } from './PaymentDialogPortal';
 import { WALK_IN_CUSTOMER_ID, WALK_IN_CUSTOMER, isWalkInCustomer } from '../lib/constants/customer';
 import { ServiceSelectionSlideout } from './ServiceSelectionSlideout';
 import { CustomerSelectionSlideout } from './CustomerSelectionSlideout';
+import { LoyaltyRedemption } from './LoyaltyRedemption';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [itemAdjustments, setItemAdjustments] = useState<Record<number, number>>({});
   const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
@@ -93,6 +95,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setItemAdjustments({});
       setOrderAdjustment({ amount: 0, reason: '' });
       setShowOrderAdjustment(false);
+      setLoyaltyDiscount({ amount: 0, description: '' });
       
       // Clear any stale localStorage data
       localStorage.removeItem('quickSale');
@@ -120,6 +123,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setSelectedCustomer(customer);
     setIsWalkIn(walkIn);
     setShowCustomerModal(false);
+    // Reset loyalty discount when customer changes
+    setLoyaltyDiscount({ amount: 0, description: '' });
   };
 
   const handleRemoveService = (index: number) => {
@@ -230,6 +235,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setItemAdjustments({});
     setOrderAdjustment({ amount: 0, reason: '' });
     setShowOrderAdjustment(false);
+    setLoyaltyDiscount({ amount: 0, description: '' });
   };
 
   const renderMainView = () => (
@@ -446,6 +452,17 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         )}
       </div>
 
+      {/* Loyalty Redemption */}
+      {selectedCustomer && !isWalkIn && (
+        <LoyaltyRedemption
+          customer={selectedCustomer}
+          onRedemption={(amount, description) => {
+            setLoyaltyDiscount({ amount, description });
+          }}
+          currentDiscount={loyaltyDiscount.amount}
+        />
+      )}
+
       {/* Order Adjustments */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -628,6 +645,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         enableTips={merchant?.settings?.enableTips || false}
         itemAdjustments={itemAdjustments}
         orderAdjustment={orderAdjustment}
+        loyaltyDiscount={loyaltyDiscount}
       />
 
       {/* Service Selection Slideout */}
