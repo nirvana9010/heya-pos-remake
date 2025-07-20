@@ -10,9 +10,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RedisModule } from '../common/redis/redis.module';
+import { LoyaltyModule } from '../loyalty/loyalty.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, NotificationsModule, RedisModule],
+  imports: [PrismaModule, AuthModule, NotificationsModule, RedisModule, LoyaltyModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,

@@ -369,6 +369,7 @@ model Order {
   items       OrderItem[]
   modifiers   OrderModifier[]
   payments    OrderPayment[]
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model OrderItem {
@@ -625,10 +626,12 @@ model LoyaltyTransaction {
   referenceType    String?
   referenceId      String?
   bookingId        String?
+  orderId          String?
   expiresAt        DateTime?
   createdByStaffId String?
   createdAt        DateTime     @default(now())
   booking          Booking?     @relation(fields: [bookingId], references: [id])
+  order            Order?       @relation(fields: [orderId], references: [id])
   card             LoyaltyCard? @relation(fields: [cardId], references: [id])
   createdBy        Staff?       @relation(fields: [createdByStaffId], references: [id])
   customer         Customer     @relation(fields: [customerId], references: [id])

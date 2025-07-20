@@ -11,6 +11,7 @@ import {
 } from '@heya-pos/types';
 import { Decimal } from '@prisma/client/runtime/library';
 import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class PaymentsService {
@@ -19,6 +20,7 @@ export class PaymentsService {
     private readonly ordersService: OrdersService,
     private readonly gatewayService: PaymentGatewayService,
     private readonly merchantNotificationsService: MerchantNotificationsService,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
 
   /**
@@ -361,6 +363,17 @@ export class PaymentsService {
         console.log(`[PaymentsService] Customer stats updated for order ${orderId}`);
       } catch (error) {
         console.error(`[PaymentsService] Failed to update customer stats for order ${orderId}:`, error);
+      }
+      
+      // Process loyalty for orders (not from bookings)
+      if (!order.bookingId) {
+        try {
+          await this.loyaltyService.processOrderCompletion(orderId);
+          console.log(`[PaymentsService] Loyalty processed for order ${orderId}`);
+        } catch (error) {
+          // Log error but don't fail the payment
+          console.error(`[PaymentsService] Failed to process loyalty for order ${orderId}:`, error);
+        }
       }
     }
 
