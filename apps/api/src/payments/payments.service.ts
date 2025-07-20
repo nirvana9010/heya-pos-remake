@@ -347,9 +347,54 @@ export class PaymentsService {
 
     await this.ordersService.updateOrderState(orderId, merchantId, newState);
 
-    // Note: Booking payment sync removed - "Mark as Paid" now uses direct booking update
-    // If full payment processing is used (Process Payment flow), the booking remains
-    // linked to the order for proper payment tracking and reporting
+    // Update customer stats when order is fully paid
+    if (newState === OrderState.PAID && order.customerId) {
+      try {
+        await this.prisma.customer.update({
+          where: { id: order.customerId },
+          data: {
+            visitCount: { increment: 1 },
+            lifetimeVisits: { increment: 1 },
+            totalSpent: { increment: totalAmount }
+          }
+        });
+        console.log(`[PaymentsService] Customer stats updated for order ${orderId}`);
+      } catch (error) {
+        console.error(`[PaymentsService] Failed to update customer stats for order ${orderId}:`, error);
+      }
+    }
+
+    // Sync booking payment status when order is paid (only if linked to a booking)
+    if (newState === OrderState.PAID && order.bookingId) {
+      try {
+        // Get the payment method from the order's payments
+        const orderWithPayments = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            payments: {
+              where: { status: 'COMPLETED' },
+              orderBy: { processedAt: 'desc' },
+              take: 1
+            }
+          }
+        });
+        
+        const paymentMethod = orderWithPayments?.payments[0]?.paymentMethod || 'CASH';
+        
+        await this.prisma.booking.update({
+          where: { id: order.bookingId },
+          data: {
+            paymentStatus: 'PAID',
+            paidAmount: totalAmount,
+            paymentMethod: paymentMethod,
+            paidAt: new Date(),
+          }
+        });
+        console.log(`[PaymentsService] Booking ${order.bookingId} synced to PAID status`);
+      } catch (error) {
+        console.error(`[PaymentsService] Failed to sync booking payment status:`, error);
+      }
+    }
   }
 
   /**
