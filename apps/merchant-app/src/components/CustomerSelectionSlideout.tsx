@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, UserPlus, User, Phone, Mail, Check, ChevronLeft, Plus } from 'lucide-react';
+import { X, Search, UserPlus, User, Phone, Mail, Check, ChevronLeft, Plus, Gift, Star } from 'lucide-react';
 import { Button, Input, Label } from '@heya-pos/ui';
 import { apiClient } from '../lib/api-client';
 import { WALK_IN_CUSTOMER } from '../lib/constants/customer';
@@ -27,6 +27,7 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [loyaltyStatus, setLoyaltyStatus] = useState<Record<string, any>>({});
   
   // New customer form state
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -64,7 +65,28 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
       setLoading(true);
       try {
         const response = await apiClient.searchCustomers(searchQuery);
-        setCustomers(response.data || []);
+        const customerData = response.data || [];
+        setCustomers(customerData);
+        
+        // Check loyalty status for each customer
+        const loyaltyPromises = customerData.map(async (customer: Customer) => {
+          try {
+            const loyalty = await apiClient.loyalty.check(customer.id);
+            return { customerId: customer.id, loyalty };
+          } catch (error) {
+            console.error(`Failed to check loyalty for customer ${customer.id}:`, error);
+            return { customerId: customer.id, loyalty: null };
+          }
+        });
+        
+        const loyaltyResults = await Promise.all(loyaltyPromises);
+        const newLoyaltyStatus: Record<string, any> = {};
+        loyaltyResults.forEach(result => {
+          if (result.loyalty) {
+            newLoyaltyStatus[result.customerId] = result.loyalty;
+          }
+        });
+        setLoyaltyStatus(newLoyaltyStatus);
       } catch (error) {
         console.error('Failed to search customers:', error);
         setCustomers([]);
@@ -342,6 +364,9 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                     const displayName = customer.name || 
                       `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
                       'Unnamed Customer';
+                    const loyalty = loyaltyStatus[customer.id];
+                    const hasReward = loyalty?.rewardAvailable;
+                    const loyaltyType = loyalty?.type;
 
                     return (
                       <button
@@ -383,11 +408,34 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                                   </div>
                                 )}
                               </div>
+                              {/* Loyalty Badge */}
+                              {hasReward && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                    {loyaltyType === 'VISITS' ? (
+                                      <>
+                                        <Gift className="h-3 w-3" />
+                                        <span>Reward Available!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Star className="h-3 w-3" />
+                                        <span>${loyalty.dollarValue?.toFixed(2)} available</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                          {isSelected && (
-                            <Check className="h-5 w-5 text-teal-600 flex-shrink-0" />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {hasReward && (
+                              <Gift className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                            )}
+                            {isSelected && (
+                              <Check className="h-5 w-5 text-teal-600 flex-shrink-0" />
+                            )}
+                          </div>
                         </div>
                       </button>
                     );

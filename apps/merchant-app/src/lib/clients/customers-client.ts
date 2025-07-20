@@ -14,6 +14,8 @@ export interface Customer {
   totalSpent?: number;
   loyaltyPoints?: number;
   loyaltyVisits?: number;
+  lifetimeVisits?: number;
+  name?: string;
 }
 
 export interface CreateCustomerRequest {

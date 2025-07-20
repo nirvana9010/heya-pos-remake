@@ -20,6 +20,7 @@ interface PaymentDialogEnhancedProps {
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
   orderAdjustment?: { amount: number; reason: string };
+  loyaltyDiscount?: { amount: number; description: string };
 }
 
 export function PaymentDialogEnhanced({
@@ -35,6 +36,7 @@ export function PaymentDialogEnhanced({
   isWalkIn = false,
   itemAdjustments = {},
   orderAdjustment = { amount: 0, reason: '' },
+  loyaltyDiscount = { amount: 0, description: '' },
 }: PaymentDialogEnhancedProps) {
   const [order, setOrder] = useState(existingOrder);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -118,8 +120,14 @@ export function PaymentDialogEnhanced({
         requestData.customerId = customerId;
       }
 
-      // Add order modifier if needed
-      if (orderAdjustment && orderAdjustment.amount !== 0) {
+      // Add order modifier if needed (prefer loyalty discount over manual adjustment)
+      if (loyaltyDiscount && loyaltyDiscount.amount > 0) {
+        requestData.orderModifier = {
+          type: 'DISCOUNT',
+          amount: loyaltyDiscount.amount,
+          description: loyaltyDiscount.description || 'Loyalty Reward'
+        };
+      } else if (orderAdjustment && orderAdjustment.amount !== 0) {
         requestData.orderModifier = {
           type: orderAdjustment.amount < 0 ? 'DISCOUNT' : 'SURCHARGE',
           amount: Math.abs(orderAdjustment.amount),
@@ -157,7 +165,7 @@ export function PaymentDialogEnhanced({
     } finally {
       setIsCreatingOrder(false);
     }
-  }, [selectedServices, draftOrderId, isWalkIn, customerId, itemAdjustments, orderAdjustment]);
+  }, [selectedServices, draftOrderId, isWalkIn, customerId, itemAdjustments, orderAdjustment, loyaltyDiscount]);
 
   // Clear order state when modal closes or when services/adjustments change
   useEffect(() => {
@@ -180,7 +188,7 @@ export function PaymentDialogEnhanced({
       setOrder(null);
       setError(null);
     }
-  }, [selectedServices, itemAdjustments, orderAdjustment, open, existingOrder]);
+  }, [selectedServices, itemAdjustments, orderAdjustment, loyaltyDiscount, open, existingOrder]);
 
   // If we have selectedServices but no order, create order when dialog opens
   useEffect(() => {

@@ -19,6 +19,7 @@ interface PaymentDialogPortalProps {
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
   orderAdjustment?: { amount: number; reason: string };
+  loyaltyDiscount?: { amount: number; description: string };
 }
 
 export function PaymentDialogPortal(props: PaymentDialogPortalProps) {
