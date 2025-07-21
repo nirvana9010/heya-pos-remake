@@ -273,29 +273,39 @@ function BookingDetailsSlideOutComponent({
         throw new Error('No order data received from payment preparation');
       }
       
-      // Check if booking has loyalty discount in notes
+      // Check if booking has loyalty discount in notes and if it hasn't been applied yet
+      let hasLoyaltyDiscount = false;
       if (booking.notes) {
         const loyaltyMatch = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^\]]+)\]/);
         if (loyaltyMatch) {
-          const discountAmount = parseFloat(loyaltyMatch[1]);
-          const discountDescription = loyaltyMatch[2];
+          hasLoyaltyDiscount = true;
           
-          // Add loyalty discount modifier to the order
-          try {
-            const isPercentage = discountDescription.includes('%');
-            await apiClient.addOrderModifier(paymentData.order.id, {
-              type: 'DISCOUNT',
-              subtype: 'LOYALTY',
-              calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT',
-              value: discountAmount,
-              description: discountDescription
-            });
+          // Check if loyalty discount already exists on the order
+          const existingLoyaltyModifier = paymentData.order.modifiers?.find(
+            (m: any) => m.type === 'DISCOUNT' && m.subtype === 'LOYALTY'
+          );
+          
+          if (!existingLoyaltyModifier) {
+            const discountAmount = parseFloat(loyaltyMatch[1]);
+            const discountDescription = loyaltyMatch[2];
             
-            // Refresh the order to get updated totals
-            paymentData.order = await apiClient.getOrder(paymentData.order.id);
-          } catch (modifierError) {
-            console.error('Failed to apply loyalty discount:', modifierError);
-            // Continue with payment even if discount fails
+            // Add loyalty discount modifier to the order
+            try {
+              const isPercentage = discountDescription.includes('%');
+              await apiClient.addOrderModifier(paymentData.order.id, {
+                type: 'DISCOUNT',
+                subtype: 'LOYALTY',
+                calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+                value: discountAmount,
+                description: discountDescription
+              });
+              
+              // Refresh the order to get updated totals
+              paymentData.order = await apiClient.getOrder(paymentData.order.id);
+            } catch (modifierError) {
+              console.error('Failed to apply loyalty discount:', modifierError);
+              // Continue with payment even if discount fails
+            }
           }
         }
       }
@@ -310,6 +320,11 @@ function BookingDetailsSlideOutComponent({
       // Update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
+      
+      // Store loyalty discount info for the payment dialog
+      if (hasLoyaltyDiscount) {
+        paymentData.order._hasLoyaltyDiscount = true;
+      }
       
       // Show the payment dialog with the loaded order
       setPaymentDialogOpen(true);
@@ -608,11 +623,19 @@ function BookingDetailsSlideOutComponent({
                         <>
                           <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
                           {/* Show loyalty discount indicator if present in notes */}
-                          {booking.notes && booking.notes.includes('[LOYALTY_DISCOUNT:') && (
-                            <span className="text-xs text-yellow-600 mt-0.5">
-                              Loyalty discount available at payment
-                            </span>
-                          )}
+                          {booking.notes && booking.notes.includes('[LOYALTY_DISCOUNT:') && (() => {
+                            const match = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^\]]+)\]/);
+                            if (match) {
+                              const amount = parseFloat(match[1]);
+                              const description = match[2];
+                              return (
+                                <span className="text-xs text-yellow-600 mt-0.5">
+                                  {description} available at payment
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </>
                       )}
                     </div>

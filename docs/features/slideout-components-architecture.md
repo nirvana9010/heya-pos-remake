@@ -113,10 +113,12 @@ const [time, setTime] = useState<Date>(initialTime || defaultTime);
 - `GET /api/v1/loyalty/points/{customerId}` - Loyalty balance
 
 #### Recent Features Added
-1. **Loyalty Points Redemption** (June 2025)
+1. **Loyalty Points Redemption** (July 2025)
    - LoyaltyRedemption component integration
-   - Automatic discount calculation
-   - Points deduction on booking creation
+   - Discount stored in booking notes as metadata
+   - Applied as order modifier during payment
+   - Can be removed/modified before payment
+   - Format: `[LOYALTY_DISCOUNT:amount:description]`
 
 2. **Walk-in Customer Support**
    - Toggle for walk-in vs registered customers
