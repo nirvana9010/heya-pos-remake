@@ -9,12 +9,14 @@ import { cn } from '@heya-pos/ui';
 interface LoyaltyRedemptionProps {
   customer: Customer | null;
   onRedemption: (discount: number, description: string) => void;
+  onRemoveDiscount?: () => void;
   currentDiscount?: number;
 }
 
 export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
   customer,
   onRedemption,
+  onRemoveDiscount,
   currentDiscount = 0,
 }) => {
   const [loyalty, setLoyalty] = useState<LoyaltyCheckResponse | null>(null);
@@ -129,35 +131,45 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-        disabled={hasAppliedDiscount}
-      >
-        <div className="flex items-center gap-2">
-          {loyalty.type === 'VISITS' ? (
-            <Gift className="h-5 w-5 text-yellow-600" />
-          ) : (
-            <Star className="h-5 w-5 text-yellow-600" />
-          )}
-          <span className="font-medium">Loyalty Rewards</span>
-          {loyalty.rewardAvailable && !hasAppliedDiscount && (
-            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-              Available!
-            </span>
-          )}
-          {hasAppliedDiscount && (
-            <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Applied
-            </span>
-          )}
-        </div>
-        <ChevronDown className={cn(
-          "h-4 w-4 transition-transform",
-          expanded ? "rotate-180" : ""
-        )} />
-      </button>
+      <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+        <button
+          onClick={() => !hasAppliedDiscount && setExpanded(!expanded)}
+          className="flex-1 flex items-center justify-between hover:bg-gray-100 transition-colors -mx-4 px-4 py-3"
+          disabled={hasAppliedDiscount}
+        >
+          <div className="flex items-center gap-2">
+            {loyalty.type === 'VISITS' ? (
+              <Gift className="h-5 w-5 text-yellow-600" />
+            ) : (
+              <Star className="h-5 w-5 text-yellow-600" />
+            )}
+            <span className="font-medium">Loyalty Rewards</span>
+            {loyalty.rewardAvailable && !hasAppliedDiscount && (
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                Available!
+              </span>
+            )}
+            {hasAppliedDiscount && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Applied
+              </span>
+            )}
+          </div>
+          <ChevronDown className={cn(
+            "h-4 w-4 transition-transform",
+            expanded ? "rotate-180" : ""
+          )} />
+        </button>
+        {hasAppliedDiscount && onRemoveDiscount && (
+          <button
+            onClick={onRemoveDiscount}
+            className="ml-2 text-xs text-red-600 hover:text-red-700 underline px-2 py-1"
+          >
+            Remove
+          </button>
+        )}
+      </div>
 
       {expanded && (
         <div className="p-4 bg-white border-t">
@@ -201,9 +213,21 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
               )}
 
               {hasAppliedDiscount && (
-                <p className="text-sm text-green-600 text-center">
-                  Loyalty discount has been applied to this order
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-green-600">
+                    Loyalty discount has been applied to this order
+                  </p>
+                  {onRemoveDiscount && (
+                    <Button
+                      onClick={onRemoveDiscount}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                    >
+                      Remove Discount
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -258,9 +282,21 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
               )}
 
               {hasAppliedDiscount && (
-                <p className="text-sm text-green-600 text-center">
-                  Loyalty points have been redeemed for this order
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-green-600">
+                    Loyalty points have been redeemed for this order
+                  </p>
+                  {onRemoveDiscount && (
+                    <Button
+                      onClick={onRemoveDiscount}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                    >
+                      Remove Discount
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )}

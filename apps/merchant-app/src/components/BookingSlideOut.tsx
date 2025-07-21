@@ -13,7 +13,8 @@ import {
   UserPlus,
   Plus,
   Trash2,
-  X
+  X,
+  Gift
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -280,6 +281,10 @@ export function BookingSlideOut({
   
   const handleLoyaltyRedemption = (amount: number, description: string) => {
     setLoyaltyDiscount({ amount, description });
+  };
+  
+  const handleRemoveLoyaltyDiscount = () => {
+    setLoyaltyDiscount({ amount: 0, description: '' });
   };
   
   
@@ -707,11 +712,49 @@ export function BookingSlideOut({
           
           {/* Loyalty Redemption Section */}
           {selectedCustomer && !isWalkIn && (
-            <LoyaltyRedemption
-              customer={selectedCustomer}
-              onRedemption={handleLoyaltyRedemption}
-              currentDiscount={loyaltyDiscount.amount}
-            />
+            <div className="space-y-3">
+              <LoyaltyRedemption
+                customer={selectedCustomer}
+                onRedemption={handleLoyaltyRedemption}
+                onRemoveDiscount={handleRemoveLoyaltyDiscount}
+                currentDiscount={loyaltyDiscount.amount}
+              />
+              
+              {/* Show applied discount with remove option */}
+              {loyaltyDiscount.amount > 0 && (() => {
+                const subtotal = selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
+                const discountAmount = loyaltyDiscount.description.includes('%') 
+                  ? subtotal * (loyaltyDiscount.amount / 100)
+                  : loyaltyDiscount.amount;
+                
+                return (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-4 w-4 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900">
+                          Loyalty Discount Applied
+                        </p>
+                        <p className="text-xs text-green-700">
+                          {loyaltyDiscount.description} - 
+                          {loyaltyDiscount.description.includes('%') 
+                            ? ` Saving $${discountAmount.toFixed(2)}` 
+                            : ` $${loyaltyDiscount.amount.toFixed(2)} off`}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleRemoveLoyaltyDiscount}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
           )}
           
           {/* Notes Section */}
