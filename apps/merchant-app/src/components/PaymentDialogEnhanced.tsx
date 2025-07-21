@@ -132,7 +132,8 @@ export function PaymentDialogEnhanced({
         requestData.orderModifier = {
           type: 'DISCOUNT',
           amount: loyaltyDiscount.amount,
-          description: loyaltyDiscount.description || 'Loyalty Reward'
+          description: loyaltyDiscount.description || 'Loyalty Reward',
+          subtype: 'LOYALTY'
         };
       } else if (orderAdjustment && orderAdjustment.amount !== 0) {
         requestData.orderModifier = {
