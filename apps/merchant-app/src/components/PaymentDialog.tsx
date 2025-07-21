@@ -35,6 +35,7 @@ import {
 import { CreditCard, DollarSign, Percent, Plus, Minus, X, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useToast, cn } from '@heya-pos/ui';
+import { LoyaltyRedemption } from './LoyaltyRedemption';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -43,6 +44,8 @@ interface PaymentDialogProps {
   onPaymentComplete?: (order: any) => void;
   enableTips?: boolean;
   defaultTipPercentages?: number[];
+  customer?: any; // Customer data for loyalty redemption
+  onLoyaltyUpdate?: (discount: { amount: number; description: string }) => void;
 }
 
 export function PaymentDialog({
@@ -52,6 +55,8 @@ export function PaymentDialog({
   onPaymentComplete,
   enableTips = false,
   defaultTipPercentages = [10, 15, 20],
+  customer,
+  onLoyaltyUpdate,
 }: PaymentDialogProps) {
   const { toast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
@@ -65,6 +70,17 @@ export function PaymentDialog({
     tipAmount?: string;
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
+
+  const handleLoyaltyRedemption = useCallback((amount: number, description: string) => {
+    setLoyaltyDiscount({ amount, description });
+    onLoyaltyUpdate?.({ amount, description });
+  }, [onLoyaltyUpdate]);
+
+  const handleRemoveLoyaltyDiscount = useCallback(() => {
+    setLoyaltyDiscount({ amount: 0, description: '' });
+    onLoyaltyUpdate?.({ amount: 0, description: '' });
+  }, [onLoyaltyUpdate]);
 
   const balanceDue = (order?.totalAmount || 0) - (order?.paidAmount || 0);
   const tipAmount = useMemo(() => {
@@ -279,6 +295,17 @@ export function PaymentDialog({
               </div>
             </div>
           ) : null}
+
+          {/* Loyalty Redemption */}
+          {customer && order && !order.isLoading && (
+            <LoyaltyRedemption
+              customer={customer}
+              totalPrice={order?.subtotal || order?.totalAmount || 0}
+              onApplyDiscount={handleLoyaltyRedemption}
+              onRemoveDiscount={loyaltyDiscount.amount > 0 ? handleRemoveLoyaltyDiscount : undefined}
+              appliedDiscount={loyaltyDiscount}
+            />
+          )}
 
           {/* Order Summary */}
           <div className="bg-gray-50 p-4 rounded-lg">

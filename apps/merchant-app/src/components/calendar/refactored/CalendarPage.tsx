@@ -936,10 +936,12 @@ function CalendarContent() {
             onClose={() => actions.closeDetailsSlideOut()}
             booking={{
               id: booking.id,
+              customerId: booking.customerId,
               customerName: booking.customerName,
               customerPhone: booking.customerPhone || '',
               customerEmail: booking.customerEmail,
               serviceName: booking.serviceName,
+              services: booking.services,
               staffName: booking.staffName,
               staffId: booking.staffId || '',
               startTime: new Date(`${booking.date}T${booking.time}`),
@@ -950,6 +952,8 @@ function CalendarContent() {
               notes: booking.notes,
             }}
             staff={memoizedStaff}
+            services={memoizedServices}
+            customers={memoizedCustomers}
             onSave={async (updatedBooking) => {
               const originalBooking = state.bookings.find(b => b.id === state.detailsBookingId);
               if (!originalBooking) return;
@@ -968,12 +972,19 @@ function CalendarContent() {
               const localTimeStr = `${hours}:${minutes}`;
               
               // 1. OPTIMISTIC UPDATE - Update UI immediately
+              // Calculate total price and duration from services
+              const totalPrice = updatedBooking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || originalBooking.servicePrice;
+              const totalDuration = updatedBooking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || originalBooking.duration;
+              
               actions.updateBooking(state.detailsBookingId!, {
                 date: localDateStr,
                 time: localTimeStr,
                 staffId: updatedBooking.staffId,
                 staffName: updatedBooking.staffName,
-                notes: updatedBooking.notes
+                notes: updatedBooking.notes,
+                services: updatedBooking.services,
+                servicePrice: totalPrice,
+                duration: totalDuration
               });
               
               try {

@@ -15,6 +15,7 @@ interface PaymentDialogPortalProps {
   // For Quick Sale - create order on the fly
   selectedServices?: any[];
   customerId?: string;
+  customer?: any; // Customer object for loyalty redemption
   draftOrderId?: string | null;
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
