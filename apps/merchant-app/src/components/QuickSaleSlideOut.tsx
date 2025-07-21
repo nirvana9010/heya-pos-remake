@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   X, Plus, Trash2, Search, Clock, DollarSign, 
   UserPlus, ChevronDown, ChevronUp, Users, CreditCard,
-  Minus, Percent, User, Gift
+  Minus, Percent, User
 } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
 import type { Customer } from './customers';
@@ -14,7 +14,6 @@ import { PaymentDialogPortal } from './PaymentDialogPortal';
 import { WALK_IN_CUSTOMER_ID, WALK_IN_CUSTOMER, isWalkInCustomer } from '../lib/constants/customer';
 import { ServiceSelectionSlideout } from './ServiceSelectionSlideout';
 import { CustomerSelectionSlideout } from './CustomerSelectionSlideout';
-import { LoyaltyRedemption } from './LoyaltyRedemption';
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -43,7 +42,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [itemAdjustments, setItemAdjustments] = useState<Record<number, number>>({});
   const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
@@ -94,7 +92,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setItemAdjustments({});
       setOrderAdjustment({ amount: 0, reason: '' });
       setShowOrderAdjustment(false);
-      setLoyaltyDiscount({ amount: 0, description: '' });
       
       // Clear any stale localStorage data
       localStorage.removeItem('quickSale');
@@ -122,8 +119,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setSelectedCustomer(customer);
     setIsWalkIn(walkIn);
     setShowCustomerModal(false);
-    // Reset loyalty discount when customer changes
-    setLoyaltyDiscount({ amount: 0, description: '' });
   };
 
   const handleRemoveService = (index: number) => {
@@ -159,23 +154,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       subtotal += orderAdjustment.amount;
     }
     
-    let total = subtotal;
-    
-    // Apply loyalty discount
-    if (loyaltyDiscount.amount > 0) {
-      // Check if it's a percentage discount based on the description (more reliable than amount)
-      if (loyaltyDiscount.description.includes('%')) {
-        // It's a percentage discount
-        const discountAmount = subtotal * (loyaltyDiscount.amount / 100);
-        total = subtotal - discountAmount;
-      } else {
-        // It's a dollar amount discount
-        total = Math.max(0, subtotal - loyaltyDiscount.amount);
-      }
-    }
-    
-    return total;
-  }, [selectedServices, itemAdjustments, showOrderAdjustment, orderAdjustment, loyaltyDiscount]);
+    return subtotal;
+  }, [selectedServices, itemAdjustments, showOrderAdjustment, orderAdjustment]);
 
 
   // Update localStorage whenever data changes
@@ -254,7 +234,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setItemAdjustments({});
     setOrderAdjustment({ amount: 0, reason: '' });
     setShowOrderAdjustment(false);
-    setLoyaltyDiscount({ amount: 0, description: '' });
   };
 
   const renderMainView = () => (
@@ -474,62 +453,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         )}
       </div>
 
-      {/* Loyalty Redemption */}
-      {selectedCustomer && !isWalkIn && (
-        <div className="space-y-3">
-          <LoyaltyRedemption
-            customer={selectedCustomer}
-            onRedemption={(amount, description) => {
-              setLoyaltyDiscount({ amount, description });
-            }}
-            currentDiscount={loyaltyDiscount.amount}
-          />
-          
-          {/* Show applied discount with undo option */}
-          {loyaltyDiscount.amount > 0 && (() => {
-            const subtotal = selectedServices.reduce((total, service, index) => {
-              const price = typeof service.price === 'object' && service.price.toNumber 
-                ? service.price.toNumber() 
-                : Number(service.price || 0);
-              const originalPrice = price * service.quantity;
-              const adjustedPrice = itemAdjustments[index] ?? originalPrice;
-              return total + adjustedPrice;
-            }, 0) + (showOrderAdjustment && orderAdjustment.amount !== 0 ? orderAdjustment.amount : 0);
-            
-            const discountAmount = loyaltyDiscount.description.includes('%') 
-              ? subtotal * (loyaltyDiscount.amount / 100)
-              : loyaltyDiscount.amount;
-            
-            return (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-green-600" />
-                  <div>
-                    <p className="text-sm font-medium text-green-900">
-                      Loyalty Discount Applied
-                    </p>
-                    <p className="text-xs text-green-700">
-                      {loyaltyDiscount.description} - 
-                      {loyaltyDiscount.description.includes('%') 
-                        ? ` Saving $${discountAmount.toFixed(2)}` 
-                        : ` $${loyaltyDiscount.amount.toFixed(2)} off`}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setLoyaltyDiscount({ amount: 0, description: '' })}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  Remove
-                </Button>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
       {/* Order Adjustments */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -671,45 +594,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
             {/* Footer */}
             <div className="sticky bottom-0 bg-white border-t px-6 py-4">
               <div className="space-y-3">
-                {/* Subtotal if discount applied */}
-                {loyaltyDiscount.amount > 0 && (() => {
-                  const subtotal = selectedServices.reduce((total, service, index) => {
-                    const price = typeof service.price === 'object' && service.price.toNumber 
-                      ? service.price.toNumber() 
-                      : Number(service.price || 0);
-                    const originalPrice = price * service.quantity;
-                    const adjustedPrice = itemAdjustments[index] ?? originalPrice;
-                    return total + adjustedPrice;
-                  }, 0) + (showOrderAdjustment && orderAdjustment.amount !== 0 ? orderAdjustment.amount : 0);
-                  
-                  const discountAmount = loyaltyDiscount.description.includes('%') 
-                    ? subtotal * (loyaltyDiscount.amount / 100)
-                    : loyaltyDiscount.amount;
-                  
-                  return (
-                    <>
-                      <div className="flex justify-between items-center text-sm text-gray-600">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm text-green-600">
-                        <span className="flex items-center gap-1">
-                          <Gift className="h-3 w-3" />
-                          Loyalty Discount
-                        </span>
-                        <span>
-                          -{loyaltyDiscount.description.includes('%') 
-                            ? `$${discountAmount.toFixed(2)} (${loyaltyDiscount.amount}%)` 
-                            : `$${loyaltyDiscount.amount.toFixed(2)}`}
-                        </span>
-                      </div>
-                      <div className="border-t pt-2" />
-                    </>
-                  );
-                })()}
-                
                 {/* Total */}
-                <div className="flex justify-between items-center text-lg" key={`total-${loyaltyDiscount.amount}`}>
+                <div className="flex justify-between items-center text-lg">
                   <span className="font-semibold">Total</span>
                   <span className="font-bold">${total.toFixed(2)}</span>
                 </div>
@@ -743,13 +629,13 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         order={order}
         selectedServices={selectedServices}
         customerId={selectedCustomer?.id}
+        customer={selectedCustomer}
         draftOrderId={draftOrderId}
         isWalkIn={isWalkIn}
         onPaymentComplete={handlePaymentComplete}
         enableTips={merchant?.settings?.enableTips || false}
         itemAdjustments={itemAdjustments}
         orderAdjustment={orderAdjustment}
-        loyaltyDiscount={loyaltyDiscount}
       />
 
       {/* Service Selection Slideout */}

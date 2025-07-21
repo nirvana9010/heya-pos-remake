@@ -16,6 +16,7 @@ interface PaymentDialogEnhancedProps {
   // For Quick Sale - create order on the fly
   selectedServices?: any[];
   customerId?: string;
+  customer?: any; // Customer object for loyalty redemption
   draftOrderId?: string | null;
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
@@ -32,17 +33,23 @@ export function PaymentDialogEnhanced({
   defaultTipPercentages = [10, 15, 20],
   selectedServices,
   customerId,
+  customer,
   draftOrderId,
   isWalkIn = false,
   itemAdjustments = {},
   orderAdjustment = { amount: 0, reason: '' },
-  loyaltyDiscount = { amount: 0, description: '' },
+  loyaltyDiscount: initialLoyaltyDiscount = { amount: 0, description: '' },
 }: PaymentDialogEnhancedProps) {
   const [order, setOrder] = useState(existingOrder);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedData, setCachedData] = useState<any>(null);
   const [usedDraftOrderId, setUsedDraftOrderId] = useState<string | null>(null);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(initialLoyaltyDiscount);
+
+  const handleLoyaltyUpdate = useCallback((discount: { amount: number; description: string }) => {
+    setLoyaltyDiscount(discount);
+  }, []);
 
   // Update order when existingOrder prop changes
   useEffect(() => {
@@ -238,6 +245,8 @@ export function PaymentDialogEnhanced({
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
         defaultTipPercentages={defaultTipPercentages}
+        customer={customer}
+        onLoyaltyUpdate={handleLoyaltyUpdate}
       />
     );
   }
@@ -256,6 +265,8 @@ export function PaymentDialogEnhanced({
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
         defaultTipPercentages={defaultTipPercentages}
+        customer={customer}
+        onLoyaltyUpdate={handleLoyaltyUpdate}
       />
     );
   }
@@ -305,6 +316,8 @@ export function PaymentDialogEnhanced({
       onPaymentComplete={onPaymentComplete}
       enableTips={enableTips}
       defaultTipPercentages={defaultTipPercentages}
+      customer={customer}
+      onLoyaltyUpdate={handleLoyaltyUpdate}
     />
   );
 }

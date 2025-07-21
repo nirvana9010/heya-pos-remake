@@ -49,15 +49,17 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
           <Clock className="h-3.5 w-3.5" />
           {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
         </div>
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <DollarSign className="h-3.5 w-3.5" />
-          ${booking.servicePrice}
-          {booking.paymentStatus === 'paid' && (
-            <span className="text-green-600 font-medium ml-1 flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Paid
-            </span>
-          )}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1 text-sm text-gray-500">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>${booking.servicePrice}</span>
+            {booking.paymentStatus === 'paid' && (
+              <span className="text-green-600 font-medium ml-1 flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Paid
+              </span>
+            )}
+          </div>
         </div>
         {booking.customerPhone && (
           <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -67,7 +69,7 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
         )}
         {booking.notes && (
           <div className="text-sm text-gray-600 pt-2 border-t border-gray-100">
-            {booking.notes}
+            {booking.notes.replace(/\[LOYALTY_DISCOUNT:[^\]]+\]\n?/g, '').trim()}
           </div>
         )}
       </div>

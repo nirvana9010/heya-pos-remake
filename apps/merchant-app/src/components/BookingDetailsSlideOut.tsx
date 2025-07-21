@@ -20,7 +20,9 @@ import {
   AlertCircle,
   PlayCircle,
   PauseCircle,
-  Loader2
+  Loader2,
+  Plus,
+  Minus
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -37,6 +39,7 @@ import { BookingActions } from "./BookingActions";
 import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
+import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 
 interface BookingService {
   id: string;
@@ -50,6 +53,7 @@ interface BookingDetailsSlideOutProps {
   onClose: () => void;
   booking: {
     id: string;
+    customerId?: string;
     customerName: string;
     customerPhone: string;
     customerEmail?: string;
@@ -65,6 +69,8 @@ interface BookingDetailsSlideOutProps {
     notes?: string;
   };
   staff: Array<{ id: string; name: string; color: string }>;
+  services?: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
+  customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
   onSave: (booking: any) => void;
   onDelete: (bookingId: string) => void;
   onStatusChange: (bookingId: string, status: string) => void;
@@ -76,6 +82,8 @@ function BookingDetailsSlideOutComponent({
   onClose,
   booking,
   staff,
+  services = [],
+  customers = [],
   onSave,
   onDelete,
   onStatusChange,
@@ -92,6 +100,11 @@ function BookingDetailsSlideOutComponent({
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [orderRefetchTrigger, setOrderRefetchTrigger] = useState(0);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // State for service editing
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
+  const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
+  
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -113,8 +126,20 @@ function BookingDetailsSlideOutComponent({
     // This prevents the form from resetting while the user is making changes
     if (!isEditing) {
       setFormData(initializeFormData(booking));
+      
+      // Initialize selected services from booking
+      const bookingServices = booking.services || [];
+      setSelectedServices(bookingServices.map((service, index) => ({
+        id: `service-${index}-${Date.now()}`,
+        serviceId: service.id,
+        name: service.name,
+        duration: service.duration,
+        basePrice: service.price,
+        adjustedPrice: service.price,
+        staffId: booking.staffId
+      })));
     }
-  }, [booking, isEditing]);
+  }, [booking, isEditing, customers]);
 
   // Fetch associated order for the booking
   useEffect(() => {
@@ -192,13 +217,53 @@ function BookingDetailsSlideOutComponent({
     }
   };
 
+  // Service management functions
+  const handleAddService = (service: any) => {
+    const newService = {
+      id: `service-${Date.now()}-${Math.random()}`,
+      serviceId: service.id,
+      name: service.name,
+      duration: service.duration,
+      basePrice: service.price,
+      adjustedPrice: service.price,
+      staffId: formData.staffId
+    };
+    setSelectedServices([...selectedServices, newService]);
+    setIsServiceSlideoutOpen(false);
+  };
+  
+  const handleRemoveService = (serviceId: string) => {
+    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
+  };
+  
+  const handleServicePriceChange = (serviceId: string, price: number) => {
+    setSelectedServices(selectedServices.map(s => 
+      s.id === serviceId ? { ...s, adjustedPrice: price } : s
+    ));
+  };
+  
+  const handleServiceStaffChange = (serviceId: string, staffId: string) => {
+    setSelectedServices(selectedServices.map(s => 
+      s.id === serviceId ? { ...s, staffId } : s
+    ));
+  };
+  
+  // Calculate totals
+  const calculateTotals = () => {
+    const subtotal = selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
+    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+    
+    return { subtotal, total: subtotal, totalDuration };
+  };
+
   const handleSave = () => {
     // Exit edit mode immediately for better UX
     setIsEditing(false);
     
     const { status, ...bookingWithoutStatus } = booking;
+    const { totalDuration } = calculateTotals();
     const startTimeISO = formData.time instanceof Date ? formData.time.toISOString() : formData.time;
-    const endTimeISO = new Date(formData.time.getTime() + duration * 60000).toISOString();
+    const endTimeISO = new Date(formData.time.getTime() + totalDuration * 60000).toISOString();
     
     // Fire and forget - don't await
     onSave({
@@ -206,7 +271,13 @@ function BookingDetailsSlideOutComponent({
       staffId: formData.staffId,
       startTime: startTimeISO,
       endTime: endTimeISO,
-      notes: formData.notes
+      notes: formData.notes,
+      services: selectedServices.map(s => ({
+        id: s.serviceId,
+        name: s.name,
+        duration: s.duration,
+        price: s.adjustedPrice
+      }))
     }).then(() => {
       // Show success toast
       toast({
@@ -273,58 +344,6 @@ function BookingDetailsSlideOutComponent({
         throw new Error('No order data received from payment preparation');
       }
       
-      // Check if booking has loyalty discount in notes and if it hasn't been applied yet
-      let hasLoyaltyDiscount = false;
-      let loyaltyRedemptionInfo = null;
-      if (booking.notes) {
-        // Updated regex to match new format with customer ID and status
-        const loyaltyMatch = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^:]+):([^:]+):([^\]]+)\]/);
-        if (loyaltyMatch) {
-          hasLoyaltyDiscount = true;
-          const discountAmount = parseFloat(loyaltyMatch[1]);
-          const discountDescription = loyaltyMatch[2];
-          const customerId = loyaltyMatch[3];
-          const status = loyaltyMatch[4]; // PENDING or REDEEMED
-          
-          // Store redemption info for later
-          loyaltyRedemptionInfo = {
-            amount: discountAmount,
-            description: discountDescription,
-            customerId: customerId,
-            status: status
-          };
-          
-          // Check if loyalty discount already exists on the order
-          const existingLoyaltyModifier = paymentData.order.modifiers?.find(
-            (m: any) => m.type === 'DISCOUNT' && m.subtype === 'LOYALTY'
-          );
-          
-          if (!existingLoyaltyModifier) {
-            // Add loyalty discount modifier to the order
-            try {
-              const isPercentage = discountDescription.includes('%');
-              await apiClient.addOrderModifier(paymentData.order.id, {
-                type: 'DISCOUNT',
-                subtype: 'LOYALTY',
-                calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT',
-                value: discountAmount,
-                description: discountDescription,
-                metadata: { 
-                  customerId: customerId,
-                  redemptionStatus: status 
-                }
-              });
-              
-              // Refresh the order to get updated totals
-              paymentData.order = await apiClient.getOrder(paymentData.order.id);
-            } catch (modifierError) {
-              console.error('Failed to apply loyalty discount:', modifierError);
-              // Continue with payment even if discount fails
-            }
-          }
-        }
-      }
-      
       // Lock the order if it's in DRAFT state
       if (paymentData.order.state === 'DRAFT') {
         await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
@@ -335,12 +354,6 @@ function BookingDetailsSlideOutComponent({
       // Update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
-      
-      // Store loyalty discount info for the payment dialog and completion handler
-      if (hasLoyaltyDiscount && loyaltyRedemptionInfo) {
-        paymentData.order._hasLoyaltyDiscount = true;
-        paymentData.order._loyaltyRedemptionInfo = loyaltyRedemptionInfo;
-      }
       
       // Show the payment dialog with the loaded order
       setPaymentDialogOpen(true);
@@ -369,34 +382,6 @@ function BookingDetailsSlideOutComponent({
     
     // Update the associated order state
     setAssociatedOrder(updatedOrder);
-    
-    // Check if we need to actually redeem loyalty
-    if (updatedOrder._loyaltyRedemptionInfo && updatedOrder._loyaltyRedemptionInfo.status === 'PENDING') {
-      try {
-        const redemptionInfo = updatedOrder._loyaltyRedemptionInfo;
-        const isPercentage = redemptionInfo.description.includes('%');
-        
-        if (isPercentage || redemptionInfo.description.includes('Free Service')) {
-          // Visit-based redemption
-          await apiClient.loyalty.redeemVisit(redemptionInfo.customerId, booking.id);
-        } else {
-          // Points-based redemption - extract points from description
-          const pointsMatch = redemptionInfo.description.match(/\((\d+) points\)/);
-          if (pointsMatch) {
-            const points = parseInt(pointsMatch[1]);
-            await apiClient.loyalty.redeemPoints(redemptionInfo.customerId, points, booking.id);
-          }
-        }
-        
-        // Update booking notes to mark as REDEEMED
-        // This prevents double redemption
-        // Note: We should ideally update this in the backend, but for now we'll leave it as is
-      } catch (error) {
-        console.error('Failed to redeem loyalty after payment:', error);
-        // Payment already succeeded, so we don't fail the whole operation
-        // The customer keeps their loyalty benefit for next time
-      }
-    }
     
     // Update the booking's payment status
     await onPaymentStatusChange(booking.id, true);
@@ -547,6 +532,114 @@ function BookingDetailsSlideOutComponent({
                 />
               </div>
 
+              <Separator className="my-4" />
+
+              {/* Services Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Services</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsServiceSlideoutOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Service
+                  </Button>
+                </div>
+                
+                {selectedServices.length === 0 ? (
+                  <p className="text-sm text-gray-500">No services selected</p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedServices.map((service) => (
+                      <div key={service.id} className="p-3 border rounded-lg space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-medium">{service.name}</div>
+                            <div className="text-sm text-gray-600">
+                              {service.duration} min • Base: ${service.basePrice}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRemoveService(service.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <Label className="text-xs">Staff</Label>
+                            <Select
+                              value={service.staffId}
+                              onValueChange={(value) => handleServiceStaffChange(service.id, value)}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {staff.map((member) => (
+                                  <SelectItem key={member.id} value={member.id}>
+                                    <div className="flex items-center gap-2">
+                                      <div 
+                                        className="w-3 h-3 rounded-full" 
+                                        style={{ backgroundColor: member.color }}
+                                      />
+                                      <span>{member.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="w-24">
+                            <Label className="text-xs">Price</Label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                              <Input
+                                type="number"
+                                value={service.adjustedPrice}
+                                onChange={(e) => handleServicePriceChange(service.id, parseFloat(e.target.value) || 0)}
+                                className="h-9 pl-6"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Total Summary */}
+                    {(() => {
+                      const { subtotal, total, totalDuration } = calculateTotals();
+                      return (
+                        <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                          <div className="space-y-2">
+                            <div className="flex justify-between font-medium">
+                              <span>Total ({selectedServices.length} services)</span>
+                              <div className="text-right">
+                                <div>${total.toFixed(2)}</div>
+                                <div className="text-xs font-normal text-teal-700">
+                                  {totalDuration} minutes
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="my-4" />
+
               <div>
                 <Label>Notes</Label>
                 <Textarea
@@ -666,21 +759,6 @@ function BookingDetailsSlideOutComponent({
                       ) : (
                         <>
                           <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
-                          {/* Show loyalty discount indicator if present in notes */}
-                          {booking.notes && booking.notes.includes('[LOYALTY_DISCOUNT:') && (() => {
-                            // Support both old and new format
-                            const match = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^:\]]+)(?::[^:]+:[^\]]+)?\]/);
-                            if (match) {
-                              const amount = parseFloat(match[1]);
-                              const description = match[2];
-                              return (
-                                <span className="text-xs text-yellow-600 mt-0.5">
-                                  {description} available at payment
-                                </span>
-                              );
-                            }
-                            return null;
-                          })()}
                         </>
                       )}
                     </div>
@@ -694,8 +772,7 @@ function BookingDetailsSlideOutComponent({
                   <div>
                     <h3 className="font-medium text-sm text-gray-700 mb-2">Notes</h3>
                     <p className="text-sm text-gray-600">
-                      {/* Remove loyalty discount marker from display - support both old and new format */}
-                      {booking.notes.replace(/\[LOYALTY_DISCOUNT:[^\]]+\]\n?/g, '').trim() || 'No additional notes'}
+                      {booking.notes || 'No additional notes'}
                     </p>
                   </div>
                 </>
@@ -744,6 +821,15 @@ function BookingDetailsSlideOutComponent({
         order={selectedOrderForPayment}
         onPaymentComplete={handlePaymentComplete}
         enableTips={false}
+        customer={booking.customerId && customers.find(c => c.id === booking.customerId)}
+      />
+      
+      {/* Service Selection Slideout */}
+      <ServiceSelectionSlideout
+        isOpen={isServiceSlideoutOpen}
+        onClose={() => setIsServiceSlideoutOpen(false)}
+        services={services}
+        onSelectService={handleAddService}
       />
     </SlideOutPanel>
   );
