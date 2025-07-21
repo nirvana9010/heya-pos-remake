@@ -273,6 +273,33 @@ function BookingDetailsSlideOutComponent({
         throw new Error('No order data received from payment preparation');
       }
       
+      // Check if booking has loyalty discount in notes
+      if (booking.notes) {
+        const loyaltyMatch = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^\]]+)\]/);
+        if (loyaltyMatch) {
+          const discountAmount = parseFloat(loyaltyMatch[1]);
+          const discountDescription = loyaltyMatch[2];
+          
+          // Add loyalty discount modifier to the order
+          try {
+            const isPercentage = discountDescription.includes('%');
+            await apiClient.addOrderModifier(paymentData.order.id, {
+              type: 'DISCOUNT',
+              subtype: 'LOYALTY',
+              calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+              value: discountAmount,
+              description: discountDescription
+            });
+            
+            // Refresh the order to get updated totals
+            paymentData.order = await apiClient.getOrder(paymentData.order.id);
+          } catch (modifierError) {
+            console.error('Failed to apply loyalty discount:', modifierError);
+            // Continue with payment even if discount fails
+          }
+        }
+      }
+      
       // Lock the order if it's in DRAFT state
       if (paymentData.order.state === 'DRAFT') {
         await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
@@ -565,20 +592,30 @@ function BookingDetailsSlideOutComponent({
                   </div>
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <DollarSign className="h-4 w-4 text-gray-400" />
-                    {booking.isPaid && associatedOrder ? (
-                      <span className="text-green-600 font-medium">
-                        Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
-                        {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            (was ${booking.totalPrice.toFixed(2)})
-                          </span>
-                        )}
-                      </span>
-                    ) : booking.isPaid ? (
-                      <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
-                    ) : (
-                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
-                    )}
+                    <div className="flex flex-col">
+                      {booking.isPaid && associatedOrder ? (
+                        <span className="text-green-600 font-medium">
+                          Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
+                          {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              (was ${booking.totalPrice.toFixed(2)})
+                            </span>
+                          )}
+                        </span>
+                      ) : booking.isPaid ? (
+                        <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
+                      ) : (
+                        <>
+                          <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
+                          {/* Show loyalty discount indicator if present in notes */}
+                          {booking.notes && booking.notes.includes('[LOYALTY_DISCOUNT:') && (
+                            <span className="text-xs text-yellow-600 mt-0.5">
+                              Loyalty discount available at payment
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -588,7 +625,10 @@ function BookingDetailsSlideOutComponent({
                   <Separator />
                   <div>
                     <h3 className="font-medium text-sm text-gray-700 mb-2">Notes</h3>
-                    <p className="text-sm text-gray-600">{booking.notes}</p>
+                    <p className="text-sm text-gray-600">
+                      {/* Remove loyalty discount marker from display */}
+                      {booking.notes.replace(/\[LOYALTY_DISCOUNT:\d+(?:\.\d+)?:[^\]]+\]\n?/g, '').trim() || 'No additional notes'}
+                    </p>
                   </div>
                 </>
               )}
