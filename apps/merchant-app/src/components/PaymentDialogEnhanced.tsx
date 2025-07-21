@@ -129,11 +129,12 @@ export function PaymentDialogEnhanced({
 
       // Add order modifier if needed (prefer loyalty discount over manual adjustment)
       if (loyaltyDiscount && loyaltyDiscount.amount > 0) {
+        const isPercentage = loyaltyDiscount.description.includes('%');
         requestData.orderModifier = {
           type: 'DISCOUNT',
           amount: loyaltyDiscount.amount,
           description: loyaltyDiscount.description || 'Loyalty Reward',
-          subtype: 'LOYALTY'
+          calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT'
         };
       } else if (orderAdjustment && orderAdjustment.amount !== 0) {
         requestData.orderModifier = {
