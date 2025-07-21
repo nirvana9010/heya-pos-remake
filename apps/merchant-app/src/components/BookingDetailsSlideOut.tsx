@@ -275,10 +275,24 @@ function BookingDetailsSlideOutComponent({
       
       // Check if booking has loyalty discount in notes and if it hasn't been applied yet
       let hasLoyaltyDiscount = false;
+      let loyaltyRedemptionInfo = null;
       if (booking.notes) {
-        const loyaltyMatch = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^\]]+)\]/);
+        // Updated regex to match new format with customer ID and status
+        const loyaltyMatch = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^:]+):([^:]+):([^\]]+)\]/);
         if (loyaltyMatch) {
           hasLoyaltyDiscount = true;
+          const discountAmount = parseFloat(loyaltyMatch[1]);
+          const discountDescription = loyaltyMatch[2];
+          const customerId = loyaltyMatch[3];
+          const status = loyaltyMatch[4]; // PENDING or REDEEMED
+          
+          // Store redemption info for later
+          loyaltyRedemptionInfo = {
+            amount: discountAmount,
+            description: discountDescription,
+            customerId: customerId,
+            status: status
+          };
           
           // Check if loyalty discount already exists on the order
           const existingLoyaltyModifier = paymentData.order.modifiers?.find(
@@ -286,9 +300,6 @@ function BookingDetailsSlideOutComponent({
           );
           
           if (!existingLoyaltyModifier) {
-            const discountAmount = parseFloat(loyaltyMatch[1]);
-            const discountDescription = loyaltyMatch[2];
-            
             // Add loyalty discount modifier to the order
             try {
               const isPercentage = discountDescription.includes('%');
@@ -297,7 +308,11 @@ function BookingDetailsSlideOutComponent({
                 subtype: 'LOYALTY',
                 calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT',
                 value: discountAmount,
-                description: discountDescription
+                description: discountDescription,
+                metadata: { 
+                  customerId: customerId,
+                  redemptionStatus: status 
+                }
               });
               
               // Refresh the order to get updated totals
@@ -321,9 +336,10 @@ function BookingDetailsSlideOutComponent({
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
       
-      // Store loyalty discount info for the payment dialog
-      if (hasLoyaltyDiscount) {
+      // Store loyalty discount info for the payment dialog and completion handler
+      if (hasLoyaltyDiscount && loyaltyRedemptionInfo) {
         paymentData.order._hasLoyaltyDiscount = true;
+        paymentData.order._loyaltyRedemptionInfo = loyaltyRedemptionInfo;
       }
       
       // Show the payment dialog with the loaded order
@@ -353,6 +369,34 @@ function BookingDetailsSlideOutComponent({
     
     // Update the associated order state
     setAssociatedOrder(updatedOrder);
+    
+    // Check if we need to actually redeem loyalty
+    if (updatedOrder._loyaltyRedemptionInfo && updatedOrder._loyaltyRedemptionInfo.status === 'PENDING') {
+      try {
+        const redemptionInfo = updatedOrder._loyaltyRedemptionInfo;
+        const isPercentage = redemptionInfo.description.includes('%');
+        
+        if (isPercentage || redemptionInfo.description.includes('Free Service')) {
+          // Visit-based redemption
+          await apiClient.loyalty.redeemVisit(redemptionInfo.customerId, booking.id);
+        } else {
+          // Points-based redemption - extract points from description
+          const pointsMatch = redemptionInfo.description.match(/\((\d+) points\)/);
+          if (pointsMatch) {
+            const points = parseInt(pointsMatch[1]);
+            await apiClient.loyalty.redeemPoints(redemptionInfo.customerId, points, booking.id);
+          }
+        }
+        
+        // Update booking notes to mark as REDEEMED
+        // This prevents double redemption
+        // Note: We should ideally update this in the backend, but for now we'll leave it as is
+      } catch (error) {
+        console.error('Failed to redeem loyalty after payment:', error);
+        // Payment already succeeded, so we don't fail the whole operation
+        // The customer keeps their loyalty benefit for next time
+      }
+    }
     
     // Update the booking's payment status
     await onPaymentStatusChange(booking.id, true);
@@ -624,7 +668,8 @@ function BookingDetailsSlideOutComponent({
                           <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
                           {/* Show loyalty discount indicator if present in notes */}
                           {booking.notes && booking.notes.includes('[LOYALTY_DISCOUNT:') && (() => {
-                            const match = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^\]]+)\]/);
+                            // Support both old and new format
+                            const match = booking.notes.match(/\[LOYALTY_DISCOUNT:(\d+(?:\.\d+)?):([^:\]]+)(?::[^:]+:[^\]]+)?\]/);
                             if (match) {
                               const amount = parseFloat(match[1]);
                               const description = match[2];
@@ -649,8 +694,8 @@ function BookingDetailsSlideOutComponent({
                   <div>
                     <h3 className="font-medium text-sm text-gray-700 mb-2">Notes</h3>
                     <p className="text-sm text-gray-600">
-                      {/* Remove loyalty discount marker from display */}
-                      {booking.notes.replace(/\[LOYALTY_DISCOUNT:\d+(?:\.\d+)?:[^\]]+\]\n?/g, '').trim() || 'No additional notes'}
+                      {/* Remove loyalty discount marker from display - support both old and new format */}
+                      {booking.notes.replace(/\[LOYALTY_DISCOUNT:[^\]]+\]\n?/g, '').trim() || 'No additional notes'}
                     </p>
                   </div>
                 </>

@@ -339,7 +339,8 @@ export function BookingSlideOut({
       // If there's a loyalty discount, append it to notes in a structured format
       let finalNotes = notes;
       if (loyaltyDiscount.amount > 0) {
-        const loyaltyInfo = `[LOYALTY_DISCOUNT:${loyaltyDiscount.amount}:${loyaltyDiscount.description}]`;
+        // Include customer ID to enable redemption during payment
+        const loyaltyInfo = `[LOYALTY_DISCOUNT:${loyaltyDiscount.amount}:${loyaltyDiscount.description}:${finalCustomerIdForBooking}:PENDING]`;
         finalNotes = notes ? `${notes}\n${loyaltyInfo}` : loyaltyInfo;
       }
       
