@@ -343,37 +343,18 @@ export function BookingSlideOut({
         finalNotes = notes ? `${notes}\n${loyaltyInfo}` : loyaltyInfo;
       }
       
-      // Calculate adjusted prices for services when loyalty discount is applied
-      let servicesToSend = selectedServices.map(service => {
-        let finalPrice = service.adjustedPrice;
-        
-        // If there's a loyalty discount, we need to distribute it across services
-        if (loyaltyDiscount.amount > 0) {
-          const subtotal = selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
-          const serviceWeight = service.adjustedPrice / subtotal; // This service's proportion of total
-          
-          if (loyaltyDiscount.description.includes('%')) {
-            // Percentage discount - apply proportionally
-            finalPrice = service.adjustedPrice * (1 - loyaltyDiscount.amount / 100);
-          } else {
-            // Fixed amount discount - distribute proportionally
-            const serviceDiscount = loyaltyDiscount.amount * serviceWeight;
-            finalPrice = Math.max(0, service.adjustedPrice - serviceDiscount);
-          }
-        }
-        
-        return {
-          serviceId: service.serviceId,
-          staffId: service.staffId,
-          // Always include the price (whether original or discounted)
-          price: Number(finalPrice.toFixed(2))
-        };
-      });
-      
       const bookingData: any = {
         // Use 'WALK_IN' as customerId for walk-in customers
         customerId: finalCustomerIdForBooking,
-        services: servicesToSend,
+        services: selectedServices.map(service => ({
+          serviceId: service.serviceId,
+          staffId: service.staffId,
+          // Include price override if changed (V2 uses 'price' not 'priceOverride')
+          // Keep original prices - don't apply loyalty discount here
+          ...(service.adjustedPrice !== service.basePrice && {
+            price: service.adjustedPrice
+          })
+        })),
         locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
         startTime: startTimeISO,
         notes: finalNotes,
@@ -389,11 +370,11 @@ export function BookingSlideOut({
           `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()),
         customerPhone: isWalkIn ? '' : (selectedCustomer?.phone || selectedCustomer?.mobile || ''),
         customerEmail: isWalkIn ? '' : (selectedCustomer?.email || ''),
-        services: selectedServices.map((s, index) => ({
+        services: selectedServices.map(s => ({
           id: s.serviceId,
           name: s.name,
           duration: s.duration,
-          price: servicesToSend[index].price // Use the discounted price
+          price: s.adjustedPrice // Keep original price, discount shown separately
         })),
         staffName: selectedServices[0] ? staff.find(s => s.id === selectedServices[0].staffId)?.name || '' : '',
         staffId: selectedServices[0]?.staffId || '',
