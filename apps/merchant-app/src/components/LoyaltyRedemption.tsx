@@ -67,38 +67,31 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
         return;
       }
       
-      const result = await apiClient.loyalty.redeemVisit(customer.id);
+      // DO NOT actually redeem yet - just prepare the discount
+      // The actual redemption will happen after successful payment
       
-      if (result.success) {
-        // Calculate discount based on reward type
-        let discountAmount = 0;
-        let description = '';
-        
-        if (result.rewardType === 'FREE') {
-          // For free service, apply 100% discount
-          discountAmount = 100; // 100% off
-          description = '100% Off - Free Service (Loyalty Reward)';
-        } else if (result.rewardType === 'PERCENTAGE') {
-          // Percentage discount
-          discountAmount = result.rewardValue; // This is a percentage
-          description = `${result.rewardValue}% Off (Loyalty Reward)`;
-        }
-        
-        onRedemption(discountAmount, description);
-        
-        // Refresh loyalty status
-        const updatedLoyalty = await apiClient.loyalty.check(customer.id);
-        setLoyalty(updatedLoyalty);
+      // Calculate discount based on reward type
+      let discountAmount = 0;
+      let description = '';
+      
+      if (currentLoyalty.rewardType === 'FREE') {
+        // For free service, apply 100% discount
+        discountAmount = 100; // 100% off
+        description = '100% Off - Free Service (Loyalty Reward)';
+      } else if (currentLoyalty.rewardType === 'PERCENTAGE') {
+        // Percentage discount
+        discountAmount = currentLoyalty.rewardValue || 0; // This is a percentage
+        description = `${currentLoyalty.rewardValue}% Off (Loyalty Reward)`;
       }
+      
+      // Pass the discount info without actually redeeming
+      onRedemption(discountAmount, description);
+      
+      // Don't update loyalty status - keep showing as available
+      // The UI will show it as "Applied" based on currentDiscount prop
     } catch (error: any) {
-      console.error('Failed to redeem visit reward:', error);
-      
-      // Extract the actual error message from the API response
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          'Failed to redeem reward. Please try again.';
-      
-      alert(errorMessage);
+      console.error('Failed to prepare loyalty discount:', error);
+      alert('Failed to apply loyalty discount. Please try again.');
     } finally {
       setRedeeming(false);
     }
@@ -109,20 +102,20 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
 
     setRedeeming(true);
     try {
-      const result = await apiClient.loyalty.redeemPoints(customer.id, pointsToRedeem);
+      // DO NOT actually redeem yet - just prepare the discount
+      // The actual redemption will happen after successful payment
       
-      if (result.success) {
-        // Apply dollar value discount
-        onRedemption(result.dollarValue, `$${result.dollarValue.toFixed(2)} Loyalty Points Redemption`);
-        
-        // Refresh loyalty status
-        const updatedLoyalty = await apiClient.loyalty.check(customer.id);
-        setLoyalty(updatedLoyalty);
-        setPointsToRedeem(0);
-      }
+      // Calculate dollar value based on points
+      const dollarValue = (pointsToRedeem / (loyalty.currentPoints || 1)) * (loyalty.dollarValue || 0);
+      
+      // Apply dollar value discount
+      onRedemption(dollarValue, `$${dollarValue.toFixed(2)} Loyalty Points Redemption (${pointsToRedeem} points)`);
+      
+      // Don't update loyalty status - keep showing current points
+      // Don't reset pointsToRedeem so user can adjust if needed
     } catch (error) {
-      console.error('Failed to redeem points:', error);
-      alert('Failed to redeem points. Please try again.');
+      console.error('Failed to prepare points discount:', error);
+      alert('Failed to apply points discount. Please try again.');
     } finally {
       setRedeeming(false);
     }
