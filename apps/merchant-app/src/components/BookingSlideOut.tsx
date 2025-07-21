@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { SlideOutPanel } from "./SlideOutPanel";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
+import { LoyaltyRedemption } from "./LoyaltyRedemption";
 import { apiClient } from "@/lib/api-client";
 import type { Customer } from "@/components/customers";
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
@@ -140,6 +141,7 @@ export function BookingSlideOut({
   const [isSaving, setIsSaving] = useState(false);
   const [finalCustomerId, setFinalCustomerId] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   
   // Calculate totals
   const totalDuration = useMemo(() => 
@@ -147,10 +149,23 @@ export function BookingSlideOut({
     [selectedServices]
   );
   
-  const totalPrice = useMemo(() => 
-    selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0), 
-    [selectedServices]
-  );
+  const totalPrice = useMemo(() => {
+    const subtotal = selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
+    
+    // Apply loyalty discount if any
+    if (loyaltyDiscount.amount > 0) {
+      if (loyaltyDiscount.description.includes('%')) {
+        // Percentage discount
+        const discountAmount = subtotal * (loyaltyDiscount.amount / 100);
+        return Math.max(0, subtotal - discountAmount);
+      } else {
+        // Dollar amount discount
+        return Math.max(0, subtotal - loyaltyDiscount.amount);
+      }
+    }
+    
+    return subtotal;
+  }, [selectedServices, loyaltyDiscount]);
   
 
   // Track previous open state to detect transitions
@@ -179,6 +194,7 @@ export function BookingSlideOut({
         setSendReminder(true);
         setFinalCustomerId("");
         setSelectedCustomer(null);
+        setLoyaltyDiscount({ amount: 0, description: '' });
       }
       
       hasInitializedRef.current = true;
@@ -246,6 +262,8 @@ export function BookingSlideOut({
       setCustomerEmail('');
       setIsWalkIn(true);
       setSelectedCustomer(null);
+      // Clear loyalty discount when changing customer
+      setLoyaltyDiscount({ amount: 0, description: '' });
     } else if (customer) {
       const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
       setCustomerId(customer.id);
@@ -254,8 +272,14 @@ export function BookingSlideOut({
       setCustomerEmail(customer.email || '');
       setIsWalkIn(false);
       setSelectedCustomer(customer);
+      // Clear loyalty discount when changing customer
+      setLoyaltyDiscount({ amount: 0, description: '' });
     }
     setIsCustomerSlideoutOpen(false);
+  };
+  
+  const handleLoyaltyRedemption = (amount: number, description: string) => {
+    setLoyaltyDiscount({ amount, description });
   };
   
   
@@ -312,6 +336,13 @@ export function BookingSlideOut({
         throw new Error('Customer ID is required for booking creation');
       }
       
+      // If there's a loyalty discount, append it to notes in a structured format
+      let finalNotes = notes;
+      if (loyaltyDiscount.amount > 0) {
+        const loyaltyInfo = `[LOYALTY_DISCOUNT:${loyaltyDiscount.amount}:${loyaltyDiscount.description}]`;
+        finalNotes = notes ? `${notes}\n${loyaltyInfo}` : loyaltyInfo;
+      }
+      
       const bookingData: any = {
         // Use 'WALK_IN' as customerId for walk-in customers
         customerId: finalCustomerIdForBooking,
@@ -325,7 +356,7 @@ export function BookingSlideOut({
         })),
         locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
         startTime: startTimeISO,
-        notes,
+        notes: finalNotes,
         source: 'IN_PERSON',
         isOverride: true
       };
@@ -586,12 +617,35 @@ export function BookingSlideOut({
                 
                 {/* Total Summary */}
                 <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
-                  <div className="flex justify-between font-medium">
-                    <span>Total ({selectedServices.length} services)</span>
-                    <div className="text-right">
-                      <div>${totalPrice.toFixed(2)}</div>
-                      <div className="text-xs font-normal text-teal-700">
-                        {totalDuration} minutes
+                  <div className="space-y-2">
+                    {/* Subtotal if discount applied */}
+                    {loyaltyDiscount.amount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>${selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0).toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    {/* Discount Row */}
+                    {loyaltyDiscount.amount > 0 && (
+                      <div className="flex justify-between text-sm text-green-700">
+                        <span>{loyaltyDiscount.description}</span>
+                        <span>
+                          -{loyaltyDiscount.description.includes('%') 
+                            ? `$${(selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0) * (loyaltyDiscount.amount / 100)).toFixed(2)}` 
+                            : `$${loyaltyDiscount.amount.toFixed(2)}`}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Total */}
+                    <div className="flex justify-between font-medium border-t pt-2">
+                      <span>Total ({selectedServices.length} services)</span>
+                      <div className="text-right">
+                        <div>${totalPrice.toFixed(2)}</div>
+                        <div className="text-xs font-normal text-teal-700">
+                          {totalDuration} minutes
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -644,6 +698,15 @@ export function BookingSlideOut({
               </Button>
             )}
           </div>
+          
+          {/* Loyalty Redemption Section */}
+          {selectedCustomer && !isWalkIn && (
+            <LoyaltyRedemption
+              customer={selectedCustomer}
+              onRedemption={handleLoyaltyRedemption}
+              currentDiscount={loyaltyDiscount.amount}
+            />
+          )}
           
           {/* Notes Section */}
           <div>
