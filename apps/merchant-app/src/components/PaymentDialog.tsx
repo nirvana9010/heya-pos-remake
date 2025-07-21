@@ -165,6 +165,29 @@ export function PaymentDialog({
       // Refresh order data
       const finalOrder = await apiClient.getOrder(order.id);
       
+      // Handle loyalty redemption after successful payment
+      if (loyaltyDiscount.amount > 0 && customer) {
+        try {
+          const isPercentage = loyaltyDiscount.description.includes('%');
+          
+          if (isPercentage || loyaltyDiscount.description.includes('Free Service')) {
+            // Visit-based redemption
+            await apiClient.loyalty.redeemVisit(customer.id, order.id);
+          } else {
+            // Points-based redemption - extract points from description
+            const pointsMatch = loyaltyDiscount.description.match(/\((\d+) points\)/);
+            if (pointsMatch) {
+              const points = parseInt(pointsMatch[1]);
+              await apiClient.loyalty.redeemPoints(customer.id, points, order.id);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to redeem loyalty after payment:', error);
+          // Payment already succeeded, so we don't fail the whole operation
+          // The customer keeps their loyalty benefit for next time
+        }
+      }
+      
       onPaymentComplete?.(finalOrder);
       onOpenChange(false);
 
@@ -301,9 +324,9 @@ export function PaymentDialog({
             <LoyaltyRedemption
               customer={customer}
               totalPrice={order?.subtotal || order?.totalAmount || 0}
-              onApplyDiscount={handleLoyaltyRedemption}
+              onRedemption={handleLoyaltyRedemption}
               onRemoveDiscount={loyaltyDiscount.amount > 0 ? handleRemoveLoyaltyDiscount : undefined}
-              appliedDiscount={loyaltyDiscount}
+              currentDiscount={loyaltyDiscount.amount}
             />
           )}
 
