@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   X, Plus, Trash2, Search, Clock, DollarSign, 
   UserPlus, ChevronDown, ChevronUp, Users, CreditCard,
-  Minus, Percent, User
+  Minus, Percent, User, Gift
 } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
 import type { Customer } from './customers';
@@ -46,7 +46,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-
 
   // Helper function to clean up draft order
   const cleanupDraftOrder = useCallback(async () => {
@@ -143,21 +142,41 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setSelectedServices(updated);
   };
 
-  const calculateTotal = () => {
-    let total = 0;
+  const total = useMemo(() => {
+    let subtotal = 0;
     selectedServices.forEach((service, index) => {
-      const originalPrice = service.price * service.quantity;
+      // Convert price from Decimal object if needed
+      const price = typeof service.price === 'object' && service.price.toNumber 
+        ? service.price.toNumber() 
+        : Number(service.price || 0);
+      const originalPrice = price * service.quantity;
       const adjustedPrice = itemAdjustments[index] ?? originalPrice;
-      total += adjustedPrice;
+      subtotal += adjustedPrice;
     });
     
     // Add order-level adjustment if any
     if (showOrderAdjustment && orderAdjustment.amount !== 0) {
-      total += orderAdjustment.amount;
+      subtotal += orderAdjustment.amount;
+    }
+    
+    let total = subtotal;
+    
+    // Apply loyalty discount
+    if (loyaltyDiscount.amount > 0) {
+      // Check if it's a percentage discount based on the description (more reliable than amount)
+      if (loyaltyDiscount.description.includes('%')) {
+        // It's a percentage discount
+        const discountAmount = subtotal * (loyaltyDiscount.amount / 100);
+        total = subtotal - discountAmount;
+      } else {
+        // It's a dollar amount discount
+        total = Math.max(0, subtotal - loyaltyDiscount.amount);
+      }
     }
     
     return total;
-  };
+  }, [selectedServices, itemAdjustments, showOrderAdjustment, orderAdjustment, loyaltyDiscount]);
+
 
   // Update localStorage whenever data changes
   const updateLocalStorage = useCallback(() => {
@@ -182,9 +201,9 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       }),
       customer: isWalkIn ? WALK_IN_CUSTOMER : (selectedCustomer || null),
       totals: {
-        subtotal: calculateTotal(),
+        subtotal: total,
         tax: 0, // Can be calculated based on merchant settings
-        total: calculateTotal()
+        total: total
       },
       itemAdjustments: itemAdjustments,
       orderAdjustment: orderAdjustment,
@@ -194,7 +213,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     };
     
     localStorage.setItem('quickSale', JSON.stringify(quickSaleData));
-  }, [selectedServices, selectedCustomer, draftOrderId, isWalkIn, itemAdjustments, orderAdjustment]);
+  }, [selectedServices, selectedCustomer, draftOrderId, isWalkIn, itemAdjustments, orderAdjustment, total]);
 
   // Update localStorage whenever relevant data changes
   useEffect(() => {
@@ -305,7 +324,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
           <div className="space-y-3">
           <div className="space-y-2">
             {selectedServices.map((service, index) => {
-              const originalPrice = service.price * service.quantity;
+              const price = typeof service.price === 'object' && service.price.toNumber 
+                ? service.price.toNumber() 
+                : Number(service.price || 0);
+              const originalPrice = price * service.quantity;
               const adjustedPrice = itemAdjustments[index] ?? originalPrice;
               const difference = adjustedPrice - originalPrice;
               
@@ -316,7 +338,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{service.name}</h4>
                       <p className="text-sm text-gray-600 mt-1">
-                        ${service.price.toFixed(2)} × {service.quantity} = ${originalPrice.toFixed(2)}
+                        ${price.toFixed(2)} × {service.quantity} = ${originalPrice.toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -454,13 +476,58 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
 
       {/* Loyalty Redemption */}
       {selectedCustomer && !isWalkIn && (
-        <LoyaltyRedemption
-          customer={selectedCustomer}
-          onRedemption={(amount, description) => {
-            setLoyaltyDiscount({ amount, description });
-          }}
-          currentDiscount={loyaltyDiscount.amount}
-        />
+        <div className="space-y-3">
+          <LoyaltyRedemption
+            customer={selectedCustomer}
+            onRedemption={(amount, description) => {
+              setLoyaltyDiscount({ amount, description });
+            }}
+            currentDiscount={loyaltyDiscount.amount}
+          />
+          
+          {/* Show applied discount with undo option */}
+          {loyaltyDiscount.amount > 0 && (() => {
+            const subtotal = selectedServices.reduce((total, service, index) => {
+              const price = typeof service.price === 'object' && service.price.toNumber 
+                ? service.price.toNumber() 
+                : Number(service.price || 0);
+              const originalPrice = price * service.quantity;
+              const adjustedPrice = itemAdjustments[index] ?? originalPrice;
+              return total + adjustedPrice;
+            }, 0) + (showOrderAdjustment && orderAdjustment.amount !== 0 ? orderAdjustment.amount : 0);
+            
+            const discountAmount = loyaltyDiscount.description.includes('%') 
+              ? subtotal * (loyaltyDiscount.amount / 100)
+              : loyaltyDiscount.amount;
+            
+            return (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-900">
+                      Loyalty Discount Applied
+                    </p>
+                    <p className="text-xs text-green-700">
+                      {loyaltyDiscount.description} - 
+                      {loyaltyDiscount.description.includes('%') 
+                        ? ` Saving $${discountAmount.toFixed(2)}` 
+                        : ` $${loyaltyDiscount.amount.toFixed(2)} off`}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLoyaltyDiscount({ amount: 0, description: '' })}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Remove
+                </Button>
+              </div>
+            );
+          })()}
+        </div>
       )}
 
       {/* Order Adjustments */}
@@ -604,10 +671,47 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
             {/* Footer */}
             <div className="sticky bottom-0 bg-white border-t px-6 py-4">
               <div className="space-y-3">
+                {/* Subtotal if discount applied */}
+                {loyaltyDiscount.amount > 0 && (() => {
+                  const subtotal = selectedServices.reduce((total, service, index) => {
+                    const price = typeof service.price === 'object' && service.price.toNumber 
+                      ? service.price.toNumber() 
+                      : Number(service.price || 0);
+                    const originalPrice = price * service.quantity;
+                    const adjustedPrice = itemAdjustments[index] ?? originalPrice;
+                    return total + adjustedPrice;
+                  }, 0) + (showOrderAdjustment && orderAdjustment.amount !== 0 ? orderAdjustment.amount : 0);
+                  
+                  const discountAmount = loyaltyDiscount.description.includes('%') 
+                    ? subtotal * (loyaltyDiscount.amount / 100)
+                    : loyaltyDiscount.amount;
+                  
+                  return (
+                    <>
+                      <div className="flex justify-between items-center text-sm text-gray-600">
+                        <span>Subtotal</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm text-green-600">
+                        <span className="flex items-center gap-1">
+                          <Gift className="h-3 w-3" />
+                          Loyalty Discount
+                        </span>
+                        <span>
+                          -{loyaltyDiscount.description.includes('%') 
+                            ? `$${discountAmount.toFixed(2)} (${loyaltyDiscount.amount}%)` 
+                            : `$${loyaltyDiscount.amount.toFixed(2)}`}
+                        </span>
+                      </div>
+                      <div className="border-t pt-2" />
+                    </>
+                  );
+                })()}
+                
                 {/* Total */}
-                <div className="flex justify-between items-center text-lg">
+                <div className="flex justify-between items-center text-lg" key={`total-${loyaltyDiscount.amount}`}>
                   <span className="font-semibold">Total</span>
-                  <span className="font-bold">${calculateTotal().toFixed(2)}</span>
+                  <span className="font-bold">${total.toFixed(2)}</span>
                 </div>
                 
                 {/* Action Button */}

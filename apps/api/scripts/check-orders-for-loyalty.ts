@@ -82,10 +82,11 @@ async function checkOrdersForLoyalty() {
 
     console.log(`\nOrders missing loyalty by merchant:`);
     for (const [merchantName, data] of Object.entries(merchantSummary)) {
+      const merchantData = data as any;
       console.log(`\n${merchantName}:`);
-      console.log(`  - Orders: ${data.count}`);
-      console.log(`  - Total revenue: $${data.totalAmount.toFixed(2)}`);
-      console.log(`  - Has active loyalty: ${data.hasLoyaltyProgram ? `Yes (${data.loyaltyType})` : 'No'}`);
+      console.log(`  - Orders: ${merchantData.count}`);
+      console.log(`  - Total revenue: $${merchantData.totalAmount.toFixed(2)}`);
+      console.log(`  - Has active loyalty: ${merchantData.hasLoyaltyProgram ? `Yes (${merchantData.loyaltyType})` : 'No'}`);
     }
 
     // Show sample orders that would be processed

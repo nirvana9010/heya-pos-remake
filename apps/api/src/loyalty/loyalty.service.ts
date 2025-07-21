@@ -392,7 +392,8 @@ export class LoyaltyService {
         type: 'REDEEMED',
         visitsDelta: -program.visitsRequired,
         description: `Redeemed ${program.visitsRequired} visits for ${program.visitRewardType === 'FREE' ? 'free service' : `${program.visitRewardValue}% off`}`,
-        createdByStaffId: staffId
+        // Don't set createdByStaffId for merchant-initiated redemptions
+        createdByStaffId: null
       }
     });
 
@@ -449,7 +450,8 @@ export class LoyaltyService {
         points: -points,
         balance: subtractDecimals(updatedCustomer.loyaltyPoints, points),
         description: `Redeemed ${points} points for $${dollarValue.toFixed(2)}`,
-        createdByStaffId: staffId
+        // Don't set createdByStaffId for merchant-initiated redemptions
+        createdByStaffId: null
       }
     });
 
@@ -480,12 +482,15 @@ export class LoyaltyService {
     }
 
     const updates: any = {};
+    // Don't set createdByStaffId for merchant-initiated adjustments
+    // The staffId passed in is actually a merchantAuthId when logged in as merchant
     const transactionData: any = {
       customerId,
       merchantId,
       type: 'ADJUSTED',
       description: adjustment.reason,
-      createdByStaffId: staffId
+      // Leave createdByStaffId as null for merchant adjustments
+      createdByStaffId: null
     };
 
     if (adjustment.points !== undefined) {
@@ -502,20 +507,25 @@ export class LoyaltyService {
       transactionData.visitsDelta = adjustment.visits;
     }
 
-    // Update customer
-    const updatedCustomer = await this.prisma.customer.update({
-      where: { id: customerId },
-      data: updates
-    });
+    // Use a transaction to ensure both operations complete together
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Update customer
+      const updatedCustomer = await tx.customer.update({
+        where: { id: customerId },
+        data: updates
+      });
 
-    // Record transaction
-    await this.prisma.loyaltyTransaction.create({
-      data: transactionData
+      // Record transaction
+      await tx.loyaltyTransaction.create({
+        data: transactionData
+      });
+
+      return updatedCustomer;
     });
 
     return {
       success: true,
-      customer: updatedCustomer,
+      customer: result,
       adjustment
     };
   }

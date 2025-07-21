@@ -316,16 +316,17 @@ export class BaseApiClient {
       
       return data;
     } catch (error: any) {
-      // Ensure error object is properly logged
-      const errorDetails = {
-        url: versionedUrl,
-        message: error?.message || 'Unknown error',
-        status: error?.response?.status || 'No status',
-        data: error?.response?.data || null,
-        code: error?.code || 'No code'
-      };
-      
-      console.error('[BaseApiClient] GET request failed:', errorDetails);
+      // Only log actual errors, not expected auth failures
+      if (error?.response?.status !== 401) {
+        const errorDetails = {
+          url: versionedUrl,
+          message: error?.response?.data?.message || error?.message || 'Unknown error',
+          status: error?.response?.status || 'No status',
+          code: error?.response?.data?.code || error?.code || 'No code'
+        };
+        
+        console.error('[BaseApiClient] GET request failed:', JSON.stringify(errorDetails, null, 2));
+      }
       
       // If error object is malformed, create a proper error
       if (!error || typeof error !== 'object') {
@@ -388,17 +389,18 @@ export class BaseApiClient {
       return response.data;
     } catch (error: any) {
       // Ensure error object is properly logged
-      const errorDetails = {
-        url: versionedUrl,
-        method: 'POST',
-        message: error?.message || 'Unknown error',
-        status: error?.response?.status || 'No status',
-        data: error?.response?.data || null,
-        code: error?.code || 'No code',
-        requestData: data
-      };
-      
-      console.error('[BaseApiClient] POST request failed:', errorDetails);
+      // Only log actual errors, not expected auth failures
+      if (error?.response?.status !== 401) {
+        const errorDetails = {
+          url: versionedUrl,
+          method: 'POST',
+          message: error?.response?.data?.message || error?.message || 'Unknown error',
+          status: error?.response?.status || 'No status',
+          code: error?.response?.data?.code || error?.code || 'No code'
+        };
+        
+        console.error('[BaseApiClient] POST request failed:', JSON.stringify(errorDetails, null, 2));
+      }
       
       // If error object is malformed, create a proper error
       if (!error || typeof error !== 'object') {
@@ -464,17 +466,18 @@ export class BaseApiClient {
       return response.data;
     } catch (error: any) {
       // Ensure error object is properly logged
-      const errorDetails = {
-        url: versionedUrl,
-        method: 'PATCH',
-        message: error?.message || 'Unknown error',
-        status: error?.response?.status || 'No status',
-        data: error?.response?.data || null,
-        code: error?.code || 'No code',
-        requestData: data
-      };
-      
-      console.error('[BaseApiClient] PATCH request failed:', errorDetails);
+      // Only log actual errors, not expected auth failures
+      if (error?.response?.status !== 401) {
+        const errorDetails = {
+          url: versionedUrl,
+          method: 'PATCH',
+          message: error?.response?.data?.message || error?.message || 'Unknown error',
+          status: error?.response?.status || 'No status',
+          code: error?.response?.data?.code || error?.code || 'No code'
+        };
+        
+        console.error('[BaseApiClient] PATCH request failed:', JSON.stringify(errorDetails, null, 2));
+      }
       
       // If error object is malformed, create a proper error
       if (!error || typeof error !== 'object') {

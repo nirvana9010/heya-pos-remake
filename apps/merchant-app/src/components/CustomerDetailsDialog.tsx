@@ -26,18 +26,20 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { safeCustomerFormData, safeLoyaltyFormData } from '@/lib/utils/form-utils';
 
 interface CustomerProps {
   id: string;
   firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  mobile?: string;
-  notes?: string;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  notes?: string | null;
   totalSpent: number;
   totalVisits: number;
   loyaltyPoints: number;
+  loyaltyVisits?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -74,16 +76,16 @@ export function CustomerDetailsDialog({
     phone: '',
     notes: '',
   });
+  
+  const [loyaltyData, setLoyaltyData] = useState({
+    loyaltyVisits: 0,
+    loyaltyPoints: 0,
+  });
 
   useEffect(() => {
     if (customer) {
-      setFormData({
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        email: customer.email,
-        phone: customer.mobile || customer.phone,
-        notes: customer.notes || '',
-      });
+      setFormData(safeCustomerFormData(customer));
+      setLoyaltyData(safeLoyaltyFormData(customer));
       setIsEditing(false);
     }
   }, [customer]);
@@ -91,12 +93,92 @@ export function CustomerDetailsDialog({
   const handleSave = async () => {
     try {
       setLoading(true);
-      await apiClient.updateCustomer(customer.id, formData);
+      
+      // Prepare data for API - don't send empty lastName
+      const updateData: any = {
+        firstName: formData.firstName,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        notes: formData.notes || undefined,
+      };
+      
+      // Only include lastName if it has a value
+      if (formData.lastName && formData.lastName.trim()) {
+        updateData.lastName = formData.lastName;
+      }
+      
+      // Update customer basic info
+      console.log('Updating customer with data:', updateData);
+      const updateResult = await apiClient.updateCustomer(customer.id, updateData);
+      console.log('Customer update result:', updateResult);
+      
+      // Check if loyalty data has changed
+      const loyaltyChanged = 
+        loyaltyData.loyaltyVisits !== (customer.loyaltyVisits || 0) ||
+        loyaltyData.loyaltyPoints !== (customer.loyaltyPoints || 0);
+      
+      if (loyaltyChanged) {
+        // Calculate the adjustments
+        const visitAdjustment = loyaltyData.loyaltyVisits - (customer.loyaltyVisits || 0);
+        const pointAdjustment = loyaltyData.loyaltyPoints - (customer.loyaltyPoints || 0);
+        
+        // Call loyalty adjustment endpoint
+        const adjustmentData: any = {
+          reason: 'Manual adjustment from customer profile'
+        };
+        
+        if (visitAdjustment !== 0) {
+          adjustmentData.visits = visitAdjustment;
+        }
+        
+        if (pointAdjustment !== 0) {
+          adjustmentData.points = pointAdjustment;
+        }
+        
+        console.log('Adjusting loyalty for customer:', customer.id, adjustmentData);
+        console.log('Current loyalty values:', { 
+          visits: customer.loyaltyVisits, 
+          points: customer.loyaltyPoints 
+        });
+        console.log('New loyalty values:', loyaltyData);
+        
+        try {
+          const loyaltyResult = await apiClient.loyalty.adjustLoyalty(customer.id, adjustmentData);
+          console.log('Loyalty adjustment result:', loyaltyResult);
+        } catch (loyaltyError: any) {
+          console.error('Loyalty adjustment failed:', loyaltyError);
+          console.error('Error details:', loyaltyError.response?.data);
+          // If loyalty adjustment fails, still show partial success since customer info was updated
+          toast({
+            title: 'Partial Success',
+            description: 'Customer info updated but loyalty adjustment failed. Please try again.',
+            variant: 'destructive',
+          });
+          onUpdate?.();
+          return;
+        }
+      }
+      
+      // Only show success and update UI if everything succeeded
       toast({
         title: 'Success',
         description: 'Customer updated successfully',
       });
       setIsEditing(false);
+      
+      // Update the local customer object with new values for immediate UI update
+      Object.assign(customer, {
+        firstName: formData.firstName,
+        lastName: formData.lastName || undefined,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        mobile: formData.phone || undefined,
+        notes: formData.notes || undefined,
+        loyaltyVisits: loyaltyData.loyaltyVisits,
+        loyaltyPoints: loyaltyData.loyaltyPoints,
+      });
+      
+      // Trigger refresh of the customer list
       onUpdate?.();
     } catch (error) {
       console.error('Failed to update customer:', error);
@@ -111,13 +193,8 @@ export function CustomerDetailsDialog({
   };
 
   const handleCancel = () => {
-    setFormData({
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      email: customer.email,
-      phone: customer.phone,
-      notes: customer.notes || '',
-    });
+    setFormData(safeCustomerFormData(customer));
+    setLoyaltyData(safeLoyaltyFormData(customer));
     setIsEditing(false);
   };
 
@@ -206,14 +283,11 @@ export function CustomerDetailsDialog({
           </div>
 
           {/* Quick Stats */}
-          <div className={cn(
-            "grid gap-3 px-6 pb-4",
-            (customer?.loyaltyPoints || 0) > 0 ? "grid-cols-3" : "grid-cols-2"
-          )}>
+          <div className="grid grid-cols-3 gap-3 px-6 pb-4">
             <div className="text-center p-3 bg-teal-50 rounded-lg">
               <Calendar className="h-5 w-5 text-teal-600 mx-auto mb-1" />
               <p className="text-lg font-semibold">{customer.totalVisits}</p>
-              <p className="text-xs text-gray-600">Visits</p>
+              <p className="text-xs text-gray-600">Total Visits</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <DollarSign className="h-5 w-5 text-green-600 mx-auto mb-1" />
@@ -222,15 +296,13 @@ export function CustomerDetailsDialog({
               </p>
               <p className="text-xs text-gray-600">Spent</p>
             </div>
-            {customer.loyaltyPoints > 0 && (
-              <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                <Star className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
-                <p className="text-lg font-semibold">
-                  {customer.loyaltyPoints.toLocaleString('en-US')}
-                </p>
-                <p className="text-xs text-gray-600">Points</p>
-              </div>
-            )}
+            <div className="text-center p-3 bg-yellow-50 rounded-lg">
+              <Gift className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
+              <p className="text-lg font-semibold">
+                {(customer.loyaltyVisits || 0).toLocaleString('en-US')}
+              </p>
+              <p className="text-xs text-gray-600">Loyalty Visits</p>
+            </div>
           </div>
 
           {/* Contact Info */}
@@ -262,14 +334,18 @@ export function CustomerDetailsDialog({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span>{customer.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span>{customer.mobile || customer.phone}</span>
-                  </div>
+                  {customer.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span>{customer.email}</span>
+                    </div>
+                  )}
+                  {(customer.mobile || customer.phone) && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <span>{customer.mobile || customer.phone}</span>
+                    </div>
+                  )}
                   {lastVisit && (
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="h-4 w-4 text-gray-400" />
@@ -278,6 +354,53 @@ export function CustomerDetailsDialog({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Loyalty Information */}
+            <div className="space-y-2">
+              <Label className="text-sm">Loyalty Program</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-600">Loyalty Visits</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-4 w-4 text-gray-400" />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={loyaltyData.loyaltyVisits}
+                        onChange={(e) => setLoyaltyData({ ...loyaltyData, loyaltyVisits: parseInt(e.target.value) || 0 })}
+                        className="flex-1"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Gift className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">{customer.loyaltyVisits || 0} visits</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-600">Loyalty Points</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 text-gray-400" />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={loyaltyData.loyaltyPoints}
+                        onChange={(e) => setLoyaltyData({ ...loyaltyData, loyaltyPoints: parseInt(e.target.value) || 0 })}
+                        className="flex-1"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Star className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">{customer.loyaltyPoints || 0} points</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Notes */}
