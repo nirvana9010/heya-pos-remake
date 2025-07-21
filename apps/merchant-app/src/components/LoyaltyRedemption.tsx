@@ -56,6 +56,17 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
 
     setRedeeming(true);
     try {
+      // First, refresh loyalty status to ensure we have current data
+      const currentLoyalty = await apiClient.loyalty.check(customer.id);
+      setLoyalty(currentLoyalty);
+      
+      // Check if reward is actually available with fresh data
+      if (!currentLoyalty.rewardAvailable) {
+        alert(`Not enough visits. You have ${currentLoyalty.currentVisits}/${currentLoyalty.visitsRequired} visits.`);
+        setRedeeming(false);
+        return;
+      }
+      
       const result = await apiClient.loyalty.redeemVisit(customer.id);
       
       if (result.success) {
@@ -64,10 +75,9 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
         let description = '';
         
         if (result.rewardType === 'FREE') {
-          // For free service, we'll need to handle this differently
-          // For now, we'll apply a 100% discount
-          discountAmount = 100; // This should be the service price
-          description = 'Free Service (Loyalty Reward)';
+          // For free service, apply 100% discount
+          discountAmount = 100; // 100% off
+          description = '100% Off - Free Service (Loyalty Reward)';
         } else if (result.rewardType === 'PERCENTAGE') {
           // Percentage discount
           discountAmount = result.rewardValue; // This is a percentage
@@ -80,9 +90,15 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
         const updatedLoyalty = await apiClient.loyalty.check(customer.id);
         setLoyalty(updatedLoyalty);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to redeem visit reward:', error);
-      alert('Failed to redeem reward. Please try again.');
+      
+      // Extract the actual error message from the API response
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          'Failed to redeem reward. Please try again.';
+      
+      alert(errorMessage);
     } finally {
       setRedeeming(false);
     }

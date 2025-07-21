@@ -180,7 +180,7 @@ export default function CustomersPageContent() {
         // Map the API response
         const mappedCustomers = customersData.map((customer: any) => ({
           ...customer,
-          totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
+          totalVisits: customer.visitCount || 0,
           totalSpent: customer.totalSpent || 0,
           loyaltyPoints: customer.loyaltyPoints || 0,
           loyaltyVisits: customer.loyaltyVisits || 0,
@@ -271,7 +271,7 @@ export default function CustomersPageContent() {
       // Map the API response to include the stats from backend
       const mappedCustomers = customersData.map((customer: any) => ({
         ...customer,
-        totalVisits: customer.visitCount || customer.lifetimeVisits || 0,
+        totalVisits: customer.visitCount || 0,
         totalSpent: customer.totalSpent || 0,
         loyaltyPoints: customer.loyaltyPoints || 0,
         loyaltyVisits: customer.loyaltyVisits || 0,
