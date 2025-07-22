@@ -42,9 +42,6 @@ export class BaseApiClient {
         const token = localStorage.getItem('access_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('[BaseApiClient] Request with auth:', config.method?.toUpperCase(), config.url);
-        } else {
-          console.warn('[BaseApiClient] No auth token for request:', config.method?.toUpperCase(), config.url);
         }
 
         return config;
@@ -94,7 +91,6 @@ export class BaseApiClient {
         if (error.response?.status === 403 && !originalRequest._retry) {
           // Special handling for realtime-token endpoint during initialization
           if (originalRequest.url?.includes('/realtime-token')) {
-            console.warn('[BaseApiClient] 403 on realtime-token endpoint - likely during initialization');
             return Promise.reject(error);
           }
           
@@ -325,7 +321,6 @@ export class BaseApiClient {
           code: error?.response?.data?.code || error?.code || 'No code'
         };
         
-        console.error('[BaseApiClient] GET request failed:', JSON.stringify(errorDetails, null, 2));
       }
       
       // If error object is malformed, create a proper error
@@ -399,7 +394,6 @@ export class BaseApiClient {
           code: error?.response?.data?.code || error?.code || 'No code'
         };
         
-        console.error('[BaseApiClient] POST request failed:', JSON.stringify(errorDetails, null, 2));
       }
       
       // If error object is malformed, create a proper error
@@ -476,7 +470,6 @@ export class BaseApiClient {
           code: error?.response?.data?.code || error?.code || 'No code'
         };
         
-        console.error('[BaseApiClient] PATCH request failed:', JSON.stringify(errorDetails, null, 2));
       }
       
       // If error object is malformed, create a proper error

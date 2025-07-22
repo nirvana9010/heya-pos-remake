@@ -443,7 +443,6 @@ export default function BookingsManager() {
         )
       );
       
-      console.log(`[Mark as Paid] Marking booking ${bookingId} as paid with amount ${amount}`);
       
       // Simple direct API call to mark booking as paid
       const response = await apiClient.post(`/v2/bookings/${bookingId}/mark-paid`, {
@@ -451,11 +450,9 @@ export default function BookingsManager() {
         amount: amount
       });
       
-      console.log(`[Mark as Paid] Response:`, response);
       
       // Only update UI if component is still mounted
       if (!mountedRef.current) {
-        console.log(`[Mark as Paid] Component unmounted, skipping UI updates`);
         return;
       }
       
@@ -467,7 +464,6 @@ export default function BookingsManager() {
       // Reload bookings to ensure UI is in sync
       setTimeout(async () => {
         if (mountedRef.current) {
-          console.log('[Mark as Paid] Reloading bookings after 1s');
           invalidateBookingsCache();
           await loadBookings();
         }

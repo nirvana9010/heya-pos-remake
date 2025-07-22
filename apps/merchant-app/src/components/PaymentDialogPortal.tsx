@@ -31,19 +31,6 @@ export function PaymentDialogPortal(props: PaymentDialogPortalProps) {
     return () => setMounted(false);
   }, []);
 
-  // Log props to understand what's being passed
-  useEffect(() => {
-    if (props.open) {
-      console.log('[PaymentDialogPortal] Props when open:', {
-        open: props.open,
-        hasOrder: !!props.order,
-        orderId: props.order?.id,
-        orderState: props.order?.state,
-        bookingId: props.bookingId,
-        selectedServices: props.selectedServices?.length
-      });
-    }
-  }, [props.open, props.order]);
 
   if (!mounted) {
     return null;
@@ -51,7 +38,6 @@ export function PaymentDialogPortal(props: PaymentDialogPortalProps) {
 
   const portalElement = document.getElementById('modal-portal');
   if (!portalElement) {
-    console.error('[PaymentDialogPortal] modal-portal element not found!');
     return null;
   }
 
