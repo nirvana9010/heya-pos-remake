@@ -82,7 +82,18 @@ export function PaymentDialog({
     onLoyaltyUpdate?.({ amount: 0, description: '' });
   }, [onLoyaltyUpdate]);
 
-  const balanceDue = (order?.totalAmount || 0) - (order?.paidAmount || 0);
+  // Calculate balance due including loyalty discount
+  const calculateBalanceDue = () => {
+    const baseTotal = order?.totalAmount || 0;
+    const paidAmount = order?.paidAmount || 0;
+    
+    // If we have a loyalty discount that hasn't been applied to the order yet, subtract it
+    const totalWithLoyalty = loyaltyDiscount.amount > 0 ? baseTotal - loyaltyDiscount.amount : baseTotal;
+    
+    return totalWithLoyalty - paidAmount;
+  };
+  
+  const balanceDue = calculateBalanceDue();
   const tipAmount = useMemo(() => {
     if (!enableTips) return 0;
     
@@ -91,11 +102,12 @@ export function PaymentDialog({
     }
     
     if (selectedTipPercentage) {
-      return (order.totalAmount * selectedTipPercentage) / 100;
+      // Calculate tip based on balance due (after loyalty discount)
+      return (balanceDue * selectedTipPercentage) / 100;
     }
     
     return 0;
-  }, [enableTips, customTipAmount, selectedTipPercentage, order?.totalAmount]);
+  }, [enableTips, customTipAmount, selectedTipPercentage, balanceDue]);
 
   const totalWithTip = enableTips ? balanceDue + tipAmount : balanceDue;
   const changeAmount = cashReceived ? parseFloat(cashReceived) - totalWithTip : 0;
@@ -144,7 +156,7 @@ export function PaymentDialog({
           method: paymentMethod,
           tipAmount: enableTips ? tipAmount : 0,
           metadata: paymentMethod === PaymentMethod.CASH ? {
-            cashReceived: parseFloat(cashReceived) || balanceDue,
+            cashReceived: parseFloat(cashReceived) || totalWithTip,
           } : undefined,
         };
 
@@ -351,37 +363,65 @@ export function PaymentDialog({
                   <Skeleton className="h-6 w-20" />
                 </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
+            ) : (() => {
+              // Calculate totals with loyalty discount
+              const subtotal = order?.subtotal || order?.totalAmount || 0;
+              const existingModifiers = order?.modifiers || [];
+              
+              // Calculate total after existing modifiers but before loyalty discount
+              const totalAfterModifiers = existingModifiers.reduce((total, modifier) => {
+                if (modifier.type === OrderModifierType.DISCOUNT) {
+                  return total - Math.abs(modifier.amount);
+                } else {
+                  return total + Math.abs(modifier.amount);
+                }
+              }, subtotal);
+              
+              // Apply loyalty discount
+              const totalWithLoyalty = loyaltyDiscount.amount > 0 
+                ? totalAfterModifiers - loyaltyDiscount.amount 
+                : totalAfterModifiers;
+              
+              return (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  {existingModifiers.map((modifier: any) => (
+                    <div key={modifier.id} className="flex justify-between text-sm">
+                      <span>{modifier.description}:</span>
+                      <span className={modifier.type === OrderModifierType.DISCOUNT ? 'text-green-600' : ''}>
+                        {modifier.type === OrderModifierType.DISCOUNT ? '-' : '+'}
+                        ${Math.abs(modifier.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  {loyaltyDiscount.amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>{loyaltyDiscount.description}:</span>
+                      <span className="text-green-600">
+                        -${loyaltyDiscount.amount.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="border-t pt-2 flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>${totalWithLoyalty.toFixed(2)}</span>
+                  </div>
+                  {order?.paidAmount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Paid:</span>
+                      <span>-${order.paidAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Balance Due:</span>
+                    <span>${Math.max(0, totalWithLoyalty - (order?.paidAmount || 0)).toFixed(2)}</span>
+                  </div>
                 </div>
-              {order?.modifiers?.map((modifier: any) => (
-                <div key={modifier.id} className="flex justify-between text-sm">
-                  <span>{modifier.description}:</span>
-                  <span className={modifier.type === OrderModifierType.DISCOUNT ? 'text-green-600' : ''}>
-                    {modifier.type === OrderModifierType.DISCOUNT ? '-' : '+'}
-                    ${Math.abs(modifier.amount).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-              <div className="border-t pt-2 flex justify-between font-semibold">
-                <span>Total:</span>
-                <span>${order?.totalAmount?.toFixed(2) || '0.00'}</span>
-              </div>
-              {order?.paidAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Paid:</span>
-                  <span>-${order.paidAmount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-lg">
-                <span>Balance Due:</span>
-                <span>${balanceDue.toFixed(2)}</span>
-              </div>
-            </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Split Payment Toggle */}

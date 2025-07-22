@@ -74,7 +74,7 @@ export class LoyaltyController {
       body.customerId,
       user.merchantId,
       body.bookingId,
-      user.id
+      user.type === 'staff' ? user.staffId : undefined
     );
   }
 
@@ -98,7 +98,7 @@ export class LoyaltyController {
       user.merchantId,
       body.points,
       body.bookingId,
-      user.id
+      user.type === 'staff' ? user.staffId : undefined
     );
   }
 
@@ -133,7 +133,7 @@ export class LoyaltyController {
         visits: body.visits,
         reason: body.reason
       },
-      user.id
+      user.type === 'staff' ? user.staffId : undefined
     );
   }
 

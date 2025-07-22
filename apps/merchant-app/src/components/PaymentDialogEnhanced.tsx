@@ -129,12 +129,10 @@ export function PaymentDialogEnhanced({
 
       // Add order modifier if needed (prefer loyalty discount over manual adjustment)
       if (loyaltyDiscount && loyaltyDiscount.amount > 0) {
-        const isPercentage = loyaltyDiscount.description.includes('%');
         requestData.orderModifier = {
           type: 'DISCOUNT',
           amount: loyaltyDiscount.amount,
-          description: loyaltyDiscount.description || 'Loyalty Reward',
-          calculation: isPercentage ? 'PERCENTAGE' : 'FIXED_AMOUNT'
+          description: loyaltyDiscount.description || 'Loyalty Reward'
         };
       } else if (orderAdjustment && orderAdjustment.amount !== 0) {
         requestData.orderModifier = {
@@ -247,7 +245,7 @@ export function PaymentDialogEnhanced({
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
         defaultTipPercentages={defaultTipPercentages}
-        customer={customer}
+        customer={customer || displayData?.customer}
         onLoyaltyUpdate={handleLoyaltyUpdate}
       />
     );
@@ -267,7 +265,7 @@ export function PaymentDialogEnhanced({
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
         defaultTipPercentages={defaultTipPercentages}
-        customer={customer}
+        customer={customer || displayData?.customer}
         onLoyaltyUpdate={handleLoyaltyUpdate}
       />
     );
@@ -318,7 +316,7 @@ export function PaymentDialogEnhanced({
       onPaymentComplete={onPaymentComplete}
       enableTips={enableTips}
       defaultTipPercentages={defaultTipPercentages}
-      customer={customer}
+      customer={customer || order?.customer || existingOrder?.customer}
       onLoyaltyUpdate={handleLoyaltyUpdate}
     />
   );

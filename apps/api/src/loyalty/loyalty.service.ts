@@ -392,8 +392,8 @@ export class LoyaltyService {
         type: 'REDEEMED',
         visitsDelta: -program.visitsRequired,
         description: `Redeemed ${program.visitsRequired} visits for ${program.visitRewardType === 'FREE' ? 'free service' : `${program.visitRewardValue}% off`}`,
-        // Don't set createdByStaffId for merchant-initiated redemptions
-        createdByStaffId: null
+        // createdByStaffId is optional, don't set it if not provided
+        ...(staffId ? { createdByStaffId: staffId } : {})
       }
     });
 
@@ -450,8 +450,8 @@ export class LoyaltyService {
         points: -points,
         balance: subtractDecimals(updatedCustomer.loyaltyPoints, points),
         description: `Redeemed ${points} points for $${dollarValue.toFixed(2)}`,
-        // Don't set createdByStaffId for merchant-initiated redemptions
-        createdByStaffId: null
+        // createdByStaffId is optional, don't set it if not provided
+        ...(staffId ? { createdByStaffId: staffId } : {})
       }
     });
 
@@ -489,8 +489,8 @@ export class LoyaltyService {
       merchantId,
       type: 'ADJUSTED',
       description: adjustment.reason,
-      // Leave createdByStaffId as null for merchant adjustments
-      createdByStaffId: null
+      // createdByStaffId is optional, don't set it if not provided
+      ...(staffId ? { createdByStaffId: staffId } : {})
     };
 
     if (adjustment.points !== undefined) {
