@@ -370,6 +370,12 @@ model Order {
   modifiers   OrderModifier[]
   payments    OrderPayment[]
   loyaltyTransactions LoyaltyTransaction[]
+
+  @@index([merchantId])
+  @@index([merchantId, state])
+  @@index([customerId])
+  @@index([bookingId])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -391,6 +397,8 @@ model OrderItem {
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   staff       Staff?   @relation(fields: [staffId], references: [id])
+
+  @@index([orderId])
 }
 
 model OrderModifier {
@@ -407,6 +415,8 @@ model OrderModifier {
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
   appliesTo   String[]
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 model OrderPayment {
@@ -431,6 +441,9 @@ model OrderPayment {
   order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   processedBy     Staff?          @relation(fields: [processedById], references: [id])
   tipAllocations  TipAllocation[]
+
+  @@index([orderId])
+  @@index([orderId, status])
 }
 
 model TipAllocation {
