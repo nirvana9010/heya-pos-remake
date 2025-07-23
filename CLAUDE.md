@@ -2,6 +2,21 @@
 
 This file contains important configuration information for Claude Code to help maintain and troubleshoot this project effectively.
 
+## CRITICAL RULES - DO NOT VIOLATE
+
+1. **NEVER DELETE SCRIPTS** - Do not delete any scripts in the `/scripts` directory without explicit user permission
+2. **NEVER DELETE CONFIGURATION FILES** - Do not delete `.env`, `ecosystem.config.js`, or any config files without explicit permission
+3. **ASK BEFORE REMOVING** - Always ask for confirmation before deleting any existing files
+
+## Working Directory Context
+
+**IMPORTANT**: The current working directory shown in the environment is often `/home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/api` but the PROJECT ROOT is `/home/nirvana9010/projects/heya-pos-remake/heya-pos`. 
+
+When referencing files:
+- Scripts are at: `/home/nirvana9010/projects/heya-pos-remake/heya-pos/scripts/`
+- NOT at: `./scripts/` (this would look in apps/api/scripts/)
+- Always use absolute paths or navigate to the correct directory first
+
 ## API Endpoints Quick Reference
 
 ### Base URL and Versioning

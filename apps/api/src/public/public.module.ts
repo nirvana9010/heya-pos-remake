@@ -6,6 +6,7 @@ import { BookingsContextModule } from '../contexts/bookings/bookings.context.mod
 import { ServicesModule } from '../services/services.module';
 import { StaffModule } from '../staff/staff.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     BookingsContextModule, // Use bounded context instead of legacy module
     ServicesModule,
     StaffModule,
+    NotificationsModule, // Required for check-in notifications
   ],
   controllers: [PublicBookingController, PublicCheckInController, AvailabilityController],
 })

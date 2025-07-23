@@ -465,14 +465,17 @@ function BookingDetailsSlideOutComponent({
               </p>
             </div>
             <Badge className={cn("flex items-center gap-1", getStatusColor(booking.status))}>
-              {booking.status === "in-progress" ? (
+              {isStatusUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  In Progress
+                  Updating...
                 </>
               ) : (
                 <>
-                  {getStatusIcon(booking.status)}
+                  {booking.status === "in-progress" && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {booking.status !== "in-progress" && getStatusIcon(booking.status)}
                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
                 </>
               )}

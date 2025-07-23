@@ -58,7 +58,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
     }
   }
   
-  console.log('[CalendarProvider] Creating initial state with merchant settings:', freshMerchantSettings);
+  // console.log('[CalendarProvider] Creating initial state with merchant settings:', freshMerchantSettings);
   
   return {
   // View management
@@ -145,9 +145,48 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
     
     // Data actions
     case 'SET_BOOKINGS':
+      // Preserve optimistic bookings that are less than 30 seconds old
+      const now = Date.now();
+      const thirtySecondsAgo = now - 30 * 1000;
+      
+      // Find optimistic bookings that should be preserved
+      const optimisticToPreserve = state.bookings.filter(booking => {
+        // Check if it's an optimistic booking (has temp- prefix or _isOptimistic flag)
+        const isOptimistic = booking.id.startsWith('temp-') || (booking as any)._isOptimistic;
+        if (!isOptimistic) return false;
+        
+        // Check if it was created within the last 30 seconds
+        const createdAtTime = booking.createdAt ? new Date(booking.createdAt).getTime() : now;
+        return createdAtTime > thirtySecondsAgo;
+      });
+      
+      // Check if any optimistic bookings have been confirmed by the backend
+      const confirmedOptimisticIds = new Set<string>();
+      optimisticToPreserve.forEach(optimistic => {
+        // Check if there's a real booking with matching details
+        const hasMatch = action.payload.some((real: any) => {
+          // Match by customer, service, and time
+          return real.customerName === optimistic.customerName &&
+                 real.serviceId === optimistic.serviceId &&
+                 real.date === optimistic.date &&
+                 real.time === optimistic.time;
+        });
+        if (hasMatch) {
+          confirmedOptimisticIds.add(optimistic.id);
+        }
+      });
+      
+      // Only keep optimistic bookings that haven't been confirmed
+      const optimisticToKeep = optimisticToPreserve.filter(
+        booking => !confirmedOptimisticIds.has(booking.id)
+      );
+      
+      // Merge backend bookings with preserved optimistic ones
+      const mergedBookings = [...action.payload, ...optimisticToKeep];
+      
       return {
         ...state,
-        bookings: action.payload,
+        bookings: mergedBookings,
         isLoading: false,
         error: null,
       };

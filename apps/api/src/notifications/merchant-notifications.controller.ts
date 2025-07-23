@@ -30,23 +30,18 @@ export class MerchantNotificationsController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('unreadOnly') unreadOnly?: string,
+    @Query('since') since?: string,
   ) {
     const merchantId = (req.user as any).merchantId;
     
-    console.log('[MerchantNotificationsController] Getting notifications for merchant:', merchantId);
-    console.log('[MerchantNotificationsController] Query params:', { skip, take, unreadOnly });
     
     const result = await this.notificationsService.getNotifications(merchantId, {
       skip: skip ? parseInt(skip) : undefined,
       take: take ? parseInt(take) : undefined,
       unreadOnly: unreadOnly === 'true',
+      since: since ? new Date(since) : undefined,
     });
     
-    console.log('[MerchantNotificationsController] Returning notifications:', {
-      total: result.total,
-      dataCount: result.data.length,
-      unreadCount: result.unreadCount
-    });
     
     return result;
   }
@@ -81,7 +76,7 @@ export class MerchantNotificationsController {
     return this.notificationsService.deleteAllNotifications(merchantId);
   }
 
-  // Test endpoint for development only
+  // Test endpoint for development only - creates notification exactly like real bookings
   @Post('test')
   async createTestNotification(@Req() req: Request) {
     if (process.env.NODE_ENV === 'production') {
@@ -89,23 +84,28 @@ export class MerchantNotificationsController {
     }
     
     const merchantId = (req.user as any).merchantId;
-    const notification = await this.notificationsService.createNotification(merchantId, {
-      type: 'booking_new',
-      priority: 'important',
-      title: 'Test SSE Notification',
-      message: 'This is a test to verify SSE is working',
-      actionUrl: '/bookings/test',
-      actionLabel: 'View test',
-      metadata: {
-        test: true,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    
+    // Create a test notification using the EXACT same method as real bookings
+    const testBookingId = `test-booking-${Date.now()}`;
+    const testStartTime = new Date();
+    testStartTime.setHours(testStartTime.getHours() + 2); // 2 hours from now
+    
+    const notification = await this.notificationsService.createBookingNotification(
+      merchantId,
+      'booking_new',
+      {
+        id: testBookingId,
+        customerName: 'Test Customer',
+        serviceName: 'Test Service',
+        startTime: testStartTime,
+        staffName: 'Test Staff',
+      }
+    );
 
     return {
       success: true,
       notification,
-      message: 'Check your SSE stream for the real-time update',
+      message: 'Notification created. Will be picked up by polling within 10 seconds.',
     };
   }
 

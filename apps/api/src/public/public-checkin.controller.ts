@@ -16,6 +16,8 @@ import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
 import { formatName } from '@heya-pos/utils';
 import { IsString, IsOptional, IsNotEmpty, IsEmail, MaxLength } from 'class-validator';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
 
 class CheckInDto {
   @IsString()
@@ -54,6 +56,8 @@ class CheckInDto {
 export class PublicCheckInController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly notificationsService: MerchantNotificationsService,
   ) {}
 
   // Helper method to get merchant by subdomain
@@ -81,54 +85,7 @@ export class PublicCheckInController {
     return merchant;
   }
 
-  @Post('customers/lookup')
-  @HttpCode(HttpStatus.OK)
-  async lookupCustomer(
-    @Body() dto: { email?: string; phone?: string },
-    @Query('subdomain') subdomain?: string,
-    @Headers('x-merchant-subdomain') headerSubdomain?: string,
-  ) {
-    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
-
-    if (!dto.phone && !dto.email) {
-      throw new BadRequestException('Phone or email is required');
-    }
-
-    // Clean phone number if provided
-    const cleanedPhone = dto.phone ? dto.phone.replace(/\D/g, '') : undefined;
-
-    // Try to find existing customer
-    const customer = await this.prisma.customer.findFirst({
-      where: {
-        merchantId: merchant.id,
-        OR: [
-          ...(cleanedPhone ? [
-            { phone: cleanedPhone },
-            { mobile: cleanedPhone },
-          ] : []),
-          ...(dto.email ? [{ email: dto.email }] : []),
-        ],
-      },
-    });
-
-    if (customer) {
-      return {
-        found: true,
-        customer: {
-          id: customer.id,
-          firstName: customer.firstName,
-          lastName: customer.lastName || '',
-          email: customer.email || '',
-          phone: customer.phone || customer.mobile || '',
-        },
-      };
-    }
-
-    return {
-      found: false,
-    };
-  }
-
+  // Check in endpoint
   @Post('checkin')
   @HttpCode(HttpStatus.OK)
   async checkIn(
@@ -207,21 +164,6 @@ export class PublicCheckInController {
     };
   }
 
-  @Get('bookings/today')
-  async getTodaysBookingsForCustomer(
-    @Query('customerId') customerId: string,
-    @Query('subdomain') subdomain?: string,
-    @Headers('x-merchant-subdomain') headerSubdomain?: string,
-  ) {
-    if (!customerId) {
-      throw new BadRequestException('Customer ID is required');
-    }
-
-    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
-    const bookings = await this.getTodaysBookings(customerId, merchant.id);
-
-    return { bookings };
-  }
 
   private async getTodaysBookings(customerId: string, merchantId: string) {
     // Get merchant's timezone from first location
@@ -318,9 +260,46 @@ export class PublicCheckInController {
         status: 'IN_PROGRESS',
         updatedAt: new Date(),
       },
+      include: {
+        customer: true,
+        services: {
+          include: {
+            service: true,
+          },
+        },
+        provider: true,
+      },
     });
 
     console.log(`[CHECK-IN] Booking ${bookingId} marked as IN_PROGRESS`);
+
+    // Emit event for real-time updates
+    this.eventEmitter.emit('booking.updated', {
+      bookingId: updatedBooking.id,
+      merchantId: updatedBooking.merchantId,
+      status: updatedBooking.status,
+      source: 'CHECK_IN',
+    });
+
+    // Create notification for merchant using the service
+    const serviceName = updatedBooking.services[0]?.service?.name || 'Service';
+    const customerName = formatName(updatedBooking.customer.firstName, updatedBooking.customer.lastName);
+    const staffName = updatedBooking.provider ? formatName(updatedBooking.provider.firstName, updatedBooking.provider.lastName) : undefined;
+    
+    // Use the service method to create a booking_modified notification
+    await this.notificationsService.createBookingNotification(
+      updatedBooking.merchantId,
+      'booking_modified',
+      {
+        id: updatedBooking.id,
+        customerName,
+        serviceName,
+        startTime: updatedBooking.startTime,
+        staffName,
+      },
+      'checked in for their appointment'
+    );
+    
 
     return {
       success: true,

@@ -13,8 +13,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { notificationKeys } from '@/lib/query/hooks/use-bookings';
 import { apiClient } from '@/lib/api-client';
-import { bookingEvents } from '@/lib/services/booking-events';
-import { supabaseRealtime } from '@/lib/services/supabase';
+// import { supabaseRealtime } from '@/lib/services/supabase'; // DISABLED - DO NOT RE-ENABLE WITHOUT EXPLICIT REQUEST
 import { featureFlags } from '@/lib/feature-flags';
 import { useAuth } from '@/lib/auth/auth-provider';
 
@@ -29,7 +28,6 @@ interface NotificationsContextType {
   refreshNotifications: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
-  connectSSE?: () => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -90,10 +88,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // Track previous unread count for sound notification
   const prevUnreadCountRef = React.useRef(0);
-  // Initialize with current notification IDs to prevent false positives on first load
-  const prevNotificationIdsRef = React.useRef<Set<string>>(
-    new Set(notifications.map(n => n.id))
-  );
+  // Track previous notification IDs
+  const prevNotificationIdsRef = React.useRef<Set<string>>(new Set());
+  // Track if this is the first load
+  const isFirstLoadRef = React.useRef(true);
+  
+  // Track which notifications we've seen before
+  const seenNotificationIdsRef = React.useRef<Set<string>>(new Set());
   
   // Track which notifications have shown browser alerts (persist across page loads)
   // Load synchronously to avoid race conditions
@@ -115,12 +116,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         return new Set(ids);
       }
     } catch (e) {
-      console.error('[NotificationsContext] Failed to load shown notifications:', e);
+      // Failed to load shown notifications
     }
     return new Set();
   }
   
   const shownBrowserNotificationsRef = React.useRef<Set<string>>(loadShownNotifications());
+  
   
   // Debounce timer for notification processing
   const notificationDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -149,13 +151,19 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const unreadCount = notifications.filter(n => !n.read).length;
     const currentIds = new Set(notifications.map(n => n.id));
     
+    // On first load, populate prevNotificationIdsRef to prevent triggering for existing notifications
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+      prevNotificationIdsRef.current = new Set(notifications.map(n => n.id));
+      // Also mark all existing notifications as "seen" so they don't trigger calendar updates
+      notifications.forEach(n => seenNotificationIdsRef.current.add(n.id));
+    }
     
     // Find new notifications that haven't shown browser alerts yet
     const newNotifications = notifications.filter(n => {
       const isUnread = !n.read;
       const isNew = !prevNotificationIdsRef.current.has(n.id);
       const notShownYet = !shownBrowserNotificationsRef.current.has(n.id);
-      
       
       // A notification should trigger if:
       // 1. It's unread AND
@@ -183,23 +191,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         }
       }
       
-      // Broadcast booking events for new booking notifications
-      newNotifications.forEach(notification => {
-        // Check if this is a booking-related notification
-        if (notification.type === 'booking_new' && notification.metadata?.bookingId) {
-          bookingEvents.broadcast({
-            type: 'booking_created',
-            bookingId: notification.metadata.bookingId,
-            source: 'ONLINE' // Notifications come from ONLINE bookings
-          });
-        } else if (notification.type === 'booking_updated' && notification.metadata?.bookingId) {
-          bookingEvents.broadcast({
-            type: 'booking_updated',
-            bookingId: notification.metadata.bookingId,
-            source: 'ONLINE'
-          });
-        }
-      });
+      // We're no longer broadcasting booking events from notifications
+      // Calendar updates are now handled by user activity detection
       
       // Show browser notifications
       if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -229,7 +222,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
               setTimeout(() => browserNotification.close(), 5000);
             } catch (e) {
               // Ignore notification errors (can happen in some browsers)
-              console.warn('[NotificationsContext] Failed to show browser notification:', e);
+              // Failed to show browser notification
             }
           });
         }
@@ -245,6 +238,32 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         'shownBrowserNotifications', 
         JSON.stringify(Array.from(shownBrowserNotificationsRef.current))
       );
+    }
+    
+    // Broadcast booking events for calendar updates
+    // Only broadcast notifications we haven't seen before
+    const newBookingNotifications = notifications.filter(n => 
+      !n.read &&
+      (n.type === 'booking_new' || n.type === 'booking_modified') && 
+      n.metadata?.bookingId &&
+      !seenNotificationIdsRef.current.has(n.id)
+    );
+    
+    if (newBookingNotifications.length > 0) {
+      // Broadcast each new booking notification
+      newBookingNotifications.forEach(notification => {
+        const event = new CustomEvent('booking-updated', {
+          detail: {
+            bookingId: notification.metadata.bookingId,
+            type: notification.type,
+            timestamp: notification.timestamp
+          }
+        });
+        window.dispatchEvent(event);
+        
+        // Mark as seen
+        seenNotificationIdsRef.current.add(notification.id);
+      });
     }
     
     // Update refs ONLY after processing
@@ -291,96 +310,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // Get auth context for merchantId
   const { merchant, user, isAuthenticated } = useAuth();
 
-  // Real-time connection (Supabase Realtime only)
-  // Strategy: Supabase Realtime handles immediate updates
-  // React Query polling (60 seconds) acts as a fallback for any missed events
-  // When a notification arrives via real-time, we use refreshNotifications()
-  // to force an immediate database fetch, bypassing the polling interval
-  useEffect(() => {
-    // Check if authentication is fully loaded
-    if (!isAuthenticated || !merchant?.id) {
-      return;
-    }
-
-    // Check if user is authenticated before initializing Supabase
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      console.warn('[NotificationsContext] No auth token found, skipping Supabase initialization');
-      return;
-    }
-
-    // Add a small delay to ensure auth state is fully propagated
-    const initTimer = setTimeout(async () => {
-      // Initialize Supabase Realtime with retry logic
-      const initSupabase = async (retryCount = 0) => {
-        try {
-          const initialized = await supabaseRealtime.initialize();
-          if (!initialized) {
-            // If it's a temporary auth issue and we haven't retried much, try again
-            if (retryCount < 3) {
-              console.warn(`[NotificationsContext] Supabase initialization failed, retrying in ${(retryCount + 1) * 2} seconds...`);
-              setTimeout(() => initSupabase(retryCount + 1), (retryCount + 1) * 2000);
-              return;
-            }
-            
-            console.warn('[NotificationsContext] Failed to initialize Supabase Realtime after retries.');
-            console.warn('[NotificationsContext] To use Supabase, add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY to /apps/api/.env');
-            console.warn('[NotificationsContext] Falling back to 60-second polling only.');
-            return;
-          }
-
-      // Subscribe to notifications
-      supabaseRealtime.subscribeToNotifications(
-        merchant.id,
-        (notification) => {
-          // Add notification optimistically for immediate UI update
-          setOptimisticNotifications(prev => {
-            // Don't add if already exists
-            if (prev.some(n => n.id === notification.id)) {
-              return prev;
-            }
-            return [notification as MerchantNotification, ...prev];
-          });
-          
-          // Force UI update immediately
-          forceUpdate();
-          
-          // Still refetch in background to sync with server
-          queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-          
-          // Use refreshNotifications for immediate fetch
-          refreshNotifications().then(() => {
-            // Clear optimistic notifications after successful fetch
-            setOptimisticNotifications([]);
-          }).catch(error => {
-            // Silently handle error
-          });
-        },
-        (error) => {
-          // Silently handle error
-        }
-      );
-        } catch (error) {
-          console.error('[NotificationsContext] Error during Supabase initialization:', error);
-          // If it's a temporary error and we haven't retried much, try again
-          if (retryCount < 3) {
-            console.warn(`[NotificationsContext] Will retry in ${(retryCount + 1) * 2} seconds...`);
-            setTimeout(() => initSupabase(retryCount + 1), (retryCount + 1) * 2000);
-          }
-        }
-      };
-
-      initSupabase();
-    }, 500); // 500ms delay to ensure auth state is fully propagated
-
-    // Cleanup
-    return () => {
-      clearTimeout(initTimer);
-      if (merchant?.id) {
-        supabaseRealtime.unsubscribeFromNotifications(merchant.id);
-      }
-    };
-  }, [queryClient, refetch, merchant?.id, isAuthenticated]);
+  // SUPABASE DISABLED - Using polling only
+  // Notifications will update every 60 seconds via React Query polling
+  // This is configured in use-notifications.ts with refetchInterval: 60000
+  // DO NOT RE-ENABLE SUPABASE WITHOUT EXPLICIT USER REQUEST
 
 
   // Force update and process notifications when data timestamp changes
@@ -411,7 +344,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         JSON.stringify(Array.from(shownBrowserNotificationsRef.current))
       );
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      // Failed to mark notification as read
     }
   }, [markAsReadMutation]);
 
@@ -422,7 +355,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       shownBrowserNotificationsRef.current.clear();
       localStorage.removeItem('shownBrowserNotifications');
     } catch (err) {
-      console.error('Failed to mark all notifications as read:', err);
+      // Failed to mark all notifications as read
     }
   }, [markAllAsReadMutation]);
 
@@ -430,7 +363,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     try {
       await deleteNotificationMutation.mutateAsync(id);
     } catch (err) {
-      console.error('Failed to delete notification:', err);
+      // Failed to delete notification
     }
   }, [deleteNotificationMutation]);
 
@@ -438,14 +371,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     try {
       await deleteAllNotificationsMutation.mutateAsync();
     } catch (err) {
-      console.error('Failed to clear all notifications:', err);
+      // Failed to clear all notifications
     }
   }, [deleteAllNotificationsMutation]);
 
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
     // This is a client-side only function for immediate UI feedback
     // Real notifications should come from the server
-    console.warn('addNotification is deprecated - notifications should come from the server');
     
     // Play notification sound
     if ('Audio' in window) {
@@ -483,7 +415,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       // Also trigger the main query to refetch
       await refetch();
     } catch (error) {
-      console.error('[NotificationsContext] Failed to refresh notifications:', error);
+      // Failed to refresh notifications
     }
   }, [queryClient, refetch]);
 

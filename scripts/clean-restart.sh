@@ -69,25 +69,19 @@ nohup npm run dev:direct > merchant.log 2>&1 &
 MERCHANT_PID=$!
 echo -e "${GREEN}✓ Merchant app starting with PID: $MERCHANT_PID${NC}"
 
-# Check if we should start booking app
-START_BOOKING=false
-if [[ "$1" == "--with-booking" ]] || [[ "$1" == "-b" ]]; then
-    START_BOOKING=true
-elif [[ "$1" == "--all" ]] || [[ "$1" == "-a" ]]; then
-    START_BOOKING=true
-elif [[ -z "$1" ]]; then
-    # No argument provided, start just API and merchant by default
-    START_BOOKING=false
-fi
+# Always start ALL apps
+echo -e "\n${YELLOW}Starting Booking App...${NC}"
+cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/booking-app
+nohup npm run dev > booking.log 2>&1 &
+BOOKING_PID=$!
+echo -e "${GREEN}✓ Booking app starting with PID: $BOOKING_PID${NC}"
 
-# Start booking app if requested
-if [[ $START_BOOKING == true ]]; then
-    echo -e "\n${YELLOW}Starting Booking App...${NC}"
-    cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/booking-app
-    nohup npm run dev > booking.log 2>&1 &
-    BOOKING_PID=$!
-    echo -e "${GREEN}✓ Booking app starting with PID: $BOOKING_PID${NC}"
-fi
+# Start admin dashboard
+echo -e "\n${YELLOW}Starting Admin Dashboard...${NC}"
+cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/admin-dashboard
+nohup npm run dev > admin.log 2>&1 &
+ADMIN_PID=$!
+echo -e "${GREEN}✓ Admin dashboard starting with PID: $ADMIN_PID${NC}"
 
 # Final status check
 echo -e "\n${YELLOW}Final Status Check:${NC}"
@@ -106,20 +100,13 @@ done
 
 echo -e "\n${GREEN}🚀 Clean restart complete!${NC}"
 echo -e "${YELLOW}Access your apps at:${NC}"
-echo -e "  API:          http://localhost:3000"
-echo -e "  Merchant App: http://localhost:3002"
-if [[ $START_BOOKING == true ]]; then
-    echo -e "  Booking App:  http://localhost:3001"
-fi
-echo -e "\n${YELLOW}Logs available at:${NC}"
-echo -e "  API:          apps/api/api.log"
-echo -e "  Merchant:     apps/merchant-app/merchant.log"
-if [[ $START_BOOKING == true ]]; then
-    echo -e "  Booking:      apps/booking-app/booking.log"
-fi
+echo -e "  API:              http://localhost:3000"
+echo -e "  Merchant App:     http://localhost:3002"
+echo -e "  Booking App:      http://localhost:3001"
+echo -e "  Admin Dashboard:  http://localhost:3003"
 
-echo -e "\n${YELLOW}Usage:${NC}"
-echo -e "  ./clean-restart.sh              # Start API and Merchant only"
-echo -e "  ./clean-restart.sh --with-booking  # Start all apps including Booking"
-echo -e "  ./clean-restart.sh -b           # Short form for --with-booking"
-echo -e "  ./clean-restart.sh --all        # Start all services"
+echo -e "\n${YELLOW}Logs available at:${NC}"
+echo -e "  API:              apps/api/api.log"
+echo -e "  Merchant:         apps/merchant-app/merchant.log"
+echo -e "  Booking:          apps/booking-app/booking.log"
+echo -e "  Admin Dashboard:  apps/admin-dashboard/admin.log"

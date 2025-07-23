@@ -299,6 +299,85 @@ export class PublicBookingController {
     }
   }
 
+  // Get customer's confirmed bookings
+  @Get('customers/:customerId/bookings')
+  async getCustomerBookings(
+    @Param('customerId') customerId: string,
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    if (!customerId) {
+      throw new BadRequestException('Customer ID is required');
+    }
+
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+    
+    // Get merchant's timezone from first location
+    const location = await this.prisma.location.findFirst({
+      where: {
+        merchantId: merchant.id,
+        isActive: true,
+      },
+    });
+
+    const timezone = location?.timezone || 'Australia/Sydney';
+
+    // Get today's date range in merchant timezone
+    const startOfDay = TimezoneUtils.startOfDayInTimezone(new Date(), timezone);
+    const endOfDay = TimezoneUtils.endOfDayInTimezone(new Date(), timezone);
+
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        customerId,
+        merchantId: merchant.id,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        status: 'CONFIRMED',
+      },
+      include: {
+        provider: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        services: {
+          include: {
+            service: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+
+    return {
+      bookings: bookings.map(booking => {
+        const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, timezone);
+        const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, timezone);
+        
+        return {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceName: booking.services[0]?.service?.name || 'Service',
+          staffName: booking.provider 
+            ? formatName(booking.provider.firstName, booking.provider.lastName)
+            : 'Unassigned',
+          startTime: startTimeDisplay.time.substring(0, 5), // HH:MM format
+          endTime: endTimeDisplay.time.substring(0, 5),
+          status: booking.status,
+        };
+      }),
+    };
+  }
+
   @Get('bookings/:id')
   async getBooking(@Param('id') id: string) {
     const booking = await this.prisma.booking.findUnique({
