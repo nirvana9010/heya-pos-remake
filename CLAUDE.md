@@ -175,11 +175,17 @@ DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres
 When making code changes, always run these commands before committing:
 
 ```bash
-# Lint and type checking (run from project root)
+# Lint checking (run from project root)
 npm run lint
+
+# Type checking
 npm run typecheck
 
-# If commands are not found, ask the user for the correct commands
+# Format code
+npm run format
+
+# Note: The API app was missing ESLint config. A basic .eslintrc.js has been added.
+# Frontend apps (merchant-app, booking-app) have ESLint configured.
 ```
 
 ### Important: Commands to Avoid
