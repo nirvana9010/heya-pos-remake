@@ -197,32 +197,7 @@ export function DailyView({
   const currentTimeInfo = getCurrentTimePosition();
   const isCurrentDateToday = isToday(state.currentDate);
   
-  // Auto-scroll to business hours start on mount
-  useEffect(() => {
-    // Parse business hours
-    const [businessStartHour, businessStartMinute] = state.businessHours.start.split(':').map(Number);
-    
-    // Calculate scroll position to show 30 minutes before business start
-    const scrollToHour = Math.max(0, businessStartHour - 0.5);
-    const hoursFromStart = scrollToHour - CALENDAR_START_HOUR; // Calendar starts at CALENDAR_START_HOUR
-    
-    // Calculate pixels per hour based on time interval
-    // Each slot is 40px tall, so slots per hour = 60 / timeInterval
-    const slotsPerHour = 60 / state.timeInterval;
-    const pixelsPerHour = slotsPerHour * 40;
-    const scrollPosition = Math.max(0, hoursFromStart * pixelsPerHour);
-    
-    // Use setTimeout to ensure DOM is ready
-    setTimeout(() => {
-      if (calendarScrollRef.current) {
-        const calendarTop = calendarScrollRef.current.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({
-          top: calendarTop + scrollPosition - 100, // Subtract header height
-          behavior: 'smooth'
-        });
-      }
-    }, 100);
-  }, [state.businessHours, state.timeInterval]);
+  // Auto-scroll removed for performance - user requested removal of automatic scrolling feature
   
   // Find the hovered booking
   const hoveredBooking = hoveredBookingId 
@@ -508,8 +483,14 @@ export function DailyView({
                             bgOpacity = 0.7;
                             borderWidth = 3;
                             borderStyle = 'solid';
-                          } else if (isPast) {
-                            // Only fade confirmed bookings if they're in the past
+                          } else if (booking.status === 'in-progress') {
+                            // In-progress bookings should be very prominent
+                            bgOpacity = 1.0; // Full opacity
+                            borderWidth = 6; // Thicker border
+                            borderStyle = 'solid';
+                            textColor = 'text-white';
+                          } else if (isPast && booking.status !== 'in-progress') {
+                            // Only fade confirmed bookings if they're in the past AND not in-progress
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
@@ -539,7 +520,7 @@ export function DailyView({
                                   "cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
-                                  booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
+                                  booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -607,6 +588,11 @@ export function DailyView({
                                   {booking.status === 'optimistic' && (
                                     <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
                                       Creating...
+                                    </div>
+                                  )}
+                                  {booking.status === 'in-progress' && (
+                                    <div className="bg-teal-600 text-white text-sm font-bold px-3 py-1.5 rounded shadow-lg">
+                                      IN PROGRESS
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
@@ -790,8 +776,14 @@ export function DailyView({
                             bgOpacity = 0.7;
                             borderWidth = 3;
                             borderStyle = 'solid';
-                          } else if (isPast) {
-                            // Only fade confirmed bookings if they're in the past
+                          } else if (booking.status === 'in-progress') {
+                            // In-progress bookings should be very prominent
+                            bgOpacity = 1.0; // Full opacity
+                            borderWidth = 6; // Thicker border
+                            borderStyle = 'solid';
+                            textColor = 'text-white';
+                          } else if (isPast && booking.status !== 'in-progress') {
+                            // Only fade confirmed bookings if they're in the past AND not in-progress
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
@@ -821,7 +813,7 @@ export function DailyView({
                                   "cursor-pointer rounded relative z-20 overflow-hidden",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
-                                  booking.status === 'in-progress' && 'animate-[subtlePulse_8s_ease-in-out_infinite]',
+                                  booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -889,6 +881,11 @@ export function DailyView({
                                   {booking.status === 'optimistic' && (
                                     <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
                                       Creating...
+                                    </div>
+                                  )}
+                                  {booking.status === 'in-progress' && (
+                                    <div className="bg-teal-600 text-white text-sm font-bold px-3 py-1.5 rounded shadow-lg">
+                                      IN PROGRESS
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (

@@ -306,7 +306,16 @@ function BookingDetailsSlideOutComponent({
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     setIsStatusUpdating(true);
+    
+    // Close slideout after 1000ms for in-progress or completed status
+    if (newStatus === 'in-progress' || newStatus === 'completed') {
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    }
+    
     try {
+      // Status update happens in background
       await onStatusChange(bookingId, newStatus);
       
       // Refresh notifications after a delay to allow backend processing
@@ -332,13 +341,30 @@ function BookingDetailsSlideOutComponent({
   const handleProcessPayment = async (bookingId: string) => {
     setIsProcessingPayment(true);
     
+    // Set a timeout to open the modal within 1000ms regardless of order status
+    const timeoutId = setTimeout(() => {
+      // If order isn't ready yet, open with a loading state
+      if (!selectedOrderForPayment) {
+        setSelectedOrderForPayment({ 
+          id: `loading-${bookingId}`, 
+          isLoading: true,
+          totalAmount: booking.totalPrice || 0,
+          paidAmount: 0,
+          items: []
+        });
+      }
+      setPaymentDialogOpen(true);
+    }, 1000);
+    
     try {
       // Use the optimized prepareOrderForPayment endpoint
-      
       // This endpoint creates order if needed and returns all payment data in one call
       const paymentData = await apiClient.prepareOrderForPayment({
         bookingId: bookingId
       });
+      
+      // Clear the timeout if we got data before 1000ms
+      clearTimeout(timeoutId);
       
       if (!paymentData || !paymentData.order) {
         throw new Error('No order data received from payment preparation');
@@ -355,9 +381,13 @@ function BookingDetailsSlideOutComponent({
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
       
-      // Show the payment dialog with the loaded order
-      setPaymentDialogOpen(true);
+      // Show the payment dialog immediately if not already open
+      if (!paymentDialogOpen) {
+        setPaymentDialogOpen(true);
+      }
     } catch (error: any) {
+      // Clear the timeout on error
+      clearTimeout(timeoutId);
       
       // Close dialog on error
       setPaymentDialogOpen(false);
@@ -380,20 +410,7 @@ function BookingDetailsSlideOutComponent({
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
     
-    // Update the associated order state
-    setAssociatedOrder(updatedOrder);
-    
-    // Update the booking's payment status
-    await onPaymentStatusChange(booking.id, true);
-    
-    // Force refetch the order to ensure we have latest data
-    setOrderRefetchTrigger(prev => prev + 1);
-    
-    // Refresh notifications
-    setTimeout(() => {
-      refreshNotifications();
-    }, 2000);
-    
+    // Show success toast immediately
     toast({
       title: "Payment processed",
       description: `Payment for ${booking.customerName}'s booking has been processed successfully.`,
@@ -401,6 +418,24 @@ function BookingDetailsSlideOutComponent({
       className: "bg-green-50 border-green-200",
       duration: 5000,
     });
+    
+    // Close the booking slideout immediately (no delay)
+    onClose();
+    
+    // Process everything else in the background
+    // Update the associated order state
+    setAssociatedOrder(updatedOrder);
+    
+    // Update the booking's payment status in background
+    onPaymentStatusChange(booking.id, true);
+    
+    // Force refetch the order to ensure we have latest data
+    setOrderRefetchTrigger(prev => prev + 1);
+    
+    // Refresh notifications after a delay
+    setTimeout(() => {
+      refreshNotifications();
+    }, 2000);
   };
 
   return (

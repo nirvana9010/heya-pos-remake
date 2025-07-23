@@ -65,6 +65,8 @@ export interface MerchantSettings {
   cancellationNotification?: boolean;
   cancellationNotificationEmail?: boolean;
   cancellationNotificationSms?: boolean;
+  // Payment terminal settings
+  tyroEnabled: boolean;
 }
 
 export interface BusinessHours {

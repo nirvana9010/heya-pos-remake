@@ -688,7 +688,10 @@ function CalendarContent() {
             <Button
               className="bg-teal-600 hover:bg-teal-700 text-white"
               size="sm"
-              onClick={() => actions.openBookingSlideOut()}
+              onClick={() => {
+                setBookingSlideOutData(null);
+                actions.openBookingSlideOut();
+              }}
             >
               <Plus className="h-4 w-4 mr-1" />
               New Booking

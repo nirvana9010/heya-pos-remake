@@ -61,6 +61,7 @@ export default function SettingsPage() {
   const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
   const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] = useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
+  const [tyroEnabled, setTyroEnabled] = useState(merchantSettings.tyroEnabled ?? false);
   
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
@@ -143,6 +144,7 @@ export default function SettingsPage() {
         setCalendarEndHour(response.calendarEndHour ?? 23);
         setShowOnlyRosteredStaffDefault(response.showOnlyRosteredStaffDefault ?? true);
         setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
+        setTyroEnabled(response.tyroEnabled ?? false);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
@@ -249,6 +251,7 @@ export default function SettingsPage() {
         calendarEndHour,
         showOnlyRosteredStaffDefault,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
+        tyroEnabled,
       };
       
       await apiClient.put("/merchant/settings", updatedSettings);
@@ -1014,6 +1017,25 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Payment settings are managed through your payment provider configuration.
                   </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Tyro Payment Terminal</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Enable Tyro payment terminal integration
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={tyroEnabled} 
+                        onCheckedChange={setTyroEnabled}
+                        disabled={true}
+                      />
+                      <Badge variant="outline" className="text-amber-600">
+                        Coming Soon
+                      </Badge>
+                    </div>
+                  </div>
                 {/* Require Deposit setting hidden - not currently functional
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
