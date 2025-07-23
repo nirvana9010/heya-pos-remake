@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Phone, User, Mail, AlertCircle, Calendar, Clock, 
-  CheckCircle2, Sparkles, UserCheck, ArrowRight
+  CheckCircle2, CheckCircle, Sparkles, UserCheck, ArrowRight
 } from 'lucide-react';
 import { Button } from '@heya-pos/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
@@ -13,6 +13,7 @@ import { Label } from '@heya-pos/ui';
 import { RadioGroup, RadioGroupItem } from '@heya-pos/ui';
 import { Textarea } from '@heya-pos/ui';
 import { Alert, AlertDescription } from '@heya-pos/ui';
+import { Badge } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -329,21 +330,63 @@ export default function CheckInPageClient() {
                       {todayBookings.map((booking) => (
                         <div 
                           key={booking.id}
-                          className="bg-gray-50 rounded-lg p-4 flex items-center justify-between"
+                          className="bg-gray-50 rounded-lg p-4"
                         >
-                          <div>
-                            <p className="font-semibold text-lg">{booking.serviceName}</p>
-                            <p className="text-gray-600">with {booking.staffName}</p>
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="font-semibold text-lg">{booking.serviceName}</p>
+                              <p className="text-gray-600">with {booking.staffName}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {booking.startTime} - {booking.endTime}
+                              </p>
+                              {booking.status === 'IN_PROGRESS' && (
+                                <Badge className="mt-1 bg-teal-100 text-teal-800">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  In Progress
+                                </Badge>
+                              )}
+                              {booking.status === 'CONFIRMED' && (
+                                <Badge className="mt-1" variant="secondary">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Confirmed
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {booking.startTime} - {booking.endTime}
-                            </p>
-                            <p className="text-sm text-green-600 font-medium">
-                              {booking.status}
-                            </p>
-                          </div>
+                          {booking.status === 'CONFIRMED' && (
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  await bookingApi.checkInBooking(booking.id);
+                                  toast({
+                                    title: 'Checked In!',
+                                    description: `Your appointment has started.`,
+                                  });
+                                  // Update the local state
+                                  setTodayBookings(prev => 
+                                    prev.map(b => 
+                                      b.id === booking.id 
+                                        ? { ...b, status: 'IN_PROGRESS' } 
+                                        : b
+                                    )
+                                  );
+                                } catch (error) {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to check in. Please see our staff.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                              size="lg"
+                              className="w-full bg-teal-600 hover:bg-teal-700"
+                            >
+                              CHECK IN
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>

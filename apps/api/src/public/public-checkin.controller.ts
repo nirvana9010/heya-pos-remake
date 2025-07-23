@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Query,
+  Param,
   Headers,
   HttpCode,
   HttpStatus,
@@ -78,6 +79,54 @@ export class PublicCheckInController {
     }
 
     return merchant;
+  }
+
+  @Post('customers/lookup')
+  @HttpCode(HttpStatus.OK)
+  async lookupCustomer(
+    @Body() dto: { email?: string; phone?: string },
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+
+    if (!dto.phone && !dto.email) {
+      throw new BadRequestException('Phone or email is required');
+    }
+
+    // Clean phone number if provided
+    const cleanedPhone = dto.phone ? dto.phone.replace(/\D/g, '') : undefined;
+
+    // Try to find existing customer
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        merchantId: merchant.id,
+        OR: [
+          ...(cleanedPhone ? [
+            { phone: cleanedPhone },
+            { mobile: cleanedPhone },
+          ] : []),
+          ...(dto.email ? [{ email: dto.email }] : []),
+        ],
+      },
+    });
+
+    if (customer) {
+      return {
+        found: true,
+        customer: {
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName || '',
+          email: customer.email || '',
+          phone: customer.phone || customer.mobile || '',
+        },
+      };
+    }
+
+    return {
+      found: false,
+    };
   }
 
   @Post('checkin')
@@ -239,5 +288,46 @@ export class PublicCheckInController {
         status: booking.status,
       };
     });
+  }
+
+  @Post('bookings/:bookingId/checkin')
+  @HttpCode(HttpStatus.OK)
+  async checkInBooking(
+    @Param('bookingId') bookingId: string,
+    @Query('subdomain') subdomain?: string,
+    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+
+    // Find and update the booking
+    const booking = await this.prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        merchantId: merchant.id,
+      },
+    });
+
+    if (!booking) {
+      throw new BadRequestException('Booking not found');
+    }
+
+    // Update booking status to IN_PROGRESS
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'IN_PROGRESS',
+        updatedAt: new Date(),
+      },
+    });
+
+    console.log(`[CHECK-IN] Booking ${bookingId} marked as IN_PROGRESS`);
+
+    return {
+      success: true,
+      booking: {
+        id: updatedBooking.id,
+        status: updatedBooking.status,
+      },
+    };
   }
 }
