@@ -29,7 +29,9 @@ import { Separator } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { 
   ChevronLeft, 
-  ChevronRight, 
+  ChevronRight,
+  ChevronUp,
+  ChevronDown, 
   CalendarDays, 
   Home, 
   Plus,
@@ -65,7 +67,7 @@ function CalendarContent() {
   const { state, actions } = useCalendar();
   const { toast } = useToast();
   const { merchant } = useAuth();
-  const { refreshNotifications } = useNotifications();
+  const { notifications, refreshNotifications } = useNotifications();
   const { staff: bookingContextStaff } = useBooking();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
@@ -86,6 +88,134 @@ function CalendarContent() {
     }
   }, [bookingContextStaff, actions]);
   
+  // Development logging helper
+  const addActivityLog = React.useCallback((type: 'event' | 'api' | 'state' | 'error', message: string, detail?: any) => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    setActivityLog(prev => {
+      const newLog = {
+        timestamp: new Date().toLocaleTimeString(),
+        type,
+        message,
+        detail
+      };
+      // Keep only last 50 logs
+      return [newLog, ...prev].slice(0, 50);
+    });
+  }, []);
+  
+  // Listen for booking events in development
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    const handleBookingEvent = (event: CustomEvent) => {
+      addActivityLog('event', `Booking event received: ${event.detail.type}`, event.detail);
+      addActivityLog('state', `Note: Calendar hooks should now refresh automatically`);
+    };
+    
+    const handleFetchBookings = (event: CustomEvent) => {
+      addActivityLog('api', `fetchBookings() was called`, event.detail);
+    };
+    
+    window.addEventListener('booking-updated', handleBookingEvent as any);
+    window.addEventListener('calendar-fetch-bookings', handleFetchBookings as any);
+    
+    return () => {
+      window.removeEventListener('booking-updated', handleBookingEvent as any);
+      window.removeEventListener('calendar-fetch-bookings', handleFetchBookings as any);
+    };
+  }, [addActivityLog]);
+  
+  // Log when calendar refreshes
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      if (isRefreshing) {
+        addActivityLog('api', 'Calendar refresh started');
+      }
+    }
+  }, [isRefreshing, addActivityLog]);
+  
+  // Log when calendar is loading
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      if (isLoading) {
+        addActivityLog('api', 'Calendar loading started');
+      }
+    }
+  }, [isLoading, addActivityLog]);
+  
+  // Log when bookings change
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && state.bookings.length > 0) {
+      addActivityLog('state', `Bookings updated: ${state.bookings.length} bookings loaded`);
+    }
+  }, [state.bookings.length, addActivityLog]);
+  
+  // Log notification polling - with detailed info
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const unreadCount = notifications.filter(n => !n.read).length;
+      const bookingNotifications = notifications.filter(n => 
+        !n.read && (n.type === 'booking_new' || n.type === 'booking_modified')
+      );
+      
+      // Log basic poll info
+      addActivityLog('state', `Notifications polled: ${unreadCount} unread, ${bookingNotifications.length} booking-related`);
+      
+      // Log details of unread booking notifications
+      bookingNotifications.forEach(n => {
+        addActivityLog('state', `Unread booking notification:`, {
+          id: n.id,
+          type: n.type,
+          bookingId: n.metadata?.bookingId,
+          title: n.title,
+          createdAt: n.timestamp
+        });
+      });
+    }
+  }, [notifications, addActivityLog]);
+  
+  // Refresh calendar when we detect new booking notifications
+  const prevBookingNotificationIds = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    const bookingNotifications = notifications.filter(n => 
+      !n.read && (n.type === 'booking_new' || n.type === 'booking_modified') && n.metadata?.bookingId
+    );
+    
+    // Log what we're seeing
+    addActivityLog('state', `Checking for new booking notifications. Current: ${bookingNotifications.length}, Previously seen: ${prevBookingNotificationIds.current.size}`);
+    
+    // Check if there are any new booking notifications
+    const newNotifications = bookingNotifications.filter(n => 
+      !prevBookingNotificationIds.current.has(n.id)
+    );
+    
+    if (newNotifications.length > 0) {
+      addActivityLog('state', `Found ${newNotifications.length} new booking notifications!`);
+      
+      if (!isLoading && !isRefreshing) {
+        addActivityLog('api', 'New booking notification detected - calling refresh()');
+        refresh();
+      } else {
+        addActivityLog('state', `Skipping refresh - isLoading: ${isLoading}, isRefreshing: ${isRefreshing}`);
+      }
+    }
+    
+    // Update the set of seen notification IDs
+    prevBookingNotificationIds.current = new Set(bookingNotifications.map(n => n.id));
+  }, [notifications, refresh, isLoading, isRefreshing, addActivityLog]);
+  
+  // Add a simple polling indicator
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    const interval = setInterval(() => {
+      addActivityLog('state', '⏰ Polling interval tick (expecting notification update every 10s)');
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [addActivityLog]);
+  
   // Drag state
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -105,6 +235,15 @@ function CalendarContent() {
     time: string;
     staffId: string | null;
   } | null>(null);
+  
+  // Development activity log
+  const [activityLog, setActivityLog] = React.useState<Array<{
+    timestamp: string;
+    type: 'event' | 'api' | 'state' | 'error';
+    message: string;
+    detail?: any;
+  }>>([]);
+  const [isActivityLogMinimized, setIsActivityLogMinimized] = React.useState(false);
   
   // Memoize the initial time to prevent infinite renders
   const initialTime = React.useMemo(() => {
@@ -352,6 +491,7 @@ function CalendarContent() {
           paymentStatus: 'pending',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          _isOptimistic: true, // Add flag to identify optimistic bookings
         };
         actions.addBooking(transformedOptimistic);
         return; // Don't do anything else for optimistic updates
@@ -677,7 +817,10 @@ function CalendarContent() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refresh}
+                onClick={() => {
+                  addActivityLog('api', 'Manual refresh triggered');
+                  refresh();
+                }}
                 disabled={isRefreshing}
                 title="Manually refresh calendar"
               >
@@ -1198,6 +1341,84 @@ function CalendarContent() {
         );
       })()}
       </div>
+      
+      {/* Development Activity Log */}
+      {process.env.NODE_ENV === 'development' && false && (
+        <>
+          {/* Minimized State */}
+          {isActivityLogMinimized ? (
+            <div className="fixed bottom-4 right-4 z-50">
+              <button
+                onClick={() => setIsActivityLogMinimized(false)}
+                className="bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
+              >
+                <ChevronUp className="h-4 w-4" />
+                Activity Log ({activityLog.length})
+              </button>
+            </div>
+          ) : (
+            /* Expanded State */
+            <div className="fixed bottom-4 right-4 w-96 max-h-96 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center">
+                <h3 className="text-sm font-semibold">Calendar Activity Log</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActivityLog([])}
+                    className="text-xs hover:text-gray-300"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setIsActivityLogMinimized(true)}
+                    className="hover:text-gray-300"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-y-auto max-h-80 p-2 space-y-1 bg-gray-50">
+                {activityLog.length === 0 ? (
+                  <div className="text-sm text-gray-500 text-center py-4">No activity yet</div>
+                ) : (
+                  activityLog.map((log, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "text-xs p-2 rounded border",
+                        log.type === 'event' && "bg-blue-50 border-blue-200",
+                        log.type === 'api' && "bg-green-50 border-green-200",
+                        log.type === 'state' && "bg-yellow-50 border-yellow-200",
+                        log.type === 'error' && "bg-red-50 border-red-200"
+                      )}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <span className="font-mono text-gray-500">{log.timestamp}</span>
+                          <span className={cn(
+                            "ml-2 font-semibold",
+                            log.type === 'event' && "text-blue-700",
+                            log.type === 'api' && "text-green-700",
+                            log.type === 'state' && "text-yellow-700",
+                            log.type === 'error' && "text-red-700"
+                          )}>
+                            [{log.type.toUpperCase()}]
+                          </span>
+                          <div className="mt-1">{log.message}</div>
+                          {log.detail && (
+                            <div className="mt-1 text-gray-600 font-mono text-xs">
+                              {JSON.stringify(log.detail, null, 2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
       
     </TooltipProvider>
   );

@@ -29,11 +29,7 @@ class ApiClient {
     if (endpoint.startsWith('/v1/') || endpoint.startsWith('/v2/') || endpoint.startsWith('http')) {
       return endpoint;
     }
-    // Don't add version prefix for public endpoints
-    if (endpoint.startsWith('/public/')) {
-      return endpoint;
-    }
-    // Add v1 as default version
+    // Add v1 as default version (including public endpoints)
     return `/v1${endpoint}`;
   }
 

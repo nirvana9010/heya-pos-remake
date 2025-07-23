@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Phone, User, Mail, AlertCircle, Calendar, Clock, 
-  CheckCircle2, CheckCircle, Sparkles, UserCheck, ArrowRight
+  CheckCircle2, CheckCircle, Sparkles, UserCheck, ArrowRight, Home
 } from 'lucide-react';
 import { Button } from '@heya-pos/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
@@ -60,6 +60,8 @@ export default function CheckInPageClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [todayBookings, setTodayBookings] = useState<TodayBooking[]>([]);
+  const [originalCustomerData, setOriginalCustomerData] = useState<CustomerData | null>(null);
+  const [hasEditedDetails, setHasEditedDetails] = useState(false);
   
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: '',
@@ -104,7 +106,7 @@ export default function CheckInPageClient() {
       
       if (lookupResult.found && lookupResult.customer) {
         // Customer found - pre-fill form
-        setCustomerData({
+        const existingCustomer = {
           id: lookupResult.customer.id,
           firstName: lookupResult.customer.firstName,
           lastName: lookupResult.customer.lastName || '',
@@ -112,7 +114,10 @@ export default function CheckInPageClient() {
           email: lookupResult.customer.email || '',
           // allergies: '', // Will be filled from check-in data
           // referralSource: '', // Will be filled from check-in data
-        });
+        };
+        setCustomerData(existingCustomer);
+        setOriginalCustomerData(existingCustomer);
+        setHasEditedDetails(false);
         
         // Fetch today's bookings for this customer
         try {
@@ -161,7 +166,42 @@ export default function CheckInPageClient() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleUpdateDetails = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Submit check-in/update
+      const result = await bookingApi.checkIn({
+        phone: customerData.phone,
+        firstName: customerData.firstName,
+        lastName: customerData.lastName || undefined,
+        email: customerData.email || undefined,
+      });
+      
+      if (result.success) {
+        toast({
+          title: 'Details Updated!',
+          description: 'Your information has been updated successfully.',
+        });
+        
+        // Reset edit tracking
+        setHasEditedDetails(false);
+        setOriginalCustomerData(customerData);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Unable to update details. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCheckIn = async () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -173,9 +213,6 @@ export default function CheckInPageClient() {
         firstName: customerData.firstName,
         lastName: customerData.lastName || undefined,
         email: customerData.email || undefined,
-        // allergies: customerData.allergies || undefined,
-        // specialRequirements: customerData.allergies || undefined, // Using allergies field for both
-        // referralSource: customerData.referralSource || undefined,
       });
       
       if (result.success) {
@@ -200,10 +237,10 @@ export default function CheckInPageClient() {
             lastName: '',
             phone: '',
             email: '',
-            // allergies: '',
-            // referralSource: '',
           });
           setTodayBookings([]);
+          setOriginalCustomerData(null);
+          setHasEditedDetails(false);
         }, 5000);
       }
     } catch (error) {
@@ -366,13 +403,34 @@ export default function CheckInPageClient() {
                                     description: `Your appointment has started.`,
                                   });
                                   // Update the local state
-                                  setTodayBookings(prev => 
-                                    prev.map(b => 
-                                      b.id === booking.id 
-                                        ? { ...b, status: 'IN_PROGRESS' } 
-                                        : b
-                                    )
+                                  const updatedBookings = todayBookings.map(b => 
+                                    b.id === booking.id 
+                                      ? { ...b, status: 'IN_PROGRESS' } 
+                                      : b
                                   );
+                                  setTodayBookings(updatedBookings);
+                                  
+                                  // Check if all bookings are now checked in
+                                  const allCheckedIn = updatedBookings.every(b => b.status !== 'CONFIRMED');
+                                  if (allCheckedIn) {
+                                    setTimeout(() => {
+                                      setStep('success');
+                                      // Auto-return to home after 5 seconds
+                                      setTimeout(() => {
+                                        setStep('phone');
+                                        setPhoneNumber('');
+                                        setCustomerData({
+                                          firstName: '',
+                                          lastName: '',
+                                          phone: '',
+                                          email: '',
+                                        });
+                                        setTodayBookings([]);
+                                        setOriginalCustomerData(null);
+                                        setHasEditedDetails(false);
+                                      }, 5000);
+                                    }, 500); // Small delay for better UX
+                                  }
                                 } catch (error) {
                                   toast({
                                     title: 'Error',
@@ -415,7 +473,12 @@ export default function CheckInPageClient() {
                       <Input
                         id="firstName"
                         value={customerData.firstName}
-                        onChange={(e) => setCustomerData({ ...customerData, firstName: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, firstName: e.target.value });
+                          if (originalCustomerData && e.target.value !== originalCustomerData.firstName) {
+                            setHasEditedDetails(true);
+                          }
+                        }}
                         className={cn(
                           "text-lg py-3",
                           errors.firstName && "border-red-500"
@@ -433,7 +496,12 @@ export default function CheckInPageClient() {
                       <Input
                         id="lastName"
                         value={customerData.lastName}
-                        onChange={(e) => setCustomerData({ ...customerData, lastName: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, lastName: e.target.value });
+                          if (originalCustomerData && e.target.value !== originalCustomerData.lastName) {
+                            setHasEditedDetails(true);
+                          }
+                        }}
                         className="text-lg py-3"
                         placeholder="Doe"
                       />
@@ -461,7 +529,12 @@ export default function CheckInPageClient() {
                         id="email"
                         type="email"
                         value={customerData.email}
-                        onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, email: e.target.value });
+                          if (originalCustomerData && e.target.value !== originalCustomerData.email) {
+                            setHasEditedDetails(true);
+                          }
+                        }}
                         className={cn(
                           "text-lg py-3",
                           errors.email && "border-red-500"
@@ -490,21 +563,44 @@ export default function CheckInPageClient() {
                     >
                       Back
                     </Button>
-                    <Button
-                      size="lg"
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
-                      {isSubmitting ? (
-                        <span className="flex items-center gap-2">
-                          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                          Checking in...
-                        </span>
-                      ) : (
-                        'Check In'
-                      )}
-                    </Button>
+                    {/* Update Details button - shows when details have been edited */}
+                    {hasEditedDetails && (
+                      <Button
+                        size="lg"
+                        onClick={handleUpdateDetails}
+                        disabled={isSubmitting}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <div className="animate-spin h-5 w-5 border-2 border-gray-600 border-t-transparent rounded-full" />
+                            Updating...
+                          </span>
+                        ) : (
+                          'Update Details'
+                        )}
+                      </Button>
+                    )}
+                    
+                    {/* Check In button - shows when customer has no bookings */}
+                    {todayBookings.length === 0 && (
+                      <Button
+                        size="lg"
+                        onClick={handleCheckIn}
+                        disabled={isSubmitting}
+                        className="flex-1 bg-teal-600 hover:bg-teal-700"
+                      >
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                            Checking in...
+                          </span>
+                        ) : (
+                          'Check In'
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -550,8 +646,29 @@ export default function CheckInPageClient() {
                     </Alert>
                   )}
 
-                  <p className="text-sm text-gray-500">
-                    This page will reset in a few seconds...
+                  <Button
+                    size="lg"
+                    onClick={() => {
+                      setStep('phone');
+                      setPhoneNumber('');
+                      setCustomerData({
+                        firstName: '',
+                        lastName: '',
+                        phone: '',
+                        email: '',
+                      });
+                      setTodayBookings([]);
+                      setOriginalCustomerData(null);
+                      setHasEditedDetails(false);
+                    }}
+                    className="mt-6"
+                  >
+                    <Home className="h-5 w-5 mr-2" />
+                    Return Home
+                  </Button>
+
+                  <p className="text-sm text-gray-500 mt-4">
+                    This page will reset automatically in a few seconds...
                   </p>
                 </CardContent>
               </Card>

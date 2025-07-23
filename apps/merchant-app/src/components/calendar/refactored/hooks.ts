@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCalendar } from './CalendarProvider';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
@@ -23,6 +23,13 @@ export function useCalendarData() {
   
   // Fetch bookings for current date range
   const fetchBookings = useCallback(async () => {
+    // Dispatch event for logging
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('calendar-fetch-bookings', {
+        detail: { timestamp: new Date().toISOString() }
+      }));
+    }
+    
     try {
       actions.setLoading(true);
       
@@ -94,9 +101,9 @@ export function useCalendarData() {
         };
       });
       
-      
       actions.setBookings(transformedBookings);
     } catch (error) {
+      console.error('Failed to fetch bookings:', error);
       actions.setError('Failed to load bookings');
       toast({
         title: 'Error',
@@ -106,7 +113,14 @@ export function useCalendarData() {
     } finally {
       actions.setLoading(false);
     }
-  }, [state.dateRange, actions, toast]);
+  }, [state.dateRange, state.currentView, actions, toast]);
+  
+  // Keep a ref to the latest fetchBookings function
+  const fetchBookingsRef = useRef(fetchBookings);
+  useEffect(() => {
+    fetchBookingsRef.current = fetchBookings;
+  }, [fetchBookings]);
+  
   
   // Fetch staff data
   const fetchStaff = useCallback(async () => {
@@ -256,67 +270,111 @@ export function useCalendarData() {
     fetchBookings();
   }, [fetchBookings]);
   
-  // Smart refresh: Multiple strategies for keeping calendar up-to-date
+  // Listen for booking events from other tabs/windows
   useEffect(() => {
-    let lastFetchTime = Date.now();
-    const MIN_REFRESH_INTERVAL = 30000; // 30 seconds minimum between refreshes
-    
-    // Strategy 1: Refresh when window regains focus
-    const handleFocus = () => {
-      const timeSinceLastFetch = Date.now() - lastFetchTime;
-      
-      // Only refresh if:
-      // 1. At least 30 seconds have passed since last fetch
-      // 2. Not currently loading or refreshing
-      // 3. Calendar is visible
-      if (timeSinceLastFetch > MIN_REFRESH_INTERVAL && 
-          !state.isRefreshing && 
-          !state.isLoading) {
-        fetchBookings();
-        lastFetchTime = Date.now();
-      }
-    };
-    
-    // Also refresh when visibility changes (tab switching)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleFocus();
-      }
-    };
-    
-    // Strategy 2: Listen for booking events from other tabs/windows
     const unsubscribe = bookingEvents.subscribe((event) => {
-      
-      // Log current state before refresh
-      
-      // Refresh if a booking was created or updated from ANY source
-      // This ensures immediate UI updates when SSE events arrive
-      if (event.type === 'booking_created' || event.type === 'booking_updated') {
+      // Refresh if a booking was created or updated from another tab
+      // BUT only if no slideouts are open
+      if ((event.type === 'booking_created' || event.type === 'booking_updated') &&
+          !state.isBookingSlideOutOpen &&
+          !state.isDetailsSlideOutOpen) {
         // Small delay to ensure database is updated
         setTimeout(() => {
-          if (!state.isRefreshing && !state.isLoading) {
-            fetchBookings();
-            lastFetchTime = Date.now();
-          } else {
-          }
-        }, 500); // Reduced delay for faster updates
+          fetchBookingsRef.current();
+        }, 500);
       }
     });
     
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       unsubscribe();
     };
-  }, [fetchBookings, state.isRefreshing, state.isLoading]);
+  }, [state.isBookingSlideOutOpen, state.isDetailsSlideOutOpen]);
   
-  // Real-time updates have been removed. Calendar will update via:
-  // 1. Manual refresh button
-  // 2. Focus/visibility events (when tab becomes active)
-  // 3. Cross-tab communication via bookingEvents service
+  // Fetch a single booking and add/update it in the calendar
+  const fetchSingleBooking = useCallback(async (bookingId: string) => {
+    try {
+      console.log('[Calendar] Fetching single booking:', bookingId);
+      const booking = await apiClient.getBooking(bookingId);
+      console.log('[Calendar] Fetched booking:', booking);
+      
+      // Transform booking to calendar format
+      const startTime = new Date(booking.startTime);
+      const date = format(startTime, 'yyyy-MM-dd');
+      const time = format(startTime, 'HH:mm');
+      
+      const transformedBooking = {
+        id: booking.id,
+        date,
+        time,
+        duration: booking.duration || booking.totalDuration || 60,
+        status: booking.status ? 
+          ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
+           booking.status.toLowerCase().replace(/_/g, '-')) : 
+          'confirmed',
+        
+        // Customer info
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        customerEmail: booking.customerEmail,
+        
+        // Service info
+        serviceId: booking.serviceId,
+        serviceName: booking.serviceName,
+        servicePrice: booking.servicePrice,
+        
+        // Staff info
+        staffId: booking.staffId || 
+                 booking.providerId || 
+                 (booking.provider?.id) || 
+                 (booking.providerId && booking.providerId !== '') ? booking.providerId : null,
+        staffName: booking.staffName || booking.providerName || 'Unassigned',
+        
+        // Additional fields
+        notes: booking.notes,
+        internalNotes: booking.internalNotes,
+        paymentStatus: booking.paymentStatus,
+        isPaid: booking.isPaid,
+        paidAmount: booking.paidAmount,
+        
+        // Timestamps
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+        completedAt: booking.completedAt,
+      };
+      
+      // Check if booking already exists
+      const existingBookingIndex = state.bookings.findIndex(b => b.id === bookingId);
+      
+      if (existingBookingIndex >= 0) {
+        actions.dispatch({ type: 'UPDATE_BOOKING', payload: { id: bookingId, updates: transformedBooking } });
+      } else {
+        actions.dispatch({ type: 'ADD_BOOKING', payload: transformedBooking });
+      }
+      
+      return transformedBooking;
+    } catch (error) {
+      console.error('Failed to fetch single booking:', error);
+      // Fall back to full refresh if single booking fetch fails
+      fetchBookingsRef.current();
+    }
+  }, [state.bookings, actions]);
+  
+  // Listen for booking update events from notifications
+  useEffect(() => {
+    const handleBookingUpdate = (event: CustomEvent) => {
+      // When we get a booking update event, just refresh the calendar
+      // Don't check loading state - just call refresh
+      fetchBookingsRef.current();
+    };
+    
+    window.addEventListener('booking-updated', handleBookingUpdate as any);
+    
+    return () => {
+      window.removeEventListener('booking-updated', handleBookingUpdate as any);
+    };
+  }, []);
+  
   
   // Refresh function
   const refresh = useCallback(async () => {

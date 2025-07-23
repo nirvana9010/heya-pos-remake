@@ -238,7 +238,7 @@ class BookingApi {
     return response;
   }
 
-  // Get today's bookings for a customer
+  // Get confirmed bookings for a customer
   async getTodaysBookings(customerId: string): Promise<{
     bookings: Array<{
       id: string;
@@ -250,10 +250,16 @@ class BookingApi {
       status: string;
     }>;
   }> {
-    const response = await apiClient.get('/public/bookings/today', {
-      params: { customerId }
-    });
-    return response;
+    try {
+      // Use the public endpoint that doesn't require authentication
+      const response = await apiClient.get(`/public/customers/${customerId}/bookings`);
+      
+      // The response already has the correct format from the API
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+      return { bookings: [] };
+    }
   }
 
   // Check in a booking (mark as in progress)

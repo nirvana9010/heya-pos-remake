@@ -87,6 +87,14 @@ export const cacheConfigs: Record<string, CacheConfig> = {
   'auth': {
     ttl: 0, // No cache for auth endpoints
   },
+  
+  'notifications': {
+    ttl: 0, // No cache for notifications - must be real-time
+  },
+  
+  'merchant/notifications': {
+    ttl: 0, // No cache for notifications - must be real-time
+  },
 };
 
 // Default cache config
@@ -136,6 +144,11 @@ export function generateCacheKey(endpoint: string, params?: any): string {
       .map(k => `${k}:${params[k]}`)
       .join(',');
     key.push(sortedParams);
+  }
+  
+  // Add timestamp to force cache busting in development
+  if (process.env.NODE_ENV === 'development') {
+    key.push(`_t:${Date.now()}`);
   }
   
   return key.join('?');

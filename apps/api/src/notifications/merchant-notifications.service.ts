@@ -34,7 +34,7 @@ export class MerchantNotificationsService {
       },
     });
 
-    // Emit event for real-time SSE notifications
+    // Emit event for potential real-time updates (not currently used)
     this.eventEmitter.emit('notification.created', {
       merchantId,
       notification,
@@ -47,6 +47,7 @@ export class MerchantNotificationsService {
     skip?: number;
     take?: number;
     unreadOnly?: boolean;
+    since?: Date | string;
   }) {
     const where: Prisma.MerchantNotificationWhereInput = {
       merchantId,
@@ -54,6 +55,13 @@ export class MerchantNotificationsService {
 
     if (params?.unreadOnly) {
       where.read = false;
+    }
+
+    // Only fetch notifications created after the specified timestamp
+    if (params?.since) {
+      where.createdAt = {
+        gt: new Date(params.since),
+      };
     }
 
     const [notifications, total] = await Promise.all([
@@ -65,6 +73,7 @@ export class MerchantNotificationsService {
       }),
       this.prisma.merchantNotification.count({ where }),
     ]);
+    
 
     return {
       data: notifications,
