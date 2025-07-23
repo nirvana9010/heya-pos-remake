@@ -36,6 +36,8 @@ import { CreditCard, DollarSign, Percent, Plus, Minus, X, ChevronUp, ChevronDown
 import { apiClient } from '@/lib/api-client';
 import { useToast, cn } from '@heya-pos/ui';
 import { LoyaltyRedemption } from './LoyaltyRedemption';
+import { useAuth } from '@/lib/auth/auth-provider';
+import { isWalkInCustomer } from '@/lib/constants/customer';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -59,6 +61,7 @@ export function PaymentDialog({
   onLoyaltyUpdate,
 }: PaymentDialogProps) {
   const { toast } = useToast();
+  const { merchant } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [cashReceived, setCashReceived] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -71,6 +74,9 @@ export function PaymentDialog({
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
+  
+  // Check if Tyro is enabled
+  const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
 
   const handleLoyaltyRedemption = useCallback((amount: number, description: string) => {
     setLoyaltyDiscount({ amount, description });
@@ -133,6 +139,35 @@ export function PaymentDialog({
 
     setProcessing(true);
 
+    // For cash payments (or when Tyro is disabled), apply optimistic updates
+    const isOptimisticPayment = paymentMethod === PaymentMethod.CASH || 
+                               (paymentMethod === PaymentMethod.CARD && !isTyroEnabled);
+
+    if (isOptimisticPayment) {
+      // Create optimistic order update
+      const optimisticOrder = {
+        ...order,
+        state: OrderState.COMPLETED,
+        paidAmount: (order?.paidAmount || 0) + balanceDue + tipAmount,
+        totalAmount: (order?.totalAmount || 0) + tipAmount,
+      };
+
+      // Call onPaymentComplete immediately with optimistic data
+      // This will close the booking slideout immediately
+      onPaymentComplete?.(optimisticOrder);
+
+      // Show success toast with change amount if applicable
+      toast({
+        title: 'Payment successful',
+        description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
+      });
+
+      // Close payment dialog after a very short delay (300ms for smooth animation)
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 300);
+    }
+
     try {
       let result;
 
@@ -159,6 +194,16 @@ export function PaymentDialog({
             cashReceived: parseFloat(cashReceived) || totalWithTip,
           } : undefined,
         };
+        
+        // Log payment details for debugging
+        console.log('Processing payment with:', {
+          orderId: order.id,
+          amount: balanceDue,
+          loyaltyDiscount: loyaltyDiscount,
+          customer: customer,
+          orderTotal: order?.totalAmount,
+          paidAmount: order?.paidAmount
+        });
 
         if (paymentMethod === PaymentMethod.CARD) {
           // For card payments, we'd integrate with payment terminal here
@@ -169,46 +214,103 @@ export function PaymentDialog({
         result = await apiClient.processPayment(paymentData);
       }
 
-      toast({
-        title: 'Payment successful',
-        description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
-      });
+      // If not optimistic, show success after API response
+      if (!isOptimisticPayment) {
+        toast({
+          title: 'Payment successful',
+          description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
+        });
+      }
 
-      // Refresh order data
+      // Refresh order data in the background
       const finalOrder = await apiClient.getOrder(order.id);
       
       // Handle loyalty redemption after successful payment
-      if (loyaltyDiscount.amount > 0 && customer) {
-        try {
-          const isPercentage = loyaltyDiscount.description.includes('%');
-          
-          if (isPercentage || loyaltyDiscount.description.includes('Free Service')) {
-            // Visit-based redemption
-            await apiClient.loyalty.redeemVisit(customer.id, order.id);
-          } else {
-            // Points-based redemption - extract points from description
-            const pointsMatch = loyaltyDiscount.description.match(/\((\d+) points\)/);
-            if (pointsMatch) {
-              const points = parseInt(pointsMatch[1]);
-              await apiClient.loyalty.redeemPoints(customer.id, points, order.id);
+      if (loyaltyDiscount.amount > 0) {
+        if (!customer || !customer.id) {
+          console.error('Loyalty redemption failed: Customer data is missing', {
+            customer,
+            loyaltyDiscount,
+            orderId: order.id
+          });
+          toast({
+            title: 'Loyalty redemption failed',
+            description: 'Customer information is missing. Payment was successful but loyalty discount was not applied.',
+            variant: 'warning',
+          });
+        } else if (isWalkInCustomer(customer.id) || customer.source === 'WALK_IN') {
+          console.error('Loyalty redemption failed: Walk-in customers cannot use loyalty', {
+            customer,
+            loyaltyDiscount,
+            orderId: order.id
+          });
+          toast({
+            title: 'Loyalty not available',
+            description: 'Walk-in customers cannot use loyalty rewards.',
+            variant: 'warning',
+          });
+        } else {
+          try {
+            const isPercentage = loyaltyDiscount.description.includes('%');
+            
+            if (isPercentage || loyaltyDiscount.description.includes('Free Service')) {
+              // Visit-based redemption
+              await apiClient.loyalty.redeemVisit(customer.id, order.id);
+            } else {
+              // Points-based redemption - extract points from description
+              const pointsMatch = loyaltyDiscount.description.match(/\((\d+) points\)/);
+              if (pointsMatch) {
+                const points = parseInt(pointsMatch[1]);
+                await apiClient.loyalty.redeemPoints(customer.id, points, order.id);
+              }
             }
+          } catch (error: any) {
+            console.error('Failed to redeem loyalty after payment:', {
+              message: error?.message || 'Unknown error',
+              status: error?.status,
+              code: error?.code,
+              details: error?.data,
+              fullError: error
+            });
+            
+            // Show user-friendly error message
+            const errorMessage = error?.message || 'Failed to redeem loyalty reward';
+            toast({
+              title: 'Loyalty Redemption Failed',
+              description: `Payment was successful, but the loyalty reward could not be applied: ${errorMessage}. The customer keeps their loyalty benefit for next time.`,
+              variant: 'destructive',
+            });
+            
+            // Payment already succeeded, so we don't fail the whole operation
+            // The customer keeps their loyalty benefit for next time
           }
-        } catch (error) {
-          console.error('Failed to redeem loyalty after payment:', error);
-          // Payment already succeeded, so we don't fail the whole operation
-          // The customer keeps their loyalty benefit for next time
         }
       }
       
-      onPaymentComplete?.(finalOrder);
-      onOpenChange(false);
+      // Only update if not already closed by optimistic update
+      if (!isOptimisticPayment) {
+        onPaymentComplete?.(finalOrder);
+        onOpenChange(false);
+      }
 
     } catch (error: any) {
-      toast({
-        title: 'Payment failed',
-        description: error.response?.data?.message || error.message,
-        variant: 'destructive',
-      });
+      // If optimistic update failed, show error and revert
+      if (isOptimisticPayment) {
+        // Dialog is already closed, show error toast
+        toast({
+          title: 'Payment failed',
+          description: error.response?.data?.message || error.message,
+          variant: 'destructive',
+        });
+        
+        // Optionally reopen dialog or handle error recovery
+      } else {
+        toast({
+          title: 'Payment failed',
+          description: error.response?.data?.message || error.message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setProcessing(false);
     }

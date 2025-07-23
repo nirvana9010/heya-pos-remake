@@ -51,6 +51,8 @@ export interface MerchantSettings {
   allowWalkInBookings: boolean;
   // Import settings
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
+  // Payment terminal settings
+  tyroEnabled: boolean;
 }
 
 export enum MerchantStatus {

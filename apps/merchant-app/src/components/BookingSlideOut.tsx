@@ -162,24 +162,21 @@ export function BookingSlideOut({
     const wasClosedNowOpen = !prevIsOpenRef.current && isOpen;
     const wasOpenNowClosed = prevIsOpenRef.current && !isOpen;
     
-    if (wasClosedNowOpen && !hasInitializedRef.current) {
-      
-      // Only reset if we don't have services selected (prevent accidental reset)
-      if (selectedServices.length === 0) {
-        // Reset form when opening
-        setDate(initialDate || defaultDate);
-        setTime(initialTime || defaultTime);
-        setSelectedServices([]);
-        setCustomerId("");
-        setCustomerName("");
-        setCustomerPhone("");
-        setCustomerEmail("");
-        setIsWalkIn(false);
-        setNotes("");
-        setSendReminder(true);
-        setFinalCustomerId("");
-        setSelectedCustomer(null);
-      }
+    if (wasClosedNowOpen) {
+      // Always reset form when opening, regardless of services
+      // This ensures a fresh start for each new booking
+      setDate(initialDate || defaultDate);
+      setTime(initialTime || defaultTime);
+      setSelectedServices([]);
+      setCustomerId("");
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setIsWalkIn(false);
+      setNotes("");
+      setSendReminder(true);
+      setFinalCustomerId("");
+      setSelectedCustomer(null);
       
       hasInitializedRef.current = true;
     } else if (wasOpenNowClosed) {
@@ -189,7 +186,20 @@ export function BookingSlideOut({
     // Update the ref for next render
     prevIsOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Only depend on isOpen
+  }, [isOpen, initialDate, initialTime]); // Include initialDate and initialTime in dependencies
+  
+  // Update date and time when initialDate or initialTime props change
+  useEffect(() => {
+    if (isOpen && initialDate) {
+      setDate(initialDate);
+    }
+  }, [isOpen, initialDate]);
+  
+  useEffect(() => {
+    if (isOpen && initialTime) {
+      setTime(initialTime);
+    }
+  }, [isOpen, initialTime]);
   
   
   const handleServiceSelect = (service: any) => {

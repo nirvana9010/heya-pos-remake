@@ -5,6 +5,7 @@ import { apiClient } from '../lib/api-client';
 import type { Customer } from './customers';
 import type { LoyaltyCheckResponse } from '../lib/clients/loyalty-client';
 import { cn } from '@heya-pos/ui';
+import { isWalkInCustomer } from '../lib/constants/customer';
 
 interface LoyaltyRedemptionProps {
   customer: Customer | null;
@@ -28,6 +29,13 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
   // Check loyalty status when customer changes
   useEffect(() => {
     if (!customer) {
+      setLoyalty(null);
+      setExpanded(false);
+      return;
+    }
+    
+    // Skip loyalty check for walk-in customers
+    if (isWalkInCustomer(customer.id) || customer.source === 'WALK_IN') {
       setLoyalty(null);
       setExpanded(false);
       return;
@@ -123,11 +131,33 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
     }
   };
 
-  if (!customer || loading || !loyalty?.hasProgram) {
+  // Don't show loyalty for walk-in customers
+  if (!customer || isWalkInCustomer(customer.id) || customer.source === 'WALK_IN') {
+    return null;
+  }
+  
+  if (loading || !loyalty?.hasProgram) {
     return null;
   }
 
   const hasAppliedDiscount = currentDiscount > 0;
+  
+  // Check if customer has any loyalty benefits to show
+  const hasLoyaltyBenefits = loyalty && (
+    // Has reward available
+    loyalty.rewardAvailable ||
+    // Has applied discount
+    hasAppliedDiscount ||
+    // For visit-based: has some visits
+    (loyalty.type === 'VISITS' && loyalty.currentVisits > 0) ||
+    // For points-based: has points or dollar value
+    (loyalty.type === 'POINTS' && (loyalty.currentPoints > 0 || (loyalty.dollarValue && loyalty.dollarValue > 0)))
+  );
+  
+  // Don't render anything if no benefits available
+  if (!hasLoyaltyBenefits) {
+    return null;
+  }
 
   return (
     <div className="border rounded-lg overflow-hidden">

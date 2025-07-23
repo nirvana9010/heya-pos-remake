@@ -40,4 +40,6 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   cancellationNotification: false,
   cancellationNotificationEmail: true,
   cancellationNotificationSms: false,
+  // Payment terminal settings
+  tyroEnabled: false, // Default to false - explicitly disabled
 };
