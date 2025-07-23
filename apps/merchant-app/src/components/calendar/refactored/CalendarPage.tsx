@@ -846,7 +846,7 @@ function CalendarContent() {
               </PopoverContent>
             </Popover>
             
-            {/* Time interval selector - only for day view */}
+            {/* Time interval selector - hidden since only 15m is available
             {currentView === 'day' && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Time Interval</span>
@@ -862,7 +862,7 @@ function CalendarContent() {
                   </SelectContent>
                 </Select>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
