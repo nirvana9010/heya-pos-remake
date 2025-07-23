@@ -579,25 +579,25 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Status badges - bottom right */}
-                                <div className="absolute bottom-3 right-3 flex gap-2">
+                                <div className="absolute bottom-3 right-3 flex gap-2 max-w-full">
                                   {booking.status === 'PENDING' && (
-                                    <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                      PENDING
+                                    <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                      <span className="block truncate">PENDING</span>
                                     </div>
                                   )}
                                   {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
-                                      Creating...
+                                    <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                      <span className="block truncate">Creating...</span>
                                     </div>
                                   )}
                                   {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-sm font-bold px-3 py-1.5 rounded shadow-lg">
-                                      IN PROGRESS
+                                    <div className="bg-teal-600 text-white text-xs font-bold px-2 py-1.5 rounded shadow-lg min-w-0 overflow-hidden">
+                                      <span className="block truncate">IN PROGRESS</span>
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                      PAID
+                                    <div className="bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                      <span className="block truncate">PAID</span>
                                     </div>
                                   )}
                                 </div>
@@ -872,25 +872,25 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Status badges - bottom right */}
-                                <div className="absolute bottom-3 right-3 flex gap-2">
+                                <div className="absolute bottom-3 right-3 flex gap-2 max-w-full">
                                   {booking.status === 'PENDING' && (
-                                    <div className="bg-yellow-500 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                      PENDING
+                                    <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                      <span className="block truncate">PENDING</span>
                                     </div>
                                   )}
                                   {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-sm font-medium px-3 py-1.5 rounded animate-pulse">
-                                      Creating...
+                                    <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                      <span className="block truncate">Creating...</span>
                                     </div>
                                   )}
                                   {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-sm font-bold px-3 py-1.5 rounded shadow-lg">
-                                      IN PROGRESS
+                                    <div className="bg-teal-600 text-white text-xs font-bold px-2 py-1.5 rounded shadow-lg min-w-0 overflow-hidden">
+                                      <span className="block truncate">IN PROGRESS</span>
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded">
-                                      PAID
+                                    <div className="bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                      <span className="block truncate">PAID</span>
                                     </div>
                                   )}
                                 </div>
