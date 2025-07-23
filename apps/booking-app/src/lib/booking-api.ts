@@ -255,6 +255,18 @@ class BookingApi {
     });
     return response;
   }
+
+  // Check in a booking (mark as in progress)
+  async checkInBooking(bookingId: string): Promise<{
+    success: boolean;
+    booking: {
+      id: string;
+      status: string;
+    };
+  }> {
+    const response = await apiClient.post(`/public/bookings/${bookingId}/checkin`);
+    return response;
+  }
 }
 
 export const bookingApi = new BookingApi();
