@@ -109,23 +109,17 @@ The login response structure:
 
 ### Connection URLs - BEST PRACTICES
 
-**IMPORTANT: Stay on the pooler!** For multi-tenant SaaS, ALWAYS use the pooled connection:
+**IMPORTANT: Stay on the pooler!** Both runtime and migrations should use the pooled connection:
 
 ```
-DATABASE_URL=postgresql://[user]:[password]@[project].pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
+DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
 ```
-
-**NEVER use the direct connection (port 5432) in production!** The pooler is essential for:
-- Connection management across multiple tenants
-- Preventing connection exhaustion
-- Better performance under load
-- Cost optimization
 
 ### Critical Configuration Points
 
-1. **Configure Prisma for production** - Add to your `.env` file:
+1. **Shrink Prisma's appetite** - Add to your `.env` file:
    ```
-   PRISMA_CLIENT_ENGINE_TYPE=binary   # More efficient for serverless/containerized deployments
+   PRISMA_CLIENT_ENGINE_TYPE=binary   # keeps pool at 1
    ```
 
 2. **One and only one env source** - In `ecosystem.config.js`:
@@ -142,9 +136,8 @@ DATABASE_URL=postgresql://[user]:[password]@[project].pooler.supabase.com:6543/p
 
 ### Important Notes
 
-- **Always use the pooled connection for DATABASE_URL** (port 6543, not 5432)
-- The `?pgbouncer=true` parameter is **required** for pooled connections
-- Consider adding `&connection_limit=10` for better concurrency in production
+- **Always use the pooled connection for DATABASE_URL** for both runtime and migrations
+- The `?pgbouncer=true&connection_limit=1` parameters are **required** for stable connections
 - Include `sslmode=require` for security
 - Do NOT add `NODE_TLS_REJECT_UNAUTHORIZED="0"` unless absolutely necessary - it bypasses SSL verification
 
