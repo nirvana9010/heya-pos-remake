@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
 
-const navigation = [
+const mainNavigation = [
   // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Hidden for MVP
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Bookings', href: '/bookings', icon: Calendar },
@@ -29,8 +29,11 @@ const navigation = [
   { name: 'Staff', href: '/staff', icon: Users },
   { name: 'Roster', href: '/roster', icon: Calendar },
   { name: 'Services', href: '/services', icon: Package },
-  { name: 'Loyalty', href: '/loyalty', icon: Gift },
   { name: 'Payments', href: '/payments', icon: DollarSign },
+]
+
+const bottomNavigation = [
+  { name: 'Loyalty', href: '/loyalty', icon: Gift },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
@@ -118,24 +121,56 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
 
       {/* Navigation */}
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {navigation.map((item, index) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href)
-          return (
-            <button
-              key={item.name}
-              onClick={() => handleNavigation(item.href)}
-              className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
-              disabled={isPending || isNavigating}
-            >
-              <item.icon size={20} />
-              {!collapsed && (
-                <span>
-                  {item.name}
-                </span>
-              )}
-            </button>
-          )
-        })}
+        {/* Main Navigation */}
+        <div style={{ flex: 1 }}>
+          {mainNavigation.map((item, index) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href)
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.href)}
+                className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
+                disabled={isPending || isNavigating}
+              >
+                <item.icon size={20} />
+                {!collapsed && (
+                  <span>
+                    {item.name}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        
+        {/* Separator */}
+        <div style={{ 
+          borderTop: '1px solid var(--color-border)', 
+          marginTop: '1rem',
+          marginBottom: '1rem'
+        }} />
+        
+        {/* Bottom Navigation */}
+        <div>
+          {bottomNavigation.map((item, index) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href)
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.href)}
+                className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
+                disabled={isPending || isNavigating}
+              >
+                <item.icon size={20} />
+                {!collapsed && (
+                  <span>
+                    {item.name}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </nav>
 
       {/* Logout Section */}
