@@ -452,48 +452,23 @@ export class OrdersService {
     const day = date.getDate().toString().padStart(2, '0');
     const datePrefix = `OR-${year}${month}${day}`;
 
-    console.log(`[generateOrderNumber] Generating for prefix: ${datePrefix}, retry: ${retryCount}`);
-
-    // Find the highest sequence number for this date prefix
-    // This handles cases where orders might exist from different timezone contexts
-    const lastOrder = await this.prisma.order.findFirst({
-      where: {
-        merchantId,
-        orderNumber: {
-          startsWith: datePrefix,
-        },
-      },
-      orderBy: {
-        orderNumber: 'desc',
-      },
-      select: {
-        orderNumber: true,
-      },
-    });
-
-    let sequenceNumber = 1;
-    if (lastOrder) {
-      // Extract the sequence number from the last order
-      const lastSequence = parseInt(lastOrder.orderNumber.split('-')[2] || '0', 10);
-      sequenceNumber = lastSequence + 1;
-      console.log(`[generateOrderNumber] Last order: ${lastOrder.orderNumber}, next sequence: ${sequenceNumber}`);
-    }
-
-    // Add retry count to sequence number if retrying
-    sequenceNumber += retryCount;
-
-    // Generate order number: OR-YYMMDD-XXXX
-    const orderNumber = `${datePrefix}-${sequenceNumber.toString().padStart(4, '0')}`;
+    // Add a random 3-digit suffix to avoid collisions in concurrent requests
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    // Generate order number: OR-YYMMDD-XXXX-RRR (where RRR is random)
+    const sequenceNumber = Date.now() % 10000; // Use last 4 digits of timestamp
+    const orderNumber = `${datePrefix}-${sequenceNumber.toString().padStart(4, '0')}-${randomSuffix}`;
+    
     console.log(`[generateOrderNumber] Trying order number: ${orderNumber}`);
 
-    // Double-check for uniqueness (in case of race conditions)
+    // Double-check for uniqueness (extremely unlikely to collide now)
     const existingOrder = await this.prisma.order.findUnique({
       where: { orderNumber },
     });
 
     if (existingOrder) {
       console.log(`[generateOrderNumber] Order number ${orderNumber} already exists, retrying...`);
-      // If there's a collision, try the next number
+      // If there's a collision, try again with a new random suffix
       return this.generateOrderNumber(merchantId, retryCount + 1);
     }
 
