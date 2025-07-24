@@ -26,7 +26,9 @@ RUN npm run build
 
 # Build the API
 WORKDIR /app/apps/api
-RUN npm run build
+# Debug: Check TypeScript version and config
+RUN npx tsc --version
+RUN npm run build || (echo "Build failed, showing detailed errors:" && npx tsc --noEmit && exit 1)
 
 # Generate Prisma client
 RUN npx prisma generate
