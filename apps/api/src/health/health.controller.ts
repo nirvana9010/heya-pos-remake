@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { HealthService } from './health.service';
 import { QueryMonitorService } from '../common/monitoring/query-monitor.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('health')
 export class HealthController {
@@ -10,6 +11,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @Public()
   async getHealth() {
     return this.healthService.getHealth();
   }
