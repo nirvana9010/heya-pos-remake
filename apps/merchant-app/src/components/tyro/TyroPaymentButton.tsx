@@ -8,6 +8,7 @@ import { CreditCard, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface TyroPaymentButtonProps {
   amount: number;
+  orderId?: string;
   disabled?: boolean;
   onSuccess?: (transaction: TyroTransactionResponse) => void;
   onFailure?: (error: string, transaction?: TyroTransactionResponse) => void;
