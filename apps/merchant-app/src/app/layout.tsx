@@ -6,6 +6,7 @@ import { Toaster as Sonner } from 'sonner'
 import { Providers } from '@/components/providers'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Suspense } from 'react'
+import Script from 'next/script'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -49,6 +50,34 @@ export default function RootLayout({
         <Sonner richColors position="top-right" />
         {/* Portal container for modals to prevent parent re-renders */}
         <div id="modal-portal" />
+        
+        {/* Tyro SDK - load in production for card payments */}
+        {process.env.NEXT_PUBLIC_TYRO_ENVIRONMENT === 'production' && (
+          <Script
+            src="/js/iclient-with-ui-v1.js"
+            strategy="lazyOnload"
+            onLoad={() => {
+              console.log('[Tyro] SDK loaded successfully');
+            }}
+            onError={() => {
+              console.error('[Tyro] Failed to load SDK');
+            }}
+          />
+        )}
+        
+        {/* Tyro SDK Simulator - load in development */}
+        {process.env.NEXT_PUBLIC_TYRO_ENVIRONMENT !== 'production' && (
+          <Script
+            src="/js/iclient-with-ui-v1.js.simulator"
+            strategy="lazyOnload"
+            onLoad={() => {
+              console.log('[Tyro] Simulator SDK loaded successfully');
+            }}
+            onError={() => {
+              console.error('[Tyro] Failed to load simulator SDK');
+            }}
+          />
+        )}
       </body>
     </html>
   )

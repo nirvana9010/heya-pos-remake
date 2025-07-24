@@ -19,6 +19,8 @@ import { apiClient } from "@/lib/api-client";
 import { ImportPreviewDialog } from "@/components/services/import-preview-dialog";
 import { ColumnMappingDialog } from "@/components/services/column-mapping-dialog";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
+import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -62,6 +64,9 @@ export default function SettingsPage() {
   const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] = useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
   const [tyroEnabled, setTyroEnabled] = useState(merchantSettings.tyroEnabled ?? false);
+  const [tyroTerminalId, setTyroTerminalId] = useState(merchantSettings.tyroTerminalId ?? '');
+  const [tyroMerchantId, setTyroMerchantId] = useState(merchantSettings.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID || '');
+  const [showTyroPairingDialog, setShowTyroPairingDialog] = useState(false);
   
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
@@ -252,6 +257,8 @@ export default function SettingsPage() {
         showOnlyRosteredStaffDefault,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
         tyroEnabled,
+        tyroTerminalId,
+        tyroMerchantId,
       };
       
       await apiClient.put("/merchant/settings", updatedSettings);
@@ -1018,23 +1025,64 @@ export default function SettingsPage() {
                     Payment settings are managed through your payment provider configuration.
                   </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Tyro Payment Terminal</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable Tyro payment terminal integration
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Tyro Payment Terminal</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enable Tyro payment terminal integration for card payments
+                        </p>
+                      </div>
                       <Switch 
                         checked={tyroEnabled} 
                         onCheckedChange={setTyroEnabled}
-                        disabled={true}
                       />
-                      <Badge variant="outline" className="text-amber-600">
-                        Coming Soon
-                      </Badge>
                     </div>
+                    
+                    {tyroEnabled && (
+                      <div className="space-y-4 ml-6 border-l-2 border-gray-200 pl-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tyro-merchant-id">Merchant ID</Label>
+                          <Input
+                            id="tyro-merchant-id"
+                            type="text"
+                            value={tyroMerchantId}
+                            onChange={(e) => setTyroMerchantId(e.target.value)}
+                            placeholder="Enter your Tyro Merchant ID"
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            Your Tyro merchant identifier
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="tyro-terminal-id">Terminal ID</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="tyro-terminal-id"
+                              type="text"
+                              value={tyroTerminalId}
+                              onChange={(e) => setTyroTerminalId(e.target.value)}
+                              placeholder="Enter Terminal ID"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowTyroPairingDialog(true)}
+                            >
+                              Pair Terminal
+                            </Button>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Terminal ID for your Tyro EFTPOS device
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <TyroStatusIndicator />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 {/* Require Deposit setting hidden - not currently functional
                   <div className="flex items-center justify-between">
@@ -1663,6 +1711,20 @@ export default function SettingsPage() {
         csvHeaders={csvHeaders}
         csvPreviewRows={csvPreviewRows}
         onConfirm={handleColumnMappingConfirm}
+      />
+      
+      {/* Tyro Pairing Dialog */}
+      <TyroPairingDialog
+        isOpen={showTyroPairingDialog}
+        onClose={() => setShowTyroPairingDialog(false)}
+        onPaired={(terminalId) => {
+          setTyroTerminalId(terminalId);
+          setShowTyroPairingDialog(false);
+          toast({
+            title: "Success",
+            description: `Terminal ${terminalId} paired successfully`,
+          });
+        }}
       />
     </div>
   );

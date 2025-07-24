@@ -38,6 +38,7 @@ import { useToast, cn } from '@heya-pos/ui';
 import { LoyaltyRedemption } from './LoyaltyRedemption';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { isWalkInCustomer } from '@/lib/constants/customer';
+import { TyroPaymentButton } from './tyro/TyroPaymentButton';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -208,8 +209,8 @@ export function PaymentDialog({
         });
 
         if (paymentMethod === PaymentMethod.CARD) {
-          // For card payments, we'd integrate with payment terminal here
-          // For now, simulate with a reference
+          // For non-Tyro card payments (when Tyro is disabled)
+          // This would integrate with other payment terminals
           paymentData.reference = `CARD_${Date.now()}`;
         }
 
@@ -624,15 +625,102 @@ export function PaymentDialog({
               </TabsContent>
 
               <TabsContent value={PaymentMethod.CARD} className="space-y-4">
-                <div className="text-center p-8 bg-gray-50 rounded">
-                  <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600">
-                    Please process payment on the card reader
-                  </p>
-                  <p className="text-lg font-semibold mt-2">
-                    Amount: ${totalWithTip.toFixed(2)}
-                  </p>
-                </div>
+                {isTyroEnabled && merchant?.settings?.tyroTerminalId ? (
+                  <TyroPaymentButton
+                    amount={totalWithTip}
+                    orderId={order?.id}
+                    onSuccess={async (response) => {
+                      // Payment was processed successfully via Tyro
+                      console.log('[Tyro] Payment successful:', response);
+                      
+                      // Show success immediately
+                      toast({
+                        title: 'Payment successful',
+                        description: `Card payment processed`,
+                      });
+                      
+                      // Close dialog and update order
+                      const optimisticOrder = {
+                        ...order,
+                        paidAmount: (order?.paidAmount || 0) + totalWithTip,
+                        totalAmount: (order?.totalAmount || 0) + tipAmount,
+                        balanceDue: 0,
+                      };
+                      
+                      onPaymentComplete?.(optimisticOrder);
+                      onOpenChange(false);
+                      
+                      // Process payment in background
+                      try {
+                        const paymentData = {
+                          orderId: order.id,
+                          amount: balanceDue,
+                          method: PaymentMethod.CARD,
+                          tipAmount: enableTips ? tipAmount : 0,
+                          reference: response.transactionReference || response.transactionId,
+                          metadata: {
+                            tyroTransactionId: response.transactionReference || response.transactionId,
+                            tyroAuthorisationCode: response.authorisationCode,
+                            tyroTerminalId: merchant?.settings?.tyroTerminalId,
+                          }
+                        };
+                        
+                        await apiClient.processPayment(paymentData);
+                        
+                        // Handle loyalty redemption if applicable
+                        if (loyaltyDiscount.amount > 0 && customer && !isWalkInCustomer(customer.id)) {
+                          try {
+                            const isPercentage = loyaltyDiscount.description.includes('%');
+                            
+                            if (isPercentage || loyaltyDiscount.description.includes('Free Service')) {
+                              await apiClient.loyalty.redeemVisit(customer.id, order.id);
+                            } else {
+                              const pointsMatch = loyaltyDiscount.description.match(/\((\d+) points\)/);
+                              if (pointsMatch) {
+                                const points = parseInt(pointsMatch[1]);
+                                await apiClient.loyalty.redeemPoints(customer.id, points, order.id);
+                              }
+                            }
+                          } catch (error) {
+                            console.error('Failed to redeem loyalty after Tyro payment:', error);
+                          }
+                        }
+                        
+                        // Refresh order in background
+                        const finalOrder = await apiClient.getOrder(order.id);
+                        onPaymentComplete?.(finalOrder);
+                      } catch (error) {
+                        console.error('[Tyro] Failed to record payment:', error);
+                        toast({
+                          title: 'Warning',
+                          description: 'Payment was successful but there was an error recording it. Please check the order.',
+                          variant: 'warning',
+                        });
+                      }
+                    }}
+                    onFailure={(error) => {
+                      console.error('[Tyro] Payment failed:', error);
+                      toast({
+                        title: 'Payment failed',
+                        description: error || 'Card payment could not be processed',
+                        variant: 'destructive',
+                      });
+                    }}
+                    disabled={processing || !order?.id}
+                  />
+                ) : (
+                  <div className="text-center p-8 bg-gray-50 rounded">
+                    <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {!isTyroEnabled ? 'Card payments not configured' : 'Please configure terminal in Settings'}
+                    </p>
+                    {!isTyroEnabled && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Enable Tyro in Settings to accept card payments
+                      </p>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           ) : (
