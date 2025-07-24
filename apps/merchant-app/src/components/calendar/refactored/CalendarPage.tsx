@@ -469,48 +469,7 @@ function CalendarContent() {
       // LocationId is now optional in the database
       const locationId = merchant?.locations?.[0]?.id || merchant?.locationId;
       
-      // BookingSlideOut now handles booking creation internally with optimistic updates
-      // We just need to handle the response data that was passed to onSave
-      
-      // If bookingData has _isOptimistic flag, it's the initial optimistic update
-      if (bookingData._isOptimistic) {
-        // Transform and add optimistic booking to state immediately
-        const startTime = new Date(bookingData.startTime);
-        const transformedOptimistic = {
-          id: bookingData.id,
-          date: format(startTime, 'yyyy-MM-dd'),
-          time: format(startTime, 'HH:mm'),
-          duration: bookingData.services?.[0]?.duration || 30,
-          status: 'optimistic' as BookingStatus, // Preserve optimistic status to prevent PENDING badge
-          customerId: bookingData.customerId,
-          customerName: bookingData.customerName,
-          customerPhone: bookingData.customerPhone || '',
-          customerEmail: bookingData.customerEmail || '',
-          serviceId: bookingData.services?.[0]?.id || '',
-          serviceName: bookingData.services?.[0]?.name || '',
-          servicePrice: bookingData.totalPrice || 0,
-          staffId: bookingData.staffId || null,
-          staffName: bookingData.staffName || 'Unassigned',
-          notes: bookingData.notes || '',
-          paymentStatus: 'pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          _isOptimistic: true, // Add flag to identify optimistic bookings
-        };
-        actions.addBooking(transformedOptimistic);
-        return; // Don't do anything else for optimistic updates
-      }
-      
-      // If bookingData has _remove flag, remove the optimistic booking
-      if (bookingData._remove) {
-        // Remove failed optimistic booking
-        actions.removeBooking(bookingData.id);
-        return;
-      }
-      
-      // Otherwise, it's the real booking data after successful creation
-      // Find the optimistic booking to replace
-      const existingOptimistic = state.bookings.find(b => b.id.startsWith('temp-'));
+      // BookingSlideOut now returns real booking data after successful creation
       
       // Transform the booking data for calendar display
       const startTime = new Date(bookingData.startTime);
@@ -553,14 +512,8 @@ function CalendarContent() {
         updatedAt: new Date().toISOString(),
       };
       
-      // Replace optimistic booking with real booking or add new booking
-      if (existingOptimistic) {
-        // Use atomic replace to avoid flicker
-        actions.replaceBooking(existingOptimistic.id, transformedBooking);
-      } else if (!bookingData._isOptimistic) {
-        // Only add if it's not an optimistic update
-        actions.addBooking(transformedBooking);
-      }
+      // Add the new booking to the calendar
+      actions.addBooking(transformedBooking);
       actions.closeBookingSlideOut();
       
       // Broadcast the booking creation to other tabs

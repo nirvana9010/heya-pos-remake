@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PaymentDialog } from './PaymentDialog';
 import { apiClient } from '@/lib/api-client';
-import { Skeleton } from '@heya-pos/ui';
 import { WALK_IN_CUSTOMER_ID } from '@/lib/constants/customer';
 
 interface PaymentDialogEnhancedProps {
@@ -17,7 +16,6 @@ interface PaymentDialogEnhancedProps {
   selectedServices?: any[];
   customerId?: string;
   customer?: any; // Customer object for loyalty redemption
-  draftOrderId?: string | null;
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
   orderAdjustment?: { amount: number; reason: string };
@@ -34,7 +32,6 @@ export function PaymentDialogEnhanced({
   selectedServices,
   customerId,
   customer,
-  draftOrderId,
   isWalkIn = false,
   itemAdjustments = {},
   orderAdjustment = { amount: 0, reason: '' },
@@ -43,8 +40,6 @@ export function PaymentDialogEnhanced({
   const [order, setOrder] = useState(existingOrder);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cachedData, setCachedData] = useState<any>(null);
-  const [usedDraftOrderId, setUsedDraftOrderId] = useState<string | null>(null);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState(initialLoyaltyDiscount);
 
   const handleLoyaltyUpdate = useCallback((discount: { amount: number; description: string }) => {
@@ -58,31 +53,13 @@ export function PaymentDialogEnhanced({
     }
   }, [existingOrder]);
 
-  // Read from localStorage on mount
-  useEffect(() => {
-    if (open && !existingOrder) {
-      const storedData = localStorage.getItem('quickSale');
-      if (storedData) {
-        try {
-          const parsed = JSON.parse(storedData);
-          // Check if data is not stale (5 minutes)
-          if (parsed.timestamp && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
-            setCachedData(parsed);
-          }
-        } catch (e) {
-          // Silently ignore parse errors
-        }
-      }
-    }
-  }, [open, existingOrder]);
-
   const createOrderFromServices = useCallback(async () => {
     setIsCreatingOrder(true);
     setError(null);
 
     try {
       // Prepare items with adjustments
-      const items = selectedServices.map((service, index) => {
+      const items = (selectedServices || []).map((service, index) => {
         const originalPrice = typeof service.price === 'object' && service.price.toNumber 
           ? service.price.toNumber() 
           : Number(service.price || 0);
@@ -115,13 +92,7 @@ export function PaymentDialogEnhanced({
         items,
       };
 
-      // If we have a draft order that hasn't been used yet, include it
-      if (draftOrderId && draftOrderId !== usedDraftOrderId) {
-        requestData.orderId = draftOrderId;
-        setUsedDraftOrderId(draftOrderId); // Mark this draft order as used
-      }
-      
-      // Always include customer information (for both draft and new orders)
+      // Always include customer information
       requestData.isWalkIn = isWalkIn;
       if (!isWalkIn && customerId) {
         requestData.customerId = customerId;
@@ -165,24 +136,20 @@ export function PaymentDialogEnhanced({
       }
       
       setOrder(paymentData.order);
-      // Clear cached data since we now have real order
-      setCachedData(null);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Failed to prepare order');
     } finally {
       setIsCreatingOrder(false);
     }
-  }, [selectedServices, draftOrderId, isWalkIn, customerId, itemAdjustments, orderAdjustment, loyaltyDiscount]);
+  }, [selectedServices, isWalkIn, customerId, itemAdjustments, orderAdjustment, loyaltyDiscount]);
 
-  // Clear order state when modal closes or when services/adjustments change
+  // Clear order state when modal closes
   useEffect(() => {
     if (!open) {
       // Modal closed - clear everything to force fresh data on next open
       setOrder(null);
       setError(null);
-      setCachedData(null);
       setIsCreatingOrder(false);
-      setUsedDraftOrderId(null); // Reset so draft order can be reused if still valid
     }
   }, [open]);
 
@@ -205,51 +172,6 @@ export function PaymentDialogEnhanced({
     }
   }, [open, selectedServices, order, isCreatingOrder, createOrderFromServices, existingOrder]);
 
-  // Show cached data immediately while creating order in background
-  // But only if we don't have an existing order (from booking)
-  if (open && (cachedData || isCreatingOrder) && !order && !existingOrder) {
-    const displayData = cachedData || {
-      services: selectedServices || [],
-      totals: {
-        total: selectedServices?.reduce((sum, s) => sum + (s.price * s.quantity), 0) || 0
-      }
-    };
-    
-    return (
-      <PaymentDialog
-        open={open}
-        onOpenChange={onOpenChange}
-        order={{
-          isLoading: isCreatingOrder,
-          isCached: true,
-          totalAmount: displayData.totals?.total || displayData.totals?.subtotal || 0,
-          items: displayData.services.map((s: any, index: number) => {
-            // Use adjusted price if available
-            const unitPrice = s.adjustedTotal && s.quantity ? 
-              s.adjustedTotal / s.quantity : 
-              s.price;
-              
-            return {
-              id: s.id || `cached-${index}`,
-              description: s.name,
-              unitPrice: unitPrice,
-              quantity: s.quantity,
-              originalPrice: s.price,
-              adjustedTotal: s.adjustedTotal,
-              adjustment: s.adjustment
-            };
-          }),
-          customer: displayData.customer,
-          hasAdjustments: true // Flag to prevent further adjustments
-        }}
-        onPaymentComplete={onPaymentComplete}
-        enableTips={enableTips}
-        defaultTipPercentages={defaultTipPercentages}
-        customer={customer || displayData?.customer}
-        onLoyaltyUpdate={handleLoyaltyUpdate}
-      />
-    );
-  }
 
   // Show error state
   if (open && error) {
@@ -265,54 +187,43 @@ export function PaymentDialogEnhanced({
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
         defaultTipPercentages={defaultTipPercentages}
-        customer={customer || displayData?.customer}
+        customer={customer}
         onLoyaltyUpdate={handleLoyaltyUpdate}
       />
     );
   }
 
-  // Show normal payment dialog once order is ready
-  // If we started with cached data, the dialog is already open
-  // This will update it with the real order data
-  // IMPORTANT: Always render the dialog when open=true to prevent unmounting issues
+  // Don't render if dialog is not open
   if (!open) {
     return null;
   }
 
-  // Always render the dialog when open is true, even if order isn't ready yet
-  // This prevents the race condition where the dialog unmounts/remounts
-  
+  // Show loading state while creating order
+  if (isCreatingOrder && !order) {
+    return (
+      <PaymentDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        order={{
+          isLoading: true,
+          totalAmount: 0,
+          items: []
+        }}
+        onPaymentComplete={onPaymentComplete}
+        enableTips={enableTips}
+        defaultTipPercentages={defaultTipPercentages}
+        customer={customer}
+        onLoyaltyUpdate={handleLoyaltyUpdate}
+      />
+    );
+  }
+
+  // Render payment dialog with order data
   return (
     <PaymentDialog
       open={open}
       onOpenChange={onOpenChange}
-      order={order || (cachedData ? {
-        isCached: true,
-        totalAmount: cachedData?.totals?.total || cachedData?.totals?.subtotal || 0,
-        items: cachedData?.services?.map((s: any, index: number) => {
-          // Use adjusted price if available
-          const unitPrice = s.adjustedTotal && s.quantity ? 
-            s.adjustedTotal / s.quantity : 
-            s.price;
-            
-          return {
-            id: s.id || `cached-${index}`,
-            description: s.name,
-            unitPrice: unitPrice,
-            quantity: s.quantity,
-            originalPrice: s.price,
-            adjustedTotal: s.adjustedTotal,
-            adjustment: s.adjustment
-          };
-        }) || [],
-        customer: cachedData?.customer,
-        hasAdjustments: true // Flag to prevent further adjustments
-      } : {
-        // Show loading state while waiting for order
-        isLoading: true,
-        totalAmount: 0,
-        items: []
-      })}
+      order={order}
       onPaymentComplete={onPaymentComplete}
       enableTips={enableTips}
       defaultTipPercentages={defaultTipPercentages}

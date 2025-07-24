@@ -16,7 +16,6 @@ interface PaymentDialogPortalProps {
   selectedServices?: any[];
   customerId?: string;
   customer?: any; // Customer object for loyalty redemption
-  draftOrderId?: string | null;
   isWalkIn?: boolean;
   itemAdjustments?: Record<number, number>;
   orderAdjustment?: { amount: number; reason: string };

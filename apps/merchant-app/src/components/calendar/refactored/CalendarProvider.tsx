@@ -145,48 +145,9 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
     
     // Data actions
     case 'SET_BOOKINGS':
-      // Preserve optimistic bookings that are less than 30 seconds old
-      const now = Date.now();
-      const thirtySecondsAgo = now - 30 * 1000;
-      
-      // Find optimistic bookings that should be preserved
-      const optimisticToPreserve = state.bookings.filter(booking => {
-        // Check if it's an optimistic booking (has temp- prefix or _isOptimistic flag)
-        const isOptimistic = booking.id.startsWith('temp-') || (booking as any)._isOptimistic;
-        if (!isOptimistic) return false;
-        
-        // Check if it was created within the last 30 seconds
-        const createdAtTime = booking.createdAt ? new Date(booking.createdAt).getTime() : now;
-        return createdAtTime > thirtySecondsAgo;
-      });
-      
-      // Check if any optimistic bookings have been confirmed by the backend
-      const confirmedOptimisticIds = new Set<string>();
-      optimisticToPreserve.forEach(optimistic => {
-        // Check if there's a real booking with matching details
-        const hasMatch = action.payload.some((real: any) => {
-          // Match by customer, service, and time
-          return real.customerName === optimistic.customerName &&
-                 real.serviceId === optimistic.serviceId &&
-                 real.date === optimistic.date &&
-                 real.time === optimistic.time;
-        });
-        if (hasMatch) {
-          confirmedOptimisticIds.add(optimistic.id);
-        }
-      });
-      
-      // Only keep optimistic bookings that haven't been confirmed
-      const optimisticToKeep = optimisticToPreserve.filter(
-        booking => !confirmedOptimisticIds.has(booking.id)
-      );
-      
-      // Merge backend bookings with preserved optimistic ones
-      const mergedBookings = [...action.payload, ...optimisticToKeep];
-      
       return {
         ...state,
-        bookings: mergedBookings,
+        bookings: action.payload,
         isLoading: false,
         error: null,
       };
@@ -211,14 +172,6 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         bookings: state.bookings.filter(b => b.id !== action.payload),
       };
     
-    case 'REPLACE_BOOKING':
-      // Atomically replace one booking with another (used for optimistic updates)
-      return {
-        ...state,
-        bookings: state.bookings.map(b => 
-          b.id === action.payload.oldId ? action.payload.newBooking : b
-        ),
-      };
     
     case 'SET_STAFF':
       return {
@@ -503,7 +456,6 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     updateBooking: (id: string, updates: any) => dispatch({ type: 'UPDATE_BOOKING', payload: { id, updates } }),
     addBooking: (booking: any) => dispatch({ type: 'ADD_BOOKING', payload: booking }),
     removeBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
-    replaceBooking: (oldId: string, newBooking: any) => dispatch({ type: 'REPLACE_BOOKING', payload: { oldId, newBooking } }),
     setStaff: (staff: any[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
     setServices: (services: any[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
     setCustomers: (customers: any[]) => dispatch({ type: 'SET_CUSTOMERS', payload: customers }),

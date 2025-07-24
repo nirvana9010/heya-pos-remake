@@ -294,8 +294,6 @@ export function BookingSlideOut({
     
     setIsSaving(true);
     
-    // Declare optimisticBooking and dismissLoadingToast outside try block so they're accessible in catch
-    let optimisticBooking: any;
     let dismissLoadingToast: (() => void) | undefined;
     
     try {
@@ -341,33 +339,6 @@ export function BookingSlideOut({
         isOverride: true
       };
       
-      // Create optimistic booking for immediate UI update
-      optimisticBooking = {
-        id: `temp-${Date.now()}`, // Temporary ID
-        bookingNumber: `TEMP-${Date.now()}`, // Temporary booking number to avoid PENDING badge
-        customerName: isWalkIn ? 'Walk-in Customer' : (selectedCustomer?.name || 
-          `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()),
-        customerPhone: isWalkIn ? '' : (selectedCustomer?.phone || selectedCustomer?.mobile || ''),
-        customerEmail: isWalkIn ? '' : (selectedCustomer?.email || ''),
-        services: selectedServices.map(s => ({
-          id: s.serviceId,
-          name: s.name,
-          duration: s.duration,
-          price: s.adjustedPrice // Keep original price, discount shown separately
-        })),
-        staffName: selectedServices[0] ? staff.find(s => s.id === selectedServices[0].staffId)?.name || '' : '',
-        staffId: selectedServices[0]?.staffId || '',
-        startTime: combinedDateTime,
-        endTime: new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
-        status: 'optimistic' as any, // Temporary status for optimistic bookings
-        isPaid: false,
-        totalPrice: totalPrice,
-        notes: notes || '',
-        _isOptimistic: true // Flag to identify optimistic updates
-      };
-      
-      // Immediately update UI with optimistic booking
-      onSave(optimisticBooking);
       
       // Cache invalidation before API call
       try {
@@ -387,26 +358,54 @@ export function BookingSlideOut({
       // Close the slideout immediately for better UX
       onClose();
       
-      // Create the booking
+      // Create the booking and measure response time
+      const startTime = performance.now();
       const response = await apiClient.bookings.createBooking(bookingData);
+      const responseTime = performance.now() - startTime;
       
-      // Update with real booking data (parent component should handle replacing optimistic with real)
+      // Log response time for monitoring
+      console.log(`[BookingCreation] Response time: ${responseTime.toFixed(0)}ms`);
+      
+      // Pass the real booking data to parent component
       if (response && response.id) {
         // Map the API response to the expected format
         const realBooking = {
-          ...optimisticBooking,
           id: response.id,
           bookingNumber: response.bookingNumber || 'PENDING',
+          customerName: isWalkIn ? 'Walk-in Customer' : (selectedCustomer?.name || 
+            `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()),
+          customerPhone: isWalkIn ? '' : (selectedCustomer?.phone || selectedCustomer?.mobile || ''),
+          customerEmail: isWalkIn ? '' : (selectedCustomer?.email || ''),
+          services: response.services || selectedServices.map(s => ({
+            id: s.serviceId,
+            name: s.name,
+            duration: s.duration,
+            price: s.adjustedPrice
+          })),
+          staffName: selectedServices[0] ? staff.find(s => s.id === selectedServices[0].staffId)?.name || '' : '',
+          staffId: selectedServices[0]?.staffId || '',
+          startTime: response.startTime || combinedDateTime,
+          endTime: response.endTime || new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
           // Use the totalAmount from the API response which reflects discounted prices
           totalPrice: response.totalAmount || response.totalPrice || totalPrice,
-          // Update services with actual prices from response if available
-          services: response.services || optimisticBooking.services,
           // Normalize status to lowercase to match our BookingStatus type
           status: (response.status || 'CONFIRMED').toLowerCase() as any,
-          _isOptimistic: false,
-          _dismissLoadingToast: dismissLoadingToast // Pass the dismiss function
+          isPaid: false,
+          notes: notes || ''
         };
         onSave(realBooking);
+        
+        // Dismiss the loading toast
+        if (dismissLoadingToast) {
+          dismissLoadingToast();
+        }
+        
+        // Show success toast
+        toast({
+          title: "Booking created successfully",
+          description: `Booking ${response.bookingNumber} has been created`,
+          duration: 3000,
+        });
       }
       
     } catch (error) {
@@ -416,13 +415,6 @@ export function BookingSlideOut({
         dismissLoadingToast();
       }
       
-      // Remove the optimistic booking on error
-      // Parent component should handle removing bookings with matching temp ID
-      onSave({ 
-        id: optimisticBooking.id, 
-        _isOptimistic: true, 
-        _remove: true 
-      });
       
       // Show error toast instead of alert
       toast({

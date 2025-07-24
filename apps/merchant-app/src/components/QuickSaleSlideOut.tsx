@@ -37,49 +37,12 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const [order, setOrder] = useState<any>(null);
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
-  const [draftOrderTimeout, setDraftOrderTimeout] = useState<NodeJS.Timeout | null>(null);
   const [itemAdjustments, setItemAdjustments] = useState<Record<number, number>>({});
   const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
-  // Helper function to clean up draft order
-  const cleanupDraftOrder = useCallback(async () => {
-    if (draftOrderTimeout) {
-      clearTimeout(draftOrderTimeout);
-      setDraftOrderTimeout(null);
-    }
-    
-    if (draftOrderId) {
-      try {
-        // Delete the draft order
-        await apiClient.updateOrderState(draftOrderId, 'CANCELLED');
-      } catch (error) {
-      }
-      setDraftOrderId(null);
-    }
-  }, [draftOrderId, draftOrderTimeout]);
-
-  // Create draft order when slideout opens
-  const createDraftOrder = useCallback(async () => {
-    try {
-      const orderData = await apiClient.createOrder({
-        customerId: WALK_IN_CUSTOMER_ID // Temporary, will be updated when customer selected
-      });
-      setDraftOrderId(orderData.id);
-      
-      // Set 5-minute timeout
-      const timeout = setTimeout(() => {
-        cleanupDraftOrder();
-      }, 5 * 60 * 1000); // 5 minutes
-      
-      setDraftOrderTimeout(timeout);
-    } catch (error) {
-      // Continue without pre-created order
-    }
-  }, [cleanupDraftOrder]);
 
   // Reset when opening
   useEffect(() => {
@@ -92,19 +55,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setItemAdjustments({});
       setOrderAdjustment({ amount: 0, reason: '' });
       setShowOrderAdjustment(false);
-      
-      // Clear any stale localStorage data
-      localStorage.removeItem('quickSale');
-      
-      // Create draft order immediately
-      createDraftOrder();
-    } else {
-      // Cleanup when closing
-      cleanupDraftOrder();
-      localStorage.removeItem('quickSale');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Only depend on isOpen to avoid infinite loops
+  }, [isOpen]);
 
   const handleAddService = (service: any) => {
     setSelectedServices([...selectedServices, {
@@ -158,49 +110,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   }, [selectedServices, itemAdjustments, showOrderAdjustment, orderAdjustment]);
 
 
-  // Update localStorage whenever data changes
-  const updateLocalStorage = useCallback(() => {
-    const quickSaleData = {
-      services: selectedServices.map((service, index) => {
-        const originalPrice = service.price * service.quantity;
-        const adjustedPrice = itemAdjustments[index] ?? originalPrice;
-        
-        return {
-          id: service.id,
-          name: service.name,
-          price: typeof service.price === 'object' && service.price.toNumber 
-            ? service.price.toNumber() 
-            : Number(service.price || 0),
-          quantity: service.quantity,
-          staffId: service.staffId,
-          categoryName: service.categoryName,
-          originalTotal: originalPrice,
-          adjustedTotal: adjustedPrice,
-          adjustment: adjustedPrice - originalPrice
-        };
-      }),
-      customer: isWalkIn ? WALK_IN_CUSTOMER : (selectedCustomer || null),
-      totals: {
-        subtotal: total,
-        tax: 0, // Can be calculated based on merchant settings
-        total: total
-      },
-      itemAdjustments: itemAdjustments,
-      orderAdjustment: orderAdjustment,
-      draftOrderId: draftOrderId,
-      isWalkIn: isWalkIn,
-      timestamp: Date.now()
-    };
-    
-    localStorage.setItem('quickSale', JSON.stringify(quickSaleData));
-  }, [selectedServices, selectedCustomer, draftOrderId, isWalkIn, itemAdjustments, orderAdjustment, total]);
-
-  // Update localStorage whenever relevant data changes
-  useEffect(() => {
-    if (isOpen && selectedServices.length > 0) {
-      updateLocalStorage();
-    }
-  }, [selectedServices, selectedCustomer, draftOrderId, isWalkIn, isOpen, updateLocalStorage]);
 
   const handleCreateOrder = async () => {
     if (!selectedServices.length) return;
@@ -212,16 +121,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const handlePaymentComplete = async (updatedOrder: any) => {
     // Payment completed successfully
     setPaymentDialogOpen(false);
-    
-    // Clear the draft order since it's been used
-    setDraftOrderId(null);
-    if (draftOrderTimeout) {
-      clearTimeout(draftOrderTimeout);
-      setDraftOrderTimeout(null);
-    }
-    
-    // Clear localStorage after successful payment
-    localStorage.removeItem('quickSale');
     
     onSaleComplete();
     onClose();
@@ -630,7 +529,6 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         selectedServices={selectedServices}
         customerId={selectedCustomer?.id}
         customer={selectedCustomer}
-        draftOrderId={draftOrderId}
         isWalkIn={isWalkIn}
         onPaymentComplete={handlePaymentComplete}
         enableTips={merchant?.settings?.enableTips || false}
