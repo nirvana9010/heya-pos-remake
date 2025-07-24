@@ -21,10 +21,12 @@ import { ColumnMappingDialog } from "@/components/services/column-mapping-dialog
 import { useAuth } from "@/lib/auth/auth-provider";
 import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
 import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
+import { useTyro } from "@/hooks/useTyro";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { merchant } = useAuth();
+  const { clearPairing, isPaired } = useTyro();
   const queryClient = useQueryClient();
   // Initialize with merchant settings if available to prevent flicker
   const merchantSettings = merchant?.settings || {};
@@ -1072,6 +1074,22 @@ export default function SettingsPage() {
                             >
                               Pair Terminal
                             </Button>
+                            {isPaired() && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  clearPairing();
+                                  setTyroTerminalId('');
+                                  toast({
+                                    title: "Terminal unpaired",
+                                    description: "The terminal has been unpaired successfully",
+                                  });
+                                }}
+                              >
+                                Unpair
+                              </Button>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground">
                             Terminal ID for your Tyro EFTPOS device
