@@ -1,0 +1,12 @@
+// Temporary debug endpoint - add this to your payments controller
+// REMOVE AFTER DEBUGGING
+
+@Get('debug/performance')
+@UseGuards(JwtAuthGuard)
+async getPerformanceMetrics() {
+  // This would need to be implemented to store metrics in memory
+  return {
+    message: 'Performance metrics would be shown here',
+    hint: 'Use Railway logs instead: railway logs --limit 1000 | grep "[PERF]"'
+  };
+}

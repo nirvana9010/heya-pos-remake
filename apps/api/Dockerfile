@@ -6,19 +6,17 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy workspace files
-COPY package.json package-lock.json ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/types/package.json ./packages/types/
+# Copy package files from the monorepo root
+COPY ../../package.json ../../package-lock.json ./
+COPY package.json ./apps/api/
+COPY ../../packages/types/package.json ./packages/types/
 
-# Install ALL dependencies (including dev deps for building)
-RUN npm ci
+# Install dependencies
+RUN npm ci --workspace=api --include-workspace-root
 
 # Copy source code
-COPY packages/types ./packages/types
-COPY apps/api ./apps/api
-# Ensure tsconfig files are available
-COPY tsconfig.json ./
+COPY ../../packages/types ./packages/types
+COPY . ./apps/api
 
 # Build the types package first
 WORKDIR /app/packages/types
