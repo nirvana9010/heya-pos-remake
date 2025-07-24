@@ -1717,6 +1717,8 @@ export default function SettingsPage() {
       <TyroPairingDialog
         isOpen={showTyroPairingDialog}
         onClose={() => setShowTyroPairingDialog(false)}
+        defaultMerchantId={tyroMerchantId}
+        defaultTerminalId={tyroTerminalId}
         onPaired={(terminalId) => {
           setTyroTerminalId(terminalId);
           setShowTyroPairingDialog(false);
