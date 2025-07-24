@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@heya-pos/ui';
 import { Clock, DollarSign, Phone, CheckCircle, X } from 'lucide-react';
-import type { Booking } from './types';
+import type { Booking } from '../types';
 
 interface BookingTooltipProps {
   booking: Booking;
@@ -15,7 +15,7 @@ interface BookingTooltipProps {
 export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) {
   if (!visible) return null;
   
-  // Format time without date-fns to avoid webpack issues
+  // Simple time formatting
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
