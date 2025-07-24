@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { PinAuthManager } from '../utils/shared/pin';
 import { AuditLog } from '@prisma/client';
-import { formatName } from '@heya-pos/utils';
+import { formatName } from '../utils/shared/format';
 
 @Injectable()
 export class PinAuthService {

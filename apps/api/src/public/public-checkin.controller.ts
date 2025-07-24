@@ -14,7 +14,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
-import { formatName } from '@heya-pos/utils';
+import { formatName } from '../utils/shared/format';
 import { IsString, IsOptional, IsNotEmpty, IsEmail, MaxLength } from 'class-validator';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';

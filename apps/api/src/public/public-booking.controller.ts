@@ -18,7 +18,7 @@ import { StaffService } from '../staff/staff.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimezoneUtils } from '../utils/shared/timezone';
 import { toNumber } from '../utils/decimal';
-import { formatName } from '@heya-pos/utils';
+import { formatName } from '../utils/shared/format';
 
 interface PublicCreateBookingDto {
   customerName: string;
