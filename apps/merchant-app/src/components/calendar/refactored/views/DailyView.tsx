@@ -12,12 +12,7 @@ import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
 import { Users, Check, X, AlertTriangle } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
-const BookingTooltip = dynamic(() => import('../BookingTooltip').then(mod => ({ default: mod.BookingTooltip })), {
-  ssr: false,
-  loading: () => null
-});
+import { BookingTooltip } from '../BookingTooltip';
 
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;

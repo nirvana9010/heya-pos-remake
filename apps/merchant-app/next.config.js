@@ -27,7 +27,9 @@ const nextConfig = {
   // Experimental features for better performance
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@heya-pos/ui', 'date-fns'],
+    // Removed date-fns from optimizePackageImports to prevent webpack module loading errors
+    // See commit f8deabf for similar fix with @heya-pos/ui
+    optimizePackageImports: ['@heya-pos/ui'],
   },
   
   // Headers for better caching
