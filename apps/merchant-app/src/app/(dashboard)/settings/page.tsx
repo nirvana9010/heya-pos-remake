@@ -65,7 +65,7 @@ export default function SettingsPage() {
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
   const [tyroEnabled, setTyroEnabled] = useState(merchantSettings.tyroEnabled ?? false);
   const [tyroTerminalId, setTyroTerminalId] = useState(merchantSettings.tyroTerminalId ?? '');
-  const [tyroMerchantId, setTyroMerchantId] = useState(merchantSettings.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID || '');
+  const [tyroMerchantId, setTyroMerchantId] = useState((merchantSettings.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || '');
   const [showTyroPairingDialog, setShowTyroPairingDialog] = useState(false);
   
   // Merchant profile state
