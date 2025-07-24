@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { format, parseISO } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import { Clock, DollarSign, Phone, CheckCircle, X } from 'lucide-react';
 import type { Booking } from './types';
@@ -16,8 +15,24 @@ interface BookingTooltipProps {
 export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) {
   if (!visible) return null;
   
-  const startTime = parseISO(`${booking.date}T${booking.time}`);
-  const endTime = new Date(startTime.getTime() + booking.duration * 60000);
+  // Format time without date-fns to avoid webpack issues
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const isPM = hour >= 12;
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+  };
+  
+  const calculateEndTime = (startTime: string, durationMinutes: number) => {
+    const [hours, minutes] = startTime.split(':');
+    const totalMinutes = parseInt(hours) * 60 + parseInt(minutes) + durationMinutes;
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = totalMinutes % 60;
+    const isPM = endHours >= 12;
+    const displayHour = endHours === 0 ? 12 : endHours > 12 ? endHours - 12 : endHours;
+    return `${displayHour}:${endMinutes.toString().padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`;
+  };
   
   return (
     <div 
@@ -47,7 +62,7 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
         </div>
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <Clock className="h-3.5 w-3.5" />
-          {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+          {formatTime(booking.time)} - {calculateEndTime(booking.time, booking.duration)}
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-sm text-gray-500">
