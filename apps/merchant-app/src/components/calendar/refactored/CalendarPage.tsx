@@ -193,6 +193,10 @@ function CalendarContent() {
     if (newNotifications.length > 0) {
       addActivityLog('state', `Found ${newNotifications.length} new booking notifications!`);
       
+      // Clear the booking cache to ensure fresh data
+      apiClient.clearBookingsCache();
+      addActivityLog('state', 'Cleared bookings cache');
+      
       if (!isLoading && !isRefreshing) {
         addActivityLog('api', 'New booking notification detected - calling refresh()');
         refresh();

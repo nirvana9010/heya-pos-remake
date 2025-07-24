@@ -322,6 +322,12 @@ export class ApiClient {
     console.warn('Generic delete() method is deprecated. Use domain-specific clients instead.');
     return this.auth.delete(url, config);
   }
+
+  // Cache management methods
+  clearBookingsCache() {
+    // Clear all booking-related cache entries
+    this.bookings.clearAllCache();
+  }
 }
 
 // Export singleton instance for backward compatibility
