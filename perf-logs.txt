@@ -1,0 +1,338 @@
+[MEMORY] 2025-07-24T00:10:53.054Z - DB:OutboxEvent.findMany (135 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 135 calls
+    Periodic Check: 22 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:10:53 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:10:58.056Z - DB:OutboxEvent.findMany (136 calls)
+  Heap: 45MB / 49MB | RSS: 125MB | External: 3MB
+    Periodic Check: 22 calls
+  Result count: 0
+    DB:OutboxEvent.findMany: 136 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:10:58 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 721ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:01 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1442ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:01 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1442ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:01 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:02 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 34KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:02 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 865ms, memory delta: 163KB[39m
+[MEMORY] 2025-07-24T00:11:03.191Z - DB:OutboxEvent.findMany (137 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 137 calls
+    Periodic Check: 22 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:03 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 855ms, memory delta: 300KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:03 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 34KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:03 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1589ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:03 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:03 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:08 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 721ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:11:12.105Z - Periodic Check (23 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+    DB:OutboxEvent.findMany: 138 calls
+    Periodic Check: 23 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:12 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: undefined.queryRaw took 720ms, memory delta: -507KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:13 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 715ms, memory delta: 17KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:15 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1284ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:15 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1284ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:15 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:16 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 854ms, memory delta: 139KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:16 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 864ms, memory delta: 280KB[39m
+[MEMORY] 2025-07-24T00:11:17.359Z - DB:MerchantNotification.count (78 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 139 calls
+    Periodic Check: 23 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:17 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 721ms, memory delta: 31KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:17 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1587ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:17 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:17 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:18 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 712ms, memory delta: -421KB[39m
+[MEMORY] 2025-07-24T00:11:23.205Z - DB:OutboxEvent.findMany (141 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 141 calls
+    Periodic Check: 23 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:23 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 861ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:28 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 711ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:11:29.779Z - DB:MerchantAuth.findUnique (73 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 1
+    DB:OutboxEvent.findMany: 142 calls
+    Periodic Check: 23 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:29 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1286ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:29 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1286ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:29 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:30 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 15KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:30 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 854ms, memory delta: 144KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:31 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 711ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:31 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1568ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:31 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:31 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:33 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 711ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:11:38.060Z - DB:OutboxEvent.findMany (144 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 144 calls
+    Periodic Check: 23 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:38 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 713ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:42 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: undefined.queryRaw took 859ms, memory delta: 168KB[39m
+[MEMORY] 2025-07-24T00:11:43.214Z - DB:OutboxEvent.findMany (145 calls)
+  Heap: 45MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 145 calls
+    Periodic Check: 24 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:43 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 866ms, memory delta: 155KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:43 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1443ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:43 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1443ms, memory delta: 63KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:43 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:44 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 728ms, memory delta: 15KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:44 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 866ms, memory delta: 144KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:45 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:45 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1589ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:45 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:45 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:48 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 725ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:11:53.073Z - DB:OutboxEvent.findMany (147 calls)
+  Heap: 45MB / 49MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 147 calls
+    Periodic Check: 24 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:53 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:57 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1296ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:57 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1296ms, memory delta: 55KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:57 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[MEMORY] 2025-07-24T00:11:58.074Z - DB:OutboxEvent.findMany (148 calls)
+  Heap: 46MB / 49MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 148 calls
+    Periodic Check: 24 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:11:58 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 150KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:58 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 855ms, memory delta: 36KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:58 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantNotification.findMany took 1008ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:58 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 1008ms, memory delta: 165KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:59 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 719ms, memory delta: 14KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:11:59 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1733ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:11:59 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:11:59 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[MEMORY] 2025-07-24T00:12:03.076Z - DB:OutboxEvent.findMany (149 calls)
+  Heap: 46MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 149 calls
+    Periodic Check: 24 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:03 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 723ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:12:08.078Z - DB:OutboxEvent.findMany (150 calls)
+  Heap: 46MB / 49MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 150 calls
+    Periodic Check: 24 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:08 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 721ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:11 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1298ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:11 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1298ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:11 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:12 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 716ms, memory delta: 50KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:12 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 869ms, memory delta: -494KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:12 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: undefined.queryRaw took 864ms, memory delta: -347KB[39m
+[MEMORY] 2025-07-24T00:12:13.412Z - DB:MerchantNotification.count (86 calls)
+  Heap: 46MB / 50MB | RSS: 124MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 150 calls
+    Periodic Check: 25 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 725ms, memory delta: 19KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1598ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: OutboxEvent.findMany took 1624ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:13 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 1624ms, memory delta: -84KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:18 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 712ms, memory delta: 242KB[39m
+[MEMORY] 2025-07-24T00:12:23.073Z - DB:OutboxEvent.findMany (153 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 153 calls
+    Periodic Check: 25 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:23 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 712ms, memory delta: 103KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:23 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1443ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:23 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1443ms, memory delta: 58KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:23 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:24 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 710ms, memory delta: 15KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:24 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 867ms, memory delta: -634KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:25 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 724ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:25 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1594ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:25 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:25 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[MEMORY] 2025-07-24T00:12:28.085Z - DB:OutboxEvent.findMany (154 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 154 calls
+    Periodic Check: 25 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:28 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:33 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 720ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:12:37.017Z - DB:MerchantAuth.findUnique (78 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 1
+    DB:OutboxEvent.findMany: 155 calls
+    Periodic Check: 25 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:37 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1299ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:37 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1299ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:37 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:37 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 851ms, memory delta: 33KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:37 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 866ms, memory delta: 162KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:38 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 866ms, memory delta: 300KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:38 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 865ms, memory delta: 18KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:38 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1735ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:38 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:38 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[MEMORY] 2025-07-24T00:12:42.108Z - Periodic Check (26 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+    DB:OutboxEvent.findMany: 156 calls
+    Periodic Check: 26 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:42 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: undefined.queryRaw took 720ms, memory delta: 45KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:43 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 721ms, memory delta: 17KB[39m
+[MEMORY] 2025-07-24T00:12:48.088Z - DB:OutboxEvent.findMany (158 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 158 calls
+    Periodic Check: 26 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:48 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:50 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1310ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:50 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1310ms, memory delta: -708KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:50 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 15KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 864ms, memory delta: 144KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1587ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:51 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:12:53 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 720ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:12:58.231Z - DB:OutboxEvent.findMany (160 calls)
+  Heap: 47MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 160 calls
+    Periodic Check: 26 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:12:58 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 865ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:13:03.493Z - DB:MerchantAuth.findUnique (80 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 1
+    DB:OutboxEvent.findMany: 160 calls
+    Periodic Check: 26 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:13:03 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1297ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:03 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1297ms, memory delta: 55KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:03 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:03 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: OutboxEvent.findMany took 1608ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:03 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 1608ms, memory delta: 167KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:04 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 720ms, memory delta: 22KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:04 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 995ms, memory delta: 151KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:05 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 710ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:05 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1707ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:05 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:05 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:08 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 711ms, memory delta: 12KB[39m
+[MEMORY] 2025-07-24T00:13:12.111Z - Periodic Check (27 calls)
+  Heap: 47MB / 50MB | RSS: 125MB | External: 3MB
+    DB:OutboxEvent.findMany: 162 calls
+    Periodic Check: 27 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:13:12 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: undefined.queryRaw took 712ms, memory delta: 45KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:13 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 17KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:16 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1445ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:16 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1445ms, memory delta: 37KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:16 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[MEMORY] 2025-07-24T00:13:17.634Z - DB:MerchantNotification.count (95 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 163 calls
+    Periodic Check: 27 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:13:17 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 711ms, memory delta: 33KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:17 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 866ms, memory delta: 178KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:18 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: 316KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:18 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "method": "GET",
+  "message": "Slow Request Detected",
+[MEMORY] 2025-07-24T00:13:23.098Z - DB:OutboxEvent.findMany (165 calls)
+  Heap: 47MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 0
+    DB:OutboxEvent.findMany: 165 calls
+    Periodic Check: 27 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:13:23 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 726ms, memory delta: 12KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:28 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 722ms, memory delta: -746KB[39m
+[MEMORY] 2025-07-24T00:13:30.039Z - DB:MerchantAuth.findUnique (82 calls)
+  Heap: 46MB / 50MB | RSS: 125MB | External: 3MB
+  Result count: 1
+    DB:OutboxEvent.findMany: 166 calls
+    Periodic Check: 27 calls
+[33m[Nest] 13  - [39m07/24/2025, 10:13:30 AM [33m   WARN[39m [38;5;3m[QueryMonitorService] [39m[33mSlow query detected: MerchantAuth.findUnique took 1297ms[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:30 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantAuth.findUnique took 1297ms, memory delta: 38KB[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:30 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Incoming Request",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:30 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 865ms, memory delta: 15KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:30 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.findMany took 866ms, memory delta: 144KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:31 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: MerchantNotification.count took 865ms, memory delta: 13KB[39m
+[33m[Nest] 13  - [39m07/24/2025, 10:13:31 AM [33m   WARN[39m [38;5;3m[Performance] [39m[33mSlow request: GET /api/v1/merchant/notifications?take=50 - 1734ms[39m
+[32m[Nest] 13  - [39m07/24/2025, 10:13:31 AM [32m    LOG[39m [38;5;3m[HTTP] [39m[32mObject:[39m
+  "message": "Outgoing Response",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:31 AM [33m   WARN[39m [38;5;3m[HTTP] [39m[33mObject:[39m
+  "message": "Slow Request Detected",
+  "method": "GET",
+[33m[Nest] 13  - [39m07/24/2025, 10:13:33 AM [33m   WARN[39m [38;5;3m[PrismaService] [39m[33mSlow/Heavy query: OutboxEvent.findMany took 721ms, memory delta: 12KB[39m
