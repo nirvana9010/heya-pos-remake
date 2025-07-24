@@ -145,11 +145,13 @@ export function PaymentDialog({
 
     if (isOptimisticPayment) {
       // Create optimistic order update
+      // Don't change state yet - let the API handle state transitions
       const optimisticOrder = {
         ...order,
-        state: OrderState.COMPLETED,
+        // state remains unchanged - API will handle the transition
         paidAmount: (order?.paidAmount || 0) + balanceDue + tipAmount,
         totalAmount: (order?.totalAmount || 0) + tipAmount,
+        balanceDue: 0, // Payment covers the full balance
       };
 
       // Call onPaymentComplete immediately with optimistic data
@@ -294,20 +296,39 @@ export function PaymentDialog({
       }
 
     } catch (error: any) {
+      console.error('Payment processing error:', error);
+      
+      // Check if this is a state transition error
+      const errorMessage = error.response?.data?.message || error.message;
+      const isStateError = errorMessage.includes('not ready for payment') || 
+                          errorMessage.includes('Invalid state transition');
+      
       // If optimistic update failed, show error and revert
       if (isOptimisticPayment) {
         // Dialog is already closed, show error toast
         toast({
-          title: 'Payment failed',
-          description: error.response?.data?.message || error.message,
+          title: isStateError ? 'Order state error' : 'Payment failed',
+          description: isStateError 
+            ? 'The order state has changed. Please refresh and try again.'
+            : errorMessage,
           variant: 'destructive',
         });
         
-        // Optionally reopen dialog or handle error recovery
+        // Reload the order to get the correct state
+        if (isStateError && order?.id) {
+          try {
+            const refreshedOrder = await apiClient.getOrder(order.id);
+            onPaymentComplete?.(refreshedOrder);
+          } catch (refreshError) {
+            console.error('Failed to refresh order:', refreshError);
+          }
+        }
       } else {
         toast({
-          title: 'Payment failed',
-          description: error.response?.data?.message || error.message,
+          title: isStateError ? 'Order state error' : 'Payment failed',
+          description: isStateError 
+            ? 'The order state has changed. Please refresh and try again.'
+            : errorMessage,
           variant: 'destructive',
         });
       }
