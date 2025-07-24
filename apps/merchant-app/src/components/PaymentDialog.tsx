@@ -165,6 +165,9 @@ export function PaymentDialog({
         return;
       }
 
+      // Close dialog to avoid z-index conflicts with Tyro UI
+      onOpenChange(false);
+      
       // Process Tyro payment
       try {
         purchase(totalWithTip, {
@@ -185,7 +188,7 @@ export function PaymentDialog({
               };
               
               onPaymentComplete?.(optimisticOrder);
-              onOpenChange(false);
+              // Dialog already closed before Tyro payment
 
               // Record payment in background
               try {
@@ -232,13 +235,15 @@ export function PaymentDialog({
             } else {
               // Payment failed or cancelled
               if (response.result === TyroTransactionResult.CANCELLED) {
-                // User cancelled - this is not an error
+                // User cancelled - reopen the dialog
+                onOpenChange(true);
                 toast({
                   title: 'Payment cancelled',
                   description: 'Transaction was cancelled',
                 });
               } else {
-                // Actual payment failure
+                // Actual payment failure - reopen dialog
+                onOpenChange(true);
                 const errorMessage = response.result === TyroTransactionResult.DECLINED 
                   ? 'Payment was declined'
                   : 'Payment failed';
@@ -261,6 +266,8 @@ export function PaymentDialog({
         return; // Exit early for Tyro payments
       } catch (error) {
         console.error('[Tyro] Failed to initiate payment:', error);
+        // Reopen dialog on error
+        onOpenChange(true);
         toast({
           title: 'Payment failed',
           description: 'Failed to communicate with payment terminal',
