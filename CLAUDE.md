@@ -186,7 +186,20 @@ npm run format
 
 # Note: The API app was missing ESLint config. A basic .eslintrc.js has been added.
 # Frontend apps (merchant-app, booking-app) have ESLint configured.
+
+# If commands are not found, ask the user for the correct commands
 ```
+
+### Command Execution Best Practices
+
+**Before executing terminal commands**:
+- Trigger the command line syntax check for that command to avoid failed commands
+- Verify the command exists and is properly formatted
+
+**If a command is not found**:
+1. First check the PATH to see if the command is installed but not in PATH
+2. Then attempt to install it with the appropriate package manager command
+3. If the installation fails due to permissions, ask the user to install it manually
 
 ### Important: Commands to Avoid
 
