@@ -1,7 +1,7 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import * as process from 'process';
-import * as heapdump from 'heapdump';
+// import * as heapdump from 'heapdump';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -75,27 +75,31 @@ export class DebugController {
   @Post('memory/heapdump')
   @Public()
   async createHeapDump() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `heapdump-${timestamp}.heapsnapshot`;
-    const filepath = path.join(process.cwd(), filename);
+    return {
+      error: 'Heapdump functionality is disabled in production builds',
+      note: 'This feature requires the heapdump package which is not included in production'
+    };
+    // const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    // const filename = `heapdump-${timestamp}.heapsnapshot`;
+    // const filepath = path.join(process.cwd(), filename);
 
-    return new Promise((resolve, reject) => {
-      heapdump.writeSnapshot(filepath, (err, filename) => {
-        if (err) {
-          reject({ error: 'Failed to create heap dump', details: err.message });
-        } else {
-          const stats = fs.statSync(filepath);
-          resolve({
-            success: true,
-            filename,
-            path: filepath,
-            sizeMB: (stats.size / 1024 / 1024).toFixed(2) + ' MB',
-            timestamp: new Date(),
-            note: 'Heap dump created. Use Chrome DevTools to analyze.',
-          });
-        }
-      });
-    });
+    // return new Promise((resolve, reject) => {
+    //   heapdump.writeSnapshot(filepath, (err, filename) => {
+    //     if (err) {
+    //       reject({ error: 'Failed to create heap dump', details: err.message });
+    //     } else {
+    //       const stats = fs.statSync(filepath);
+    //       resolve({
+    //         success: true,
+    //         filename,
+    //         path: filepath,
+    //         sizeMB: (stats.size / 1024 / 1024).toFixed(2) + ' MB',
+    //         timestamp: new Date(),
+    //         note: 'Heap dump created. Use Chrome DevTools to analyze.',
+    //       });
+    //     }
+    //   });
+    // });
   }
 
   @Get('memory/gc')
