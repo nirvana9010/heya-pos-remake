@@ -8,6 +8,7 @@ import { apiClient } from '../lib/api-client';
 import type { Customer } from './customers';
 import { Button, Input, Badge, Label, Spinner } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
+import { toast } from '@heya-pos/ui';
 import { debounce } from 'lodash';
 import { useAuth } from '../lib/auth/auth-provider';
 import { PaymentDialogPortal } from './PaymentDialogPortal';
@@ -121,6 +122,21 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const handlePaymentComplete = async (updatedOrder: any) => {
     // Payment completed successfully
     setPaymentDialogOpen(false);
+    
+    // Show confirmation toast with customer name and total
+    const customerName = isWalkIn ? 'Walk-in Customer' : (
+      selectedCustomer?.name || 
+      `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim() ||
+      'Customer'
+    );
+    
+    const totalAmount = updatedOrder?.totalAmount || total;
+    
+    toast({
+      title: "Quick sale complete",
+      description: `Quick sale complete for ${customerName} for $${totalAmount.toFixed(2)}`,
+      duration: 5000,
+    });
     
     onSaleComplete();
     onClose();
