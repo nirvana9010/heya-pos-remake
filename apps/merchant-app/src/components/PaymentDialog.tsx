@@ -77,7 +77,6 @@ export function PaymentDialog({
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
-  const [tyroProcessing, setTyroProcessing] = useState(false);
   
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
@@ -168,11 +167,8 @@ export function PaymentDialog({
 
       // Process Tyro payment
       try {
-        setTyroProcessing(true);
         purchase(totalWithTip, {
           transactionCompleteCallback: async (response) => {
-            setTyroProcessing(false);
-            
             if (response.result === TyroTransactionResult.APPROVED) {
               // Payment was successful
               toast({
@@ -265,7 +261,6 @@ export function PaymentDialog({
         return; // Exit early for Tyro payments
       } catch (error) {
         console.error('[Tyro] Failed to initiate payment:', error);
-        setTyroProcessing(false);
         toast({
           title: 'Payment failed',
           description: 'Failed to communicate with payment terminal',
@@ -931,48 +926,6 @@ export function PaymentDialog({
             )}
           </Button>
         </DialogFooter>
-        
-        {/* Tyro Processing Overlay */}
-        {tyroProcessing && (
-          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 text-center space-y-4 max-w-sm mx-4">
-              <div className="flex justify-center">
-                <div className="relative">
-                  <CreditCard className="h-16 w-16 text-gray-400" />
-                  <div className="absolute -bottom-1 -right-1">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Processing Payment</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Please complete the payment on your Tyro terminal
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  ${totalWithTip.toFixed(2)}
-                </p>
-              </div>
-              <p className="text-xs text-gray-500 mb-4">
-                You can cancel the payment on your terminal
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Cancel Tyro payment
-                  setTyroProcessing(false);
-                  setProcessing(false);
-                  toast({
-                    title: 'Payment cancelled',
-                    description: 'Transaction was cancelled',
-                  });
-                }}
-              >
-                Cancel Payment
-              </Button>
-            </div>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
