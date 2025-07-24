@@ -56,12 +56,6 @@ export default function RootLayout({
           <Script
             src="/js/iclient-with-ui-v1.js"
             strategy="lazyOnload"
-            onLoad={() => {
-              console.log('[Tyro] SDK loaded successfully');
-            }}
-            onError={() => {
-              console.error('[Tyro] Failed to load SDK');
-            }}
           />
         )}
         
@@ -70,12 +64,6 @@ export default function RootLayout({
           <Script
             src="/js/iclient-with-ui-v1.js.simulator"
             strategy="lazyOnload"
-            onLoad={() => {
-              console.log('[Tyro] Simulator SDK loaded successfully');
-            }}
-            onError={() => {
-              console.error('[Tyro] Failed to load simulator SDK');
-            }}
           />
         )}
       </body>
