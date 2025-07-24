@@ -953,9 +953,23 @@ export function PaymentDialog({
                   ${totalWithTip.toFixed(2)}
                 </p>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mb-4">
                 You can cancel the payment on your terminal
               </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Cancel Tyro payment
+                  setTyroProcessing(false);
+                  setProcessing(false);
+                  toast({
+                    title: 'Payment cancelled',
+                    description: 'Transaction was cancelled',
+                  });
+                }}
+              >
+                Cancel Payment
+              </Button>
             </div>
           </div>
         )}
