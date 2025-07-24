@@ -16,17 +16,17 @@ import { Label } from '@heya-pos/ui';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface TyroPairingDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onPairSuccess?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onPaired?: (terminalId: string) => void;
   defaultMerchantId?: string;
   defaultTerminalId?: string;
 }
 
 export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
-  open,
-  onOpenChange,
-  onPairSuccess,
+  isOpen,
+  onClose,
+  onPaired,
   defaultMerchantId = '',
   defaultTerminalId = '',
 }) => {
@@ -62,8 +62,8 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
         setSuccess(true);
         setError('');
         setTimeout(() => {
-          onPairSuccess?.();
-          onOpenChange(false);
+          onPaired?.(terminalId.trim());
+          onClose();
           // Reset state
           setSuccess(false);
           setStatus('');
@@ -77,7 +77,7 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
 
   const handleClose = () => {
     if (!loading) {
-      onOpenChange(false);
+      onClose();
       // Reset state when closing
       setStatus('');
       setError('');
@@ -88,7 +88,7 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
   const StatusIcon = success ? CheckCircle : error ? AlertCircle : null;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Pair Tyro Terminal</DialogTitle>
