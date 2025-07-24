@@ -229,13 +229,13 @@ const nextConfig = {
   // Rewrites for API proxy
   async rewrites() {
     // In production, proxy API calls to the backend
-    // Remove /api from the env var since we're appending it
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    // The env var should already include /api
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
     
     return [
       {
         source: '/api/:path*',
-        destination: `${API_URL}/api/:path*`,
+        destination: `${API_URL}/:path*`,
       },
     ];
   },
