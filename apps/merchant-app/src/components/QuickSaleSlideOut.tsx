@@ -135,7 +135,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     toast({
       title: "Quick sale complete",
       description: `Quick sale complete for ${customerName} for $${totalAmount.toFixed(2)}`,
-      duration: 5000,
+      duration: 2500,
     });
     
     onSaleComplete();
