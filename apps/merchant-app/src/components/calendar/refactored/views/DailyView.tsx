@@ -578,25 +578,25 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Status badges - bottom right */}
-                                <div className="absolute bottom-3 right-3 flex gap-2 max-w-full">
+                                {/* Status badges - bottom right - responsive */}
+                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
                                   {booking.status === 'PENDING' && (
-                                    <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                    <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PENDING</span>
                                     </div>
                                   )}
                                   {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                    <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
                                       <span className="block truncate">Creating...</span>
                                     </div>
                                   )}
                                   {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-xs font-bold px-2 py-1.5 rounded shadow-lg min-w-0 overflow-hidden">
-                                      <span className="block truncate">IN PROGRESS</span>
+                                    <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                      <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                    <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PAID</span>
                                     </div>
                                   )}
@@ -606,20 +606,20 @@ export function DailyView({
                                   <>
                                     {/* Inline time and duration for compact bookings */}
                                     {booking.status !== 'cancelled' && (
-                                      <div className="text-xs font-medium opacity-75 mb-0.5">
+                                      <div className="text-[10px] sm:text-[11px] md:text-xs font-medium opacity-75 mb-0.5">
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div className="flex items-center gap-1">
                                       <div 
-                                        className={cn("font-semibold truncate text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        className={cn("font-semibold truncate text-xs sm:text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                         title={booking.customerName}
                                       >
                                         {booking.customerName}
                                       </div>
                                     </div>
                                     <div 
-                                      className={cn("truncate text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("truncate text-[10px] sm:text-[11px] md:text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={`${booking.serviceName} (${booking.duration}min)`}
                                     >
                                       {booking.serviceName}
@@ -630,18 +630,18 @@ export function DailyView({
                                     {/* Regular layout for longer bookings */}
                                     {/* Time and duration - on its own row */}
                                     {booking.status !== 'cancelled' && (
-                                      <div className="text-sm font-medium opacity-75 mb-1">
+                                      <div className="text-[11px] sm:text-xs md:text-sm font-medium opacity-75 mb-1">
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div 
-                                      className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("font-bold truncate text-sm sm:text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={booking.customerName}
                                     >
                                       {booking.customerName}
                                     </div>
                                     <div 
-                                      className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={booking.serviceName}
                                     >
                                       {booking.serviceName}
@@ -871,25 +871,25 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Status badges - bottom right */}
-                                <div className="absolute bottom-3 right-3 flex gap-2 max-w-full">
+                                {/* Status badges - bottom right - responsive */}
+                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
                                   {booking.status === 'PENDING' && (
-                                    <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                    <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PENDING</span>
                                     </div>
                                   )}
                                   {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                    <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
                                       <span className="block truncate">Creating...</span>
                                     </div>
                                   )}
                                   {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-xs font-bold px-2 py-1.5 rounded shadow-lg min-w-0 overflow-hidden">
-                                      <span className="block truncate">IN PROGRESS</span>
+                                    <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                      <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
                                     </div>
                                   )}
                                   {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded min-w-0 overflow-hidden">
+                                    <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PAID</span>
                                     </div>
                                   )}
@@ -899,20 +899,20 @@ export function DailyView({
                                   <>
                                     {/* Inline time and duration for compact bookings */}
                                     {booking.status !== 'cancelled' && (
-                                      <div className="text-xs font-medium opacity-75 mb-0.5">
+                                      <div className="text-[10px] sm:text-[11px] md:text-xs font-medium opacity-75 mb-0.5">
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div className="flex items-center gap-1">
                                       <div 
-                                        className={cn("font-semibold truncate text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        className={cn("font-semibold truncate text-xs sm:text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                         title={booking.customerName}
                                       >
                                         {booking.customerName}
                                       </div>
                                     </div>
                                     <div 
-                                      className={cn("truncate text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("truncate text-[10px] sm:text-[11px] md:text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={`${booking.serviceName} (${booking.duration}min)`}
                                     >
                                       {booking.serviceName}
@@ -923,18 +923,18 @@ export function DailyView({
                                     {/* Regular layout for longer bookings */}
                                     {/* Time and duration - on its own row */}
                                     {booking.status !== 'cancelled' && (
-                                      <div className="text-sm font-medium opacity-75 mb-1">
+                                      <div className="text-[11px] sm:text-xs md:text-sm font-medium opacity-75 mb-1">
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
                                     <div 
-                                      className={cn("font-bold truncate text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("font-bold truncate text-sm sm:text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={booking.customerName}
                                     >
                                       {booking.customerName}
                                     </div>
                                     <div 
-                                      className={cn("truncate text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                      className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
                                       title={booking.serviceName}
                                     >
                                       {booking.serviceName}
