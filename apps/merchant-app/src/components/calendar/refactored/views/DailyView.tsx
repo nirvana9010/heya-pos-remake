@@ -12,7 +12,7 @@ import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
 import { Users, Check, X, AlertTriangle } from 'lucide-react';
-import { BookingTooltip } from '../BookingTooltip';
+import { BookingTooltip } from '../BookingTooltipSimple';
 
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;
