@@ -63,7 +63,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       // Load all required data in parallel
       const [staffData, servicesResponse, customersData, bookingsData, settingsData, schedulesData] = await Promise.all([
         apiClient.getStaff().catch(() => []),
-        apiClient.getServices().catch(() => ({ data: [] })),
+        apiClient.getServices({ limit: 500, isActive: true }).catch(() => ({ data: [] })),
         apiClient.getCustomers().catch(() => []),
         apiClient.getBookings().catch(() => []),
         apiClient.getMerchantSettings().catch(() => null),
