@@ -242,7 +242,7 @@ Please save these credentials securely.
       accessorKey: "status",
       header: "Status",
       cell: ({ row }: any) => {
-        const status = row.original.status || 'ACTIVE';
+        const status = row.original.status || (row.original.isActive ? 'ACTIVE' : 'INACTIVE');
         return (
           <Badge variant={status === "ACTIVE" ? "default" : "secondary"}>
             {status}
