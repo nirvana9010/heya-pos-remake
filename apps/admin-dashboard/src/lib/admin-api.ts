@@ -32,6 +32,7 @@ export interface Merchant {
   subdomain: string;
   abn?: string;
   isActive: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   createdAt: string;
   updatedAt: string;
   locations?: Array<{
@@ -98,7 +99,7 @@ class AdminApi {
   }
 
   async getMerchant(id: string): Promise<Merchant> {
-    const response = await apiClient.get<Merchant>(`/admin/merchants/${id}`);
+    const response = await apiClient.get<Merchant>(`/v1/admin/merchants/${id}`);
     return response;
   }
 
@@ -108,12 +109,12 @@ class AdminApi {
   }
 
   async updateMerchant(id: string, data: Partial<CreateMerchantData>): Promise<Merchant> {
-    const response = await apiClient.patch<Merchant>(`/admin/merchants/${id}`, data);
+    const response = await apiClient.patch<Merchant>(`/v1/admin/merchants/${id}`, data);
     return response;
   }
 
   async deleteMerchant(id: string): Promise<void> {
-    await apiClient.delete(`/admin/merchants/${id}`);
+    await apiClient.delete(`/v1/admin/merchants/${id}`);
   }
 
   // Check subdomain availability
