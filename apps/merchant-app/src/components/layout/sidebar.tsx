@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@heya-pos/ui'
-import { useTransition, useState, useEffect } from 'react'
+import { useTransition, useState, useEffect, useMemo } from 'react'
 import {
   LayoutDashboard,
   Calendar,
@@ -18,25 +18,26 @@ import {
   Sparkles,
   Gift,
   Bell,
+  CheckSquare,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
+import { useFeatures } from '../../lib/features/feature-service'
 
-const mainNavigation = [
-  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Hidden for MVP
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
-  { name: 'Bookings', href: '/bookings', icon: Calendar },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Staff', href: '/staff', icon: Users },
-  { name: 'Roster', href: '/roster', icon: Calendar },
-  { name: 'Services', href: '/services', icon: Package },
-  { name: 'Payments', href: '/payments', icon: DollarSign },
-]
-
-const bottomNavigation = [
-  { name: 'Loyalty', href: '/loyalty', icon: Gift },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
-  { name: 'Settings', href: '/settings', icon: Settings },
+const allNavigation = [
+  // Main navigation
+  { name: 'Calendar', href: '/calendar', icon: Calendar, feature: 'bookings' },
+  { name: 'Bookings', href: '/bookings', icon: Calendar, feature: 'bookings' },
+  { name: 'Check-In', href: '/check-in', icon: CheckSquare, feature: 'check_in_only' },
+  { name: 'Customers', href: '/customers', icon: Users, feature: 'customers' },
+  { name: 'Staff', href: '/staff', icon: Users, feature: 'staff' },
+  { name: 'Roster', href: '/roster', icon: Calendar, feature: 'roster' },
+  { name: 'Services', href: '/services', icon: Package, feature: 'services' },
+  { name: 'Payments', href: '/payments', icon: DollarSign, feature: 'payments' },
+  // Bottom navigation
+  { name: 'Loyalty', href: '/loyalty', icon: Gift, feature: 'loyalty', position: 'bottom' },
+  { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports', position: 'bottom' },
+  { name: 'Notifications', href: '/notifications', icon: Bell, feature: 'notifications', position: 'bottom' },
+  { name: 'Settings', href: '/settings', icon: Settings, feature: null, position: 'bottom' }, // Always visible
 ]
 
 interface SidebarProps {
@@ -49,6 +50,20 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isNavigating, setIsNavigating] = useState(false)
+  const { hasFeature, loading: featuresLoading } = useFeatures()
+
+  // Filter navigation based on features
+  const filteredNavigation = useMemo(() => {
+    const mainNav = allNavigation
+      .filter(item => !item.position || item.position !== 'bottom')
+      .filter(item => !item.feature || hasFeature(item.feature))
+    
+    const bottomNav = allNavigation
+      .filter(item => item.position === 'bottom')
+      .filter(item => !item.feature || hasFeature(item.feature))
+    
+    return { mainNav, bottomNav }
+  }, [hasFeature, featuresLoading])
 
   const handleNavigation = (href: string) => {
     // Show loading state immediately
@@ -123,7 +138,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
         {/* Main Navigation */}
         <div style={{ flex: 1 }}>
-          {mainNavigation.map((item, index) => {
+          {filteredNavigation.mainNav.map((item, index) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href)
             return (
               <button
@@ -143,16 +158,18 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
           })}
         </div>
         
-        {/* Separator */}
-        <div style={{ 
-          borderTop: '1px solid var(--color-border)', 
-          marginTop: '1rem',
-          marginBottom: '1rem'
-        }} />
+        {/* Separator - only show if bottom nav has items */}
+        {filteredNavigation.bottomNav.length > 0 && (
+          <div style={{ 
+            borderTop: '1px solid var(--color-border)', 
+            marginTop: '1rem',
+            marginBottom: '1rem'
+          }} />
+        )}
         
         {/* Bottom Navigation */}
         <div>
-          {bottomNavigation.map((item, index) => {
+          {filteredNavigation.bottomNav.map((item, index) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href)
             return (
               <button

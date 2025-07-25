@@ -18,6 +18,10 @@ import { formatName } from '../utils/shared/format';
 import { IsString, IsOptional, IsNotEmpty, IsEmail, MaxLength } from 'class-validator';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
+import { FeaturesService } from '../features/features.service';
+import { BookingCreationService } from '../contexts/bookings/application/services/booking-creation.service';
+import { generateBookingId } from '../utils/shared/booking';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 class CheckInDto {
   @IsString()
@@ -58,6 +62,9 @@ export class PublicCheckInController {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly notificationsService: MerchantNotificationsService,
+    private readonly featuresService: FeaturesService,
+    private readonly bookingCreationService: BookingCreationService,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
 
   // Helper method to get merchant by subdomain
@@ -146,8 +153,19 @@ export class PublicCheckInController {
       console.log(`[CHECK-IN] New customer created: ${customer.id}`);
     }
 
+    // Check if merchant has check_in_only feature
+    const hasCheckInOnly = await this.featuresService.hasFeature(merchant.id, 'check_in_only');
+    
+    if (hasCheckInOnly) {
+      // For check-in only merchants, create a completed booking
+      await this.createCheckInBooking(merchant.id, customer.id);
+    }
+
     // Get today's bookings for this customer
     const todayBookings = await this.getTodaysBookings(customer.id, merchant.id);
+
+    // Get loyalty information
+    const loyaltyInfo = await this.getLoyaltyInfo(customer.id, merchant.id);
 
     return {
       success: true,
@@ -157,10 +175,13 @@ export class PublicCheckInController {
         lastName: customer.lastName,
         phone: customer.phone,
         email: customer.email,
+        loyaltyPoints: customer.loyaltyPoints,
+        loyaltyVisits: customer.loyaltyVisits,
         // allergies: customer.allergies,
         // specialRequirements: customer.specialRequirements,
       },
       bookings: todayBookings,
+      loyalty: loyaltyInfo,
     };
   }
 
@@ -307,6 +328,111 @@ export class PublicCheckInController {
         id: updatedBooking.id,
         status: updatedBooking.status,
       },
+    };
+  }
+
+  private async createCheckInBooking(merchantId: string, customerId: string) {
+    try {
+      // Get or create check-in service
+      const checkInService = await this.getOrCreateCheckInService(merchantId);
+      
+      // Get merchant's first location
+      const location = await this.prisma.location.findFirst({
+        where: {
+          merchantId,
+          isActive: true,
+        },
+      });
+
+      // Create a completed booking
+      const booking = await this.bookingCreationService.createBooking({
+        merchantId,
+        customerId,
+        locationId: location?.id,
+        serviceId: checkInService.id,
+        startTime: new Date(),
+        source: 'CHECK_IN',
+        createdById: customerId, // Self check-in
+      });
+
+      // Immediately complete the booking to trigger loyalty
+      await this.prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          checkedInAt: new Date(),
+        },
+      });
+
+      // Process loyalty
+      await this.loyaltyService.processBookingCompletion(booking.id);
+
+      console.log(`[CHECK-IN] Created and completed booking ${booking.id} for customer ${customerId}`);
+    } catch (error) {
+      console.error('[CHECK-IN] Error creating check-in booking:', error);
+      // Don't throw - allow check-in to succeed even if booking creation fails
+    }
+  }
+
+  private async getOrCreateCheckInService(merchantId: string) {
+    // Look for existing check-in service
+    let service = await this.prisma.service.findFirst({
+      where: {
+        merchantId,
+        name: 'Check-In',
+      },
+    });
+
+    if (!service) {
+      // Create check-in service
+      service = await this.prisma.service.create({
+        data: {
+          merchantId,
+          name: 'Check-In',
+          description: 'System service for check-ins',
+          duration: 0,
+          price: 0,
+          currency: 'AUD',
+          isActive: true,
+          metadata: {
+            isSystem: true,
+            hidden: true,
+          },
+        },
+      });
+      console.log(`[CHECK-IN] Created check-in service for merchant ${merchantId}`);
+    }
+
+    return service;
+  }
+
+  private async getLoyaltyInfo(customerId: string, merchantId: string) {
+    const program = await this.prisma.loyaltyProgram.findFirst({
+      where: { merchantId },
+    });
+
+    if (!program || !program.isActive) {
+      return null;
+    }
+
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        loyaltyPoints: true,
+        loyaltyVisits: true,
+      },
+    });
+
+    return {
+      type: program.type,
+      points: toNumber(customer?.loyaltyPoints || 0),
+      visits: customer?.loyaltyVisits || 0,
+      pointsToNextReward: program.type === 'POINTS' ? toNumber(program.rewardThreshold) - toNumber(customer?.loyaltyPoints || 0) : null,
+      visitsToNextReward: program.type === 'VISITS' ? program.visitsRequired - (customer?.loyaltyVisits || 0) : null,
+      canRedeem: program.type === 'POINTS' 
+        ? toNumber(customer?.loyaltyPoints || 0) >= toNumber(program.rewardThreshold)
+        : (customer?.loyaltyVisits || 0) >= (program.visitsRequired || 0),
     };
   }
 }
