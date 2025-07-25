@@ -172,7 +172,7 @@ export function useCalendarData() {
   // Fetch services data
   const fetchServices = useCallback(async () => {
     try {
-      const response = await apiClient.getServices();
+      const response = await apiClient.getServices({ limit: 500, isActive: true });
       
       // Extract services array from paginated response
       const servicesData = response.data || [];
