@@ -7,6 +7,8 @@ import { ServicesModule } from '../services/services.module';
 import { StaffModule } from '../staff/staff.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { FeaturesModule } from '../features/features.module';
+import { LoyaltyModule } from '../loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     ServicesModule,
     StaffModule,
     NotificationsModule, // Required for check-in notifications
+    FeaturesModule, // Required for feature checks
+    LoyaltyModule, // Required for loyalty processing
   ],
   controllers: [PublicBookingController, PublicCheckInController, AvailabilityController],
 })

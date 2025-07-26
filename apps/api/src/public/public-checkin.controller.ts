@@ -20,7 +20,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
 import { FeaturesService } from '../features/features.service';
 import { BookingCreationService } from '../contexts/bookings/application/services/booking-creation.service';
-import { generateBookingId } from '../utils/shared/booking';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 class CheckInDto {
