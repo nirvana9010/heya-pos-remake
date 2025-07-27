@@ -109,7 +109,9 @@ export async function middleware(request: NextRequest) {
             // Don't redirect if we were just sent here
             return NextResponse.next()
           }
-          return NextResponse.redirect(new URL('/calendar', request.url))
+          
+          // Redirect to check-ins as default - CheckInLiteRedirect will handle further routing if needed
+          return NextResponse.redirect(new URL('/check-ins', request.url))
         } else {
           // Token is invalid/expired, clear the cookie
           const response = NextResponse.next()
@@ -121,6 +123,20 @@ export async function middleware(request: NextRequest) {
         const response = NextResponse.next()
         response.cookies.delete('authToken')
         return response
+      }
+    }
+  }
+  
+  // Handle root redirect for authenticated users
+  if (pathname === '/') {
+    const token = request.cookies.get('authToken')?.value
+    
+    if (token) {
+      const payload = await verifyToken(token, request)
+      
+      if (payload && payload.exp && payload.exp > Date.now() / 1000) {
+        // Redirect to check-ins as default - CheckInLiteRedirect will handle further routing if needed
+        return NextResponse.redirect(new URL('/check-ins', request.url))
       }
     }
   }
@@ -143,12 +159,18 @@ export const config = {
     '/calendar-new/:path*',
     '/settings/:path*', 
     '/bookings/:path*',
+    '/check-ins/:path*',
     '/services/:path*',
     '/staff/:path*',
     '/customers/:path*',
     '/reports/:path*',
     '/analytics/:path*',
     '/pos/:path*',
+    '/check-in/:path*',
+    '/loyalty/:path*',
+    '/notifications/:path*',
+    '/roster/:path*',
+    '/payments/:path*',
     '/login',
     '/forgot-password',
     '/reset-password',

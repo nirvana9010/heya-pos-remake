@@ -1,6 +1,7 @@
 import { apiClient } from '../api-client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import React from 'react';
 
 export interface FeatureModule {
   id: string;
@@ -60,18 +61,22 @@ export const useFeatureStore = create<FeatureStore>()(
         set({ loading: true, error: null });
 
         try {
-          const [featuresResponse, modulesResponse] = await Promise.all([
-            apiClient.get('/features'),
-            apiClient.get('/features/modules')
+          const [features, modules] = await Promise.all([
+            apiClient.features.getFeatures(),
+            apiClient.features.getFeatureModules()
           ]);
 
+          console.log('[FeatureStore] Features API response:', features);
+          console.log('[FeatureStore] Modules API response:', modules);
+
           set({
-            features: featuresResponse.data,
-            modules: modulesResponse.data,
+            features,
+            modules,
             loading: false,
             lastFetched: now
           });
         } catch (error: any) {
+          console.error('[FeatureStore] Error loading features:', error);
           set({
             error: error.message || 'Failed to load features',
             loading: false
@@ -141,9 +146,11 @@ export function useFeatures() {
   const store = useFeatureStore();
   
   // Load features on mount if needed
-  if (!store.features && !store.loading) {
-    store.loadFeatures();
-  }
+  React.useEffect(() => {
+    if (!store.features && !store.loading) {
+      store.loadFeatures();
+    }
+  }, [store]);
 
   return store;
 }

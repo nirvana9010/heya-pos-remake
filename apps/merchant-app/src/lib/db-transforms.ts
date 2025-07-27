@@ -165,6 +165,11 @@ function isBooleanField(fieldName: string): boolean {
   ];
   
   const fieldLower = fieldName.toLowerCase();
+  // Special case: don't treat feature arrays as booleans
+  if (fieldLower === 'enabledfeatures' || fieldLower === 'disabledfeatures') {
+    return false;
+  }
+  
   return booleanFields.some(field => 
     fieldLower === field.toLowerCase() ||
     fieldLower.startsWith('is') ||

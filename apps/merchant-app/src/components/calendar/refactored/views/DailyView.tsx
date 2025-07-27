@@ -125,8 +125,8 @@ export function DailyView({
       if (staff.schedules && staff.schedules.length > 0) {
         return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
       }
-      // If no schedules defined, assume they work (backward compatibility)
-      return true;
+      // If no schedules defined and roster filter is on, they don't work
+      return false;
     });
   }, [activeStaff, state.showOnlyRosteredStaff, state.currentDate]);
   

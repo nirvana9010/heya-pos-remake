@@ -9,6 +9,7 @@ export * from './payments-client';
 export * from './reports-client';
 export * from './notifications-client';
 export * from './loyalty-client';
+export * from './features-client';
 
 // Import client classes
 import { AuthClient } from './auth-client';
@@ -20,6 +21,7 @@ import { PaymentsClient } from './payments-client';
 import { ReportsClient } from './reports-client';
 import { NotificationsClient } from './notifications-client';
 import { LoyaltyClient } from './loyalty-client';
+import { FeaturesClient } from './features-client';
 
 /**
  * Unified API Client - Composition of focused domain clients
@@ -37,6 +39,7 @@ export class ApiClient {
   public reports: ReportsClient;
   public notifications: NotificationsClient;
   public loyalty: LoyaltyClient;
+  public features: FeaturesClient;
 
   constructor() {
     // Initialize all domain clients
@@ -49,6 +52,7 @@ export class ApiClient {
     this.reports = new ReportsClient();
     this.notifications = new NotificationsClient();
     this.loyalty = new LoyaltyClient();
+    this.features = new FeaturesClient();
   }
 
   // Legacy compatibility methods - delegate to appropriate domain clients

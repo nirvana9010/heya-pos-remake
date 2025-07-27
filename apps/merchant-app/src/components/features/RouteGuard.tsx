@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter, usePathname } from 'next/navigation';
 import { useFeatures } from '../../lib/features/feature-service';
 
 interface RouteGuardProps {
@@ -7,15 +7,16 @@ interface RouteGuardProps {
   fallbackRoute?: string;
 }
 
-export function RouteGuard({ children, fallbackRoute = '/calendar' }: RouteGuardProps) {
+export function RouteGuard({ children, fallbackRoute = '/check-in' }: RouteGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { canAccessRoute, loading, features } = useFeatures();
 
   useEffect(() => {
-    if (!loading && features && !canAccessRoute(router.pathname)) {
+    if (!loading && features && !canAccessRoute(pathname)) {
       router.replace(fallbackRoute);
     }
-  }, [router.pathname, loading, features, canAccessRoute, router, fallbackRoute]);
+  }, [pathname, loading, features, canAccessRoute, router, fallbackRoute]);
 
   // Show loading state while checking features
   if (loading || !features) {
@@ -27,7 +28,7 @@ export function RouteGuard({ children, fallbackRoute = '/calendar' }: RouteGuard
   }
 
   // If can't access, don't render children (redirect will happen)
-  if (!canAccessRoute(router.pathname)) {
+  if (!canAccessRoute(pathname)) {
     return null;
   }
 

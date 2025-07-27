@@ -20,7 +20,37 @@ export class FeaturesController {
   @Get()
   async getFeatures(@Req() req: RequestWithUser) {
     const merchantId = req.user.merchantId;
-    return this.featuresService.getMerchantFeatureSummary(merchantId);
+    const summary = await this.featuresService.getMerchantFeatureSummary(merchantId);
+    
+    console.log('[Features API] Summary from service:', {
+      enabled: summary.enabled,
+      enabledType: typeof summary.enabled,
+      enabledIsArray: Array.isArray(summary.enabled),
+      available: summary.available,
+      availableType: typeof summary.available,
+      availableIsArray: Array.isArray(summary.available)
+    });
+    
+    // Transform to match frontend expectations
+    const merchant = await this.featuresService.getMerchantWithPackage(merchantId);
+    const packageFeatures = this.featuresService.getPackageFeatures(merchant);
+    const packageName = merchant?.packageId || 'standard';
+    
+    const response = {
+      enabledFeatures: summary.enabled,
+      disabledFeatures: summary.available, // Features not enabled
+      overrides: summary.config,
+      packageFeatures: packageFeatures,
+      packageName: packageName
+    };
+    
+    console.log('[Features API] Response being sent:', {
+      response,
+      enabledType: typeof response.enabledFeatures,
+      disabledType: typeof response.disabledFeatures
+    });
+    
+    return response;
   }
 
   /**

@@ -96,9 +96,11 @@ export class BookingsClient extends BaseApiClient {
         ...params
       };
       
+      console.log('[BookingsClient] Fetching bookings with params:', requestParams);
       
       const response = await this.get('/bookings', { params: requestParams }, 'v2');
       
+      console.log('[BookingsClient] Raw API response:', response);
       
       // Real API returns paginated response, extract data
       const bookings = response.data || response;
@@ -211,6 +213,13 @@ export class BookingsClient extends BaseApiClient {
 
   // Helper method to transform booking data
   private transformBooking(booking: any): Booking {
+    console.log('[BookingsClient] Transforming booking:', {
+      id: booking.id,
+      status: booking.status,
+      startTime: booking.startTime,
+      source: booking.source
+    });
+    
     // Handle both V1 (nested) and V2 (flat) response formats
     
     // Customer name - V2 provides it directly, V1 needs to be constructed

@@ -335,6 +335,12 @@ export class PublicCheckInController {
       // Get or create check-in service
       const checkInService = await this.getOrCreateCheckInService(merchantId);
       
+      console.log(`[CHECK-IN] Using service:`, {
+        id: checkInService.id,
+        name: checkInService.name,
+        duration: checkInService.duration
+      });
+      
       // Get merchant's first location
       const location = await this.prisma.location.findFirst({
         where: {
@@ -343,13 +349,16 @@ export class PublicCheckInController {
         },
       });
 
+      const startTime = new Date();
+      console.log(`[CHECK-IN] Creating booking with startTime:`, startTime.toISOString());
+
       // Create a completed booking
       const booking = await this.bookingCreationService.createBooking({
         merchantId,
         customerId,
         locationId: location?.id,
         serviceId: checkInService.id,
-        startTime: new Date(),
+        startTime: startTime,
         source: 'CHECK_IN',
         createdById: customerId, // Self check-in
       });
@@ -367,7 +376,14 @@ export class PublicCheckInController {
       // Process loyalty
       await this.loyaltyService.processBookingCompletion(booking.id);
 
-      console.log(`[CHECK-IN] Created and completed booking ${booking.id} for customer ${customerId}`);
+      console.log(`[CHECK-IN] Created and completed booking:`, {
+        id: booking.id,
+        customerId: customerId,
+        startTime: booking.timeSlot.start,
+        endTime: booking.timeSlot.end,
+        status: 'COMPLETED',
+        serviceDuration: checkInService.duration
+      });
     } catch (error) {
       console.error('[CHECK-IN] Error creating check-in booking:', error);
       // Don't throw - allow check-in to succeed even if booking creation fails
@@ -390,7 +406,7 @@ export class PublicCheckInController {
           merchantId,
           name: 'Check-In',
           description: 'System service for check-ins',
-          duration: 0,
+          duration: 1, // 1 minute duration so booking has a proper time slot
           price: 0,
           currency: 'AUD',
           isActive: true,
@@ -401,6 +417,13 @@ export class PublicCheckInController {
         },
       });
       console.log(`[CHECK-IN] Created check-in service for merchant ${merchantId}`);
+    } else if (service.duration === 0) {
+      // Fix existing service with 0 duration
+      service = await this.prisma.service.update({
+        where: { id: service.id },
+        data: { duration: 1 },
+      });
+      console.log(`[CHECK-IN] Updated check-in service duration from 0 to 1 for merchant ${merchantId}`);
     }
 
     return service;

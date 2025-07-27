@@ -18,16 +18,14 @@ import {
   Sparkles,
   Gift,
   Bell,
-  CheckSquare,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
-import { useFeatures } from '../../lib/features/feature-service'
 
 const allNavigation = [
   // Main navigation
   { name: 'Calendar', href: '/calendar', icon: Calendar, feature: 'bookings' },
   { name: 'Bookings', href: '/bookings', icon: Calendar, feature: 'bookings' },
-  { name: 'Check-In', href: '/check-in', icon: CheckSquare, feature: 'check_in_only' },
+  { name: 'Check-Ins', href: '/check-ins', icon: Calendar, feature: 'check_in_only' }, // Show for Check-In Lite
   { name: 'Customers', href: '/customers', icon: Users, feature: 'customers' },
   { name: 'Staff', href: '/staff', icon: Users, feature: 'staff' },
   { name: 'Roster', href: '/roster', icon: Calendar, feature: 'roster' },
@@ -40,20 +38,33 @@ const allNavigation = [
   { name: 'Settings', href: '/settings', icon: Settings, feature: null, position: 'bottom' }, // Always visible
 ]
 
+interface MerchantFeatures {
+  enabledFeatures: string[];
+  disabledFeatures: string[];
+  overrides: Record<string, any>;
+  packageFeatures: string[];
+  packageName: string;
+}
+
 interface SidebarProps {
   collapsed: boolean
   onToggle: (collapsed: boolean) => void
+  features: MerchantFeatures | null
 }
 
-export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<SidebarProps>) {
+export function Sidebar({ collapsed = false, onToggle = () => {}, features = null }: Partial<SidebarProps>) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isNavigating, setIsNavigating] = useState(false)
-  const { hasFeature, loading: featuresLoading } = useFeatures()
 
   // Filter navigation based on features
   const filteredNavigation = useMemo(() => {
+    const hasFeature = (featureId: string): boolean => {
+      if (!features) return true; // Show all if no features loaded
+      return features.enabledFeatures.includes(featureId);
+    };
+    
     const mainNav = allNavigation
       .filter(item => !item.position || item.position !== 'bottom')
       .filter(item => !item.feature || hasFeature(item.feature))
@@ -63,7 +74,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
       .filter(item => !item.feature || hasFeature(item.feature))
     
     return { mainNav, bottomNav }
-  }, [hasFeature, featuresLoading])
+  }, [features])
 
   const handleNavigation = (href: string) => {
     // Show loading state immediately
@@ -135,7 +146,13 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: Partial<Side
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <nav style={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '0.25rem',
+        opacity: 1
+      }}>
         {/* Main Navigation */}
         <div style={{ flex: 1 }}>
           {filteredNavigation.mainNav.map((item, index) => {

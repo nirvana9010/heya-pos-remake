@@ -255,15 +255,15 @@ export class FeaturesService {
     };
   }
 
-  // Private helper methods
-  private async getMerchantWithPackage(merchantId: string): Promise<MerchantWithPackage | null> {
+  // Helper methods (public for controller use)
+  async getMerchantWithPackage(merchantId: string): Promise<MerchantWithPackage | null> {
     return this.prisma.merchant.findUnique({
       where: { id: merchantId },
       include: { package: true },
     });
   }
 
-  private getPackageFeatures(merchant: MerchantWithPackage): string[] {
+  getPackageFeatures(merchant: MerchantWithPackage): string[] {
     // Handle both old and new feature formats
     const features = merchant.package?.features;
     
