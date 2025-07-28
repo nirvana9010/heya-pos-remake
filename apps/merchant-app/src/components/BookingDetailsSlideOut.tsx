@@ -173,8 +173,13 @@ function BookingDetailsSlideOutComponent({
         }
       } catch (error: any) {
         // Don't log empty errors - this happens when booking is very new
-        if (error && (error.message || error.code || error.status)) {
-          console.error('[BookingDetailsSlideOut] Error fetching order:', error);
+        if (error && Object.keys(error).length > 0 && (error.message || error.code || error.status || error.response)) {
+          console.error('[BookingDetailsSlideOut] Error fetching order:', {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            response: error.response?.data
+          });
         }
         
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
@@ -182,6 +187,10 @@ function BookingDetailsSlideOutComponent({
           // Don't set null here - we'll get the order when processing payment
         } else if (error?.status === 404 || error?.code === 'NOT_FOUND') {
           // Order doesn't exist yet - this is normal for new bookings
+          setAssociatedOrder(null);
+        } else if (error?.message?.includes('connection pool') || error?.code === 'CONNECTION_ERROR') {
+          // Database connection issue
+          console.warn('[BookingDetailsSlideOut] Database connection issue - will retry on payment');
           setAssociatedOrder(null);
         } else {
           // Other errors - clear the order
