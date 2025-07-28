@@ -330,7 +330,8 @@ export function PaymentDialog({
           
           const modifier = {
             type: adjustmentAmount < 0 ? 'DISCOUNT' : 'SURCHARGE',
-            amount: Math.abs(adjustmentAmount),
+            calculation: 'FIXED_AMOUNT' as const,  // The API expects this field
+            value: Math.abs(adjustmentAmount),     // Changed from 'amount' to 'value'
             description: orderAdjustment.reason || 
               (orderAdjustment.isPercentage 
                 ? `${Math.abs(orderAdjustment.amount)}% ${adjustmentAmount < 0 ? 'Discount' : 'Surcharge'}`
@@ -367,13 +368,19 @@ export function PaymentDialog({
             onOrderUpdate?.(lockedOrder);
           }
         } catch (modifierError: any) {
-          console.error('[PaymentDialog] Failed to apply order modifier:', {
-            message: modifierError?.message || 'Unknown error',
-            status: modifierError?.status,
-            code: modifierError?.code,
+          // Log the actual error details
+          const errorDetails = {
+            message: modifierError?.message || modifierError?.response?.data?.message || 'Unknown error',
+            status: modifierError?.status || modifierError?.response?.status,
+            code: modifierError?.code || modifierError?.response?.data?.code,
             response: modifierError?.response?.data,
-            fullError: modifierError
-          });
+            stack: modifierError?.stack,
+            modifier: modifier,
+            orderId: order.id,
+            orderState: order.state
+          };
+          
+          console.error('[PaymentDialog] Failed to apply order modifier:', errorDetails);
           
           // Show user-friendly error
           toast({
