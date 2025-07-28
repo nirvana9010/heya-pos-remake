@@ -298,45 +298,9 @@ export function PaymentDialog({
       }
     }
 
-    // For cash payments (or when Tyro is disabled), apply optimistic updates
+    // For cash payments (or when Tyro is disabled), we'll still validate with the API
     const isOptimisticPayment = paymentMethod === PaymentMethod.CASH || 
                                (paymentMethod === PaymentMethod.CARD && !isTyroEnabled);
-
-    if (isOptimisticPayment) {
-      // Create optimistic order update
-      // Don't change state yet - let the API handle state transitions
-      const optimisticOrder = {
-        ...order,
-        // state remains unchanged - API will handle the transition
-        paidAmount: (order?.paidAmount || 0) + balanceDue + tipAmount,
-        totalAmount: (order?.totalAmount || 0) + tipAmount,
-        balanceDue: 0, // Payment covers the full balance
-      };
-
-      // Call onPaymentComplete immediately with optimistic data
-      // This will close the booking slideout immediately
-      console.log('[PaymentDialog] Calling onPaymentComplete with optimistic order:', {
-        id: optimisticOrder.id,
-        totalAmount: optimisticOrder.totalAmount,
-        paidAmount: optimisticOrder.paidAmount,
-        balanceDue: optimisticOrder.balanceDue,
-        adjustmentAmount: calculateAdjustmentAmount(),
-        originalTotal: order?.totalAmount,
-        tipAmount: tipAmount
-      });
-      onPaymentComplete?.(optimisticOrder);
-
-      // Show success toast with change amount if applicable
-      toast({
-        title: 'Payment successful',
-        description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
-      });
-
-      // Close payment dialog after a very short delay (300ms for smooth animation)
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 300);
-    }
 
     try {
       let result;
@@ -355,20 +319,25 @@ export function PaymentDialog({
         });
       } else {
         // Process single payment
+        // Use the original balance due from the order, not the client-side adjusted one
+        const serverBalanceDue = (order?.totalAmount || 0) - (order?.paidAmount || 0);
         const paymentData: any = {
           orderId: order.id,
-          amount: balanceDue,
+          amount: serverBalanceDue, // Use server's balance, not client-adjusted
           method: paymentMethod,
           tipAmount: enableTips ? tipAmount : 0,
           metadata: paymentMethod === PaymentMethod.CASH ? {
             cashReceived: parseFloat(cashReceived) || totalWithTip,
+            clientAdjustment: calculateAdjustmentAmount(), // Track adjustment for logging
           } : undefined,
         };
         
         // Log payment details for debugging
         console.log('Processing payment with:', {
           orderId: order.id,
-          amount: balanceDue,
+          serverAmount: serverBalanceDue,
+          clientAmount: balanceDue,
+          adjustmentAmount: calculateAdjustmentAmount(),
           loyaltyDiscount: loyaltyDiscount,
           customer: customer,
           orderTotal: order?.totalAmount,
@@ -384,13 +353,36 @@ export function PaymentDialog({
         result = await apiClient.processPayment(paymentData);
       }
 
-      // If not optimistic, show success after API response
-      if (!isOptimisticPayment) {
-        toast({
-          title: 'Payment successful',
-          description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
-        });
-      }
+      // Payment was successful - now we can update the UI
+      // Create the updated order with the actual values including adjustments
+      const adjustmentAmount = calculateAdjustmentAmount();
+      const adjustedTotal = (order?.totalAmount || 0) + adjustmentAmount;
+      const successOrder = {
+        ...order,
+        paidAmount: adjustedTotal + tipAmount, // Full payment of adjusted amount
+        totalAmount: adjustedTotal + tipAmount, // Include adjustment in total
+        balanceDue: 0,
+      };
+
+      console.log('[PaymentDialog] Payment successful, calling onPaymentComplete:', {
+        id: successOrder.id,
+        totalAmount: successOrder.totalAmount,
+        paidAmount: successOrder.paidAmount,
+        adjustmentAmount: calculateAdjustmentAmount(),
+        originalTotal: order?.totalAmount
+      });
+
+      // Call onPaymentComplete with the successful order
+      onPaymentComplete?.(successOrder);
+
+      // Show success toast
+      toast({
+        title: 'Payment successful',
+        description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
+      });
+
+      // Close dialog
+      onOpenChange(false);
 
       // Refresh order data in the background
       const finalOrder = await apiClient.getOrder(order.id);
