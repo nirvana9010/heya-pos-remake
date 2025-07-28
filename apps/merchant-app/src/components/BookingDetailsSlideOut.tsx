@@ -149,7 +149,13 @@ function BookingDetailsSlideOutComponent({
       
       setIsLoadingOrder(true);
       try {
-        console.log('[BookingDetailsSlideOut] Fetching order for booking:', {
+        // Skip fetching order for unpaid bookings - it's normal for them not to have an order yet
+        if (!booking.isPaid) {
+          console.log('[BookingDetailsSlideOut] Skipping order fetch for unpaid booking:', booking.id);
+          return;
+        }
+        
+        console.log('[BookingDetailsSlideOut] Fetching order for paid booking:', {
           bookingId: booking.id,
           isPaid: booking.isPaid,
           bookingTotalPrice: booking.totalPrice
@@ -172,13 +178,19 @@ function BookingDetailsSlideOutComponent({
           setAssociatedOrder(paymentData.order);
         }
       } catch (error: any) {
+        // Log the raw error first to see what we're getting
+        console.log('[BookingDetailsSlideOut] Raw error object:', error);
+        
         // Don't log empty errors - this happens when booking is very new
-        if (error && Object.keys(error).length > 0 && (error.message || error.code || error.status || error.response)) {
+        if (error && (error.message || error.code || error.status || error.response || error.toString() !== '[object Object]')) {
           console.error('[BookingDetailsSlideOut] Error fetching order:', {
-            message: error.message,
-            code: error.code,
-            status: error.status,
-            response: error.response?.data
+            message: error?.message,
+            code: error?.code,
+            status: error?.status,
+            response: error?.response?.data,
+            toString: error?.toString(),
+            type: typeof error,
+            keys: Object.keys(error || {})
           });
         }
         
