@@ -172,11 +172,19 @@ function BookingDetailsSlideOutComponent({
           setAssociatedOrder(paymentData.order);
         }
       } catch (error: any) {
-        console.error('[BookingDetailsSlideOut] Error fetching order:', error);
+        // Don't log empty errors - this happens when booking is very new
+        if (error && (error.message || error.code || error.status)) {
+          console.error('[BookingDetailsSlideOut] Error fetching order:', error);
+        }
+        
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
-        if (error.message?.includes('already exists') || error.code === 'DUPLICATE_RESOURCE') {
+        if (error?.message?.includes('already exists') || error?.code === 'DUPLICATE_RESOURCE') {
           // Don't set null here - we'll get the order when processing payment
+        } else if (error?.status === 404 || error?.code === 'NOT_FOUND') {
+          // Order doesn't exist yet - this is normal for new bookings
+          setAssociatedOrder(null);
         } else {
+          // Other errors - clear the order
           setAssociatedOrder(null);
         }
       } finally {
@@ -408,7 +416,46 @@ function BookingDetailsSlideOutComponent({
       // Clear the timeout on error
       clearTimeout(timeoutId);
       
-      // Close dialog on error
+      // Check if booking might not be synced yet
+      if (error?.status === 404 || error?.message?.includes('not found')) {
+        // Retry after a short delay
+        console.log('[BookingDetailsSlideOut] Booking might not be synced yet, retrying...');
+        
+        setTimeout(async () => {
+          try {
+            const paymentData = await apiClient.prepareOrderForPayment({
+              bookingId: bookingId
+            });
+            
+            if (paymentData?.order) {
+              // Lock the order if needed
+              if (paymentData.order.state === 'DRAFT') {
+                await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
+                paymentData.order.state = 'LOCKED';
+              }
+              
+              setAssociatedOrder(paymentData.order);
+              setSelectedOrderForPayment(paymentData.order);
+              setPaymentDialogOpen(true);
+            }
+          } catch (retryError: any) {
+            // Still failed after retry
+            setPaymentDialogOpen(false);
+            
+            toast({
+              title: "Unable to process payment",
+              description: "The booking may still be processing. Please wait a moment and try again.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsProcessingPayment(false);
+          }
+        }, 1500); // Wait 1.5 seconds before retry
+        
+        return; // Exit early, don't set processing to false yet
+      }
+      
+      // Close dialog on other errors
       setPaymentDialogOpen(false);
       
       // Show more specific error message
@@ -419,7 +466,6 @@ function BookingDetailsSlideOutComponent({
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
       setIsProcessingPayment(false);
     }
   };
