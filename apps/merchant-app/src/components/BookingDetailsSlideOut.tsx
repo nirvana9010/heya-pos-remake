@@ -397,14 +397,8 @@ function BookingDetailsSlideOutComponent({
         throw new Error('No order data received from payment preparation');
       }
       
-      // Lock the order if it's in DRAFT state
-      if (paymentData.order.state === 'DRAFT') {
-        await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
-        // Update the order state in the payment data
-        paymentData.order.state = 'LOCKED';
-      }
-      
-      // Update with real order data
+      // Don't lock the order here - let the payment dialog handle it after applying modifiers
+      // Just update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
       
@@ -428,12 +422,7 @@ function BookingDetailsSlideOutComponent({
             });
             
             if (paymentData?.order) {
-              // Lock the order if needed
-              if (paymentData.order.state === 'DRAFT') {
-                await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
-                paymentData.order.state = 'LOCKED';
-              }
-              
+              // Don't lock the order here - let the payment dialog handle it
               setAssociatedOrder(paymentData.order);
               setSelectedOrderForPayment(paymentData.order);
               setPaymentDialogOpen(true);
@@ -983,6 +972,11 @@ function BookingDetailsSlideOutComponent({
         onPaymentComplete={handlePaymentComplete}
         enableTips={false}
         customer={booking.customerId && customers.find(c => c.id === booking.customerId)}
+        onOrderUpdate={(updatedOrder) => {
+          // Update the selected order when modifications are made
+          setSelectedOrderForPayment(updatedOrder);
+          setAssociatedOrder(updatedOrder);
+        }}
       />
       
       {/* Service Selection Slideout */}

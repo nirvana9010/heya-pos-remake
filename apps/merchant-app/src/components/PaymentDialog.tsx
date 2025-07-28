@@ -303,16 +303,30 @@ export function PaymentDialog({
                                (paymentMethod === PaymentMethod.CARD && !isTyroEnabled);
 
     try {
+      // Ensure order is locked before processing payment
+      if (order?.state === 'DRAFT' && !orderAdjustment.amount) {
+        console.log('[PaymentDialog] Locking order before payment (no adjustments)');
+        order = await apiClient.updateOrderState(order.id, 'LOCKED');
+        onOrderUpdate?.(order);
+      }
+      
       // Apply order adjustment if needed
       const adjustmentAmount = calculateAdjustmentAmount();
       if (adjustmentAmount !== 0 && order?.id) {
         try {
           console.log('[PaymentDialog] Applying order adjustment:', {
             orderId: order.id,
+            orderState: order.state,
             adjustmentAmount,
             isPercentage: orderAdjustment.isPercentage,
-            reason: orderAdjustment.reason
+            reason: orderAdjustment.reason,
+            currentModifiers: order.modifiers
           });
+          
+          // Check if order is in a state that allows modifications
+          if (order.state !== 'DRAFT' && order.state !== 'LOCKED') {
+            console.warn('[PaymentDialog] Order is in state', order.state, '- may not accept modifiers');
+          }
           
           const modifier = {
             type: adjustmentAmount < 0 ? 'DISCOUNT' : 'SURCHARGE',
@@ -322,6 +336,8 @@ export function PaymentDialog({
                 ? `${Math.abs(orderAdjustment.amount)}% ${adjustmentAmount < 0 ? 'Discount' : 'Surcharge'}`
                 : `Order ${adjustmentAmount < 0 ? 'Discount' : 'Surcharge'}`)
           };
+          
+          console.log('[PaymentDialog] Sending modifier to API:', modifier);
           
           // Apply the modifier to the order
           const updatedOrder = await apiClient.addOrderModifier(order.id, modifier);
@@ -342,10 +358,33 @@ export function PaymentDialog({
           
           // Also update the order state in the parent component if callback exists
           onOrderUpdate?.(updatedOrder);
+          
+          // Now lock the order after modifier is applied
+          if (updatedOrder.state === 'DRAFT') {
+            console.log('[PaymentDialog] Locking order after applying modifier');
+            const lockedOrder = await apiClient.updateOrderState(updatedOrder.id, 'LOCKED');
+            order = lockedOrder;
+            onOrderUpdate?.(lockedOrder);
+          }
         } catch (modifierError: any) {
-          console.error('[PaymentDialog] Failed to apply order modifier:', modifierError);
-          // Continue with payment even if modifier fails
-          // The UI adjustment will still show
+          console.error('[PaymentDialog] Failed to apply order modifier:', {
+            message: modifierError?.message || 'Unknown error',
+            status: modifierError?.status,
+            code: modifierError?.code,
+            response: modifierError?.response?.data,
+            fullError: modifierError
+          });
+          
+          // Show user-friendly error
+          toast({
+            title: "Unable to apply adjustment",
+            description: modifierError?.message || "The discount/surcharge could not be applied. Please try again.",
+            variant: "destructive",
+          });
+          
+          // Don't continue with payment if modifier fails
+          setProcessing(false);
+          return;
         }
       }
       
