@@ -676,6 +676,42 @@ export function PaymentDialog({
               
               {showOrderAdjustment && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                  {/* Type Toggle */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Label className="text-sm text-gray-600">Type:</Label>
+                    <div className="flex bg-gray-100 rounded-md p-1">
+                      <Button
+                        size="sm"
+                        variant={orderAdjustment.isPercentage ? "ghost" : "default"}
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, isPercentage: false }))}
+                        className={cn(
+                          "h-7 px-3 text-xs transition-colors",
+                          !orderAdjustment.isPercentage 
+                            ? "bg-white shadow-sm text-gray-900" 
+                            : "text-gray-600 hover:text-gray-900"
+                        )}
+                        disabled={applyingAdjustment}
+                      >
+                        $ Dollar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={orderAdjustment.isPercentage ? "default" : "ghost"}
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, isPercentage: true }))}
+                        className={cn(
+                          "h-7 px-3 text-xs transition-colors",
+                          orderAdjustment.isPercentage 
+                            ? "bg-white shadow-sm text-gray-900" 
+                            : "text-gray-600 hover:text-gray-900"
+                        )}
+                        disabled={applyingAdjustment}
+                      >
+                        % Percent
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Amount Input */}
                   <div className="flex items-center gap-2">
                     <Label htmlFor="order-adjustment-amount" className="text-sm text-gray-600 w-16">
                       Amount:
@@ -705,10 +741,7 @@ export function PaymentDialog({
                       >
                         -{orderAdjustment.isPercentage ? '5%' : '$1'}
                       </Button>
-                      <div className="flex-1 flex items-center relative">
-                        <span className="absolute left-2 text-sm text-gray-500">
-                          {orderAdjustment.isPercentage ? '%' : '$'}
-                        </span>
+                      <div className="flex-1 flex items-center gap-1">
                         <Input
                           id="order-adjustment-amount"
                           type="number"
@@ -719,22 +752,12 @@ export function PaymentDialog({
                             setOrderAdjustment(prev => ({ ...prev, amount }));
                           }}
                           placeholder="Enter amount"
-                          className="h-8 text-sm pl-6 pr-8"
+                          className="h-8 text-sm"
                           disabled={applyingAdjustment}
                         />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setOrderAdjustment(prev => ({ 
-                            ...prev, 
-                            isPercentage: !prev.isPercentage 
-                          }))}
-                          className="absolute right-1 h-6 w-6 p-0 text-xs hover:bg-gray-100"
-                          disabled={applyingAdjustment}
-                          title={`Switch to ${orderAdjustment.isPercentage ? 'dollar' : 'percentage'} mode`}
-                        >
-                          {orderAdjustment.isPercentage ? '$' : '%'}
-                        </Button>
+                        <span className="text-sm text-gray-600 font-medium ml-1">
+                          {orderAdjustment.isPercentage ? '%' : '$'}
+                        </span>
                       </div>
                       <Button
                         size="sm"
