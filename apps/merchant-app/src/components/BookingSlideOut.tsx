@@ -14,7 +14,9 @@ import {
   Plus,
   Trash2,
   X,
-  Gift
+  Gift,
+  Pencil,
+  Check
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -141,6 +143,7 @@ export function BookingSlideOut({
   const [isSaving, setIsSaving] = useState(false);
   const [finalCustomerId, setFinalCustomerId] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   
   // Calculate totals
   const totalDuration = useMemo(() => 
@@ -529,63 +532,144 @@ export function BookingSlideOut({
             {selectedServices.length > 0 && (
               <div className="space-y-2">
                 {selectedServices.map((service) => (
-                  <div key={service.id} className="p-3 border rounded-lg space-y-2">
-                      <div className="flex items-start justify-between">
+                  <div key={service.id} className="p-3 border rounded-lg bg-gray-50">
+                      {/* Service Header */}
+                      <div className="flex items-start justify-between mb-3">
                         <div>
-                          <div className="font-medium">{service.name}</div>
+                          <div className="font-medium text-gray-900">{service.name}</div>
                           <div className="text-sm text-gray-600">
-                            {service.duration} min • ${service.basePrice}
+                            {service.duration} min • Base: ${service.basePrice.toFixed(2)}
+                            {service.adjustedPrice !== service.basePrice && (
+                              <span className={cn(
+                                "ml-2 font-medium",
+                                service.adjustedPrice < service.basePrice ? "text-green-600" : "text-orange-600"
+                              )}>
+                                {service.adjustedPrice < service.basePrice 
+                                  ? `-$${(service.basePrice - service.adjustedPrice).toFixed(2)}`
+                                  : `+$${(service.adjustedPrice - service.basePrice).toFixed(2)}`
+                                }
+                              </span>
+                            )}
                           </div>
                         </div>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => removeService(service.id)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                       
+                      {/* Staff and Price Row */}
                       <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <Label className="text-xs">Staff</Label>
-                          <Select
-                            value={service.staffId}
-                            onValueChange={(value) => updateServiceStaff(service.id, value)}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {filteredStaff.map((member) => (
-                                <SelectItem key={member.id} value={member.id}>
-                                  <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-3 h-3 rounded-full" 
-                                      style={{ backgroundColor: member.color }}
-                                    />
-                                    <span>{member.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        {/* Staff Selector */}
+                        <Select
+                          value={service.staffId}
+                          onValueChange={(value) => updateServiceStaff(service.id, value)}
+                        >
+                          <SelectTrigger className="h-9 w-40 bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredStaff.map((member) => (
+                              <SelectItem key={member.id} value={member.id}>
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: member.color }}
+                                  />
+                                  <span>{member.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         
-                        <div className="w-24">
-                          <Label className="text-xs">Price</Label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                            <Input
-                              type="number"
-                              value={service.adjustedPrice}
-                              onChange={(e) => updateServicePrice(service.id, e.target.value)}
-                              className="h-9 pl-6"
-                              step="0.01"
-                              min="0"
-                            />
-                          </div>
+                        {/* Price Controls */}
+                        <div className="flex items-center gap-1 ml-auto">
+                          {editingPriceId === service.id ? (
+                            <>
+                              {/* Edit Mode */}
+                              {/* Negative Adjustments */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateServicePrice(service.id, Math.max(0, service.adjustedPrice - 5).toString())}
+                                className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                              >
+                                -$5
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateServicePrice(service.id, Math.max(0, service.adjustedPrice - 1).toString())}
+                                className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                              >
+                                -$1
+                              </Button>
+                              
+                              {/* Price Input */}
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                <Input
+                                  type="number"
+                                  value={service.adjustedPrice}
+                                  onChange={(e) => updateServicePrice(service.id, e.target.value)}
+                                  className="h-9 w-20 pl-6 pr-1 text-center font-medium bg-white"
+                                  step="0.01"
+                                  min="0"
+                                  autoFocus
+                                />
+                              </div>
+                              
+                              {/* Positive Adjustments */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateServicePrice(service.id, (service.adjustedPrice + 1).toString())}
+                                className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                              >
+                                +$1
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateServicePrice(service.id, (service.adjustedPrice + 5).toString())}
+                                className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                              >
+                                +$5
+                              </Button>
+                              
+                              {/* Done Button */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingPriceId(null)}
+                                className="h-9 w-9 p-0 hover:bg-green-50"
+                              >
+                                <Check className="h-4 w-4 text-green-600" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              {/* Display Mode */}
+                              <div className="flex items-center gap-1">
+                                <div className="px-3 py-1.5 bg-white border rounded-md font-medium text-sm">
+                                  ${service.adjustedPrice.toFixed(2)}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setEditingPriceId(service.id)}
+                                  className="h-9 w-9 p-0 hover:bg-gray-100"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
