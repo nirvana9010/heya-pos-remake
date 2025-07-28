@@ -406,6 +406,21 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
+    console.log('[BookingDetailsSlideOut] Payment complete - updatedOrder:', {
+      id: updatedOrder?.id,
+      totalAmount: updatedOrder?.totalAmount,
+      paidAmount: updatedOrder?.paidAmount,
+      state: updatedOrder?.state,
+      modifiers: updatedOrder?.modifiers,
+      items: updatedOrder?.items?.map((item: any) => ({ 
+        description: item.description, 
+        unitPrice: item.unitPrice, 
+        quantity: item.quantity,
+        discount: item.discount,
+        total: item.total
+      }))
+    });
+    
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
@@ -428,6 +443,12 @@ function BookingDetailsSlideOutComponent({
     
     // Update the booking's payment status in background with the actual paid amount
     const actualPaidAmount = updatedOrder?.totalAmount || updatedOrder?.paidAmount || booking.totalPrice;
+    console.log('[BookingDetailsSlideOut] Calling onPaymentStatusChange with:', {
+      bookingId: booking.id,
+      isPaid: true,
+      actualPaidAmount,
+      originalBookingPrice: booking.totalPrice
+    });
     onPaymentStatusChange(booking.id, true, actualPaidAmount);
     
     // Force refetch the order to ensure we have latest data
@@ -784,22 +805,36 @@ function BookingDetailsSlideOutComponent({
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <DollarSign className="h-4 w-4 text-gray-400" />
                     <div className="flex flex-col">
-                      {booking.isPaid && associatedOrder ? (
-                        <span className="text-green-600 font-medium">
-                          Paid ${(Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice).toFixed(2)}
-                          {Number(associatedOrder.totalAmount) !== booking.totalPrice && (
-                            <span className="text-xs text-gray-500 ml-1">
-                              (was ${booking.totalPrice.toFixed(2)})
+                      {(() => {
+                        console.log('[BookingDetailsSlideOut] Price display debug:', {
+                          bookingId: booking.id,
+                          isPaid: booking.isPaid,
+                          bookingTotalPrice: booking.totalPrice,
+                          associatedOrder: associatedOrder ? {
+                            id: associatedOrder.id,
+                            totalAmount: associatedOrder.totalAmount,
+                            paidAmount: associatedOrder.paidAmount
+                          } : null
+                        });
+                        
+                        if (booking.isPaid && associatedOrder) {
+                          const displayAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
+                          return (
+                            <span className="text-green-600 font-medium">
+                              Paid ${displayAmount.toFixed(2)}
+                              {displayAmount !== booking.totalPrice && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  (was ${booking.totalPrice.toFixed(2)})
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                      ) : booking.isPaid ? (
-                        <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>
-                      ) : (
-                        <>
-                          <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
-                        </>
-                      )}
+                          );
+                        } else if (booking.isPaid) {
+                          return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
+                        } else {
+                          return <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>;
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>

@@ -1247,9 +1247,20 @@ function CalendarContent() {
               }
             }}
             onPaymentStatusChange={async (bookingId, isPaid, paidAmount) => {
+              console.log('[CalendarPage] onPaymentStatusChange called:', {
+                bookingId,
+                isPaid,
+                paidAmount
+              });
               
               // Find the booking in state to log its current status
               const currentBooking = state.bookings.find(b => b.id === bookingId);
+              console.log('[CalendarPage] Current booking state:', {
+                id: currentBooking?.id,
+                totalPrice: currentBooking?.totalPrice,
+                isPaid: currentBooking?.isPaid,
+                paymentStatus: currentBooking?.paymentStatus
+              });
               
               try {
                 if (isPaid) {
@@ -1260,12 +1271,15 @@ function CalendarContent() {
                   });
                   
                   const result = await apiClient.markBookingAsPaid(bookingId, 'CASH');
+                  console.log('[CalendarPage] markBookingAsPaid API result:', result);
                   
                   if (result.success) {
                     
                     // Update local state immediately with all payment fields
                     // Use the paidAmount passed from payment dialog if available
                     const finalPaidAmount = paidAmount || result.booking?.paidAmount || currentBooking?.totalPrice || currentBooking?.servicePrice;
+                    console.log('[CalendarPage] Updating booking with finalPaidAmount:', finalPaidAmount);
+                    
                     actions.updateBooking(bookingId, { 
                       paymentStatus: 'PAID',
                       isPaid: true,

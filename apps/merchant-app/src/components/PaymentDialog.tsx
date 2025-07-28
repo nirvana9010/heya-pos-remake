@@ -315,6 +315,15 @@ export function PaymentDialog({
 
       // Call onPaymentComplete immediately with optimistic data
       // This will close the booking slideout immediately
+      console.log('[PaymentDialog] Calling onPaymentComplete with optimistic order:', {
+        id: optimisticOrder.id,
+        totalAmount: optimisticOrder.totalAmount,
+        paidAmount: optimisticOrder.paidAmount,
+        balanceDue: optimisticOrder.balanceDue,
+        adjustmentAmount: calculateAdjustmentAmount(),
+        originalTotal: order?.totalAmount,
+        tipAmount: tipAmount
+      });
       onPaymentComplete?.(optimisticOrder);
 
       // Show success toast with change amount if applicable
