@@ -64,6 +64,7 @@ export default function SettingsPage() {
   const [calendarStartHour, setCalendarStartHour] = useState(merchantSettings.calendarStartHour ?? 6);
   const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
   const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] = useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
+  const [includeUnscheduledStaff, setIncludeUnscheduledStaff] = useState(merchantSettings.includeUnscheduledStaff ?? false);
   const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
   const [tyroEnabled, setTyroEnabled] = useState(merchantSettings.tyroEnabled ?? false);
   const [tyroTerminalId, setTyroTerminalId] = useState(merchantSettings.tyroTerminalId ?? '');
@@ -150,6 +151,7 @@ export default function SettingsPage() {
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
         setShowOnlyRosteredStaffDefault(response.showOnlyRosteredStaffDefault ?? true);
+        setIncludeUnscheduledStaff(response.includeUnscheduledStaff ?? false);
         setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
         setTyroEnabled(response.tyroEnabled ?? false);
         // Set timezone from merchant settings
@@ -257,6 +259,7 @@ export default function SettingsPage() {
         calendarStartHour,
         calendarEndHour,
         showOnlyRosteredStaffDefault,
+        includeUnscheduledStaff,
         priceToDurationRatio: parseFloat(priceToDurationRatio),
         tyroEnabled,
         tyroTerminalId,
@@ -1014,6 +1017,25 @@ export default function SettingsPage() {
                       onCheckedChange={setShowOnlyRosteredStaffDefault}
                     />
                   </div>
+                  
+                  {showOnlyRosteredStaffDefault && (
+                    <>
+                      <Separator className="my-4" />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Include Staff Without Schedules</Label>
+                          <p className="text-sm text-muted-foreground">
+                            When roster filter is on, still show staff members who don't have weekly schedules defined
+                          </p>
+                        </div>
+                        <Switch 
+                          checked={includeUnscheduledStaff} 
+                          onCheckedChange={setIncludeUnscheduledStaff}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

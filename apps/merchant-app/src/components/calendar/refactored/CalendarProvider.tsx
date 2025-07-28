@@ -58,7 +58,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
     }
   }
   
-  // console.log('[CalendarProvider] Creating initial state with merchant settings:', freshMerchantSettings);
+  // Initial state based on merchant settings
   
   return {
   // View management

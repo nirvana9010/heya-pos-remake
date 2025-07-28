@@ -68,7 +68,7 @@ function CalendarContent() {
   const { toast } = useToast();
   const { merchant } = useAuth();
   const { notifications, refreshNotifications } = useNotifications();
-  const { staff: bookingContextStaff } = useBooking();
+  const { staff: bookingContextStaff, loading: bookingContextLoading } = useBooking();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigateToToday,
@@ -306,6 +306,34 @@ function CalendarContent() {
     
     return count;
   }, [state.selectedStatusFilters, state.selectedStaffIds, state.staff]);
+  
+  // Calculate rostered staff count for the current day
+  const rosteredStaffInfo = React.useMemo(() => {
+    const activeStaff = state.staff.filter(s => s.isActive !== false);
+    
+    if (!state.showOnlyRosteredStaff || state.currentView !== 'day') {
+      return { rosteredCount: activeStaff.length, totalCount: activeStaff.length, hiddenCount: 0 };
+    }
+    
+    const currentDayOfWeek = state.currentDate.getDay();
+    const includeUnscheduledStaff = merchant?.settings?.includeUnscheduledStaff ?? false;
+    
+    const rosteredStaff = activeStaff.filter(staff => {
+      const hasSchedules = staff.schedules && staff.schedules.length > 0;
+      
+      if (hasSchedules) {
+        return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+      }
+      
+      return includeUnscheduledStaff;
+    });
+    
+    return {
+      rosteredCount: rosteredStaff.length,
+      totalCount: activeStaff.length,
+      hiddenCount: activeStaff.length - rosteredStaff.length
+    };
+  }, [state.staff, state.showOnlyRosteredStaff, state.currentDate, state.currentView, merchant?.settings?.includeUnscheduledStaff]);
   
   // Handle booking click
   const handleBookingClick = useCallback((booking: Booking) => {
@@ -809,7 +837,15 @@ function CalendarContent() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-600">
-                {state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/{state.staff.filter(s => s.isActive !== false).length} staff
+                {state.showOnlyRosteredStaff && state.currentView === 'day' 
+                  ? `${rosteredStaffInfo.rosteredCount}/${rosteredStaffInfo.totalCount}`
+                  : `${state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/${rosteredStaffInfo.totalCount}`
+                } staff
+                {rosteredStaffInfo.hiddenCount > 0 && state.showOnlyRosteredStaff && state.currentView === 'day' && (
+                  <span className="text-gray-400 ml-1">
+                    ({rosteredStaffInfo.hiddenCount} not rostered)
+                  </span>
+                )}
               </span>
             </div>
             

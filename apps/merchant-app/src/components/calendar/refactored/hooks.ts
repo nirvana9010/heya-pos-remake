@@ -157,6 +157,7 @@ export function useCalendarData() {
           avatar: member.avatar,
           isActive: member.status === 'ACTIVE', // Ensure isActive is based on status
           workingHours: member.workingHours,
+          schedules: member.schedules || member.staffSchedules, // Try both possible property names
         }));
       
       actions.setStaff(transformedStaff || []);
@@ -257,13 +258,10 @@ export function useCalendarData() {
   // Initial data load
   useEffect(() => {
     fetchMerchantSettings();
-    // Only fetch staff if not already loaded from BookingContext
-    if (state.staff.length === 0) {
-      fetchStaff();
-    }
+    // Staff is loaded from BookingContext, don't fetch here
     fetchServices();
     fetchCustomers();
-  }, [fetchMerchantSettings, fetchStaff, fetchServices, fetchCustomers, state.staff.length]);
+  }, [fetchMerchantSettings, fetchServices, fetchCustomers]);
   
   // Fetch bookings when date range changes
   useEffect(() => {

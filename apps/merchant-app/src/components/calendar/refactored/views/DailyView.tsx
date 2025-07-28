@@ -13,6 +13,8 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
 import { Users, Check, X, AlertTriangle } from 'lucide-react';
 import { BookingTooltip } from '../BookingTooltipSimple';
+import { useAuth } from '@/lib/auth/auth-provider';
+import { useBooking } from '@/contexts/booking-context';
 
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -78,6 +80,8 @@ export function DailyView({
   dragOverSlot 
 }: DailyViewProps) {
   const { state, filteredBookings } = useCalendar();
+  const { merchant } = useAuth();
+  const { loading: bookingContextLoading } = useBooking();
   const { timeSlots } = useTimeGrid();
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
@@ -115,20 +119,31 @@ export function DailyView({
   // Get visible staff - ONLY show active staff
   const activeStaff = state.staff.filter(s => s.isActive !== false);
   
+  
   // Filter by roster if enabled
   const rosteredStaff = useMemo(() => {
-    if (!state.showOnlyRosteredStaff) return activeStaff;
+    if (!state.showOnlyRosteredStaff) {
+      return activeStaff;
+    }
     
     const currentDayOfWeek = state.currentDate.getDay();
-    return activeStaff.filter(staff => {
-      // If staff has schedules, check if they work on this day
-      if (staff.schedules && staff.schedules.length > 0) {
-        return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+    // Default to false - don't show unscheduled staff unless explicitly enabled
+    const includeUnscheduledStaff = merchant?.settings?.includeUnscheduledStaff ?? false;
+    
+    const filtered = activeStaff.filter(staff => {
+      const hasSchedules = staff.schedules && staff.schedules.length > 0;
+      
+      if (hasSchedules) {
+        const worksToday = staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+        return worksToday;
       }
-      // If no schedules defined and roster filter is on, they don't work
-      return false;
+      
+      // If no schedules defined, include based on setting
+      return includeUnscheduledStaff;
     });
-  }, [activeStaff, state.showOnlyRosteredStaff, state.currentDate]);
+    
+    return filtered;
+  }, [activeStaff, state.showOnlyRosteredStaff, state.currentDate, merchant?.settings?.includeUnscheduledStaff]);
   
   const visibleStaff = state.selectedStaffIds.length > 0
     ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
@@ -204,6 +219,59 @@ export function DailyView({
     ? todaysBookings.find(b => b.id === hoveredBookingId) || null
     : null;
   
+  // Show empty state if no staff are rostered
+  // Count only staff with actual schedules for the current day
+  const actuallyRosteredStaff = useMemo(() => {
+    if (!state.showOnlyRosteredStaff) return visibleStaff;
+    
+    const currentDayOfWeek = state.currentDate.getDay();
+    return visibleStaff.filter(staff => {
+      // Only count staff who have schedules AND are working today
+      const hasSchedules = staff.schedules && staff.schedules.length > 0;
+      if (hasSchedules) {
+        return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+      }
+      return false; // Don't count unscheduled staff for empty state check
+    });
+  }, [visibleStaff, state.showOnlyRosteredStaff, state.currentDate]);
+  
+  // Show loading state while BookingContext is loading staff data
+  if (bookingContextLoading) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-pulse">
+            <div className="h-8 w-48 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show empty state when no staff are rostered (only after data is loaded)
+  if (actuallyRosteredStaff.length === 0 && state.showOnlyRosteredStaff) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8">
+            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Staff Rostered</h3>
+            <p className="text-gray-500 max-w-md">
+              No staff members are scheduled to work on this day. 
+              {visibleStaff.length > 0 && (
+                <span className="block mt-2">
+                  {visibleStaff.length} staff member{visibleStaff.length > 1 ? 's' : ''} without schedules {visibleStaff.length > 1 ? 'are' : 'is'} hidden.
+                </span>
+              )}
+              You can disable the roster filter in settings to see all staff.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Fixed header row */}
