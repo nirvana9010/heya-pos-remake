@@ -80,7 +80,7 @@ export function PaymentDialog({
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
-  const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
+  const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '', isPercentage: false });
   const [applyingAdjustment, setApplyingAdjustment] = useState(false);
   
   // Check if Tyro is enabled
@@ -101,17 +101,26 @@ export function PaymentDialog({
     
     setApplyingAdjustment(true);
     try {
+      // Calculate the actual dollar amount if using percentage
+      const subtotal = order?.subtotal || order?.totalAmount || 0;
+      const dollarAmount = orderAdjustment.isPercentage 
+        ? (subtotal * orderAdjustment.amount) / 100
+        : orderAdjustment.amount;
+      
       const modifier = {
-        type: orderAdjustment.amount < 0 ? 'DISCOUNT' : 'SURCHARGE',
-        amount: Math.abs(orderAdjustment.amount),
-        description: orderAdjustment.reason || `Order ${orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}`
+        type: dollarAmount < 0 ? 'DISCOUNT' : 'SURCHARGE',
+        amount: Math.abs(dollarAmount),
+        description: orderAdjustment.reason || 
+          (orderAdjustment.isPercentage 
+            ? `${Math.abs(orderAdjustment.amount)}% ${dollarAmount < 0 ? 'Discount' : 'Surcharge'}`
+            : `Order ${dollarAmount < 0 ? 'Discount' : 'Surcharge'}`)
       };
       
       const updatedOrder = await apiClient.addOrderModifier(order.id, modifier);
       
       // Update the order in the dialog
       setShowOrderAdjustment(false);
-      setOrderAdjustment({ amount: 0, reason: '' });
+      setOrderAdjustment({ amount: 0, reason: '', isPercentage: false });
       
       toast({
         title: 'Adjustment applied',
@@ -675,54 +684,81 @@ export function PaymentDialog({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 5 }))}
+                        onClick={() => setOrderAdjustment(prev => ({ 
+                          ...prev, 
+                          amount: prev.amount - (prev.isPercentage ? 10 : 5) 
+                        }))}
                         className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
                         disabled={applyingAdjustment}
                       >
-                        -$5
+                        -{orderAdjustment.isPercentage ? '10%' : '$5'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 1 }))}
+                        onClick={() => setOrderAdjustment(prev => ({ 
+                          ...prev, 
+                          amount: prev.amount - (prev.isPercentage ? 5 : 1) 
+                        }))}
                         className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
                         disabled={applyingAdjustment}
                       >
-                        -$1
+                        -{orderAdjustment.isPercentage ? '5%' : '$1'}
                       </Button>
                       <div className="flex-1 flex items-center relative">
-                        <span className="absolute left-2 text-sm text-gray-500">$</span>
+                        <span className="absolute left-2 text-sm text-gray-500">
+                          {orderAdjustment.isPercentage ? '%' : '$'}
+                        </span>
                         <Input
                           id="order-adjustment-amount"
                           type="number"
-                          step="0.01"
+                          step={orderAdjustment.isPercentage ? "1" : "0.01"}
                           value={orderAdjustment.amount || ''}
                           onChange={(e) => {
                             const amount = parseFloat(e.target.value) || 0;
                             setOrderAdjustment(prev => ({ ...prev, amount }));
                           }}
-                          placeholder="0.00"
-                          className="h-8 text-sm pl-6"
+                          placeholder="Enter amount"
+                          className="h-8 text-sm pl-6 pr-8"
                           disabled={applyingAdjustment}
                         />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setOrderAdjustment(prev => ({ 
+                            ...prev, 
+                            isPercentage: !prev.isPercentage 
+                          }))}
+                          className="absolute right-1 h-6 w-6 p-0 text-xs hover:bg-gray-100"
+                          disabled={applyingAdjustment}
+                          title={`Switch to ${orderAdjustment.isPercentage ? 'dollar' : 'percentage'} mode`}
+                        >
+                          {orderAdjustment.isPercentage ? '$' : '%'}
+                        </Button>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 1 }))}
+                        onClick={() => setOrderAdjustment(prev => ({ 
+                          ...prev, 
+                          amount: prev.amount + (prev.isPercentage ? 5 : 1) 
+                        }))}
                         className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
                         disabled={applyingAdjustment}
                       >
-                        +$1
+                        +{orderAdjustment.isPercentage ? '5%' : '$1'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 5 }))}
+                        onClick={() => setOrderAdjustment(prev => ({ 
+                          ...prev, 
+                          amount: prev.amount + (prev.isPercentage ? 10 : 5) 
+                        }))}
                         className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
                         disabled={applyingAdjustment}
                       >
-                        +$5
+                        +{orderAdjustment.isPercentage ? '10%' : '$5'}
                       </Button>
                     </div>
                   </div>
@@ -746,7 +782,24 @@ export function PaymentDialog({
                         "text-sm font-medium",
                         orderAdjustment.amount < 0 ? "text-green-600" : "text-red-600"
                       )}>
-                        {orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}: ${Math.abs(orderAdjustment.amount).toFixed(2)}
+                        {(() => {
+                          const subtotal = order?.subtotal || order?.totalAmount || 0;
+                          const dollarAmount = orderAdjustment.isPercentage 
+                            ? (subtotal * orderAdjustment.amount) / 100
+                            : orderAdjustment.amount;
+                          
+                          return (
+                            <>
+                              {dollarAmount < 0 ? 'Discount' : 'Surcharge'}: 
+                              {orderAdjustment.isPercentage && (
+                                <span className="text-xs font-normal">
+                                  {' '}{Math.abs(orderAdjustment.amount)}% =
+                                </span>
+                              )}
+                              {' '}${Math.abs(dollarAmount).toFixed(2)}
+                            </>
+                          );
+                        })()}
                       </div>
                       <Button
                         size="sm"
