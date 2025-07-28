@@ -32,7 +32,7 @@ import {
   OrderModifierType,
   OrderModifierCalculation,
 } from '@heya-pos/types';
-import { CreditCard, DollarSign, Percent, Plus, Minus, X, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
+import { CreditCard, DollarSign, Percent, Plus, Minus, X, ChevronUp, ChevronDown, Loader2, Edit3 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useToast, cn } from '@heya-pos/ui';
 import { LoyaltyRedemption } from './LoyaltyRedemption';
@@ -50,6 +50,7 @@ interface PaymentDialogProps {
   defaultTipPercentages?: number[];
   customer?: any; // Customer data for loyalty redemption
   onLoyaltyUpdate?: (discount: { amount: number; description: string }) => void;
+  onOrderUpdate?: (order: any) => void; // Callback for order updates
 }
 
 export function PaymentDialog({
@@ -61,6 +62,7 @@ export function PaymentDialog({
   defaultTipPercentages = [10, 15, 20],
   customer,
   onLoyaltyUpdate,
+  onOrderUpdate,
 }: PaymentDialogProps) {
   const { toast } = useToast();
   const { merchant } = useAuth();
@@ -77,6 +79,9 @@ export function PaymentDialog({
   }>>([]);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
+  const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
+  const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
+  const [applyingAdjustment, setApplyingAdjustment] = useState(false);
   
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
@@ -91,8 +96,49 @@ export function PaymentDialog({
     onLoyaltyUpdate?.({ amount: 0, description: '' });
   }, [onLoyaltyUpdate]);
 
+  const handleApplyOrderAdjustment = async () => {
+    if (!order?.id || orderAdjustment.amount === 0) return;
+    
+    setApplyingAdjustment(true);
+    try {
+      const modifier = {
+        type: orderAdjustment.amount < 0 ? 'DISCOUNT' : 'SURCHARGE',
+        amount: Math.abs(orderAdjustment.amount),
+        description: orderAdjustment.reason || `Order ${orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}`
+      };
+      
+      const updatedOrder = await apiClient.addOrderModifier(order.id, modifier);
+      
+      // Update the order in the dialog
+      setShowOrderAdjustment(false);
+      setOrderAdjustment({ amount: 0, reason: '' });
+      
+      toast({
+        title: 'Adjustment applied',
+        description: `${modifier.type === 'DISCOUNT' ? 'Discount' : 'Surcharge'} of $${modifier.amount.toFixed(2)} has been applied`,
+      });
+      
+      // Refresh the order and update the UI
+      const refreshedOrder = await apiClient.getOrder(order.id);
+      
+      // Update the order in the parent component
+      if (onOrderUpdate) {
+        onOrderUpdate(refreshedOrder);
+      }
+    } catch (error) {
+      toast({
+        title: 'Failed to apply adjustment',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setApplyingAdjustment(false);
+    }
+  };
+
   // Calculate balance due including loyalty discount
   const calculateBalanceDue = () => {
+    // The order's totalAmount already includes any applied modifiers
     const baseTotal = order?.totalAmount || 0;
     const paidAmount = order?.paidAmount || 0;
     
@@ -602,6 +648,126 @@ export function PaymentDialog({
               onRemoveDiscount={loyaltyDiscount.amount > 0 ? handleRemoveLoyaltyDiscount : undefined}
               currentDiscount={loyaltyDiscount.amount}
             />
+          )}
+
+          {/* Order Adjustments */}
+          {order && !order.isLoading && !order.error && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-gray-700">Order Adjustment</Label>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowOrderAdjustment(!showOrderAdjustment)}
+                  className="h-8 px-2"
+                >
+                  {showOrderAdjustment ? <Minus className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                </Button>
+              </div>
+              
+              {showOrderAdjustment && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="order-adjustment-amount" className="text-sm text-gray-600 w-16">
+                      Amount:
+                    </Label>
+                    <div className="flex items-center gap-1 flex-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 5 }))}
+                        className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                        disabled={applyingAdjustment}
+                      >
+                        -$5
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 1 }))}
+                        className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                        disabled={applyingAdjustment}
+                      >
+                        -$1
+                      </Button>
+                      <div className="flex-1 flex items-center relative">
+                        <span className="absolute left-2 text-sm text-gray-500">$</span>
+                        <Input
+                          id="order-adjustment-amount"
+                          type="number"
+                          step="0.01"
+                          value={orderAdjustment.amount || ''}
+                          onChange={(e) => {
+                            const amount = parseFloat(e.target.value) || 0;
+                            setOrderAdjustment(prev => ({ ...prev, amount }));
+                          }}
+                          placeholder="0.00"
+                          className="h-8 text-sm pl-6"
+                          disabled={applyingAdjustment}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 1 }))}
+                        className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                        disabled={applyingAdjustment}
+                      >
+                        +$1
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 5 }))}
+                        className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                        disabled={applyingAdjustment}
+                      >
+                        +$5
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="order-adjustment-reason" className="text-sm text-gray-600 w-16">
+                      Reason:
+                    </Label>
+                    <Input
+                      id="order-adjustment-reason"
+                      type="text"
+                      value={orderAdjustment.reason}
+                      onChange={(e) => setOrderAdjustment(prev => ({ ...prev, reason: e.target.value }))}
+                      placeholder="e.g., Loyalty discount, First-time customer..."
+                      className="h-8 text-sm flex-1"
+                      disabled={applyingAdjustment}
+                    />
+                  </div>
+                  {orderAdjustment.amount !== 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className={cn(
+                        "text-sm font-medium",
+                        orderAdjustment.amount < 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        {orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}: ${Math.abs(orderAdjustment.amount).toFixed(2)}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleApplyOrderAdjustment}
+                        disabled={applyingAdjustment || orderAdjustment.amount === 0}
+                        className="bg-teal-600 hover:bg-teal-700 text-white"
+                      >
+                        {applyingAdjustment ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          'Apply Adjustment'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Order Summary */}

@@ -42,6 +42,11 @@ export function PaymentDialogEnhanced({
   const [error, setError] = useState<string | null>(null);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState(initialLoyaltyDiscount);
 
+  // Callback to refresh order
+  const handleOrderUpdate = useCallback((updatedOrder: any) => {
+    setOrder(updatedOrder);
+  }, []);
+
   const handleLoyaltyUpdate = useCallback((discount: { amount: number; description: string }) => {
     setLoyaltyDiscount(discount);
   }, []);
@@ -229,6 +234,7 @@ export function PaymentDialogEnhanced({
       defaultTipPercentages={defaultTipPercentages}
       customer={customer || order?.customer || existingOrder?.customer}
       onLoyaltyUpdate={handleLoyaltyUpdate}
+      onOrderUpdate={handleOrderUpdate}
     />
   );
 }
