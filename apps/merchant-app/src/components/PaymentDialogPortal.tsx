@@ -10,6 +10,7 @@ interface PaymentDialogPortalProps {
   order?: any;
   bookingId?: string; // For post-booking payment
   onPaymentComplete?: (order: any) => void;
+  onOrderUpdate?: (order: any) => void; // Callback for order updates
   enableTips?: boolean;
   defaultTipPercentages?: number[];
   // For Quick Sale - create order on the fly

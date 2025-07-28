@@ -66,6 +66,7 @@ interface BookingDetailsSlideOutProps {
     status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show";
     isPaid: boolean;
     totalPrice: number;
+    paidAmount?: number; // Actual amount paid (may differ from totalPrice due to adjustments)
     notes?: string;
   };
   staff: Array<{ id: string; name: string; color: string }>;
@@ -148,12 +149,30 @@ function BookingDetailsSlideOutComponent({
       
       setIsLoadingOrder(true);
       try {
-        // Try to create order from booking (it will return existing if already created)
-        const order = await apiClient.createOrderFromBooking(booking.id);
-        if (order) {
-          setAssociatedOrder(order);
+        console.log('[BookingDetailsSlideOut] Fetching order for booking:', {
+          bookingId: booking.id,
+          isPaid: booking.isPaid,
+          bookingTotalPrice: booking.totalPrice
+        });
+        
+        // Try to get the order for this booking
+        // First try the optimized prepareOrderForPayment endpoint
+        const paymentData = await apiClient.prepareOrderForPayment({
+          bookingId: booking.id
+        });
+        
+        if (paymentData?.order) {
+          console.log('[BookingDetailsSlideOut] Order fetched successfully:', {
+            orderId: paymentData.order.id,
+            orderTotal: paymentData.order.totalAmount,
+            paidAmount: paymentData.order.paidAmount,
+            state: paymentData.order.state,
+            modifiers: paymentData.order.modifiers
+          });
+          setAssociatedOrder(paymentData.order);
         }
       } catch (error: any) {
+        console.error('[BookingDetailsSlideOut] Error fetching order:', error);
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
         if (error.message?.includes('already exists') || error.code === 'DUPLICATE_RESOURCE') {
           // Don't set null here - we'll get the order when processing payment
@@ -169,7 +188,7 @@ function BookingDetailsSlideOutComponent({
     if (booking.isPaid || selectedOrderForPayment || orderRefetchTrigger > 0) {
       fetchOrder();
     }
-  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment, orderRefetchTrigger]); // Re-fetch when payment status changes
+  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment, orderRefetchTrigger, booking.totalPrice]); // Re-fetch when payment status or price changes
 
   const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
   const selectedStaff = staff.find(s => s.id === formData.staffId);
@@ -810,27 +829,49 @@ function BookingDetailsSlideOutComponent({
                           bookingId: booking.id,
                           isPaid: booking.isPaid,
                           bookingTotalPrice: booking.totalPrice,
+                          bookingPaidAmount: booking.paidAmount,
                           associatedOrder: associatedOrder ? {
                             id: associatedOrder.id,
                             totalAmount: associatedOrder.totalAmount,
-                            paidAmount: associatedOrder.paidAmount
+                            paidAmount: associatedOrder.paidAmount,
+                            modifiers: associatedOrder.modifiers
                           } : null
                         });
                         
-                        if (booking.isPaid && associatedOrder) {
-                          const displayAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
-                          return (
-                            <span className="text-green-600 font-medium">
-                              Paid ${displayAmount.toFixed(2)}
-                              {displayAmount !== booking.totalPrice && (
-                                <span className="text-xs text-gray-500 ml-1">
-                                  (was ${booking.totalPrice.toFixed(2)})
-                                </span>
-                              )}
-                            </span>
-                          );
-                        } else if (booking.isPaid) {
-                          return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
+                        if (booking.isPaid) {
+                          // First check if booking has paidAmount field (from payment completion)
+                          if (booking.paidAmount && booking.paidAmount > 0) {
+                            const displayAmount = booking.paidAmount;
+                            const originalAmount = booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || booking.totalPrice;
+                            return (
+                              <span className="text-green-600 font-medium">
+                                Paid ${displayAmount.toFixed(2)}
+                                {Math.abs(displayAmount - originalAmount) > 0.01 && (
+                                  <span className="text-xs text-gray-500 ml-1">
+                                    (was ${originalAmount.toFixed(2)})
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          }
+                          // Then check if we have order data
+                          else if (associatedOrder) {
+                            const displayAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
+                            const originalAmount = booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || booking.totalPrice;
+                            return (
+                              <span className="text-green-600 font-medium">
+                                Paid ${displayAmount.toFixed(2)}
+                                {Math.abs(displayAmount - originalAmount) > 0.01 && (
+                                  <span className="text-xs text-gray-500 ml-1">
+                                    (was ${originalAmount.toFixed(2)})
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          } else {
+                            // Fallback to totalPrice
+                            return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
+                          }
                         } else {
                           return <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>;
                         }

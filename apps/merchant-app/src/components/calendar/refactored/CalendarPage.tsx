@@ -1088,6 +1088,7 @@ function CalendarContent() {
               status: booking.status,
               isPaid: booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid',
               totalPrice: booking.servicePrice,
+              paidAmount: booking.paidAmount,
               notes: booking.notes,
             }}
             staff={memoizedStaff}
@@ -1284,7 +1285,7 @@ function CalendarContent() {
                       paymentStatus: 'PAID',
                       isPaid: true,
                       paidAmount: finalPaidAmount,
-                      totalPrice: finalPaidAmount // Update totalPrice to reflect actual amount paid
+                      servicePrice: finalPaidAmount // Update servicePrice to reflect actual amount paid
                     });
                     
                     

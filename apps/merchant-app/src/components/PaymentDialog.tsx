@@ -303,6 +303,52 @@ export function PaymentDialog({
                                (paymentMethod === PaymentMethod.CARD && !isTyroEnabled);
 
     try {
+      // Apply order adjustment if needed
+      const adjustmentAmount = calculateAdjustmentAmount();
+      if (adjustmentAmount !== 0 && order?.id) {
+        try {
+          console.log('[PaymentDialog] Applying order adjustment:', {
+            orderId: order.id,
+            adjustmentAmount,
+            isPercentage: orderAdjustment.isPercentage,
+            reason: orderAdjustment.reason
+          });
+          
+          const modifier = {
+            type: adjustmentAmount < 0 ? 'DISCOUNT' : 'SURCHARGE',
+            amount: Math.abs(adjustmentAmount),
+            description: orderAdjustment.reason || 
+              (orderAdjustment.isPercentage 
+                ? `${Math.abs(orderAdjustment.amount)}% ${adjustmentAmount < 0 ? 'Discount' : 'Surcharge'}`
+                : `Order ${adjustmentAmount < 0 ? 'Discount' : 'Surcharge'}`)
+          };
+          
+          // Apply the modifier to the order
+          const updatedOrder = await apiClient.addOrderModifier(order.id, modifier);
+          console.log('[PaymentDialog] Order modifier applied successfully:', {
+            orderId: updatedOrder.id,
+            originalTotal: order.totalAmount,
+            newTotal: updatedOrder.totalAmount,
+            modifiers: updatedOrder.modifiers,
+            items: updatedOrder.items?.map((item: any) => ({
+              description: item.description,
+              unitPrice: item.unitPrice,
+              discount: item.discount
+            }))
+          });
+          
+          // Update the local order state with the modified order
+          order = updatedOrder;
+          
+          // Also update the order state in the parent component if callback exists
+          onOrderUpdate?.(updatedOrder);
+        } catch (modifierError: any) {
+          console.error('[PaymentDialog] Failed to apply order modifier:', modifierError);
+          // Continue with payment even if modifier fails
+          // The UI adjustment will still show
+        }
+      }
+      
       let result;
 
       if (isSplitPayment) {
@@ -354,13 +400,11 @@ export function PaymentDialog({
       }
 
       // Payment was successful - now we can update the UI
-      // Create the updated order with the actual values including adjustments
-      const adjustmentAmount = calculateAdjustmentAmount();
-      const adjustedTotal = (order?.totalAmount || 0) + adjustmentAmount;
+      // The order already has the adjustment applied if there was one
       const successOrder = {
         ...order,
-        paidAmount: adjustedTotal + tipAmount, // Full payment of adjusted amount
-        totalAmount: adjustedTotal + tipAmount, // Include adjustment in total
+        paidAmount: (order?.totalAmount || 0) + tipAmount, // Full payment of order total
+        totalAmount: (order?.totalAmount || 0) + tipAmount, // Order total already includes adjustment
         balanceDue: 0,
       };
 
