@@ -712,7 +712,7 @@ export function PaymentDialog({
                         <Input
                           id="order-adjustment-amount"
                           type="number"
-                          step={orderAdjustment.isPercentage ? "1" : "0.01"}
+                          step={orderAdjustment.isPercentage ? "1" : "1"}
                           value={orderAdjustment.amount || ''}
                           onChange={(e) => {
                             const amount = parseFloat(e.target.value) || 0;
