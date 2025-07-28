@@ -1246,7 +1246,7 @@ function CalendarContent() {
                 });
               }
             }}
-            onPaymentStatusChange={async (bookingId, isPaid) => {
+            onPaymentStatusChange={async (bookingId, isPaid, paidAmount) => {
               
               // Find the booking in state to log its current status
               const currentBooking = state.bookings.find(b => b.id === bookingId);
@@ -1264,10 +1264,13 @@ function CalendarContent() {
                   if (result.success) {
                     
                     // Update local state immediately with all payment fields
+                    // Use the paidAmount passed from payment dialog if available
+                    const finalPaidAmount = paidAmount || result.booking?.paidAmount || currentBooking?.totalPrice || currentBooking?.servicePrice;
                     actions.updateBooking(bookingId, { 
                       paymentStatus: 'PAID',
                       isPaid: true,
-                      paidAmount: result.booking?.paidAmount || currentBooking?.totalPrice || currentBooking?.servicePrice
+                      paidAmount: finalPaidAmount,
+                      totalPrice: finalPaidAmount // Update totalPrice to reflect actual amount paid
                     });
                     
                     

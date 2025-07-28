@@ -74,7 +74,7 @@ interface BookingDetailsSlideOutProps {
   onSave: (booking: any) => void;
   onDelete: (bookingId: string) => void;
   onStatusChange: (bookingId: string, status: string) => void;
-  onPaymentStatusChange: (bookingId: string, isPaid: boolean) => void;
+  onPaymentStatusChange: (bookingId: string, isPaid: boolean, paidAmount?: number) => void;
 }
 
 function BookingDetailsSlideOutComponent({
@@ -426,8 +426,9 @@ function BookingDetailsSlideOutComponent({
     // Update the associated order state
     setAssociatedOrder(updatedOrder);
     
-    // Update the booking's payment status in background
-    onPaymentStatusChange(booking.id, true);
+    // Update the booking's payment status in background with the actual paid amount
+    const actualPaidAmount = updatedOrder?.totalAmount || updatedOrder?.paidAmount || booking.totalPrice;
+    onPaymentStatusChange(booking.id, true, actualPaidAmount);
     
     // Force refetch the order to ensure we have latest data
     setOrderRefetchTrigger(prev => prev + 1);
