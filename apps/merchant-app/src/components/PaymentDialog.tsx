@@ -81,7 +81,6 @@ export function PaymentDialog({
   const [loyaltyDiscount, setLoyaltyDiscount] = useState({ amount: 0, description: '' });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
   const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '', isPercentage: false });
-  const [applyingAdjustment, setApplyingAdjustment] = useState(false);
   
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
@@ -96,63 +95,29 @@ export function PaymentDialog({
     onLoyaltyUpdate?.({ amount: 0, description: '' });
   }, [onLoyaltyUpdate]);
 
-  const handleApplyOrderAdjustment = async () => {
-    if (!order?.id || orderAdjustment.amount === 0) return;
+  // Calculate the adjustment dollar amount
+  const calculateAdjustmentAmount = () => {
+    if (orderAdjustment.amount === 0) return 0;
     
-    setApplyingAdjustment(true);
-    try {
-      // Calculate the actual dollar amount if using percentage
-      const subtotal = order?.subtotal || order?.totalAmount || 0;
-      const dollarAmount = orderAdjustment.isPercentage 
-        ? (subtotal * orderAdjustment.amount) / 100
-        : orderAdjustment.amount;
-      
-      const modifier = {
-        type: dollarAmount < 0 ? 'DISCOUNT' : 'SURCHARGE',
-        amount: Math.abs(dollarAmount),
-        description: orderAdjustment.reason || 
-          (orderAdjustment.isPercentage 
-            ? `${Math.abs(orderAdjustment.amount)}% ${dollarAmount < 0 ? 'Discount' : 'Surcharge'}`
-            : `Order ${dollarAmount < 0 ? 'Discount' : 'Surcharge'}`)
-      };
-      
-      const updatedOrder = await apiClient.addOrderModifier(order.id, modifier);
-      
-      // Update the order in the dialog
-      setShowOrderAdjustment(false);
-      setOrderAdjustment({ amount: 0, reason: '', isPercentage: false });
-      
-      toast({
-        title: 'Adjustment applied',
-        description: `${modifier.type === 'DISCOUNT' ? 'Discount' : 'Surcharge'} of $${modifier.amount.toFixed(2)} has been applied`,
-      });
-      
-      // Refresh the order and update the UI
-      const refreshedOrder = await apiClient.getOrder(order.id);
-      
-      // Update the order in the parent component
-      if (onOrderUpdate) {
-        onOrderUpdate(refreshedOrder);
-      }
-    } catch (error) {
-      toast({
-        title: 'Failed to apply adjustment',
-        description: 'Please try again',
-        variant: 'destructive',
-      });
-    } finally {
-      setApplyingAdjustment(false);
-    }
+    const subtotal = order?.subtotal || order?.totalAmount || 0;
+    return orderAdjustment.isPercentage 
+      ? (subtotal * orderAdjustment.amount) / 100
+      : orderAdjustment.amount;
   };
 
-  // Calculate balance due including loyalty discount
+
+  // Calculate balance due including loyalty discount and manual adjustments
   const calculateBalanceDue = () => {
     // The order's totalAmount already includes any applied modifiers
     const baseTotal = order?.totalAmount || 0;
     const paidAmount = order?.paidAmount || 0;
     
+    // Apply manual adjustment
+    const adjustmentAmount = calculateAdjustmentAmount();
+    const totalWithAdjustment = baseTotal + adjustmentAmount;
+    
     // If we have a loyalty discount that hasn't been applied to the order yet, subtract it
-    const totalWithLoyalty = loyaltyDiscount.amount > 0 ? baseTotal - loyaltyDiscount.amount : baseTotal;
+    const totalWithLoyalty = loyaltyDiscount.amount > 0 ? totalWithAdjustment - loyaltyDiscount.amount : totalWithAdjustment;
     
     return totalWithLoyalty - paidAmount;
   };
@@ -690,7 +655,6 @@ export function PaymentDialog({
                             ? "bg-white shadow-sm text-gray-900" 
                             : "text-gray-600 hover:text-gray-900"
                         )}
-                        disabled={applyingAdjustment}
                       >
                         $ Dollar
                       </Button>
@@ -704,7 +668,6 @@ export function PaymentDialog({
                             ? "bg-white shadow-sm text-gray-900" 
                             : "text-gray-600 hover:text-gray-900"
                         )}
-                        disabled={applyingAdjustment}
                       >
                         % Percent
                       </Button>
@@ -725,7 +688,6 @@ export function PaymentDialog({
                           amount: prev.amount - (prev.isPercentage ? 10 : 5) 
                         }))}
                         className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-                        disabled={applyingAdjustment}
                       >
                         -{orderAdjustment.isPercentage ? '10%' : '$5'}
                       </Button>
@@ -737,7 +699,6 @@ export function PaymentDialog({
                           amount: prev.amount - (prev.isPercentage ? 5 : 1) 
                         }))}
                         className="h-7 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-                        disabled={applyingAdjustment}
                       >
                         -{orderAdjustment.isPercentage ? '5%' : '$1'}
                       </Button>
@@ -753,8 +714,7 @@ export function PaymentDialog({
                           }}
                           placeholder="Enter amount"
                           className="h-8 text-sm"
-                          disabled={applyingAdjustment}
-                        />
+                          />
                         <span className="text-sm text-gray-600 font-medium ml-1">
                           {orderAdjustment.isPercentage ? '%' : '$'}
                         </span>
@@ -767,7 +727,6 @@ export function PaymentDialog({
                           amount: prev.amount + (prev.isPercentage ? 5 : 1) 
                         }))}
                         className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
-                        disabled={applyingAdjustment}
                       >
                         +{orderAdjustment.isPercentage ? '5%' : '$1'}
                       </Button>
@@ -779,7 +738,6 @@ export function PaymentDialog({
                           amount: prev.amount + (prev.isPercentage ? 10 : 5) 
                         }))}
                         className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
-                        disabled={applyingAdjustment}
                       >
                         +{orderAdjustment.isPercentage ? '10%' : '$5'}
                       </Button>
@@ -796,51 +754,8 @@ export function PaymentDialog({
                       onChange={(e) => setOrderAdjustment(prev => ({ ...prev, reason: e.target.value }))}
                       placeholder="e.g., Loyalty discount, First-time customer..."
                       className="h-8 text-sm flex-1"
-                      disabled={applyingAdjustment}
                     />
                   </div>
-                  {orderAdjustment.amount !== 0 && (
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <div className={cn(
-                        "text-sm font-medium",
-                        orderAdjustment.amount < 0 ? "text-green-600" : "text-red-600"
-                      )}>
-                        {(() => {
-                          const subtotal = order?.subtotal || order?.totalAmount || 0;
-                          const dollarAmount = orderAdjustment.isPercentage 
-                            ? (subtotal * orderAdjustment.amount) / 100
-                            : orderAdjustment.amount;
-                          
-                          return (
-                            <>
-                              {dollarAmount < 0 ? 'Discount' : 'Surcharge'}: 
-                              {orderAdjustment.isPercentage && (
-                                <span className="text-xs font-normal">
-                                  {' '}{Math.abs(orderAdjustment.amount)}% =
-                                </span>
-                              )}
-                              {' '}${Math.abs(dollarAmount).toFixed(2)}
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={handleApplyOrderAdjustment}
-                        disabled={applyingAdjustment || orderAdjustment.amount === 0}
-                        className="bg-teal-600 hover:bg-teal-700 text-white"
-                      >
-                        {applyingAdjustment ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            Applying...
-                          </>
-                        ) : (
-                          'Apply Adjustment'
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -881,10 +796,14 @@ export function PaymentDialog({
                 }
               }, subtotal);
               
+              // Apply manual adjustment
+              const adjustmentAmount = calculateAdjustmentAmount();
+              const totalWithAdjustment = totalAfterModifiers + adjustmentAmount;
+              
               // Apply loyalty discount
               const totalWithLoyalty = loyaltyDiscount.amount > 0 
-                ? totalAfterModifiers - loyaltyDiscount.amount 
-                : totalAfterModifiers;
+                ? totalWithAdjustment - loyaltyDiscount.amount 
+                : totalWithAdjustment;
               
               return (
                 <div className="space-y-2">
@@ -901,6 +820,28 @@ export function PaymentDialog({
                       </span>
                     </div>
                   ))}
+                  {(() => {
+                    const adjustmentAmount = calculateAdjustmentAmount();
+                    if (adjustmentAmount !== 0) {
+                      return (
+                        <div className="flex justify-between text-sm">
+                          <span>
+                            {orderAdjustment.reason || 'Adjustment'}
+                            {orderAdjustment.isPercentage && (
+                              <span className="text-xs text-gray-500">
+                                {' '}({Math.abs(orderAdjustment.amount)}%)
+                              </span>
+                            )}:
+                          </span>
+                          <span className={adjustmentAmount < 0 ? 'text-green-600' : 'text-red-600'}>
+                            {adjustmentAmount < 0 ? '-' : '+'}
+                            ${Math.abs(adjustmentAmount).toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {loyaltyDiscount.amount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span>{loyaltyDiscount.description}:</span>
