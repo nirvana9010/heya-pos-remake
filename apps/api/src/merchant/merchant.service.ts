@@ -182,4 +182,49 @@ export class MerchantService {
       settingsType: typeof (result[0]?.settings),
     };
   }
+
+  async updateLocation(
+    merchantId: string,
+    locationData: {
+      address?: string;
+      suburb?: string;
+      state?: string;
+      postalCode?: string;
+      country?: string;
+      phone?: string;
+      email?: string;
+    },
+  ) {
+    // Find the primary location for this merchant
+    const primaryLocation = await this.prisma.location.findFirst({
+      where: {
+        merchantId: merchantId,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'asc', // Get the oldest active location as primary
+      },
+    });
+
+    if (!primaryLocation) {
+      throw new NotFoundException('No active location found for this merchant');
+    }
+
+    // Update only the provided fields
+    const updateData: any = {};
+    if (locationData.address !== undefined) updateData.address = locationData.address;
+    if (locationData.suburb !== undefined) updateData.suburb = locationData.suburb;
+    if (locationData.state !== undefined) updateData.state = locationData.state;
+    if (locationData.postalCode !== undefined) updateData.postalCode = locationData.postalCode;
+    if (locationData.country !== undefined) updateData.country = locationData.country;
+    if (locationData.phone !== undefined) updateData.phone = locationData.phone;
+    if (locationData.email !== undefined) updateData.email = locationData.email;
+
+    const updatedLocation = await this.prisma.location.update({
+      where: { id: primaryLocation.id },
+      data: updateData,
+    });
+
+    return updatedLocation;
+  }
 }

@@ -79,8 +79,15 @@ export class NotificationEventHandler {
           email: booking.merchant.email,
           phone: booking.merchant.phone,
           website: booking.merchant.website,
-          // Include primary location address if available
-          address: booking.merchant.locations?.[0]?.address,
+          // Include primary location full address if available
+          address: booking.merchant.locations?.[0] ? 
+            [
+              booking.merchant.locations[0].address,
+              booking.merchant.locations[0].suburb,
+              booking.merchant.locations[0].state,
+              booking.merchant.locations[0].postalCode
+            ].filter(Boolean).join(', ') : 
+            '',
         },
         customer: {
           id: booking.customer.id,
@@ -321,8 +328,15 @@ export class NotificationEventHandler {
           email: booking.merchant.email,
           phone: booking.merchant.phone,
           website: booking.merchant.website,
-          // Include primary location address if available
-          address: booking.merchant.locations?.[0]?.address,
+          // Include primary location full address if available
+          address: booking.merchant.locations?.[0] ? 
+            [
+              booking.merchant.locations[0].address,
+              booking.merchant.locations[0].suburb,
+              booking.merchant.locations[0].state,
+              booking.merchant.locations[0].postalCode
+            ].filter(Boolean).join(', ') : 
+            '',
         },
         customer: {
           id: booking.customer.id,

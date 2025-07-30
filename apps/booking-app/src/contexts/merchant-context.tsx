@@ -11,10 +11,14 @@ interface MerchantInfo {
   timezone: string;
   currency: string;
   address: string;
+  suburb: string;
+  state?: string;
+  postalCode?: string;
   phone: string;
   email: string;
   logo?: string;
   description?: string;
+  businessHours?: any;
   requireDeposit: boolean;
   depositPercentage: number;
   settings?: any;

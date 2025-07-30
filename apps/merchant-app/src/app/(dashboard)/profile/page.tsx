@@ -28,7 +28,6 @@ export default function ProfilePage() {
     // Location fields
     address: '',
     suburb: '',
-    city: '',
     state: '',
     postalCode: '',
     country: 'Australia',
@@ -67,7 +66,6 @@ export default function ProfilePage() {
         // Location fields
         address: location?.address || '',
         suburb: location?.suburb || '',
-        city: location?.city || '',
         state: location?.state || '',
         postalCode: location?.postalCode || '',
         country: location?.country || 'Australia',
@@ -97,8 +95,18 @@ export default function ProfilePage() {
       
       await apiClient.updateMerchantProfile(profileData);
       
-      // TODO: If we have a location update endpoint, update location here
-      // For now, we'll just show success for merchant profile update
+      // Update location information
+      const locationData = {
+        address: businessInfo.address,
+        suburb: businessInfo.suburb,
+        state: businessInfo.state,
+        postalCode: businessInfo.postalCode,
+        country: businessInfo.country,
+        email: businessInfo.email, // Also update location email
+        phone: businessInfo.phone, // Also update location phone
+      };
+      
+      await apiClient.updateLocation(locationData);
       
       toast.success('Business information updated successfully');
       
@@ -340,7 +348,6 @@ export default function ProfilePage() {
                         value={businessInfo.address}
                         onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
                         placeholder="123 Main Street"
-                        disabled // Disabled until we have location update endpoint
                       />
                     </div>
                     
@@ -351,18 +358,6 @@ export default function ProfilePage() {
                         value={businessInfo.suburb}
                         onChange={(e) => setBusinessInfo({ ...businessInfo, suburb: e.target.value })}
                         placeholder="Sydney CBD"
-                        disabled // Disabled until we have location update endpoint
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={businessInfo.city}
-                        onChange={(e) => setBusinessInfo({ ...businessInfo, city: e.target.value })}
-                        placeholder="Sydney"
-                        disabled // Disabled until we have location update endpoint
                       />
                     </div>
                     
@@ -373,7 +368,6 @@ export default function ProfilePage() {
                         value={businessInfo.state}
                         onChange={(e) => setBusinessInfo({ ...businessInfo, state: e.target.value })}
                         placeholder="NSW"
-                        disabled // Disabled until we have location update endpoint
                       />
                     </div>
                     
@@ -384,16 +378,10 @@ export default function ProfilePage() {
                         value={businessInfo.postalCode}
                         onChange={(e) => setBusinessInfo({ ...businessInfo, postalCode: e.target.value })}
                         placeholder="2000"
-                        disabled // Disabled until we have location update endpoint
                       />
                     </div>
                   </div>
                   
-                  {primaryLocation && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Note: Location information is view-only. To update location details, please contact support.
-                    </p>
-                  )}
                 </div>
                 
                 <div className="flex justify-end">

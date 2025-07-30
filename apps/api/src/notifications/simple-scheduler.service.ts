@@ -73,7 +73,15 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
           booking: {
             include: {
               customer: true,
-              merchant: true,
+              merchant: {
+                include: {
+                  locations: {
+                    where: { isActive: true },
+                    take: 1,
+                    orderBy: { createdAt: 'asc' },
+                  },
+                },
+              },
               provider: true,
               services: {
                 include: {
@@ -127,6 +135,15 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
               email: notification.booking.merchant.email,
               phone: notification.booking.merchant.phone,
               website: notification.booking.merchant.website,
+              // Include primary location full address if available
+              address: notification.booking.merchant.locations?.[0] ? 
+                [
+                  notification.booking.merchant.locations[0].address,
+                  notification.booking.merchant.locations[0].suburb,
+                  notification.booking.merchant.locations[0].state,
+                  notification.booking.merchant.locations[0].postalCode
+                ].filter(Boolean).join(', ') : 
+                '',
             },
             customer: {
               id: notification.booking.customer.id,

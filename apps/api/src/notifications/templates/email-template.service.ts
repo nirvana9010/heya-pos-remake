@@ -192,6 +192,8 @@ ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ''}
           
           <p>Best regards,<br>${merchant.name}</p>
         </div>
+        
+${this.renderEmailFooter(merchant, booking)}
       </div>
     `;
     
@@ -214,6 +216,9 @@ See you tomorrow!
 
 Best regards,
 ${merchant.name}
+
+Booking Reference: ${booking.bookingNumber}
+${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ''}
     `.trim();
     
     return { subject, html, text };
@@ -330,6 +335,8 @@ ${merchant.phone ? `Need to reschedule? Call us at ${merchant.phone}` : ''}
           
           <p>Best regards,<br>${merchant.name}</p>
         </div>
+        
+${this.renderEmailFooter(merchant, booking)}
       </div>
     `;
     
@@ -351,6 +358,10 @@ We hope to see you again soon!
 
 Best regards,
 ${merchant.name}
+
+${merchant.phone ? `Phone: ${merchant.phone}` : ''}
+${merchant.email ? `Email: ${merchant.email}` : ''}
+${merchant.website ? `Website: ${merchant.website}` : ''}
     `.trim();
     
     return { subject, html, text };

@@ -72,6 +72,7 @@ export class TestNotificationsController {
         email: 'merchant@test.com',
         phone: '0498765432',
         website: 'www.testmerchant.com',
+        address: '123 Test Street, Test Suburb, NSW, 2000',
       },
       customer: {
         id: 'test-customer-123',
@@ -151,6 +152,7 @@ export class TestNotificationsController {
           email: 'merchant@test.com',
           phone: '0412345678',
           website: 'www.testmerchant.com',
+          address: '123 Test Street, Test Suburb, NSW, 2000',
         },
         customer: {
           id: 'test-customer',
@@ -640,6 +642,7 @@ export class TestNotificationsController {
         email: overrides.merchantEmail || 'merchant@test.com',
         phone: overrides.merchantPhone || '0498765432',
         website: overrides.merchantWebsite || 'www.testmerchant.com',
+        address: overrides.merchantAddress || '123 Test Street, Test Suburb, NSW, 2000',
       },
       customer: {
         id: 'test-customer-123',

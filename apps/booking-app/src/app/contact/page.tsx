@@ -1,14 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
+import { useMerchant } from "@/contexts/merchant-context";
+import { formatAddress } from "@heya-pos/utils";
+
+// Helper function to format time from 24h to 12h format
+function formatTime(time: string): string {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
+
+// Days of the week in order
+const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 export default function ContactPage() {
+  const { merchant, loading, error } = useMerchant();
+  
+  // Debug logging
+  React.useEffect(() => {
+    if (merchant) {
+      console.log('[ContactPage] Current merchant:', {
+        name: merchant.name,
+        email: merchant.email,
+        subdomain: merchant.subdomain,
+        businessHours: merchant.businessHours
+      });
+    }
+  }, [merchant]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,14 +47,42 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Contact form submitted:", formData);
-    // Handle form submission
+    // TODO: Implement form submission to send email
   };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded w-96 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !merchant) {
+    return (
+      <main className="min-h-screen py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Unable to Load Contact Information</h1>
+            <p className="text-muted-foreground">Please try again later.</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
+          <h1 className="text-4xl font-bold mb-4">Contact {merchant.name}</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Have a question or want to learn more about our services? We&apos;d love to hear from you.
           </p>
@@ -49,8 +104,8 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Visit Us</h3>
                     <p className="text-muted-foreground">
-                      123 Beauty Street<br />
-                      Sydney NSW 2000<br />
+                      {merchant.address}<br />
+                      {formatAddress('', merchant.suburb, merchant.state, merchant.postalCode)}<br />
                       Australia
                     </p>
                   </div>
@@ -61,9 +116,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Call Us</h3>
                     <p className="text-muted-foreground">
-                      (02) 9876 5432<br />
-                      Mon-Fri: 9:00 AM - 7:00 PM<br />
-                      Sat-Sun: 10:00 AM - 6:00 PM
+                      {merchant.phone || 'Not available'}
                     </p>
                   </div>
                 </div>
@@ -73,7 +126,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email Us</h3>
                     <p className="text-muted-foreground">
-                      info@hamiltonbeauty.com.au<br />
+                      {merchant.email || 'Not available'}<br />
                       We&apos;ll respond within 24 hours
                     </p>
                   </div>
@@ -84,9 +137,43 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Opening Hours</h3>
                     <div className="text-muted-foreground space-y-1">
-                      <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
-                      <p>Saturday: 10:00 AM - 6:00 PM</p>
-                      <p>Sunday: 10:00 AM - 6:00 PM</p>
+                      {merchant.businessHours ? (
+                        DAYS_OF_WEEK.map((day) => {
+                          // Try both lowercase and capitalized versions
+                          const hours = merchant.businessHours[day] || 
+                                       merchant.businessHours[day.charAt(0).toUpperCase() + day.slice(1)];
+                          
+                          // Check for both formats: {open, close} and {isOpen, openTime, closeTime}
+                          if (!hours || hours.closed === true) {
+                            return (
+                              <p key={day} className="capitalize">
+                                {day}: Closed
+                              </p>
+                            );
+                          }
+                          
+                          // Handle both possible formats
+                          const openTime = hours.open || hours.openTime;
+                          const closeTime = hours.close || hours.closeTime;
+                          const isOpen = hours.isOpen !== false && !hours.closed && openTime && closeTime;
+                          
+                          if (!isOpen) {
+                            return (
+                              <p key={day} className="capitalize">
+                                {day}: Closed
+                              </p>
+                            );
+                          }
+                          
+                          return (
+                            <p key={day} className="capitalize">
+                              {day}: {formatTime(openTime)} - {formatTime(closeTime)}
+                            </p>
+                          );
+                        })
+                      ) : (
+                        <p>Opening hours not available</p>
+                      )}
                     </div>
                   </div>
                 </div>

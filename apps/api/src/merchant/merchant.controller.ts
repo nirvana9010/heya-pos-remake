@@ -19,6 +19,16 @@ interface UpdateMerchantProfileDto {
   description?: string;
 }
 
+interface UpdateLocationDto {
+  address?: string;
+  suburb?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+}
+
 @Controller('merchant')
 @UseGuards(JwtAuthGuard)
 export class MerchantController {
@@ -65,5 +75,16 @@ export class MerchantController {
   @Get('settings/raw')
   async getRawSettings(@Request() req) {
     return this.merchantService.getRawMerchantSettings(req.user.merchantId);
+  }
+
+  @Put('location/:locationId')
+  async updateLocation(
+    @Request() req,
+    @Body() locationData: UpdateLocationDto,
+  ) {
+    return this.merchantService.updateLocation(
+      req.user.merchantId,
+      locationData,
+    );
   }
 }

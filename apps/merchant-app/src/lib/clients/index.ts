@@ -273,6 +273,11 @@ export class ApiClient {
     return response.data || response;
   }
 
+  async updateLocation(locationData: any) {
+    const response = await this.auth.put('/merchant/location/primary', locationData);
+    return response.data || response;
+  }
+
   async getReportOverview(locationId?: string) {
     return this.reports.getReportOverview(locationId);
   }
