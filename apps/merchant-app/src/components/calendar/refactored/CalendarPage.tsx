@@ -110,12 +110,11 @@ function CalendarContent() {
     if (process.env.NODE_ENV !== 'development') return;
     
     const handleBookingEvent = (event: CustomEvent) => {
-      addActivityLog('event', `Booking event received: ${event.detail.type}`, event.detail);
-      addActivityLog('state', `Note: Calendar hooks should now refresh automatically`);
+      // Removed activity log
     };
     
     const handleFetchBookings = (event: CustomEvent) => {
-      addActivityLog('api', `fetchBookings() was called`, event.detail);
+      // Removed activity log
     };
     
     window.addEventListener('booking-updated', handleBookingEvent as any);
@@ -127,54 +126,8 @@ function CalendarContent() {
     };
   }, [addActivityLog]);
   
-  // Log when calendar refreshes
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      if (isRefreshing) {
-        addActivityLog('api', 'Calendar refresh started');
-      }
-    }
-  }, [isRefreshing, addActivityLog]);
   
-  // Log when calendar is loading
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      if (isLoading) {
-        addActivityLog('api', 'Calendar loading started');
-      }
-    }
-  }, [isLoading, addActivityLog]);
-  
-  // Log when bookings change
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && state.bookings.length > 0) {
-      addActivityLog('state', `Bookings updated: ${state.bookings.length} bookings loaded`);
-    }
-  }, [state.bookings.length, addActivityLog]);
-  
-  // Log notification polling - with detailed info
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const unreadCount = notifications.filter(n => !n.read).length;
-      const bookingNotifications = notifications.filter(n => 
-        !n.read && (n.type === 'booking_new' || n.type === 'booking_modified')
-      );
-      
-      // Log basic poll info
-      addActivityLog('state', `Notifications polled: ${unreadCount} unread, ${bookingNotifications.length} booking-related`);
-      
-      // Log details of unread booking notifications
-      bookingNotifications.forEach(n => {
-        addActivityLog('state', `Unread booking notification:`, {
-          id: n.id,
-          type: n.type,
-          bookingId: n.metadata?.bookingId,
-          title: n.title,
-          createdAt: n.timestamp
-        });
-      });
-    }
-  }, [notifications, addActivityLog]);
+  // Removed notification polling logs
   
   // Refresh calendar when we detect new booking notifications
   const prevBookingNotificationIds = React.useRef<Set<string>>(new Set());
@@ -183,26 +136,17 @@ function CalendarContent() {
       !n.read && (n.type === 'booking_new' || n.type === 'booking_modified') && n.metadata?.bookingId
     );
     
-    // Log what we're seeing
-    addActivityLog('state', `Checking for new booking notifications. Current: ${bookingNotifications.length}, Previously seen: ${prevBookingNotificationIds.current.size}`);
-    
     // Check if there are any new booking notifications
     const newNotifications = bookingNotifications.filter(n => 
       !prevBookingNotificationIds.current.has(n.id)
     );
     
     if (newNotifications.length > 0) {
-      addActivityLog('state', `Found ${newNotifications.length} new booking notifications!`);
-      
       // Clear the booking cache to ensure fresh data
       apiClient.clearBookingsCache();
-      addActivityLog('state', 'Cleared bookings cache');
       
       if (!isLoading && !isRefreshing) {
-        addActivityLog('api', 'New booking notification detected - calling refresh()');
         refresh();
-      } else {
-        addActivityLog('state', `Skipping refresh - isLoading: ${isLoading}, isRefreshing: ${isRefreshing}`);
       }
     }
     
@@ -210,16 +154,7 @@ function CalendarContent() {
     prevBookingNotificationIds.current = new Set(bookingNotifications.map(n => n.id));
   }, [notifications, refresh, isLoading, isRefreshing, addActivityLog]);
   
-  // Add a simple polling indicator
-  React.useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-    
-    const interval = setInterval(() => {
-      addActivityLog('state', '⏰ Polling interval tick (expecting notification update every 10s)');
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [addActivityLog]);
+  // Removed polling indicator
   
   // Drag state
   const [activeBooking, setActiveBooking] = React.useState<Booking | null>(null);
@@ -804,7 +739,6 @@ function CalendarContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  addActivityLog('api', 'Manual refresh triggered');
                   refresh();
                 }}
                 disabled={isRefreshing}
@@ -1244,7 +1178,15 @@ function CalendarContent() {
                 addActivityLog('state', `Clearing cache and refreshing data`);
                 
                 // Clear cache before refresh to ensure we get fresh data
-                memoryCache.clear(); // Clear all cached data
+                try {
+                  if (typeof memoryCache !== 'undefined' && memoryCache.clear) {
+                    memoryCache.clear(); // Clear all cached data
+                  } else {
+                    addActivityLog('error', 'memoryCache is not available');
+                  }
+                } catch (cacheError) {
+                  addActivityLog('error', `Failed to clear cache: ${cacheError.message}`);
+                }
                 
                 // Force close and reopen the details slideout to refresh its data
                 if (state.isDetailsSlideOutOpen) {
