@@ -323,9 +323,8 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
-    setIsStatusUpdating(true);
-    
-    // Close slideout after 1000ms for in-progress or completed status
+    // Don't show "Updating..." for optimistic updates - the status will change immediately
+    // Only close slideout for in-progress or completed status
     if (newStatus === 'in-progress' || newStatus === 'completed') {
       setTimeout(() => {
         onClose();
@@ -342,7 +341,7 @@ function BookingDetailsSlideOutComponent({
         refreshNotifications();
       }, 2000);
     } finally {
-      setIsStatusUpdating(false);
+      // No need to set isStatusUpdating since we're doing optimistic updates
     }
   };
 

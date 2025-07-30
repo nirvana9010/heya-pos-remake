@@ -45,7 +45,6 @@ import { BookingDetailsSlideOut } from '@/components/BookingDetailsSlideOut';
 import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
-import { memoryCache } from '@/lib/cache-config';
 import type { Booking, BookingStatus } from './types';
 import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
@@ -1006,6 +1005,7 @@ function CalendarContent() {
         
         return (
           <BookingDetailsSlideOut
+            key={`booking-details-${booking.id}-${booking.status}`}
             isOpen={state.isDetailsSlideOutOpen}
             onClose={() => actions.closeDetailsSlideOut()}
             booking={{
@@ -1170,7 +1170,18 @@ function CalendarContent() {
                 
                 // OPTIMISTIC UPDATE: Update the booking status immediately in local state
                 addActivityLog('state', `Applying optimistic update - setting status to: ${localStatus}`);
+                
+                // Find the booking before update
+                const bookingBefore = state.bookings.find(b => b.id === bookingId);
+                addActivityLog('state', `Booking status before update: ${bookingBefore?.status || 'not found'}`);
+                
                 actions.updateBooking(bookingId, { status: localStatus as any });
+                
+                // Check if update worked
+                setTimeout(() => {
+                  const bookingAfter = state.bookings.find(b => b.id === bookingId);
+                  addActivityLog('state', `Booking status after update: ${bookingAfter?.status || 'not found'}`);
+                }, 50);
                 
                 toast({
                   title: "Status updated",
@@ -1190,17 +1201,9 @@ function CalendarContent() {
                   }, 100);
                 }
                 
-                // Clear cache and refresh in background (don't wait for it)
+                // Refresh in background (don't wait for it)
                 addActivityLog('state', `Starting background refresh`);
                 setTimeout(async () => {
-                  try {
-                    if (typeof memoryCache !== 'undefined' && memoryCache.clear) {
-                      memoryCache.clear();
-                    }
-                  } catch (cacheError) {
-                    // Ignore cache errors
-                  }
-                  
                   // Refresh to sync with server state
                   await refresh();
                   addActivityLog('state', `Background refresh completed`);
