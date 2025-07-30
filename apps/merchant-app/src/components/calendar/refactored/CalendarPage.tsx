@@ -45,6 +45,7 @@ import { BookingDetailsSlideOut } from '@/components/BookingDetailsSlideOut';
 import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
+import { memoryCache } from '@/lib/cache-config';
 import type { Booking, BookingStatus } from './types';
 import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
