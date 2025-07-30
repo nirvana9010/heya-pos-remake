@@ -1168,6 +1168,10 @@ function CalendarContent() {
                 // Transform status to lowercase for local state (UI expects lowercase)
                 const localStatus = status.toLowerCase().replace(/_/g, '-');
                 
+                // OPTIMISTIC UPDATE: Update the booking status immediately in local state
+                addActivityLog('state', `Applying optimistic update - setting status to: ${localStatus}`);
+                actions.updateBooking(bookingId, { status: localStatus as any });
+                
                 toast({
                   title: "Status updated",
                   description: `Booking marked as ${localStatus.replace('-', ' ')}`,
@@ -1175,55 +1179,32 @@ function CalendarContent() {
                   className: "bg-green-50 border-green-200",
                 });
                 
-                addActivityLog('state', `Clearing cache and refreshing data`);
-                
-                // Clear cache before refresh to ensure we get fresh data
-                try {
-                  if (typeof memoryCache !== 'undefined' && memoryCache.clear) {
-                    memoryCache.clear(); // Clear all cached data
-                  } else {
-                    addActivityLog('error', 'memoryCache is not available');
-                  }
-                } catch (cacheError) {
-                  addActivityLog('error', `Failed to clear cache: ${cacheError.message}`);
-                }
-                
-                // Force close and reopen the details slideout to refresh its data
+                // If details slideout is open, close and reopen to show updated status
                 if (state.isDetailsSlideOutOpen) {
                   const currentBookingId = bookingId;
-                  addActivityLog('ui', `Closing details slideout to force refresh`);
                   actions.closeDetailsSlideOut();
                   
-                  // Add a small delay to ensure backend has fully processed the update
-                  addActivityLog('state', `Waiting 500ms for backend processing`);
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                  
-                  // Refresh calendar data to get the updated state from server
-                  addActivityLog('api', `Calling refresh() to fetch updated data`);
-                  await refresh();
-                  
-                  // Check what we got back
-                  const updatedBooking = state.bookings.find(b => b.id === bookingId);
-                  addActivityLog('state', `After refresh - booking status: ${updatedBooking?.status || 'not found'}`);
-                  
-                  // Reopen the details slideout with fresh data
-                  addActivityLog('ui', `Reopening details slideout`);
+                  // Reopen immediately with updated data
                   setTimeout(() => {
                     actions.openDetailsSlideOut(currentBookingId);
                   }, 100);
-                } else {
-                  // Add a small delay to ensure backend has fully processed the update
-                  addActivityLog('state', `Waiting 500ms for backend processing`);
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                  
-                  // Refresh calendar data to get the updated state from server
-                  addActivityLog('api', `Calling refresh() to fetch updated data`);
-                  await refresh();
-                  
-                  // Check what we got back
-                  const updatedBooking = state.bookings.find(b => b.id === bookingId);
-                  addActivityLog('state', `After refresh - booking status: ${updatedBooking?.status || 'not found'}`);
                 }
+                
+                // Clear cache and refresh in background (don't wait for it)
+                addActivityLog('state', `Starting background refresh`);
+                setTimeout(async () => {
+                  try {
+                    if (typeof memoryCache !== 'undefined' && memoryCache.clear) {
+                      memoryCache.clear();
+                    }
+                  } catch (cacheError) {
+                    // Ignore cache errors
+                  }
+                  
+                  // Refresh to sync with server state
+                  await refresh();
+                  addActivityLog('state', `Background refresh completed`);
+                }, 1000);
               } catch (error: any) {
                 addActivityLog('error', `Status update failed: ${error?.message || 'Unknown error'}`);
                 
