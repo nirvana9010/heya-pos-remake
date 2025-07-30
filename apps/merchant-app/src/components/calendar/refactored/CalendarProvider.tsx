@@ -18,7 +18,7 @@ const DELETION_BUFFER_TIME = 30000; // 30 seconds
 // Track recent status updates to prevent them from reverting during refresh
 // This solves the race condition where backend hasn't processed the status update yet
 const recentStatusUpdates = new Map<string, { status: string, timestamp: number }>(); // bookingId -> {status, timestamp}
-const STATUS_UPDATE_BUFFER_TIME = 15000; // 15 seconds
+const STATUS_UPDATE_BUFFER_TIME = 60000; // 60 seconds - increased to handle backend processing delays
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -177,6 +177,7 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
           // Apply recent status update if exists
           const recentUpdate = recentStatusUpdates.get(booking.id);
           if (recentUpdate) {
+            console.log(`[Calendar] Preserving recent status update for booking ${booking.id}: ${booking.status} → ${recentUpdate.status}`);
             return { ...booking, status: recentUpdate.status };
           }
           return booking;
@@ -196,8 +197,10 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       
       // Track status updates to prevent them from reverting
       if (action.payload.updates.status) {
+        // Ensure status is normalized to lowercase format
+        const normalizedStatus = action.payload.updates.status.toLowerCase().replace(/_/g, '-');
         recentStatusUpdates.set(action.payload.id, {
-          status: action.payload.updates.status,
+          status: normalizedStatus,
           timestamp: Date.now()
         });
       }

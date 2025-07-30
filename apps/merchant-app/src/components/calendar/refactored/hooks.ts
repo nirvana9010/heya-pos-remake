@@ -506,15 +506,31 @@ export function useBookingOperations() {
     status: string
   ) => {
     try {
-      await apiClient.updateBookingStatus(bookingId, status);
+      // Update the booking status optimistically with normalized format
+      const normalizedStatus = status.toLowerCase().replace(/_/g, '-');
+      actions.updateBooking(bookingId, { status: normalizedStatus as any });
       
-      actions.updateBooking(bookingId, { status: status as any });
+      // Send the update to the API (API expects uppercase format)
+      await apiClient.updateBookingStatus(bookingId, status.toUpperCase());
+      
+      // Broadcast the status update to other tabs
+      bookingEvents.broadcast({
+        type: 'booking_updated',
+        bookingId: bookingId,
+        source: 'slideout'
+      });
       
       toast({
         title: 'Success',
         description: 'Booking status updated',
       });
     } catch (error) {
+      // Revert the optimistic update on error
+      const booking = state.bookings.find(b => b.id === bookingId);
+      if (booking) {
+        actions.updateBooking(bookingId, { status: booking.status });
+      }
+      
       toast({
         title: 'Error',
         description: 'Failed to update booking status',
@@ -522,7 +538,7 @@ export function useBookingOperations() {
       });
       throw error;
     }
-  }, [actions, toast]);
+  }, [actions, toast, state.bookings]);
   
   const deleteBooking = useCallback(async (bookingId: string) => {
     try {
