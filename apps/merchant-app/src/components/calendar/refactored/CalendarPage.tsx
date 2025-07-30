@@ -1233,8 +1233,28 @@ function CalendarContent() {
                 // Clear cache before refresh to ensure we get fresh data
                 memoryCache.clear(); // Clear all cached data
                 
-                // Refresh calendar data to get the updated state from server
-                await refresh();
+                // Force close and reopen the details slideout to refresh its data
+                if (state.isDetailsSlideOutOpen) {
+                  const currentBookingId = bookingId;
+                  actions.closeDetailsSlideOut();
+                  
+                  // Add a small delay to ensure backend has fully processed the update
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Refresh calendar data to get the updated state from server
+                  await refresh();
+                  
+                  // Reopen the details slideout with fresh data
+                  setTimeout(() => {
+                    actions.openDetailsSlideOut(currentBookingId);
+                  }, 100);
+                } else {
+                  // Add a small delay to ensure backend has fully processed the update
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Refresh calendar data to get the updated state from server
+                  await refresh();
+                }
               } catch (error: any) {
                 
                 // Extract error message
