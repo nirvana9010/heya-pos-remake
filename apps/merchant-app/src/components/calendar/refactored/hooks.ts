@@ -45,6 +45,16 @@ export function useCalendarData() {
       
       const response = await apiClient.getBookings(params);
       
+      // Log the raw response for debugging
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+          detail: {
+            type: 'api',
+            message: `Fetched ${response.length} bookings`,
+            timestamp: new Date().toISOString()
+          }
+        }));
+      }
       
       // Transform bookings to calendar format
       const transformedBookings = response.map((booking: any) => {
@@ -61,6 +71,16 @@ export function useCalendarData() {
           'confirmed';
         
         if (originalStatus === 'PENDING' || transformedStatus === 'pending') {
+          // Log pending bookings for debugging
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+              detail: {
+                type: 'state',
+                message: `Pending booking found: ${booking.id} - original: ${originalStatus}, transformed: ${transformedStatus}`,
+                timestamp: new Date().toISOString()
+              }
+            }));
+          }
         }
         
         return {

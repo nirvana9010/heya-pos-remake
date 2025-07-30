@@ -1200,9 +1200,17 @@ function CalendarContent() {
               actions.closeDetailsSlideOut();
             }}
             onStatusChange={async (bookingId, status) => {
+              addActivityLog('user', `Status change requested for booking ${bookingId}: ${status}`);
+              
               try {
+                // Find current booking state
+                const currentBooking = state.bookings.find(b => b.id === bookingId);
+                addActivityLog('state', `Current booking status: ${currentBooking?.status || 'not found'}`);
+                
                 // Use proper API endpoints for status changes
                 // NOTE: BookingActions sends uppercase status values (CONFIRMED, CANCELLED, etc)
+                addActivityLog('api', `Calling API to update status to: ${status}`);
+                
                 switch (status) {
                   case 'IN_PROGRESS':
                   case 'in-progress':
@@ -1221,6 +1229,8 @@ function CalendarContent() {
                     await apiClient.updateBooking(bookingId, { status });
                 }
                 
+                addActivityLog('api', `API call completed successfully`);
+                
                 // Transform status to lowercase for local state (UI expects lowercase)
                 const localStatus = status.toLowerCase().replace(/_/g, '-');
                 
@@ -1231,32 +1241,49 @@ function CalendarContent() {
                   className: "bg-green-50 border-green-200",
                 });
                 
+                addActivityLog('state', `Clearing cache and refreshing data`);
+                
                 // Clear cache before refresh to ensure we get fresh data
                 memoryCache.clear(); // Clear all cached data
                 
                 // Force close and reopen the details slideout to refresh its data
                 if (state.isDetailsSlideOutOpen) {
                   const currentBookingId = bookingId;
+                  addActivityLog('ui', `Closing details slideout to force refresh`);
                   actions.closeDetailsSlideOut();
                   
                   // Add a small delay to ensure backend has fully processed the update
+                  addActivityLog('state', `Waiting 500ms for backend processing`);
                   await new Promise(resolve => setTimeout(resolve, 500));
                   
                   // Refresh calendar data to get the updated state from server
+                  addActivityLog('api', `Calling refresh() to fetch updated data`);
                   await refresh();
                   
+                  // Check what we got back
+                  const updatedBooking = state.bookings.find(b => b.id === bookingId);
+                  addActivityLog('state', `After refresh - booking status: ${updatedBooking?.status || 'not found'}`);
+                  
                   // Reopen the details slideout with fresh data
+                  addActivityLog('ui', `Reopening details slideout`);
                   setTimeout(() => {
                     actions.openDetailsSlideOut(currentBookingId);
                   }, 100);
                 } else {
                   // Add a small delay to ensure backend has fully processed the update
+                  addActivityLog('state', `Waiting 500ms for backend processing`);
                   await new Promise(resolve => setTimeout(resolve, 500));
                   
                   // Refresh calendar data to get the updated state from server
+                  addActivityLog('api', `Calling refresh() to fetch updated data`);
                   await refresh();
+                  
+                  // Check what we got back
+                  const updatedBooking = state.bookings.find(b => b.id === bookingId);
+                  addActivityLog('state', `After refresh - booking status: ${updatedBooking?.status || 'not found'}`);
                 }
               } catch (error: any) {
+                addActivityLog('error', `Status update failed: ${error?.message || 'Unknown error'}`);
                 
                 // Extract error message
                 let errorMessage = "Failed to update booking status";
