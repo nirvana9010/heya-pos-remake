@@ -151,15 +151,8 @@ function BookingDetailsSlideOutComponent({
       try {
         // Skip fetching order for unpaid bookings - it's normal for them not to have an order yet
         if (!booking.isPaid) {
-          console.log('[BookingDetailsSlideOut] Skipping order fetch for unpaid booking:', booking.id);
           return;
         }
-        
-        console.log('[BookingDetailsSlideOut] Fetching order for paid booking:', {
-          bookingId: booking.id,
-          isPaid: booking.isPaid,
-          bookingTotalPrice: booking.totalPrice
-        });
         
         // Try to get the order for this booking
         // First try the optimized prepareOrderForPayment endpoint
@@ -168,31 +161,9 @@ function BookingDetailsSlideOutComponent({
         });
         
         if (paymentData?.order) {
-          console.log('[BookingDetailsSlideOut] Order fetched successfully:', {
-            orderId: paymentData.order.id,
-            orderTotal: paymentData.order.totalAmount,
-            paidAmount: paymentData.order.paidAmount,
-            state: paymentData.order.state,
-            modifiers: paymentData.order.modifiers
-          });
           setAssociatedOrder(paymentData.order);
         }
       } catch (error: any) {
-        // Log the raw error first to see what we're getting
-        console.log('[BookingDetailsSlideOut] Raw error object:', error);
-        
-        // Don't log empty errors - this happens when booking is very new
-        if (error && (error.message || error.code || error.status || error.response || error.toString() !== '[object Object]')) {
-          console.error('[BookingDetailsSlideOut] Error fetching order:', {
-            message: error?.message,
-            code: error?.code,
-            status: error?.status,
-            response: error?.response?.data,
-            toString: error?.toString(),
-            type: typeof error,
-            keys: Object.keys(error || {})
-          });
-        }
         
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
         if (error?.message?.includes('already exists') || error?.code === 'DUPLICATE_RESOURCE') {
@@ -202,7 +173,6 @@ function BookingDetailsSlideOutComponent({
           setAssociatedOrder(null);
         } else if (error?.message?.includes('connection pool') || error?.code === 'CONNECTION_ERROR') {
           // Database connection issue
-          console.warn('[BookingDetailsSlideOut] Database connection issue - will retry on payment');
           setAssociatedOrder(null);
         } else {
           // Other errors - clear the order
@@ -434,8 +404,6 @@ function BookingDetailsSlideOutComponent({
       // Check if booking might not be synced yet
       if (error?.status === 404 || error?.message?.includes('not found')) {
         // Retry after a short delay
-        console.log('[BookingDetailsSlideOut] Booking might not be synced yet, retrying...');
-        
         setTimeout(async () => {
           try {
             const paymentData = await apiClient.prepareOrderForPayment({
@@ -481,20 +449,6 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
-    console.log('[BookingDetailsSlideOut] Payment complete - updatedOrder:', {
-      id: updatedOrder?.id,
-      totalAmount: updatedOrder?.totalAmount,
-      paidAmount: updatedOrder?.paidAmount,
-      state: updatedOrder?.state,
-      modifiers: updatedOrder?.modifiers,
-      items: updatedOrder?.items?.map((item: any) => ({ 
-        description: item.description, 
-        unitPrice: item.unitPrice, 
-        quantity: item.quantity,
-        discount: item.discount,
-        total: item.total
-      }))
-    });
     
     // Close the payment dialog
     setPaymentDialogOpen(false);
@@ -518,12 +472,6 @@ function BookingDetailsSlideOutComponent({
     
     // Update the booking's payment status in background with the actual paid amount
     const actualPaidAmount = updatedOrder?.totalAmount || updatedOrder?.paidAmount || booking.totalPrice;
-    console.log('[BookingDetailsSlideOut] Calling onPaymentStatusChange with:', {
-      bookingId: booking.id,
-      isPaid: true,
-      actualPaidAmount,
-      originalBookingPrice: booking.totalPrice
-    });
     onPaymentStatusChange(booking.id, true, actualPaidAmount);
     
     // Force refetch the order to ensure we have latest data
@@ -881,18 +829,6 @@ function BookingDetailsSlideOutComponent({
                     <DollarSign className="h-4 w-4 text-gray-400" />
                     <div className="flex flex-col">
                       {(() => {
-                        console.log('[BookingDetailsSlideOut] Price display debug:', {
-                          bookingId: booking.id,
-                          isPaid: booking.isPaid,
-                          bookingTotalPrice: booking.totalPrice,
-                          bookingPaidAmount: booking.paidAmount,
-                          associatedOrder: associatedOrder ? {
-                            id: associatedOrder.id,
-                            totalAmount: associatedOrder.totalAmount,
-                            paidAmount: associatedOrder.paidAmount,
-                            modifiers: associatedOrder.modifiers
-                          } : null
-                        });
                         
                         if (booking.isPaid) {
                           // First check if booking has paidAmount field (from payment completion)

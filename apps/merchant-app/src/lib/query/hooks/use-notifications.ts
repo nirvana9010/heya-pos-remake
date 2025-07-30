@@ -21,9 +21,6 @@ export function useNotifications(params?: {
   React.useEffect(() => {
     const handleVisibilityChange = () => {
       setIsTabVisible(!document.hidden);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useNotifications] Tab visibility changed:', !document.hidden ? 'visible' : 'hidden');
-      }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -38,25 +35,7 @@ export function useNotifications(params?: {
         take: params?.take || 50, // Fetch last 50 notifications by default
       };
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useNotifications] Fetching notifications with params:', fetchParams);
-        console.log('[useNotifications] Current time:', new Date().toISOString());
-      }
-      
       const result = await apiClient.notifications.getNotifications(fetchParams);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useNotifications] Received notifications:', result.data?.length, 'total');
-        console.log('[useNotifications] Unread count:', result.unreadCount);
-        if (result.data?.length > 0) {
-          console.log('[useNotifications] Most recent notification:', {
-            id: result.data[0].id,
-            createdAt: result.data[0].createdAt,
-            type: result.data[0].type,
-            read: result.data[0].read
-          });
-        }
-      }
       
       return result;
     },
