@@ -541,11 +541,11 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
-                          } else if (booking.status === 'PENDING') {
-                            // Option 1: Keep original color with overlay effect
-                            bgOpacity = 0.65; // Reduced from 0.8
+                          } else if (booking.status === 'PENDING' || booking.status === 'pending') {
+                            // Pending bookings have distinct visual style
+                            bgOpacity = 0.65; // Reduced opacity
                             borderWidth = 4;
-                            borderStyle = 'dashed';
+                            borderStyle = 'dashed'; // Dashed border
                           } else if (booking.status === 'optimistic') {
                             // Optimistic bookings show with subtle animation
                             bgOpacity = 0.7;
@@ -594,12 +594,12 @@ export function DailyView({
                                 style={{
                                   height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  backgroundImage: booking.status === 'PENDING'
+                                  backgroundImage: (booking.status === 'PENDING' || booking.status === 'pending')
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
                                     : booking.status === 'optimistic'
                                     ? 'linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0.2))'
                                     : undefined,
-                                  backgroundBlendMode: booking.status === 'PENDING' || booking.status === 'optimistic'
+                                  backgroundBlendMode: (booking.status === 'PENDING' || booking.status === 'pending') || booking.status === 'optimistic'
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -648,7 +648,7 @@ export function DailyView({
                                 )}
                                 {/* Status badges - bottom right - responsive */}
                                 <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
-                                  {booking.status === 'PENDING' && (
+                                  {(booking.status === 'PENDING' || booking.status === 'pending') && (
                                     <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PENDING</span>
                                     </div>
@@ -834,11 +834,11 @@ export function DailyView({
                             bgOpacity = 0.3;
                             borderWidth = 3;
                             textColor = 'text-gray-700';
-                          } else if (booking.status === 'PENDING') {
-                            // Option 1: Keep original color with overlay effect
-                            bgOpacity = 0.65; // Reduced from 0.8
+                          } else if (booking.status === 'PENDING' || booking.status === 'pending') {
+                            // Pending bookings have distinct visual style
+                            bgOpacity = 0.65; // Reduced opacity
                             borderWidth = 4;
-                            borderStyle = 'dashed';
+                            borderStyle = 'dashed'; // Dashed border
                           } else if (booking.status === 'optimistic') {
                             // Optimistic bookings show with subtle animation
                             bgOpacity = 0.7;
@@ -887,12 +887,12 @@ export function DailyView({
                                 style={{
                                   height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
-                                  backgroundImage: booking.status === 'PENDING'
+                                  backgroundImage: (booking.status === 'PENDING' || booking.status === 'pending')
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
                                     : booking.status === 'optimistic'
                                     ? 'linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0.2))'
                                     : undefined,
-                                  backgroundBlendMode: booking.status === 'PENDING' || booking.status === 'optimistic'
+                                  backgroundBlendMode: (booking.status === 'PENDING' || booking.status === 'pending') || booking.status === 'optimistic'
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -941,7 +941,7 @@ export function DailyView({
                                 )}
                                 {/* Status badges - bottom right - responsive */}
                                 <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
-                                  {booking.status === 'PENDING' && (
+                                  {(booking.status === 'PENDING' || booking.status === 'pending') && (
                                     <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
                                       <span className="block truncate">PENDING</span>
                                     </div>

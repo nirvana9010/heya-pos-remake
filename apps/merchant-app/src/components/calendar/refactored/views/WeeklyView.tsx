@@ -141,11 +141,11 @@ export function WeeklyView({
                         opacity = 0.3;
                         borderWidth = 3;
                         textColor = 'text-gray-700';
-                      } else if (booking.status?.toLowerCase() === 'pending') {
-                        // Option 1: Keep original color with overlay effect
-                        opacity = 0.65; // Reduced from 0.8
+                      } else if (booking.status === 'PENDING' || booking.status === 'pending') {
+                        // Pending bookings have distinct visual style
+                        opacity = 0.65; // Reduced opacity
                         borderWidth = 3;
-                        borderStyle = 'dashed';
+                        borderStyle = 'dashed'; // Dashed border
                       }
                       
                       // Helper to convert hex to rgba
@@ -167,10 +167,10 @@ export function WeeklyView({
                           )}
                           style={{
                             backgroundColor: hexToRgba(bgColor, opacity),
-                            backgroundImage: (booking.status?.toLowerCase() === 'pending') 
+                            backgroundImage: (booking.status === 'PENDING' || booking.status === 'pending') 
                               ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
                               : undefined,
-                            backgroundBlendMode: (booking.status?.toLowerCase() === 'pending') 
+                            backgroundBlendMode: (booking.status === 'PENDING' || booking.status === 'pending') 
                               ? 'overlay' as any
                               : undefined,
                             borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
@@ -224,7 +224,7 @@ export function WeeklyView({
                           
                           {/* Status badges - bottom right */}
                           <div className="absolute bottom-2 right-2 flex gap-1">
-                            {(booking.status?.toLowerCase() === 'pending') && (
+                            {(booking.status === 'PENDING' || booking.status === 'pending') && (
                               <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                                 PENDING
                               </div>
