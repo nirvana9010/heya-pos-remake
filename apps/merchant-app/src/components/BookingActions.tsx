@@ -87,7 +87,14 @@ export function BookingActions({
         <Button
           size={size}
           variant="default"
-          onClick={() => onStatusChange(booking.id, "confirmed")}
+          onClick={() => {
+            console.log('[BookingActions] Confirming booking:', {
+              bookingId: booking.id,
+              currentStatus: booking.status,
+              newStatus: 'CONFIRMED'
+            });
+            onStatusChange(booking.id, "CONFIRMED");
+          }}
           className="flex items-center gap-1"
         >
           <CheckCircle className="h-4 w-4" />
@@ -100,7 +107,7 @@ export function BookingActions({
           <Button
             size={size}
             variant="outline"
-            onClick={() => onStatusChange(booking.id, "in-progress")}
+            onClick={() => onStatusChange(booking.id, "IN_PROGRESS")}
             disabled={isStatusUpdating}
             className="flex items-center gap-1"
           >
@@ -114,7 +121,7 @@ export function BookingActions({
           <Button
             size={size}
             variant="outline"
-            onClick={() => onStatusChange(booking.id, "cancelled")}
+            onClick={() => onStatusChange(booking.id, "CANCELLED")}
             disabled={isStatusUpdating}
             className="flex items-center gap-1 text-red-600 hover:text-red-700"
           >
@@ -133,7 +140,7 @@ export function BookingActions({
           <Button
             size={size}
             variant="outline"
-            onClick={() => onStatusChange(booking.id, "completed")}
+            onClick={() => onStatusChange(booking.id, "COMPLETED")}
             disabled={isStatusUpdating}
             className="flex items-center gap-1"
           >
@@ -147,7 +154,7 @@ export function BookingActions({
           <Button
             size={size}
             variant="outline"
-            onClick={() => onStatusChange(booking.id, "cancelled")}
+            onClick={() => onStatusChange(booking.id, "CANCELLED")}
             disabled={isStatusUpdating}
             className="flex items-center gap-1 text-red-600 hover:text-red-700"
           >

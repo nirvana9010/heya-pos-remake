@@ -134,6 +134,12 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
+    console.log('[BookingsClient] updateBooking called:', {
+      id,
+      data,
+      dataKeys: Object.keys(data)
+    });
+    
     const booking = await this.patch(
       `/bookings/${id}`, 
       data, 
@@ -142,6 +148,13 @@ export class BookingsClient extends BaseApiClient {
       requestSchemas.updateBooking,
       responseSchemas.booking
     );
+    
+    console.log('[BookingsClient] updateBooking response:', {
+      id: booking.id,
+      status: booking.status,
+      responseKeys: Object.keys(booking)
+    });
+    
     return this.transformBooking(booking);
   }
 

@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@heya-pos/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
 import { Badge } from '@heya-pos/ui';
-import { ArrowLeft, Calendar, Clock, User, DollarSign, Phone, Mail, MessageSquare } from 'lucide-react';
+import { useToast } from '@heya-pos/ui';
+import { ArrowLeft, Calendar, Clock, User, DollarSign, Phone, Mail, MessageSquare, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { type Booking } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
@@ -13,8 +14,10 @@ import { apiClient } from '@/lib/api-client';
 export default function BookingDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     loadBooking();
@@ -43,24 +46,39 @@ export default function BookingDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    setIsUpdating(true);
     try {
       switch (newStatus) {
-        case 'in-progress':
+        case 'IN_PROGRESS':
           await apiClient.startBooking(params.id as string);
           break;
-        case 'completed':
+        case 'COMPLETED':
           await apiClient.completeBooking(params.id as string);
           break;
-        case 'cancelled':
+        case 'CANCELLED':
           await apiClient.cancelBooking(params.id as string, 'Cancelled by user');
           break;
         default:
-          // For other statuses like 'confirmed', 'no-show', use updateBooking
+          // For other statuses like 'CONFIRMED', 'NO_SHOW', use updateBooking
           await apiClient.updateBooking(params.id as string, { status: newStatus });
       }
       await loadBooking();
+      
+      toast({
+        title: "Status updated",
+        description: `Booking marked as ${newStatus.toLowerCase().replace('_', ' ')}`,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+      });
     } catch (error) {
       console.error('Failed to update booking status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update booking status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -240,14 +258,14 @@ export default function BookingDetailPage() {
             {booking.status === 'pending' && (
               <>
                 <Button 
-                  onClick={() => handleStatusChange('confirmed')}
+                  onClick={() => handleStatusChange('CONFIRMED')}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   Confirm Booking
                 </Button>
                 <Button 
                   variant="destructive"
-                  onClick={() => handleStatusChange('cancelled')}
+                  onClick={() => handleStatusChange('CANCELLED')}
                 >
                   Cancel Booking
                 </Button>
@@ -257,14 +275,14 @@ export default function BookingDetailPage() {
             {booking.status === 'confirmed' && (
               <>
                 <Button 
-                  onClick={() => handleStatusChange('completed')}
+                  onClick={() => handleStatusChange('COMPLETED')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Mark as Completed
                 </Button>
                 <Button 
                   variant="destructive"
-                  onClick={() => handleStatusChange('cancelled')}
+                  onClick={() => handleStatusChange('CANCELLED')}
                 >
                   Cancel Booking
                 </Button>

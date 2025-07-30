@@ -19,6 +19,8 @@ interface UpdateBookingData {
   staffId?: string;
   serviceId?: string;
   locationId?: string;
+  status?: string;
+  cancellationReason?: string;
 }
 
 interface CancelBookingData {
@@ -48,6 +50,8 @@ export class BookingUpdateService {
       hasStaffChange: !!data.staffId,
       newStaffId: data.staffId,
       hasTimeChange: !!data.startTime,
+      hasStatusChange: !!data.status,
+      newStatus: data.status,
     });
     
     let originalBooking: Booking | null = null;
@@ -148,11 +152,31 @@ export class BookingUpdateService {
       if (data.staffId && data.staffId !== booking.staffId) {
         directUpdates.providerId = data.staffId;
       }
+      
+      // 8. Handle status change if needed
+      if (data.status) {
+        console.log('[BookingUpdateService] Status update requested:', {
+          bookingId: booking.id,
+          currentStatus: booking.status.value,
+          newStatus: data.status,
+        });
+        
+        // Status should be uppercase in the database
+        directUpdates.status = data.status.toUpperCase().replace(/-/g, '_');
+        
+        // If cancelling, add cancellation data
+        if (data.status.toUpperCase() === 'CANCELLED' || data.status === 'cancelled') {
+          directUpdates.cancelledAt = new Date();
+          if (data.cancellationReason) {
+            directUpdates.cancellationReason = data.cancellationReason;
+          }
+        }
+      }
 
-      // 8. Save the updated booking (for domain-level changes like time)
+      // 9. Save the updated booking (for domain-level changes like time)
       const updatedBooking = await this.bookingRepository.update(booking, tx);
       
-      // 9. Apply any direct database updates AFTER the domain update
+      // 10. Apply any direct database updates AFTER the domain update
       const hasDirectUpdates = Object.keys(directUpdates).length > 0;
       if (hasDirectUpdates) {
         console.log('[BookingUpdateService] Applying direct updates:', directUpdates);
@@ -192,6 +216,8 @@ export class BookingUpdateService {
           bookingId: domainBooking.id,
           staffId: domainBooking.staffId,
           directUpdatesApplied: directUpdates,
+          finalStatus: domainBooking.status.value,
+          dbStatus: reloadedBooking.status,
         });
         return domainBooking;
       }

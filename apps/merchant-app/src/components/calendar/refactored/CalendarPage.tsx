@@ -1199,38 +1199,57 @@ function CalendarContent() {
               actions.closeDetailsSlideOut();
             }}
             onStatusChange={async (bookingId, status) => {
+              console.log('[CalendarPage] onStatusChange called:', {
+                bookingId,
+                status,
+                statusType: typeof status
+              });
+              
               try {
                 // Use proper API endpoints for status changes
+                // NOTE: BookingActions sends uppercase status values (CONFIRMED, CANCELLED, etc)
                 switch (status) {
+                  case 'IN_PROGRESS':
                   case 'in-progress':
+                    console.log('[CalendarPage] Starting booking');
                     await apiClient.startBooking(bookingId);
                     break;
+                  case 'COMPLETED':
                   case 'completed':
+                    console.log('[CalendarPage] Completing booking');
                     await apiClient.completeBooking(bookingId);
                     break;
+                  case 'CANCELLED':
                   case 'cancelled':
+                    console.log('[CalendarPage] Cancelling booking');
                     await apiClient.cancelBooking(bookingId, 'Cancelled by user');
                     break;
                   default:
-                    // For other status changes (confirmed, no-show), use the general update endpoint
+                    // For other status changes (CONFIRMED, NO_SHOW), use the general update endpoint
+                    console.log('[CalendarPage] Updating booking status via general endpoint:', status);
                     await apiClient.updateBooking(bookingId, { status });
                 }
                 
-                // Update local state after successful API call
-                actions.updateBooking(bookingId, { status: status as any });
+                // Transform status to lowercase for local state (UI expects lowercase)
+                const localStatus = status.toLowerCase().replace(/_/g, '-');
+                console.log('[CalendarPage] Updating local state with status:', localStatus);
                 
-                // Refresh calendar data after a short delay (like mark-as-paid does)
-                setTimeout(() => {
-                  refresh();
-                }, 1000);
+                // DON'T update local state immediately - wait for refresh to get server state
+                console.log('[CalendarPage] Status update successful, waiting for refresh');
                 
                 toast({
                   title: "Status updated",
-                  description: `Booking marked as ${status.replace('-', ' ')}`,
+                  description: `Booking marked as ${localStatus.replace('-', ' ')}`,
                   variant: "default",
                   className: "bg-green-50 border-green-200",
                 });
+                
+                // Refresh calendar data to get the updated state from server
+                // Use immediate refresh instead of timeout
+                console.log('[CalendarPage] Triggering immediate refresh');
+                await refresh();
               } catch (error: any) {
+                console.error('[CalendarPage] Status update failed:', error);
                 
                 // Extract error message
                 let errorMessage = "Failed to update booking status";
