@@ -101,6 +101,22 @@ export class BookingsClient extends BaseApiClient {
       // Real API returns paginated response, extract data
       const bookings = response.data || response;
       
+      // Log if we have any pending bookings for debugging
+      if (window.dispatchEvent && Array.isArray(bookings)) {
+        const pendingBookings = bookings.filter((b: any) => 
+          b.status === 'PENDING' || b.status === 'pending'
+        );
+        if (pendingBookings.length > 0) {
+          window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+            detail: {
+              type: 'api',
+              message: `Refresh found ${pendingBookings.length} pending bookings (raw status: ${pendingBookings[0].status})`,
+              timestamp: new Date().toISOString()
+            }
+          }));
+        }
+      }
+      
       if (!Array.isArray(bookings)) {
         throw new Error('Invalid response format from bookings API');
       }
@@ -130,6 +146,17 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
+    // Log what we're sending for debugging
+    if (window.dispatchEvent && data.status) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'api',
+          message: `Sending status update: ${data.status} for booking ${id}`,
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
     const booking = await this.patch(
       `/bookings/${id}`, 
       data, 
@@ -138,6 +165,18 @@ export class BookingsClient extends BaseApiClient {
       requestSchemas.updateBooking,
       responseSchemas.booking
     );
+    
+    // Log what we got back
+    if (window.dispatchEvent && booking) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'api',
+          message: `API returned booking with status: ${booking.status}`,
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
     return this.transformBooking(booking);
   }
 
