@@ -120,6 +120,34 @@ export class PublicBookingService {
           phone: dto.customerPhone,
         },
       });
+    } else {
+      // Update customer if they've provided new information
+      const updateData: any = {};
+      
+      // Update email if customer didn't have one before but now provided it
+      if (!customer.email && dto.customerEmail) {
+        updateData.email = dto.customerEmail;
+      }
+      
+      // Update phone if customer didn't have one before but now provided it
+      if (!customer.phone && dto.customerPhone) {
+        updateData.phone = dto.customerPhone;
+      }
+      
+      // Update name if it has changed
+      const [firstName, ...lastNameParts] = dto.customerName.split(' ');
+      if (firstName !== customer.firstName || lastNameParts.join(' ') !== customer.lastName) {
+        updateData.firstName = firstName || '';
+        updateData.lastName = lastNameParts.join(' ') || '';
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updateData).length > 0) {
+        customer = await this.prisma.customer.update({
+          where: { id: customer.id },
+          data: updateData,
+        });
+      }
     }
 
     // Calculate start and end times using the location's timezone
