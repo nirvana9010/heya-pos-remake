@@ -324,6 +324,33 @@ export class BookingsV2Controller {
     if (dto.cancellationReason) updateData.cancellationReason = dto.cancellationReason;
 
     const booking = await this.bookingUpdateService.updateBooking(updateData);
+    
+    console.log('[BookingsV2Controller] Update response before toDto:', {
+      bookingId: booking.id,
+      status: booking.status?.value || booking.status,
+      hasTimeSlot: !!booking.timeSlot,
+      bookingKeys: Object.keys(booking),
+    });
+    
+    // For status updates, fetch the full booking to return complete data
+    if (dto.status) {
+      console.log('[BookingsV2Controller] Status update detected, fetching full booking');
+      const query = new GetBookingByIdQuery({
+        bookingId: id,
+        merchantId: user.merchantId,
+      });
+      
+      const enrichedBooking = await this.queryBus.execute(query);
+      console.log('[BookingsV2Controller] Enriched booking status:', enrichedBooking.status);
+      
+      // Transform status to lowercase for consistency
+      if (enrichedBooking && enrichedBooking.status) {
+        enrichedBooking.status = enrichedBooking.status.toLowerCase().replace(/_/g, '-');
+      }
+      
+      return enrichedBooking;
+    }
+    
     return this.toDto(booking);
   }
 

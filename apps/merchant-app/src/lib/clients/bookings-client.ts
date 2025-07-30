@@ -229,6 +229,8 @@ export class BookingsClient extends BaseApiClient {
     console.log('[BookingsClient] Transforming booking:', {
       id: booking.id,
       status: booking.status,
+      rawStatus: booking.status,
+      statusType: typeof booking.status,
       startTime: booking.startTime,
       source: booking.source
     });

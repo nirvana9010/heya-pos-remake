@@ -447,7 +447,14 @@ export class BaseApiClient {
     const versionedUrl = this.addVersionPrefix(url, version);
     
     try {
+      console.log(`[BaseApiClient] PATCH ${versionedUrl}`, { data });
       const response = await this.axiosInstance.patch(versionedUrl, data, config);
+      
+      console.log(`[BaseApiClient] PATCH ${versionedUrl} - Response:`, {
+        status: response.status,
+        data: response.data,
+        dataKeys: response.data ? Object.keys(response.data) : []
+      });
       
       // Invalidate related cache on mutations
       this.invalidateCacheForMutation(url);

@@ -1244,10 +1244,14 @@ function CalendarContent() {
                   className: "bg-green-50 border-green-200",
                 });
                 
+                // Clear cache before refresh to ensure we get fresh data
+                console.log('[CalendarPage] Clearing cache and triggering refresh');
+                memoryCache.clear(); // Clear all cached data
+                
                 // Refresh calendar data to get the updated state from server
-                // Use immediate refresh instead of timeout
-                console.log('[CalendarPage] Triggering immediate refresh');
                 await refresh();
+                
+                console.log('[CalendarPage] Refresh completed');
               } catch (error: any) {
                 console.error('[CalendarPage] Status update failed:', error);
                 
