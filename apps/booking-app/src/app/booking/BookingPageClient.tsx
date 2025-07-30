@@ -568,18 +568,25 @@ export default function BookingPageClient() {
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:
-        const hasAllFields = customerInfo.firstName && customerInfo.lastName && customerInfo.email && customerInfo.phone;
+        // Only firstName and lastName are required
+        const hasRequiredFields = customerInfo.firstName && customerInfo.lastName;
+        // At least one contact method (email or phone) is required
+        const hasContactMethod = customerInfo.email || customerInfo.phone;
+        const canProceedStep4 = hasRequiredFields && hasContactMethod;
+        
         console.log('[BookingPageClient] Step 4 canProceed check:', {
           firstName: customerInfo.firstName,
           lastName: customerInfo.lastName,
           email: customerInfo.email,
           phone: customerInfo.phone,
-          hasAllFields,
+          hasRequiredFields,
+          hasContactMethod,
+          canProceedStep4,
           isReturningCustomer,
           showCustomerForm,
           isEditMode
         });
-        return hasAllFields;
+        return canProceedStep4;
       case 5:
         return true; // Payment step - validation handled by payment form
       default:
@@ -1848,14 +1855,18 @@ export default function BookingPageClient() {
                       <CustomerIdentification
                         onCustomerFound={(customer) => {
                           console.log('[BookingPageClient] Customer found:', customer);
+                          console.log('[BookingPageClient] Customer email:', customer.email);
+                          console.log('[BookingPageClient] Customer data keys:', Object.keys(customer));
                           setIsReturningCustomer(true);
-                          setCustomerInfo({
-                            firstName: customer.firstName,
-                            lastName: customer.lastName,
-                            email: customer.email,
-                            phone: customer.phone,
-                            notes: customerInfo.notes,
-                          });
+                          const newCustomerInfo = {
+                            firstName: customer.firstName || '',
+                            lastName: customer.lastName || '',
+                            email: customer.email || '',
+                            phone: customer.phone || '',
+                            notes: customerInfo.notes || '',
+                          };
+                          console.log('[BookingPageClient] Setting customerInfo to:', newCustomerInfo);
+                          setCustomerInfo(newCustomerInfo);
                           setShowCustomerForm(true);
                         }}
                         onNewCustomer={() => {
@@ -1899,8 +1910,8 @@ export default function BookingPageClient() {
                       </motion.div>
                     )}
                     
-                    {/* Navigation buttons for step 4 - only show when customer form is shown and data is populated */}
-                    {showCustomerForm && customerInfo.email && (
+                    {/* Navigation buttons for step 4 - only show when customer form is shown and has minimal required data */}
+                    {showCustomerForm && customerInfo.firstName && customerInfo.lastName && (customerInfo.email || customerInfo.phone) && (
                       <div className="flex justify-between mt-12 px-2">
                         <motion.div
                           initial={{ opacity: 0, x: -20 }}
