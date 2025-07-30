@@ -364,6 +364,11 @@ export default function BookingPageClient() {
     phone: "",
     notes: "",
   });
+  
+  // Debug customerInfo changes
+  useEffect(() => {
+    console.log('[BookingPageClient] customerInfo updated:', customerInfo);
+  }, [customerInfo]);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string | null>(null);
   const [confirmationData, setConfirmationData] = useState<{
@@ -563,7 +568,18 @@ export default function BookingPageClient() {
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:
-        return customerInfo.firstName && customerInfo.lastName && customerInfo.email && customerInfo.phone;
+        const hasAllFields = customerInfo.firstName && customerInfo.lastName && customerInfo.email && customerInfo.phone;
+        console.log('[BookingPageClient] Step 4 canProceed check:', {
+          firstName: customerInfo.firstName,
+          lastName: customerInfo.lastName,
+          email: customerInfo.email,
+          phone: customerInfo.phone,
+          hasAllFields,
+          isReturningCustomer,
+          showCustomerForm,
+          isEditMode
+        });
+        return hasAllFields;
       case 5:
         return true; // Payment step - validation handled by payment form
       default:
@@ -1831,6 +1847,7 @@ export default function BookingPageClient() {
                     {!showCustomerForm ? (
                       <CustomerIdentification
                         onCustomerFound={(customer) => {
+                          console.log('[BookingPageClient] Customer found:', customer);
                           setIsReturningCustomer(true);
                           setCustomerInfo({
                             firstName: customer.firstName,
@@ -1880,6 +1897,60 @@ export default function BookingPageClient() {
                           onEditModeChange={setIsEditMode}
                         />
                       </motion.div>
+                    )}
+                    
+                    {/* Navigation buttons for step 4 - only show when customer form is shown and data is populated */}
+                    {showCustomerForm && customerInfo.email && (
+                      <div className="flex justify-between mt-12 px-2">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          <Button
+                            variant="outline"
+                            onClick={handleBack}
+                            className="group px-6 py-3 rounded-full border-2 hover:border-primary/50 transition-all duration-300"
+                          >
+                            <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                            <span className="font-medium">Back</span>
+                          </Button>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          <Button
+                            onClick={() => {
+                              console.log('[BookingPageClient] Complete Booking clicked', {
+                                canProceed: canProceed(),
+                                submitting,
+                                customerInfo
+                              });
+                              handleNext();
+                            }}
+                            disabled={!canProceed() || submitting}
+                            className="btn-luxury px-8 py-3 rounded-full text-white font-medium group disabled:opacity-50"
+                          >
+                            {submitting ? (
+                              <>
+                                <motion.div
+                                  className="mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                Complete Booking
+                                <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      </div>
                     )}
                   </>
                 ) : (

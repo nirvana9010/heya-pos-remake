@@ -60,11 +60,38 @@ const merchantContent = {
 };
 
 export default function Home() {
-  const { merchant, merchantSubdomain } = useMerchant();
+  const { merchant, merchantSubdomain, loading } = useMerchant();
   
   // Get merchant-specific content
   const content = merchantContent[merchantSubdomain as keyof typeof merchantContent] || merchantContent.hamilton;
   const isZen = merchantSubdomain === 'zen-wellness';
+  
+  // Format address helper
+  const formatAddress = (address?: string, suburb?: string, state?: string, postalCode?: string) => {
+    const parts = [address, suburb, state, postalCode].filter(Boolean);
+    return parts.join(', ');
+  };
+  
+  // Format time helper
+  const formatTime = (time: string | undefined) => {
+    if (!time) return 'Closed';
+    if (time === 'closed' || time === '') return 'Closed';
+    
+    // Handle 24-hour format (e.g., "09:00" -> "9:00 AM")
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+  
+  // Get business hours from merchant settings
+  const businessHours = merchant?.settings?.businessHours || {};
+  
+  // Helper to check if a day is open
+  const isDayOpen = (dayHours: any) => {
+    return dayHours && !dayHours.closed && dayHours.isOpen !== false && dayHours.open && dayHours.open !== 'closed';
+  };
   
   return (
     <MerchantGuard>
@@ -110,8 +137,8 @@ export default function Home() {
                 <MapPin className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Location</h3>
                 <p className="text-muted-foreground">
-                  {content.address.split(',')[0]}<br />
-                  {content.address.split(',').slice(1).join(',')}
+                  {merchant?.address || ''}<br />
+                  {formatAddress('', merchant?.suburb, merchant?.state, merchant?.postalCode).replace(/^, /, '')}
                 </p>
               </CardContent>
             </Card>
@@ -120,12 +147,31 @@ export default function Home() {
                 <Clock className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Opening Hours</h3>
                 <p className="text-muted-foreground">
-                  {isZen ? (
-                    <>Mon - Fri: 8:00 AM - 8:00 PM<br />
-                    Sat - Sun: 9:00 AM - 7:00 PM</>
+                  {loading ? (
+                    'Loading...'
                   ) : (
-                    <>Mon - Fri: 9:00 AM - 7:00 PM<br />
-                    Sat - Sun: 10:00 AM - 6:00 PM</>
+                    <>
+                      {isDayOpen(businessHours.monday) && isDayOpen(businessHours.friday) && 
+                       businessHours.monday?.open === businessHours.tuesday?.open && 
+                       businessHours.monday?.open === businessHours.wednesday?.open && 
+                       businessHours.monday?.open === businessHours.thursday?.open && 
+                       businessHours.monday?.open === businessHours.friday?.open &&
+                       businessHours.monday?.close === businessHours.tuesday?.close && 
+                       businessHours.monday?.close === businessHours.wednesday?.close && 
+                       businessHours.monday?.close === businessHours.thursday?.close && 
+                       businessHours.monday?.close === businessHours.friday?.close ? (
+                        <>Mon - Fri: {formatTime(businessHours.monday?.open)} - {formatTime(businessHours.monday?.close)}<br /></>
+                      ) : (
+                        <>Mon - Fri: Various hours<br /></>
+                      )}
+                      {isDayOpen(businessHours.saturday) && isDayOpen(businessHours.sunday) && 
+                       businessHours.saturday?.open === businessHours.sunday?.open &&
+                       businessHours.saturday?.close === businessHours.sunday?.close ? (
+                        <>Sat - Sun: {formatTime(businessHours.saturday?.open)} - {formatTime(businessHours.saturday?.close)}</>
+                      ) : (
+                        <>Sat - Sun: Various hours</>
+                      )}
+                    </>
                   )}
                 </p>
               </CardContent>
@@ -135,8 +181,8 @@ export default function Home() {
                 <Phone className="h-8 w-8 mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold mb-2">Contact</h3>
                 <p className="text-muted-foreground">
-                  {content.phone}<br />
-                  {content.email}
+                  {merchant?.phone || 'No phone available'}<br />
+                  {merchant?.email || 'No email available'}
                 </p>
               </CardContent>
             </Card>

@@ -7,6 +7,12 @@ import { useMerchant } from '@/contexts/merchant-context'
 
 export function Header() {
   const { merchant, merchantSubdomain } = useMerchant();
+  
+  // Format address helper
+  const formatAddress = (address?: string, suburb?: string, state?: string, postalCode?: string) => {
+    const parts = [address, suburb, state, postalCode].filter(Boolean);
+    return parts.join(', ');
+  };
   return (
     <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4">
@@ -51,16 +57,18 @@ export function Header() {
                 {merchant.phone}
               </a>
             )}
-            {merchant?.address && (
+            {(merchant?.address || merchant?.suburb) && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {merchant.address}
+                {formatAddress(merchant.address, merchant.suburb, merchant.state, merchant.postalCode)}
               </span>
             )}
-            <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              Mon-Sat: 9AM-7PM
-            </span>
+            {merchant?.settings?.businessHours && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                Check booking for availability
+              </span>
+            )}
           </div>
         </div>
       </div>

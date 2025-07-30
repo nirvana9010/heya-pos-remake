@@ -1,5 +1,9 @@
+"use client";
+
 import { Award, Users, Heart, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@heya-pos/ui";
+import { useMerchant } from "@/contexts/merchant-context";
+import { MerchantGuard } from "@/components/merchant-guard";
 
 const values = [
   {
@@ -48,17 +52,23 @@ const team = [
 ];
 
 export default function AboutPage() {
+  const { merchant, merchantSubdomain } = useMerchant();
+  const isZen = merchantSubdomain === 'zen-wellness';
+  
   return (
-    <main className="min-h-screen py-16">
-      <div className="container mx-auto px-4">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About Hamilton Beauty</h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            For over 15 years, Hamilton Beauty has been Sydney&apos;s premier destination for luxury beauty services. 
-            Our commitment to excellence and personalized care has made us a trusted name in the community.
-          </p>
-        </div>
+    <MerchantGuard>
+      <main className="min-h-screen py-16">
+        <div className="container mx-auto px-4">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">About {merchant?.name}</h1>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              {isZen ? 
+                `${merchant?.name} is your sanctuary for holistic wellness and healing. Our commitment to natural therapies and personalized care has made us a trusted name in the wellness community.` :
+                `For over 15 years, ${merchant?.name} has been a premier destination for luxury beauty services. Our commitment to excellence and personalized care has made us a trusted name in the community.`
+              }
+            </p>
+          </div>
 
         {/* Story Section */}
         <section className="mb-16">
@@ -67,18 +77,17 @@ export default function AboutPage() {
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  Hamilton Beauty began as a small family-owned salon in 2009 with a simple vision: 
+                  {merchant?.name} began with a simple vision: 
                   to create a welcoming space where clients could relax, rejuvenate, and leave feeling 
                   their absolute best.
                 </p>
                 <p>
-                  Founded by Sarah Hamilton, a passionate beauty therapist with a dream, our salon has 
-                  grown from a two-chair operation to a full-service beauty destination. Throughout our 
+                  Our {isZen ? 'wellness center' : 'salon'} has grown from humble beginnings to a full-service {isZen ? 'wellness' : 'beauty'} destination. Throughout our 
                   journey, we&apos;ve remained true to our core values of quality, personalization, and 
                   exceptional customer service.
                 </p>
                 <p>
-                  Today, Hamilton Beauty is home to a team of talented professionals who share our 
+                  Today, {merchant?.name} is home to a team of talented professionals who share our 
                   commitment to excellence. We continue to evolve with the industry, embracing new 
                   techniques and technologies while maintaining the personal touch that our clients love.
                 </p>
@@ -131,5 +140,6 @@ export default function AboutPage() {
         </section>
       </div>
     </main>
+    </MerchantGuard>
   );
 }
