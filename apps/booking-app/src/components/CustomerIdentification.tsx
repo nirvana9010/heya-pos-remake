@@ -32,7 +32,11 @@ export function CustomerIdentification({
   useEffect(() => {
     if (typeof window !== 'undefined' && merchantSubdomain) {
       const savedEmail = localStorage.getItem(`bookingCustomerEmail_${merchantSubdomain}`);
-      if (savedEmail) {
+      // Clean up any "null" values that might have been saved
+      if (savedEmail === 'null') {
+        localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
+      } else if (savedEmail) {
+        // Only use saved email if it exists and is not the string "null"
         setIdentifier(savedEmail);
         setShowSavedCustomer(true);
       }
@@ -57,7 +61,10 @@ export function CustomerIdentification({
         // Store in localStorage for future visits (with consent) - merchant specific
         if (typeof window !== 'undefined' && merchantSubdomain) {
           localStorage.setItem(`bookingCustomerId_${merchantSubdomain}`, data.customer.id);
-          localStorage.setItem(`bookingCustomerEmail_${merchantSubdomain}`, data.customer.email);
+          // Only save email if it exists and is not null
+          if (data.customer.email && data.customer.email !== 'null') {
+            localStorage.setItem(`bookingCustomerEmail_${merchantSubdomain}`, data.customer.email);
+          }
         }
         onCustomerFound(data.customer);
       } else {
