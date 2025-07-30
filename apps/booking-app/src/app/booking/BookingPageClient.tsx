@@ -2017,7 +2017,7 @@ export default function BookingPageClient() {
                     const paymentStepExists = steps.some(s => s.name === "Payment");
                     const paymentStepId = paymentStepExists ? 5 : null;
                     
-                    return currentStep < lastStepId && currentStep !== paymentStepId && currentStep !== 1;
+                    return currentStep < lastStepId && currentStep !== paymentStepId && currentStep !== 1 && currentStep !== 4;
                   })() && (
                     <div className="flex justify-between mt-12 px-2">
                       <motion.div
