@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api-client';
 // import { supabaseRealtime } from '@/lib/services/supabase'; // DISABLED - DO NOT RE-ENABLE WITHOUT EXPLICIT REQUEST
 import { featureFlags } from '@/lib/feature-flags';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { bookingEvents } from '@/lib/services/booking-events';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -252,6 +253,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     if (newBookingNotifications.length > 0) {
       // Broadcast each new booking notification
       newBookingNotifications.forEach(notification => {
+        console.log('[NotificationContext] Broadcasting booking-updated event for:', {
+          notificationId: notification.id,
+          bookingId: notification.metadata.bookingId,
+          type: notification.type
+        });
+        
+        // Dispatch DOM event (for backwards compatibility)
         const event = new CustomEvent('booking-updated', {
           detail: {
             bookingId: notification.metadata.bookingId,
@@ -260,6 +268,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           }
         });
         window.dispatchEvent(event);
+        
+        // Also broadcast through bookingEvents for calendar updates
+        bookingEvents.broadcast({
+          type: notification.type === 'booking_new' ? 'booking_created' : 'booking_updated',
+          bookingId: notification.metadata.bookingId,
+          source: 'external'
+        });
         
         // Mark as seen
         seenNotificationIdsRef.current.add(notification.id);

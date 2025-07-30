@@ -374,6 +374,8 @@ export function useCalendarData() {
   // Listen for booking update events from notifications
   useEffect(() => {
     const handleBookingUpdate = (event: CustomEvent) => {
+      console.log('[Calendar] Received booking-updated event:', event.detail);
+      
       // When we get a booking update event, just refresh the calendar
       // Don't check loading state - just call refresh
       fetchBookingsRef.current();
