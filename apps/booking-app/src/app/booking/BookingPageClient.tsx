@@ -1417,10 +1417,22 @@ export default function BookingPageClient() {
       // If we somehow get here without data, show a generic success message
       return (
         <div className="text-center py-12">
-          <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-display font-bold mb-2">Booking Confirmed!</h2>
-          <p className="text-muted-foreground mb-4">Your appointment has been successfully booked.</p>
-          <p className="text-sm text-muted-foreground">Confirmation details have been sent to your email.</p>
+          {merchantInfo?.settings?.autoConfirmBookings === false 
+            ? <Clock className="h-20 w-20 text-orange-500 mx-auto mb-4" />
+            : <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4" />}
+          <h2 className="text-2xl font-display font-bold mb-2">
+            {merchantInfo?.settings?.autoConfirmBookings === false ? 'Booking Submitted!' : 'Booking Confirmed!'}
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            {merchantInfo?.settings?.autoConfirmBookings === false 
+              ? 'Your booking has been submitted and is pending merchant confirmation.'
+              : 'Your appointment has been successfully booked.'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {merchantInfo?.settings?.autoConfirmBookings === false 
+              ? 'Confirmation details will be sent to your email once the merchant confirms your booking.'
+              : 'Confirmation details have been sent to your email.'}
+          </p>
           <Button
             className="mt-6"
             onClick={() => {
@@ -1499,8 +1511,10 @@ export default function BookingPageClient() {
             }}
           >
             <div className="relative">
-              <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl animate-pulse" />
-              <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4 relative" />
+              <div className={`absolute inset-0 ${merchantInfo?.settings?.autoConfirmBookings === false ? 'bg-orange-500/20' : 'bg-green-500/20'} rounded-full blur-xl animate-pulse`} />
+              {merchantInfo?.settings?.autoConfirmBookings === false 
+                ? <Clock className="h-20 w-20 text-orange-500 mx-auto mb-4 relative" />
+                : <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4 relative" />}
             </div>
           </motion.div>
           
@@ -1510,7 +1524,9 @@ export default function BookingPageClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            You&apos;re All Set!
+            {merchantInfo?.settings?.autoConfirmBookings === false 
+              ? 'Thank You for Your Booking Request!' 
+              : 'You\'re All Set!'}
           </motion.h2>
           <motion.p 
             className="text-muted-foreground"
@@ -1518,7 +1534,9 @@ export default function BookingPageClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            We can&apos;t wait to see you, {customerFirstName}!
+            {merchantInfo?.settings?.autoConfirmBookings === false 
+              ? `We'll notify you once your booking is confirmed, ${customerFirstName}!`
+              : `We can't wait to see you, ${customerFirstName}!`}
           </motion.p>
         </motion.div>
         
@@ -1533,7 +1551,11 @@ export default function BookingPageClient() {
               <Badge variant="secondary" className="mb-2 mx-auto">
                 {confirmationData.bookingNumber}
               </Badge>
-              <CardTitle className="text-lg font-display">Appointment Confirmation</CardTitle>
+              <CardTitle className="text-lg font-display">
+                {merchantInfo?.settings?.autoConfirmBookings === false 
+                  ? 'Booking Request Received' 
+                  : 'Appointment Confirmation'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Service Details */}
@@ -1611,8 +1633,14 @@ export default function BookingPageClient() {
                 <h4 className="font-medium mb-3">What&apos;s Next?</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    <p>Confirmation email sent to {confirmationData.customerEmail}</p>
+                    {merchantInfo?.settings?.autoConfirmBookings === false 
+                      ? <Clock className="h-4 w-4 text-orange-500 mt-0.5" />
+                      : <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />}
+                    <p>
+                      {merchantInfo?.settings?.autoConfirmBookings === false 
+                        ? `Confirmation email will be sent to ${confirmationData.customerEmail} after the merchant confirms your booking`
+                        : `Confirmation email sent to ${confirmationData.customerEmail}`}
+                    </p>
                   </div>
                   {(merchantInfo?.settings?.appointmentReminder24hEmail || 
                     merchantInfo?.settings?.appointmentReminder24hSms ||

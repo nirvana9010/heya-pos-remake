@@ -55,7 +55,7 @@ export function useCalendarData() {
         window.dispatchEvent(new CustomEvent('calendar-activity-log', {
           detail: {
             type: 'api',
-            message: `Fetched ${response.length} bookings: ${JSON.stringify(statusCounts)}`,
+            message: `Fetched ${response.length} bookings: ${JSON.stringify(statusCounts)} (recent updates will be preserved)`,
             timestamp: new Date().toISOString()
           }
         }));

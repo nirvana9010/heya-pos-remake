@@ -15,6 +15,11 @@ const CalendarContext = createContext<CalendarContextType | null>(null);
 const recentlyDeletedBookings = new Map<string, number>(); // bookingId -> timestamp
 const DELETION_BUFFER_TIME = 30000; // 30 seconds
 
+// Track recent status updates to prevent them from reverting during refresh
+// This solves the race condition where backend hasn't processed the status update yet
+const recentStatusUpdates = new Map<string, { status: string, timestamp: number }>(); // bookingId -> {status, timestamp}
+const STATUS_UPDATE_BUFFER_TIME = 15000; // 15 seconds
+
 // Local storage keys
 const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
@@ -158,10 +163,24 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         }
       }
       
-      // Filter out recently deleted bookings from the payload
-      const filteredBookings = action.payload.filter(booking => 
-        !recentlyDeletedBookings.has(booking.id)
-      );
+      // Clean up old entries from status updates map
+      for (const [bookingId, update] of recentStatusUpdates.entries()) {
+        if (now - update.timestamp > STATUS_UPDATE_BUFFER_TIME) {
+          recentStatusUpdates.delete(bookingId);
+        }
+      }
+      
+      // Filter out recently deleted bookings and apply recent status updates
+      const filteredBookings = action.payload
+        .filter(booking => !recentlyDeletedBookings.has(booking.id))
+        .map(booking => {
+          // Apply recent status update if exists
+          const recentUpdate = recentStatusUpdates.get(booking.id);
+          if (recentUpdate) {
+            return { ...booking, status: recentUpdate.status };
+          }
+          return booking;
+        });
       
       return {
         ...state,
@@ -174,6 +193,14 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       // If we're updating a booking, it's clearly not deleted
       // Remove it from the recently deleted map if it's there
       recentlyDeletedBookings.delete(action.payload.id);
+      
+      // Track status updates to prevent them from reverting
+      if (action.payload.updates.status) {
+        recentStatusUpdates.set(action.payload.id, {
+          status: action.payload.updates.status,
+          timestamp: Date.now()
+        });
+      }
       
       return {
         ...state,

@@ -17,6 +17,132 @@ export class NotificationEventHandler {
     private readonly prisma: PrismaService,
   ) {}
 
+  @OnEvent('booking.confirmed')
+  async handleBookingConfirmed(event: { bookingId: string; previousStatus: string; newStatus: string }): Promise<void> {
+    try {
+      this.logger.log(`[${new Date().toISOString()}] ====== BOOKING CONFIRMED EVENT RECEIVED ======`);
+      this.logger.log(`[${new Date().toISOString()}] Handling booking confirmed event: ${event.bookingId}, ${event.previousStatus} -> ${event.newStatus}`);
+
+      // Fetch full booking details
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: event.bookingId },
+        include: {
+          customer: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' }, // Get the primary/first location
+              },
+            },
+          },
+          provider: true,
+          services: {
+            include: {
+              service: true,
+              staff: true,
+            },
+          },
+          location: true,
+        },
+      });
+
+      if (!booking) {
+        this.logger.error(`Booking not found: ${event.bookingId}`);
+        return;
+      }
+
+      // Prepare notification context
+      const firstService = booking.services[0];
+      const context = {
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          date: booking.startTime,
+          time: booking.startTime.toLocaleTimeString('en-AU', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          serviceName: firstService?.service?.name || 'Service',
+          staffName: firstService?.staff ? (firstService.staff.lastName ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : firstService.staff.firstName) : 'Staff',
+          duration: firstService?.duration || 60,
+          price: Number(booking.totalAmount),
+          locationName: booking.location?.name || '',
+          locationAddress: booking.location?.address || '',
+          locationPhone: booking.location?.phone || '',
+        },
+        merchant: {
+          id: booking.merchant.id,
+          name: booking.merchant.name,
+          email: booking.merchant.email,
+          phone: booking.merchant.phone,
+          website: booking.merchant.website,
+          address: booking.merchant.locations?.[0] ? 
+            [
+              booking.merchant.locations[0].address,
+              booking.merchant.locations[0].suburb,
+              booking.merchant.locations[0].state,
+              booking.merchant.locations[0].postalCode
+            ].filter(Boolean).join(', ') : 
+            '',
+        },
+        customer: {
+          id: booking.customer.id,
+          email: booking.customer.email,
+          phone: booking.customer.phone,
+          firstName: booking.customer.firstName,
+          lastName: booking.customer.lastName,
+          preferredChannel: booking.customer.notificationPreference as 'email' | 'sms' | 'both',
+        },
+      };
+
+      // Check merchant settings for confirmation emails
+      const merchantSettings = booking.merchant.settings as any;
+      const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false; // Default to true
+      const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false; // Default to true
+      
+      this.logger.log(`[${new Date().toISOString()}] ====== CONFIRMATION NOTIFICATION DECISION ======`);
+      this.logger.log(`Should send email: ${shouldSendEmail}`);
+      this.logger.log(`Should send SMS: ${shouldSendSms}`);
+
+      if (shouldSendEmail || shouldSendSms) {
+        // Override context to respect merchant settings
+        const notificationContext = {
+          ...context,
+          customer: {
+            ...context.customer,
+            preferredChannel: this.determineMerchantPreferredChannel(
+              context.customer.preferredChannel,
+              shouldSendEmail,
+              shouldSendSms
+            ),
+          },
+        };
+
+        // Send booking confirmation
+        const results = await this.notificationsService.sendNotification(
+          NotificationType.BOOKING_CONFIRMATION,
+          notificationContext,
+        );
+
+        this.logger.log(
+          `Booking confirmation sent for manually confirmed booking - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
+        );
+      } else {
+        this.logger.log(
+          `Booking confirmation skipped - merchant has disabled all notification channels`,
+        );
+      }
+
+      // Schedule reminders (if enabled) - same as in booking created
+      await this.scheduleReminders(booking.id, booking.startTime, booking.merchant.settings as any);
+
+    } catch (error) {
+      this.logger.error(`Failed to handle booking confirmed event: ${event.bookingId}`, error);
+    }
+  }
+
   @OnEvent('booking.created')
   async handleBookingCreated(event: BookingCreatedEvent): Promise<void> {
     try {

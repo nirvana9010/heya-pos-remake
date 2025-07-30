@@ -134,6 +134,7 @@ export class PublicBookingController {
         appointmentReminder24hSms: settings?.appointmentReminder24hSms ?? false,
         appointmentReminder2hEmail: settings?.appointmentReminder2hEmail ?? true,
         appointmentReminder2hSms: settings?.appointmentReminder2hSms ?? false,
+        autoConfirmBookings: settings?.autoConfirmBookings ?? true, // Default to auto-confirm
       },
     };
   }

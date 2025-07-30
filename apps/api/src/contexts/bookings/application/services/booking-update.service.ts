@@ -48,8 +48,9 @@ export class BookingUpdateService {
     
     let originalBooking: Booking | null = null;
     let isRescheduling = false;
+    let wasStatusConfirmed = false;
     
-    const result = await this.prisma.$transaction(async (tx) => {
+    const updatedBooking = await this.prisma.$transaction(async (tx) => {
       // 1. Get the existing booking
       const booking = await this.bookingRepository.findById(data.bookingId, data.merchantId);
       if (!booking) {
@@ -130,9 +131,19 @@ export class BookingUpdateService {
       }
       
       // 8. Handle status change if needed
+      let previousStatus: string | undefined;
       if (data.status) {
+        // Get the current status before update
+        previousStatus = booking.status.value;
+        
         // Status should be uppercase in the database
-        directUpdates.status = data.status.toUpperCase().replace(/-/g, '_');
+        const newStatus = data.status.toUpperCase().replace(/-/g, '_');
+        directUpdates.status = newStatus;
+        
+        // Check if we're confirming a pending booking
+        if (previousStatus === 'PENDING' && newStatus === 'CONFIRMED') {
+          wasStatusConfirmed = true;
+        }
         
         // If cancelling, add cancellation data
         if (data.status.toUpperCase() === 'CANCELLED' || data.status === 'cancelled') {
@@ -215,7 +226,26 @@ export class BookingUpdateService {
       });
     }
 
-    return result;
+    // Create outbox event if booking was confirmed from pending
+    if (wasStatusConfirmed) {
+      await this.prisma.$transaction(async (tx) => {
+        const outboxEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'confirmed',
+          eventData: { 
+            bookingId: data.bookingId,
+            previousStatus: 'PENDING',
+            newStatus: 'CONFIRMED',
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+        await this.outboxRepository.save(outboxEvent, tx);
+      });
+    }
+
+    return updatedBooking;
   }
 
   /**

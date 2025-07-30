@@ -1208,18 +1208,10 @@ function CalendarContent() {
                 
                 // OPTIMISTIC UPDATE: Update the booking status immediately in local state
                 addActivityLog('state', `Applying optimistic update - setting status to: ${localStatus}`);
+                addActivityLog('state', `Status will be preserved for 15 seconds during refreshes`);
                 
-                // Find the booking before update
-                const bookingBefore = state.bookings.find(b => b.id === bookingId);
-                addActivityLog('state', `Booking status before update: ${bookingBefore?.status || 'not found'}`);
-                
+                // Update the booking status in local state
                 actions.updateBooking(bookingId, { status: localStatus as any });
-                
-                // Check if update worked
-                setTimeout(() => {
-                  const bookingAfter = state.bookings.find(b => b.id === bookingId);
-                  addActivityLog('state', `Booking status after update: ${bookingAfter?.status || 'not found'}`);
-                }, 50);
                 
                 toast({
                   title: "Status updated",
@@ -1244,7 +1236,7 @@ function CalendarContent() {
                 setTimeout(async () => {
                   // Refresh to sync with server state
                   await refresh();
-                  addActivityLog('state', `Background refresh completed`);
+                  addActivityLog('state', `Background refresh completed - status update preserved`);
                 }, 1000);
               } catch (error: any) {
                 addActivityLog('error', `Status update failed: ${error?.message || 'Unknown error'}`);
