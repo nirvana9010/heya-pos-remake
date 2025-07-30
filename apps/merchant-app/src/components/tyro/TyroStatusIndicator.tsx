@@ -4,7 +4,7 @@ import React from 'react';
 import { useTyro } from '../../hooks/useTyro';
 import { Badge } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
-import { CheckCircle, AlertCircle, Settings } from 'lucide-react';
+import { CheckCircle, AlertCircle, Settings, Loader2 } from 'lucide-react';
 
 interface TyroStatusIndicatorProps {
   onConfigureClick?: () => void;
@@ -17,20 +17,32 @@ export const TyroStatusIndicator: React.FC<TyroStatusIndicatorProps> = ({
   showConfigureButton = true,
   className,
 }) => {
-  const { isAvailable, isPaired, getPairingInfo } = useTyro();
+  const { isAvailable, isPaired, getPairingInfo, sdkLoaded } = useTyro();
 
   const available = isAvailable();
   const paired = isPaired();
   const pairingInfo = getPairingInfo();
 
   const getStatus = () => {
+    // Show loading state while SDK is loading
+    if (!sdkLoaded) {
+      return {
+        label: 'Loading...',
+        variant: 'secondary' as const,
+        icon: Loader2,
+        color: 'text-gray-600',
+        description: 'Loading Tyro SDK',
+        isLoading: true,
+      };
+    }
+
     if (!available) {
       return {
         label: 'SDK Not Available',
         variant: 'destructive' as const,
         icon: AlertCircle,
         color: 'text-red-600',
-        description: 'Tyro SDK is not loaded',
+        description: 'Tyro API key not configured',
       };
     }
 
@@ -60,7 +72,7 @@ export const TyroStatusIndicator: React.FC<TyroStatusIndicatorProps> = ({
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="flex items-center gap-2">
         <Badge variant={status.variant} className="flex items-center gap-1">
-          <Icon className="h-3 w-3" />
+          <Icon className={`h-3 w-3 ${status.isLoading ? 'animate-spin' : ''}`} />
           Tyro: {status.label}
         </Badge>
       </div>

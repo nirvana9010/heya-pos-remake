@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { 
   TyroTransactionResponse, 
   TyroTransactionCallbacks,
@@ -9,6 +9,34 @@ import {
 import { TYRO_PRODUCT_INFO, TYRO_CONFIG, TYRO_STORAGE_KEYS } from '../constants/tyro';
 
 export const useTyro = () => {
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+
+  useEffect(() => {
+    // Check if SDK is already loaded
+    if (window.TYRO) {
+      console.log('[Tyro] SDK already loaded');
+      setSdkLoaded(true);
+    }
+
+    // Listen for SDK load event
+    const handleSdkLoad = () => {
+      console.log('[Tyro] SDK loaded event received');
+      setSdkLoaded(true);
+    };
+
+    window.addEventListener('tyro-sdk-loaded', handleSdkLoad);
+
+    // Log configuration status
+    console.log('[Tyro] Configuration:', {
+      environment: TYRO_CONFIG.environment,
+      hasApiKey: !!TYRO_CONFIG.apiKey,
+      apiKeyLength: TYRO_CONFIG.apiKey?.length || 0,
+    });
+
+    return () => {
+      window.removeEventListener('tyro-sdk-loaded', handleSdkLoad);
+    };
+  }, []);
   /**
    * Initialize Tyro client
    */
@@ -143,8 +171,8 @@ export const useTyro = () => {
    * Check if Tyro is available
    */
   const isAvailable = useCallback(() => {
-    return !!(window.TYRO && TYRO_CONFIG.apiKey);
-  }, []);
+    return !!(sdkLoaded && window.TYRO && TYRO_CONFIG.apiKey);
+  }, [sdkLoaded]);
 
   /**
    * Check if terminal is paired
@@ -183,5 +211,6 @@ export const useTyro = () => {
     isPaired,
     getPairingInfo,
     clearPairing,
+    sdkLoaded,
   };
 };
