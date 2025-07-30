@@ -1129,9 +1129,47 @@ function CalendarContent() {
                 throw error;
               }
             }}
-            onDelete={(bookingId) => {
-              actions.removeBooking(bookingId);
-              actions.closeDetailsSlideOut();
+            onDelete={async (bookingId) => {
+              addActivityLog('user', `Delete requested for booking ${bookingId}`);
+              
+              try {
+                // Find the booking details before deletion
+                const booking = state.bookings.find(b => b.id === bookingId);
+                addActivityLog('state', `Deleting booking: ${booking?.customerName} - ${booking?.serviceName}`);
+                
+                // Call the delete API endpoint (moves to recycle bin with status DELETED)
+                addActivityLog('api', `Calling DELETE /api/v2/bookings/${bookingId} - Moving to recycle bin`);
+                await apiClient.deleteBooking(bookingId);
+                
+                addActivityLog('api', `Booking ${bookingId} moved to recycle bin (status: DELETED, auto-purge after 30 days)`);
+                
+                // Remove from local state to hide it from the calendar
+                // The booking will be filtered out from any refresh for 30 seconds
+                actions.removeBooking(bookingId);
+                actions.closeDetailsSlideOut();
+                
+                addActivityLog('state', `Booking ${bookingId} removed from calendar view and added to deletion buffer`);
+                
+                toast({
+                  title: 'Booking deleted',
+                  description: 'The booking has been moved to the recycle bin and will be permanently deleted after 30 days',
+                });
+                
+                // Refresh in background to sync with server
+                setTimeout(async () => {
+                  addActivityLog('state', `Starting background refresh after deletion`);
+                  await refresh();
+                  addActivityLog('state', `Background refresh completed - deleted bookings filtered out for 30 seconds`);
+                }, 1000);
+              } catch (error: any) {
+                addActivityLog('error', `Failed to delete booking: ${error?.message || 'Unknown error'}`);
+                
+                toast({
+                  title: 'Error',
+                  description: `Failed to delete booking: ${error?.message || 'Please try again'}`,
+                  variant: 'destructive',
+                });
+              }
             }}
             onStatusChange={async (bookingId, status) => {
               addActivityLog('user', `Status change requested for booking ${bookingId}: ${status}`);

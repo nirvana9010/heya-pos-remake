@@ -156,6 +156,10 @@ export class ApiClient {
     return this.bookings.cancelBooking(id, reason);
   }
 
+  async deleteBooking(id: string) {
+    return this.bookings.deleteBooking(id);
+  }
+
   async markBookingAsPaid(id: string, paymentMethod: string = 'CASH') {
     return this.bookings.markBookingAsPaid(id, paymentMethod);
   }

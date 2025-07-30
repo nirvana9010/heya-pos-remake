@@ -291,6 +291,7 @@ model Booking {
   checkedInAt            DateTime?
   completedAt            DateTime?
   cancelledAt            DateTime?
+  deletedAt              DateTime?               // For recycle bin functionality
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   isOverride             Boolean                 @default(false)
@@ -322,6 +323,7 @@ model Booking {
   @@index([startTime])
   @@index([bookingNumber])
   @@index([paymentStatus])
+  @@index([deletedAt])
 }
 
 model BookingService {

@@ -295,9 +295,12 @@ export class BookingsClient extends BaseApiClient {
       (booking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0);
     
     // Transform status from uppercase to lowercase with hyphens
-    // Special case: COMPLETE/COMPLETED -> completed (with 'd')
+    // Special cases: 
+    // - COMPLETE/COMPLETED -> completed (with 'd')
+    // - DELETED -> deleted (for recycle bin)
     const status = booking.status ? 
       ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
+       (booking.status === 'DELETED') ? 'deleted' :
        booking.status.toLowerCase().replace(/_/g, '-')) : 
       'confirmed';
     
@@ -327,14 +330,10 @@ export class BookingsClient extends BaseApiClient {
     return this.post(`/bookings/${id}/mark-paid`, { paymentMethod }, undefined, 'v2');
   }
 
-  async startBooking(id: string): Promise<Booking> {
-    const booking = await this.patch(`/bookings/${id}/start`, {}, undefined, 'v2');
-    return this.transformBooking(booking);
-  }
 
-  async completeBooking(id: string): Promise<Booking> {
-    const booking = await this.patch(`/bookings/${id}/complete`, {}, undefined, 'v2');
-    return this.transformBooking(booking);
+  async deleteBooking(id: string): Promise<void> {
+    // Note: This is a "soft delete" - it sets status to DELETED and moves to recycle bin
+    await this.delete(`/bookings/${id}`, undefined, 'v2');
   }
 
 }

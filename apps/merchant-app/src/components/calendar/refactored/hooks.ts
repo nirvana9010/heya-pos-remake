@@ -45,6 +45,21 @@ export function useCalendarData() {
       
       const response = await apiClient.getBookings(params);
       
+      // Log how many bookings were returned and their statuses
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
+        const statusCounts = response.reduce((acc: any, booking: any) => {
+          acc[booking.status] = (acc[booking.status] || 0) + 1;
+          return acc;
+        }, {});
+        
+        window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+          detail: {
+            type: 'api',
+            message: `Fetched ${response.length} bookings: ${JSON.stringify(statusCounts)}`,
+            timestamp: new Date().toISOString()
+          }
+        }));
+      }
       
       // Transform bookings to calendar format
       const transformedBookings = response.map((booking: any) => {

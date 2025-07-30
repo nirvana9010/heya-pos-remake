@@ -237,16 +237,17 @@ export class PrismaBookingRepository implements IBookingRepository {
   }
 
   async delete(id: string, merchantId: string): Promise<void> {
-    // Soft delete by updating status
+    // Soft delete - move to recycle bin
     await this.prisma.booking.update({
       where: {
         id,
         merchantId,
       },
       data: {
-        status: 'CANCELLED',
+        status: 'DELETED',
+        deletedAt: new Date(),
         cancelledAt: new Date(),
-        cancellationReason: 'Deleted by system',
+        cancellationReason: 'Moved to recycle bin',
       },
     });
   }
@@ -281,7 +282,7 @@ export class PrismaBookingRepository implements IBookingRepository {
       merchantId,
       providerId: staffId,
       status: {
-        notIn: ['CANCELLED', 'NO_SHOW'],
+        notIn: ['CANCELLED', 'NO_SHOW', 'DELETED'],
       },
       OR: [
         {

@@ -63,7 +63,7 @@ interface BookingDetailsSlideOutProps {
     staffId: string;
     startTime: Date;
     endTime: Date;
-    status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show";
+    status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show" | "deleted";
     isPaid: boolean;
     totalPrice: number;
     paidAmount?: number; // Actual amount paid (may differ from totalPrice due to adjustments)

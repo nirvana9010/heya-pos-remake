@@ -10,6 +10,11 @@ import type { CalendarState, CalendarAction, CalendarContextType, CalendarView, 
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
 
+// Track recently deleted bookings to prevent them from reappearing during refresh
+// This solves the race condition where backend hasn't processed the delete yet
+const recentlyDeletedBookings = new Map<string, number>(); // bookingId -> timestamp
+const DELETION_BUFFER_TIME = 30000; // 30 seconds
+
 // Local storage keys
 const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
@@ -145,14 +150,31 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
     
     // Data actions
     case 'SET_BOOKINGS':
+      // Clean up old entries from recently deleted map
+      const now = Date.now();
+      for (const [bookingId, timestamp] of recentlyDeletedBookings.entries()) {
+        if (now - timestamp > DELETION_BUFFER_TIME) {
+          recentlyDeletedBookings.delete(bookingId);
+        }
+      }
+      
+      // Filter out recently deleted bookings from the payload
+      const filteredBookings = action.payload.filter(booking => 
+        !recentlyDeletedBookings.has(booking.id)
+      );
+      
       return {
         ...state,
-        bookings: action.payload,
+        bookings: filteredBookings,
         isLoading: false,
         error: null,
       };
     
     case 'UPDATE_BOOKING':
+      // If we're updating a booking, it's clearly not deleted
+      // Remove it from the recently deleted map if it's there
+      recentlyDeletedBookings.delete(action.payload.id);
+      
       return {
         ...state,
         bookings: state.bookings.map(b => 
@@ -161,12 +183,18 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     case 'ADD_BOOKING':
+      // If we're adding a booking, ensure it's not in the recently deleted map
+      recentlyDeletedBookings.delete(action.payload.id);
+      
       return {
         ...state,
         bookings: [...state.bookings, action.payload],
       };
     
     case 'REMOVE_BOOKING':
+      // Track this booking as recently deleted to prevent it from reappearing
+      recentlyDeletedBookings.set(action.payload, Date.now());
+      
       return {
         ...state,
         bookings: state.bookings.filter(b => b.id !== action.payload),
