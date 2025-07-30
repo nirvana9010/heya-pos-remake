@@ -299,11 +299,6 @@ export class BookingsV2Controller {
     @Param('id') id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
-    console.log('[BookingsV2Controller] Update booking request:', {
-      bookingId: id,
-      dto: JSON.stringify(dto, null, 2),
-      merchantId: user.merchantId,
-    });
     
     const updateData: any = {
       bookingId: id,
@@ -325,23 +320,14 @@ export class BookingsV2Controller {
 
     const booking = await this.bookingUpdateService.updateBooking(updateData);
     
-    console.log('[BookingsV2Controller] Update response before toDto:', {
-      bookingId: booking.id,
-      status: booking.status?.value || booking.status,
-      hasTimeSlot: !!booking.timeSlot,
-      bookingKeys: Object.keys(booking),
-    });
-    
     // For status updates, fetch the full booking to return complete data
     if (dto.status) {
-      console.log('[BookingsV2Controller] Status update detected, fetching full booking');
       const query = new GetBookingByIdQuery({
         bookingId: id,
         merchantId: user.merchantId,
       });
       
       const enrichedBooking = await this.queryBus.execute(query);
-      console.log('[BookingsV2Controller] Enriched booking status:', enrichedBooking.status);
       
       // Transform status to lowercase for consistency
       if (enrichedBooking && enrichedBooking.status) {

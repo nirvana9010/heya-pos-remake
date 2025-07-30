@@ -1199,43 +1199,29 @@ function CalendarContent() {
               actions.closeDetailsSlideOut();
             }}
             onStatusChange={async (bookingId, status) => {
-              console.log('[CalendarPage] onStatusChange called:', {
-                bookingId,
-                status,
-                statusType: typeof status
-              });
-              
               try {
                 // Use proper API endpoints for status changes
                 // NOTE: BookingActions sends uppercase status values (CONFIRMED, CANCELLED, etc)
                 switch (status) {
                   case 'IN_PROGRESS':
                   case 'in-progress':
-                    console.log('[CalendarPage] Starting booking');
                     await apiClient.startBooking(bookingId);
                     break;
                   case 'COMPLETED':
                   case 'completed':
-                    console.log('[CalendarPage] Completing booking');
                     await apiClient.completeBooking(bookingId);
                     break;
                   case 'CANCELLED':
                   case 'cancelled':
-                    console.log('[CalendarPage] Cancelling booking');
                     await apiClient.cancelBooking(bookingId, 'Cancelled by user');
                     break;
                   default:
                     // For other status changes (CONFIRMED, NO_SHOW), use the general update endpoint
-                    console.log('[CalendarPage] Updating booking status via general endpoint:', status);
                     await apiClient.updateBooking(bookingId, { status });
                 }
                 
                 // Transform status to lowercase for local state (UI expects lowercase)
                 const localStatus = status.toLowerCase().replace(/_/g, '-');
-                console.log('[CalendarPage] Updating local state with status:', localStatus);
-                
-                // DON'T update local state immediately - wait for refresh to get server state
-                console.log('[CalendarPage] Status update successful, waiting for refresh');
                 
                 toast({
                   title: "Status updated",
@@ -1245,15 +1231,11 @@ function CalendarContent() {
                 });
                 
                 // Clear cache before refresh to ensure we get fresh data
-                console.log('[CalendarPage] Clearing cache and triggering refresh');
                 memoryCache.clear(); // Clear all cached data
                 
                 // Refresh calendar data to get the updated state from server
                 await refresh();
-                
-                console.log('[CalendarPage] Refresh completed');
               } catch (error: any) {
-                console.error('[CalendarPage] Status update failed:', error);
                 
                 // Extract error message
                 let errorMessage = "Failed to update booking status";
@@ -1271,20 +1253,8 @@ function CalendarContent() {
               }
             }}
             onPaymentStatusChange={async (bookingId, isPaid, paidAmount) => {
-              console.log('[CalendarPage] onPaymentStatusChange called:', {
-                bookingId,
-                isPaid,
-                paidAmount
-              });
-              
               // Find the booking in state to log its current status
               const currentBooking = state.bookings.find(b => b.id === bookingId);
-              console.log('[CalendarPage] Current booking state:', {
-                id: currentBooking?.id,
-                totalPrice: currentBooking?.totalPrice,
-                isPaid: currentBooking?.isPaid,
-                paymentStatus: currentBooking?.paymentStatus
-              });
               
               try {
                 if (isPaid) {
@@ -1295,14 +1265,12 @@ function CalendarContent() {
                   });
                   
                   const result = await apiClient.markBookingAsPaid(bookingId, 'CASH');
-                  console.log('[CalendarPage] markBookingAsPaid API result:', result);
                   
                   if (result.success) {
                     
                     // Update local state immediately with all payment fields
                     // Use the paidAmount passed from payment dialog if available
                     const finalPaidAmount = paidAmount || result.booking?.paidAmount || currentBooking?.totalPrice || currentBooking?.servicePrice;
-                    console.log('[CalendarPage] Updating booking with finalPaidAmount:', finalPaidAmount);
                     
                     actions.updateBooking(bookingId, { 
                       paymentStatus: 'PAID',

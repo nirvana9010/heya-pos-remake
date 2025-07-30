@@ -87,14 +87,7 @@ export function BookingActions({
         <Button
           size={size}
           variant="default"
-          onClick={() => {
-            console.log('[BookingActions] Confirming booking:', {
-              bookingId: booking.id,
-              currentStatus: booking.status,
-              newStatus: 'CONFIRMED'
-            });
-            onStatusChange(booking.id, "CONFIRMED");
-          }}
+          onClick={() => onStatusChange(booking.id, "CONFIRMED")}
           className="flex items-center gap-1"
         >
           <CheckCircle className="h-4 w-4" />

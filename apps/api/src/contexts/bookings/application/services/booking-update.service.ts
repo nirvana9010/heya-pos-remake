@@ -45,14 +45,6 @@ export class BookingUpdateService {
    * Updates a booking with optional rescheduling
    */
   async updateBooking(data: UpdateBookingData): Promise<Booking> {
-    console.log('[BookingUpdateService] Updating booking:', {
-      bookingId: data.bookingId,
-      hasStaffChange: !!data.staffId,
-      newStaffId: data.staffId,
-      hasTimeChange: !!data.startTime,
-      hasStatusChange: !!data.status,
-      newStatus: data.status,
-    });
     
     let originalBooking: Booking | null = null;
     let isRescheduling = false;
@@ -65,28 +57,12 @@ export class BookingUpdateService {
       }
       
       originalBooking = booking;
-      
-      console.log('[BookingUpdateService] Current booking:', {
-        bookingId: booking.id,
-        currentStaffId: booking.staffId,
-        requestedStaffId: data.staffId,
-        needsStaffChange: data.staffId && data.staffId !== booking.staffId,
-      });
 
       // 2. Check if we're rescheduling (time change)
       isRescheduling = data.startTime && (
         data.startTime.getTime() !== booking.timeSlot.start.getTime() ||
         (data.endTime && data.endTime.getTime() !== booking.timeSlot.end.getTime())
       );
-      
-      console.log('[BookingUpdateService] Reschedule check:', {
-        bookingId: data.bookingId,
-        isRescheduling,
-        dataStartTime: data.startTime?.toISOString(),
-        bookingStartTime: booking.timeSlot.start.toISOString(),
-        startTimeMatch: data.startTime?.getTime() === booking.timeSlot.start.getTime(),
-        timeDiff: data.startTime ? data.startTime.getTime() - booking.timeSlot.start.getTime() : 0,
-      });
 
       if (isRescheduling) {
         // 3. Lock the staff member if we're changing time
@@ -155,12 +131,6 @@ export class BookingUpdateService {
       
       // 8. Handle status change if needed
       if (data.status) {
-        console.log('[BookingUpdateService] Status update requested:', {
-          bookingId: booking.id,
-          currentStatus: booking.status.value,
-          newStatus: data.status,
-        });
-        
         // Status should be uppercase in the database
         directUpdates.status = data.status.toUpperCase().replace(/-/g, '_');
         
@@ -179,7 +149,6 @@ export class BookingUpdateService {
       // 10. Apply any direct database updates AFTER the domain update
       const hasDirectUpdates = Object.keys(directUpdates).length > 0;
       if (hasDirectUpdates) {
-        console.log('[BookingUpdateService] Applying direct updates:', directUpdates);
         await tx.booking.update({
           where: {
             id: booking.id,
@@ -212,13 +181,6 @@ export class BookingUpdateService {
         }
         
         const domainBooking = BookingMapper.toDomain(reloadedBooking);
-        console.log('[BookingUpdateService] Reloaded booking after direct updates:', {
-          bookingId: domainBooking.id,
-          staffId: domainBooking.staffId,
-          directUpdatesApplied: directUpdates,
-          finalStatus: domainBooking.status.value,
-          dbStatus: reloadedBooking.status,
-        });
         return domainBooking;
       }
       
@@ -233,14 +195,6 @@ export class BookingUpdateService {
       // Calculate the new end time if not provided
       const newEndTime = data.endTime || new Date(data.startTime.getTime() + 
         (originalBooking.timeSlot.end.getTime() - originalBooking.timeSlot.start.getTime()));
-      
-      console.log('[BookingUpdateService] Creating outbox event for reschedule:', {
-        bookingId: data.bookingId,
-        oldStartTime: originalBooking.timeSlot.start.toISOString(),
-        newStartTime: data.startTime.toISOString(),
-        oldEndTime: originalBooking.timeSlot.end.toISOString(),
-        newEndTime: newEndTime.toISOString(),
-      });
       
       await this.prisma.$transaction(async (tx) => {
         const outboxEvent = OutboxEvent.create({
