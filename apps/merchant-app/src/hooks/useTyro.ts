@@ -16,15 +16,17 @@ export const useTyro = () => {
     if (window.TYRO) {
       console.log('[Tyro] SDK already loaded');
       setSdkLoaded(true);
+      return;
     }
 
-    // Listen for SDK load event
-    const handleSdkLoad = () => {
-      console.log('[Tyro] SDK loaded event received');
-      setSdkLoaded(true);
-    };
-
-    window.addEventListener('tyro-sdk-loaded', handleSdkLoad);
+    // Poll for SDK availability since we can't use onLoad in Server Components
+    const checkInterval = setInterval(() => {
+      if (window.TYRO) {
+        console.log('[Tyro] SDK detected');
+        setSdkLoaded(true);
+        clearInterval(checkInterval);
+      }
+    }, 100);
 
     // Log configuration status
     console.log('[Tyro] Configuration:', {
@@ -33,8 +35,15 @@ export const useTyro = () => {
       apiKeyLength: TYRO_CONFIG.apiKey?.length || 0,
     });
 
+    // Stop checking after 10 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(checkInterval);
+      console.log('[Tyro] SDK failed to load after 10 seconds');
+    }, 10000);
+
     return () => {
-      window.removeEventListener('tyro-sdk-loaded', handleSdkLoad);
+      clearInterval(checkInterval);
+      clearTimeout(timeout);
     };
   }, []);
   /**
