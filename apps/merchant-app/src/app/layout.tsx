@@ -6,7 +6,7 @@ import { Toaster as Sonner } from 'sonner'
 import { Providers } from '@/components/providers'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Suspense } from 'react'
-import Script from 'next/script'
+import { TyroScriptLoader } from '@/components/TyroScriptLoader'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -50,38 +50,8 @@ export default function RootLayout({
         <Sonner richColors position="top-right" />
         {/* Portal container for modals to prevent parent re-renders */}
         <div id="modal-portal" />
-        
-        {/* Tyro SDK - load in production for card payments */}
-        {process.env.NEXT_PUBLIC_TYRO_ENVIRONMENT === 'production' && (
-          <Script
-            src="/js/iclient-with-ui-v1.js"
-            strategy="lazyOnload"
-            onLoad={() => {
-              console.log('[Tyro] SDK loaded successfully');
-              // Dispatch custom event to notify components
-              window.dispatchEvent(new Event('tyro-sdk-loaded'));
-            }}
-            onError={(e) => {
-              console.error('[Tyro] Failed to load SDK:', e);
-            }}
-          />
-        )}
-        
-        {/* Tyro SDK Simulator - load in development */}
-        {process.env.NEXT_PUBLIC_TYRO_ENVIRONMENT !== 'production' && (
-          <Script
-            src="/js/iclient-with-ui-v1.js.simulator"
-            strategy="lazyOnload"
-            onLoad={() => {
-              console.log('[Tyro] SDK Simulator loaded successfully');
-              // Dispatch custom event to notify components
-              window.dispatchEvent(new Event('tyro-sdk-loaded'));
-            }}
-            onError={(e) => {
-              console.error('[Tyro] Failed to load SDK Simulator:', e);
-            }}
-          />
-        )}
+        {/* Tyro SDK loader - Client Component for event handlers */}
+        <TyroScriptLoader />
       </body>
     </html>
   )
