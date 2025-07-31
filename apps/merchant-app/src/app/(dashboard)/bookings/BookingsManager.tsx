@@ -120,10 +120,10 @@ export default function BookingsManager() {
       // Then load supporting data in parallel, but don't let their failures affect bookings
       if (!isCancelled) {
         Promise.all([
-          loadStaff().catch(err => console.log('[BookingsManager] Error loading staff:', err)),
-          loadMerchantSettings().catch(err => console.log('[BookingsManager] Error loading settings:', err)),
-          loadServices().catch(err => console.log('[BookingsManager] Error loading services:', err)),
-          loadCustomers().catch(err => console.log('[BookingsManager] Error loading customers:', err))
+          loadStaff().catch(() => {}),
+          loadMerchantSettings().catch(() => {}),
+          loadServices().catch(() => {}),
+          loadCustomers().catch(() => {})
         ]);
       }
       
@@ -248,7 +248,6 @@ export default function BookingsManager() {
       const allBookings = await apiClient.getBookings(params);
       // Convert to the format expected by the component
       setBookings(allBookings as any);
-      console.log('[BookingsManager] Loaded bookings:', allBookings.length, 'bookings');
     } catch (error: any) {
       // Check for redirect error
       if (error?.message === 'UNAUTHORIZED_REDIRECT') {
@@ -1367,23 +1366,14 @@ export default function BookingsManager() {
           }}
           order={selectedOrderForPayment}
           onOrderUpdate={(updatedOrder) => {
-            console.log('[BookingsManager] Order updated:', updatedOrder);
             // Update the selected order with the latest data
             setSelectedOrderForPayment(updatedOrder);
           }}
           onPaymentComplete={async (updatedOrder) => {
-            console.log('[BookingsManager] Payment completed, updatedOrder:', {
-              orderId: updatedOrder?.id,
-              bookingId: updatedOrder?.bookingId,
-              orderTotal: updatedOrder?.totalAmount,
-              paidAmount: updatedOrder?.paidAmount,
-              modifiers: updatedOrder?.modifiers
-            });
             setSelectedOrderForPayment(null);
             
             // Optimistically update the booking in our local state immediately
             if (updatedOrder && updatedOrder.bookingId) {
-              console.log('[BookingsManager] Updating booking state for bookingId:', updatedOrder.bookingId);
               
               // Clear the payment processing state
               setProcessingOrders(prev => {
@@ -1393,17 +1383,10 @@ export default function BookingsManager() {
               });
               
               setBookings(prevBookings => {
-                console.log('[BookingsManager] Current bookings before update:', prevBookings.length);
                 const updatedBookings = prevBookings.map(booking => {
                   if (booking.id === updatedOrder.bookingId) {
                     const oldPaymentStatus = booking.paymentStatus;
                     const oldPaidAmount = booking.paidAmount;
-                    console.log('[BookingsManager] Found matching booking, current state:', {
-                      id: booking.id,
-                      oldPaymentStatus,
-                      oldPaidAmount,
-                      oldTotalAmount: booking.totalAmount
-                    });
                     
                     // Update the booking to show it's paid with the adjusted price
                     const paidAmount = updatedOrder.paidAmount || updatedOrder.totalAmount;
@@ -1418,22 +1401,14 @@ export default function BookingsManager() {
                       order: undefined
                     };
                     
-                    console.log('[BookingsManager] Updated booking state:', {
-                      id: updatedBooking.id,
-                      newPaymentStatus: updatedBooking.paymentStatus,
-                      newPaidAmount: updatedBooking.paidAmount,
-                      newTotalAmount: updatedBooking.totalAmount
-                    });
                     
                     return updatedBooking;
                   }
                   return booking;
                 });
-                console.log('[BookingsManager] Updated bookings count:', updatedBookings.length);
                 return updatedBookings;
               });
             } else {
-              console.log('[BookingsManager] No bookingId found in order, cannot update UI');
             }
             
             // Invalidate the bookings cache before reloading
@@ -1441,7 +1416,6 @@ export default function BookingsManager() {
             
             // Remove the loadBookings call - we've already optimistically updated the UI
             // The next natural refresh (navigation, user action, etc) will get the latest data
-            console.log('[BookingsManager] Optimistic update complete, skipping immediate reload');
           }}
           enableTips={merchantSettings?.settings?.enableTips || false}
           defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}
