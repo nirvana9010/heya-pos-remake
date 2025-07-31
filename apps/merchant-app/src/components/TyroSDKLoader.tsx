@@ -10,7 +10,7 @@ export function TyroSDKLoader() {
     const checkAndLoadSDK = () => {
       // Check if SDK is already loaded
       if (window.TYRO) {
-        console.log('[TyroSDKLoader] SDK already loaded');
+        // SDK already loaded
         return;
       }
 
@@ -31,18 +31,18 @@ export function TyroSDKLoader() {
             '/iclient-with-ui-v1.js.simulator'
           ];
 
-      console.log(`[TyroSDKLoader] Loading ${environment} SDK, trying paths:`, possiblePaths);
+      // Loading SDK from possible paths
 
       let attemptIndex = 0;
 
       const tryLoadScript = () => {
         if (attemptIndex >= possiblePaths.length) {
-          console.error('[TyroSDKLoader] Failed to load SDK from all paths');
+          // Failed to load SDK from all paths
           return;
         }
 
         const scriptSrc = possiblePaths[attemptIndex];
-        console.log(`[TyroSDKLoader] Attempting to load from: ${scriptSrc}`);
+        // Attempting to load script
 
         // Create and append script tag
         const script = document.createElement('script');
@@ -50,16 +50,15 @@ export function TyroSDKLoader() {
         script.async = true;
         
         script.onload = () => {
-          console.log(`[TyroSDKLoader] SDK loaded successfully from ${scriptSrc}`);
+          // SDK loaded successfully
           if (window.TYRO) {
-            console.log('[TyroSDKLoader] TYRO global object is available');
             // Dispatch custom event to notify other components
             window.dispatchEvent(new Event('tyro-sdk-loaded'));
           }
         };
 
         script.onerror = (error) => {
-          console.error(`[TyroSDKLoader] Failed to load from ${scriptSrc}:`, error);
+          // Failed to load from this path
           // Remove failed script
           if (script.parentNode) {
             script.parentNode.removeChild(script);

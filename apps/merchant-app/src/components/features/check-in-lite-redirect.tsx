@@ -18,12 +18,12 @@ export function CheckInLiteRedirect({ features }: CheckInLiteRedirectProps) {
     if (!features) return;
     
     const isCheckInLite = features.enabledFeatures.includes('check_in_only');
-    console.log('[CheckInLiteRedirect] isCheckInLite:', isCheckInLite, 'pathname:', pathname);
+    // Check if user has Check-In Lite feature
     
     // Check-In Lite users: Redirect to check-ins
     if (isCheckInLite) {
       if (pathname === '/calendar' || pathname === '/bookings' || pathname === '/') {
-        console.log('[CheckInLiteRedirect] Redirecting Check-In Lite user to /check-ins');
+        // Redirecting Check-In Lite user to /check-ins
         router.replace('/check-ins');
         return;
       }
@@ -31,7 +31,7 @@ export function CheckInLiteRedirect({ features }: CheckInLiteRedirectProps) {
     
     // Non-Check-In Lite users: Redirect away from check-ins
     if (!isCheckInLite && pathname === '/check-ins') {
-      console.log('[CheckInLiteRedirect] Redirecting non-Check-In Lite user away from /check-ins');
+      // Redirecting non-Check-In Lite user away from /check-ins
       router.replace('/calendar');
       return;
     }

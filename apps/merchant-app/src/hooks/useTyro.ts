@@ -15,7 +15,7 @@ export const useTyro = () => {
     // Function to check and set SDK loaded state
     const checkSDK = () => {
       if (window.TYRO) {
-        console.log('[Tyro] SDK detected, updating state');
+        // SDK detected, updating state
         setSdkLoaded(true);
         return true;
       }
@@ -24,13 +24,13 @@ export const useTyro = () => {
 
     // Check if SDK is already loaded
     if (checkSDK()) {
-      console.log('[Tyro] SDK already loaded on mount');
+      // SDK already loaded on mount
       return;
     }
 
     // Listen for custom event from TyroSDKLoader
     const handleSDKLoaded = () => {
-      console.log('[Tyro] SDK loaded event received');
+      // SDK loaded event received
       checkSDK();
     };
     
@@ -39,24 +39,18 @@ export const useTyro = () => {
     // Poll for SDK availability since we can't use onLoad in Server Components
     const checkInterval = setInterval(() => {
       if (checkSDK()) {
-        console.log('[Tyro] SDK detected via polling');
+        // SDK detected via polling
         clearInterval(checkInterval);
       }
     }, 100);
 
-    // Log configuration status
-    console.log('[Tyro] Configuration:', {
-      environment: TYRO_CONFIG.environment,
-      hasApiKey: !!TYRO_CONFIG.apiKey,
-      apiKeyLength: TYRO_CONFIG.apiKey?.length || 0,
-    });
+    // Configuration status available for debugging if needed
 
     // Stop checking after 10 seconds
     const timeout = setTimeout(() => {
       clearInterval(checkInterval);
       if (!sdkLoaded) {
-        console.log('[Tyro] SDK failed to load after 10 seconds');
-        console.log('[Tyro] Final check - window.TYRO exists:', !!window.TYRO);
+        // SDK failed to load after 10 seconds
       }
     }, 10000);
 
@@ -138,11 +132,11 @@ export const useTyro = () => {
       
       iClient.initiatePurchase(purchaseParams, {
         receiptCallback: (receipt: any) => {
-          console.log('Tyro receipt received:', receipt);
+          // Tyro receipt received
           callbacks?.receiptCallback?.(receipt);
         },
         transactionCompleteCallback: (response: TyroTransactionResponse) => {
-          console.log('Tyro transaction complete:', response);
+          // Tyro transaction complete
           callbacks?.transactionCompleteCallback?.(response);
         },
       });
@@ -175,11 +169,11 @@ export const useTyro = () => {
         { amount: amountInCents, integratedReceipt: true },
         {
         receiptCallback: (receipt: any) => {
-          console.log('Tyro refund receipt received:', receipt);
+          // Tyro refund receipt received
           callbacks?.receiptCallback?.(receipt);
         },
         transactionCompleteCallback: (response: TyroTransactionResponse) => {
-          console.log('Tyro refund complete:', response);
+          // Tyro refund complete
           callbacks?.transactionCompleteCallback?.(response);
         },
       });
@@ -201,12 +195,7 @@ export const useTyro = () => {
    */
   const isAvailable = useCallback(() => {
     const result = !!(sdkLoaded && window.TYRO && TYRO_CONFIG.apiKey);
-    console.log('[Tyro] isAvailable check:', {
-      sdkLoaded,
-      windowTYRO: !!window.TYRO,
-      hasApiKey: !!TYRO_CONFIG.apiKey,
-      result
-    });
+    // isAvailable check performed
     return result;
   }, [sdkLoaded]);
 

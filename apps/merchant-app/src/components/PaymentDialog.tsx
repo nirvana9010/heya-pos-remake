@@ -279,13 +279,13 @@ export function PaymentDialog({
             setProcessing(false);
           },
           receiptCallback: (receipt) => {
-            console.log('[Tyro] Receipt received:', receipt);
+            // Tyro receipt received
           }
         });
         
         return; // Exit early for Tyro payments
       } catch (error) {
-        console.error('[Tyro] Failed to initiate payment:', error);
+        // Failed to initiate Tyro payment
         // Reopen dialog on error
         onOpenChange(true);
         toast({

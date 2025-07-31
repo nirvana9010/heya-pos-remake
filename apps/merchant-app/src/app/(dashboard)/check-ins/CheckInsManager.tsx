@@ -44,7 +44,7 @@ export default function CheckInsManager() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
-      console.log('No access token found');
+      // No access token found
       router.push('/login');
       return;
     }
@@ -77,13 +77,7 @@ export default function CheckInsManager() {
       const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
       
-      console.log('[CheckIns] Loading bookings for date range:', {
-        startDate: startOfDay.toISOString(),
-        endDate: endOfDay.toISOString(),
-        localTime: today.toString(),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        timezoneOffset: today.getTimezoneOffset()
-      });
+      // Loading bookings for date range
       
       // Fetch today's bookings - include ALL statuses
       const params = {
@@ -92,20 +86,13 @@ export default function CheckInsManager() {
         // Don't filter by status - we want to see all bookings including COMPLETED ones
       };
       
-      console.log('[CheckIns] Fetching with params:', params);
+      // Fetching bookings with params
       const bookingsData = await apiClient.getBookings(params);
       
-      console.log('[CheckIns] Raw bookings data received:', bookingsData);
-      console.log('[CheckIns] Number of bookings:', bookingsData?.length || 0);
+      // Bookings data received
       
       if (bookingsData && bookingsData.length > 0) {
-        console.log('[CheckIns] First booking details:', {
-          id: bookingsData[0].id,
-          status: bookingsData[0].status,
-          startTime: bookingsData[0].startTime,
-          customerName: bookingsData[0].customerName,
-          date: bookingsData[0].date
-        });
+        // First booking details available for debugging
       }
       
       if (!mountedRef.current) return;
@@ -115,7 +102,7 @@ export default function CheckInsManager() {
       const currentIds = new Set(newBookings.map(b => b.id));
       const newCheckIns = newBookings.filter(b => !previousBookingIds.current.has(b.id));
       
-      console.log('[CheckIns] New check-ins detected:', newCheckIns.length);
+      // New check-ins detected
       
       // Show toast for new check-ins (only after initial load)
       if (!loading && newCheckIns.length > 0) {
@@ -132,7 +119,7 @@ export default function CheckInsManager() {
       setLastUpdated(new Date());
     } catch (error: any) {
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
-        console.error('[CheckIns] Failed to load bookings:', error);
+        // Failed to load bookings
         toast({
           title: 'Error',
           description: 'Failed to load bookings',
@@ -147,10 +134,7 @@ export default function CheckInsManager() {
   const filterBookings = () => {
     const query = searchQuery.toLowerCase();
     
-    console.log('[CheckIns] Filtering bookings:', {
-      totalBookings: bookings.length,
-      searchQuery: searchQuery
-    });
+    // Filtering bookings
     
     const filtered = bookings.filter(booking => {
       // Search filter - only customer name and phone
@@ -164,7 +148,7 @@ export default function CheckInsManager() {
       return true;
     });
 
-    console.log('[CheckIns] Filtered bookings:', filtered.length);
+    // Filtered bookings count updated
     setFilteredBookings(filtered);
   };
 
@@ -254,7 +238,7 @@ export default function CheckInsManager() {
                 variant="outline"
                 size="sm"
                 onClick={async () => {
-                  console.log('[CheckIns] Manual refresh triggered');
+                  // Manual refresh triggered
                   await loadBookings();
                 }}
               >
