@@ -194,7 +194,10 @@ export class BookingUpdateService {
 
       // Create outbox event if booking was confirmed from pending
       if (wasStatusConfirmed) {
-        console.log(`[BookingUpdateService] Creating outbox event for confirmed booking ${data.bookingId}`);
+        console.log(`[BookingUpdateService] ======= CONFIRMATION FLOW DEBUG =======`);
+        console.log(`[BookingUpdateService] Booking ${data.bookingId} status changed: PENDING → CONFIRMED`);
+        console.log(`[BookingUpdateService] Creating outbox event for confirmation email...`);
+        
         const confirmedEvent = OutboxEvent.create({
           aggregateId: data.bookingId,
           aggregateType: 'booking',
@@ -207,8 +210,17 @@ export class BookingUpdateService {
           eventVersion: 1,
           merchantId: data.merchantId,
         });
+        
+        console.log(`[BookingUpdateService] Outbox event object created:`, {
+          id: confirmedEvent.id,
+          aggregateType: confirmedEvent.aggregateType,
+          eventType: confirmedEvent.eventType,
+          merchantId: confirmedEvent.merchantId
+        });
+        
         await this.outboxRepository.save(confirmedEvent, tx);
-        console.log(`[BookingUpdateService] Outbox event created for confirmed booking ${data.bookingId}`);
+        console.log(`[BookingUpdateService] ✓ Outbox event saved to database`);
+        console.log(`[BookingUpdateService] ======= END CONFIRMATION FLOW DEBUG =======`);
       }
 
       // 12. Reload the booking if we had direct updates

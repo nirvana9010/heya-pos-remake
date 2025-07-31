@@ -60,11 +60,28 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      this.logger.log(`[${new Date().toISOString()}] ======= OUTBOX PROCESSOR DEBUG =======`);
       this.logger.log(`[${new Date().toISOString()}] Found ${events.length} unprocessed events`);
+      
+      // Debug confirmed events specifically
+      const confirmedEvents = events.filter(e => e.eventType === 'confirmed');
+      if (confirmedEvents.length > 0) {
+        this.logger.log(`[${new Date().toISOString()}] 📧 Found ${confirmedEvents.length} BOOKING CONFIRMATION events!`);
+        confirmedEvents.forEach(e => {
+          this.logger.log(`[${new Date().toISOString()}] - Booking ${e.aggregateId} (Event ID: ${e.id})`);
+        });
+      }
 
       for (const event of events) {
         try {
-          this.logger.log(`[${new Date().toISOString()}] Publishing event ${event.id} of type ${event.aggregateType}.${event.eventType}`);
+          if (event.eventType === 'confirmed') {
+            this.logger.log(`[${new Date().toISOString()}] 🔔 PROCESSING CONFIRMATION EVENT`);
+            this.logger.log(`[${new Date().toISOString()}] Event ID: ${event.id}`);
+            this.logger.log(`[${new Date().toISOString()}] Booking ID: ${event.aggregateId}`);
+            this.logger.log(`[${new Date().toISOString()}] Event Type: ${event.aggregateType}.${event.eventType}`);
+          } else {
+            this.logger.log(`[${new Date().toISOString()}] Publishing event ${event.id} of type ${event.aggregateType}.${event.eventType}`);
+          }
           
           // First try to mark as processed atomically
           // This prevents duplicate processing
@@ -73,7 +90,11 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
           // Only publish if we successfully marked it as processed
           await this.publishEvent(event);
           
-          this.logger.log(`[${new Date().toISOString()}] Successfully published and marked as processed: ${event.id}`);
+          if (event.eventType === 'confirmed') {
+            this.logger.log(`[${new Date().toISOString()}] ✅ CONFIRMATION EVENT PUBLISHED: ${event.id}`);
+          } else {
+            this.logger.log(`[${new Date().toISOString()}] Successfully published and marked as processed: ${event.id}`);
+          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           
@@ -102,11 +123,17 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     // Construct the full event name with context
     const eventName = `${event.aggregateType}.${event.eventType}`;
     
-    this.logger.log(`[${new Date().toISOString()}] Publishing event ${eventName} with data:`, JSON.stringify({
-      aggregateId: event.aggregateId,
-      merchantId: event.merchantId,
-      ...event.eventData,
-    }, null, 2));
+    if (event.eventType === 'confirmed') {
+      this.logger.log(`[${new Date().toISOString()}] 📨 EMITTING CONFIRMATION EVENT`);
+      this.logger.log(`[${new Date().toISOString()}] Event Name: ${eventName}`);
+      this.logger.log(`[${new Date().toISOString()}] Event Data:`, JSON.stringify({
+        aggregateId: event.aggregateId,
+        merchantId: event.merchantId,
+        ...event.eventData,
+      }, null, 2));
+    } else {
+      this.logger.log(`[${new Date().toISOString()}] Publishing event ${eventName}`);
+    }
     
     // Emit the event with the original event data
     await this.eventEmitter.emitAsync(eventName, {
@@ -114,5 +141,9 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
       merchantId: event.merchantId,
       ...event.eventData,
     });
+    
+    if (event.eventType === 'confirmed') {
+      this.logger.log(`[${new Date().toISOString()}] ✓ Event '${eventName}' emitted to EventEmitter2`);
+    }
   }
 }

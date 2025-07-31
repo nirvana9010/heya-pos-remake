@@ -18,10 +18,19 @@ export class NotificationEventHandler {
   ) {}
 
   @OnEvent('booking.confirmed')
-  async handleBookingConfirmed(event: { bookingId: string; previousStatus: string; newStatus: string }): Promise<void> {
+  async handleBookingConfirmed(event: any): Promise<void> {
     try {
-      this.logger.log(`[${new Date().toISOString()}] ====== BOOKING CONFIRMED EVENT RECEIVED ======`);
-      this.logger.log(`[${new Date().toISOString()}] Handling booking confirmed event: ${event.bookingId}, ${event.previousStatus} -> ${event.newStatus}`);
+      this.logger.log(`[${new Date().toISOString()}] ====== BOOKING CONFIRMED HANDLER TRIGGERED ======`);
+      this.logger.log(`[${new Date().toISOString()}] 🎯 CONFIRMATION EMAIL HANDLER ACTIVATED`);
+      this.logger.log(`[${new Date().toISOString()}] Raw event data:`, JSON.stringify(event, null, 2));
+      
+      const bookingId = event.bookingId || event.aggregateId;
+      if (!bookingId) {
+        this.logger.error(`[${new Date().toISOString()}] ❌ NO BOOKING ID FOUND IN EVENT`);
+        return;
+      }
+      
+      this.logger.log(`[${new Date().toISOString()}] 📧 Processing confirmation email for booking: ${bookingId}`);
 
       // Fetch full booking details
       const booking = await this.prisma.booking.findUnique({
@@ -49,9 +58,16 @@ export class NotificationEventHandler {
       });
 
       if (!booking) {
-        this.logger.error(`Booking not found: ${event.bookingId}`);
+        this.logger.error(`[${new Date().toISOString()}] ❌ BOOKING NOT FOUND: ${bookingId}`);
         return;
       }
+      
+      this.logger.log(`[${new Date().toISOString()}] ✅ Booking found:`, {
+        id: booking.id,
+        status: booking.status,
+        customerEmail: booking.customer?.email,
+        merchantName: booking.merchant?.name
+      });
 
       // Prepare notification context
       const firstService = booking.services[0];
@@ -102,11 +118,14 @@ export class NotificationEventHandler {
       const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false; // Default to true
       const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false; // Default to true
       
-      this.logger.log(`[${new Date().toISOString()}] ====== CONFIRMATION NOTIFICATION DECISION ======`);
-      this.logger.log(`Should send email: ${shouldSendEmail}`);
-      this.logger.log(`Should send SMS: ${shouldSendSms}`);
+      this.logger.log(`[${new Date().toISOString()}] 📧 ====== CONFIRMATION EMAIL DECISION ======`);
+      this.logger.log(`[${new Date().toISOString()}] Should send email: ${shouldSendEmail}`);
+      this.logger.log(`[${new Date().toISOString()}] Should send SMS: ${shouldSendSms}`);
+      this.logger.log(`[${new Date().toISOString()}] Customer email: ${context.customer.email}`);
+      this.logger.log(`[${new Date().toISOString()}] Customer preferred channel: ${context.customer.preferredChannel}`);
 
       if (shouldSendEmail || shouldSendSms) {
+        this.logger.log(`[${new Date().toISOString()}] 📤 SENDING CONFIRMATION NOTIFICATION...`);
         // Override context to respect merchant settings
         const notificationContext = {
           ...context,
@@ -121,14 +140,24 @@ export class NotificationEventHandler {
         };
 
         // Send booking confirmation
+        this.logger.log(`[${new Date().toISOString()}] 📮 Calling sendNotification with type: ${NotificationType.BOOKING_CONFIRMATION}`);
         const results = await this.notificationsService.sendNotification(
           NotificationType.BOOKING_CONFIRMATION,
           notificationContext,
         );
 
-        this.logger.log(
-          `Booking confirmation sent for manually confirmed booking - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
-        );
+        this.logger.log(`[${new Date().toISOString()}] ✉️ CONFIRMATION EMAIL RESULT:`, {
+          emailSent: results.email?.success,
+          emailError: results.email?.error,
+          smsSent: results.sms?.success,
+          smsError: results.sms?.error,
+        });
+        
+        if (results.email?.success) {
+          this.logger.log(`[${new Date().toISOString()}] ✅ CONFIRMATION EMAIL SENT SUCCESSFULLY to ${context.customer.email}`);
+        } else {
+          this.logger.error(`[${new Date().toISOString()}] ❌ CONFIRMATION EMAIL FAILED: ${results.email?.error || 'Unknown error'}`);
+        }
       } else {
         this.logger.log(
           `Booking confirmation skipped - merchant has disabled all notification channels`,
