@@ -167,8 +167,52 @@ export class BookingUpdateService {
           },
           data: directUpdates,
         });
+      }
+
+      // 11. Create outbox events within the same transaction
+      if (isRescheduling && originalBooking && data.startTime) {
+        // Calculate the new end time if not provided
+        const newEndTime = data.endTime || new Date(data.startTime.getTime() + 
+          (originalBooking.timeSlot.end.getTime() - originalBooking.timeSlot.start.getTime()));
         
-        // Reload the booking within the transaction to get all the updated data
+        const rescheduledEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'rescheduled',
+          eventData: { 
+            bookingId: data.bookingId,
+            oldStartTime: originalBooking.timeSlot.start,
+            newStartTime: data.startTime,
+            oldEndTime: originalBooking.timeSlot.end,
+            newEndTime: newEndTime,
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+        await this.outboxRepository.save(rescheduledEvent, tx);
+      }
+
+      // Create outbox event if booking was confirmed from pending
+      if (wasStatusConfirmed) {
+        console.log(`[BookingUpdateService] Creating outbox event for confirmed booking ${data.bookingId}`);
+        const confirmedEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'confirmed',
+          eventData: { 
+            bookingId: data.bookingId,
+            previousStatus: 'PENDING',
+            newStatus: 'CONFIRMED',
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+        await this.outboxRepository.save(confirmedEvent, tx);
+        console.log(`[BookingUpdateService] Outbox event created for confirmed booking ${data.bookingId}`);
+      }
+
+      // 12. Reload the booking if we had direct updates
+      if (hasDirectUpdates) {
         const reloadedBooking = await tx.booking.findUnique({
           where: {
             id: booking.id,
@@ -201,49 +245,10 @@ export class BookingUpdateService {
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
     });
 
-    // Create outbox event if booking was rescheduled
-    if (isRescheduling && originalBooking && data.startTime) {
-      // Calculate the new end time if not provided
-      const newEndTime = data.endTime || new Date(data.startTime.getTime() + 
-        (originalBooking.timeSlot.end.getTime() - originalBooking.timeSlot.start.getTime()));
-      
-      await this.prisma.$transaction(async (tx) => {
-        const outboxEvent = OutboxEvent.create({
-          aggregateId: data.bookingId,
-          aggregateType: 'booking',
-          eventType: 'rescheduled',
-          eventData: { 
-            bookingId: data.bookingId,
-            oldStartTime: originalBooking.timeSlot.start,
-            newStartTime: data.startTime,
-            oldEndTime: originalBooking.timeSlot.end,
-            newEndTime: newEndTime,
-          },
-          eventVersion: 1,
-          merchantId: data.merchantId,
-        });
-        await this.outboxRepository.save(outboxEvent, tx);
-      });
-    }
-
-    // Create outbox event if booking was confirmed from pending
-    if (wasStatusConfirmed) {
-      await this.prisma.$transaction(async (tx) => {
-        const outboxEvent = OutboxEvent.create({
-          aggregateId: data.bookingId,
-          aggregateType: 'booking',
-          eventType: 'confirmed',
-          eventData: { 
-            bookingId: data.bookingId,
-            previousStatus: 'PENDING',
-            newStatus: 'CONFIRMED',
-          },
-          eventVersion: 1,
-          merchantId: data.merchantId,
-        });
-        await this.outboxRepository.save(outboxEvent, tx);
-      });
-    }
+    // Invalidate cache for this merchant's bookings
+    await this.cacheService.deletePattern(`${data.merchantId}:bookings-list:.*`);
+    await this.cacheService.deletePattern(`${data.merchantId}:calendar-view:.*`);
+    console.log(`[BookingUpdateService] Cache invalidated for merchant ${data.merchantId}`);
 
     return updatedBooking;
   }
