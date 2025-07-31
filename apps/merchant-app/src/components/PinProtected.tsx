@@ -51,16 +51,7 @@ export function PinProtected({
 
   const checkPinRequirement = async () => {
     try {
-      // First check if owner exists and has PIN
-      const ownerStatus = await checkOwnerStatus();
-      
-      if (ownerStatus.needsSetup) {
-        setNeedsSetup(ownerStatus.setupType);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Then check settings
+      // First check settings to see if PIN is required for this feature
       const settings = await apiClient.get("/merchant/settings");
       
       if (process.env.NODE_ENV === 'development') {
@@ -71,39 +62,53 @@ export function PinProtected({
         });
       }
       
+      let featureRequiresPin = true;
+      
       switch (feature) {
         case "reports":
           // Default to false if undefined (PIN not required by default)
-          const requiresReportsPin = settings.requirePinForReports === true;
+          featureRequiresPin = settings.requirePinForReports === true;
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[PinProtected] Reports PIN required: ${requiresReportsPin}`);
+            console.log(`[PinProtected] Reports PIN required: ${featureRequiresPin}`);
           }
-          setRequiresPin(requiresReportsPin);
           break;
         case "refunds":
-          setRequiresPin(settings.requirePinForRefunds === true);
+          featureRequiresPin = settings.requirePinForRefunds === true;
           break;
         case "cancellations":
-          setRequiresPin(settings.requirePinForCancellations === true);
+          featureRequiresPin = settings.requirePinForCancellations === true;
           break;
         case "settings":
           // Check for settings PIN requirement (add to settings model if needed)
-          setRequiresPin(settings.requirePinForSettings === true);
+          featureRequiresPin = settings.requirePinForSettings === true;
           break;
         case "void":
           // Check for void transaction PIN requirement
-          setRequiresPin(settings.requirePinForVoid === true);
+          featureRequiresPin = settings.requirePinForVoid === true;
           break;
         case "discounts":
           // Check for discount override PIN requirement
-          setRequiresPin(settings.requirePinForDiscounts === true);
+          featureRequiresPin = settings.requirePinForDiscounts === true;
           break;
         case "staff":
           // Check for staff management PIN requirement
-          setRequiresPin(settings.requirePinForStaff === true);
+          featureRequiresPin = settings.requirePinForStaff === true;
           break;
         default:
-          setRequiresPin(true);
+          featureRequiresPin = true;
+      }
+      
+      setRequiresPin(featureRequiresPin);
+      
+      // Only check owner status if PIN is required for this feature
+      if (featureRequiresPin) {
+        const ownerStatus = await checkOwnerStatus();
+        
+        if (ownerStatus.needsSetup) {
+          setNeedsSetup(ownerStatus.setupType);
+          setIsLoading(false);
+          return;
+        }
       }
     } catch (error) {
       console.error("Failed to load PIN settings:", error);
