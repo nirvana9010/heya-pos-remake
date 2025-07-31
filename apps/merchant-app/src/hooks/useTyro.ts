@@ -12,26 +12,34 @@ export const useTyro = () => {
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
   useEffect(() => {
+    // Function to check and set SDK loaded state
+    const checkSDK = () => {
+      if (window.TYRO) {
+        console.log('[Tyro] SDK detected, updating state');
+        setSdkLoaded(true);
+        return true;
+      }
+      return false;
+    };
+
     // Check if SDK is already loaded
-    if (window.TYRO) {
-      console.log('[Tyro] SDK already loaded');
-      setSdkLoaded(true);
+    if (checkSDK()) {
+      console.log('[Tyro] SDK already loaded on mount');
       return;
     }
 
     // Listen for custom event from TyroSDKLoader
     const handleSDKLoaded = () => {
       console.log('[Tyro] SDK loaded event received');
-      setSdkLoaded(true);
+      checkSDK();
     };
     
     window.addEventListener('tyro-sdk-loaded', handleSDKLoaded);
 
     // Poll for SDK availability since we can't use onLoad in Server Components
     const checkInterval = setInterval(() => {
-      if (window.TYRO) {
-        console.log('[Tyro] SDK detected');
-        setSdkLoaded(true);
+      if (checkSDK()) {
+        console.log('[Tyro] SDK detected via polling');
         clearInterval(checkInterval);
       }
     }, 100);
@@ -46,7 +54,10 @@ export const useTyro = () => {
     // Stop checking after 10 seconds
     const timeout = setTimeout(() => {
       clearInterval(checkInterval);
-      console.log('[Tyro] SDK failed to load after 10 seconds');
+      if (!sdkLoaded) {
+        console.log('[Tyro] SDK failed to load after 10 seconds');
+        console.log('[Tyro] Final check - window.TYRO exists:', !!window.TYRO);
+      }
     }, 10000);
 
     return () => {
@@ -54,7 +65,7 @@ export const useTyro = () => {
       clearInterval(checkInterval);
       clearTimeout(timeout);
     };
-  }, []);
+  }, []); // Remove sdkLoaded from dependencies to avoid loops
   /**
    * Initialize Tyro client
    */
@@ -189,7 +200,14 @@ export const useTyro = () => {
    * Check if Tyro is available
    */
   const isAvailable = useCallback(() => {
-    return !!(sdkLoaded && window.TYRO && TYRO_CONFIG.apiKey);
+    const result = !!(sdkLoaded && window.TYRO && TYRO_CONFIG.apiKey);
+    console.log('[Tyro] isAvailable check:', {
+      sdkLoaded,
+      windowTYRO: !!window.TYRO,
+      hasApiKey: !!TYRO_CONFIG.apiKey,
+      result
+    });
+    return result;
   }, [sdkLoaded]);
 
   /**
