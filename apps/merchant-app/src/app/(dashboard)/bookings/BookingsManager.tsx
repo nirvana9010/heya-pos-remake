@@ -562,7 +562,11 @@ export default function BookingsManager() {
         paymentData.order.state = 'LOCKED';
       }
       
-      setSelectedOrderForPayment(paymentData.order);
+      // Ensure bookingId is included in the order object for UI updates
+      setSelectedOrderForPayment({
+        ...paymentData.order,
+        bookingId: bookingId
+      });
       setPaymentDialogOpen(true);
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to prepare payment.";
@@ -1352,38 +1356,92 @@ export default function BookingsManager() {
       {selectedOrderForPayment && (
         <PaymentDialogPortal
           open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
+          onOpenChange={(open) => {
+            setPaymentDialogOpen(open);
+            // Clear selected order when dialog closes
+            if (!open) {
+              setTimeout(() => {
+                setSelectedOrderForPayment(null);
+              }, 100);
+            }
+          }}
           order={selectedOrderForPayment}
+          onOrderUpdate={(updatedOrder) => {
+            console.log('[BookingsManager] Order updated:', updatedOrder);
+            // Update the selected order with the latest data
+            setSelectedOrderForPayment(updatedOrder);
+          }}
           onPaymentComplete={async (updatedOrder) => {
-            console.log('[BookingsManager] Payment completed, updatedOrder:', updatedOrder);
+            console.log('[BookingsManager] Payment completed, updatedOrder:', {
+              orderId: updatedOrder?.id,
+              bookingId: updatedOrder?.bookingId,
+              orderTotal: updatedOrder?.totalAmount,
+              paidAmount: updatedOrder?.paidAmount,
+              modifiers: updatedOrder?.modifiers
+            });
             setSelectedOrderForPayment(null);
             
             // Optimistically update the booking in our local state immediately
             if (updatedOrder && updatedOrder.bookingId) {
-              setBookings(prevBookings => 
-                prevBookings.map(booking => {
+              console.log('[BookingsManager] Updating booking state for bookingId:', updatedOrder.bookingId);
+              
+              // Clear the payment processing state
+              setProcessingOrders(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedOrder.bookingId);
+                return newSet;
+              });
+              
+              setBookings(prevBookings => {
+                console.log('[BookingsManager] Current bookings before update:', prevBookings.length);
+                const updatedBookings = prevBookings.map(booking => {
                   if (booking.id === updatedOrder.bookingId) {
-                    // Update the booking to show it's paid
-                    return {
+                    const oldPaymentStatus = booking.paymentStatus;
+                    const oldPaidAmount = booking.paidAmount;
+                    console.log('[BookingsManager] Found matching booking, current state:', {
+                      id: booking.id,
+                      oldPaymentStatus,
+                      oldPaidAmount,
+                      oldTotalAmount: booking.totalAmount
+                    });
+                    
+                    // Update the booking to show it's paid with the adjusted price
+                    const paidAmount = updatedOrder.paidAmount || updatedOrder.totalAmount;
+                    const updatedBooking = {
                       ...booking,
-                      paidAmount: updatedOrder.paidAmount || updatedOrder.totalAmount,
-                      paymentStatus: 'PAID',
-                      isPaid: true
+                      totalAmount: Number(updatedOrder.totalAmount) || 0, // Update total to reflect adjustments
+                      price: Number(updatedOrder.totalAmount) || 0, // Some views use price field
+                      paidAmount: Number(paidAmount) || 0, // Ensure we have a number for the badge check
+                      paymentStatus: 'PAID' as const,
+                      isPaid: true,
+                      // Force update the order state to ensure UI refresh
+                      order: undefined
                     };
+                    
+                    console.log('[BookingsManager] Updated booking state:', {
+                      id: updatedBooking.id,
+                      newPaymentStatus: updatedBooking.paymentStatus,
+                      newPaidAmount: updatedBooking.paidAmount,
+                      newTotalAmount: updatedBooking.totalAmount
+                    });
+                    
+                    return updatedBooking;
                   }
                   return booking;
-                })
-              );
+                });
+                console.log('[BookingsManager] Updated bookings count:', updatedBookings.length);
+                return updatedBookings;
+              });
+            } else {
+              console.log('[BookingsManager] No bookingId found in order, cannot update UI');
             }
             
             // Invalidate the bookings cache before reloading
             invalidateBookingsCache();
             
-            // Add a small delay to ensure the server has updated the booking
-            setTimeout(async () => {
-              console.log('[BookingsManager] Reloading bookings after payment...');
-              await loadBookings();
-            }, 1000);
+            // Remove the loadBookings call - we've already optimistically updated the UI
+            // The next natural refresh (navigation, user action, etc) will get the latest data
+            console.log('[BookingsManager] Optimistic update complete, skipping immediate reload');
           }}
           enableTips={merchantSettings?.settings?.enableTips || false}
           defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}

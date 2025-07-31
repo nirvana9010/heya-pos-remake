@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -84,6 +84,21 @@ export function PaymentDialog({
   
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
+  
+  // Reset adjustment state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setOrderAdjustment({ amount: 0, reason: '', isPercentage: false });
+      setShowOrderAdjustment(false);
+      console.log('[PaymentDialog] Dialog opened, order state:', {
+        id: order?.id,
+        state: order?.state,
+        totalAmount: order?.totalAmount,
+        modifiers: order?.modifiers?.length || 0,
+        paidAmount: order?.paidAmount
+      });
+    }
+  }, [open]);
 
   const handleLoyaltyRedemption = useCallback((amount: number, description: string) => {
     setLoyaltyDiscount({ amount, description });
@@ -310,9 +325,14 @@ export function PaymentDialog({
         onOrderUpdate?.(order);
       }
       
-      // Apply order adjustment if needed
+      // Apply order adjustment if needed (only if not already applied)
       const adjustmentAmount = calculateAdjustmentAmount();
-      if (adjustmentAmount !== 0 && order?.id) {
+      const hasAdjustmentAlreadyApplied = order?.modifiers?.some((mod: any) => 
+        mod.description === orderAdjustment.reason || 
+        mod.description?.includes(`${Math.abs(orderAdjustment.amount)}%`)
+      );
+      
+      if (adjustmentAmount !== 0 && order?.id && !hasAdjustmentAlreadyApplied) {
         try {
           console.log('[PaymentDialog] Applying order adjustment:', {
             orderId: order.id,
@@ -356,6 +376,9 @@ export function PaymentDialog({
           
           // Update the local order state with the modified order
           order = updatedOrder;
+          
+          // Clear the manual adjustment since it's now been applied as a modifier
+          setOrderAdjustment({ amount: 0, isPercentage: false, reason: '' });
           
           // Also update the order state in the parent component if callback exists
           onOrderUpdate?.(updatedOrder);
@@ -449,6 +472,7 @@ export function PaymentDialog({
       // The order already has the adjustment applied if there was one
       const successOrder = {
         ...order,
+        bookingId: order?.bookingId, // Ensure bookingId is preserved
         paidAmount: (order?.totalAmount || 0) + tipAmount, // Full payment of order total
         totalAmount: (order?.totalAmount || 0) + tipAmount, // Order total already includes adjustment
         balanceDue: 0,
@@ -462,17 +486,19 @@ export function PaymentDialog({
         originalTotal: order?.totalAmount
       });
 
-      // Call onPaymentComplete with the successful order
-      onPaymentComplete?.(successOrder);
-
       // Show success toast
       toast({
         title: 'Payment successful',
         description: changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
       });
 
-      // Close dialog
-      onOpenChange(false);
+      // Call onPaymentComplete with the successful order BEFORE closing
+      onPaymentComplete?.(successOrder);
+
+      // Close dialog with a small delay to ensure state updates propagate
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
 
       // Refresh order data in the background
       const finalOrder = await apiClient.getOrder(order.id);

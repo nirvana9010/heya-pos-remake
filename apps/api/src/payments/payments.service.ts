@@ -377,8 +377,8 @@ export class PaymentsService {
       }
     }
 
-    // Sync booking payment status when order is paid (only if linked to a booking)
-    if (newState === OrderState.PAID && order.bookingId) {
+    // Sync booking payment status when order is paid or partially paid (only if linked to a booking)
+    if (order.bookingId && (newState === OrderState.PAID || newState === OrderState.PARTIALLY_PAID)) {
       try {
         // Get the payment method from the order's payments
         const orderWithPayments = await this.prisma.order.findUnique({
@@ -394,16 +394,24 @@ export class PaymentsService {
         
         const paymentMethod = orderWithPayments?.payments[0]?.paymentMethod || 'CASH';
         
+        const updateData: any = {
+          paidAmount: paidAmount,
+          totalAmount: totalAmount,  // Always update booking's totalAmount to match the order's final amount
+          paymentMethod: paymentMethod,
+        };
+        
+        if (newState === OrderState.PAID) {
+          updateData.paymentStatus = 'PAID';
+          updateData.paidAt = new Date();
+        } else if (newState === OrderState.PARTIALLY_PAID) {
+          updateData.paymentStatus = 'PARTIALLY_PAID';
+        }
+        
         await this.prisma.booking.update({
           where: { id: order.bookingId },
-          data: {
-            paymentStatus: 'PAID',
-            paidAmount: totalAmount,
-            paymentMethod: paymentMethod,
-            paidAt: new Date(),
-          }
+          data: updateData
         });
-        console.log(`[PaymentsService] Booking ${order.bookingId} synced to PAID status`);
+        console.log(`[PaymentsService] Booking ${order.bookingId} synced to ${newState} status with totalAmount: ${totalAmount}`);
       } catch (error) {
         console.error(`[PaymentsService] Failed to sync booking payment status:`, error);
       }
