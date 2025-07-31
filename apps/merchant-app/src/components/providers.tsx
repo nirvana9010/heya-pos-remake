@@ -10,6 +10,7 @@ import { QueryProvider } from '@/lib/query/query-provider';
 import { NotificationsProvider } from '@/contexts/notifications-context';
 import { BookingProvider } from '@/contexts/booking-context';
 import { ClearCorruptedAuth } from './ClearCorruptedAuth';
+import { TyroSDKLoader } from './TyroSDKLoader';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
       <ClearCorruptedAuth />
+      <TyroSDKLoader />
       <AuthProvider>
         {/* Only wrap protected routes in AuthGuard and layout */}
         {isAuthPage ? (

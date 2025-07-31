@@ -19,6 +19,14 @@ export const useTyro = () => {
       return;
     }
 
+    // Listen for custom event from TyroSDKLoader
+    const handleSDKLoaded = () => {
+      console.log('[Tyro] SDK loaded event received');
+      setSdkLoaded(true);
+    };
+    
+    window.addEventListener('tyro-sdk-loaded', handleSDKLoaded);
+
     // Poll for SDK availability since we can't use onLoad in Server Components
     const checkInterval = setInterval(() => {
       if (window.TYRO) {
@@ -42,6 +50,7 @@ export const useTyro = () => {
     }, 10000);
 
     return () => {
+      window.removeEventListener('tyro-sdk-loaded', handleSDKLoaded);
       clearInterval(checkInterval);
       clearTimeout(timeout);
     };
