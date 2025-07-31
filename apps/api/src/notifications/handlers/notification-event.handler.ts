@@ -155,8 +155,10 @@ export class NotificationEventHandler {
         
         if (results.email?.success) {
           this.logger.log(`[${new Date().toISOString()}] ✅ CONFIRMATION EMAIL SENT SUCCESSFULLY to ${context.customer.email}`);
+          
         } else {
           this.logger.error(`[${new Date().toISOString()}] ❌ CONFIRMATION EMAIL FAILED: ${results.email?.error || 'Unknown error'}`);
+          
         }
       } else {
         this.logger.log(

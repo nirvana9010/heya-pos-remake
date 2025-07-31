@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
 import { Booking } from '../../domain/entities/booking.entity';
@@ -32,6 +32,8 @@ interface CancelBookingData {
 
 @Injectable()
 export class BookingUpdateService {
+  private readonly logger = new Logger(BookingUpdateService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject('IBookingRepository')
@@ -141,8 +143,10 @@ export class BookingUpdateService {
         directUpdates.status = newStatus;
         
         // Check if we're confirming a pending booking
+        this.logger.log(`Status change detected: ${previousStatus} → ${newStatus}`);
         if (previousStatus === 'PENDING' && newStatus === 'CONFIRMED') {
           wasStatusConfirmed = true;
+          this.logger.log(`✅ Detected PENDING → CONFIRMED transition`);
         }
         
         // If cancelling, add cancellation data
@@ -194,9 +198,10 @@ export class BookingUpdateService {
 
       // Create outbox event if booking was confirmed from pending
       if (wasStatusConfirmed) {
-        console.log(`[BookingUpdateService] ======= CONFIRMATION FLOW DEBUG =======`);
-        console.log(`[BookingUpdateService] Booking ${data.bookingId} status changed: PENDING → CONFIRMED`);
-        console.log(`[BookingUpdateService] Creating outbox event for confirmation email...`);
+        this.logger.log(`======= CONFIRMATION FLOW DEBUG =======`);
+        this.logger.log(`Booking ${data.bookingId} status changed: PENDING → CONFIRMED`);
+        this.logger.log(`Creating outbox event for confirmation email...`);
+        
         
         const confirmedEvent = OutboxEvent.create({
           aggregateId: data.bookingId,
@@ -211,7 +216,7 @@ export class BookingUpdateService {
           merchantId: data.merchantId,
         });
         
-        console.log(`[BookingUpdateService] Outbox event object created:`, {
+        this.logger.log(`Outbox event object created:`, {
           id: confirmedEvent.id,
           aggregateType: confirmedEvent.aggregateType,
           eventType: confirmedEvent.eventType,
@@ -219,8 +224,8 @@ export class BookingUpdateService {
         });
         
         await this.outboxRepository.save(confirmedEvent, tx);
-        console.log(`[BookingUpdateService] ✓ Outbox event saved to database`);
-        console.log(`[BookingUpdateService] ======= END CONFIRMATION FLOW DEBUG =======`);
+        this.logger.log(`✓ Outbox event saved to database`);
+        this.logger.log(`======= END CONFIRMATION FLOW DEBUG =======`);
       }
 
       // 12. Reload the booking if we had direct updates
