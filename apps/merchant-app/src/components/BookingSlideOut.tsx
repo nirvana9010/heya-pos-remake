@@ -107,15 +107,15 @@ export function BookingSlideOut({
   const [defaultTime] = useState(() => {
     const now = new Date();
     const minutes = now.getMinutes();
-    const remainder = minutes % 15;
+    const remainder = minutes % 5;
     
-    // Round up to next 15-minute interval
+    // Round up to next 5-minute interval
     if (remainder === 0) {
-      // Already on a 15-minute mark, add 15 minutes
-      now.setMinutes(minutes + 15);
+      // Already on a 5-minute mark, add 5 minutes
+      now.setMinutes(minutes + 5);
     } else {
-      // Round up to next 15-minute mark
-      now.setMinutes(minutes + (15 - remainder));
+      // Round up to next 5-minute mark
+      now.setMinutes(minutes + (5 - remainder));
     }
     
     // Reset seconds and milliseconds
@@ -491,19 +491,64 @@ export function BookingSlideOut({
                 />
               </div>
               <div>
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={time ? format(time, "HH:mm") : ""}
-                  onChange={(e) => {
-                    const [hours, minutes] = e.target.value.split(':');
-                    const newTime = new Date(date || new Date());
-                    newTime.setHours(parseInt(hours), parseInt(minutes));
-                    setTime(newTime);
-                  }}
-                  className="mt-1"
-                />
+                <Label>Time</Label>
+                <div className="mt-1 flex items-center border rounded-md">
+                  {/* Hour selector */}
+                  <Select
+                    value={time ? time.getHours().toString() : ""}
+                    onValueChange={(hour) => {
+                      const newTime = new Date(time || defaultTime);
+                      newTime.setHours(parseInt(hour));
+                      setTime(newTime);
+                    }}
+                  >
+                    <SelectTrigger className="border-0 shadow-none focus:ring-0 h-9 px-3">
+                      <SelectValue placeholder="HH" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const hour12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
+                        const ampm = i < 12 ? 'AM' : 'PM';
+                        return (
+                          <SelectItem key={i} value={i.toString()}>
+                            {hour12.toString().padStart(2, '0')} {ampm}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  
+                  <span className="text-gray-400">:</span>
+                  
+                  {/* Minute selector - 5 minute increments */}
+                  <Select
+                    value={time ? (Math.round(time.getMinutes() / 5) * 5).toString() : ""}
+                    onValueChange={(minute) => {
+                      const newTime = new Date(time || defaultTime);
+                      newTime.setMinutes(parseInt(minute));
+                      setTime(newTime);
+                    }}
+                  >
+                    <SelectTrigger className="border-0 shadow-none focus:ring-0 h-9 px-3">
+                      <SelectValue placeholder="MM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const minutes = i * 5;
+                        return (
+                          <SelectItem key={minutes} value={minutes.toString()}>
+                            {minutes.toString().padStart(2, '0')}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* AM/PM indicator */}
+                  <div className="px-3 text-sm text-gray-600 border-l">
+                    {time ? format(time, 'a') : 'AM'}
+                  </div>
+                </div>
               </div>
             </div>
             {totalDuration > 0 && (

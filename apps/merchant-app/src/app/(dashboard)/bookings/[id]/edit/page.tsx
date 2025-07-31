@@ -358,6 +358,7 @@ export default function EditBookingPage() {
                       console.log('New value:', e.target.value);
                       setFormData({...formData, startTime: e.target.value});
                     }}
+                    step="300" // 5 minutes in seconds
                     className="pl-10"
                     required
                   />
