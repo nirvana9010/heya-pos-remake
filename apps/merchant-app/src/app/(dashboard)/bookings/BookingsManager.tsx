@@ -93,33 +93,56 @@ export default function BookingsManager() {
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    let isCancelled = false;
     
-    // Check if we have a token before attempting to load bookings
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    
-    loadBookings();
-    loadStaff();
-    loadMerchantSettings();
-    loadServices();
-    loadCustomers();
-    
-    // Load recent searches from localStorage
-    const saved = localStorage.getItem('recentBookingSearches');
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse recent searches');
+    const loadInitialData = async () => {
+      // Check if we have a token before attempting to load data
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    }
+      
+      // Small delay on first load to ensure auth is ready
+      // This prevents race conditions with auth interceptors
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (isCancelled) return;
+      
+      // Load bookings first (most important)
+      try {
+        await loadBookings();
+      } catch (error) {
+        console.error('[BookingsManager] Error loading bookings:', error);
+      }
+      
+      // Then load supporting data in parallel, but don't let their failures affect bookings
+      if (!isCancelled) {
+        Promise.all([
+          loadStaff().catch(err => console.log('[BookingsManager] Error loading staff:', err)),
+          loadMerchantSettings().catch(err => console.log('[BookingsManager] Error loading settings:', err)),
+          loadServices().catch(err => console.log('[BookingsManager] Error loading services:', err)),
+          loadCustomers().catch(err => console.log('[BookingsManager] Error loading customers:', err))
+        ]);
+      }
+      
+      // Load recent searches from localStorage
+      const saved = localStorage.getItem('recentBookingSearches');
+      if (saved) {
+        try {
+          setRecentSearches(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse recent searches');
+        }
+      }
+    };
+    
+    loadInitialData();
     
     // Cleanup function
     return () => {
+      isCancelled = true;
       mountedRef.current = false;
     };
   }, []);
@@ -225,21 +248,20 @@ export default function BookingsManager() {
       const allBookings = await apiClient.getBookings(params);
       // Convert to the format expected by the component
       setBookings(allBookings as any);
+      console.log('[BookingsManager] Loaded bookings:', allBookings.length, 'bookings');
     } catch (error: any) {
       // Check for redirect error
       if (error?.message === 'UNAUTHORIZED_REDIRECT') {
         return; // Don't process further
       }
       
-      // Don't log 401 errors as they will trigger a redirect
+      // Only log non-auth errors
       if (error?.response?.status !== 401 && error?.status !== 401) {
-        toast({
-          title: "Error",
-          description: "Failed to load bookings. Please try again.",
-          variant: "destructive",
-        });
-      } else {
+        console.error('[BookingsManager] Failed to load bookings:', error);
       }
+      
+      // Don't show error toast - we handle errors silently now since data loads on retry
+      // The user will see the loading state and then either data or empty state
     } finally {
       // Only set loading to false if not redirecting
       if (!(window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
@@ -1332,9 +1354,36 @@ export default function BookingsManager() {
           open={paymentDialogOpen}
           onOpenChange={setPaymentDialogOpen}
           order={selectedOrderForPayment}
-          onPaymentComplete={(updatedOrder) => {
+          onPaymentComplete={async (updatedOrder) => {
+            console.log('[BookingsManager] Payment completed, updatedOrder:', updatedOrder);
             setSelectedOrderForPayment(null);
-            loadBookings(); // Refresh bookings
+            
+            // Optimistically update the booking in our local state immediately
+            if (updatedOrder && updatedOrder.bookingId) {
+              setBookings(prevBookings => 
+                prevBookings.map(booking => {
+                  if (booking.id === updatedOrder.bookingId) {
+                    // Update the booking to show it's paid
+                    return {
+                      ...booking,
+                      paidAmount: updatedOrder.paidAmount || updatedOrder.totalAmount,
+                      paymentStatus: 'PAID',
+                      isPaid: true
+                    };
+                  }
+                  return booking;
+                })
+              );
+            }
+            
+            // Invalidate the bookings cache before reloading
+            invalidateBookingsCache();
+            
+            // Add a small delay to ensure the server has updated the booking
+            setTimeout(async () => {
+              console.log('[BookingsManager] Reloading bookings after payment...');
+              await loadBookings();
+            }, 1000);
           }}
           enableTips={merchantSettings?.settings?.enableTips || false}
           defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}
