@@ -34,8 +34,13 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const from = searchParams.get('from') || '/calendar';
-      router.push(from);
+      const from = searchParams.get('from');
+      if (from) {
+        router.push(from);
+      } else {
+        // Let middleware handle the default redirect based on package type
+        router.push('/');
+      }
     }
   }, [isAuthenticated, isLoading, router, searchParams]);
 

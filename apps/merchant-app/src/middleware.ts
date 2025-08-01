@@ -85,6 +85,16 @@ export async function middleware(request: NextRequest) {
       return response
     }
     
+    // Check if check-in lite user is trying to access calendar
+    if (payload.hasCheckInOnly === true && pathname === '/calendar') {
+      return NextResponse.redirect(new URL('/check-ins', request.url))
+    }
+    
+    // Check if non-check-in lite user is trying to access check-ins
+    if (payload.hasCheckInOnly === false && pathname === '/check-ins') {
+      return NextResponse.redirect(new URL('/calendar', request.url))
+    }
+    
     // Token is valid, pass user data to the request via headers
     const response = NextResponse.next()
     response.headers.set('x-user-id', payload.sub as string)
@@ -110,8 +120,15 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next()
           }
           
-          // Redirect to check-ins as default - CheckInLiteRedirect will handle further routing if needed
-          return NextResponse.redirect(new URL('/check-ins', request.url))
+          // Redirect based on package type
+          // Default to calendar unless explicitly on check-in only package
+          console.log('[Middleware] Login redirect:', {
+            merchantId: payload.merchantId,
+            hasCheckInOnly: payload.hasCheckInOnly,
+            redirectTo: payload.hasCheckInOnly === true ? '/check-ins' : '/calendar'
+          })
+          const destination = payload.hasCheckInOnly === true ? '/check-ins' : '/calendar'
+          return NextResponse.redirect(new URL(destination, request.url))
         } else {
           // Token is invalid/expired, clear the cookie
           const response = NextResponse.next()
@@ -135,8 +152,10 @@ export async function middleware(request: NextRequest) {
       const payload = await verifyToken(token, request)
       
       if (payload && payload.exp && payload.exp > Date.now() / 1000) {
-        // Redirect to check-ins as default - CheckInLiteRedirect will handle further routing if needed
-        return NextResponse.redirect(new URL('/check-ins', request.url))
+        // Redirect based on package type
+        // Default to calendar unless explicitly on check-in only package
+        const destination = payload.hasCheckInOnly === true ? '/check-ins' : '/calendar'
+        return NextResponse.redirect(new URL(destination, request.url))
       }
     }
   }

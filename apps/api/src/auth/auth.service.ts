@@ -114,10 +114,28 @@ export class AuthService {
     };
 
     // Generate tokens
+    // Check if merchant has check-in lite package
+    let hasCheckInOnly = false;
+    if (merchant.package?.features) {
+      // Handle both old array format and new object format
+      const packageFeatures = merchant.package.features as any;
+      const features = Array.isArray(packageFeatures) 
+        ? packageFeatures 
+        : packageFeatures.enabled || [];
+      hasCheckInOnly = features.includes('check_in_only');
+    }
+    
+    console.log(`[AUTH] Login for ${merchant.name}:`, {
+      packageName: merchant.package?.name,
+      hasCheckInOnly,
+      features: merchant.package?.features
+    });
+    
     const payload = {
       sub: merchantAuth.id,
       merchantId: merchant.id,
       type: 'merchant',
+      hasCheckInOnly,
     };
 
     const token = this.jwtService.sign(payload);
@@ -192,10 +210,22 @@ export class AuthService {
         locations: merchantAuth.merchant.locations.map(loc => loc.id),
       };
 
+      // Check if merchant has check-in lite package
+      let hasCheckInOnly = false;
+      if (merchantAuth.merchant.package?.features) {
+        // Handle both old array format and new object format
+        const packageFeatures = merchantAuth.merchant.package.features as any;
+        const features = Array.isArray(packageFeatures) 
+          ? packageFeatures 
+          : packageFeatures.enabled || [];
+        hasCheckInOnly = features.includes('check_in_only');
+      }
+      
       const newPayload = {
         sub: merchantAuth.id,
         merchantId: merchantAuth.merchant.id,
         type: 'merchant',
+        hasCheckInOnly,
       };
 
       const newToken = this.jwtService.sign(newPayload);
