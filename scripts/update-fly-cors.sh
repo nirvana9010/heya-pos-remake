@@ -4,9 +4,8 @@
 
 echo "Updating Fly.io CORS configuration..."
 
-# Common production URLs for the frontend apps
-# You should replace these with your actual production URLs
-FRONTEND_URLS="https://heya-pos-booking.vercel.app,https://heya-pos-merchant.vercel.app,https://booking.heya-pos.com,https://merchant.heya-pos.com,http://localhost:3001,http://localhost:3002,http://localhost:3003"
+# Production URLs for the frontend apps
+FRONTEND_URLS="https://hub.heyapos.com,https://heya-pos-remake-merchant-app.vercel.app,https://visit.heyapos.com,https://booking.heyapos.com,http://localhost:3001,http://localhost:3002,http://localhost:3003"
 
 # Update the FRONTEND_URLS secret on Fly.io
 fly secrets set FRONTEND_URLS="$FRONTEND_URLS" -a heya-pos-api
