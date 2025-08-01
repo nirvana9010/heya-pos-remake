@@ -10,6 +10,7 @@ NODE_ENV=${NODE_ENV:-development}
 echo "Starting API in $NODE_ENV mode..."
 
 # Load environment variables based on NODE_ENV
+# Check in both root and apps/api directory
 if [ "$NODE_ENV" = "production" ] && [ -f .env.production ]; then
   echo "Loading .env.production file..."
   set -a
@@ -29,6 +30,11 @@ elif [ -f .env ]; then
   echo "Loading .env file..."
   set -a
   source .env
+  set +a
+elif [ -f apps/api/.env ]; then
+  echo "Loading apps/api/.env file..."
+  set -a
+  source apps/api/.env
   set +a
 else
   echo "WARNING: No environment file found!"

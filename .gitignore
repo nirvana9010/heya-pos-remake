@@ -118,3 +118,11 @@ scripts/test-*.md
 apps/api/check-*.js
 apps/api/scripts/test-*.ts
 apps/api/scripts/check-*.js
+
+# Database credentials
+.env.fly-postgres
+
+# Database backups
+*.backup
+*.sql
+backups/

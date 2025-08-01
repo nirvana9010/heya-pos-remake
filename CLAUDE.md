@@ -117,10 +117,16 @@ The login response structure:
 
 ### Connection URLs - BEST PRACTICES
 
-**IMPORTANT: Stay on the pooler!** Both runtime and migrations should use the pooled connection:
+**Using Fly.io PostgreSQL** - Database is co-located with the API:
 
+For local development (with proxy):
 ```
-DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
+DATABASE_URL=postgres://postgres:***REMOVED***@localhost:5432/postgres
+```
+
+For production (internal Fly.io connection):
+```
+DATABASE_URL=postgres://postgres:***REMOVED***@heya-pos-db.flycast:5432/postgres?sslmode=disable
 ```
 
 ### Critical Configuration Points
@@ -144,21 +150,21 @@ DATABASE_URL=postgresql://svc_role:pwd@project.pooler.supabase.com:6543/postgres
 
 ### Important Notes
 
-- **Always use the pooled connection for DATABASE_URL** for both runtime and migrations
-- The `?pgbouncer=true&connection_limit=1` parameters are **required** for stable connections
-- Include `sslmode=require` for security
-- Do NOT add `NODE_TLS_REJECT_UNAUTHORIZED="0"` unless absolutely necessary - it bypasses SSL verification
+- **For local development**: Use `flyctl proxy 5432 -a heya-pos-db` and connect via localhost
+- **For production**: Use internal Fly.io connection `heya-pos-db.flycast`
+- Use `sslmode=disable` for internal Fly.io connections (they're already secure)
+- Database and API are co-located in Sydney region for optimal performance
 
 ### Common Issues and Solutions
 
 1. **"Can't reach database server" error**
-   - Check that DATABASE_URL uses port 6543 (not 5432)
-   - Ensure `?pgbouncer=true` is included in the pooled connection URL
+   - For local: Ensure `flyctl proxy 5432 -a heya-pos-db` is running
+   - For production: Check that DATABASE_URL uses `heya-pos-db.flycast`
    - **IMPORTANT: Check if PM2 is loading environment variables correctly!** (see PM2 section below)
 
-2. **SSL certificate errors**
-   - Verify you're using the pooled connection (port 6543) with pgbouncer=true
-   - The pooled connection handles SSL differently than direct connections
+2. **Connection errors**
+   - Local: Make sure Fly.io proxy is running
+   - Production: Verify the app is deployed to Fly.io (not elsewhere)
 
 3. **Slow queries**
    - Check pm2 logs for slow query warnings
@@ -254,31 +260,15 @@ Only the API service connects to the database. Frontend apps communicate through
 
 ## Real-time Notifications
 
-The application uses **Supabase Realtime** as the default notification system. 
-
-### Configuration
-1. **Add environment variables** to `/apps/api/.env`:
-```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_KEY=your-service-key-here
-```
-
-Get these values from: https://app.supabase.com/project/hpvnmqvdgkfeykekosrh/settings/api
-
-2. **Enable Realtime on the MerchantNotification table**:
-   - Go to Supabase Dashboard > Table Editor
-   - Click on `MerchantNotification` table
-   - Enable "Realtime" 
-   - OR run the SQL migration in `/apps/api/prisma/migrations/setup_supabase_realtime.sql`
-
-**IMPORTANT**: Without step 2, Supabase will connect but won't receive any events!
+The application uses **Polling** for notifications.
 
 ### Behavior
-- **Default**: Supabase Realtime is the only real-time notification system
-- **Polling Fallback**: If Supabase is not configured, falls back to 60-second polling
+- **Default**: 60-second polling for notifications
+- **Real-time**: Previously used Supabase Realtime, now removed after migration to Fly.io PostgreSQL
 - **SSE Removed**: Server-Sent Events (SSE) has been removed due to inconsistent delivery issues (July 2025)
-- **Configuration**: To use real-time notifications, configure Supabase as described above
+
+### Future Enhancement
+Consider implementing WebSockets or PostgreSQL LISTEN/NOTIFY for real-time notifications with Fly.io PostgreSQL.
 
 ## Monitoring
 
