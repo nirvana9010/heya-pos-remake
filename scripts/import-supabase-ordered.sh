@@ -9,7 +9,7 @@ for table in Package Merchant Location MerchantAuth Staff Customer ServiceCatego
 done
 
 # Import in correct dependency order
-export PGPASSWORD=***REMOVED***
+export PGPASSWORD=jTzPXDBfABYvzoA
 
 echo "Importing data..."
 psql -h localhost -U postgres -d postgres << 'EOF'

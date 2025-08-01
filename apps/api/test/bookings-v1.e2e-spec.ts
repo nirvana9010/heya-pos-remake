@@ -8,7 +8,7 @@ import { TestSeederService } from '../src/test/services/test-seeder.service';
 // Ensure test environment is loaded
 process.env.NODE_ENV = 'test';
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'postgresql://postgres.hpvnmqvdgkfeykekosrh:***REMOVED***@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true';
+  process.env.DATABASE_URL = 'postgresql://postgres.hpvnmqvdgkfeykekosrh:WV3R4JZIF2Htu92k@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true';
   process.env.DIRECT_URL = process.env.DATABASE_URL;
 }
 

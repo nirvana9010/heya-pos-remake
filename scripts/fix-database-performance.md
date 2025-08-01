@@ -9,7 +9,7 @@ All database queries are taking 700ms+ baseline, causing 10+ second delays for o
 Add these parameters to your Railway DATABASE_URL environment variable:
 
 ```
-postgresql://postgres.hpvnmqvdgkfeykekosrh:***REMOVED***@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=10&pool_timeout=30&statement_cache_size=0
+postgresql://postgres.hpvnmqvdgkfeykekosrh:WV3R4JZIF2Htu92k@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=10&pool_timeout=30&statement_cache_size=0
 ```
 
 Key parameters:

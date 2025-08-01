@@ -26,7 +26,7 @@ else
 fi
 
 # Fly.io PostgreSQL (local proxy)
-FLY_DB_URL="postgres://postgres:***REMOVED***@localhost:5432/postgres"
+FLY_DB_URL="postgres://postgres:jTzPXDBfABYvzoA@localhost:5432/postgres"
 
 # If using direct connection
 if [ -n "$SUPABASE_DB_PASSWORD" ]; then
@@ -48,7 +48,7 @@ fi
 # Clear existing data in Fly.io database
 echo ""
 echo "Clearing existing data in Fly.io database..."
-PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres << 'EOF'
+PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres << 'EOF'
 -- Disable foreign key checks
 SET session_replication_role = 'replica';
 
@@ -81,10 +81,10 @@ echo ""
 echo "Restoring data from backup..."
 if [[ "$BACKUP_FILE" == *.sql ]]; then
     # SQL file - direct restore
-    PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres < "$BACKUP_FILE"
+    PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres < "$BACKUP_FILE"
 else
     # Binary backup file - use pg_restore
-    PGPASSWORD=***REMOVED*** pg_restore \
+    PGPASSWORD=jTzPXDBfABYvzoA pg_restore \
         -h localhost \
         -U postgres \
         -d postgres \
@@ -98,7 +98,7 @@ fi
 # Verify migration
 echo ""
 echo "=== Migration Results ==="
-PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres << 'EOF'
+PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres << 'EOF'
 SELECT 
     'Package' as table_name, COUNT(*) as count FROM "Package"
 UNION ALL SELECT 'Merchant', COUNT(*) FROM "Merchant"

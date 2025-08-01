@@ -78,7 +78,7 @@ echo "COMMIT;" >> migrate_supabase.sql
 # Run the migration
 echo ""
 echo "Running migration..."
-export PGPASSWORD=***REMOVED***
+export PGPASSWORD=jTzPXDBfABYvzoA
 psql -h localhost -U postgres -d postgres < migrate_supabase.sql
 
 # Verify results

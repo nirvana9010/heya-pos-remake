@@ -4,10 +4,6 @@
 !.env.example
 !.env.*.example
 
-# Test database
-*.db
-*.sqlite
-test.db
-
-# Logs
-*.log
+# Next.js
+.next/
+out/

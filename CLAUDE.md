@@ -121,12 +121,12 @@ The login response structure:
 
 For local development (with proxy):
 ```
-DATABASE_URL=postgres://postgres:***REMOVED***@localhost:5432/postgres
+DATABASE_URL=postgres://postgres:jTzPXDBfABYvzoA@localhost:5432/postgres
 ```
 
 For production (internal Fly.io connection):
 ```
-DATABASE_URL=postgres://postgres:***REMOVED***@heya-pos-db.flycast:5432/postgres?sslmode=disable
+DATABASE_URL=postgres://postgres:jTzPXDBfABYvzoA@heya-pos-db.flycast:5432/postgres?sslmode=disable
 ```
 
 ### Critical Configuration Points

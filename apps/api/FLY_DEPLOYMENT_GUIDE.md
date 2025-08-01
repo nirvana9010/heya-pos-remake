@@ -25,7 +25,7 @@ fly launch --copy-config --name heya-pos-api --region syd --no-deploy
 
 ```bash
 # Database (use your Railway connection string)
-fly secrets set DATABASE_URL="postgresql://postgres.hpvnmqvdgkfeykekosrh:***REMOVED***@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=20&pool_timeout=30&statement_cache_size=0"
+fly secrets set DATABASE_URL="postgresql://postgres.hpvnmqvdgkfeykekosrh:WV3R4JZIF2Htu92k@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=20&pool_timeout=30&statement_cache_size=0"
 
 # Authentication
 fly secrets set JWT_SECRET="your-jwt-secret-here"

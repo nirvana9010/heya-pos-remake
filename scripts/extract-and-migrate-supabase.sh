@@ -15,7 +15,7 @@ echo "COMMIT;" >> supabase_public_data.sql
 
 # Clear existing data
 echo "Clearing existing data..."
-PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres << 'EOF'
+PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres << 'EOF'
 SET session_replication_role = 'replica';
 TRUNCATE TABLE "BookingService", "OrderItem", "Payment", "LoyaltyTransaction", 
          "Order", "Booking", "Service", "ServiceCategory", "StaffSchedule",
@@ -26,12 +26,12 @@ EOF
 
 # Restore the data
 echo "Restoring Supabase data..."
-PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres < supabase_public_data.sql
+PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres < supabase_public_data.sql
 
 # Verify the migration
 echo ""
 echo "=== Migration Results ==="
-PGPASSWORD=***REMOVED*** psql -h localhost -U postgres -d postgres << 'EOF'
+PGPASSWORD=jTzPXDBfABYvzoA psql -h localhost -U postgres -d postgres << 'EOF'
 SELECT 
     table_name,
     count
