@@ -179,6 +179,36 @@ DATABASE_URL=postgres://postgres:***REMOVED***@heya-pos-db.flycast:5432/postgres
    - If you see database connection errors, first verify the API works when run directly with `cd apps/api && npm run start:dev`
    - If it works directly but not with PM2, the environment variables aren't being loaded
 
+## Fly.io CLI Usage
+
+**IMPORTANT**: The Fly.io CLI command is `flyctl`, NOT `fly`. When you see documentation that uses `fly`, it's just an alias that users can set up locally.
+
+In this environment, always use the full path:
+```bash
+/home/nirvana9010/.fly/bin/flyctl [command]
+```
+
+Common Fly.io commands:
+```bash
+# Check app status
+/home/nirvana9010/.fly/bin/flyctl status -a heya-pos-api
+
+# View logs
+/home/nirvana9010/.fly/bin/flyctl logs -a heya-pos-api
+
+# Update secrets
+/home/nirvana9010/.fly/bin/flyctl secrets set KEY=VALUE -a heya-pos-api
+
+# List secrets
+/home/nirvana9010/.fly/bin/flyctl secrets list -a heya-pos-api
+
+# Restart app
+/home/nirvana9010/.fly/bin/flyctl apps restart heya-pos-api
+
+# SSH into container
+/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api
+```
+
 ## Known Issues to Avoid
 
 ### "crypto is not defined" Error in Production
