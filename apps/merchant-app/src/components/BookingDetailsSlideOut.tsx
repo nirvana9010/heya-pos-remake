@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useRef } from "react";
 import { useNotifications } from '@/contexts/notifications-context';
 import { 
   X,
@@ -58,6 +58,7 @@ interface BookingDetailsSlideOutProps {
     customerPhone: string;
     customerEmail?: string;
     serviceName: string; // Deprecated - kept for backward compatibility
+    serviceId?: string; // Single service ID for backward compatibility
     services?: BookingService[]; // Array for multi-service bookings
     staffName: string;
     staffId: string;
@@ -90,6 +91,21 @@ function BookingDetailsSlideOutComponent({
   onStatusChange,
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
+  // CRITICAL: Track booking prop changes
+  useEffect(() => {
+    if (booking) {
+      const servicesCount = booking.services?.length || 0;
+      const hasMultiServiceName = booking.serviceName?.includes(' + ');
+      
+      if (servicesCount === 1 && hasMultiServiceName) {
+        console.error(`[PROP MISMATCH] Booking ${booking.id}: Multi-service name but only ${servicesCount} service!`);
+        console.log('Stack trace:', new Error().stack);
+      } else if (servicesCount > 1) {
+        console.log(`[PROP UPDATE] Booking ${booking.id}: ${servicesCount} services`);
+      }
+    }
+  }, [booking?.id, booking?.services?.length]);
+  
   const { toast } = useToast();
   const { refreshNotifications } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
@@ -122,25 +138,115 @@ function BookingDetailsSlideOutComponent({
   
   const [formData, setFormData] = useState(() => initializeFormData(booking));
 
+  // Track if services have been initialized to avoid re-initialization
+  const [servicesInitialized, setServicesInitialized] = useState(false);
+  
   useEffect(() => {
     // Only reset form data if we're not currently editing
     // This prevents the form from resetting while the user is making changes
     if (!isEditing) {
       setFormData(initializeFormData(booking));
+    }
+  }, [booking, isEditing]);
+  
+  // Initialize services separately - only once when component mounts or booking ID changes
+  useEffect(() => {
+    // Don't re-initialize if we're in the middle of editing
+    if (isEditing) {
+      return;
+    }
+    
+    // Reset initialization flag when booking changes
+    setServicesInitialized(false);
+    
+    // Initialize selected services from booking
+    let bookingServices = [];
+    
+    // CRITICAL: Log when receiving booking with unexpected service count
+    if (booking.services?.length === 1 && booking.serviceName?.includes(' + ')) {
+      console.error(`[MULTI-SERVICE BUG] Booking ${booking.id} has multi-service name "${booking.serviceName}" but only 1 service in array!`);
+      console.log('Booking data:', JSON.stringify({
+        id: booking.id,
+        services: booking.services,
+        serviceName: booking.serviceName,
+        serviceId: booking.serviceId
+      }));
+    }
+    
+    if (booking.services && booking.services.length > 0) {
+      // New format with services array
+      bookingServices = booking.services.map((s) => {
+        const mapped = {
+          id: s.serviceId || s.id || '',
+          serviceId: s.serviceId || s.id || '',
+          name: s.name || '',
+          duration: s.duration || booking.duration || 60,
+          price: s.price || 0,
+          staffId: s.staffId
+        };
+        return mapped;
+      });
+    } else if (booking.serviceName) {
+      // Old format with single service
+      // Calculate duration from start/end times if not provided
+      const duration = booking.duration || 
+        (booking.endTime && booking.startTime ? 
+          Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / (1000 * 60)) : 
+          60);
       
-      // Initialize selected services from booking
-      const bookingServices = booking.services || [];
-      setSelectedServices(bookingServices.map((service, index) => ({
+      // Try to find the service ID from the services list if not provided
+      let serviceId = booking.serviceId || '';
+      if (!serviceId && services && services.length > 0) {
+        const matchingService = services.find(s => s.name === booking.serviceName);
+        if (matchingService) {
+          serviceId = matchingService.id;
+          console.log('Found matching service ID:', serviceId, 'for service:', booking.serviceName);
+        }
+      }
+          
+      bookingServices = [{
+        id: serviceId,
+        name: booking.serviceName,
+        duration: duration,
+        price: booking.totalPrice || booking.price || 0
+      }];
+    }
+      
+    // Only log when multi-service
+    if (bookingServices.length > 1) {
+      console.log(`[MULTI-SERVICE INIT] ${bookingServices.length} services:`, bookingServices.map(s => s.name).join(' + '));
+    }
+    console.log('Services content:', JSON.stringify(bookingServices, null, 2));
+    
+    const initializedServices = bookingServices.map((service, index) => {
+      const serviceId = service.id || service.serviceId || booking.serviceId || '';
+      
+      // Log if serviceId is empty to help debug
+      if (!serviceId) {
+        console.warn('Empty serviceId detected for service:', service.name, 'in booking:', booking.id);
+        console.warn('Service data:', service);
+        console.warn('Booking serviceId:', booking.serviceId);
+      }
+      
+      const initialized = {
         id: `service-${index}-${Date.now()}`,
-        serviceId: service.id,
+        serviceId: serviceId,
         name: service.name,
         duration: service.duration,
-        basePrice: service.price,
-        adjustedPrice: service.price,
-        staffId: booking.staffId
-      })));
-    }
-  }, [booking, isEditing, customers]);
+        basePrice: Number(service.price || 0),
+        adjustedPrice: Number(service.price || 0),
+        staffId: service.staffId || booking.staffId
+      };
+      
+      console.log(`Initialized service ${index}:`, initialized);
+      return initialized;
+    });
+    
+    console.log('=== SETTING SELECTED SERVICES ===');
+    console.log('Setting services:', initializedServices);
+    setSelectedServices(initializedServices);
+    setServicesInitialized(true);
+  }, [booking.id, isEditing]); // Only re-run when booking ID changes or edit mode changes
 
   // Fetch associated order for the booking
   useEffect(() => {
@@ -283,6 +389,19 @@ function BookingDetailsSlideOutComponent({
     const startTimeISO = formData.time instanceof Date ? formData.time.toISOString() : formData.time;
     const endTimeISO = new Date(formData.time.getTime() + totalDuration * 60000).toISOString();
     
+    // Log what we're sending
+    const servicesToSend = selectedServices.map(s => ({
+      serviceId: s.serviceId,  // API expects 'serviceId', not 'id'
+      staffId: s.staffId || formData.staffId,
+      price: s.adjustedPrice,
+      duration: s.duration,
+      name: s.name  // Include name for display purposes
+    }));
+    
+    console.log('=== SAVING BOOKING WITH SERVICES ===');
+    console.log('Selected services:', selectedServices);
+    console.log('Services to send:', servicesToSend);
+    
     // Fire and forget - don't await
     onSave({
       ...bookingWithoutStatus,
@@ -290,12 +409,7 @@ function BookingDetailsSlideOutComponent({
       startTime: startTimeISO,
       endTime: endTimeISO,
       notes: formData.notes,
-      services: selectedServices.map(s => ({
-        id: s.serviceId,
-        name: s.name,
-        duration: s.duration,
-        price: s.adjustedPrice
-      }))
+      services: servicesToSend
     }).then(() => {
       // Show success toast
       toast({
@@ -948,12 +1062,21 @@ function BookingDetailsSlideOutComponent({
 
 // Memoize the component to prevent unnecessary re-renders when payment dialog state changes
 export const BookingDetailsSlideOut = memo(BookingDetailsSlideOutComponent, (prevProps, nextProps) => {
+  // Check if services array changed
+  const prevServicesCount = prevProps.booking?.services?.length || 0;
+  const nextServicesCount = nextProps.booking?.services?.length || 0;
+  
+  if (prevServicesCount !== nextServicesCount) {
+    console.log(`[MEMO] Services count changed: ${prevServicesCount} → ${nextServicesCount}`);
+  }
+  
   // Only re-render if these critical props change
   return (
     prevProps.isOpen === nextProps.isOpen &&
     prevProps.booking?.id === nextProps.booking?.id &&
     prevProps.booking?.status === nextProps.booking?.status &&
     prevProps.booking?.isPaid === nextProps.booking?.isPaid &&
+    prevServicesCount === nextServicesCount && // Check services count
     prevProps.staff === nextProps.staff &&
     prevProps.services === nextProps.services
   );

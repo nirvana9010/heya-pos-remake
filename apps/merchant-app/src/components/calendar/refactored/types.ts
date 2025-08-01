@@ -31,6 +31,13 @@ export interface Booking {
   serviceId: string;
   serviceName: string;
   servicePrice: number;
+  services?: Array<{
+    id?: string;
+    serviceId?: string;
+    name?: string;
+    duration?: number;
+    price?: number;
+  }>;
   
   staffId: string | null;  // null for unassigned
   staffName: string;

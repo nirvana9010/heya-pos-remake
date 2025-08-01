@@ -1003,9 +1003,20 @@ function CalendarContent() {
         const booking = state.bookings.find(b => b.id === state.detailsBookingId);
         if (!booking) return null;
         
+        // CRITICAL: Detect mismatch between service name and services array
+        const hasMultiServiceName = booking.serviceName?.includes(' + ');
+        const servicesCount = booking.services?.length || 0;
+        
+        if (hasMultiServiceName && servicesCount <= 1) {
+          console.error(`[DATA MISMATCH] Booking ${booking.id} has multi-service name but only ${servicesCount} service(s) in state!`);
+          console.log('State booking:', JSON.stringify(booking));
+        } else if (servicesCount > 1) {
+          console.log(`[CALENDAR] Passing ${servicesCount} services to DetailsSlideOut`);
+        }
+        
         return (
           <BookingDetailsSlideOut
-            key={`booking-details-${booking.id}-${booking.status}`}
+            key={`booking-details-${booking.id}`}
             isOpen={state.isDetailsSlideOutOpen}
             onClose={() => actions.closeDetailsSlideOut()}
             booking={{
@@ -1015,11 +1026,13 @@ function CalendarContent() {
               customerPhone: booking.customerPhone || '',
               customerEmail: booking.customerEmail,
               serviceName: booking.serviceName,
+              serviceId: booking.serviceId,
               services: booking.services,
               staffName: booking.staffName,
               staffId: booking.staffId || '',
               startTime: new Date(`${booking.date}T${booking.time}`),
-              endTime: new Date(new Date(`${booking.date}T${booking.time}`).getTime() + booking.duration * 60000),
+              endTime: new Date(new Date(`${booking.date}T${booking.time}`).getTime() + (booking.duration || 60) * 60000),
+              duration: booking.duration,
               status: booking.status,
               isPaid: booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid',
               totalPrice: booking.servicePrice,
@@ -1051,13 +1064,28 @@ function CalendarContent() {
               const totalPrice = updatedBooking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || originalBooking.servicePrice;
               const totalDuration = updatedBooking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || originalBooking.duration;
               
+              // Calculate service name for display (join multiple services)
+              const serviceName = updatedBooking.services && updatedBooking.services.length > 0
+                ? updatedBooking.services.map((s: any) => s.name).join(' + ')
+                : originalBooking.serviceName;
+              
+              // Get the staff name from the staff list
+              const selectedStaff = memoizedStaff.find(s => s.id === updatedBooking.staffId);
+              const staffName = selectedStaff?.name || updatedBooking.staffName || originalBooking.staffName;
+              
+              // Log only for multi-service updates
+              if (updatedBooking.services && updatedBooking.services.length > 1) {
+                console.log(`[CALENDAR UPDATE] Booking ${state.detailsBookingId}: ${updatedBooking.services.length} services`);
+              }
+              
               actions.updateBooking(state.detailsBookingId!, {
                 date: localDateStr,
                 time: localTimeStr,
                 staffId: updatedBooking.staffId,
-                staffName: updatedBooking.staffName,
+                staffName: staffName,
                 notes: updatedBooking.notes,
                 services: updatedBooking.services,
+                serviceName: serviceName,
                 servicePrice: totalPrice,
                 duration: totalDuration
               });
@@ -1070,20 +1098,45 @@ function CalendarContent() {
                 const timeChanged = originalStartTime.getTime() !== newStartTime.getTime();
                 const staffChanged = originalBooking.staffId !== updatedBooking.staffId;
                 
-                // 2. Make API calls
-                if (timeChanged || staffChanged) {
-                  await apiClient.rescheduleBooking(state.detailsBookingId!, {
-                    startTime: updatedBooking.startTime,
-                    staffId: updatedBooking.staffId
-                  });
-                }
+                // Check if services have changed
+                const servicesChanged = JSON.stringify(originalBooking.services) !== JSON.stringify(updatedBooking.services);
                 
-                // Update notes if changed
-                if (originalBooking.notes !== updatedBooking.notes) {
+                // 2. Make API calls
+                if (timeChanged || staffChanged || servicesChanged) {
+                  // Use updateBooking API which supports all fields including services
+                  
+                  // Log service mapping for debugging
+                  const mappedServices = updatedBooking.services?.map((s: any) => ({
+                    serviceId: s.serviceId || s.id,  // Use serviceId if available, fallback to id
+                    staffId: s.staffId || updatedBooking.staffId,
+                    price: s.price || s.adjustedPrice,  // Support both field names
+                    duration: s.duration
+                  }));
+                  
+                  // Log only for multi-service
+                  if (mappedServices && mappedServices.length > 1) {
+                    console.log(`[API CALL] Sending ${mappedServices.length} services for booking ${state.detailsBookingId}`);
+                  }
+                  
+                  await apiClient.updateBooking(state.detailsBookingId!, {
+                    startTime: updatedBooking.startTime,
+                    staffId: updatedBooking.staffId,
+                    services: mappedServices,
+                    notes: updatedBooking.notes
+                  });
+                } else if (originalBooking.notes !== updatedBooking.notes) {
+                  // Only notes changed
                   await apiClient.updateBooking(state.detailsBookingId!, {
                     notes: updatedBooking.notes
                   });
                 }
+                
+                // DON'T refresh from server - it returns old single-service format
+                // and overwrites our multi-service data
+                // The optimistic update already has the correct data
+                
+                // Optional: If we need to refresh payment status, do it separately
+                // without overwriting the services data
                 
                 // Show detailed success toast
                 const updatedTime = new Date(updatedBooking.startTime);
@@ -1220,16 +1273,17 @@ function CalendarContent() {
                   className: "bg-green-50 border-green-200",
                 });
                 
-                // If details slideout is open, close and reopen to show updated status
-                if (state.isDetailsSlideOutOpen) {
-                  const currentBookingId = bookingId;
-                  actions.closeDetailsSlideOut();
-                  
-                  // Reopen immediately with updated data
-                  setTimeout(() => {
-                    actions.openDetailsSlideOut(currentBookingId);
-                  }, 100);
-                }
+                // DISABLED: This close/reopen was causing multi-service bookings to revert
+                // The optimistic update in the calendar state is sufficient
+                // if (state.isDetailsSlideOutOpen) {
+                //   const currentBookingId = bookingId;
+                //   actions.closeDetailsSlideOut();
+                //   
+                //   // Reopen immediately with updated data
+                //   setTimeout(() => {
+                //     actions.openDetailsSlideOut(currentBookingId);
+                //   }, 100);
+                // }
                 
                 // Refresh in background (don't wait for it)
                 addActivityLog('state', `Starting background refresh`);

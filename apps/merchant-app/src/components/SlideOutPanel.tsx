@@ -131,23 +131,25 @@ export function SlideOutPanel({
         />
       )}
 
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        className={cn(
-          "fixed right-0 top-0 h-full bg-white shadow-2xl z-50 flex flex-col",
-          "transform transition-transform duration-300 ease-out",
-          isVisible ? "translate-x-0" : "translate-x-full pointer-events-none",
-          widthClasses[width],
-          "w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%]",
-          width === "narrow" && "max-w-md",
-          width === "medium" && "max-w-2xl",
-          width === "wide" && "max-w-4xl",
-          width === "full" && "max-w-none w-full",
-          className
-        )}
-        style={{ display: shouldRender || preserveState ? "flex" : "none" }}
-      >
+      {/* Panel Container - prevents shadow overflow */}
+      <div className="fixed inset-y-0 right-0 z-50 overflow-hidden pointer-events-none">
+        {/* Panel */}
+        <div
+          ref={panelRef}
+          className={cn(
+            "h-full bg-white shadow-xl flex flex-col pointer-events-auto",
+            "transform transition-transform duration-300 ease-out",
+            isVisible ? "translate-x-0" : "translate-x-full",
+            widthClasses[width],
+            "w-[90vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw]",
+            width === "narrow" && "max-w-md",
+            width === "medium" && "max-w-2xl",
+            width === "wide" && "max-w-4xl",
+            width === "full" && "max-w-none w-full",
+            className
+          )}
+          style={{ display: shouldRender || preserveState ? "flex" : "none" }}
+        >
         {/* Header */}
         {(title || subtitle) && (
           <div className="flex items-start justify-between p-6 border-b border-gray-200">
@@ -184,6 +186,7 @@ export function SlideOutPanel({
             {footer}
           </div>
         )}
+        </div>
       </div>
     </>
   );

@@ -91,9 +91,10 @@ export function useCalendarData() {
           customerEmail: booking.customerEmail,
           
           // Service info
-          serviceId: booking.serviceId,
+          serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
           serviceName: booking.serviceName,
           servicePrice: booking.price || booking.totalAmount,
+          services: booking.services, // Store the full services array for multi-service support
           
           // Staff info - normalize all falsy values to null (including empty strings)
           staffId: (booking.staffId && booking.staffId !== '') ? booking.staffId : 
@@ -113,6 +114,12 @@ export function useCalendarData() {
           completedAt: booking.completedAt,
         };
       });
+      
+      // Log multi-service bookings
+      const multiServiceBookings = transformedBookings.filter(b => b.services && b.services.length > 1);
+      if (multiServiceBookings.length > 0) {
+        console.log(`[CALENDAR DATA] ${multiServiceBookings.length} multi-service bookings loaded`);
+      }
       
       actions.setBookings(transformedBookings);
     } catch (error) {
@@ -304,9 +311,7 @@ export function useCalendarData() {
   // Fetch a single booking and add/update it in the calendar
   const fetchSingleBooking = useCallback(async (bookingId: string) => {
     try {
-      console.log('[Calendar] Fetching single booking:', bookingId);
       const booking = await apiClient.getBooking(bookingId);
-      console.log('[Calendar] Fetched booking:', booking);
       
       // Transform booking to calendar format
       const startTime = new Date(booking.startTime);
@@ -330,9 +335,10 @@ export function useCalendarData() {
         customerEmail: booking.customerEmail,
         
         // Service info
-        serviceId: booking.serviceId,
+        serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
         serviceName: booking.serviceName,
         servicePrice: booking.servicePrice,
+        services: booking.services, // Include services array for multi-service support
         
         // Staff info
         staffId: booking.staffId || 
@@ -376,9 +382,9 @@ export function useCalendarData() {
     const handleBookingUpdate = (event: CustomEvent) => {
       console.log('[Calendar] Received booking-updated event:', event.detail);
       
-      // When we get a booking update event, just refresh the calendar
-      // Don't check loading state - just call refresh
-      fetchBookingsRef.current();
+      // DISABLED: Don't refresh on booking updates as it overwrites multi-service data
+      // The optimistic updates in the calendar handle this better
+      // fetchBookingsRef.current();
     };
     
     window.addEventListener('booking-updated', handleBookingUpdate as any);

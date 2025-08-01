@@ -40,6 +40,12 @@ export interface UpdateBookingRequest {
   staffId?: string;
   status?: string;
   notes?: string;
+  services?: Array<{
+    serviceId: string;
+    staffId?: string;
+    price?: number;
+    duration?: number;
+  }>;
 }
 
 export interface RescheduleBookingRequest {
@@ -146,7 +152,6 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
-    // Log what we're sending for debugging
     if (window.dispatchEvent && data.status) {
       window.dispatchEvent(new CustomEvent('calendar-activity-log', {
         detail: {
@@ -177,7 +182,8 @@ export class BookingsClient extends BaseApiClient {
       }));
     }
     
-    return this.transformBooking(booking);
+    const transformedBooking = this.transformBooking(booking);
+    return transformedBooking;
   }
 
   async rescheduleBooking(id: string, data: RescheduleBookingRequest): Promise<Booking> {
@@ -248,7 +254,6 @@ export class BookingsClient extends BaseApiClient {
 
   // Helper method to transform booking data
   private transformBooking(booking: any): Booking {
-    
     // Handle both V1 (nested) and V2 (flat) response formats
     
     // Customer name - V2 provides it directly, V1 needs to be constructed
@@ -282,7 +287,7 @@ export class BookingsClient extends BaseApiClient {
       (booking.services && Array.isArray(booking.services) && booking.services.length > 0 ? 
         (booking.services.length === 1 ? 
           booking.services[0].name || booking.services[0]?.service?.name : 
-          booking.services.map((s: any) => s.name || s.service?.name).join(', ')) :
+          booking.services.map((s: any) => s.name || s.service?.name).join(' + ')) :
         'Service');
     
     // Calculate total amount from services if not set
@@ -304,7 +309,7 @@ export class BookingsClient extends BaseApiClient {
        booking.status.toLowerCase().replace(/_/g, '-')) : 
       'confirmed';
     
-    return {
+    const transformed = {
       ...booking,
       status,
       customerName,
@@ -318,7 +323,10 @@ export class BookingsClient extends BaseApiClient {
       date: booking.startTime, // For backward compatibility
       serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
       staffId: booking.staffId || booking.providerId || '',
+      services: booking.services, // IMPORTANT: Preserve the services array for multi-service bookings
     };
+    
+    return transformed;
   }
 
   async markBookingAsPaid(id: string, paymentMethod: string = 'CASH'): Promise<{

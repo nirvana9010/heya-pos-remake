@@ -8,11 +8,12 @@ import { Input } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { Textarea } from '@heya-pos/ui';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Plus, X } from 'lucide-react';
 import { type Booking, type Service, type Staff } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 import { toMerchantTime } from '@/lib/date-utils';
 import { zonedTimeToUtc } from 'date-fns-tz';
+import { ServiceSelectionSlideout } from '@/components/ServiceSelectionSlideout';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -23,20 +24,31 @@ export default function EditBookingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    serviceId: '',
-    staffId: '',
+    services: [] as Array<{
+      id: string;
+      serviceId: string;
+      name: string;
+      staffId: string;
+      price: number;
+      duration: number;
+      categoryName?: string;
+    }>,
     date: '',
     startTime: '',
     notes: ''
   });
+  const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
 
   useEffect(() => {
+    console.log('EditBookingPage mounted with ID:', params.id);
+    alert('Edit page loaded for booking: ' + params.id);
     loadData();
   }, [params.id]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Loading booking with ID:', params.id);
       const [bookingData, servicesResponse, staffData] = await Promise.all([
         apiClient.getBooking(params.id as string),
         apiClient.getServices(),
@@ -52,6 +64,10 @@ export default function EditBookingPage() {
       console.log('Date:', bookingData.date);
       console.log('ServiceId:', bookingData.serviceId);
       console.log('StaffId:', bookingData.staffId);
+      console.log('Services array:', bookingData.services);
+      console.log('ServiceName:', bookingData.serviceName);
+      console.log('Price:', bookingData.price);
+      console.log('Duration:', bookingData.duration);
       
       setBooking(bookingData);
       setServices(servicesData);
@@ -70,9 +86,61 @@ export default function EditBookingPage() {
         timeString = `${startTimeDate.getHours().toString().padStart(2, '0')}:${startTimeDate.getMinutes().toString().padStart(2, '0')}`;
       }
       
+      // Initialize services array
+      let initialServices = [];
+      console.log('=== INITIALIZING SERVICES ===');
+      console.log('bookingData.services:', bookingData.services);
+      console.log('bookingData.serviceId:', bookingData.serviceId);
+      console.log('servicesData:', servicesData);
+      
+      if (bookingData.services && bookingData.services.length > 0) {
+        // New format with services array
+        console.log('Using new format with services array');
+        initialServices = bookingData.services.map((service: any) => ({
+          id: service.id || Math.random().toString(36).substr(2, 9),
+          serviceId: service.serviceId || service.id,
+          name: service.name,
+          staffId: service.staffId || bookingData.staffId,
+          price: Number(service.price || 0),
+          duration: service.duration,
+          categoryName: service.categoryName
+        }));
+      } else if (bookingData.serviceId) {
+        // Old format with single service
+        console.log('Using old format with single serviceId');
+        const service = servicesData.find((s: Service) => s.id === bookingData.serviceId);
+        console.log('Found service:', service);
+        if (service) {
+          initialServices = [{
+            id: Math.random().toString(36).substr(2, 9),
+            serviceId: bookingData.serviceId,
+            name: bookingData.serviceName || service.name,
+            staffId: bookingData.staffId,
+            price: Number(bookingData.price || service.price || 0),
+            duration: bookingData.duration || service.duration,
+            categoryName: service.categoryName
+          }];
+        }
+      }
+      
+      console.log('Initial services array:', initialServices);
+      
+      // If no services were initialized but we have basic booking info, create one from that
+      if (initialServices.length === 0 && bookingData.serviceName) {
+        console.log('No services found, creating from booking data');
+        initialServices = [{
+          id: Math.random().toString(36).substr(2, 9),
+          serviceId: bookingData.serviceId || '',
+          name: bookingData.serviceName,
+          staffId: bookingData.staffId || '',
+          price: Number(bookingData.price || bookingData.totalAmount || 0),
+          duration: bookingData.duration || 60,
+          categoryName: ''
+        }];
+      }
+      
       setFormData({
-        serviceId: bookingData.serviceId,
-        staffId: bookingData.staffId,
+        services: initialServices,
         date: bookingDate.toISOString().split('T')[0],
         startTime: timeString,
         notes: bookingData.notes || ''
@@ -114,14 +182,15 @@ export default function EditBookingPage() {
       console.log('Full form data:', JSON.stringify(formData, null, 2));
       console.log('Full booking data:', JSON.stringify(booking, null, 2));
       
-      const selectedService = services.find(s => s.id === formData.serviceId);
-      const selectedStaff = staff.find(s => s.id === formData.staffId);
+      // Validate services
+      if (formData.services.length === 0) {
+        throw new Error('At least one service must be selected');
+      }
       
-      console.log('Selected service:', selectedService);
-      console.log('Selected staff:', selectedStaff);
-      
-      if (!selectedService || !selectedStaff) {
-        throw new Error('Invalid service or staff selection');
+      // Validate all services have staff assigned
+      const servicesWithoutStaff = formData.services.filter(s => !s.staffId);
+      if (servicesWithoutStaff.length > 0) {
+        throw new Error('Please assign staff to all services');
       }
       
       // Construct the full startTime ISO string by combining date and time
@@ -169,11 +238,23 @@ export default function EditBookingPage() {
         });
       }
       
-      const staffChanged = formData.staffId !== booking.staffId;
+      // Check if services have changed
+      const servicesChanged = JSON.stringify(formData.services.map(s => ({
+        serviceId: s.serviceId,
+        staffId: s.staffId,
+        price: s.price
+      }))) !== JSON.stringify((booking.services || []).map((s: any) => ({
+        serviceId: s.serviceId || s.id,
+        staffId: s.staffId || booking.staffId,
+        price: s.price
+      })));
       
-      if (timeChanged || staffChanged) {
-        // Use rescheduleBooking for time/staff changes
-        // The API expects an ISO string in UTC
+      // For backward compatibility, check if the main staff changed
+      const mainStaffId = formData.services[0]?.staffId;
+      const staffChanged = mainStaffId !== booking.staffId;
+      
+      if (timeChanged || staffChanged || servicesChanged) {
+        // Use updateBooking for any changes including services
         const [year, month, day] = formData.date.split('-').map(Number);
         const [hours, minutes] = formData.startTime.split(':').map(Number);
         const dateInMerchantTZ = new Date(year, month - 1, day, hours, minutes, 0);
@@ -182,24 +263,28 @@ export default function EditBookingPage() {
         const dateUTC = zonedTimeToUtc(dateInMerchantTZ, 'Australia/Sydney');
         const startTimeISO = dateUTC.toISOString();
         
-        console.log('Calling rescheduleBooking with:', {
-          bookingId: params.id,
+        const updateData: any = {
           startTime: startTimeISO,
-          staffId: formData.staffId,
-          dateInMerchantTZ: dateInMerchantTZ.toString(),
-          dateUTC: dateUTC.toString()
+          services: formData.services.map(s => ({
+            serviceId: s.serviceId,
+            staffId: s.staffId,
+            price: s.price,
+            duration: s.duration
+          }))
+        };
+        
+        console.log('Calling updateBooking with:', {
+          bookingId: params.id,
+          updateData
         });
         
-        console.log('About to call rescheduleBooking...');
-        const rescheduleResponse = await apiClient.rescheduleBooking(params.id as string, {
-          startTime: startTimeISO,
-          staffId: formData.staffId
-        });
-        console.log('Reschedule response:', rescheduleResponse);
+        console.log('About to call updateBooking...');
+        const updateResponse = await apiClient.updateBooking(params.id as string, updateData);
+        console.log('Update response:', updateResponse);
       } else {
-        console.log('NO CHANGES DETECTED for time/staff - not calling rescheduleBooking');
+        console.log('NO CHANGES DETECTED - not calling updateBooking');
         console.log('timeChanged:', timeChanged);
-        console.log('staffChanged:', staffChanged);
+        console.log('servicesChanged:', servicesChanged);
       }
       
       // Update notes if changed (this is supported by updateBooking)
@@ -214,12 +299,7 @@ export default function EditBookingPage() {
         console.log('Notes update response:', notesResponse);
       }
       
-      // Note: Service changes are not supported by the current API
-      // If service was changed, we should show a warning
-      if (formData.serviceId !== booking.serviceId) {
-        console.warn('Service changes are not supported by the current API');
-        console.log('Service ID changed from', booking.serviceId, 'to', formData.serviceId);
-      }
+      // Services are now handled above with updateBooking
       
       // Check if any changes were made
       if (!timeChanged && !staffChanged && !notesChanged) {
@@ -288,45 +368,106 @@ export default function EditBookingPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="service">Service</Label>
-                <Select
-                  value={formData.serviceId}
-                  disabled
-                >
-                  <SelectTrigger className="bg-gray-50">
-                    <SelectValue placeholder="Select a service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name} ({service.duration} min - ${service.price})
-                      </SelectItem>
+              {/* Services section spans both columns */}
+              <div className="md:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Services</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsServiceSlideoutOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Service
+                  </Button>
+                </div>
+                
+                {formData.services.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                    <p className="text-gray-500">No services selected</p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => setIsServiceSlideoutOpen(true)}
+                      className="mt-2"
+                    >
+                      Add a service
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {formData.services.map((service, index) => (
+                      <div key={service.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <h4 className="font-medium">{service.name}</h4>
+                              {service.categoryName && (
+                                <p className="text-sm text-gray-500">{service.categoryName}</p>
+                              )}
+                              <p className="text-sm text-gray-600">
+                                {service.duration} min - ${service.price.toFixed(2)}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Label htmlFor={`staff-${service.id}`} className="text-sm">Staff:</Label>
+                              <Select
+                                value={service.staffId}
+                                onValueChange={(value) => {
+                                  const updatedServices = [...formData.services];
+                                  updatedServices[index].staffId = value;
+                                  setFormData({...formData, services: updatedServices});
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px]">
+                                  <SelectValue placeholder="Select staff" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {staff.filter(s => 
+                                    !s.services || s.services.length === 0 || s.services.includes(service.serviceId)
+                                  ).map((member) => (
+                                    <SelectItem key={member.id} value={member.id}>
+                                      {member.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const updatedServices = formData.services.filter((_, i) => i !== index);
+                              setFormData({...formData, services: updatedServices});
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-500">Service changes are not supported at this time</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="staff">Staff Member</Label>
-                <Select
-                  value={formData.staffId}
-                  onValueChange={(value) => setFormData({...formData, staffId: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select staff" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {staff.filter(s => 
-                      (s.services && s.services.includes(formData.serviceId)) || !formData.serviceId
-                    ).map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span>Total Duration:</span>
+                        <span className="font-medium">
+                          {formData.services.reduce((sum, s) => sum + s.duration, 0)} minutes
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span>Total Price:</span>
+                        <span className="font-medium">
+                          ${formData.services.reduce((sum, s) => sum + s.price, 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -411,6 +552,38 @@ export default function EditBookingPage() {
           </form>
         </CardContent>
       </Card>
+      
+      {/* Service Selection Modal */}
+      <ServiceSelectionSlideout
+        isOpen={isServiceSlideoutOpen}
+        onClose={() => setIsServiceSlideoutOpen(false)}
+        onSelectService={(selectedService) => {
+          // Check if service is already added
+          if (formData.services.some(s => s.serviceId === selectedService.id)) {
+            alert('This service has already been added');
+            return;
+          }
+          
+          // Add the new service
+          const newService = {
+            id: Math.random().toString(36).substr(2, 9),
+            serviceId: selectedService.id,
+            name: selectedService.name,
+            staffId: '', // User will select staff
+            price: selectedService.price,
+            duration: selectedService.duration,
+            categoryName: selectedService.categoryName
+          };
+          
+          setFormData({
+            ...formData,
+            services: [...formData.services, newService]
+          });
+          
+          setIsServiceSlideoutOpen(false);
+        }}
+        selectedServiceIds={formData.services.map(s => s.serviceId)}
+      />
     </div>
   );
 }
