@@ -476,8 +476,6 @@ function CalendarContent() {
         updatedAt: new Date().toISOString(),
       };
       
-      console.log('[CalendarPage] Transformed booking:', transformedBooking);
-      console.log('[CalendarPage] Booking number:', transformedBooking.bookingNumber);
       
       // Add the new booking to the calendar
       actions.addBooking(transformedBooking);
@@ -1012,10 +1010,7 @@ function CalendarContent() {
         const servicesCount = booking.services?.length || 0;
         
         if (hasMultiServiceName && servicesCount <= 1) {
-          console.error(`[DATA MISMATCH] Booking ${booking.id} has multi-service name but only ${servicesCount} service(s) in state!`);
-          console.log('State booking:', JSON.stringify(booking));
-        } else if (servicesCount > 1) {
-          console.log(`[CALENDAR] Passing ${servicesCount} services to DetailsSlideOut`);
+          // Data mismatch: multi-service name but fewer services in state
         }
         
         return (
@@ -1094,10 +1089,6 @@ function CalendarContent() {
               const selectedStaff = memoizedStaff.find(s => s.id === updatedBooking.staffId);
               const staffName = selectedStaff?.name || updatedBooking.staffName || originalBooking.staffName;
               
-              // Log only for multi-service updates
-              if (updatedBooking.services && updatedBooking.services.length > 1) {
-                console.log(`[CALENDAR UPDATE] Booking ${state.detailsBookingId}: ${updatedBooking.services.length} services`);
-              }
               
               actions.updateBooking(state.detailsBookingId!, {
                 date: localDateStr,
@@ -1159,7 +1150,6 @@ function CalendarContent() {
                   
                   // Validate services before sending
                   if (mappedServices?.some(s => !s.serviceId)) {
-                    console.error('Invalid service IDs detected:', mappedServices);
                     toast({
                       title: "Error",
                       description: "Invalid service data. Please try editing the booking again.",
@@ -1169,10 +1159,6 @@ function CalendarContent() {
                     return;
                   }
                   
-                  // Log only for multi-service
-                  if (mappedServices && mappedServices.length > 1) {
-                    console.log(`[API CALL] Sending ${mappedServices.length} services for booking ${state.detailsBookingId}`);
-                  }
                   
                   await apiClient.updateBooking(state.detailsBookingId!, {
                     startTime: updatedBooking.startTime,

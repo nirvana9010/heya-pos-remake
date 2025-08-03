@@ -92,21 +92,14 @@ function BookingDetailsSlideOutComponent({
   onStatusChange,
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
-  // CRITICAL: Track booking prop changes
+  // Track booking prop changes
   useEffect(() => {
     if (booking) {
       const servicesCount = booking.services?.length || 0;
       const hasMultiServiceName = booking.serviceName?.includes(' + ');
       
-      console.log('[BookingDetailsSlideOut] Received booking:', booking);
-      console.log('[BookingDetailsSlideOut] Booking number:', booking.bookingNumber);
-      console.log('[BookingDetailsSlideOut] Booking ID:', booking.id);
-      
       if (servicesCount === 1 && hasMultiServiceName) {
-        console.error(`[PROP MISMATCH] Booking ${booking.id}: Multi-service name but only ${servicesCount} service!`);
-        console.log('Stack trace:', new Error().stack);
-      } else if (servicesCount > 1) {
-        console.log(`[PROP UPDATE] Booking ${booking.id}: ${servicesCount} services`);
+        // Potential prop mismatch: Multi-service name but only one service
       }
     }
   }, [booking?.id, booking?.services?.length, booking?.bookingNumber]);
@@ -127,13 +120,12 @@ function BookingDetailsSlideOutComponent({
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
   
-  // Debug logging
+  // Ensure service slideout is closed when booking details slideout opens
   useEffect(() => {
-    console.log('[BookingDetailsSlideOut] Component mounted/updated');
-    console.log('[BookingDetailsSlideOut] Props - services:', services?.length || 0);
-    console.log('[BookingDetailsSlideOut] Props - staff:', staff?.length || 0);
-    console.log('[BookingDetailsSlideOut] Props - booking ID:', booking?.id);
-  }, [services, staff, booking]);
+    if (isOpen) {
+      setIsServiceSlideoutOpen(false);
+    }
+  }, [isOpen]);
   
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
@@ -171,19 +163,15 @@ function BookingDetailsSlideOutComponent({
     
     // Reset initialization flag when booking changes
     setServicesInitialized(false);
+    // Ensure service slideout is closed when booking changes
+    setIsServiceSlideoutOpen(false);
     
     // Initialize selected services from booking
     let bookingServices = [];
     
-    // CRITICAL: Log when receiving booking with unexpected service count
+    // Check for service count mismatch
     if (booking.services?.length === 1 && booking.serviceName?.includes(' + ')) {
-      console.error(`[MULTI-SERVICE BUG] Booking ${booking.id} has multi-service name "${booking.serviceName}" but only 1 service in array!`);
-      console.log('Booking data:', JSON.stringify({
-        id: booking.id,
-        services: booking.services,
-        serviceName: booking.serviceName,
-        serviceId: booking.serviceId
-      }));
+      // Multi-service name but only 1 service in array - potential data issue
     }
     
     if (booking.services && booking.services.length > 0) {
@@ -217,7 +205,6 @@ function BookingDetailsSlideOutComponent({
         const matchingService = services.find(s => s.name === booking.serviceName);
         if (matchingService) {
           serviceId = matchingService.id;
-          console.log('Found matching service ID:', serviceId, 'for service:', booking.serviceName);
         }
       }
           
@@ -229,21 +216,10 @@ function BookingDetailsSlideOutComponent({
       }];
     }
       
-    // Only log when multi-service
-    if (bookingServices.length > 1) {
-      console.log(`[MULTI-SERVICE INIT] ${bookingServices.length} services:`, bookingServices.map(s => s.name).join(' + '));
-    }
-    console.log('Services content:', JSON.stringify(bookingServices, null, 2));
     
     const initializedServices = bookingServices.map((service, index) => {
       const serviceId = service.serviceId || service.id || booking.serviceId || '';
       
-      // Log if serviceId is empty to help debug
-      if (!serviceId) {
-        console.warn('Empty serviceId detected for service:', service.name, 'in booking:', booking.id);
-        console.warn('Service data:', service);
-        console.warn('Booking serviceId:', booking.serviceId);
-      }
       
       const initialized = {
         // Use a stable ID based on serviceId or BookingService ID, not timestamp
@@ -256,12 +232,9 @@ function BookingDetailsSlideOutComponent({
         staffId: service.staffId || booking.staffId
       };
       
-      console.log(`Initialized service ${index}:`, initialized);
       return initialized;
     });
     
-    console.log('=== SETTING SELECTED SERVICES ===');
-    console.log('Setting services:', initializedServices);
     setSelectedServices(initializedServices);
     setServicesInitialized(true);
   }, [booking.id]); // Only re-run when booking ID changes, NOT when edit mode changes
@@ -361,14 +334,6 @@ function BookingDetailsSlideOutComponent({
 
   // Service management functions
   const handleAddService = (service: any) => {
-    console.log('[BookingDetailsSlideOut] handleAddService called', {
-      service,
-      currentServicesCount: selectedServices.length,
-      isOpen,
-      bookingId: booking?.id,
-      formDataStaffId: formData.staffId
-    });
-    
     const newService = {
       id: `service-${Date.now()}-${Math.random()}`,
       serviceId: service.id || service.serviceId,  // Ensure we're using the actual database ID
@@ -379,23 +344,13 @@ function BookingDetailsSlideOutComponent({
       staffId: formData.staffId
     };
     
-    console.log('[BookingDetailsSlideOut] Adding new service:', newService);
     const updatedServices = [...selectedServices, newService];
-    console.log('[BookingDetailsSlideOut] Updated services array:', updatedServices);
     setSelectedServices(updatedServices);
     setIsServiceSlideoutOpen(false);
   };
   
   const handleRemoveService = (serviceId: string) => {
-    console.log('[BookingDetailsSlideOut] handleRemoveService called', {
-      serviceId,
-      currentServices: selectedServices.map(s => ({ id: s.id, name: s.name })),
-      isOpen,
-      bookingId: booking?.id
-    });
-    
     const updatedServices = selectedServices.filter(s => s.id !== serviceId);
-    console.log('[BookingDetailsSlideOut] Services after removal:', updatedServices.map(s => ({ id: s.id, name: s.name })));
     setSelectedServices(updatedServices);
   };
   
@@ -428,7 +383,6 @@ function BookingDetailsSlideOutComponent({
     const startTimeISO = formData.time instanceof Date ? formData.time.toISOString() : formData.time;
     const endTimeISO = new Date(formData.time.getTime() + totalDuration * 60000).toISOString();
     
-    // Log what we're sending
     const servicesToSend = selectedServices.map(s => ({
       serviceId: s.serviceId,  // API expects 'serviceId', not 'id'
       staffId: s.staffId || formData.staffId,
@@ -437,18 +391,9 @@ function BookingDetailsSlideOutComponent({
       name: s.name  // Include name for display purposes
     }));
     
-    console.log('=== SAVING BOOKING WITH SERVICES (BOOKING PAGE) ===');
-    console.log('[BookingDetailsSlideOut] Booking ID:', booking.id);
-    console.log('[BookingDetailsSlideOut] Selected services count:', selectedServices.length);
-    console.log('[BookingDetailsSlideOut] Selected services:', selectedServices);
-    console.log('[BookingDetailsSlideOut] Services to send:', servicesToSend);
-    console.log('[BookingDetailsSlideOut] Form data staffId:', formData.staffId);
-    console.log('[BookingDetailsSlideOut] Total duration:', totalDuration);
-    
     // Validate that all services have valid IDs
     const invalidServices = servicesToSend.filter(s => !s.serviceId);
     if (invalidServices.length > 0) {
-      console.error('Services with missing IDs:', invalidServices);
       toast({
         title: "Error",
         description: "Some services are missing IDs. Please re-select the services.",
@@ -486,23 +431,8 @@ function BookingDetailsSlideOutComponent({
       services: servicesToSend
     };
     
-    // Log the complete payload being sent to onSave
-    if (window.dispatchEvent) {
-      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
-        detail: {
-          type: 'booking-update-payload',
-          message: `Sending update payload to onSave callback`,
-          data: updatePayload,
-          timestamp: new Date().toISOString()
-        }
-      }));
-    }
-    
-    console.log('[BookingDetailsSlideOut] Calling onSave with payload:', updatePayload);
-    console.log('[BookingDetailsSlideOut] onSave function exists?', typeof onSave === 'function');
     
     onSave(updatePayload).then(() => {
-      console.log('[BookingDetailsSlideOut] onSave completed successfully');
       // Show success toast
       toast({
         title: "Booking updated",
@@ -833,13 +763,7 @@ function BookingDetailsSlideOutComponent({
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      console.log('[BookingDetailsSlideOut] Add Service button clicked');
-                      console.log('[BookingDetailsSlideOut] Current services:', services?.length || 0, 'available');
-                      console.log('[BookingDetailsSlideOut] Current selected services:', selectedServices.length, 'selected');
-                      console.log('[BookingDetailsSlideOut] Is editing?', isEditing);
-                      console.log('[BookingDetailsSlideOut] Opening service selection slideout...');
                       setIsServiceSlideoutOpen(true);
-                      console.log('[BookingDetailsSlideOut] isServiceSlideoutOpen set to true');
                     }}
                   >
                     <Plus className="h-4 w-4 mr-1" />
@@ -1045,7 +969,6 @@ function BookingDetailsSlideOutComponent({
                     <DollarSign className="h-4 w-4 text-gray-400" />
                     <div className="flex flex-col">
                       {(() => {
-                        
                         if (booking.isPaid) {
                           // First check if booking has paidAmount field (from payment completion)
                           if (booking.paidAmount && booking.paidAmount > 0) {
@@ -1168,10 +1091,6 @@ export const BookingDetailsSlideOut = memo(BookingDetailsSlideOutComponent, (pre
   // Check if services array changed
   const prevServicesCount = prevProps.booking?.services?.length || 0;
   const nextServicesCount = nextProps.booking?.services?.length || 0;
-  
-  if (prevServicesCount !== nextServicesCount) {
-    console.log(`[MEMO] Services count changed: ${prevServicesCount} → ${nextServicesCount}`);
-  }
   
   // Only re-render if these critical props change
   return (

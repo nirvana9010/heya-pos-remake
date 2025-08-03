@@ -117,7 +117,6 @@ export default function BookingsManager() {
       try {
         await loadBookings();
       } catch (error) {
-        console.error('[BookingsManager] Error loading bookings:', error);
       }
       
       // Then load supporting data in parallel, but don't let their failures affect bookings
@@ -136,7 +135,6 @@ export default function BookingsManager() {
         try {
           setRecentSearches(JSON.parse(saved));
         } catch (e) {
-          console.error('Failed to parse recent searches');
         }
       }
     };
@@ -172,7 +170,6 @@ export default function BookingsManager() {
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
-        console.error('Failed to load staff:', error);
       }
     }
   };
@@ -189,7 +186,6 @@ export default function BookingsManager() {
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
-        console.error('Failed to load merchant settings:', error);
       }
     }
   };
@@ -207,7 +203,6 @@ export default function BookingsManager() {
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
-        console.error('Failed to load services:', error);
       }
     }
   };
@@ -224,7 +219,6 @@ export default function BookingsManager() {
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor
       if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
-        console.error('Failed to load customers:', error);
       }
     }
   };
@@ -259,7 +253,6 @@ export default function BookingsManager() {
       
       // Only log non-auth errors
       if (error?.response?.status !== 401 && error?.status !== 401) {
-        console.error('[BookingsManager] Failed to load bookings:', error);
       }
       
       // Don't show error toast - we handle errors silently now since data loads on retry
@@ -533,8 +526,6 @@ export default function BookingsManager() {
         stack: error?.stack || 'No stack trace'
       };
       
-      console.error(`[Mark as Paid] Error occurred:`, errorDetails);
-      console.error(`[Mark as Paid] Full error object:`, error);
       
       // Only update UI if component is still mounted
       if (mountedRef.current) {
@@ -1490,6 +1481,7 @@ export default function BookingsManager() {
       {/* Booking Details Slideout */}
       {selectedBookingForDetails && (
         <BookingDetailsSlideOut
+          key={`booking-details-${selectedBookingForDetails.id}`}
           isOpen={isDetailsSlideOutOpen}
           onClose={handleSlideOutClose}
           booking={{
@@ -1518,35 +1510,19 @@ export default function BookingsManager() {
           customers={customers}
           onSave={async (updatedBooking) => {
             try {
-              console.log('\n\n=== [BookingsManager] onSave CALLBACK START ===');
-              console.log('[BookingsManager] Location: BOOKINGS PAGE');
-              console.log('[BookingsManager] Booking ID:', selectedBookingForDetails?.id);
-              console.log('[BookingsManager] Services count:', updatedBooking.services?.length || 0);
-              if (updatedBooking.services?.length > 0) {
-                console.log('[BookingsManager] Services detail:');
-                updatedBooking.services.forEach((s: any, i: number) => {
-                  console.log(`  [${i+1}] ${s.name}`);
-                  console.log(`      - Service ID: ${s.serviceId || s.id}`);
-                  console.log(`      - Price: ${s.adjustedPrice || s.price}`);
-                  console.log(`      - Duration: ${s.duration} min`);
-                });
-              }
               
               // Calculate total price from services
               const totalPrice = updatedBooking.services?.reduce((sum: number, s: any) => {
                 const price = s.adjustedPrice || s.price || 0;
-                console.log(`Service ${s.name}: price = ${price}`);
                 return sum + price;
               }, 0) || updatedBooking.totalPrice || 0;
               
               // Calculate total duration from services
               const totalDuration = updatedBooking.services?.reduce((sum: number, s: any) => {
                 const duration = s.duration || 0;
-                console.log(`Service ${s.name}: duration = ${duration}`);
                 return sum + duration;
               }, 0) || updatedBooking.duration || 60;
               
-              console.log('Calculated totals - Price:', totalPrice, 'Duration:', totalDuration);
               
               // Build the service names string
               const serviceName = updatedBooking.services?.length > 1 
@@ -1573,13 +1549,6 @@ export default function BookingsManager() {
                       // Also update servicePrice if it exists
                       servicePrice: totalPrice,
                     };
-                    console.log('[BookingsManager] Optimistic update applied:', {
-                      id: updated.id,
-                      customerName: updated.customerName,
-                      servicesCount: updated.services?.length,
-                      totalAmount: updated.totalAmount,
-                      duration: updated.duration
-                    });
                     return updated;
                   }
                   return b;
@@ -1602,7 +1571,6 @@ export default function BookingsManager() {
                 servicePrice: totalPrice,
               };
               setSelectedBookingForDetails(updatedDetails);
-              console.log('Updated selected booking details:', updatedDetails);
               
               // Map services for API call - ensure proper service ID structure
               const mappedServices = updatedBooking.services?.map((s: any) => ({
@@ -1614,7 +1582,6 @@ export default function BookingsManager() {
               
               // Validate services before sending
               if (mappedServices?.some((s: any) => !s.serviceId)) {
-                console.error('Invalid service IDs detected:', mappedServices);
                 toast({
                   title: "Error",
                   description: "Invalid service data. Please try editing the booking again.",
@@ -1624,14 +1591,6 @@ export default function BookingsManager() {
               }
               
               // Update the booking through API with mapped services
-              console.log('🔥 [BookingsManager] ABOUT TO CALL updateBooking API');
-              console.log('🔥 [BookingsManager] Booking ID:', selectedBookingForDetails.id);
-              console.log('🔥 [BookingsManager] Update payload:', {
-                startTime: updatedBooking.startTime,
-                staffId: updatedBooking.staffId,
-                services: mappedServices,
-                notes: updatedBooking.notes
-              });
               
               const apiResponse = await apiClient.updateBooking(selectedBookingForDetails.id, {
                 startTime: updatedBooking.startTime,
@@ -1640,8 +1599,6 @@ export default function BookingsManager() {
                 notes: updatedBooking.notes
               });
               
-              console.log('✅ [BookingsManager] updateBooking API call completed');
-              console.log('✅ [BookingsManager] API response:', apiResponse);
               
               toast({
                 title: "Success",
@@ -1651,17 +1608,8 @@ export default function BookingsManager() {
               // DON'T refresh from server - it returns old single-service format
               // and overwrites our multi-service data. The optimistic update already has the correct data.
               // This matches the calendar implementation pattern.
-              console.log('[BookingsManager] Skipping background refresh to preserve optimistic update');
-              console.log('=== [BookingsManager] onSave CALLBACK END ===\n');
               
             } catch (error) {
-              console.error('❌ [BookingsManager] API call failed:', error);
-              console.error('❌ [BookingsManager] Error details:', {
-                message: error?.message,
-                status: error?.status,
-                response: error?.response,
-                stack: error?.stack
-              });
               
               toast({
                 title: "Error",

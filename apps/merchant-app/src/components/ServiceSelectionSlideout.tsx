@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Search, Clock, DollarSign, Plus, ChevronLeft } from 'lucide-react';
 import { Button, Input, Badge } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
@@ -18,6 +18,25 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // Handle opening/closing animations
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      // Small delay to ensure DOM is ready for animation
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+    } else {
+      setIsVisible(false);
+      const timer = setTimeout(() => {
+        setShouldRender(false);
+      }, 300); // Match animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Extract unique categories from services
   const categories = useMemo(() => {
@@ -50,13 +69,15 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
     setSearchQuery('');
   };
 
+  if (!shouldRender) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div 
         className={cn(
           "fixed inset-0 bg-gray-900 transition-opacity z-50",
-          isOpen ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none"
+          isVisible ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none"
         )}
         onClick={onClose}
       />
@@ -64,7 +85,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
       {/* Slideout */}
       <div className={cn(
         "fixed inset-y-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
-        isOpen ? "translate-x-0" : "translate-x-full"
+        isVisible ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="relative w-screen max-w-md">
           <div className="flex h-full flex-col bg-white shadow-2xl">

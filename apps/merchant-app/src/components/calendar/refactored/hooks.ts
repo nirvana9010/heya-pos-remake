@@ -116,15 +116,9 @@ export function useCalendarData() {
         };
       });
       
-      // Log multi-service bookings
-      const multiServiceBookings = transformedBookings.filter(b => b.services && b.services.length > 1);
-      if (multiServiceBookings.length > 0) {
-        console.log(`[CALENDAR DATA] ${multiServiceBookings.length} multi-service bookings loaded`);
-      }
       
       actions.setBookings(transformedBookings);
     } catch (error) {
-      console.error('Failed to fetch bookings:', error);
       actions.setError('Failed to load bookings');
       toast({
         title: 'Error',
@@ -373,7 +367,6 @@ export function useCalendarData() {
       
       return transformedBooking;
     } catch (error) {
-      console.error('Failed to fetch single booking:', error);
       // Fall back to full refresh if single booking fetch fails
       fetchBookingsRef.current();
     }
@@ -382,7 +375,6 @@ export function useCalendarData() {
   // Listen for booking update events from notifications
   useEffect(() => {
     const handleBookingUpdate = (event: CustomEvent) => {
-      console.log('[Calendar] Received booking-updated event:', event.detail);
       
       // DISABLED: Don't refresh on booking updates as it overwrites multi-service data
       // The optimistic updates in the calendar handle this better

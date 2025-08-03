@@ -29,7 +29,6 @@ export default function BookingDetailPage() {
       const bookingData = await apiClient.getBooking(params.id as string);
       setBooking(bookingData);
     } catch (error) {
-      console.error('Failed to load booking:', error);
     } finally {
       setLoading(false);
     }
@@ -71,7 +70,6 @@ export default function BookingDetailPage() {
         className: "bg-green-50 border-green-200",
       });
     } catch (error) {
-      console.error('Failed to update booking status:', error);
       toast({
         title: "Error",
         description: "Failed to update booking status",

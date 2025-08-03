@@ -177,7 +177,6 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
           // Apply recent status update if exists
           const recentUpdate = recentStatusUpdates.get(booking.id);
           if (recentUpdate) {
-            console.log(`[Calendar] Preserving recent status update for booking ${booking.id}: ${booking.status} → ${recentUpdate.status}`);
             return { ...booking, status: recentUpdate.status };
           }
           return booking;

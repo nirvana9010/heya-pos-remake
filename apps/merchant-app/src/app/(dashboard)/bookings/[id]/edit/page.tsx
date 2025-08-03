@@ -40,15 +40,12 @@ export default function EditBookingPage() {
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
 
   useEffect(() => {
-    console.log('EditBookingPage mounted with ID:', params.id);
-    alert('Edit page loaded for booking: ' + params.id);
     loadData();
   }, [params.id]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('Loading booking with ID:', params.id);
       const [bookingData, servicesResponse, staffData] = await Promise.all([
         apiClient.getBooking(params.id as string),
         apiClient.getServices(),
@@ -58,16 +55,6 @@ export default function EditBookingPage() {
       // Extract services array from paginated response
       const servicesData = servicesResponse.data || [];
       
-      console.log('=== LOADED BOOKING DATA ===');
-      console.log('Raw booking data:', bookingData);
-      console.log('StartTime:', bookingData.startTime);
-      console.log('Date:', bookingData.date);
-      console.log('ServiceId:', bookingData.serviceId);
-      console.log('StaffId:', bookingData.staffId);
-      console.log('Services array:', bookingData.services);
-      console.log('ServiceName:', bookingData.serviceName);
-      console.log('Price:', bookingData.price);
-      console.log('Duration:', bookingData.duration);
       
       setBooking(bookingData);
       setServices(servicesData);
@@ -88,14 +75,9 @@ export default function EditBookingPage() {
       
       // Initialize services array
       let initialServices = [];
-      console.log('=== INITIALIZING SERVICES ===');
-      console.log('bookingData.services:', bookingData.services);
-      console.log('bookingData.serviceId:', bookingData.serviceId);
-      console.log('servicesData:', servicesData);
       
       if (bookingData.services && bookingData.services.length > 0) {
         // New format with services array
-        console.log('Using new format with services array');
         initialServices = bookingData.services.map((service: any) => ({
           id: service.id || Math.random().toString(36).substr(2, 9),
           serviceId: service.serviceId || service.id,
@@ -107,9 +89,7 @@ export default function EditBookingPage() {
         }));
       } else if (bookingData.serviceId) {
         // Old format with single service
-        console.log('Using old format with single serviceId');
         const service = servicesData.find((s: Service) => s.id === bookingData.serviceId);
-        console.log('Found service:', service);
         if (service) {
           initialServices = [{
             id: Math.random().toString(36).substr(2, 9),
@@ -123,11 +103,9 @@ export default function EditBookingPage() {
         }
       }
       
-      console.log('Initial services array:', initialServices);
       
       // If no services were initialized but we have basic booking info, create one from that
       if (initialServices.length === 0 && bookingData.serviceName) {
-        console.log('No services found, creating from booking data');
         initialServices = [{
           id: Math.random().toString(36).substr(2, 9),
           serviceId: bookingData.serviceId || '',
@@ -146,7 +124,6 @@ export default function EditBookingPage() {
         notes: bookingData.notes || ''
       });
     } catch (error) {
-      console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -154,33 +131,14 @@ export default function EditBookingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('\n\n=== EDIT BOOKING FORM SUBMITTED ===');
-    console.log('Form event type:', e.type);
-    console.log('Saving state before:', saving);
-    
-    // Log EXACTLY what's in the form inputs right now
-    const dateInput = (document.getElementById('date') as HTMLInputElement)?.value;
-    const timeInput = (document.getElementById('time') as HTMLInputElement)?.value;
-    console.log('\n🔍 ACTUAL INPUT VALUES:');
-    console.log('Date input value:', dateInput);
-    console.log('Time input value:', timeInput);
-    console.log('\n📋 FORM STATE:');
-    console.log('formData.date:', formData.date);
-    console.log('formData.startTime:', formData.startTime);
-    console.log('\n📅 ORIGINAL BOOKING:');
-    console.log('booking.startTime:', booking?.startTime);
     
     // Prevent double submission
     if (saving) {
-      console.log('Already saving, ignoring duplicate submission');
       return;
     }
     
     try {
       setSaving(true);
-      console.log('\nSetting saving to true');
-      console.log('Full form data:', JSON.stringify(formData, null, 2));
-      console.log('Full booking data:', JSON.stringify(booking, null, 2));
       
       // Validate services
       if (formData.services.length === 0) {
@@ -196,13 +154,6 @@ export default function EditBookingPage() {
       // Construct the full startTime ISO string by combining date and time
       const startTime = `${formData.date}T${formData.startTime}:00`;
       
-      // Debug logging
-      console.log('Edit booking debug:', {
-        originalStartTime: booking.startTime,
-        newStartTime: startTime,
-        formData,
-        booking
-      });
       
       // Normalize times for comparison
       // The API returns startTime with timezone (e.g., "2025-07-02T10:00:00.000Z")
@@ -224,18 +175,6 @@ export default function EditBookingPage() {
         // Compare the actual time values
         timeChanged = newDateUTC.getTime() !== originalDate.getTime();
         
-        console.log('\n⏰ TIME COMPARISON DETAILS:');
-        console.log('Form inputs:', { date: formData.date, time: formData.startTime });
-        console.log('Parsed values:', { year, month, day, hours, minutes });
-        console.log('New date in merchant TZ:', newDateInMerchantTZ.toString());
-        console.log('New date in UTC:', newDateUTC.toISOString());
-        console.log('Original date:', originalDate.toISOString());
-        console.log('Time changed?', timeChanged);
-        console.log('Timestamps:', {
-          original: originalDate.getTime(),
-          new: newDateUTC.getTime(),
-          difference: newDateUTC.getTime() - originalDate.getTime()
-        });
       }
       
       // Check if services have changed
@@ -273,53 +212,31 @@ export default function EditBookingPage() {
           }))
         };
         
-        console.log('Calling updateBooking with:', {
-          bookingId: params.id,
-          updateData
-        });
-        
-        console.log('About to call updateBooking...');
-        const updateResponse = await apiClient.updateBooking(params.id as string, updateData);
-        console.log('Update response:', updateResponse);
+        await apiClient.updateBooking(params.id as string, updateData);
       } else {
-        console.log('NO CHANGES DETECTED - not calling updateBooking');
-        console.log('timeChanged:', timeChanged);
-        console.log('servicesChanged:', servicesChanged);
       }
       
       // Update notes if changed (this is supported by updateBooking)
       const notesChanged = formData.notes !== (booking.notes || '');
-      console.log('Notes changed?', notesChanged, 'Old:', booking.notes, 'New:', formData.notes);
       
       if (notesChanged) {
-        console.log('Updating notes...');
-        const notesResponse = await apiClient.updateBooking(params.id as string, {
+        await apiClient.updateBooking(params.id as string, {
           notes: formData.notes
         });
-        console.log('Notes update response:', notesResponse);
       }
       
       // Services are now handled above with updateBooking
       
       // Check if any changes were made
       if (!timeChanged && !staffChanged && !notesChanged) {
-        console.log('No changes detected in booking');
-        alert('No changes were made to the booking.');
       }
       
-      console.log('About to redirect to:', `/bookings/${params.id}`);
       router.push(`/bookings/${params.id}`);
     } catch (error) {
-      console.error('=== ERROR IN HANDLESUBMIT ===');
-      console.error('Error details:', error);
-      console.error('Error stack:', (error as Error).stack);
-      console.error('Error response:', (error as any)?.response?.data);
       alert('Failed to update booking: ' + (error as Error).message);
       setSaving(false);
       // Don't redirect on error
     } finally {
-      console.log('=== END OF HANDLESUBMIT ===');
-      console.log('Saving state after:', saving);
     }
   };
 
@@ -494,9 +411,6 @@ export default function EditBookingPage() {
                     type="time"
                     value={formData.startTime}
                     onChange={(e) => {
-                      console.log('\n🕒 TIME INPUT CHANGED!');
-                      console.log('Old value:', formData.startTime);
-                      console.log('New value:', e.target.value);
                       setFormData({...formData, startTime: e.target.value});
                     }}
                     step="300" // 5 minutes in seconds
@@ -529,22 +443,6 @@ export default function EditBookingPage() {
               <Button 
                 type="submit" 
                 disabled={saving}
-                onClick={(e) => {
-                  console.log('\n\n🔴 SAVE BUTTON CLICKED! 🔴');
-                  console.log('Button event type:', e.type);
-                  console.log('Saving state at click:', saving);
-                  console.log('Button disabled:', saving);
-                  console.log('\n📝 Form data at click time:');
-                  console.log(JSON.stringify(formData, null, 2));
-                  
-                  // Get input values at click time
-                  const dateVal = (document.getElementById('date') as HTMLInputElement)?.value;
-                  const timeVal = (document.getElementById('time') as HTMLInputElement)?.value;
-                  console.log('\n🎯 Input values at click time:');
-                  console.log('Date input:', dateVal);
-                  console.log('Time input:', timeVal);
-                  // Let the form handle submission
-                }}
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>

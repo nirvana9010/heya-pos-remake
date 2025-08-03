@@ -54,13 +54,6 @@ export function validateBookingDrop(
     booking.id // Exclude current booking from conflict check
   );
 
-  console.log('[Drag Validation] Conflict check:', {
-    bookingId: booking.id,
-    newStart: targetSlot.startTime,
-    newEnd: newEndTime,
-    conflicts: conflicts.length,
-    conflictingIds: conflicts.map(c => c.id)
-  });
 
   if (conflicts.length > 0) {
     return {
@@ -98,7 +91,6 @@ export function detectTimeConflicts(
     
     // Skip if it's the booking being moved
     if (excludeBookingId && booking.id === excludeBookingId) {
-      console.log('[Conflict Detection] Skipping self:', booking.id);
       return false;
     }
     
@@ -115,11 +107,7 @@ export function detectTimeConflicts(
     );
 
     if (overlaps) {
-      console.log('[Conflict Detection] Found conflict:', {
-        conflictingId: booking.id,
-        conflictingTime: `${bookingStart.toLocaleTimeString()} - ${bookingEnd.toLocaleTimeString()}`,
-        newTime: `${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`
-      });
+      // Found conflict:
     }
 
     return overlaps;
