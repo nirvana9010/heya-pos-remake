@@ -619,7 +619,8 @@ export class BookingUpdateService {
           select: { 
             customerId: true,
             totalAmount: true,
-            paidAmount: true
+            paidAmount: true,
+            status: true
           }
         });
         
@@ -634,6 +635,19 @@ export class BookingUpdateService {
             }
           });
           console.log(`[BookingUpdateService] Customer stats updated for paid booking ${bookingId}`);
+        }
+
+        // Always auto-complete the booking when payment is made (simplified workflow)
+        if (booking?.status !== 'COMPLETED') {
+          console.log(`[BookingUpdateService] Auto-completing booking ${bookingId} after payment`);
+          
+          try {
+            await this.completeBooking(bookingId, merchantId);
+            console.log(`[BookingUpdateService] Successfully auto-completed booking ${bookingId}`);
+          } catch (completeError) {
+            // Log error but don't fail the payment operation
+            console.error(`[BookingUpdateService] Failed to auto-complete booking ${bookingId}:`, completeError);
+          }
         }
       } catch (error) {
         console.error(`[BookingUpdateService] Failed to update customer stats for paid booking ${bookingId}:`, error);

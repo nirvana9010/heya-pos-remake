@@ -129,36 +129,20 @@ export function BookingActions({
       )}
       
       {status === "in-progress" && onStatusChange && (
-        <>
-          <Button
-            size={size}
-            variant="outline"
-            onClick={() => onStatusChange(booking.id, "COMPLETED")}
-            disabled={isStatusUpdating}
-            className="flex items-center gap-1"
-          >
-            {isStatusUpdating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
-            )}
-            Complete
-          </Button>
-          <Button
-            size={size}
-            variant="outline"
-            onClick={() => onStatusChange(booking.id, "CANCELLED")}
-            disabled={isStatusUpdating}
-            className="flex items-center gap-1 text-red-600 hover:text-red-700"
-          >
-            {isStatusUpdating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <XCircle className="h-4 w-4" />
-            )}
-            Cancel
-          </Button>
-        </>
+        <Button
+          size={size}
+          variant="outline"
+          onClick={() => onStatusChange(booking.id, "CANCELLED")}
+          disabled={isStatusUpdating}
+          className="flex items-center gap-1 text-red-600 hover:text-red-700"
+        >
+          {isStatusUpdating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <XCircle className="h-4 w-4" />
+          )}
+          Cancel
+        </Button>
       )}
 
       {/* Payment Actions */}
@@ -167,10 +151,10 @@ export function BookingActions({
           {!isPaid && onProcessPayment && (
             <Button
               size={size}
-              variant="outline"
+              variant="default"
               onClick={() => onProcessPayment(booking.id)}
               disabled={isProcessingPayment}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700"
             >
               {isProcessingPayment ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -183,17 +167,17 @@ export function BookingActions({
           {!isPaid && onPaymentToggle && (
             <Button
               size={size}
-              variant="outline"
+              variant="ghost"
               onClick={() => onPaymentToggle(booking.id, !isPaid)}
               disabled={isPaymentProcessing}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
             >
               {isPaymentProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <DollarSign className="h-4 w-4" />
               )}
-              {isPaymentProcessing ? "Processing..." : "Mark as Paid"}
+              {isPaymentProcessing ? "Processing..." : "Mark Paid"}
             </Button>
           )}
           {isPaid && (
