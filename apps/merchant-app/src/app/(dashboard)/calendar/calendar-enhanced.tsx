@@ -89,6 +89,8 @@ export default function CalendarPageEnhanced() {
   const [timeInterval, setTimeInterval] = useState<15 | 30 | 60>(15);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [isCreateBookingOpen, setIsCreateBookingOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,6 +133,14 @@ export default function CalendarPageEnhanced() {
           isVisible: true,
           isAvailable: true
         })));
+        
+        // Load services data
+        const servicesData = await apiClient.getServices();
+        setServices(servicesData?.services || []);
+        
+        // Load customers data  
+        const customersData = await apiClient.getCustomers();
+        setCustomers(customersData || []);
         
         // Load bookings will be done by loadBookingsForDate
         setLastUpdated(new Date());
@@ -182,20 +192,22 @@ export default function CalendarPageEnhanced() {
       });
       
       
-      // Transform bookings to calendar format
-      const transformedBookings = bookingsData.map((booking: any) => ({
-        id: booking.id,
-        customerId: booking.customerId,
-        customerName: booking.customerName || 'Unknown Customer',
-        customerPhone: booking.customerPhone || '',
-        serviceName: booking.serviceName || 'Service',
-        staffId: booking.providerId || booking.staffId,
-        staffName: booking.staffName || 'Staff',
-        startTime: new Date(booking.startTime),
-        endTime: new Date(booking.endTime),
-        status: booking.status.toLowerCase(),
-        price: booking.totalAmount || 0
-      }));
+      // Transform bookings to calendar format and filter out deleted ones
+      const transformedBookings = bookingsData
+        .filter((booking: any) => booking.status.toLowerCase() !== 'deleted')
+        .map((booking: any) => ({
+          id: booking.id,
+          customerId: booking.customerId,
+          customerName: booking.customerName || 'Unknown Customer',
+          customerPhone: booking.customerPhone || '',
+          serviceName: booking.serviceName || 'Service not selected',
+          staffId: booking.providerId || booking.staffId,
+          staffName: booking.staffName || 'Staff',
+          startTime: new Date(booking.startTime),
+          endTime: new Date(booking.endTime),
+          status: booking.status.toLowerCase(),
+          price: booking.totalAmount || 0
+        }));
       
       
       setBookings(transformedBookings);
@@ -560,7 +572,118 @@ export default function CalendarPageEnhanced() {
           booking={selectedBooking}
           isOpen={!!selectedBooking}
           onClose={() => setSelectedBooking(null)}
+          staff={staff}
+          services={services}
+          customers={customers}
           onStatusChange={(bookingId, status) => updateBookingStatus(bookingId, status)}
+          onSave={async (updatedBooking) => {
+            try {
+              // Update the booking via API
+              const response = await apiClient.updateBooking(selectedBooking.id, {
+                startTime: updatedBooking.startTime,
+                endTime: updatedBooking.endTime,
+                staffId: updatedBooking.staffId,
+                services: updatedBooking.services,
+                notes: updatedBooking.notes
+              });
+              
+              // Wait a moment for the backend to fully process
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Use the response data which should have the updated booking
+              const finalBookingData = response || updatedBooking;
+              
+              // Update local state with the fresh data
+              setBookings(prevBookings => 
+                prevBookings.map(b => 
+                  b.id === selectedBooking.id 
+                    ? { 
+                        ...b, 
+                        ...finalBookingData,
+                        serviceName: finalBookingData.services?.map((s: any) => s.name).join(' + ') || 
+                                    finalBookingData.serviceName || 
+                                    b.serviceName,
+                        staffId: finalBookingData.staffId || finalBookingData.providerId,
+                        staffName: staff.find(s => s.id === (finalBookingData.staffId || finalBookingData.providerId))?.name || 'Unassigned',
+                        services: finalBookingData.services || []
+                      }
+                    : b
+                )
+              );
+              
+              // Update the selected booking with the fresh data to ensure slideout has latest data
+              const updatedSelection = {
+                ...selectedBooking,
+                ...finalBookingData,
+                serviceName: finalBookingData.services?.map((s: any) => s.name).join(' + ') || 
+                            finalBookingData.serviceName || 
+                            selectedBooking.serviceName,
+                staffId: finalBookingData.staffId || finalBookingData.providerId,
+                staffName: staff.find(s => s.id === (finalBookingData.staffId || finalBookingData.providerId))?.name || 'Unassigned',
+                services: finalBookingData.services || []
+              };
+              setSelectedBooking(updatedSelection);
+              
+              toast({
+                title: "Booking updated",
+                description: "The booking has been updated successfully.",
+                duration: 3000,
+              });
+              
+              // Return the updated booking data with services for auto-start to use
+              return updatedSelection;
+            } catch (error) {
+              toast({
+                title: "Failed to update booking",
+                description: "Please try again",
+                variant: "destructive"
+              });
+              throw error;
+            }
+          }}
+          onDelete={async (bookingId) => {
+            try {
+              await apiClient.deleteBooking(bookingId);
+              setBookings(prev => prev.filter(b => b.id !== bookingId));
+              setSelectedBooking(null);
+              toast({
+                title: "Booking deleted",
+                description: "The booking has been deleted successfully.",
+              });
+            } catch (error) {
+              toast({
+                title: "Failed to delete booking",
+                description: "Please try again",
+                variant: "destructive"
+              });
+            }
+          }}
+          onPaymentStatusChange={async (bookingId, isPaid, paidAmount) => {
+            try {
+              // Update payment status via API  
+              await apiClient.updateBookingPayment(bookingId, { isPaid, paidAmount });
+              
+              // Update local state
+              setBookings(prev => 
+                prev.map(b => 
+                  b.id === bookingId 
+                    ? { ...b, isPaid, paidAmount: paidAmount || b.totalPrice }
+                    : b
+                )
+              );
+              
+              toast({
+                title: "Payment status updated",
+                description: isPaid ? "Booking marked as paid" : "Booking marked as unpaid",
+              });
+            } catch (error) {
+              toast({
+                title: "Failed to update payment",
+                description: "Please try again",
+                variant: "destructive"
+              });
+            }
+          }}
           isUpdating={updatingBookingId === selectedBooking.id}
         />
       )}

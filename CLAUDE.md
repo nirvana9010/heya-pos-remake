@@ -74,6 +74,9 @@ The login response structure:
 - Customers: `/api/v1/customers`
 - Payments: `/api/v1/payments`
 - Orders: `/api/v1/orders`
+- Public Check-in: `/api/v1/public/checkin?subdomain={merchant-subdomain}`
+  - **IMPORTANT**: Always include the v1 prefix for public endpoints!
+  - Subdomain must match exactly (e.g., "zen-wellness" not "zen")
 
 ### V2 Endpoints (must specify version)
 - Bookings: `/api/v2/bookings` (uses CQRS pattern)
@@ -81,6 +84,15 @@ The login response structure:
 ### Public Endpoints (no version)
 - `/api/public/services`
 - `/api/public/availability`
+
+### Blank Booking (Walk-in) Support
+The system supports creating "blank bookings" for walk-in customers:
+- Created via `/api/v1/public/checkin` when customer has no existing bookings
+- Blank bookings have no service selected initially (serviceId is null)
+- Duration is set to 15 minutes for blank bookings
+- Service name displays as "Service not selected" in UI
+- When editing a blank booking, the system auto-removes the placeholder service
+- If user clicks "Start" on a blank booking, it opens edit mode first
 
 ## Important Lessons Learned
 

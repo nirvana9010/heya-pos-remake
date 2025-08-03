@@ -143,7 +143,9 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           : Number(s.service.price),
       }));
       
-      const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+      const totalDuration = services.length > 0 
+        ? services.reduce((sum, s) => sum + s.duration, 0)
+        : 15; // Blank bookings have 15 minutes duration
       
       return {
         id: booking.id,
@@ -161,7 +163,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           : 'Unassigned',
         serviceName: services.length > 1 
           ? services.map(s => s.name).join(' + ')
-          : services[0]?.name || 'Unknown Service',
+          : services[0]?.name || 'Service not selected',
         services,
         startTime: booking.startTime,
         endTime: booking.endTime,

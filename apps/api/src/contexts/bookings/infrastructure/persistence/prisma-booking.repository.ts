@@ -169,8 +169,8 @@ export class PrismaBookingRepository implements IBookingRepository {
           duration: service.duration,
         })),
       });
-    } else {
-      // Fallback to single service for backward compatibility
+    } else if (booking.serviceId) {
+      // Fallback to single service for backward compatibility (only if serviceId exists)
       await tx.bookingService.create({
         data: {
           bookingId: createdBooking.id,
@@ -183,6 +183,7 @@ export class PrismaBookingRepository implements IBookingRepository {
         },
       });
     }
+    // For blank bookings (no serviceId), don't create any BookingService records
 
     // Fetch the complete booking with all associations
     const bookingWithRelations = await tx.booking.findUnique({

@@ -210,8 +210,8 @@ function BookingDetailsSlideOutComponent({
           
       bookingServices = [{
         id: serviceId,
-        name: booking.serviceName,
-        duration: duration,
+        name: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 'Service not selected' : booking.serviceName,
+        duration: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 15 : duration,
         price: booking.totalPrice || booking.price || 0
       }];
     }
@@ -225,11 +225,11 @@ function BookingDetailsSlideOutComponent({
         // Use a stable ID based on serviceId or BookingService ID, not timestamp
         id: service.id || serviceId || `service-${index}`,
         serviceId: serviceId,  // Already extracted correctly above
-        name: service.name,
-        duration: service.duration,
+        name: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 'Service not selected' : service.name,
+        duration: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 15 : service.duration,
         basePrice: Number(service.price || 0),
-        adjustedPrice: Number(service.price || 0),
-        staffId: service.staffId || booking.staffId
+        adjustedPrice: Number(service.price || 0)
+        // Removed staffId - we'll use the main staff selection from formData
       };
       
       return initialized;
@@ -238,6 +238,7 @@ function BookingDetailsSlideOutComponent({
     setSelectedServices(initializedServices);
     setServicesInitialized(true);
   }, [booking.id]); // Only re-run when booking ID changes, NOT when edit mode changes
+
 
   // Fetch associated order for the booking
   useEffect(() => {
@@ -360,11 +361,6 @@ function BookingDetailsSlideOutComponent({
     ));
   };
   
-  const handleServiceStaffChange = (serviceId: string, staffId: string) => {
-    setSelectedServices(selectedServices.map(s => 
-      s.id === serviceId ? { ...s, staffId } : s
-    ));
-  };
   
   // Calculate totals
   const calculateTotals = () => {
@@ -385,7 +381,7 @@ function BookingDetailsSlideOutComponent({
     
     const servicesToSend = selectedServices.map(s => ({
       serviceId: s.serviceId,  // API expects 'serviceId', not 'id'
-      staffId: s.staffId || formData.staffId,
+      staffId: formData.staffId,  // Always use the single staff selection
       price: s.adjustedPrice,
       duration: s.duration,
       name: s.name  // Include name for display purposes
@@ -431,8 +427,7 @@ function BookingDetailsSlideOutComponent({
       services: servicesToSend
     };
     
-    
-    onSave(updatePayload).then(() => {
+    onSave(updatePayload).then(async (response) => {
       // Show success toast
       toast({
         title: "Booking updated",
@@ -621,6 +616,7 @@ function BookingDetailsSlideOutComponent({
   return (
     <SlideOutPanel isOpen={isOpen} onClose={onClose} title="Booking Details">
       <div className="flex flex-col h-full relative">
+        
         {/* Progress bar for in-progress bookings */}
         {booking.status === "in-progress" && (
           <div className="absolute inset-x-0 top-0 h-1 z-10">
@@ -641,7 +637,9 @@ function BookingDetailsSlideOutComponent({
               <p className="text-sm text-gray-600">
                 {booking.services?.length > 0
                   ? booking.services.map(s => s.name).join(' + ')
-                  : booking.serviceName}
+                  : ((booking.serviceName === "Service not selected" || booking.serviceName === "Service") && booking.totalPrice === 0
+                      ? <span className="italic text-orange-600">Service not selected - Click Edit to add</span>
+                      : booking.serviceName)}
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 {booking.bookingNumber || `ID: ${booking.id.slice(-8)}`}
@@ -699,7 +697,21 @@ function BookingDetailsSlideOutComponent({
                   onValueChange={(value) => setFormData({ ...formData, staffId: value })}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue />
+                    {formData.staffId && (() => {
+                      const selected = staff.find(s => s.id === formData.staffId);
+                      return selected ? (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: selected.color }}
+                          />
+                          <span>{selected.name}</span>
+                        </div>
+                      ) : (
+                        <SelectValue placeholder="Select staff member" />
+                      );
+                    })()}
+                    {!formData.staffId && <SelectValue placeholder="Select staff member" />}
                   </SelectTrigger>
                   <SelectContent>
                     {staff.map((member) => (
@@ -771,6 +783,7 @@ function BookingDetailsSlideOutComponent({
                   </Button>
                 </div>
                 
+                
                 {selectedServices.length === 0 ? (
                   <p className="text-sm text-gray-500">No services selected</p>
                 ) : (
@@ -796,31 +809,6 @@ function BookingDetailsSlideOutComponent({
                         
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <Label className="text-xs">Staff</Label>
-                            <Select
-                              value={service.staffId}
-                              onValueChange={(value) => handleServiceStaffChange(service.id, value)}
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {staff.map((member) => (
-                                  <SelectItem key={member.id} value={member.id}>
-                                    <div className="flex items-center gap-2">
-                                      <div 
-                                        className="w-3 h-3 rounded-full" 
-                                        style={{ backgroundColor: member.color }}
-                                      />
-                                      <span>{member.name}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="w-24">
                             <Label className="text-xs">Price</Label>
                             <div className="relative">
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -950,7 +938,11 @@ function BookingDetailsSlideOutComponent({
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <Scissors className="h-4 w-4 text-gray-400" />
-                        <span>{booking.serviceName}</span>
+                        <span>
+                          {booking.serviceName === 'Service' && booking.totalPrice === 0
+                            ? 'Service not selected'
+                            : booking.serviceName}
+                        </span>
                       </div>
                       <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
                     </div>
@@ -1042,7 +1034,25 @@ function BookingDetailsSlideOutComponent({
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  // Auto-remove "Service not selected" when editing blank booking
+                  // Auto-remove "Service not selected" or blank service when editing
+                  if (selectedServices.length === 1) {
+                    const service = selectedServices[0];
+                    const isBlankService = 
+                      (service.name === 'Service not selected' || 
+                       service.name === 'Service' || 
+                       !service.name) && 
+                      (Number(service.price || 0) === 0 && 
+                       Number(service.basePrice || 0) === 0 && 
+                       Number(service.adjustedPrice || 0) === 0);
+                    
+                    if (isBlankService) {
+                      setSelectedServices([]);
+                    }
+                  }
+                  setIsEditing(true);
+                }}
                 className="flex-1"
               >
                 <Edit2 className="h-4 w-4 mr-2" />

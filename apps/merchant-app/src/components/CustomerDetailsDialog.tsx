@@ -449,7 +449,7 @@ export function CustomerDetailsDialog({
                           <div key={booking.id} className="p-2 bg-gray-50 rounded text-sm">
                             <div className="flex justify-between items-start">
                               <div>
-                                <p className="font-medium">{booking.serviceName || 'Service'}</p>
+                                <p className="font-medium">{booking.serviceName || 'Service not selected'}</p>
                                 <p className="text-xs text-gray-500">
                                   {format(new Date(booking.startTime || booking.date), 'MMM d, yyyy h:mm a')}
                                 </p>

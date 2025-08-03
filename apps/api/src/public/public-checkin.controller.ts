@@ -163,6 +163,19 @@ export class PublicCheckInController {
     // Get today's bookings for this customer
     const todayBookings = await this.getTodaysBookings(customer.id, merchant.id);
 
+    // Create blank booking for walk-ins (customers with no existing bookings today)
+    let blankBookingCreated = false;
+    if (todayBookings.length === 0) {
+      try {
+        await this.createBlankBooking(merchant.id, customer.id);
+        blankBookingCreated = true;
+        console.log(`[CHECK-IN] Created blank booking for walk-in customer: ${customer.id}`);
+      } catch (error) {
+        console.error('[CHECK-IN] Failed to create blank booking:', error);
+        // Don't fail the check-in if blank booking creation fails
+      }
+    }
+
     // Get loyalty information
     const loyaltyInfo = await this.getLoyaltyInfo(customer.id, merchant.id);
 
@@ -179,8 +192,9 @@ export class PublicCheckInController {
         // allergies: customer.allergies,
         // specialRequirements: customer.specialRequirements,
       },
-      bookings: todayBookings,
+      bookings: blankBookingCreated ? await this.getTodaysBookings(customer.id, merchant.id) : todayBookings,
       loyalty: loyaltyInfo,
+      blankBookingCreated,
     };
   }
 
@@ -427,6 +441,79 @@ export class PublicCheckInController {
     }
 
     return service;
+  }
+
+  private async createBlankBooking(merchantId: string, customerId: string) {
+    try {
+      // Get merchant's first location
+      const location = await this.prisma.location.findFirst({
+        where: {
+          merchantId,
+          isActive: true,
+        },
+      });
+
+      // Get first active staff member for the merchant (required for createdById foreign key)
+      const firstStaff = await this.prisma.staff.findFirst({
+        where: {
+          merchantId,
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      });
+
+      if (!firstStaff) {
+        throw new Error('No active staff members found for merchant');
+      }
+
+      // Get merchant timezone for proper time rounding
+      const timezone = location?.timezone || 'Australia/Sydney';
+      
+      // Round current time up to nearest 5 minutes in merchant timezone
+      const now = new Date();
+      const roundedStartTime = TimezoneUtils.roundUpToNearest5MinutesInTimezone(now, timezone);
+
+      console.log(`[CHECK-IN] Creating blank booking:`, {
+        merchantId,
+        customerId,
+        locationId: location?.id,
+        createdById: firstStaff.id,
+        createdByStaff: `${firstStaff.firstName} ${firstStaff.lastName}`,
+        timezone,
+        originalTime: now.toISOString(),
+        roundedTime: roundedStartTime.toISOString()
+      });
+
+      // Create blank booking via booking creation service
+      const booking = await this.bookingCreationService.createBooking({
+        merchantId,
+        customerId,
+        locationId: location?.id,
+        startTime: roundedStartTime,
+        source: 'WALK_IN',
+        createdById: firstStaff.id, // Use first staff member
+        isBlankBooking: true, // This enables blank booking creation
+        notes: 'Walk-in customer (blank booking) - Please add services and staff',
+      });
+
+      console.log(`[CHECK-IN] Successfully created blank booking:`, {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerId: customerId,
+        startTime: booking.timeSlot.start,
+        endTime: booking.timeSlot.end,
+        status: booking.status.value
+      });
+
+      return booking;
+    } catch (error) {
+      console.error('[CHECK-IN] Error creating blank booking:', error);
+      throw error;
+    }
   }
 
   private async getLoyaltyInfo(customerId: string, merchantId: string) {

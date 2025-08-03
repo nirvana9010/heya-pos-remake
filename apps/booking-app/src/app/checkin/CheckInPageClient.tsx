@@ -62,6 +62,7 @@ export default function CheckInPageClient() {
   const [todayBookings, setTodayBookings] = useState<TodayBooking[]>([]);
   const [originalCustomerData, setOriginalCustomerData] = useState<CustomerData | null>(null);
   const [hasEditedDetails, setHasEditedDetails] = useState(false);
+  const [isBlankBooking, setIsBlankBooking] = useState(false);
   
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: '',
@@ -221,6 +222,9 @@ export default function CheckInPageClient() {
           setTodayBookings(result.bookings);
         }
         
+        // Track if a blank booking was created for walk-in
+        setIsBlankBooking(result.blankBookingCreated || false);
+        
         toast({
           title: 'Welcome!',
           description: 'You have successfully checked in.',
@@ -241,6 +245,7 @@ export default function CheckInPageClient() {
           setTodayBookings([]);
           setOriginalCustomerData(null);
           setHasEditedDetails(false);
+          setIsBlankBooking(false);
         }, 5000);
       }
     } catch (error) {
@@ -641,7 +646,10 @@ export default function CheckInPageClient() {
                     <Alert className="max-w-md mx-auto">
                       <Sparkles className="h-4 w-4" />
                       <AlertDescription className="text-base">
-                        Your appointment for {todayBookings[0].serviceName} with {todayBookings[0].staffName} is at {todayBookings[0].startTime}
+                        {/* Check if this is a blank booking (walk-in) */}
+                        {isBlankBooking
+                          ? 'Please wait for an available staff member. Thank you for visiting!'
+                          : `Your appointment for ${todayBookings[0].serviceName} with ${todayBookings[0].staffName} is at ${todayBookings[0].startTime}`}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -660,6 +668,7 @@ export default function CheckInPageClient() {
                       setTodayBookings([]);
                       setOriginalCustomerData(null);
                       setHasEditedDetails(false);
+                      setIsBlankBooking(false);
                     }}
                     className="mt-6"
                   >

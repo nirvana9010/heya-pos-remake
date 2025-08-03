@@ -26,6 +26,7 @@ interface CreateBookingData {
   isOverride?: boolean;
   overrideReason?: string;
   orderId?: string; // Pre-created order ID to link
+  isBlankBooking?: boolean; // Allow creating bookings without services
 }
 
 interface ServiceDetails {
@@ -64,7 +65,8 @@ export class BookingCreationService {
       staffId: data.staffId
     }] : []);
 
-    if (services.length === 0) {
+    // Allow blank bookings (for walk-in check-ins)
+    if (services.length === 0 && !data.isBlankBooking) {
       throw new Error('At least one service is required');
     }
 
@@ -84,30 +86,35 @@ export class BookingCreationService {
       let totalDuration = 0;
       const serviceDetails: Array<ServiceDetails & { staffId?: string }> = [];
       
-      for (const bookingService of services) {
-        const service = await this.getServiceDetails(bookingService.serviceId, tx);
-        if (!service) {
-          throw new Error(`Service not found: ${bookingService.serviceId}`);
+      if (services.length > 0) {
+        for (const bookingService of services) {
+          const service = await this.getServiceDetails(bookingService.serviceId, tx);
+          if (!service) {
+            throw new Error(`Service not found: ${bookingService.serviceId}`);
+          }
+          
+          const duration = bookingService.duration || service.duration;
+          const price = bookingService.price !== undefined ? bookingService.price : service.price;
+          
+          serviceDetails.push({
+            ...service,
+            duration,
+            price,
+            staffId: bookingService.staffId || data.staffId
+          });
+          
+          totalAmount += price;
+          totalDuration += duration;
         }
-        
-        const duration = bookingService.duration || service.duration;
-        const price = bookingService.price !== undefined ? bookingService.price : service.price;
-        
-        serviceDetails.push({
-          ...service,
-          duration,
-          price,
-          staffId: bookingService.staffId || data.staffId
-        });
-        
-        totalAmount += price;
-        totalDuration += duration;
+      } else if (data.isBlankBooking) {
+        // For blank bookings, set minimal duration (15 minutes to meet TimeSlot validation)
+        totalDuration = 15;
       }
 
       const endTime = new Date(data.startTime.getTime() + totalDuration * 60 * 1000);
 
-      // 3. Check staff schedules and business hours (unless merchant override)
-      if (!data.isOverride) {
+      // 3. Check staff schedules and business hours (unless merchant override or blank booking)
+      if (!data.isOverride && !data.isBlankBooking && serviceDetails.length > 0) {
         await this.validateStaffSchedules(
           serviceDetails,
           data.startTime,
@@ -116,51 +123,53 @@ export class BookingCreationService {
         );
       }
 
-      // 4. Check for conflicting bookings for each staff-service combination
-      let currentStartTime = new Date(data.startTime);
-      
-      for (const serviceDetail of serviceDetails) {
-        const serviceEndTime = new Date(currentStartTime.getTime() + serviceDetail.duration * 60 * 1000);
-        const staffId = serviceDetail.staffId;
+      // 4. Check for conflicting bookings for each staff-service combination (skip for blank bookings)
+      if (!data.isBlankBooking && serviceDetails.length > 0) {
+        let currentStartTime = new Date(data.startTime);
         
-        if (staffId) {
-          const conflicts = await this.bookingRepository.findConflictingBookings(
-            staffId,
-            currentStartTime,
-            serviceEndTime,
-            data.merchantId,
-            undefined,
-            tx
-          );
+        for (const serviceDetail of serviceDetails) {
+          const serviceEndTime = new Date(currentStartTime.getTime() + serviceDetail.duration * 60 * 1000);
+          const staffId = serviceDetail.staffId;
+          
+          if (staffId) {
+            const conflicts = await this.bookingRepository.findConflictingBookings(
+              staffId,
+              currentStartTime,
+              serviceEndTime,
+              data.merchantId,
+              undefined,
+              tx
+            );
 
-          if (conflicts.length > 0 && !data.isOverride) {
-            // Fetch staff name for better error message
-            const staff = await tx.staff.findUnique({
-              where: { id: staffId },
-              select: { firstName: true, lastName: true }
-            });
-            
-            const staffName = staff 
-              ? `${staff.firstName}${staff.lastName ? ' ' + staff.lastName : ''}`
-              : `Staff ID: ${staffId}`;
-            
-            const conflictInfo = conflicts.map(c => ({
-              id: c.id,
-              startTime: c.timeSlot.start,
-              endTime: c.timeSlot.end,
-              status: c.status.value,
-              staffId: staffId,
-              staffName: staffName,
-              serviceId: serviceDetail.id
-            }));
-            throw new ConflictException({
-              message: `Time slot has conflicts for ${staffName}`,
-              conflicts: conflictInfo,
-            });
+            if (conflicts.length > 0 && !data.isOverride) {
+              // Fetch staff name for better error message
+              const staff = await tx.staff.findUnique({
+                where: { id: staffId },
+                select: { firstName: true, lastName: true }
+              });
+              
+              const staffName = staff 
+                ? `${staff.firstName}${staff.lastName ? ' ' + staff.lastName : ''}`
+                : `Staff ID: ${staffId}`;
+              
+              const conflictInfo = conflicts.map(c => ({
+                id: c.id,
+                startTime: c.timeSlot.start,
+                endTime: c.timeSlot.end,
+                status: c.status.value,
+                staffId: staffId,
+                staffName: staffName,
+                serviceId: serviceDetail.id
+              }));
+              throw new ConflictException({
+                message: `Time slot has conflicts for ${staffName}`,
+                conflicts: conflictInfo,
+              });
+            }
           }
+          
+          currentStartTime = serviceEndTime;
         }
-        
-        currentStartTime = serviceEndTime;
       }
 
       // 5. Generate booking number
@@ -176,11 +185,13 @@ export class BookingCreationService {
       const autoConfirmBookings = merchantSettings?.autoConfirmBookings ?? true; // Default to true for backward compatibility
 
       // 7. Create the booking domain entity
-      // For now, use the first service for the main booking (will be updated in domain entity)
-      const primaryStaffId = serviceDetails[0]?.staffId || data.staffId;
+      // For blank bookings, use provided staffId or leave null
+      // For service bookings, use the first service for the main booking
+      const primaryStaffId = data.isBlankBooking ? data.staffId : (serviceDetails[0]?.staffId || data.staffId);
       
       // Auto-confirm only applies to ONLINE bookings (from booking app)
       // In-person bookings created in merchant app are always CONFIRMED
+      // Blank bookings are always confirmed so they appear in merchant dashboard
       const shouldAutoConfirm = data.source === 'ONLINE' ? autoConfirmBookings : true;
       
       // Debug logging
@@ -197,13 +208,13 @@ export class BookingCreationService {
         merchantId: data.merchantId,
         customerId: finalCustomerId,
         staffId: primaryStaffId,
-        serviceId: serviceDetails[0].id, // Temporary, will update domain to support array
+        serviceId: data.isBlankBooking ? null : serviceDetails[0]?.id, // Null for blank bookings
         locationId: data.locationId,
         timeSlot: new TimeSlot(data.startTime, endTime),
         status: shouldAutoConfirm ? BookingStatusValue.CONFIRMED : BookingStatusValue.PENDING,
         totalAmount,
         depositAmount: 0, // TODO: Calculate based on merchant settings
-        notes: data.notes,
+        notes: data.notes || (data.isBlankBooking ? 'Walk-in customer (blank booking)' : undefined),
         source: data.source,
         createdById: data.createdById,
         isOverride: data.isOverride || false,

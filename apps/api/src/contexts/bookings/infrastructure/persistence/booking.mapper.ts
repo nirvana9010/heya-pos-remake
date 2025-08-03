@@ -38,11 +38,9 @@ export class BookingMapper {
       console.warn(`[BookingMapper] Warning: locationId ${prismaBooking.locationId} exists but location relation is null`);
     }
 
-    // For now, we assume one service per booking (first service)
+    // Handle blank bookings (no services) and regular bookings
     const bookingService = prismaBooking.services[0];
-    if (!bookingService || !bookingService.service) {
-      throw new Error('Booking mapping failed: missing service information');
-    }
+    const isBlankBooking = !bookingService;
 
     const timeSlot = new TimeSlot(
       prismaBooking.startTime,
@@ -56,7 +54,7 @@ export class BookingMapper {
       timeSlot,
       customerId: prismaBooking.customerId,
       staffId: prismaBooking.providerId,
-      serviceId: bookingService.serviceId,
+      serviceId: isBlankBooking ? undefined : bookingService.serviceId,
       locationId: prismaBooking.locationId,
       merchantId: prismaBooking.merchantId,
       notes: prismaBooking.notes || undefined,

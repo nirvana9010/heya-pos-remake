@@ -129,6 +129,7 @@ export function BookingSlideOut({
   const [date, setDate] = useState<Date>(initialDate || defaultDate);
   const [time, setTime] = useState<Date>(initialTime || defaultTime);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId || filteredStaff[0]?.id || '');
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -171,6 +172,7 @@ export function BookingSlideOut({
       setDate(initialDate || defaultDate);
       setTime(initialTime || defaultTime);
       setSelectedServices([]);
+      setSelectedStaffId(initialStaffId || filteredStaff[0]?.id || '');
       setCustomerId("");
       setCustomerName("");
       setCustomerPhone("");
@@ -219,7 +221,7 @@ export function BookingSlideOut({
       duration: service.duration,
       basePrice: service.price,
       adjustedPrice: service.price,
-      staffId: filteredStaff[0]?.id || '', // Default to first staff member
+      staffId: selectedStaffId, // Use the single selected staff
       categoryName: service.categoryName
     };
     
@@ -238,11 +240,12 @@ export function BookingSlideOut({
     setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
   };
   
-  const updateServiceStaff = (serviceId: string, staffId: string) => {
-    setSelectedServices(selectedServices.map(s => 
-      s.id === serviceId ? { ...s, staffId } : s
-    ));
-  };
+  // No longer needed - we use a single staff selector
+  // const updateServiceStaff = (serviceId: string, staffId: string) => {
+  //   setSelectedServices(selectedServices.map(s => 
+  //     s.id === serviceId ? { ...s, staffId } : s
+  //   ));
+  // };
   
   const updateServicePrice = (serviceId: string, price: string) => {
     const numPrice = parseFloat(price) || 0;
@@ -328,7 +331,7 @@ export function BookingSlideOut({
         customerId: finalCustomerIdForBooking,
         services: selectedServices.map(service => ({
           serviceId: service.serviceId,
-          staffId: service.staffId,
+          staffId: selectedStaffId, // Use the single selected staff for all services
           // Include price override if changed (V2 uses 'price' not 'priceOverride')
           // Keep original prices - don't apply loyalty discount here
           ...(service.adjustedPrice !== service.basePrice && {
@@ -383,8 +386,8 @@ export function BookingSlideOut({
             duration: s.duration,
             price: s.adjustedPrice
           })),
-          staffName: selectedServices[0] ? staff.find(s => s.id === selectedServices[0].staffId)?.name || '' : '',
-          staffId: selectedServices[0]?.staffId || '',
+          staffName: staff.find(s => s.id === selectedStaffId)?.name || '',
+          staffId: selectedStaffId,
           startTime: response.startTime || combinedDateTime,
           endTime: response.endTime || new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
           // Use the totalAmount from the API response which reflects discounted prices
@@ -556,6 +559,49 @@ export function BookingSlideOut({
             )}
           </div>
           
+          {/* Staff Selection */}
+          <div>
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Staff Member
+            </h3>
+            <Select
+              value={selectedStaffId}
+              onValueChange={setSelectedStaffId}
+            >
+              <SelectTrigger className="w-full">
+                {selectedStaffId && (() => {
+                  const selected = filteredStaff.find(s => s.id === selectedStaffId);
+                  return selected ? (
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: selected.color }}
+                      />
+                      <span>{selected.name}</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="Select staff member" />
+                  );
+                })()}
+                {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
+              </SelectTrigger>
+              <SelectContent>
+                {filteredStaff.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: member.color }}
+                      />
+                      {member.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           {/* Services Section */}
           <div>
             <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -605,31 +651,8 @@ export function BookingSlideOut({
                         </Button>
                       </div>
                       
-                      {/* Staff and Price Row */}
+                      {/* Price Row */}
                       <div className="flex items-center gap-2">
-                        {/* Staff Selector */}
-                        <Select
-                          value={service.staffId}
-                          onValueChange={(value) => updateServiceStaff(service.id, value)}
-                        >
-                          <SelectTrigger className="h-9 w-40 bg-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredStaff.map((member) => (
-                              <SelectItem key={member.id} value={member.id}>
-                                <div className="flex items-center gap-2">
-                                  <div 
-                                    className="w-3 h-3 rounded-full" 
-                                    style={{ backgroundColor: member.color }}
-                                  />
-                                  <span>{member.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
                         {/* Price Controls */}
                         <div className="flex items-center gap-1 ml-auto">
                           {editingPriceId === service.id ? (
@@ -699,14 +722,15 @@ export function BookingSlideOut({
                             <>
                               {/* Display Mode */}
                               <div className="flex items-center gap-1">
-                                <div className="px-3 py-1.5 bg-white border rounded-md font-medium text-sm">
+                                <div className="px-3 py-1.5 bg-gray-100 rounded-md font-medium text-sm text-gray-700">
                                   ${service.adjustedPrice.toFixed(2)}
                                 </div>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => setEditingPriceId(service.id)}
-                                  className="h-9 w-9 p-0 hover:bg-gray-100"
+                                  className="h-9 w-9 p-0 hover:bg-blue-50"
+                                  title="Edit price"
                                 >
                                   <Pencil className="h-3.5 w-3.5 text-gray-500" />
                                 </Button>

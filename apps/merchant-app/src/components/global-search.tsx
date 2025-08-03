@@ -115,7 +115,7 @@ export function GlobalSearch() {
           bookings.forEach((booking: any) => {
             // Handle different booking data structures
             const customerName = booking.customer?.name || booking.customerName || 'Unknown';
-            const serviceName = booking.service?.name || booking.serviceName || 'Service';
+            const serviceName = booking.service?.name || booking.serviceName || 'Service not selected';
             const startTime = booking.startTime || booking.dateTime || booking.date;
             
             searchResults.push({

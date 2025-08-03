@@ -10,7 +10,7 @@ export interface BookingProps {
   timeSlot: TimeSlot;
   customerId: string;
   staffId?: string;
-  serviceId: string;
+  serviceId?: string; // Optional for blank bookings
   locationId?: string;
   merchantId: string;
   notes?: string;
@@ -44,7 +44,7 @@ export class Booking {
   private _timeSlot: TimeSlot;
   private _customerId: string;
   private _staffId?: string;
-  private _serviceId: string;
+  private _serviceId?: string;
   private _locationId?: string;
   private _merchantId: string;
   private _notes?: string;
@@ -106,8 +106,8 @@ export class Booking {
       throw new BadRequestException('Booking ID and number are required');
     }
 
-    if (!props.customerId || !props.serviceId) {
-      throw new BadRequestException('Customer and service are required');
+    if (!props.customerId) {
+      throw new BadRequestException('Customer is required');
     }
 
     if (props.totalAmount < 0) {
@@ -342,7 +342,7 @@ export class Booking {
   get timeSlot(): TimeSlot { return this._timeSlot; }
   get customerId(): string { return this._customerId; }
   get staffId(): string | undefined { return this._staffId; }
-  get serviceId(): string { return this._serviceId; }
+  get serviceId(): string | undefined { return this._serviceId; }
   get locationId(): string | undefined { return this._locationId; }
   get merchantId(): string { return this._merchantId; }
   get notes(): string | undefined { return this._notes; }

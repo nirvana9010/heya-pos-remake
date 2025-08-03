@@ -287,6 +287,11 @@ export default function BookingsManager() {
     const query = searchQuery.toLowerCase();
     
     const filtered = bookings.filter(booking => {
+      // Auto-hide deleted bookings (just like on calendar)
+      if (booking.status.toLowerCase() === 'deleted') {
+        return false;
+      }
+      
       // Search filter
       if (searchQuery && !(
         booking.customerName.toLowerCase().includes(query) ||
@@ -1294,15 +1299,19 @@ export default function BookingsManager() {
                                         {booking.services.map(s => s.name).join(' + ')}
                                       </p>
                                       <p className="text-sm text-gray-500">
-                                        with {booking.staffName || 'Staff'} • {booking.duration || 60} min
+                                        with {booking.staffName || 'Staff'} • {booking.duration || ((booking.serviceName === 'Service not selected' || booking.serviceName === 'Service') && Number(booking.totalAmount || 0) === 0 ? 15 : 60)} min
                                         {booking.services.length > 1 && ` • ${booking.services.length} services`}
                                       </p>
                                     </div>
                                   ) : (
                                     <div>
-                                      <p className="text-gray-700">{booking.serviceName || 'Service'}</p>
+                                      <p className="text-gray-700">
+                                        {(booking.serviceName === 'Service not selected' || (booking.serviceName === 'Service' && Number(booking.totalAmount || 0) === 0))
+                                          ? <span className="italic text-orange-600">Service not selected</span>
+                                          : booking.serviceName || 'Service not selected'}
+                                      </p>
                                       <p className="text-sm text-gray-500">
-                                        with {booking.staffName || 'Staff'} • {booking.duration || 60} min
+                                        with {booking.staffName || 'Staff'} • {booking.duration || ((booking.serviceName === 'Service not selected' || booking.serviceName === 'Service') && Number(booking.totalAmount || 0) === 0 ? 15 : 60)} min
                                       </p>
                                     </div>
                                   )}
@@ -1529,6 +1538,12 @@ export default function BookingsManager() {
                 ? updatedBooking.services.map((s: any) => s.name).join(' + ')
                 : updatedBooking.services?.[0]?.name || updatedBooking.serviceName || '';
               
+              // Look up the staff name from the staff array
+              const selectedStaff = staff.find(s => s.id === updatedBooking.staffId);
+              const staffName = selectedStaff 
+                ? (selectedStaff.firstName + (selectedStaff.lastName ? ' ' + selectedStaff.lastName : ''))
+                : 'Unassigned';
+              
               // Optimistically update the local state immediately with ALL fields
               setBookings(prevBookings => 
                 prevBookings.map(b => {
@@ -1538,7 +1553,7 @@ export default function BookingsManager() {
                       startTime: updatedBooking.startTime,
                       endTime: updatedBooking.endTime,
                       staffId: updatedBooking.staffId,
-                      staffName: updatedBooking.staffName || b.staffName,
+                      staffName: staffName,
                       services: updatedBooking.services,
                       serviceName: serviceName,
                       notes: updatedBooking.notes,
@@ -1561,7 +1576,7 @@ export default function BookingsManager() {
                 startTime: updatedBooking.startTime,
                 endTime: updatedBooking.endTime,
                 staffId: updatedBooking.staffId,
-                staffName: updatedBooking.staffName || selectedBookingForDetails.staffName,
+                staffName: staffName,
                 services: updatedBooking.services,
                 serviceName: serviceName,
                 notes: updatedBooking.notes,
@@ -1599,7 +1614,6 @@ export default function BookingsManager() {
                 notes: updatedBooking.notes
               });
               
-              
               toast({
                 title: "Success",
                 description: "Booking updated successfully",
@@ -1608,6 +1622,9 @@ export default function BookingsManager() {
               // DON'T refresh from server - it returns old single-service format
               // and overwrites our multi-service data. The optimistic update already has the correct data.
               // This matches the calendar implementation pattern.
+              
+              // Return the updated booking data
+              return apiResponse || updatedDetails;
               
             } catch (error) {
               

@@ -192,6 +192,71 @@ export class TimezoneUtils {
       return false;
     }
   }
+
+  /**
+   * Round a date up to the nearest 5-minute increment
+   */
+  static roundUpToNearest5Minutes(date: Date): Date {
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 5) * 5;
+    const rounded = new Date(date);
+    
+    if (roundedMinutes >= 60) {
+      // If we rounded past 60 minutes, add an hour and reset minutes
+      rounded.setHours(rounded.getHours() + 1);
+      rounded.setMinutes(0, 0, 0);
+    } else {
+      rounded.setMinutes(roundedMinutes, 0, 0);
+    }
+    
+    return rounded;
+  }
+
+  /**
+   * Round a date up to the nearest 5-minute increment in a specific timezone
+   */
+  static roundUpToNearest5MinutesInTimezone(date: Date, timezone: string): Date {
+    // Convert to the target timezone to get correct local time
+    const timeInTz = this.toTimezoneDisplay(date, timezone);
+    
+    // Extract the date and time parts correctly
+    // timeInTz.date is in DD/MM/YYYY format
+    // timeInTz.time is in HH:MM format (24-hour)
+    const [day, month, year] = timeInTz.date.split('/').map(n => parseInt(n));
+    const [hour, minute] = timeInTz.time.split(':').map(n => parseInt(n));
+    
+    // Calculate rounded minutes
+    const roundedMinutes = Math.ceil(minute / 5) * 5;
+    let finalHour = hour;
+    let finalMinutes = roundedMinutes;
+    let finalDay = day;
+    let finalMonth = month;
+    let finalYear = year;
+    
+    // Handle minute overflow
+    if (roundedMinutes >= 60) {
+      finalMinutes = 0;
+      finalHour = hour + 1;
+      
+      // Handle hour overflow
+      if (finalHour >= 24) {
+        finalHour = 0;
+        // Add a day (simplified - doesn't handle month/year boundaries perfectly but good enough for our use)
+        const tempDate = new Date(year, month - 1, day);
+        tempDate.setDate(tempDate.getDate() + 1);
+        finalDay = tempDate.getDate();
+        finalMonth = tempDate.getMonth() + 1;
+        finalYear = tempDate.getFullYear();
+      }
+    }
+    
+    // Format the rounded date and time
+    const roundedDateStr = `${finalYear}-${finalMonth.toString().padStart(2, '0')}-${finalDay.toString().padStart(2, '0')}`;
+    const roundedTimeStr = `${finalHour.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+    
+    // Create the date in the target timezone and convert to UTC
+    return this.createDateInTimezone(roundedDateStr, roundedTimeStr, timezone);
+  }
 }
 
 export default TimezoneUtils;
