@@ -40,11 +40,13 @@ export class BookingStatus {
       ],
       [BookingStatusValue.PENDING]: [
         BookingStatusValue.CONFIRMED,
+        BookingStatusValue.COMPLETED,  // Allow direct completion when paid
         BookingStatusValue.CANCELLED,
         BookingStatusValue.NO_SHOW
       ],
       [BookingStatusValue.CONFIRMED]: [
         BookingStatusValue.IN_PROGRESS,
+        BookingStatusValue.COMPLETED,  // Allow direct completion when paid
         BookingStatusValue.CANCELLED,
         BookingStatusValue.NO_SHOW
       ],

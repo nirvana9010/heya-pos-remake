@@ -638,12 +638,14 @@ export class BookingUpdateService {
         }
 
         // Always auto-complete the booking when payment is made (simplified workflow)
+        // This handles bookings that were never started (still confirmed/pending)
         if (booking?.status !== 'COMPLETED') {
-          console.log(`[BookingUpdateService] Auto-completing booking ${bookingId} after payment`);
+          const currentStatus = booking.status;
+          console.log(`[BookingUpdateService] Auto-completing booking ${bookingId} after payment (current status: ${currentStatus})`);
           
           try {
             await this.completeBooking(bookingId, merchantId);
-            console.log(`[BookingUpdateService] Successfully auto-completed booking ${bookingId}`);
+            console.log(`[BookingUpdateService] Successfully auto-completed booking ${bookingId} (${currentStatus} → COMPLETED)`);
           } catch (completeError) {
             // Log error but don't fail the payment operation
             console.error(`[BookingUpdateService] Failed to auto-complete booking ${bookingId}:`, completeError);
