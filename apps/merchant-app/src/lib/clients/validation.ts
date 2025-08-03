@@ -172,7 +172,8 @@ export const requestSchemas = {
     staffId: validators.optional(validators.string),
     // NUCLEAR: Removed enum validation - accept any string for status
     status: validators.optional(validators.string),
-    notes: validators.optional(validators.string)
+    notes: validators.optional(validators.string),
+    services: validators.optional(validators.array)
   },
 
   createCustomer: {

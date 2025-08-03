@@ -51,3 +51,31 @@ If creating the necessary test state via the main API proves too difficult, the 
     
 
 The agent should be explicitly instructed: **"If you cannot reliably create the data needed for a test, create the data directly in the database or use a simpler, dedicated setup script to isolate the feature under test."**
+
+## **Critical Debugging Lesson: Always Suspect Frontend Validation First**
+
+**Key Learning from Booking Service Update Bug (August 2025)**
+
+When API calls appear to "silently fail" (frontend shows request being prepared but no corresponding request appears in backend logs), the issue is often **frontend validation blocking the request before it reaches the network layer**.
+
+### **Debugging Pattern for "Silent" API Failures:**
+
+1. **Check if the API call method is being reached**: Add console.log before the API call
+2. **Check if the API call completes**: Add console.log after the API call  
+3. **If the first log appears but not the second**: The API call is failing silently
+4. **Most likely cause**: Frontend validation schema rejecting the request payload
+
+### **Specific Issue Pattern:**
+- **Problem**: Validation schema missing required fields that are being sent in the request
+- **Symptom**: Request preparation logs appear, but no network request is made
+- **Location**: Look in validation.ts files for requestSchemas definitions
+- **Solution**: Add missing fields to the appropriate schema (e.g., `services: validators.optional(validators.array)`)
+
+### **Example from Real Bug:**
+- **Frontend logs showed**: "ABOUT TO CALL updateBooking API" but never "API call completed"
+- **Backend logs showed**: No PATCH request received
+- **Root cause**: `updateBooking` schema was missing `services` field validation
+- **Fix**: Added `services: validators.optional(validators.array)` to requestSchemas.updateBooking
+
+### **Prevention:**
+When implementing new API features that send additional fields, always check and update the corresponding validation schemas to prevent silent failures.

@@ -127,6 +127,14 @@ function BookingDetailsSlideOutComponent({
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
   
+  // Debug logging
+  useEffect(() => {
+    console.log('[BookingDetailsSlideOut] Component mounted/updated');
+    console.log('[BookingDetailsSlideOut] Props - services:', services?.length || 0);
+    console.log('[BookingDetailsSlideOut] Props - staff:', staff?.length || 0);
+    console.log('[BookingDetailsSlideOut] Props - booking ID:', booking?.id);
+  }, [services, staff, booking]);
+  
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
@@ -353,6 +361,14 @@ function BookingDetailsSlideOutComponent({
 
   // Service management functions
   const handleAddService = (service: any) => {
+    console.log('[BookingDetailsSlideOut] handleAddService called', {
+      service,
+      currentServicesCount: selectedServices.length,
+      isOpen,
+      bookingId: booking?.id,
+      formDataStaffId: formData.staffId
+    });
+    
     const newService = {
       id: `service-${Date.now()}-${Math.random()}`,
       serviceId: service.id || service.serviceId,  // Ensure we're using the actual database ID
@@ -362,12 +378,25 @@ function BookingDetailsSlideOutComponent({
       adjustedPrice: service.price,
       staffId: formData.staffId
     };
-    setSelectedServices([...selectedServices, newService]);
+    
+    console.log('[BookingDetailsSlideOut] Adding new service:', newService);
+    const updatedServices = [...selectedServices, newService];
+    console.log('[BookingDetailsSlideOut] Updated services array:', updatedServices);
+    setSelectedServices(updatedServices);
     setIsServiceSlideoutOpen(false);
   };
   
   const handleRemoveService = (serviceId: string) => {
-    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
+    console.log('[BookingDetailsSlideOut] handleRemoveService called', {
+      serviceId,
+      currentServices: selectedServices.map(s => ({ id: s.id, name: s.name })),
+      isOpen,
+      bookingId: booking?.id
+    });
+    
+    const updatedServices = selectedServices.filter(s => s.id !== serviceId);
+    console.log('[BookingDetailsSlideOut] Services after removal:', updatedServices.map(s => ({ id: s.id, name: s.name })));
+    setSelectedServices(updatedServices);
   };
   
   const handleServicePriceChange = (serviceId: string, price: number) => {
@@ -408,9 +437,13 @@ function BookingDetailsSlideOutComponent({
       name: s.name  // Include name for display purposes
     }));
     
-    console.log('=== SAVING BOOKING WITH SERVICES ===');
-    console.log('Selected services:', selectedServices);
-    console.log('Services to send:', servicesToSend);
+    console.log('=== SAVING BOOKING WITH SERVICES (BOOKING PAGE) ===');
+    console.log('[BookingDetailsSlideOut] Booking ID:', booking.id);
+    console.log('[BookingDetailsSlideOut] Selected services count:', selectedServices.length);
+    console.log('[BookingDetailsSlideOut] Selected services:', selectedServices);
+    console.log('[BookingDetailsSlideOut] Services to send:', servicesToSend);
+    console.log('[BookingDetailsSlideOut] Form data staffId:', formData.staffId);
+    console.log('[BookingDetailsSlideOut] Total duration:', totalDuration);
     
     // Validate that all services have valid IDs
     const invalidServices = servicesToSend.filter(s => !s.serviceId);
@@ -465,7 +498,11 @@ function BookingDetailsSlideOutComponent({
       }));
     }
     
+    console.log('[BookingDetailsSlideOut] Calling onSave with payload:', updatePayload);
+    console.log('[BookingDetailsSlideOut] onSave function exists?', typeof onSave === 'function');
+    
     onSave(updatePayload).then(() => {
+      console.log('[BookingDetailsSlideOut] onSave completed successfully');
       // Show success toast
       toast({
         title: "Booking updated",
@@ -795,7 +832,15 @@ function BookingDetailsSlideOutComponent({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsServiceSlideoutOpen(true)}
+                    onClick={() => {
+                      console.log('[BookingDetailsSlideOut] Add Service button clicked');
+                      console.log('[BookingDetailsSlideOut] Current services:', services?.length || 0, 'available');
+                      console.log('[BookingDetailsSlideOut] Current selected services:', selectedServices.length, 'selected');
+                      console.log('[BookingDetailsSlideOut] Is editing?', isEditing);
+                      console.log('[BookingDetailsSlideOut] Opening service selection slideout...');
+                      setIsServiceSlideoutOpen(true);
+                      console.log('[BookingDetailsSlideOut] isServiceSlideoutOpen set to true');
+                    }}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Add Service

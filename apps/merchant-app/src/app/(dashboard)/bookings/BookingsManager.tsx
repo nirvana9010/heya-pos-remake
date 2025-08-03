@@ -11,6 +11,7 @@ import { useToast } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { PaymentDialogPortal } from '@/components/PaymentDialogPortal';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { BookingDetailsSlideOut } from '@/components/BookingDetailsSlideOut';
 // import { Progress } from '@heya-pos/ui'; // Progress component not available in UI package
 import { 
   DropdownMenu, 
@@ -90,6 +91,8 @@ export default function BookingsManager() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [processingPayments, setProcessingPayments] = useState<Set<string>>(new Set());
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
+  const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
+  const [isDetailsSlideOutOpen, setIsDetailsSlideOutOpen] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -336,13 +339,30 @@ export default function BookingsManager() {
   // Quick action handlers
   const handleCheckIn = async (bookingId: string) => {
     try {
+      // Optimistically update the UI immediately
+      setBookings(prevBookings => 
+        prevBookings.map(b => 
+          b.id === bookingId
+            ? { ...b, status: 'in-progress' }
+            : b
+        )
+      );
+      
       await apiClient.startBooking(bookingId);
+      
       toast({
         title: "Checked In",
         description: "Customer has been checked in successfully.",
       });
-      loadBookings();
+      
+      // Refresh in background after a longer delay to ensure backend has updated
+      setTimeout(async () => {
+        await loadBookings();
+      }, 5000);
     } catch (error) {
+      // Rollback on error
+      await loadBookings();
+      
       toast({
         title: "Error",
         description: "Failed to check in customer.",
@@ -447,6 +467,20 @@ export default function BookingsManager() {
     });
   };
 
+  const handleBookingClick = (booking: Booking) => {
+    setSelectedBookingForDetails(booking);
+    setIsDetailsSlideOutOpen(true);
+  };
+
+  const handleSlideOutClose = () => {
+    setIsDetailsSlideOutOpen(false);
+    setSelectedBookingForDetails(null);
+    // DON'T refresh bookings here - it causes a race condition where
+    // the API call might return stale data before database updates commit.
+    // The optimistic updates in onSave already show the correct state.
+    // This matches the calendar implementation pattern.
+  };
+
   const handleMarkPaid = async (bookingId: string, amount: number) => {
     // Store previous state for rollback
     const previousBookings = [...bookings];
@@ -482,13 +516,13 @@ export default function BookingsManager() {
         description: "Booking has been marked as paid.",
       });
       
-      // Reload bookings to ensure UI is in sync
+      // Reload bookings to ensure UI is in sync after a longer delay
       setTimeout(async () => {
         if (mountedRef.current) {
           invalidateBookingsCache();
           await loadBookings();
         }
-      }, 1000);
+      }, 5000);
     } catch (error: any) {
       // Create a proper error log with all available details
       const errorDetails = {
@@ -912,7 +946,7 @@ export default function BookingsManager() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => router.push(`/bookings/${row.id}`)}
+            onClick={() => handleBookingClick(row)}
           >
             View
           </Button>
@@ -1224,7 +1258,7 @@ export default function BookingsManager() {
                             
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <div className="flex-1 cursor-pointer" onClick={() => router.push(`/bookings/${booking.id}`)}>
+                                <div className="flex-1 cursor-pointer" onClick={() => handleBookingClick(booking)}>
                               <div className="flex items-center gap-4 mb-2">
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-gray-400" />
@@ -1311,9 +1345,22 @@ export default function BookingsManager() {
                                 isProcessingPayment={processingOrders.has(booking.id)}
                                 onStatusChange={async (bookingId, status) => {
                                   try {
+                                    // Transform status to lowercase for local state
+                                    const localStatus = status.toLowerCase().replace(/_/g, '-');
+                                    
+                                    // Optimistically update the UI immediately
+                                    setBookings(prevBookings => 
+                                      prevBookings.map(b => 
+                                        b.id === bookingId
+                                          ? { ...b, status: localStatus }
+                                          : b
+                                      )
+                                    );
+                                    
+                                    // Call appropriate API endpoint
                                     switch (status) {
                                       case 'in-progress':
-                                        handleCheckIn(bookingId);
+                                        await apiClient.startBooking(bookingId);
                                         break;
                                       case 'completed':
                                         await apiClient.completeBooking(bookingId);
@@ -1325,8 +1372,20 @@ export default function BookingsManager() {
                                         // For other statuses like 'confirmed', 'no-show', use updateBooking
                                         await apiClient.updateBooking(bookingId, { status });
                                     }
-                                    await loadBookings();
+                                    
+                                    toast({
+                                      title: "Status updated",
+                                      description: `Booking marked as ${localStatus.replace('-', ' ')}`,
+                                    });
+                                    
+                                    // Refresh in background after a longer delay to ensure backend has updated
+                                    setTimeout(async () => {
+                                      await loadBookings();
+                                    }, 5000);
                                   } catch (error) {
+                                    // Rollback on error
+                                    await loadBookings();
+                                    
                                     toast({
                                       title: "Error",
                                       description: "Failed to update booking status",
@@ -1336,8 +1395,14 @@ export default function BookingsManager() {
                                 }}
                                 onPaymentToggle={(bookingId) => handleMarkPaid(bookingId, booking.totalAmount || booking.price || 0)}
                                 onProcessPayment={handleProcessPayment}
-                                onReschedule={(bookingId) => router.push(`/bookings/${bookingId}/edit`)}
-                                onEdit={(bookingId) => router.push(`/bookings/${bookingId}`)}
+                                onReschedule={(bookingId) => {
+                                  const booking = bookings.find(b => b.id === bookingId);
+                                  if (booking) handleBookingClick(booking);
+                                }}
+                                onEdit={(bookingId) => {
+                                  const booking = bookings.find(b => b.id === bookingId);
+                                  if (booking) handleBookingClick(booking);
+                                }}
                               />
                             </div>
                               </div>
@@ -1419,6 +1484,392 @@ export default function BookingsManager() {
           }}
           enableTips={merchantSettings?.settings?.enableTips || false}
           defaultTipPercentages={merchantSettings?.settings?.defaultTipPercentages}
+        />
+      )}
+
+      {/* Booking Details Slideout */}
+      {selectedBookingForDetails && (
+        <BookingDetailsSlideOut
+          isOpen={isDetailsSlideOutOpen}
+          onClose={handleSlideOutClose}
+          booking={{
+            id: selectedBookingForDetails.id,
+            bookingNumber: selectedBookingForDetails.bookingNumber,
+            customerId: selectedBookingForDetails.customerId,
+            customerName: selectedBookingForDetails.customerName || '',
+            customerPhone: selectedBookingForDetails.customerPhone || '',
+            customerEmail: selectedBookingForDetails.customerEmail || '',
+            serviceName: selectedBookingForDetails.serviceName || '',
+            serviceId: selectedBookingForDetails.serviceId || '',
+            services: selectedBookingForDetails.services || [],
+            staffName: selectedBookingForDetails.staffName || '',
+            staffId: selectedBookingForDetails.staffId || '',
+            startTime: selectedBookingForDetails.startTime ? new Date(selectedBookingForDetails.startTime) : new Date(),
+            endTime: selectedBookingForDetails.endTime ? new Date(selectedBookingForDetails.endTime) : new Date(),
+            duration: selectedBookingForDetails.duration || 60,
+            status: selectedBookingForDetails.status || 'pending',
+            isPaid: selectedBookingForDetails.paymentStatus === 'PAID' || selectedBookingForDetails.paymentStatus === 'paid',
+            totalPrice: selectedBookingForDetails.totalAmount || selectedBookingForDetails.price || 0,
+            paidAmount: selectedBookingForDetails.paidAmount || 0,
+            notes: selectedBookingForDetails.notes || '',
+          }}
+          staff={staff}
+          services={services}
+          customers={customers}
+          onSave={async (updatedBooking) => {
+            try {
+              console.log('\n\n=== [BookingsManager] onSave CALLBACK START ===');
+              console.log('[BookingsManager] Location: BOOKINGS PAGE');
+              console.log('[BookingsManager] Booking ID:', selectedBookingForDetails?.id);
+              console.log('[BookingsManager] Services count:', updatedBooking.services?.length || 0);
+              if (updatedBooking.services?.length > 0) {
+                console.log('[BookingsManager] Services detail:');
+                updatedBooking.services.forEach((s: any, i: number) => {
+                  console.log(`  [${i+1}] ${s.name}`);
+                  console.log(`      - Service ID: ${s.serviceId || s.id}`);
+                  console.log(`      - Price: ${s.adjustedPrice || s.price}`);
+                  console.log(`      - Duration: ${s.duration} min`);
+                });
+              }
+              
+              // Calculate total price from services
+              const totalPrice = updatedBooking.services?.reduce((sum: number, s: any) => {
+                const price = s.adjustedPrice || s.price || 0;
+                console.log(`Service ${s.name}: price = ${price}`);
+                return sum + price;
+              }, 0) || updatedBooking.totalPrice || 0;
+              
+              // Calculate total duration from services
+              const totalDuration = updatedBooking.services?.reduce((sum: number, s: any) => {
+                const duration = s.duration || 0;
+                console.log(`Service ${s.name}: duration = ${duration}`);
+                return sum + duration;
+              }, 0) || updatedBooking.duration || 60;
+              
+              console.log('Calculated totals - Price:', totalPrice, 'Duration:', totalDuration);
+              
+              // Build the service names string
+              const serviceName = updatedBooking.services?.length > 1 
+                ? updatedBooking.services.map((s: any) => s.name).join(' + ')
+                : updatedBooking.services?.[0]?.name || updatedBooking.serviceName || '';
+              
+              // Optimistically update the local state immediately with ALL fields
+              setBookings(prevBookings => 
+                prevBookings.map(b => {
+                  if (b.id === selectedBookingForDetails.id) {
+                    const updated = {
+                      ...b,
+                      startTime: updatedBooking.startTime,
+                      endTime: updatedBooking.endTime,
+                      staffId: updatedBooking.staffId,
+                      staffName: updatedBooking.staffName || b.staffName,
+                      services: updatedBooking.services,
+                      serviceName: serviceName,
+                      notes: updatedBooking.notes,
+                      duration: totalDuration,
+                      // Update both totalAmount and price to ensure UI reflects changes
+                      totalAmount: totalPrice,
+                      price: totalPrice,
+                      // Also update servicePrice if it exists
+                      servicePrice: totalPrice,
+                    };
+                    console.log('[BookingsManager] Optimistic update applied:', {
+                      id: updated.id,
+                      customerName: updated.customerName,
+                      servicesCount: updated.services?.length,
+                      totalAmount: updated.totalAmount,
+                      duration: updated.duration
+                    });
+                    return updated;
+                  }
+                  return b;
+                })
+              );
+
+              // Also update the selected booking for the slideout to reflect changes immediately
+              const updatedDetails = {
+                ...selectedBookingForDetails,
+                startTime: updatedBooking.startTime,
+                endTime: updatedBooking.endTime,
+                staffId: updatedBooking.staffId,
+                staffName: updatedBooking.staffName || selectedBookingForDetails.staffName,
+                services: updatedBooking.services,
+                serviceName: serviceName,
+                notes: updatedBooking.notes,
+                duration: totalDuration,
+                totalAmount: totalPrice,
+                price: totalPrice,
+                servicePrice: totalPrice,
+              };
+              setSelectedBookingForDetails(updatedDetails);
+              console.log('Updated selected booking details:', updatedDetails);
+              
+              // Map services for API call - ensure proper service ID structure
+              const mappedServices = updatedBooking.services?.map((s: any) => ({
+                serviceId: s.serviceId || s.id,  // Use serviceId if available, fallback to id
+                staffId: s.staffId || updatedBooking.staffId,
+                price: s.price || s.adjustedPrice,
+                duration: s.duration
+              }));
+              
+              // Validate services before sending
+              if (mappedServices?.some((s: any) => !s.serviceId)) {
+                console.error('Invalid service IDs detected:', mappedServices);
+                toast({
+                  title: "Error",
+                  description: "Invalid service data. Please try editing the booking again.",
+                  variant: "destructive"
+                });
+                return;
+              }
+              
+              // Update the booking through API with mapped services
+              console.log('🔥 [BookingsManager] ABOUT TO CALL updateBooking API');
+              console.log('🔥 [BookingsManager] Booking ID:', selectedBookingForDetails.id);
+              console.log('🔥 [BookingsManager] Update payload:', {
+                startTime: updatedBooking.startTime,
+                staffId: updatedBooking.staffId,
+                services: mappedServices,
+                notes: updatedBooking.notes
+              });
+              
+              const apiResponse = await apiClient.updateBooking(selectedBookingForDetails.id, {
+                startTime: updatedBooking.startTime,
+                staffId: updatedBooking.staffId,
+                services: mappedServices,
+                notes: updatedBooking.notes
+              });
+              
+              console.log('✅ [BookingsManager] updateBooking API call completed');
+              console.log('✅ [BookingsManager] API response:', apiResponse);
+              
+              toast({
+                title: "Success",
+                description: "Booking updated successfully",
+              });
+              
+              // DON'T refresh from server - it returns old single-service format
+              // and overwrites our multi-service data. The optimistic update already has the correct data.
+              // This matches the calendar implementation pattern.
+              console.log('[BookingsManager] Skipping background refresh to preserve optimistic update');
+              console.log('=== [BookingsManager] onSave CALLBACK END ===\n');
+              
+            } catch (error) {
+              console.error('❌ [BookingsManager] API call failed:', error);
+              console.error('❌ [BookingsManager] Error details:', {
+                message: error?.message,
+                status: error?.status,
+                response: error?.response,
+                stack: error?.stack
+              });
+              
+              toast({
+                title: "Error",
+                description: "Failed to update booking",
+                variant: "destructive",
+              });
+              // On error, reload to revert optimistic update
+              loadBookings();
+            }
+          }}
+          onDelete={async (bookingId) => {
+            try {
+              // Store previous state for potential rollback
+              const previousBookings = [...bookings];
+              
+              // Optimistically remove from UI
+              setBookings(prevBookings => prevBookings.filter(b => b.id !== bookingId));
+              
+              // Close the slideout
+              handleSlideOutClose();
+              
+              // Call API to delete
+              await apiClient.deleteBooking(bookingId);
+              
+              toast({
+                title: 'Booking deleted',
+                description: 'The booking has been successfully removed',
+              });
+              
+              // Refresh in background to sync with server
+              setTimeout(async () => {
+                await loadBookings();
+              }, 1000);
+            } catch (error: any) {
+              // Rollback on error
+              await loadBookings();
+              
+              toast({
+                title: 'Error',
+                description: `Failed to delete booking: ${error?.message || 'Please try again'}`,
+                variant: 'destructive',
+              });
+            }
+          }}
+          onStatusChange={async (bookingId, status) => {
+            try {
+              // Store previous state for rollback
+              const previousBookings = [...bookings];
+              
+              // Transform status to lowercase for local state (UI expects lowercase)
+              const localStatus = status.toLowerCase().replace(/_/g, '-');
+              
+              // Optimistically update the UI immediately
+              setBookings(prevBookings => 
+                prevBookings.map(b => 
+                  b.id === bookingId
+                    ? { ...b, status: localStatus }
+                    : b
+                )
+              );
+              
+              // Also update the selected booking for details
+              if (selectedBookingForDetails?.id === bookingId) {
+                setSelectedBookingForDetails({
+                  ...selectedBookingForDetails,
+                  status: localStatus
+                });
+              }
+              
+              // Use proper API endpoints for status changes
+              switch (status) {
+                case 'IN_PROGRESS':
+                case 'in-progress':
+                  await apiClient.startBooking(bookingId);
+                  break;
+                case 'COMPLETED':
+                case 'completed':
+                  await apiClient.completeBooking(bookingId);
+                  break;
+                case 'CANCELLED':
+                case 'cancelled':
+                  await apiClient.cancelBooking(bookingId, 'Cancelled by user');
+                  break;
+                default:
+                  // For other status changes (CONFIRMED, NO_SHOW), use the general update endpoint
+                  await apiClient.updateBooking(bookingId, { status });
+              }
+              
+              toast({
+                title: "Status updated",
+                description: `Booking marked as ${localStatus.replace('-', ' ')}`,
+                variant: "default",
+              });
+              
+              // Refresh in background (don't wait for it)
+              setTimeout(async () => {
+                await loadBookings();
+              }, 1000);
+            } catch (error: any) {
+              // Rollback on error
+              await loadBookings();
+              
+              // Extract error message
+              let errorMessage = "Failed to update booking status";
+              if (error?.message) {
+                errorMessage = error.message;
+              } else if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+              }
+              
+              toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+              });
+            }
+          }}
+          onPaymentStatusChange={async (bookingId, isPaid, paidAmount) => {
+            try {
+              if (isPaid) {
+                // Store previous state for rollback
+                const previousBookings = [...bookings];
+                
+                // Optimistically update the UI immediately
+                setBookings(prevBookings => 
+                  prevBookings.map(b => 
+                    b.id === bookingId
+                      ? { 
+                          ...b, 
+                          isPaid: true, 
+                          paidAmount: paidAmount || b.totalAmount || b.price || 0,
+                          paymentStatus: 'PAID'
+                        }
+                      : b
+                  )
+                );
+                
+                // Also update the selected booking for details
+                if (selectedBookingForDetails?.id === bookingId) {
+                  setSelectedBookingForDetails({
+                    ...selectedBookingForDetails,
+                    isPaid: true,
+                    paidAmount: paidAmount || selectedBookingForDetails.totalAmount || selectedBookingForDetails.price || 0,
+                    paymentStatus: 'PAID'
+                  });
+                }
+                
+                // Mark as paid through API
+                const result = await apiClient.markBookingAsPaid(bookingId, 'CASH');
+                
+                if (result.success) {
+                  toast({
+                    title: "Payment recorded",
+                    description: "Booking has been marked as paid successfully.",
+                  });
+                  
+                  // Refresh in background to ensure consistency
+                  setTimeout(async () => {
+                    await loadBookings();
+                  }, 1000);
+                } else {
+                  throw new Error(result.message || 'Failed to mark as paid');
+                }
+              } else {
+                // For unpaid, just update local state (no API endpoint for this yet)
+                setBookings(prevBookings => 
+                  prevBookings.map(b => 
+                    b.id === bookingId
+                      ? { ...b, isPaid: false, paymentStatus: 'unpaid', paidAmount: 0 }
+                      : b
+                  )
+                );
+                
+                if (selectedBookingForDetails?.id === bookingId) {
+                  setSelectedBookingForDetails({
+                    ...selectedBookingForDetails,
+                    isPaid: false,
+                    paymentStatus: 'unpaid',
+                    paidAmount: 0
+                  });
+                }
+                
+                toast({
+                  title: "Payment status updated",
+                  description: "Booking has been marked as unpaid.",
+                });
+              }
+            } catch (error: any) {
+              // Rollback on error
+              await loadBookings();
+              
+              // Extract error message
+              let errorMessage = "Failed to update payment status";
+              if (typeof error === 'string') {
+                errorMessage = error;
+              } else if (error?.message) {
+                errorMessage = error.message;
+              } else if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+              }
+              
+              toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+              });
+            }
+          }}
         />
       )}
 
