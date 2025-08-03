@@ -1157,6 +1157,18 @@ function CalendarContent() {
                     }));
                   }
                   
+                  // Validate services before sending
+                  if (mappedServices?.some(s => !s.serviceId)) {
+                    console.error('Invalid service IDs detected:', mappedServices);
+                    toast({
+                      title: "Error",
+                      description: "Invalid service data. Please try editing the booking again.",
+                      variant: "destructive"
+                    });
+                    // Don't send the update if service IDs are invalid
+                    return;
+                  }
+                  
                   // Log only for multi-service
                   if (mappedServices && mappedServices.length > 1) {
                     console.log(`[API CALL] Sending ${mappedServices.length} services for booking ${state.detailsBookingId}`);

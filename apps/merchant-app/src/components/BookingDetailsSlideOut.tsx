@@ -181,9 +181,13 @@ function BookingDetailsSlideOutComponent({
     if (booking.services && booking.services.length > 0) {
       // New format with services array
       bookingServices = booking.services.map((s) => {
+        // CRITICAL FIX: Handle calendar state where id === serviceId (wrong structure)
+        // If id and serviceId are the same, it means we have the service ID in both fields
+        const hasProperStructure = s.id !== s.serviceId;
+        
         const mapped = {
-          id: s.serviceId || s.id || '',
-          serviceId: s.serviceId || s.id || '',
+          id: hasProperStructure ? (s.id || s.serviceId || '') : s.id,  // BookingService record ID
+          serviceId: s.serviceId || s.id || '',  // Always use the actual Service ID
           name: s.name || '',
           duration: s.duration || booking.duration || 60,
           price: s.price || 0,
@@ -224,7 +228,7 @@ function BookingDetailsSlideOutComponent({
     console.log('Services content:', JSON.stringify(bookingServices, null, 2));
     
     const initializedServices = bookingServices.map((service, index) => {
-      const serviceId = service.id || service.serviceId || booking.serviceId || '';
+      const serviceId = service.serviceId || service.id || booking.serviceId || '';
       
       // Log if serviceId is empty to help debug
       if (!serviceId) {
@@ -235,7 +239,7 @@ function BookingDetailsSlideOutComponent({
       
       const initialized = {
         id: `service-${index}-${Date.now()}`,
-        serviceId: serviceId,
+        serviceId: serviceId,  // Already extracted correctly above
         name: service.name,
         duration: service.duration,
         basePrice: Number(service.price || 0),
@@ -350,7 +354,7 @@ function BookingDetailsSlideOutComponent({
   const handleAddService = (service: any) => {
     const newService = {
       id: `service-${Date.now()}-${Math.random()}`,
-      serviceId: service.id,
+      serviceId: service.id || service.serviceId,  // Ensure we're using the actual database ID
       name: service.name,
       duration: service.duration,
       basePrice: service.price,
@@ -406,6 +410,18 @@ function BookingDetailsSlideOutComponent({
     console.log('=== SAVING BOOKING WITH SERVICES ===');
     console.log('Selected services:', selectedServices);
     console.log('Services to send:', servicesToSend);
+    
+    // Validate that all services have valid IDs
+    const invalidServices = servicesToSend.filter(s => !s.serviceId);
+    if (invalidServices.length > 0) {
+      console.error('Services with missing IDs:', invalidServices);
+      toast({
+        title: "Error",
+        description: "Some services are missing IDs. Please re-select the services.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Add to calendar activity log
     if (window.dispatchEvent) {
