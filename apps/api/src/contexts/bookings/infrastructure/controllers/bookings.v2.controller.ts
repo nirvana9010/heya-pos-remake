@@ -299,6 +299,12 @@ export class BookingsV2Controller {
     @Param('id') id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
+    console.log('[V2 CONTROLLER] PATCH /bookings/' + id);
+    console.log('[V2 CONTROLLER] Received DTO:', JSON.stringify(dto, null, 2));
+    console.log('[V2 CONTROLLER] Services in DTO:', dto.services?.length || 0, 'services');
+    if (dto.services) {
+      console.log('[V2 CONTROLLER] Service details:', dto.services);
+    }
     
     const updateData: any = {
       bookingId: id,
@@ -312,32 +318,36 @@ export class BookingsV2Controller {
       updateData.staffId = dto.staffId;
     }
     if (dto.services && dto.services.length > 0) {
-      // For now, handle single service update
-      updateData.serviceId = dto.services[0].serviceId;
+      // Pass full services array to update service
+      updateData.services = dto.services.map(s => ({
+        serviceId: s.serviceId,
+        staffId: s.staffId,
+        price: s.price,
+        duration: s.duration
+      }));
+      console.log('[V2 CONTROLLER] Mapped services for update:', updateData.services);
     }
     if (dto.status) updateData.status = dto.status;
     if (dto.cancellationReason) updateData.cancellationReason = dto.cancellationReason;
 
+    console.log('[V2 CONTROLLER] Calling BookingUpdateService with:', JSON.stringify(updateData, null, 2));
     const booking = await this.bookingUpdateService.updateBooking(updateData);
+    console.log('[V2 CONTROLLER] BookingUpdateService returned booking');
     
-    // For status updates, fetch the full booking to return complete data
-    if (dto.status) {
-      const query = new GetBookingByIdQuery({
-        bookingId: id,
-        merchantId: user.merchantId,
-      });
-      
-      const enrichedBooking = await this.queryBus.execute(query);
-      
-      // Transform status to lowercase for consistency
-      if (enrichedBooking && enrichedBooking.status) {
-        enrichedBooking.status = enrichedBooking.status.toLowerCase().replace(/_/g, '-');
-      }
-      
-      return enrichedBooking;
+    // For all updates, return the full booking with services
+    const query = new GetBookingByIdQuery({
+      bookingId: id,
+      merchantId: user.merchantId,
+    });
+    
+    const enrichedBooking = await this.queryBus.execute(query);
+    
+    // Transform status to lowercase for consistency
+    if (enrichedBooking && enrichedBooking.status) {
+      enrichedBooking.status = enrichedBooking.status.toLowerCase().replace(/_/g, '-');
     }
     
-    return this.toDto(booking);
+    return enrichedBooking;
   }
 
   @Patch(':id/start')

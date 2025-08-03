@@ -469,17 +469,51 @@ export class BookingCreationService {
   }
 
   /**
-   * Generate a unique booking number with format: BK{timestamp}{random}
+   * Generate a unique 6-character booking reference like airline codes
+   * Format: 3 letters + 3 numbers (e.g., ABC123)
    */
   private async generateBookingNumber(
     merchantId: string,
     tx: Prisma.TransactionClient
   ): Promise<string> {
-    // Use timestamp + random string for uniqueness
-    // No need to use count which can cause race conditions
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
-    return `BK${timestamp}${random}`.toUpperCase();
+    // Generate a 6-character code like airline references
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I and O to avoid confusion
+    const numbers = '0123456789';
+    
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      // Generate 3 random letters
+      let code = '';
+      for (let i = 0; i < 3; i++) {
+        code += letters[Math.floor(Math.random() * letters.length)];
+      }
+      
+      // Generate 3 random numbers
+      for (let i = 0; i < 3; i++) {
+        code += numbers[Math.floor(Math.random() * numbers.length)];
+      }
+      
+      // Check if this booking number already exists
+      const existing = await tx.booking.findFirst({
+        where: {
+          bookingNumber: code,
+          merchantId: merchantId
+        }
+      });
+      
+      if (!existing) {
+        return code;
+      }
+      
+      attempts++;
+    }
+    
+    // Fallback to timestamp-based if we couldn't generate a unique one
+    // This is extremely unlikely but ensures we never fail
+    const timestamp = Date.now().toString(36).substr(-6).toUpperCase();
+    return timestamp.padStart(6, 'X');
   }
 
   /**

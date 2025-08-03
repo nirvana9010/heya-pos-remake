@@ -11,9 +11,9 @@ export function useNotifications(params?: {
   take?: number;
   unreadOnly?: boolean;
 }) {
-  // Use 10-second polling interval for more responsive updates
-  // This provides near real-time updates without the complexity of websockets
-  const pollingInterval = 10 * 1000; // 10 seconds
+  // PERFORMANCE FIX: Increased interval from 10s to 60s to reduce server load
+  // This still provides timely updates while dramatically reducing API calls
+  const pollingInterval = 60 * 1000; // 60 seconds (was 10 seconds)
   
   // Track if tab is visible
   const [isTabVisible, setIsTabVisible] = React.useState(!document.hidden);
@@ -41,8 +41,8 @@ export function useNotifications(params?: {
     },
     staleTime: 0, // Always consider data stale to force fresh fetches
     gcTime: 0, // Don't garbage collect the data
-    refetchInterval: pollingInterval, // 10-second polling interval
-    refetchIntervalInBackground: true, // KEEP POLLING IN BACKGROUND
+    refetchInterval: isTabVisible ? pollingInterval : false, // CRITICAL FIX: Only poll when tab is visible
+    refetchIntervalInBackground: false, // CRITICAL FIX: Disabled background polling to reduce server load
     refetchOnWindowFocus: true, // Refetch when tab becomes active
     refetchOnMount: 'always', // Always refetch on mount
     retry: 1,

@@ -53,6 +53,7 @@ interface BookingDetailsSlideOutProps {
   onClose: () => void;
   booking: {
     id: string;
+    bookingNumber?: string; // Human-readable booking number
     customerId?: string;
     customerName: string;
     customerPhone: string;
@@ -97,6 +98,10 @@ function BookingDetailsSlideOutComponent({
       const servicesCount = booking.services?.length || 0;
       const hasMultiServiceName = booking.serviceName?.includes(' + ');
       
+      console.log('[BookingDetailsSlideOut] Received booking:', booking);
+      console.log('[BookingDetailsSlideOut] Booking number:', booking.bookingNumber);
+      console.log('[BookingDetailsSlideOut] Booking ID:', booking.id);
+      
       if (servicesCount === 1 && hasMultiServiceName) {
         console.error(`[PROP MISMATCH] Booking ${booking.id}: Multi-service name but only ${servicesCount} service!`);
         console.log('Stack trace:', new Error().stack);
@@ -104,7 +109,7 @@ function BookingDetailsSlideOutComponent({
         console.log(`[PROP UPDATE] Booking ${booking.id}: ${servicesCount} services`);
       }
     }
-  }, [booking?.id, booking?.services?.length]);
+  }, [booking?.id, booking?.services?.length, booking?.bookingNumber]);
   
   const { toast } = useToast();
   const { refreshNotifications } = useNotifications();
@@ -402,15 +407,48 @@ function BookingDetailsSlideOutComponent({
     console.log('Selected services:', selectedServices);
     console.log('Services to send:', servicesToSend);
     
+    // Add to calendar activity log
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'booking-update',
+          message: `Updating booking ${booking.id} with ${servicesToSend.length} services`,
+          data: {
+            bookingId: booking.id,
+            services: servicesToSend.map(s => ({
+              serviceId: s.serviceId,
+              name: s.name,
+              staffId: s.staffId
+            }))
+          },
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
     // Fire and forget - don't await
-    onSave({
+    const updatePayload = {
       ...bookingWithoutStatus,
       staffId: formData.staffId,
       startTime: startTimeISO,
       endTime: endTimeISO,
       notes: formData.notes,
       services: servicesToSend
-    }).then(() => {
+    };
+    
+    // Log the complete payload being sent to onSave
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'booking-update-payload',
+          message: `Sending update payload to onSave callback`,
+          data: updatePayload,
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
+    onSave(updatePayload).then(() => {
       // Show success toast
       toast({
         title: "Booking updated",
@@ -620,6 +658,9 @@ function BookingDetailsSlideOutComponent({
                 {booking.services?.length > 0
                   ? booking.services.map(s => s.name).join(' + ')
                   : booking.serviceName}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {booking.bookingNumber || `ID: ${booking.id.slice(-8)}`}
               </p>
             </div>
             <Badge className={cn("flex items-center gap-1", getStatusColor(booking.status))}>

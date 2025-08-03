@@ -78,6 +78,7 @@ export function useCalendarData() {
         
         return {
           id: booking.id,
+          bookingNumber: booking.bookingNumber, // Include the booking number
           date,
           time,
           duration: booking.duration || booking.totalDuration || 60,
@@ -320,6 +321,7 @@ export function useCalendarData() {
       
       const transformedBooking = {
         id: booking.id,
+        bookingNumber: booking.bookingNumber, // Include the booking number
         date,
         time,
         duration: booking.duration || booking.totalDuration || 60,

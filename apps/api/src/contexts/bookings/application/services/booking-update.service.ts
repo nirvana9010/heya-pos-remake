@@ -17,7 +17,13 @@ interface UpdateBookingData {
   endTime?: Date;
   notes?: string;
   staffId?: string;
-  serviceId?: string;
+  serviceId?: string;  // Keep for backward compatibility
+  services?: Array<{    // NEW: Add services array
+    serviceId: string;
+    staffId?: string;
+    price?: number;
+    duration?: number;
+  }>;
   locationId?: string;
   status?: string;
   cancellationReason?: string;
@@ -120,11 +126,85 @@ export class BookingUpdateService {
       if (data.notes !== undefined) {
         directUpdates.notes = data.notes;
       }
-      if (data.serviceId && data.serviceId !== booking.serviceId) {
-        directUpdates.serviceId = data.serviceId;
-      }
+      // Note: serviceId field doesn't exist on Booking table anymore - using BookingService relation
       if (data.locationId && data.locationId !== booking.locationId) {
         directUpdates.locationId = data.locationId;
+      }
+
+      // 6a. Handle backward compatibility - convert single serviceId to services array
+      let servicesToUpdate = data.services;
+      if (!servicesToUpdate && data.serviceId) {
+        console.log('[BOOKING UPDATE SERVICE] Converting single serviceId to services array for backward compatibility');
+        servicesToUpdate = [{
+          serviceId: data.serviceId,
+          staffId: data.staffId || booking.staffId,
+          price: undefined,
+          duration: undefined
+        }];
+      }
+
+      // 6b. Handle multi-service updates
+      if (servicesToUpdate && servicesToUpdate.length > 0) {
+        console.log(`[BOOKING UPDATE SERVICE] Processing ${servicesToUpdate.length} services for booking ${data.bookingId}`);
+        console.log('[BOOKING UPDATE SERVICE] Services to update:', servicesToUpdate);
+        
+        // Delete existing BookingService records
+        const deletedCount = await tx.bookingService.deleteMany({
+          where: { bookingId: data.bookingId }
+        });
+        console.log(`[BOOKING UPDATE SERVICE] Deleted ${deletedCount.count} existing BookingService records`);
+        
+        // Calculate total amount and duration
+        let totalAmount = 0;
+        let totalDuration = 0;
+        
+        // Create new BookingService records
+        const bookingServices = [];
+        for (const service of servicesToUpdate) {
+          // Fetch service details if price/duration not provided
+          const serviceDetails = await tx.service.findUnique({
+            where: { id: service.serviceId },
+            select: { price: true, duration: true }
+          });
+          
+          if (!serviceDetails) {
+            throw new BadRequestException(`Service not found: ${service.serviceId}`);
+          }
+          
+          const servicePrice = service.price ?? serviceDetails.price;
+          const serviceDuration = service.duration ?? serviceDetails.duration;
+          
+          bookingServices.push({
+            bookingId: data.bookingId,
+            serviceId: service.serviceId,
+            staffId: service.staffId || data.staffId || booking.staffId,
+            price: servicePrice,
+            duration: serviceDuration
+          });
+          
+          totalAmount += Number(servicePrice);
+          totalDuration += serviceDuration;
+        }
+        
+        // Create all BookingService records
+        console.log(`[BOOKING UPDATE SERVICE] Creating ${bookingServices.length} new BookingService records`);
+        const createResult = await tx.bookingService.createMany({
+          data: bookingServices
+        });
+        console.log(`[BOOKING UPDATE SERVICE] Created ${createResult.count} BookingService records`);
+        
+        // Update main booking fields (no serviceId field to update)
+        directUpdates.totalAmount = totalAmount;
+        console.log(`[BOOKING UPDATE SERVICE] Updated totalAmount to ${totalAmount}`);
+        
+        // Recalculate endTime based on new total duration if not explicitly provided
+        if (!data.endTime && totalDuration > 0 && !isRescheduling) {
+          const startTime = data.startTime || booking.timeSlot.start;
+          const newEndTime = new Date(
+            startTime.getTime() + totalDuration * 60000
+          );
+          directUpdates.endTime = newEndTime;
+        }
       }
 
       // 7. Handle staff change if needed
@@ -226,6 +306,46 @@ export class BookingUpdateService {
         await this.outboxRepository.save(confirmedEvent, tx);
         this.logger.log(`✓ Outbox event saved to database`);
         this.logger.log(`======= END CONFIRMATION FLOW DEBUG =======`);
+      }
+      
+      // Create outbox event if services were updated
+      if (servicesToUpdate && servicesToUpdate.length > 0) {
+        // Fetch the updated booking to get all service details
+        const updatedBookingWithServices = await tx.booking.findUnique({
+          where: { id: data.bookingId },
+          include: {
+            services: {
+              include: {
+                service: true,
+                staff: true,
+              },
+            },
+          },
+        });
+        
+        const servicesUpdatedEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'services_updated',
+          eventData: {
+            bookingId: data.bookingId,
+            services: updatedBookingWithServices.services.map(s => ({
+              serviceId: s.serviceId,
+              serviceName: s.service.name,
+              staffId: s.staffId,
+              staffName: s.staff ? `${s.staff.firstName} ${s.staff.lastName || ''}`.trim() : null,
+              price: Number(s.price),
+              duration: s.duration,
+            })),
+            totalAmount: Number(updatedBookingWithServices.totalAmount),
+            totalDuration: updatedBookingWithServices.services.reduce((sum, s) => sum + s.duration, 0),
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+        
+        await this.outboxRepository.save(servicesUpdatedEvent, tx);
+        this.logger.log(`✓ Services updated event saved to outbox`);
       }
 
       // 12. Reload the booking if we had direct updates

@@ -455,6 +455,7 @@ function CalendarContent() {
       
       const transformedBooking = {
         id: bookingData.id,
+        bookingNumber: bookingData.bookingNumber, // Include the booking number
         date: format(startTime, 'yyyy-MM-dd'),
         time: format(startTime, 'HH:mm'),
         duration: duration,
@@ -474,6 +475,9 @@ function CalendarContent() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      
+      console.log('[CalendarPage] Transformed booking:', transformedBooking);
+      console.log('[CalendarPage] Booking number:', transformedBooking.bookingNumber);
       
       // Add the new booking to the calendar
       actions.addBooking(transformedBooking);
@@ -1021,6 +1025,7 @@ function CalendarContent() {
             onClose={() => actions.closeDetailsSlideOut()}
             booking={{
               id: booking.id,
+              bookingNumber: booking.bookingNumber, // Include the booking number
               customerId: booking.customerId,
               customerName: booking.customerName,
               customerPhone: booking.customerPhone || '',
@@ -1043,6 +1048,22 @@ function CalendarContent() {
             services={memoizedServices}
             customers={memoizedCustomers}
             onSave={async (updatedBooking) => {
+              // Log the received update payload
+              if (window.dispatchEvent) {
+                window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+                  detail: {
+                    type: 'calendar-onsave-received',
+                    message: `CalendarPage onSave received update for booking ${state.detailsBookingId}`,
+                    data: {
+                      bookingId: state.detailsBookingId,
+                      services: updatedBooking.services,
+                      servicesCount: updatedBooking.services?.length || 0
+                    },
+                    timestamp: new Date().toISOString()
+                  }
+                }));
+              }
+              
               const originalBooking = state.bookings.find(b => b.id === state.detailsBookingId);
               if (!originalBooking) return;
               
@@ -1112,6 +1133,29 @@ function CalendarContent() {
                     price: s.price || s.adjustedPrice,  // Support both field names
                     duration: s.duration
                   }));
+                  
+                  // Comprehensive logging for all updates
+                  if (window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+                      detail: {
+                        type: 'api-call-prepare',
+                        message: `Preparing API call to update booking ${state.detailsBookingId}`,
+                        data: {
+                          bookingId: state.detailsBookingId,
+                          mappedServices: mappedServices,
+                          originalServices: updatedBooking.services,
+                          servicesCount: mappedServices?.length || 0,
+                          payload: {
+                            startTime: updatedBooking.startTime,
+                            staffId: updatedBooking.staffId,
+                            services: mappedServices,
+                            notes: updatedBooking.notes
+                          }
+                        },
+                        timestamp: new Date().toISOString()
+                      }
+                    }));
+                  }
                   
                   // Log only for multi-service
                   if (mappedServices && mappedServices.length > 1) {

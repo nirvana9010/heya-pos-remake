@@ -368,6 +368,8 @@ export function BookingSlideOut({
       
       // Log response time for monitoring
       console.log(`[BookingCreation] Response time: ${responseTime.toFixed(0)}ms`);
+      console.log('[BookingCreation] API Response:', response);
+      console.log('[BookingCreation] Booking Number:', response.bookingNumber);
       
       // Pass the real booking data to parent component
       if (response && response.id) {

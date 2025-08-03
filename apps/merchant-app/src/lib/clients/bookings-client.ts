@@ -4,6 +4,7 @@ import { formatName } from '@heya-pos/utils';
 
 export interface Booking {
   id: string;
+  bookingNumber?: string; // 6-character airline-style booking reference
   customerId: string;
   customerName: string;
   customerPhone: string;
@@ -152,6 +153,28 @@ export class BookingsClient extends BaseApiClient {
   }
 
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
+    // Comprehensive logging for all booking updates
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'api-client-update',
+          message: `BookingsClient.updateBooking called for ${id}`,
+          data: {
+            bookingId: id,
+            updateData: data,
+            servicesCount: data.services?.length || 0,
+            services: data.services?.map(s => ({
+              serviceId: s.serviceId,
+              staffId: s.staffId,
+              price: s.price,
+              duration: s.duration
+            }))
+          },
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
     if (window.dispatchEvent && data.status) {
       window.dispatchEvent(new CustomEvent('calendar-activity-log', {
         detail: {
@@ -161,6 +184,10 @@ export class BookingsClient extends BaseApiClient {
         }
       }));
     }
+    
+    // Log the exact payload being sent to the API
+    console.log('[BOOKINGS CLIENT] Sending PATCH request to:', `/bookings/${id}`);
+    console.log('[BOOKINGS CLIENT] Payload:', JSON.stringify(data, null, 2));
     
     const booking = await this.patch(
       `/bookings/${id}`, 
@@ -172,17 +199,45 @@ export class BookingsClient extends BaseApiClient {
     );
     
     // Log what we got back
+    console.log('[BOOKINGS CLIENT] Response received:', booking);
+    
     if (window.dispatchEvent && booking) {
       window.dispatchEvent(new CustomEvent('calendar-activity-log', {
         detail: {
-          type: 'api',
-          message: `API returned booking with status: ${booking.status}`,
+          type: 'api-response',
+          message: `API returned booking ${booking.id}`,
+          data: {
+            bookingId: booking.id,
+            status: booking.status,
+            services: booking.services,
+            servicesCount: booking.services?.length || 0
+          },
           timestamp: new Date().toISOString()
         }
       }));
     }
     
     const transformedBooking = this.transformBooking(booking);
+    
+    // Log the transformed result
+    console.log('[BOOKINGS CLIENT] Transformed booking:', transformedBooking);
+    console.log('[BOOKINGS CLIENT] Services in transformed:', transformedBooking.services);
+    
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
+        detail: {
+          type: 'api-transform',
+          message: `Transformed booking ${transformedBooking.id}`,
+          data: {
+            bookingId: transformedBooking.id,
+            services: transformedBooking.services,
+            servicesCount: transformedBooking.services?.length || 0
+          },
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+    
     return transformedBooking;
   }
 

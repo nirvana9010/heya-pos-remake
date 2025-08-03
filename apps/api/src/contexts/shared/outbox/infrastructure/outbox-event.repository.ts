@@ -28,8 +28,8 @@ export class OutboxEventRepository {
   }
 
   async findUnprocessed(limit: number = 100): Promise<OutboxEvent[]> {
-    // Simple approach: just find unprocessed events
-    // The markAsProcessed method will handle atomicity
+    // PERFORMANCE OPTIMIZATION: Only select fields needed for processing
+    // This reduces data transfer and memory usage
     const events = await this.prisma.outboxEvent.findMany({
       where: {
         processedAt: null,
@@ -41,6 +41,18 @@ export class OutboxEventRepository {
         createdAt: 'asc',
       },
       take: limit,
+      select: {
+        id: true,
+        aggregateId: true,
+        aggregateType: true,
+        eventType: true,
+        eventData: true, // This is the main payload
+        eventVersion: true,
+        merchantId: true,
+        createdAt: true,
+        retryCount: true,
+        // Skipping: processedAt (null by definition), lastError (not needed for processing)
+      },
     });
 
     return events.map(this.toDomain);

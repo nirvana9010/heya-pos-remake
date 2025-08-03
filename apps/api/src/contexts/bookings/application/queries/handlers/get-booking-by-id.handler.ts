@@ -9,6 +9,8 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetBookingByIdQuery): Promise<BookingDetail> {
+    console.log('[GET BOOKING BY ID] Fetching booking:', query.bookingId);
+    
     const booking = await this.prisma.booking.findFirst({
       where: {
         id: query.bookingId,
@@ -31,13 +33,18 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
         createdBy: true,
       },
     });
+    
+    console.log('[GET BOOKING BY ID] Found booking with', booking?.services?.length || 0, 'services');
+    if (booking?.services && booking.services.length > 0) {
+      console.log('[GET BOOKING BY ID] Service IDs:', booking.services.map((s: any) => s.serviceId));
+    }
 
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
 
     // Map to read model
-    return {
+    const bookingDetail: BookingDetail = {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
       status: booking.status,
@@ -62,14 +69,25 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       },
       
       services: booking.services.map((bookingService: any) => ({
-        id: bookingService.service.id,
-        name: bookingService.service.name,
+        id: bookingService.id,  // BookingService record ID
+        serviceId: bookingService.serviceId,  // The actual service ID
+        service: {
+          id: bookingService.service.id,
+          name: bookingService.service.name,
+          category: bookingService.service.categoryModel?.name || 'Uncategorized',
+        },
+        name: bookingService.service.name,  // Keep for backward compatibility
         category: bookingService.service.categoryModel?.name || 'Uncategorized',
         duration: bookingService.duration || bookingService.service.duration,
         price: typeof bookingService.price === 'object' && 'toNumber' in bookingService.price
           ? bookingService.price.toNumber()
           : Number(bookingService.price),
         staffId: bookingService.staffId || booking.provider.id,
+        staff: bookingService.staff ? {
+          id: bookingService.staff.id,
+          firstName: bookingService.staff.firstName,
+          lastName: bookingService.staff.lastName,
+        } : null,
         staffName: bookingService.staff ? 
           (bookingService.staff.lastName ? `${bookingService.staff.firstName} ${bookingService.staff.lastName}` : bookingService.staff.firstName) : 
           (booking.provider.lastName ? `${booking.provider.firstName} ${booking.provider.lastName}` : booking.provider.firstName),
@@ -115,5 +133,9 @@ export class GetBookingByIdHandler implements IQueryHandler<GetBookingByIdQuery>
       paymentReference: booking.paymentReference,
       paidAt: booking.paidAt,
     };
+    
+    console.log('[GET BOOKING BY ID] Returning BookingDetail with', bookingDetail.services?.length || 0, 'services');
+    
+    return bookingDetail;
   }
 }

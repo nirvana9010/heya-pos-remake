@@ -214,6 +214,18 @@ Common Fly.io commands:
 ### "crypto is not defined" Error in Production
 **IMPORTANT**: Never use `require('crypto')` in Next.js webpack configuration or any client-side code. This will cause a "crypto is not defined" error in production builds. Instead, use a simple hash function for generating unique identifiers in webpack configs.
 
+## Testing Guidelines
+
+When making test scripts, always follow claude-testing-guidelines:
+- Use proper error handling in scripts
+- Always get fresh auth tokens for API tests
+- Use real, valid IDs from the database, not made-up UUIDs
+- Test with data that actually exists in the system
+- Include both positive and negative test cases
+- Show before/after states to verify changes
+- Use simple, readable output formatting
+- Verify actual database state when testing CRUD operations
+
 ## Commands to Run
 
 When making code changes, always run these commands before committing:
@@ -310,6 +322,130 @@ pm2 restart api --update-env  # Restart with new env vars
 ```
 
 **Important**: Always use `--nostream` flag when reading PM2 logs to get immediate output instead of waiting/tailing.
+
+### API Log Access Issues and Solutions
+
+**Common Problem**: When trying to check API logs with complex grep/filtering commands, often returns empty results or the command fails silently.
+
+**Root Causes**:
+1. Complex grep patterns with pipes often fail in PM2 logs output
+2. PM2 logs command without `--nostream` will hang waiting for new logs
+3. Escaping issues when combining PM2 with grep/awk/sed
+4. Logs may be split between stdout and stderr streams
+
+**SOLUTION - Best Practices for Accessing API Logs**:
+
+```bash
+# ✅ GOOD - Simple and reliable
+pm2 logs api --nostream --lines 100
+
+# ✅ GOOD - Get logs then filter separately
+pm2 logs api --nostream --lines 200 > /tmp/api.log
+grep "pattern" /tmp/api.log
+
+# ❌ BAD - Complex piping often fails
+pm2 logs api --nostream | grep -E "complex|pattern" | awk '{print $2}'
+
+# ✅ BETTER - If you must filter, keep it simple
+pm2 logs api --nostream --lines 100 | grep "BookingUpdate"
+```
+
+**Reliable Log Access Pattern**:
+1. **Always use `--nostream`** to avoid hanging
+2. **Request more lines than needed** (e.g., 100-200) to ensure you capture relevant logs
+3. **Use simple grep patterns** or save to file first for complex filtering
+4. **Check both error and output logs** if needed:
+   ```bash
+   pm2 logs api --nostream --lines 50 --err  # Error logs only
+   pm2 logs api --nostream --lines 50 --out  # Output logs only
+   ```
+
+**When Logs Appear Empty**:
+- The API might be logging to a different level (info vs debug)
+- Logs might be in the error stream instead of output stream
+- The pattern might not match due to formatting
+- The API might not be running or might be crashed
+
+**Quick Debug Commands**:
+```bash
+# Check if API is actually running
+pm2 status
+
+# Get last 50 lines without any filtering
+pm2 logs api --nostream --lines 50
+
+# Check error logs specifically
+pm2 logs api --nostream --lines 30 --err
+
+# If all else fails, check the log files directly
+tail -50 ~/.pm2/logs/api-out.log
+tail -50 ~/.pm2/logs/api-error.log
+```
+
+### Why Logs Are Constantly Spammed (Even While Idle)
+
+**Problem**: The API logs are constantly filled with repetitive messages even when the system appears idle, making it difficult to find relevant log entries.
+
+**Root Causes - Multiple Background Processes Running**:
+
+1. **OutboxPublisherService** (`/apps/api/src/contexts/shared/outbox/application/outbox-publisher.service.ts`)
+   - Polls every **5 seconds** for unprocessed outbox events
+   - Queries: `OutboxEvent.findMany WHERE processedAt IS NULL AND retryCount < X`
+   - Creates "Slow query" warnings because the query is inefficient (missing index)
+   - Generates 720+ database queries per hour even when idle
+
+2. **Frontend Notifications Polling** (`/apps/merchant-app/src/lib/query/hooks/use-notifications.ts`)
+   - Polls `/api/v1/merchant/notifications?take=50` every **10 seconds**
+   - **Keeps polling even when browser tab is in background** (`refetchIntervalInBackground: true`)
+   - Each merchant app tab creates its own polling cycle
+   - Generates 360+ API requests per hour per tab
+
+3. **Memory Monitor Service** (`/apps/api/src/debug/memory-monitor.service.ts`)
+   - Logs memory stats every **30 seconds** in development mode
+   - Includes heap usage, RSS, growth metrics, and database call counts
+   - Adds noise to logs with memory statistics
+
+4. **Database Query Logging**
+   - Prisma query logging is enabled (`prisma:query` logs)
+   - Every database query is logged in full SQL format
+   - Amplifies the noise from polling services
+
+**Impact**:
+- Logs grow rapidly (hundreds of entries per minute)
+- Difficult to find actual errors or important events
+- Performance warnings obscure real issues
+- Database under constant load from polling queries
+
+**Solutions**:
+
+1. **Immediate Fix - Reduce Polling Frequencies**:
+   ```javascript
+   // OutboxPublisherService: Change from 5s to 30s
+   }, 30000); // Was 5000
+   
+   // Frontend notifications: Change from 10s to 60s
+   const pollingInterval = 60 * 1000; // Was 10 * 1000
+   
+   // Disable background polling
+   refetchIntervalInBackground: false, // Was true
+   ```
+
+2. **Add Index for OutboxEvent Query**:
+   ```sql
+   CREATE INDEX idx_outbox_unprocessed 
+   ON "OutboxEvent" ("processedAt", "retryCount") 
+   WHERE "processedAt" IS NULL;
+   ```
+
+3. **Disable Verbose Logging in Development**:
+   - Remove `prisma:query` logging
+   - Disable memory monitor in development
+   - Use log levels appropriately (debug vs info vs warn)
+
+4. **Long-term Solution**:
+   - Replace polling with event-driven architecture (WebSockets/SSE)
+   - Use database LISTEN/NOTIFY for outbox events
+   - Implement exponential backoff for retries
 
 ### PM2 Configuration
 
