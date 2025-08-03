@@ -238,7 +238,8 @@ function BookingDetailsSlideOutComponent({
       }
       
       const initialized = {
-        id: `service-${index}-${Date.now()}`,
+        // Use a stable ID based on serviceId or BookingService ID, not timestamp
+        id: service.id || serviceId || `service-${index}`,
         serviceId: serviceId,  // Already extracted correctly above
         name: service.name,
         duration: service.duration,
@@ -255,7 +256,7 @@ function BookingDetailsSlideOutComponent({
     console.log('Setting services:', initializedServices);
     setSelectedServices(initializedServices);
     setServicesInitialized(true);
-  }, [booking.id, isEditing]); // Only re-run when booking ID changes or edit mode changes
+  }, [booking.id]); // Only re-run when booking ID changes, NOT when edit mode changes
 
   // Fetch associated order for the booking
   useEffect(() => {
