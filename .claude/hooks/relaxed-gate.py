@@ -53,14 +53,23 @@ if tool in {"Write", "Edit", "MultiEdit"}:
 
 # ------- 3. Unknown outbound fetches -------
 if tool in {"WebFetch", "WebSearch"}:
+    # Always allow web searches
+    if tool == "WebSearch":
+        sys.exit(0)  # Approve
+    
+    # For WebFetch, only block obviously suspicious domains
     url = input_.get("url", "")
-    if not any(url.startswith(p) for p in (
-        "https://github.com",
-        "https://pypi.org", 
-        "https://deb.debian.org",
-        "https://docs."
-    )):
-        print(json.dumps({"decision": "block", "reason": "External domain not on allow-list"}))
+    blocked_patterns = [
+        r'\.exe$',
+        r'\.zip$',
+        r'\.rar$',
+        r'download\.com',
+        r'softonic\.com',
+        # Add other suspicious patterns
+    ]
+    
+    if any(re.search(pattern, url, re.I) for pattern in blocked_patterns):
+        print(json.dumps({"decision": "block", "reason": "Suspicious domain/file"}))
         sys.exit(2)
 
 # Default: approve everything else
