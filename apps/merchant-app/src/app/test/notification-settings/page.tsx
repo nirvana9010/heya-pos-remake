@@ -19,17 +19,17 @@ export default function TestNotificationSettingsPage() {
   
   // Notification settings - same as real settings page
   const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(true);
-  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(false);
+  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(false); // SMS disabled - no credits
   const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(true);
-  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(false);
+  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(false); // SMS disabled - no credits
   const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(true);
-  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(true);
+  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(false); // SMS disabled - no credits
   const [newBookingNotification, setNewBookingNotification] = useState(true);
   const [newBookingNotificationEmail, setNewBookingNotificationEmail] = useState(true);
-  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(false);
+  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(false); // SMS disabled - no credits
   const [cancellationNotification, setCancellationNotification] = useState(true);
   const [cancellationNotificationEmail, setCancellationNotificationEmail] = useState(true);
-  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(false);
+  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(false); // SMS disabled - no credits
   
   // Test results
   const [testResults, setTestResults] = useState<{
@@ -74,17 +74,17 @@ export default function TestNotificationSettingsPage() {
     try {
       await apiClient.put("/merchant/settings", {
         bookingConfirmationEmail,
-        bookingConfirmationSms,
+        bookingConfirmationSms: false, // SMS disabled until credits available
         appointmentReminder24hEmail,
-        appointmentReminder24hSms,
+        appointmentReminder24hSms: false, // SMS disabled until credits available
         appointmentReminder2hEmail,
-        appointmentReminder2hSms,
+        appointmentReminder2hSms: false, // SMS disabled until credits available
         newBookingNotification,
         newBookingNotificationEmail,
-        newBookingNotificationSms,
+        newBookingNotificationSms: false, // SMS disabled until credits available
         cancellationNotification,
         cancellationNotificationEmail,
-        cancellationNotificationSms,
+        cancellationNotificationSms: false, // SMS disabled until credits available
       });
       
       toast({
@@ -449,10 +449,18 @@ export default function TestNotificationSettingsPage() {
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
                   <Switch 
-                    checked={bookingConfirmationSms} 
-                    onCheckedChange={setBookingConfirmationSms} 
+                    checked={false} 
+                    onCheckedChange={() => {
+                      toast({
+                        title: "SMS Not Available",
+                        description: "SMS notifications are coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={true}
+                    className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
                 </div>
               </div>
               
@@ -470,10 +478,18 @@ export default function TestNotificationSettingsPage() {
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
                   <Switch 
-                    checked={appointmentReminder24hSms} 
-                    onCheckedChange={setAppointmentReminder24hSms} 
+                    checked={false} 
+                    onCheckedChange={() => {
+                      toast({
+                        title: "SMS Not Available",
+                        description: "SMS notifications are coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={true}
+                    className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
                 </div>
               </div>
               
@@ -491,10 +507,18 @@ export default function TestNotificationSettingsPage() {
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
                   <Switch 
-                    checked={appointmentReminder2hSms} 
-                    onCheckedChange={setAppointmentReminder2hSms} 
+                    checked={false} 
+                    onCheckedChange={() => {
+                      toast({
+                        title: "SMS Not Available",
+                        description: "SMS notifications are coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={true}
+                    className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
                 </div>
               </div>
             </div>
@@ -522,10 +546,18 @@ export default function TestNotificationSettingsPage() {
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
                   <Switch 
-                    checked={newBookingNotificationSms} 
-                    onCheckedChange={setNewBookingNotificationSms} 
+                    checked={false} 
+                    onCheckedChange={() => {
+                      toast({
+                        title: "SMS Not Available",
+                        description: "SMS notifications are coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={true}
+                    className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -547,10 +579,18 @@ export default function TestNotificationSettingsPage() {
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
                   <Switch 
-                    checked={cancellationNotificationSms} 
-                    onCheckedChange={setCancellationNotificationSms} 
+                    checked={false} 
+                    onCheckedChange={() => {
+                      toast({
+                        title: "SMS Not Available",
+                        description: "SMS notifications are coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={true}
+                    className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
                 </div>
               </div>
             </div>

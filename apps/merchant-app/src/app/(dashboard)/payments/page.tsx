@@ -4,10 +4,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/clients";
 import { 
-  Search, Download, CreditCard, DollarSign, TrendingUp, RefreshCw, 
+  Search, Download, CreditCard, RefreshCw, 
   CheckCircle, XCircle, Clock, RotateCcw, Banknote, Calendar,
   MoreVertical, FileText, Mail, Filter, ChevronDown, AlertCircle,
-  ArrowUpRight, ArrowDownRight, Minus, CreditCard as CardIcon
+  DollarSign, CreditCard as CardIcon
 } from "lucide-react";
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from "@heya-pos/ui";
@@ -226,114 +226,8 @@ const mockPayments: Payment[] = [
   }
 ];
 
-// Mock sparkline data (7 days)
-const mockSparklineData = {
-  today: [400, 380, 420, 450, 470, 420, 425],
-  week: [2500, 2700, 2600, 2900, 2800, 2750, 2850],
-  month: [11000, 11500, 12000, 11800, 12200, 12300, 12500],
-  pending: [150, 180, 200, 190, 210, 180, 200]
-};
 
-// Simple sparkline component
-const Sparkline = ({ data, color = "text-primary" }: { data: number[], color?: string }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min;
-  const height = 32;
-  const width = 80;
-  
-  const points = data.map((value, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = height - ((value - min) / range) * height;
-    return `${x},${y}`;
-  }).join(' ');
-  
-  return (
-    <svg width={width} height={height} className="overflow-visible">
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        points={points}
-        className={cn("transition-all", color)}
-      />
-    </svg>
-  );
-};
 
-// Enhanced stat card component
-const EnhancedStatCard = ({ 
-  title, 
-  value, 
-  trend, 
-  trendValue,
-  icon,
-  sparklineData,
-  accentColor = "primary"
-}: {
-  title: string;
-  value: string;
-  trend: "up" | "down" | "neutral";
-  trendValue: string;
-  icon: React.ReactNode;
-  sparklineData: number[];
-  accentColor?: "primary" | "success" | "warning" | "neutral";
-}) => {
-  const trendIcon = trend === "up" ? <ArrowUpRight className="h-4 w-4" /> : 
-                    trend === "down" ? <ArrowDownRight className="h-4 w-4" /> : 
-                    <Minus className="h-4 w-4" />;
-  
-  const trendColor = trend === "up" ? "text-green-600" : 
-                     trend === "down" ? "text-red-600" : 
-                     "text-gray-600";
-  
-  const accentColors = {
-    primary: "from-primary/5 to-primary/10 border-primary/20",
-    success: "from-green-50 to-green-100 border-green-200",
-    warning: "from-yellow-50 to-yellow-100 border-yellow-200",
-    neutral: "from-gray-50 to-gray-100 border-gray-200"
-  };
-  
-  const sparklineColors = {
-    primary: "text-primary",
-    success: "text-green-600",
-    warning: "text-yellow-600",
-    neutral: "text-gray-600"
-  };
-  
-  return (
-    <Card className={cn(
-      "relative overflow-hidden transition-all hover:shadow-lg",
-      "bg-gradient-to-br",
-      accentColors[accentColor]
-    )}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
-          </CardTitle>
-          <div className="p-2 rounded-lg bg-background/50">
-            {icon}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="text-3xl font-bold tracking-tight">
-          {value}
-        </div>
-        <div className="flex items-center justify-between">
-          <div className={cn("flex items-center text-sm font-medium", trendColor)}>
-            {trendIcon}
-            <span className="ml-1">{trendValue}</span>
-          </div>
-          <div className="flex items-center">
-            <Sparkline data={sparklineData} color={sparklineColors[accentColor]} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -359,15 +253,6 @@ export default function PaymentsPage() {
     },
   });
 
-  // Fetch location data
-  const { data: locations } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const locs = await apiClient.getLocations();
-      return locs;
-    },
-  });
-
   // Fetch merchant profile
   const { data: merchantProfile } = useQuery({
     queryKey: ['merchantProfile'],
@@ -377,7 +262,8 @@ export default function PaymentsPage() {
     },
   });
 
-  const primaryLocation = locations?.[0];
+  // Location data would be fetched here if needed
+  const primaryLocation = null;
 
   // Transform API data to match the Payment interface
   const payments = useMemo(() => {
@@ -403,196 +289,6 @@ export default function PaymentsPage() {
     }));
   }, [paymentsResponse]);
 
-  // Calculate totals and trends from real data
-  const { todayTotal, weekTotal, monthTotal, pendingAmount, todayTrend, weekTrend, monthTrend, pendingCount, sparklineData } = useMemo(() => {
-    if (!payments || payments.length === 0) {
-      return { 
-        todayTotal: 0, 
-        weekTotal: 0, 
-        monthTotal: 0, 
-        pendingAmount: 0,
-        todayTrend: { value: 0, direction: 'neutral' as const },
-        weekTrend: { value: 0, direction: 'neutral' as const },
-        monthTrend: { value: 0, direction: 'neutral' as const },
-        pendingCount: 0,
-        sparklineData: {
-          today: [0, 0, 0, 0, 0, 0, 0],
-          week: [0, 0, 0, 0, 0, 0, 0],
-          month: [0, 0, 0, 0, 0, 0, 0],
-          pending: [0, 0, 0, 0, 0, 0, 0]
-        }
-      };
-    }
-    
-    const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
-    
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    const twoWeeksAgo = new Date(today);
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-    
-    const monthAgo = new Date(today);
-    monthAgo.setDate(monthAgo.getDate() - 30);
-    
-    const twoMonthsAgo = new Date(today);
-    twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
-    
-    let todaySum = 0;
-    let yesterdaySum = 0;
-    let weekSum = 0;
-    let lastWeekSum = 0;
-    let monthSum = 0;
-    let lastMonthSum = 0;
-    let pendingSum = 0;
-    let pendingCount = 0;
-    
-    payments.forEach(payment => {
-      const paymentDate = new Date(payment.processedAt);
-      
-      if (payment.status === 'pending') {
-        pendingSum += payment.amount;
-        pendingCount++;
-      } else if (payment.status === 'completed') {
-        // Today's revenue
-        if (paymentDate >= today) {
-          todaySum += payment.amount;
-        }
-        // Yesterday's revenue (for comparison)
-        if (paymentDate >= yesterday && paymentDate < today) {
-          yesterdaySum += payment.amount;
-        }
-        // This week's revenue
-        if (paymentDate >= weekAgo) {
-          weekSum += payment.amount;
-        }
-        // Last week's revenue (for comparison)
-        if (paymentDate >= twoWeeksAgo && paymentDate < weekAgo) {
-          lastWeekSum += payment.amount;
-        }
-        // This month's revenue
-        if (paymentDate >= monthAgo) {
-          monthSum += payment.amount;
-        }
-        // Last month's revenue (for comparison)
-        if (paymentDate >= twoMonthsAgo && paymentDate < monthAgo) {
-          lastMonthSum += payment.amount;
-        }
-      }
-    });
-    
-    // Calculate trend percentages
-    const calculateTrend = (current: number, previous: number) => {
-      if (previous === 0) {
-        return { 
-          value: current > 0 ? 100 : 0, 
-          direction: current > 0 ? 'up' : 'neutral' as const 
-        };
-      }
-      const percentChange = ((current - previous) / previous) * 100;
-      return {
-        value: Math.abs(percentChange),
-        direction: percentChange > 0 ? 'up' : percentChange < 0 ? 'down' : 'neutral' as const
-      };
-    };
-    
-    // Generate sparkline data (last 7 days of revenue)
-    const generateSparklineData = () => {
-      const todaySparkline: number[] = [];
-      const weekSparkline: number[] = [];
-      const monthSparkline: number[] = [];
-      const pendingSparkline: number[] = [];
-      
-      // Generate data for last 7 days
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 1);
-        
-        let dayTotal = 0;
-        let dayPending = 0;
-        
-        payments.forEach(payment => {
-          const paymentDate = new Date(payment.processedAt);
-          if (paymentDate >= date && paymentDate < nextDate) {
-            if (payment.status === 'completed') {
-              dayTotal += payment.amount;
-            } else if (payment.status === 'pending') {
-              dayPending += payment.amount;
-            }
-          }
-        });
-        
-        todaySparkline.push(dayTotal);
-        pendingSparkline.push(dayPending);
-      }
-      
-      // Week sparkline: last 7 weeks
-      for (let i = 6; i >= 0; i--) {
-        const weekStart = new Date(today);
-        weekStart.setDate(weekStart.getDate() - (i * 7));
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        
-        let weeklyTotal = 0;
-        payments.forEach(payment => {
-          const paymentDate = new Date(payment.processedAt);
-          if (paymentDate >= weekStart && paymentDate < weekEnd && payment.status === 'completed') {
-            weeklyTotal += payment.amount;
-          }
-        });
-        
-        weekSparkline.push(weeklyTotal);
-      }
-      
-      // Month sparkline: last 7 months
-      for (let i = 6; i >= 0; i--) {
-        const monthStart = new Date(today);
-        monthStart.setMonth(monthStart.getMonth() - i);
-        monthStart.setDate(1);
-        const monthEnd = new Date(monthStart);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-        
-        let monthlyTotal = 0;
-        payments.forEach(payment => {
-          const paymentDate = new Date(payment.processedAt);
-          if (paymentDate >= monthStart && paymentDate < monthEnd && payment.status === 'completed') {
-            monthlyTotal += payment.amount;
-          }
-        });
-        
-        monthSparkline.push(monthlyTotal);
-      }
-      
-      return {
-        today: todaySparkline,
-        week: weekSparkline,
-        month: monthSparkline,
-        pending: pendingSparkline
-      };
-    };
-    
-    return {
-      todayTotal: todaySum,
-      weekTotal: weekSum,
-      monthTotal: monthSum,
-      pendingAmount: pendingSum,
-      todayTrend: calculateTrend(todaySum, yesterdaySum),
-      weekTrend: calculateTrend(weekSum, lastWeekSum),
-      monthTrend: calculateTrend(monthSum, lastMonthSum),
-      pendingCount: pendingCount,
-      sparklineData: generateSparklineData()
-    };
-  }, [payments]);
 
   // Format currency with commas
   const formatCurrency = (amount: number) => {
@@ -1348,45 +1044,6 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Enhanced Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <EnhancedStatCard
-          title="Today's Revenue"
-          value={formatCurrency(todayTotal)}
-          trend={todayTrend.direction}
-          trendValue={`${todayTrend.value.toFixed(1)}% from yesterday`}
-          icon={<DollarSign className="h-5 w-5 text-primary" />}
-          sparklineData={sparklineData.today}
-          accentColor="primary"
-        />
-        <EnhancedStatCard
-          title="This Week"
-          value={formatCurrency(weekTotal)}
-          trend={weekTrend.direction}
-          trendValue={`${weekTrend.value.toFixed(1)}% from last week`}
-          icon={<Calendar className="h-5 w-5 text-green-600" />}
-          sparklineData={sparklineData.week}
-          accentColor="success"
-        />
-        <EnhancedStatCard
-          title="This Month"
-          value={formatCurrency(monthTotal)}
-          trend={monthTrend.direction}
-          trendValue={`${monthTrend.value.toFixed(1)}% from last month`}
-          icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
-          sparklineData={sparklineData.month}
-          accentColor="primary"
-        />
-        <EnhancedStatCard
-          title="Pending"
-          value={formatCurrency(pendingAmount)}
-          trend={pendingCount > 0 ? "down" : "neutral"}
-          trendValue={`${pendingCount} transaction${pendingCount !== 1 ? 's' : ''}`}
-          icon={<Clock className="h-5 w-5 text-yellow-600" />}
-          sparklineData={sparklineData.pending}
-          accentColor="warning"
-        />
-      </div>
 
       {/* Transactions Card */}
       <Card className="shadow-sm">
