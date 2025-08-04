@@ -209,20 +209,21 @@ export default function ReportsPage() {
       currentRevenue / (1 + revenueGrowth / 100)
     );
     
-    // Get booking data for selected time range
+    // Get booking data - backend doesn't provide time range breakdown for bookings
+    // So we always show total bookings regardless of time filter
     const bookingGrowth = reportData.bookingGrowth?.[timeRange as keyof typeof reportData.bookingGrowth] || 0;
     const bookings = reportData.bookings || {};
-    // Bookings might have time-based breakdown or just totals
-    const currentBookings = bookings[timeRange as keyof typeof bookings] || bookings.total || 0;
+    const currentBookings = bookings.total || 0; // Always use total since no time breakdown exists
     const bookingTrend = calculateCountTrend(
       currentBookings,
       currentBookings / (1 + bookingGrowth / 100)
     );
     
-    // Customer data - may not have time range breakdown
-    const customerGrowth = reportData.customerGrowth?.[timeRange as keyof typeof reportData.customerGrowth] || reportData.customerGrowth || 0;
+    // Customer data - backend doesn't provide time range breakdown for customers
+    // So we always show total customers regardless of time filter  
+    const customerGrowth = reportData.customerGrowth || 0; // No time breakdown for growth
     const customers = reportData.customers || {};
-    const totalCustomers = customers[timeRange as keyof typeof customers] || customers.total || 0;
+    const totalCustomers = customers.total || 0; // Always use total since no time breakdown exists
     const customerTrend = calculateCountTrend(
       totalCustomers,
       totalCustomers / (1 + customerGrowth / 100)
@@ -345,10 +346,7 @@ export default function ReportsPage() {
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {timeRange === 'daily' && 'Today\'s Bookings'}
-                {timeRange === 'weekly' && 'This Week\'s Bookings'}
-                {timeRange === 'monthly' && 'This Month\'s Bookings'}
-                {timeRange === 'yearly' && 'This Year\'s Bookings'}
+                Total Bookings
               </CardTitle>
               <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -361,7 +359,7 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-2 mt-2">
                     <TrendBadge trend={bookingTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
-                      vs {timeRange === 'daily' ? 'yesterday' : `last ${timeRange.slice(0, -2)}`}
+                      {bookings.completed || 0} completed
                     </span>
                   </div>
                 </div>
@@ -373,10 +371,7 @@ export default function ReportsPage() {
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {timeRange === 'daily' && 'Today\'s Customers'}
-                {timeRange === 'weekly' && 'This Week\'s Customers'}
-                {timeRange === 'monthly' && 'This Month\'s Customers'}
-                {timeRange === 'yearly' && 'This Year\'s Customers'}
+                Total Customers
               </CardTitle>
               <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center">
                 <Users className="h-4 w-4 text-teal-600 dark:text-teal-400" />
