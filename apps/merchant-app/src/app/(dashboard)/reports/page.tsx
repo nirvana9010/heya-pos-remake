@@ -262,27 +262,8 @@ export default function ReportsPage() {
       })).slice(-6);
     }
     
-    // If no data or empty, use current revenue data to generate a simple chart
-    if (chartData.length === 0) {
-      const monthlyRevenue = revenue.monthly || 0;
-      const currentMonth = new Date().getMonth();
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      // Generate last 6 months with simulated data based on current revenue
-      chartData = Array.from({ length: 6 }, (_, i) => {
-        const monthIndex = (currentMonth - (5 - i) + 12) % 12;
-        const variation = 0.8 + Math.random() * 0.4; // Random variation between 80% and 120%
-        return {
-          month: monthNames[monthIndex],
-          revenue: Math.round(monthlyRevenue * variation)
-        };
-      });
-      
-      // Make the last month the actual monthly revenue
-      if (chartData.length > 0) {
-        chartData[chartData.length - 1].revenue = Math.round(monthlyRevenue);
-      }
-    }
+    // Flag to indicate no trend data is available
+    const hasNoTrendData = chartData.length === 0;
 
     return (
       <div className="space-y-6">
@@ -390,6 +371,7 @@ export default function ReportsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => exportToCSV(chartData, "revenue-trend")}
+                disabled={hasNoTrendData}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Export
@@ -397,28 +379,38 @@ export default function ReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorRevenue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {hasNoTrendData ? (
+              <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                <BarChart3 className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">No trend data available</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Revenue trend will appear as transactions are recorded
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                  <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
