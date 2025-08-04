@@ -128,12 +128,19 @@ nohup npm run dev:direct > $PROJECT_ROOT/logs/merchant-direct.log 2>&1 &
 MERCHANT_PID=$!
 echo -e "${GREEN}✓ Merchant App started (PID: $MERCHANT_PID)${NC}"
 
-# Start Booking App (optional - uncomment if needed)
+# Start Booking App
 echo -e "  Starting Booking App..."
 cd $PROJECT_ROOT/apps/booking-app
 nohup npm run dev > $PROJECT_ROOT/logs/booking-app.log 2>&1 &
 BOOKING_PID=$!
 echo -e "${GREEN}✓ Booking App started (PID: $BOOKING_PID)${NC}"
+
+# Start Admin Dashboard
+echo -e "  Starting Admin Dashboard..."
+cd $PROJECT_ROOT/apps/admin-dashboard
+nohup npm run dev > $PROJECT_ROOT/logs/admin-dashboard.log 2>&1 &
+ADMIN_PID=$!
+echo -e "${GREEN}✓ Admin Dashboard started (PID: $ADMIN_PID)${NC}"
 
 # Wait a moment for apps to start
 sleep 5
@@ -152,7 +159,7 @@ pm2 status
 echo ""
 echo "Port Status:"
 echo "------------"
-for port in 3000 3001 3002; do
+for port in 3000 3001 3002 3003; do
     if lsof -i :$port > /dev/null 2>&1; then
         echo -e "Port $port: ${GREEN}LISTENING${NC}"
     else
@@ -163,13 +170,15 @@ done
 echo ""
 echo "Logs:"
 echo "-----"
-echo "API logs:      pm2 logs api --nostream --lines 20"
-echo "Merchant logs: tail -f $PROJECT_ROOT/logs/merchant-direct.log"
-echo "Booking logs:  tail -f $PROJECT_ROOT/logs/booking-app.log"
+echo "API logs:       pm2 logs api --nostream --lines 20"
+echo "Merchant logs:  tail -f $PROJECT_ROOT/logs/merchant-direct.log"
+echo "Booking logs:   tail -f $PROJECT_ROOT/logs/booking-app.log"
+echo "Admin logs:     tail -f $PROJECT_ROOT/logs/admin-dashboard.log"
 echo ""
 echo "Access URLs:"
 echo "------------"
-echo "API:           http://localhost:3000"
-echo "Merchant App:  http://localhost:3002"
-echo "Booking App:   http://localhost:3001"
+echo "API:             http://localhost:3000"
+echo "Booking App:     http://localhost:3001"
+echo "Merchant App:    http://localhost:3002"
+echo "Admin Dashboard: http://localhost:3003"
 echo ""
