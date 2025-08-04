@@ -15,27 +15,41 @@ import {
 } from 'date-fns';
 import { toNumber, subtractDecimals, divideDecimals } from '../utils/decimal';
 import { ReportOverview } from './dto/report-overview.dto';
+import { TimezoneService } from '../common/services/timezone.service';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class ReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private timezoneService: TimezoneService,
+  ) {}
 
   async getRevenueStats(merchantId: string, locationId?: string) {
+    // Get merchant timezone
+    const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now);
-    const weekEnd = endOfWeek(now);
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const yearStart = startOfYear(now);
-    const yearEnd = endOfYear(now);
+    
+    // Use timezone-aware date calculations
+    const todayStart = this.timezoneService.getStartOfDay(now, timezone);
+    const todayEnd = this.timezoneService.getEndOfDay(now, timezone);
+    
+    // Use luxon for timezone-aware week/month/year calculations
+    const dt = DateTime.now().setZone(timezone);
+    const weekStart = dt.startOf('week').toJSDate();
+    const weekEnd = dt.endOf('week').toJSDate();
+    const monthStart = dt.startOf('month').toJSDate();
+    const monthEnd = dt.endOf('month').toJSDate();
+    const yearStart = dt.startOf('year').toJSDate();
+    const yearEnd = dt.endOf('year').toJSDate();
 
     // Previous periods for comparison
-    const lastWeekStart = startOfWeek(subWeeks(now, 1));
-    const lastWeekEnd = endOfWeek(subWeeks(now, 1));
-    const lastMonthStart = startOfMonth(subMonths(now, 1));
-    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+    const lastWeekDt = dt.minus({ weeks: 1 });
+    const lastWeekStart = lastWeekDt.startOf('week').toJSDate();
+    const lastWeekEnd = lastWeekDt.endOf('week').toJSDate();
+    const lastMonthDt = dt.minus({ months: 1 });
+    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
+    const lastMonthEnd = lastMonthDt.endOf('month').toJSDate();
 
     // Updated to use OrderPayment instead of Payment
     const baseWhere: any = {
@@ -48,7 +62,7 @@ export class ReportsService {
     };
 
     // Get revenue for different periods
-    const [daily, weekly, monthly, yearly, lastWeek, lastMonth] = await Promise.all([
+    const [daily, weekly, monthly, yearly, lastWeekRevenue, lastMonthRevenue] = await Promise.all([
       // Today
       this.prisma.orderPayment.aggregate({
         where: {
@@ -101,9 +115,9 @@ export class ReportsService {
 
     // Calculate growth percentages
     const weeklyAmount = toNumber(weekly._sum.amount);
-    const lastWeekAmount = toNumber(lastWeek._sum.amount);
+    const lastWeekAmount = toNumber(lastWeekRevenue._sum.amount);
     const monthlyAmount = toNumber(monthly._sum.amount);
-    const lastMonthAmount = toNumber(lastMonth._sum.amount);
+    const lastMonthAmount = toNumber(lastMonthRevenue._sum.amount);
     
     const weeklyGrowth = lastWeekAmount > 0
       ? ((weeklyAmount - lastWeekAmount) / lastWeekAmount) * 100
@@ -127,15 +141,22 @@ export class ReportsService {
   }
 
   async getBookingStats(merchantId: string, locationId?: string) {
+    // Get merchant timezone
+    const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now);
-    const weekEnd = endOfWeek(now);
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const yearStart = startOfYear(now);
-    const yearEnd = endOfYear(now);
+    
+    // Use timezone-aware date calculations
+    const todayStart = this.timezoneService.getStartOfDay(now, timezone);
+    const todayEnd = this.timezoneService.getEndOfDay(now, timezone);
+    
+    // Use luxon for timezone-aware week/month/year calculations
+    const dt = DateTime.now().setZone(timezone);
+    const weekStart = dt.startOf('week').toJSDate();
+    const weekEnd = dt.endOf('week').toJSDate();
+    const monthStart = dt.startOf('month').toJSDate();
+    const monthEnd = dt.endOf('month').toJSDate();
+    const yearStart = dt.startOf('year').toJSDate();
+    const yearEnd = dt.endOf('year').toJSDate();
 
     const baseWhere = {
       merchantId,
@@ -252,11 +273,14 @@ export class ReportsService {
   }
 
   async getCustomerStats(merchantId: string) {
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const lastMonthStart = startOfMonth(subMonths(now, 1));
-    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+    const timezone = await this.getMerchantTimezone(merchantId);
+    const dt = DateTime.now().setZone(timezone);
+    
+    const monthStart = dt.startOf('month').toJSDate();
+    const monthEnd = dt.endOf('month').toJSDate();
+    const lastMonthDt = dt.minus({ months: 1 });
+    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
+    const lastMonthEnd = lastMonthDt.endOf('month').toJSDate();
 
     const [total, newThisMonth, newLastMonth, withLoyalty] = await Promise.all([
       // Total customers
@@ -312,8 +336,10 @@ export class ReportsService {
   }
 
   async getTopServices(merchantId: string, limit = 10) {
-    const monthStart = startOfMonth(new Date());
-    const monthEnd = endOfMonth(new Date());
+    const timezone = await this.getMerchantTimezone(merchantId);
+    const dt = DateTime.now().setZone(timezone);
+    const monthStart = dt.startOf('month').toJSDate();
+    const monthEnd = dt.endOf('month').toJSDate();
 
     const topServices = await this.prisma.bookingService.groupBy({
       by: ['serviceId'],
@@ -360,8 +386,10 @@ export class ReportsService {
   }
 
   async getStaffPerformance(merchantId: string, limit = 10) {
-    const monthStart = startOfMonth(new Date());
-    const monthEnd = endOfMonth(new Date());
+    const timezone = await this.getMerchantTimezone(merchantId);
+    const dt = DateTime.now().setZone(timezone);
+    const monthStart = dt.startOf('month').toJSDate();
+    const monthEnd = dt.endOf('month').toJSDate();
 
     const staffPerformance = await this.prisma.booking.groupBy({
       by: ['providerId'],
@@ -410,8 +438,9 @@ export class ReportsService {
   }
 
   async getDailyRevenue(merchantId: string, days = 30) {
-    const endDate = endOfDay(new Date());
-    const startDate = startOfDay(subDays(endDate, days - 1));
+    const timezone = await this.getMerchantTimezone(merchantId);
+    const endDate = this.timezoneService.getEndOfDay(new Date(), timezone);
+    const startDate = this.timezoneService.getStartOfDay(subDays(new Date(), days - 1), timezone);
 
     const payments = await this.prisma.orderPayment.findMany({
       where: {
@@ -434,19 +463,19 @@ export class ReportsService {
       },
     });
 
-    // Group by day
+    // Group by day in merchant timezone
     const revenueByDay: Record<string, number> = {};
 
     payments.forEach((payment) => {
-      const day = startOfDay(payment.processedAt!).toISOString();
+      const day = this.timezoneService.getStartOfDay(payment.processedAt!, timezone).toISOString();
       revenueByDay[day] = (revenueByDay[day] || 0) + toNumber(payment.amount);
     });
 
     // Fill in missing days with 0
     const result = [];
     for (let i = 0; i < days; i++) {
-      const date = subDays(endDate, days - 1 - i);
-      const dayKey = startOfDay(date).toISOString();
+      const date = subDays(new Date(), days - 1 - i);
+      const dayKey = this.timezoneService.getStartOfDay(date, timezone).toISOString();
       result.push({
         date: dayKey,
         revenue: revenueByDay[dayKey] || 0,
@@ -457,13 +486,21 @@ export class ReportsService {
   }
 
   async getCleanReportOverview(merchantId: string, locationId?: string): Promise<ReportOverview> {
+    // Get merchant timezone first
+    const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const yesterdayStart = startOfDay(subDays(now, 1));
-    const weekStart = startOfWeek(now);
-    const lastWeekStart = startOfWeek(subWeeks(now, 1));
-    const monthStart = startOfMonth(now);
-    const lastMonthStart = startOfMonth(subMonths(now, 1));
+    
+    // Use timezone-aware date calculations
+    const todayStart = this.timezoneService.getStartOfDay(now, timezone);
+    const yesterdayStart = this.timezoneService.getStartOfDay(subDays(now, 1), timezone);
+    
+    const dt = DateTime.now().setZone(timezone);
+    const weekStart = dt.startOf('week').toJSDate();
+    const lastWeekDt = dt.minus({ weeks: 1 });
+    const lastWeekStart = lastWeekDt.startOf('week').toJSDate();
+    const monthStart = dt.startOf('month').toJSDate();
+    const lastMonthDt = dt.minus({ months: 1 });
+    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
 
     // Get all data in parallel
     const [
@@ -572,8 +609,9 @@ export class ReportsService {
   }
 
   async getBookingTrend(merchantId: string, days = 30) {
-    const endDate = endOfDay(new Date());
-    const startDate = startOfDay(subDays(endDate, days - 1));
+    const timezone = await this.getMerchantTimezone(merchantId);
+    const endDate = this.timezoneService.getEndOfDay(new Date(), timezone);
+    const startDate = this.timezoneService.getStartOfDay(subDays(new Date(), days - 1), timezone);
 
     const bookings = await this.prisma.booking.findMany({
       where: {
@@ -591,19 +629,19 @@ export class ReportsService {
       },
     });
 
-    // Group by day
+    // Group by day in merchant timezone
     const bookingsByDay: Record<string, number> = {};
 
     bookings.forEach((booking) => {
-      const day = startOfDay(booking.createdAt).toISOString();
+      const day = this.timezoneService.getStartOfDay(booking.createdAt, timezone).toISOString();
       bookingsByDay[day] = (bookingsByDay[day] || 0) + 1;
     });
 
     // Fill in missing days with 0
     const result = [];
     for (let i = 0; i < days; i++) {
-      const date = subDays(endDate, days - 1 - i);
-      const dayKey = startOfDay(date).toISOString();
+      const date = subDays(new Date(), days - 1 - i);
+      const dayKey = this.timezoneService.getStartOfDay(date, timezone).toISOString();
       result.push({
         date: dayKey,
         value: bookingsByDay[dayKey] || 0,
@@ -611,5 +649,27 @@ export class ReportsService {
     }
 
     return result;
+  }
+
+  /**
+   * Get the merchant's timezone from their primary location
+   */
+  private async getMerchantTimezone(merchantId: string, locationId?: string): Promise<string> {
+    if (locationId) {
+      const location = await this.prisma.location.findFirst({
+        where: { id: locationId, merchantId },
+        select: { timezone: true },
+      });
+      if (location) return location.timezone;
+    }
+
+    // Get the primary location's timezone
+    const primaryLocation = await this.prisma.location.findFirst({
+      where: { merchantId, isActive: true },
+      select: { timezone: true },
+      orderBy: { createdAt: 'asc' }, // Get the first created location as primary
+    });
+
+    return primaryLocation?.timezone || 'Australia/Sydney'; // Default fallback
   }
 }
