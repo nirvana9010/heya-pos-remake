@@ -27,12 +27,12 @@ if tool == "Bash":
     
     # Check for kill commands that should use restart script
     kill_patterns = [
-        r'\bkill\s+(?!-9\s+-1)',  # kill (but not kill -9 -1 which is caught above)
-        r'\bpkill\b',
-        r'\bkillall\b',
-        r'ps\s+aux.*grep.*kill',
-        r'lsof.*:\d+',
-        r'fuser.*-k'
+        r'\bkill\s+(?!-9\s+-1)',      # kill (but not kill -9 -1 which is caught above)
+        r'\bpkill\b',                  # pkill
+        r'\bkillall\b',                # killall
+        r'ps\s+aux.*grep.*kill',       # ps aux | grep ... | kill
+        r'lsof.*\|\s*xargs\s*kill',    # lsof piped to kill
+        r'fuser\s+-k'                  # fuser -k (kill)
     ]
     
     if any(re.search(pattern, command, re.I) for pattern in kill_patterns):

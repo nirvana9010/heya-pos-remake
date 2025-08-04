@@ -28,6 +28,7 @@ function EditMerchantPage() {
     email: '',
     phone: '',
     abn: '',
+    subdomain: '',
     packageId: '',
     isActive: true,
   });
@@ -53,6 +54,7 @@ function EditMerchantPage() {
         email: merchantData.email,
         phone: merchantData.phone,
         abn: merchantData.abn || '',
+        subdomain: merchantData.subdomain,
         packageId: merchantData.subscription?.package?.id || '',
         isActive: merchantData.isActive,
       });
@@ -80,6 +82,7 @@ function EditMerchantPage() {
         email: formData.email,
         phone: formData.phone,
         abn: formData.abn,
+        subdomain: formData.subdomain,
         isActive: formData.isActive,
       };
 
@@ -226,17 +229,21 @@ function EditMerchantPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subdomain">Subdomain</Label>
+                <Label htmlFor="subdomain">Subdomain (Slug)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="subdomain"
-                    value={merchant.subdomain}
-                    disabled
-                    className="opacity-60"
+                    value={formData.subdomain}
+                    onChange={(e) => setFormData(prev => ({ ...prev, subdomain: e.target.value }))}
+                    placeholder="Enter subdomain"
+                    pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"
+                    title="Subdomain must be 3-63 characters, lowercase letters, numbers and hyphens only"
                   />
                   <span className="text-sm text-muted-foreground">.heya-pos.com</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Subdomain cannot be changed after creation</p>
+                <p className="text-xs text-muted-foreground">
+                  Used for booking URLs and public access.
+                </p>
               </div>
             </CardContent>
           </Card>

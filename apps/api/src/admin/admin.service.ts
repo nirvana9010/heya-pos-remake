@@ -214,6 +214,27 @@ export class AdminService {
     if (dto.abn) updateData.abn = dto.abn;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
+    // Handle subdomain updates with conflict validation
+    if (dto.subdomain) {
+      // Check if subdomain is changing and if new subdomain already exists
+      const currentMerchant = await this.prisma.merchant.findUnique({
+        where: { id },
+        select: { subdomain: true }
+      });
+
+      if (currentMerchant && currentMerchant.subdomain !== dto.subdomain) {
+        const existingMerchant = await this.prisma.merchant.findUnique({
+          where: { subdomain: dto.subdomain },
+        });
+
+        if (existingMerchant) {
+          throw new BadRequestException(`Subdomain "${dto.subdomain}" is already in use`);
+        }
+      }
+
+      updateData.subdomain = dto.subdomain;
+    }
+
     // Update status if isActive is changed
     if (dto.isActive !== undefined) {
       updateData.status = dto.isActive ? 'ACTIVE' : 'INACTIVE';
