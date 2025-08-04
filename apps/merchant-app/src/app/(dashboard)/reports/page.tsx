@@ -94,14 +94,14 @@ export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
   const { toast } = useToast();
 
-  // Use React Query for data fetching
+  // Use React Query for data fetching - pass timeRange to fetch filtered data
   const { 
     data: reportData, 
     isLoading: loading, 
     error,
     refetch: loadReportData,
     isRefetching
-  } = useReportOverview();
+  } = useReportOverview(undefined, timeRange);
 
   // Handle errors with toast notifications
   if (error && !isRefetching) {
@@ -195,13 +195,13 @@ export default function ReportsPage() {
       return null;
     }
 
-    // Handle both old nested structure and new flat structure
-    const revenue = reportData.revenue?.revenue || reportData.revenue || {};
-    const currentRevenue = revenue[timeRange as keyof typeof revenue] || 0;
+    // Data is now already filtered by timeRange from the API
+    const revenue = reportData.revenue || {};
+    const currentRevenue = revenue.total || revenue[timeRange as keyof typeof revenue] || 0;
     
-    // Get growth from nested or flat structure
-    const growth = reportData.revenue?.growth || reportData.revenueGrowth || {};
-    const revenueGrowth = growth[timeRange as keyof typeof growth] || 0;
+    // Get growth for the selected period
+    const growth = reportData.revenueGrowth || {};
+    const revenueGrowth = growth.value || growth[timeRange as keyof typeof growth] || 0;
     
     // Calculate trends using our utility functions
     const revenueTrend = calculateCurrencyTrend(
@@ -217,8 +217,8 @@ export default function ReportsPage() {
       (bookings.total || 0) / (1 + bookingGrowth / 100)
     );
     
-    const customerGrowth = reportData.customers?.growth ?? reportData.customerGrowth ?? 0;
-    const totalCustomers = reportData.customers?.customers?.total || reportData.customers?.total || 0;
+    const customerGrowth = reportData.customerGrowth || 0;
+    const totalCustomers = reportData.customers?.total || 0;
     const customerTrend = calculateCountTrend(
       totalCustomers,
       totalCustomers / (1 + customerGrowth / 100)
@@ -236,28 +236,69 @@ export default function ReportsPage() {
     // Generate sparkline data from revenue trend 
     const sparklineData = (reportData.revenueTrend || []).slice(-12).map(item => item.value || 0);
 
-    // Transform revenue trend data for chart - handle empty array case
+    // Transform revenue trend data for chart based on time range
     let chartData = [];
     
     if (reportData.revenueTrend && reportData.revenueTrend.length > 0) {
-      // Use actual trend data if available
-      chartData = reportData.revenueTrend.slice(-180).reduce((acc: any[], item) => {
-        // Group by month
-        const month = format(new Date(item.date), 'MMM');
-        const existingMonth = acc.find(m => m.month === month);
-        
-        if (existingMonth) {
-          existingMonth.revenue += (item.value || 0);
-          existingMonth.days += 1;
-        } else {
-          acc.push({ month, revenue: (item.value || 0), days: 1 });
-        }
-        
-        return acc;
-      }, []).map(item => ({
-        month: item.month,
-        revenue: Math.round(item.revenue)
-      })).slice(-6);
+      // Format data based on time range
+      if (timeRange === 'daily') {
+        // Show last 7 days
+        chartData = reportData.revenueTrend.slice(-7).map(item => ({
+          month: format(new Date(item.date), 'EEE'), // Mon, Tue, Wed...
+          revenue: Math.round(item.value || 0)
+        }));
+      } else if (timeRange === 'weekly') {
+        // Show last 8 weeks
+        chartData = reportData.revenueTrend.slice(-56).reduce((acc: any[], item, index) => {
+          const weekIndex = Math.floor(index / 7);
+          if (!acc[weekIndex]) {
+            acc[weekIndex] = { 
+              month: `W${weekIndex + 1}`, 
+              revenue: 0 
+            };
+          }
+          acc[weekIndex].revenue += (item.value || 0);
+          return acc;
+        }, []).map(item => ({
+          month: item.month,
+          revenue: Math.round(item.revenue)
+        })).slice(-8);
+      } else if (timeRange === 'yearly') {
+        // Show last 5 years
+        chartData = reportData.revenueTrend.reduce((acc: any[], item) => {
+          const year = format(new Date(item.date), 'yyyy');
+          const existingYear = acc.find(y => y.month === year);
+          
+          if (existingYear) {
+            existingYear.revenue += (item.value || 0);
+          } else {
+            acc.push({ month: year, revenue: (item.value || 0) });
+          }
+          
+          return acc;
+        }, []).map(item => ({
+          month: item.month,
+          revenue: Math.round(item.revenue)
+        })).slice(-5);
+      } else {
+        // Monthly (default) - Show last 6 months
+        chartData = reportData.revenueTrend.slice(-180).reduce((acc: any[], item) => {
+          const month = format(new Date(item.date), 'MMM');
+          const existingMonth = acc.find(m => m.month === month);
+          
+          if (existingMonth) {
+            existingMonth.revenue += (item.value || 0);
+            existingMonth.days += 1;
+          } else {
+            acc.push({ month, revenue: (item.value || 0), days: 1 });
+          }
+          
+          return acc;
+        }, []).map(item => ({
+          month: item.month,
+          revenue: Math.round(item.revenue)
+        })).slice(-6);
+      }
     }
     
     // Flag to indicate no trend data is available
@@ -269,7 +310,12 @@ export default function ReportsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {timeRange === 'daily' && 'Today\'s Revenue'}
+                {timeRange === 'weekly' && 'This Week\'s Revenue'}
+                {timeRange === 'monthly' && 'This Month\'s Revenue'}
+                {timeRange === 'yearly' && 'This Year\'s Revenue'}
+              </CardTitle>
               <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
                 <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
@@ -282,7 +328,9 @@ export default function ReportsPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <TrendBadge trend={revenueTrend} size="sm" />
-                    <span className="text-xs text-muted-foreground">vs last period</span>
+                    <span className="text-xs text-muted-foreground">
+                      vs {timeRange === 'daily' ? 'yesterday' : `last ${timeRange.slice(0, -2)}`}
+                    </span>
                   </div>
                 </div>
                 <Sparkline data={sparklineData} color="#3b82f6" />
@@ -292,7 +340,12 @@ export default function ReportsPage() {
 
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {timeRange === 'daily' && 'Today\'s Bookings'}
+                {timeRange === 'weekly' && 'This Week\'s Bookings'}
+                {timeRange === 'monthly' && 'This Month\'s Bookings'}
+                {timeRange === 'yearly' && 'This Year\'s Bookings'}
+              </CardTitle>
               <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
@@ -315,7 +368,12 @@ export default function ReportsPage() {
 
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {timeRange === 'daily' && 'Today\'s Customers'}
+                {timeRange === 'weekly' && 'This Week\'s Customers'}
+                {timeRange === 'monthly' && 'This Month\'s Customers'}
+                {timeRange === 'yearly' && 'This Year\'s Customers'}
+              </CardTitle>
               <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center">
                 <Users className="h-4 w-4 text-teal-600 dark:text-teal-400" />
               </div>
@@ -323,11 +381,11 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">{reportData.customers?.customers?.total || 0}</div>
+                  <div className="text-3xl font-bold">{totalCustomers}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <TrendBadge trend={customerTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
-                      {reportData.customers?.customers?.new || reportData.customers?.new || 0} new
+                      {reportData.customers?.new || 0} new
                     </span>
                   </div>
                 </div>
@@ -363,7 +421,12 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Revenue Trend</CardTitle>
-                <CardDescription>Monthly revenue over the last 6 months</CardDescription>
+                <CardDescription>
+                  {timeRange === 'daily' && 'Daily revenue over the last 7 days'}
+                  {timeRange === 'weekly' && 'Weekly revenue over the last 8 weeks'}
+                  {timeRange === 'monthly' && 'Monthly revenue over the last 6 months'}
+                  {timeRange === 'yearly' && 'Yearly revenue over the last 5 years'}
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
