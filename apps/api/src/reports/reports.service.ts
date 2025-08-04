@@ -467,17 +467,21 @@ export class ReportsService {
     const revenueByDay: Record<string, number> = {};
 
     payments.forEach((payment) => {
-      const day = this.timezoneService.getStartOfDay(payment.processedAt!, timezone).toISOString();
-      revenueByDay[day] = (revenueByDay[day] || 0) + toNumber(payment.amount);
+      // Get the date in merchant timezone as YYYY-MM-DD string
+      const dt = DateTime.fromJSDate(payment.processedAt!).setZone(timezone);
+      const dayKey = dt.toFormat('yyyy-MM-dd');
+      revenueByDay[dayKey] = (revenueByDay[dayKey] || 0) + toNumber(payment.amount);
     });
 
     // Fill in missing days with 0
     const result = [];
+    const nowInTimezone = DateTime.now().setZone(timezone);
+    
     for (let i = 0; i < days; i++) {
-      const date = subDays(new Date(), days - 1 - i);
-      const dayKey = this.timezoneService.getStartOfDay(date, timezone).toISOString();
+      const date = nowInTimezone.minus({ days: days - 1 - i });
+      const dayKey = date.toFormat('yyyy-MM-dd');
       result.push({
-        date: dayKey,
+        date: dayKey, // Return as YYYY-MM-DD format, not ISO with time
         revenue: revenueByDay[dayKey] || 0,
       });
     }
@@ -610,8 +614,9 @@ export class ReportsService {
 
   async getBookingTrend(merchantId: string, days = 30) {
     const timezone = await this.getMerchantTimezone(merchantId);
-    const endDate = this.timezoneService.getEndOfDay(new Date(), timezone);
-    const startDate = this.timezoneService.getStartOfDay(subDays(new Date(), days - 1), timezone);
+    const nowInTimezone = DateTime.now().setZone(timezone);
+    const endDate = nowInTimezone.endOf('day').toJSDate();
+    const startDate = nowInTimezone.minus({ days: days - 1 }).startOf('day').toJSDate();
 
     const bookings = await this.prisma.booking.findMany({
       where: {
@@ -633,17 +638,19 @@ export class ReportsService {
     const bookingsByDay: Record<string, number> = {};
 
     bookings.forEach((booking) => {
-      const day = this.timezoneService.getStartOfDay(booking.createdAt, timezone).toISOString();
-      bookingsByDay[day] = (bookingsByDay[day] || 0) + 1;
+      // Get the date in merchant timezone as YYYY-MM-DD string
+      const dt = DateTime.fromJSDate(booking.createdAt).setZone(timezone);
+      const dayKey = dt.toFormat('yyyy-MM-dd');
+      bookingsByDay[dayKey] = (bookingsByDay[dayKey] || 0) + 1;
     });
 
     // Fill in missing days with 0
     const result = [];
     for (let i = 0; i < days; i++) {
-      const date = subDays(new Date(), days - 1 - i);
-      const dayKey = this.timezoneService.getStartOfDay(date, timezone).toISOString();
+      const date = nowInTimezone.minus({ days: days - 1 - i });
+      const dayKey = date.toFormat('yyyy-MM-dd');
       result.push({
-        date: dayKey,
+        date: dayKey, // Return as YYYY-MM-DD format, not ISO with time
         value: bookingsByDay[dayKey] || 0,
       });
     }
