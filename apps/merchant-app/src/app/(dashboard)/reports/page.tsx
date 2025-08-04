@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw, LayoutDashboard, ChartBar } from "lucide-react";
+import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw, LayoutDashboard } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
@@ -612,7 +612,7 @@ export default function ReportsPage() {
               onClick={() => setViewMode("classic")}
               className="w-full sm:w-auto"
             >
-              <ChartBar className="mr-2 h-4 w-4" />
+              <BarChart3 className="mr-2 h-4 w-4" />
               Switch to Classic View
             </Button>
           </div>
