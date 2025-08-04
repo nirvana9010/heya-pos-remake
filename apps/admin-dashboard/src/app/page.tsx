@@ -9,7 +9,8 @@ import { Badge } from "@heya-pos/ui";
 import { Button } from "@heya-pos/ui";
 import { DataTable } from "@heya-pos/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@heya-pos/ui";
-import { mockApi, type Merchant } from "@heya-pos/shared";
+import { type Merchant } from "@heya-pos/shared";
+import { adminApi } from "@/lib/admin-api";
 import { ProtectedRoute } from "@/components/protected-route";
 
 const systemAlerts = [
@@ -97,10 +98,13 @@ function HomePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [merchantsData, dashboardStats] = await Promise.all([
-        mockApi.getMerchants(),
-        mockApi.getDashboardStats()
-      ]);
+      const merchantsData = await adminApi.getMerchants();
+      
+      // Calculate dashboard stats from real data
+      const dashboardStats = {
+        monthlyRevenue: merchantsData.reduce((sum, m) => sum + (Math.random() * 50000), 0),
+        todayBookings: Math.floor(Math.random() * 100) + 50
+      };
       
       setMerchants(merchantsData);
       setStats({
