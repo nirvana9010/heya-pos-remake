@@ -603,9 +603,8 @@ export default function ReportsPage() {
 
   return (
     <PinProtected feature="reports" title="Reports Access Required" description="Enter your PIN to view business reports">
-      {/* Executive Dashboard View */}
       {viewMode === "executive" ? (
-        <div>
+        <>
           <ExecutiveDashboard />
           <div className="container max-w-7xl mx-auto px-6 pb-6">
             <Button 
@@ -617,9 +616,8 @@ export default function ReportsPage() {
               Switch to Classic View
             </Button>
           </div>
-        </div>
+        </>
       ) : (
-        /* Classic Reports View */
         <div className="container max-w-7xl mx-auto p-6 space-y-6">
           {/* Enhanced Header with View Toggle */}
           <div className="space-y-4">
@@ -704,7 +702,6 @@ export default function ReportsPage() {
           </div>
         </ErrorBoundary>
       </div>
-    </div>
       )}
     </PinProtected>
   );
