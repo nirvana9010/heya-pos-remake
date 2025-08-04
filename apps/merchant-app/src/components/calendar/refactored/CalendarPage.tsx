@@ -52,6 +52,7 @@ import { bookingEvents } from '@/lib/services/booking-events';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useNotifications } from '@/contexts/notifications-context';
 import { useBooking } from '@/contexts/booking-context';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -80,6 +81,112 @@ function CalendarContent() {
   } = useCalendarNavigation();
   const { handleDragEnd } = useCalendarDragDrop();
   const { updateBookingTime } = useBookingOperations();
+  
+  // WebSocket connection for real-time updates
+  const { isConnected, lastNotification } = useWebSocket({
+    debug: typeof window !== 'undefined' && localStorage.getItem('ws_debug') === 'true',
+    onBookingCreated: React.useCallback((data) => {
+      // Only refresh if this booking is for our merchant
+      if (data.merchantId === merchant?.id) {
+        console.log('[Calendar] Real-time: Booking created', data.id);
+        
+        // Clear cache and refresh
+        apiClient.clearBookingsCache();
+        
+        // Add a small delay to ensure database consistency
+        setTimeout(() => {
+          refresh();
+        }, 500);
+        
+        // Show toast notification
+        toast({
+          title: 'New Booking',
+          description: 'A new booking has been created',
+          duration: 3000,
+        });
+      }
+    }, [merchant?.id, refresh, toast]),
+    
+    onBookingUpdated: React.useCallback((data) => {
+      // Only refresh if this booking is for our merchant
+      if (data.merchantId === merchant?.id) {
+        console.log('[Calendar] Real-time: Booking updated', data.id, 'Status:', data.status);
+        
+        // Update the booking in local state immediately for instant feedback
+        const booking = state.bookings.find(b => b.id === data.id);
+        if (booking) {
+          // Optimistic update
+          actions.updateBooking(data.id, {
+            status: data.status,
+            // Add other updated fields as needed
+          });
+        }
+        
+        // Clear cache and refresh from server
+        apiClient.clearBookingsCache();
+        
+        // Refresh in background to sync with server
+        setTimeout(() => {
+          refresh();
+        }, 500);
+        
+        // Show toast if status changed
+        if (data.oldStatus !== data.status) {
+          toast({
+            title: 'Booking Updated',
+            description: `Status changed from ${data.oldStatus} to ${data.status}`,
+            duration: 3000,
+          });
+        }
+      }
+    }, [merchant?.id, state.bookings, actions, refresh, toast]),
+    
+    onBookingDeleted: React.useCallback((data) => {
+      // Only refresh if this booking is for our merchant
+      if (data.merchantId === merchant?.id) {
+        console.log('[Calendar] Real-time: Booking deleted', data.id);
+        
+        // Remove from local state immediately
+        actions.deleteBooking(data.id);
+        
+        // Clear cache
+        apiClient.clearBookingsCache();
+        
+        // Refresh to sync with server
+        setTimeout(() => {
+          refresh();
+        }, 500);
+        
+        toast({
+          title: 'Booking Deleted',
+          description: 'A booking has been removed',
+          duration: 3000,
+        });
+      }
+    }, [merchant?.id, actions, refresh, toast]),
+    
+    onPaymentCreated: React.useCallback((data) => {
+      if (data.merchantId === merchant?.id && data.bookingId) {
+        console.log('[Calendar] Real-time: Payment created for booking', data.bookingId);
+        
+        // Refresh to show payment status update
+        apiClient.clearBookingsCache();
+        refresh();
+      }
+    }, [merchant?.id, refresh]),
+    
+    onPaymentUpdated: React.useCallback((data) => {
+      if (data.merchantId === merchant?.id && data.bookingId) {
+        console.log('[Calendar] Real-time: Payment updated for booking', data.bookingId);
+        
+        // Refresh to show payment status update
+        apiClient.clearBookingsCache();
+        refresh();
+      }
+    }, [merchant?.id, refresh]),
+    
+    debug: process.env.NODE_ENV === 'development', // Enable debug logging in development
+  });
   
   // Set staff from BookingContext when it's loaded
   React.useEffect(() => {
@@ -734,6 +841,40 @@ function CalendarContent() {
                   <span>Updating...</span>
                 </div>
               )}
+              
+              {/* WebSocket connection indicator */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-md text-xs mr-2",
+                      isConnected 
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
+                    )}>
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        isConnected ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+                      )} />
+                      <span className="font-medium">
+                        {isConnected ? 'Live' : 'Reconnecting'}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm">
+                      {isConnected 
+                        ? 'Real-time updates active' 
+                        : 'Attempting to reconnect...'}
+                    </p>
+                    {lastNotification && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Last update: {lastNotification.toLocaleTimeString()}
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               
               {/* Refresh button */}
               <Button

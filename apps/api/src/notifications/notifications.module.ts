@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { EmailService } from './email/email.service';
 import { SmsService } from './sms/sms.service';
@@ -15,10 +15,17 @@ import { TestNotificationsController } from './test-notifications.controller';
 import { MerchantNotificationsController } from './merchant-notifications.controller';
 import { MerchantNotificationsService } from './merchant-notifications.service';
 import { NotificationsSseController } from './sse/notifications-sse.controller';
+import { PostgresListenerService } from './postgres-listener.service';
+import { NotificationsGateway } from './notifications.gateway';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     PrismaModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'your-secret-key',
+      signOptions: { expiresIn: '7d' },
+    }),
   ],
   controllers: [
     MerchantNotificationsController,
@@ -38,7 +45,21 @@ import { NotificationsSseController } from './sse/notifications-sse.controller';
     SmsTemplateService,
     NotificationEventHandler,
     SimpleSchedulerService, // Always use simple scheduler - no crypto dependencies
+    PostgresListenerService, // PostgreSQL LISTEN/NOTIFY service for real-time events
+    NotificationsGateway, // WebSocket gateway for real-time client communication
   ],
   exports: [NotificationsService, MerchantNotificationsService],
 })
-export class NotificationsModule {}
+export class NotificationsModule {
+  private readonly logger = new Logger(NotificationsModule.name);
+  
+  constructor(
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {
+    this.logger.log('🔧 NotificationsModule constructor called');
+    this.logger.log(`🔧 NotificationsGateway injected: ${!!notificationsGateway}`);
+    if (notificationsGateway) {
+      this.logger.log('🔧 NotificationsGateway instance exists in module');
+    }
+  }
+}

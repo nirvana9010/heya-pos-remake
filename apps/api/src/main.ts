@@ -5,6 +5,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 import { TypeTransformationInterceptor } from './common/interceptors/type-transformation.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -36,6 +37,13 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
+  // Enable WebSocket adapter
+  try {
+    app.useWebSocketAdapter(new IoAdapter(app));
+    logger.log('✅ WebSocket adapter enabled successfully');
+  } catch (error) {
+    logger.error('❌ Failed to enable WebSocket adapter:', error);
+  }
 
   // Enable compression
   app.use(compression());

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="events"></div>
+    
+    <script>
+        // Get token from localStorage or use a test token
+        const token = localStorage.getItem('access_token') || prompt('Enter JWT token:');
+        
+        if (!token) {
+            document.getElementById('status').innerHTML = 'No token provided';
+        } else {
+            // Connect to WebSocket
+            const socket = io('http://localhost:3000/notifications', {
+                auth: {
+                    token: token
+                },
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
+            
+            // Connection events
+            socket.on('connect', () => {
+                console.log('Connected to WebSocket');
+                document.getElementById('status').innerHTML = '✅ Connected! Socket ID: ' + socket.id;
+            });
+            
+            socket.on('connected', (data) => {
+                console.log('Received connected event:', data);
+                const events = document.getElementById('events');
+                events.innerHTML += '<p>Connected: ' + JSON.stringify(data) + '</p>';
+            });
+            
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnected:', reason);
+                document.getElementById('status').innerHTML = '❌ Disconnected: ' + reason;
+            });
+            
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error.message);
+                document.getElementById('status').innerHTML = '❌ Connection error: ' + error.message;
+            });
+            
+            // Listen for notifications
+            socket.on('notification', (data) => {
+                console.log('Notification received:', data);
+                const events = document.getElementById('events');
+                events.innerHTML += '<p>Notification: ' + JSON.stringify(data) + '</p>';
+            });
+            
+            socket.on('booking_created', (data) => {
+                console.log('Booking created:', data);
+                const events = document.getElementById('events');
+                events.innerHTML += '<p>Booking Created: ' + JSON.stringify(data) + '</p>';
+            });
+            
+            socket.on('booking_updated', (data) => {
+                console.log('Booking updated:', data);
+                const events = document.getElementById('events');
+                events.innerHTML += '<p>Booking Updated: ' + JSON.stringify(data) + '</p>';
+            });
+            
+            // Test ping/pong
+            setInterval(() => {
+                socket.emit('ping');
+            }, 5000);
+            
+            socket.on('pong', (data) => {
+                console.log('Pong received:', data);
+            });
+        }
+    </script>
+</body>
+</html>
