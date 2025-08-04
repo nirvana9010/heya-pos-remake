@@ -52,6 +52,7 @@ export interface AuthActions {
   logout: () => void;
   clearError: () => void;
   refreshToken: () => Promise<void>;
+  refreshAccessToken: () => Promise<string | null>;
   verifyAction: (pin: string, action: string) => Promise<any>;
   refreshMerchantData: () => Promise<void>;
 }
@@ -489,6 +490,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await performTokenRefresh(refreshTokenStr);
   }, [performTokenRefresh]);
+  
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const refreshTokenStr = localStorage.getItem('refresh_token');
+    if (!refreshTokenStr) {
+      console.error('[Auth] No refresh token available');
+      return null;
+    }
+
+    try {
+      await performTokenRefresh(refreshTokenStr);
+      // Return the new access token
+      return localStorage.getItem('access_token');
+    } catch (error) {
+      console.error('[Auth] Failed to refresh access token:', error);
+      return null;
+    }
+  }, [performTokenRefresh]);
 
   const scheduleTokenRefresh = (expiresAt: Date) => {
     // Clear any existing timeout
@@ -499,20 +517,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const now = Date.now();
     const timeUntilExpiry = expiresAt.getTime() - now;
     
-    // Schedule refresh 5 minutes before expiry
-    const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
+    // Determine refresh timing based on token lifetime
+    let refreshBeforeExpiry: number;
+    
+    if (timeUntilExpiry > 24 * 60 * 60 * 1000) {
+      // Token expires in more than 24 hours (e.g., 7-day token)
+      // Refresh 1 hour before expiry to prevent WebSocket disconnections
+      refreshBeforeExpiry = 60 * 60 * 1000; // 1 hour
+      console.log('[Auth] Long-lived token detected, will refresh 1 hour before expiry');
+    } else if (timeUntilExpiry > 60 * 60 * 1000) {
+      // Token expires in 1-24 hours
+      // Refresh 5 minutes before expiry
+      refreshBeforeExpiry = 5 * 60 * 1000; // 5 minutes
+      console.log('[Auth] Medium-lived token detected, will refresh 5 minutes before expiry');
+    } else {
+      // Token expires in less than 1 hour (e.g., 15-30 minute tokens)
+      // Refresh 1 minute before expiry
+      refreshBeforeExpiry = 60 * 1000; // 1 minute
+      console.log('[Auth] Short-lived token detected, will refresh 1 minute before expiry');
+    }
+    
+    const refreshTime = timeUntilExpiry - refreshBeforeExpiry;
     
     if (refreshTime > 0) {
+      const refreshDate = new Date(Date.now() + refreshTime);
+      console.log(`[Auth] Token expires at ${expiresAt.toISOString()}, scheduling refresh for ${refreshDate.toISOString()}`);
       
       (window as any).authTokenRefreshTimeout = setTimeout(async () => {
+        console.log('[Auth] Proactively refreshing token before expiry');
         const refreshTokenStr = localStorage.getItem('refresh_token');
         if (refreshTokenStr) {
           try {
             await performTokenRefresh(refreshTokenStr);
+            console.log('[Auth] Token refreshed successfully');
+            
+            // Emit event so WebSocket can update if needed
+            window.dispatchEvent(new CustomEvent('auth:tokenRefreshed'));
           } catch (error) {
+            console.error('[Auth] Failed to refresh token:', error);
           }
         }
       }, refreshTime);
+    } else {
+      // Token is about to expire or already expired, refresh immediately
+      console.log('[Auth] Token expiring soon, refreshing immediately');
+      const refreshTokenStr = localStorage.getItem('refresh_token');
+      if (refreshTokenStr) {
+        performTokenRefresh(refreshTokenStr).catch(error => {
+          console.error('[Auth] Failed to refresh token:', error);
+        });
+      }
     }
   };
 
@@ -548,6 +602,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     clearError,
     refreshToken,
+    refreshAccessToken,
     verifyAction,
     refreshMerchantData,
   };
