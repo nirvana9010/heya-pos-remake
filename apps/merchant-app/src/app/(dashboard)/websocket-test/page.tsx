@@ -88,9 +88,9 @@ export default function WebSocketTestPage() {
   }, []);
 
   const simulateTokenExpiry = () => {
-    // Set a fake expired token to trigger auth failure
-    const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkV4cGlyZWQiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6MTUxNjIzOTAyMn0.4Adcj3UFYzPUVaVF43FmMab6RlaQD8A9V8wFzzht-KQ';
-    localStorage.setItem('access_token', expiredToken);
+    // Create a clearly fake expired token for testing
+    const fakeExpiredToken = 'fake.expired.token';
+    localStorage.setItem('access_token', fakeExpiredToken);
     
     // Force reconnect which should trigger auth failure
     reconnect();
