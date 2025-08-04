@@ -107,6 +107,44 @@ export function ExecutiveDashboard() {
   const avgTransactionValue = weekTotal > 0 && weeklyCompletedBookings > 0 
     ? Math.round(weekTotal / weeklyCompletedBookings) 
     : 0;
+  
+  // Calculate Booking Fill Rate
+  // Use actual data if available, otherwise use reasonable defaults
+  const avgServiceDuration = reportData.avgServiceDuration || 60; // minutes
+  
+  // Calculate business hours - try to parse businessHours JSON, fallback to 8 hours
+  let dailyHours = 8; // default
+  if (reportData.businessHours) {
+    try {
+      // Business hours is typically stored as an object with days of week
+      // For now, use a simple 8 hour default or try to extract from Monday
+      const hours = reportData.businessHours;
+      if (hours?.monday?.open && hours?.monday?.close) {
+        const openTime = parseInt(hours.monday.open.split(':')[0]);
+        const closeTime = parseInt(hours.monday.close.split(':')[0]);
+        dailyHours = closeTime - openTime;
+      }
+    } catch (e) {
+      // Keep default
+    }
+  }
+  
+  // Use actual active staff count if available, otherwise estimate from staffPerformance
+  const activeStaff = reportData.activeStaffCount || reportData.staffPerformance?.length || 2;
+  
+  const slotsPerHour = 60 / avgServiceDuration; // how many appointments per hour
+  const totalDailySlots = dailyHours * activeStaff * slotsPerHour;
+  const bookingFillRate = Math.min(100, Math.round((todayBookings / totalDailySlots) * 100));
+  
+  // Determine fill rate color
+  const getFillRateColor = (rate: number) => {
+    if (rate >= 80) return 'bg-green-500';
+    if (rate >= 60) return 'bg-blue-500';
+    if (rate >= 40) return 'bg-yellow-500';
+    return 'bg-orange-500';
+  };
+  
+  const fillRateColor = getFillRateColor(bookingFillRate);
 
   // Get top service
   const topService = reportData.topServices?.[0] || null;
@@ -180,16 +218,22 @@ export function ExecutiveDashboard() {
           <Card className="overflow-hidden border-l-4 border-l-purple-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Business Health
+                Booking Fill Rate
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold flex items-center gap-2">
-                {getHealthScore(todayRevenue, weekAverage)}
-                <span className="text-lg text-muted-foreground">/ 100</span>
+                {bookingFillRate}%
+                <span className="text-lg text-muted-foreground">Capacity</span>
               </div>
               <div className="text-sm text-muted-foreground mt-2">
-                {getHealthLabel(todayRevenue, weekAverage)}
+                {todayBookings} of ~{Math.round(totalDailySlots)} slots filled
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2 mt-2">
+                <div 
+                  className={cn(fillRateColor, "h-2 rounded-full transition-all duration-300")}
+                  style={{ width: `${bookingFillRate}%` }}
+                />
               </div>
             </CardContent>
           </Card>
@@ -355,22 +399,6 @@ export function ExecutiveDashboard() {
 }
 
 // Helper functions
-function getHealthScore(todayRevenue: number, weekAverage: number): number {
-  if (weekAverage === 0) return 50;
-  const ratio = todayRevenue / weekAverage;
-  if (ratio >= 1.2) return 90;
-  if (ratio >= 1) return 75;
-  if (ratio >= 0.8) return 60;
-  if (ratio >= 0.6) return 40;
-  return 25;
-}
-
-function getHealthLabel(todayRevenue: number, weekAverage: number): string {
-  const score = getHealthScore(todayRevenue, weekAverage);
-  if (score >= 75) return "Performing well";
-  if (score >= 50) return "On track";
-  return "Needs attention";
-}
 
 function generateInsights(reportData: any, weekData: any[], bestDay: any, worstDay: any) {
   const insights = [];

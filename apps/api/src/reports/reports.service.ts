@@ -583,6 +583,63 @@ export class ReportsService {
     const totalCustomers = customerData.customers.total || 1;
     const retentionRate = (returningCustomers / totalCustomers) * 100;
 
+    // Get business hours for the location
+    let businessHours = null;
+    let activeStaffCount = 0;
+    
+    try {
+      // Get the location to fetch business hours
+      const location = await this.prisma.location.findFirst({
+        where: {
+          merchantId,
+          ...(locationId && { id: locationId }),
+          isActive: true,
+        },
+        select: {
+          businessHours: true,
+        },
+      });
+      
+      if (location?.businessHours) {
+        businessHours = location.businessHours;
+      }
+      
+      // Get count of active staff working today
+      activeStaffCount = await this.prisma.staff.count({
+        where: {
+          merchantId,
+          status: 'ACTIVE',
+        },
+      });
+    } catch (error: any) {
+      console.log('Could not fetch business hours or staff count:', error.message);
+    }
+
+    // Calculate average service duration from actual bookings (if available)
+    let avgServiceDuration = 60; // Default to 60 minutes
+    
+    try {
+      const avgDuration = await this.prisma.bookingService.aggregate({
+        where: {
+          booking: {
+            merchantId,
+            ...(locationId && { locationId }),
+            status: 'COMPLETED',
+            completedAt: { gte: monthStart },
+          },
+        },
+        _avg: {
+          duration: true,
+        },
+      });
+      
+      if (avgDuration._avg.duration) {
+        avgServiceDuration = Math.round(avgDuration._avg.duration);
+      }
+    } catch (error: any) {
+      console.log('Could not calculate average service duration:', error.message);
+    }
+
     // Return clean, flat structure
     return {
       revenue: revenueData.revenue,
@@ -607,8 +664,10 @@ export class ReportsService {
       })),
       bookingTrend: bookingTrend || [],
       avgBookingValue: Math.round(avgBookingValue * 100) / 100,
-      avgServiceDuration: 60, // Default 60 minutes, could calculate from actual data
+      avgServiceDuration,
       customerRetentionRate: Math.round(retentionRate * 10) / 10,
+      businessHours,
+      activeStaffCount,
     };
   }
 

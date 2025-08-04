@@ -75,6 +75,10 @@ export interface ReportData {
   avgBookingValue: number;
   avgServiceDuration: number;
   customerRetentionRate: number;
+  
+  // Additional data for fill rate calculation
+  businessHours?: any; // JSON object with business hours
+  activeStaffCount?: number; // Number of active staff
 }
 
 export interface DashboardStats {
