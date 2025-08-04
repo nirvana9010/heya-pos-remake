@@ -242,22 +242,23 @@ export default function ReportsPage() {
     );
 
     // Generate sparkline data from revenue trend 
-    const sparklineData = (reportData.revenueTrend || []).slice(-12).map(item => item.value || 0);
+    const revenueTrendArray = Array.isArray(reportData.revenueTrend) ? reportData.revenueTrend : [];
+    const sparklineData = revenueTrendArray.slice(-12).map(item => item.value || 0);
 
     // Transform revenue trend data for chart based on time range
     let chartData = [];
     
-    if (reportData.revenueTrend && reportData.revenueTrend.length > 0) {
+    if (revenueTrendArray.length > 0) {
       // Format data based on time range
       if (timeRange === 'daily') {
         // Show last 7 days
-        chartData = reportData.revenueTrend.slice(-7).map(item => ({
+        chartData = revenueTrendArray.slice(-7).map(item => ({
           month: format(new Date(item.date), 'EEE'), // Mon, Tue, Wed...
           revenue: Math.round(item.value || 0)
         }));
       } else if (timeRange === 'weekly') {
         // Show last 8 weeks
-        chartData = reportData.revenueTrend.slice(-56).reduce((acc: any[], item, index) => {
+        chartData = revenueTrendArray.slice(-56).reduce((acc: any[], item, index) => {
           const weekIndex = Math.floor(index / 7);
           if (!acc[weekIndex]) {
             acc[weekIndex] = { 
@@ -273,7 +274,7 @@ export default function ReportsPage() {
         })).slice(-8);
       } else if (timeRange === 'yearly') {
         // Show last 5 years
-        chartData = reportData.revenueTrend.reduce((acc: any[], item) => {
+        chartData = revenueTrendArray.reduce((acc: any[], item) => {
           const year = format(new Date(item.date), 'yyyy');
           const existingYear = acc.find(y => y.month === year);
           
@@ -290,7 +291,7 @@ export default function ReportsPage() {
         })).slice(-5);
       } else {
         // Monthly (default) - Show last 6 months
-        chartData = reportData.revenueTrend.slice(-180).reduce((acc: any[], item) => {
+        chartData = revenueTrendArray.slice(-180).reduce((acc: any[], item) => {
           const month = format(new Date(item.date), 'MMM');
           const existingMonth = acc.find(m => m.month === month);
           
@@ -501,7 +502,7 @@ export default function ReportsPage() {
                     fill="#8884d8"
                     dataKey="revenue"
                   >
-                    {reportData.topServices.slice(0, 5).map((entry, index) => (
+                    {(reportData.topServices || []).slice(0, 5).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -509,7 +510,7 @@ export default function ReportsPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-4 space-y-2">
-                {reportData.topServices.slice(0, 5).map((service, index) => (
+                {(reportData.topServices || []).slice(0, 5).map((service, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div
@@ -533,7 +534,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {reportData.staffPerformance.slice(0, 4).map((staff, index) => (
+                {(reportData.staffPerformance || []).slice(0, 4).map((staff, index) => (
                   <div key={index} className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
@@ -587,11 +588,11 @@ export default function ReportsPage() {
     }
     
     const exportData = {
-      revenue: reportData.revenue,
-      bookings: reportData.bookings,
-      customers: reportData.customers,
-      services: reportData.topServices,
-      staff: reportData.staffPerformance,
+      revenue: reportData.revenue || {},
+      bookings: reportData.bookings || {},
+      customers: reportData.customers || {},
+      services: reportData.topServices || [],
+      staff: reportData.staffPerformance || [],
     };
     exportToCSV(
       Object.entries(exportData).flatMap(([category, data]) =>

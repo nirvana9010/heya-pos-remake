@@ -57,24 +57,32 @@ export function ExecutiveDashboard() {
 
   // Extract today's data
   const todayRevenue = reportData.revenue?.daily || 0;
-  const yesterdayRevenue = reportData.revenueTrend?.slice(-2, -1)[0]?.value || 0;
+  
+  // Safely get yesterday's revenue from trend data
+  const revenueTrend = Array.isArray(reportData.revenueTrend) ? reportData.revenueTrend : [];
+  const yesterdayRevenue = revenueTrend.length >= 2 
+    ? revenueTrend[revenueTrend.length - 2]?.value || 0
+    : 0;
+  
   const revenueChange = yesterdayRevenue > 0 
     ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue * 100).toFixed(1)
     : 0;
   const isRevenueUp = Number(revenueChange) > 0;
 
   // Process week rhythm data (last 7 days)
-  const weekData = reportData.revenueTrend?.slice(-7).map((item, index) => {
-    const date = new Date(item.date);
-    const dayName = format(date, 'EEE');
-    const isToday = index === 6; // Last item is today
-    return {
-      day: dayName,
-      revenue: item.value || 0,
-      isToday,
-      date: format(date, 'MMM d')
-    };
-  }) || [];
+  const weekData = revenueTrend.length > 0 
+    ? revenueTrend.slice(-7).map((item, index) => {
+        const date = new Date(item.date);
+        const dayName = format(date, 'EEE');
+        const isToday = index === 6; // Last item is today
+        return {
+          day: dayName,
+          revenue: item.value || 0,
+          isToday,
+          date: format(date, 'MMM d')
+        };
+      })
+    : [];
 
   // Find best and worst days
   const bestDay = weekData.reduce((max, day) => 
