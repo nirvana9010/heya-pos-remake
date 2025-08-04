@@ -92,34 +92,30 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Dev only - Auto login button and demo credentials */}
-          {process.env.NODE_ENV === 'development' && (
-            <>
-              <div className="mt-4 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setUsername('admin');
-                    setPassword('admin123');
-                    // Auto submit after a short delay
-                    setTimeout(() => {
-                      document.querySelector('form')?.requestSubmit();
-                    }, 100);
-                  }}
-                  disabled={isLoading}
-                >
-                  🚀 Quick Login (Dev Only)
-                </Button>
-              </div>
-              
-              <div className="mt-4 text-sm text-gray-600 text-center">
-                <p>Demo credentials (dev only):</p>
-                <p className="font-mono">admin / admin123</p>
-              </div>
-            </>
-          )}
+          {/* Quick login button and credentials */}
+          <div className="mt-4 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setUsername('admin');
+                setPassword('admin123');
+                // Auto submit after a short delay
+                setTimeout(() => {
+                  document.querySelector('form')?.requestSubmit();
+                }, 100);
+              }}
+              disabled={isLoading}
+            >
+              🚀 Quick Login
+            </Button>
+          </div>
+          
+          <div className="mt-4 text-sm text-gray-600 text-center">
+            <p>Admin credentials:</p>
+            <p className="font-mono">admin / admin123</p>
+          </div>
         </CardContent>
       </Card>
     </div>
