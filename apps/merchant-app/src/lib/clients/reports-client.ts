@@ -79,12 +79,9 @@ export interface DashboardStats {
 }
 
 export class ReportsClient extends BaseApiClient {
-  async getReportOverview(locationId?: string, timeRange?: string): Promise<ReportData> {
-    const params: any = {};
-    if (locationId) params.locationId = locationId;
-    if (timeRange) params.timeRange = timeRange;
-    
-    return this.get('/reports/overview', { params: Object.keys(params).length > 0 ? params : undefined }, 'v1');
+  async getReportOverview(locationId?: string): Promise<ReportData> {
+    const params = locationId ? { locationId } : undefined;
+    return this.get('/reports/overview', { params }, 'v1');
   }
 
   async getRevenueStats(locationId?: string) {

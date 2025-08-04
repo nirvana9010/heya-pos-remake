@@ -94,14 +94,14 @@ export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
   const { toast } = useToast();
 
-  // Use React Query for data fetching - pass timeRange to fetch filtered data
+  // Use React Query for data fetching - backend returns all time ranges at once
   const { 
     data: reportData, 
     isLoading: loading, 
     error,
     refetch: loadReportData,
     isRefetching
-  } = useReportOverview(undefined, timeRange);
+  } = useReportOverview();
 
   // Handle errors with toast notifications
   if (error && !isRefetching) {
@@ -195,13 +195,13 @@ export default function ReportsPage() {
       return null;
     }
 
-    // Data is now already filtered by timeRange from the API
+    // Backend returns all time ranges, we select based on filter
     const revenue = reportData.revenue || {};
-    const currentRevenue = revenue.total || revenue[timeRange as keyof typeof revenue] || 0;
+    const currentRevenue = revenue[timeRange as keyof typeof revenue] || 0;
     
     // Get growth for the selected period
     const growth = reportData.revenueGrowth || {};
-    const revenueGrowth = growth.value || growth[timeRange as keyof typeof growth] || 0;
+    const revenueGrowth = growth[timeRange as keyof typeof growth] || 0;
     
     // Calculate trends using our utility functions
     const revenueTrend = calculateCurrencyTrend(
@@ -209,16 +209,20 @@ export default function ReportsPage() {
       currentRevenue / (1 + revenueGrowth / 100)
     );
     
-    // Calculate real booking growth if we have the data
-    const bookingGrowth = reportData.bookingGrowth?.monthly || 0;
-    const bookings = reportData.bookings?.bookings || reportData.bookings || {};
+    // Get booking data for selected time range
+    const bookingGrowth = reportData.bookingGrowth?.[timeRange as keyof typeof reportData.bookingGrowth] || 0;
+    const bookings = reportData.bookings || {};
+    // Bookings might have time-based breakdown or just totals
+    const currentBookings = bookings[timeRange as keyof typeof bookings] || bookings.total || 0;
     const bookingTrend = calculateCountTrend(
-      bookings.total || 0,
-      (bookings.total || 0) / (1 + bookingGrowth / 100)
+      currentBookings,
+      currentBookings / (1 + bookingGrowth / 100)
     );
     
-    const customerGrowth = reportData.customerGrowth || 0;
-    const totalCustomers = reportData.customers?.total || 0;
+    // Customer data - may not have time range breakdown
+    const customerGrowth = reportData.customerGrowth?.[timeRange as keyof typeof reportData.customerGrowth] || reportData.customerGrowth || 0;
+    const customers = reportData.customers || {};
+    const totalCustomers = customers[timeRange as keyof typeof customers] || customers.total || 0;
     const customerTrend = calculateCountTrend(
       totalCustomers,
       totalCustomers / (1 + customerGrowth / 100)
@@ -353,11 +357,11 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">{bookings.total || 0}</div>
+                  <div className="text-3xl font-bold">{currentBookings}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <TrendBadge trend={bookingTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
-                      {bookings.completed || 0} completed
+                      vs {timeRange === 'daily' ? 'yesterday' : `last ${timeRange.slice(0, -2)}`}
                     </span>
                   </div>
                 </div>

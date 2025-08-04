@@ -5,7 +5,7 @@ import type { ReportData, DashboardStats } from '../../clients/reports-client';
 // Query keys for reports
 export const reportKeys = {
   all: ['reports'] as const,
-  overview: (locationId?: string, timeRange?: string) => [...reportKeys.all, 'overview', { locationId, timeRange }] as const,
+  overview: (locationId?: string) => [...reportKeys.all, 'overview', { locationId }] as const,
   dashboard: () => [...reportKeys.all, 'dashboard'] as const,
   revenue: (locationId?: string) => [...reportKeys.all, 'revenue', { locationId }] as const,
   bookings: (locationId?: string) => [...reportKeys.all, 'bookings', { locationId }] as const,
@@ -32,10 +32,10 @@ export function useDashboardStats() {
 /**
  * Hook to fetch report overview data
  */
-export function useReportOverview(locationId?: string, timeRange?: string) {
+export function useReportOverview(locationId?: string) {
   return useQuery({
-    queryKey: reportKeys.overview(locationId, timeRange),
-    queryFn: () => apiClient.reports.getReportOverview(locationId, timeRange),
+    queryKey: reportKeys.overview(locationId),
+    queryFn: () => apiClient.reports.getReportOverview(locationId),
     staleTime: 5 * 60 * 1000, // 5 minutes for report overview
     refetchOnWindowFocus: false, // Don't auto-refetch reports on focus
   });
