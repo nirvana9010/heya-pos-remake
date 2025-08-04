@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { Skeleton } from "@heya-pos/ui";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { useReportOverview } from "@/lib/query/hooks";
 import {
   LineChart,
