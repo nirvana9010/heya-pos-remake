@@ -124,6 +124,11 @@ function isMoneyField(fieldName: string): boolean {
     return false;
   }
   
+  // CRITICAL FIX: Exclude trend arrays (revenueTrend, bookingTrend, etc.)
+  if (fieldLower.endsWith('trend')) {
+    return false;
+  }
+  
   return moneyFields.some(field => 
     fieldLower.includes(field.toLowerCase()) ||
     fieldLower.endsWith('price') ||
