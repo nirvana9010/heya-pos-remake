@@ -10,7 +10,8 @@ import {
   DollarSign,
   Calendar,
   Target,
-  Info
+  Info,
+  BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
@@ -160,16 +161,16 @@ export function ExecutiveDashboard() {
           <Card className="overflow-hidden border-l-4 border-l-blue-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Today's Bookings
+                Total Bookings
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {completedBookings > 0 ? completedBookings : totalBookings}
+                {totalBookings}
               </div>
               <div className="text-sm text-muted-foreground mt-2">
                 {completedBookings > 0 && `${completedBookings} completed`}
-                {completedBookings === 0 && totalBookings > 0 && `${totalBookings} scheduled`}
+                {completedBookings === 0 && totalBookings > 0 && "All scheduled"}
                 {totalBookings === 0 && "No bookings yet"}
               </div>
             </CardContent>
@@ -203,51 +204,53 @@ export function ExecutiveDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weekData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="day" 
-                stroke="#6b7280" 
-                fontSize={12}
-                tick={{ fill: '#6b7280' }}
-              />
-              <YAxis 
-                stroke="#6b7280" 
-                fontSize={12}
-                tick={{ fill: '#6b7280' }}
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-background border rounded-lg shadow-lg p-3">
-                        <p className="text-sm font-medium">{data.date}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Revenue: <span className="font-medium text-foreground">
-                            ${data.revenue.toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                {weekData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.isToday ? '#3b82f6' : '#cbd5e1'} 
+          {weekData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={weekData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="day" 
+                    stroke="#6b7280" 
+                    fontSize={12}
+                    tick={{ fill: '#6b7280' }}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          
-          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                  <YAxis 
+                    stroke="#6b7280" 
+                    fontSize={12}
+                    tick={{ fill: '#6b7280' }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-background border rounded-lg shadow-lg p-3">
+                            <p className="text-sm font-medium">{data.date}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Revenue: <span className="font-medium text-foreground">
+                                ${data.revenue.toLocaleString()}
+                              </span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                    {weekData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.isToday ? '#3b82f6' : '#cbd5e1'} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Best Day</span>
               <span className="text-sm font-medium">
@@ -261,6 +264,16 @@ export function ExecutiveDashboard() {
               </span>
             </div>
           </div>
+            </>
+          ) : (
+            <div className="h-[200px] flex flex-col items-center justify-center text-center">
+              <BarChart3 className="h-12 w-12 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">No revenue data available</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Revenue data will appear as transactions are recorded
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
