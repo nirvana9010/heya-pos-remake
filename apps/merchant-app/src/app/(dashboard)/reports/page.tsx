@@ -5,7 +5,6 @@ import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock,
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { Skeleton } from "@heya-pos/ui";
@@ -93,7 +92,6 @@ const Sparkline = ({ data, color = "#3b82f6" }: { data: number[]; color?: string
 
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
-  const [selectedTab, setSelectedTab] = useState("overview");
   const { toast } = useToast();
 
   // Use React Query for data fetching
@@ -569,107 +567,6 @@ export default function ReportsPage() {
     );
   };
 
-  const CustomersTab = () => {
-    // Since this component is only rendered when reportData exists (parent checks),
-    // we can safely assume reportData is available
-    if (!reportData) {
-      // This should never happen because parent component checks
-      return null;
-    }
-
-    // Handle both nested and flat structures
-    const customers = reportData.customers?.customers || reportData.customers || {};
-    const customerGrowth = reportData.customers?.growth ?? reportData.customerGrowth ?? 0;
-
-    return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.total || 0}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
-            <div className="flex items-center text-sm text-green-600 mt-2">
-              <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+{customerGrowth}%</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.new || 0}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-            <div className="flex items-center text-sm text-green-600 mt-2">
-              <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+{customerGrowth}%</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Loyalty Members</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.loyaltyMembers || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {customers.total > 0 ? Math.round(((customers.loyaltyMembers || 0) / customers.total) * 100) : 0}% of total
-            </p>
-            <div className="flex items-center text-sm text-green-600 mt-2">
-              <TrendingUp className="mr-1 h-3 w-3" />
-              <span className="text-xs">+2.1%</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Retention</CardTitle>
-          <CardDescription>Customer visit frequency and loyalty metrics</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-secondary/50 rounded-lg">
-              <div>
-                <p className="font-medium">Returning Customer Rate</p>
-                <p className="text-sm text-muted-foreground">Customers with 2+ visits</p>
-              </div>
-              <p className="text-2xl font-bold">
-                {Math.round((reportData.customers.customers.returning / reportData.customers.customers.total) * 100)}%
-              </p>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-secondary/50 rounded-lg">
-              <div>
-                <p className="font-medium">Average Visit Frequency</p>
-                <p className="text-sm text-muted-foreground">Visits per customer per month</p>
-              </div>
-              <p className="text-2xl font-bold">2.3</p>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-secondary/50 rounded-lg">
-              <div>
-                <p className="font-medium">Customer Lifetime Value</p>
-                <p className="text-sm text-muted-foreground">Average revenue per customer</p>
-              </div>
-              <p className="text-2xl font-bold">
-                ${reportData.revenue?.revenue?.yearly && reportData.customers?.customers?.total 
-                  ? Math.round(reportData.revenue.revenue.yearly / reportData.customers.customers.total)
-                  : 0}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-    );
-  };
 
   const handleExportAll = () => {
     if (!reportData) {
@@ -769,42 +666,9 @@ export default function ReportsPage() {
       </div>
 
       <ErrorBoundary>
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full md:w-[400px] grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="customers">Customers</TabsTrigger>
-            <TabsTrigger value="financial">Financial</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-6">
-            <ErrorBoundary>
-              <OverviewTab />
-            </ErrorBoundary>
-          </TabsContent>
-          
-          <TabsContent value="customers" className="mt-6">
-            <ErrorBoundary>
-              <CustomersTab />
-            </ErrorBoundary>
-          </TabsContent>
-          
-          <TabsContent value="financial" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Financial Reports
-                </CardTitle>
-                <CardDescription>Detailed revenue and expense analytics coming soon</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  Advanced financial reporting will be available in the next update
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <div className="mt-6">
+          <OverviewTab />
+        </div>
       </ErrorBoundary>
     </div>
     </PinProtected>
