@@ -46,12 +46,20 @@ export class AdminController {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Temporary admin login - in production, use proper admin auth
+  // Admin login - production ready
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: AdminLoginDto) {
-    // Hardcoded admin credentials for testing
-    if (dto.username === 'admin' && dto.password === 'admin123') {
+    // Check environment - disable demo login in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (isProduction) {
+      // In production, always reject demo credentials
+      throw new UnauthorizedException('Admin login is disabled. Please use proper authentication.');
+    }
+    
+    // Development only - demo credentials for local testing
+    if (!isProduction && dto.username === 'admin' && dto.password === 'admin123') {
       const payload = {
         id: 'admin-1',
         username: 'admin',
