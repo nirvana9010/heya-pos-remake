@@ -642,9 +642,10 @@ export default function ReportsPage() {
                 </Button>
               </div>
             </div>
+          </div>
         
-        {/* Prominent Date Range Selector */}
-        <Card className="border-dashed">
+          {/* Prominent Date Range Selector */}
+          <Card className="border-dashed">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
