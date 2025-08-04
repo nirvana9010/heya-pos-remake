@@ -47,7 +47,7 @@ export function Topbar() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        zIndex: 30
+        zIndex: 40
       }}>
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
         {/* Global Search with Suggestions */}
