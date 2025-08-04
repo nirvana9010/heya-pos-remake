@@ -502,67 +502,6 @@ export default function ReportsPage() {
           </Card>
         </div>
 
-        {/* Booking Statistics with Better Visual */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking Statistics</CardTitle>
-            <CardDescription>Performance metrics for the current period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="relative overflow-hidden rounded-lg border bg-card p-4">
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                    <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{bookings.completed || 0}</p>
-                    <p className="text-xs text-muted-foreground">Completed</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {bookings.total > 0 ? Math.round((bookings.completed / bookings.total) * 100) : 0}%
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="relative overflow-hidden rounded-lg border bg-card p-4">
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <div className="h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{bookings.pending || 0}</p>
-                    <p className="text-xs text-muted-foreground">Pending</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="relative overflow-hidden rounded-lg border bg-card p-4">
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{bookings.cancelled || 0}</p>
-                    <p className="text-xs text-muted-foreground">Cancelled</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="relative overflow-hidden rounded-lg border bg-card p-4">
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{bookings.noShow || 0}</p>
-                    <p className="text-xs text-muted-foreground">No Show</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   };
