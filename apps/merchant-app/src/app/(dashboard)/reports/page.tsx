@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw } from "lucide-react";
+import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw, LayoutDashboard, ChartBar } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { Skeleton } from "@heya-pos/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { useReportOverview } from "@/lib/query/hooks";
 import {
   LineChart,
@@ -31,6 +32,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { TrendBadge } from "@/components/TrendBadge";
 import { calculateTrend, calculateCurrencyTrend, calculateCountTrend } from "@heya-pos/utils";
 import { PinProtected } from "@/components/PinProtected";
+import { ExecutiveDashboard } from "./executive-dashboard";
 
 // Import the type from the client
 import type { ReportData } from '@/lib/clients/reports-client';
@@ -92,6 +94,7 @@ const Sparkline = ({ data, color = "#3b82f6" }: { data: number[]; color?: string
 
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
+  const [viewMode, setViewMode] = useState<"executive" | "classic">("executive");
   const { toast } = useToast();
 
   // Use React Query for data fetching - backend returns all time ranges at once
@@ -600,21 +603,47 @@ export default function ReportsPage() {
 
   return (
     <PinProtected feature="reports" title="Reports Access Required" description="Enter your PIN to view business reports">
-      <div className="container max-w-7xl mx-auto p-6 space-y-6">
-        {/* Enhanced Header with Prominent Date Range */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
-              <p className="text-muted-foreground mt-1">
-                Track performance, identify trends, and make data-driven decisions
-              </p>
+      {/* Executive Dashboard View */}
+      {viewMode === "executive" ? (
+        <div>
+          <ExecutiveDashboard />
+          <div className="container max-w-7xl mx-auto px-6 pb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setViewMode("classic")}
+              className="w-full sm:w-auto"
+            >
+              <ChartBar className="mr-2 h-4 w-4" />
+              Switch to Classic View
+            </Button>
           </div>
-          <Button variant="outline" onClick={handleExportAll}>
-            <Download className="mr-2 h-4 w-4" />
-            Export All
-          </Button>
         </div>
+      ) : (
+        /* Classic Reports View */
+        <div className="container max-w-7xl mx-auto p-6 space-y-6">
+          {/* Enhanced Header with View Toggle */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+                <p className="text-muted-foreground mt-1">
+                  Track performance, identify trends, and make data-driven decisions
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewMode("executive")}
+                >
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Executive View
+                </Button>
+                <Button variant="outline" onClick={handleExportAll}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export All
+                </Button>
+              </div>
+            </div>
         
         {/* Prominent Date Range Selector */}
         <Card className="border-dashed">
@@ -668,14 +697,15 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <ErrorBoundary>
+          <div className="mt-6">
+            <OverviewTab />
+          </div>
+        </ErrorBoundary>
       </div>
-
-      <ErrorBoundary>
-        <div className="mt-6">
-          <OverviewTab />
-        </div>
-      </ErrorBoundary>
     </div>
+      )}
     </PinProtected>
   );
 }
