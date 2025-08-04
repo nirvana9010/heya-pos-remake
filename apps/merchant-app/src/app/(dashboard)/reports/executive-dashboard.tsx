@@ -101,10 +101,11 @@ export function ExecutiveDashboard() {
   // Calculate key metrics
   const totalCustomers = reportData.customers?.total || 0;
   const newCustomers = reportData.customers?.new || 0;
-  const totalBookings = reportData.bookings?.total || 0;
-  const completedBookings = reportData.bookings?.completed || 0;
-  const avgTransactionValue = weekTotal > 0 && completedBookings > 0 
-    ? Math.round(weekTotal / completedBookings) 
+  const todayBookings = reportData.bookings?.daily || 0;
+  const todayCompletedBookings = reportData.bookings?.dailyCompleted || 0;
+  const weeklyCompletedBookings = reportData.bookings?.weeklyCompleted || 0;
+  const avgTransactionValue = weekTotal > 0 && weeklyCompletedBookings > 0 
+    ? Math.round(weekTotal / weeklyCompletedBookings) 
     : 0;
 
   // Get top service
@@ -161,17 +162,17 @@ export function ExecutiveDashboard() {
           <Card className="overflow-hidden border-l-4 border-l-blue-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Bookings
+                Today's Bookings
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {totalBookings}
+                {todayBookings}
               </div>
               <div className="text-sm text-muted-foreground mt-2">
-                {completedBookings > 0 && `${completedBookings} completed`}
-                {completedBookings === 0 && totalBookings > 0 && "All scheduled"}
-                {totalBookings === 0 && "No bookings yet"}
+                {todayCompletedBookings > 0 && `${todayCompletedBookings} completed`}
+                {todayCompletedBookings === 0 && todayBookings > 0 && `${todayBookings} scheduled`}
+                {todayBookings === 0 && "No bookings yet"}
               </div>
             </CardContent>
           </Card>

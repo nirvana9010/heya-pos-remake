@@ -14,10 +14,19 @@ export interface ReportData {
     monthly: number;
   };
   
-  // Booking metrics (flat structure)
+  // Booking metrics (flat structure with time breakdowns)
   bookings: {
+    // Time-based breakdowns
+    daily: number;
+    weekly: number;
+    monthly: number;
+    yearly: number;
+    // Status breakdowns
     total: number;
     completed: number;
+    dailyCompleted: number;
+    weeklyCompleted: number;
+    monthlyCompleted: number;
     cancelled: number;
     noShow: number;
     pending: number;

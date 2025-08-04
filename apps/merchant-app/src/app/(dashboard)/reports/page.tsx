@@ -211,11 +211,10 @@ export default function ReportsPage() {
       currentRevenue / (1 + revenueGrowth / 100)
     );
     
-    // Get booking data - backend doesn't provide time range breakdown for bookings
-    // So we always show total bookings regardless of time filter
+    // Get booking data - now with time range breakdowns!
     const bookingGrowth = reportData.bookingGrowth?.[timeRange as keyof typeof reportData.bookingGrowth] || 0;
     const bookings = reportData.bookings || {};
-    const currentBookings = bookings.total || 0; // Always use total since no time breakdown exists
+    const currentBookings = bookings[timeRange as keyof typeof bookings] || 0;
     const bookingTrend = calculateCountTrend(
       currentBookings,
       currentBookings / (1 + bookingGrowth / 100)
@@ -314,66 +313,74 @@ export default function ReportsPage() {
 
     return (
       <div className="space-y-6">
-        {/* Revenue Card - Directly affected by filter */}
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {timeRange === 'daily' && 'Today\'s Revenue'}
-              {timeRange === 'weekly' && 'This Week\'s Revenue'}
-              {timeRange === 'monthly' && 'This Month\'s Revenue'}
-              {timeRange === 'yearly' && 'This Year\'s Revenue'}
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="flex-1">
-                <div className="text-3xl font-bold">
-                  ${currentRevenue.toLocaleString()}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <TrendBadge trend={revenueTrend} size="sm" />
-                  <span className="text-xs text-muted-foreground">
-                    vs {timeRange === 'daily' ? 'yesterday' : `last ${timeRange.slice(0, -2)}`}
-                  </span>
-                </div>
+        {/* Metrics Cards - Directly affected by filter */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {timeRange === 'daily' && 'Today\'s Revenue'}
+                {timeRange === 'weekly' && 'This Week\'s Revenue'}
+                {timeRange === 'monthly' && 'This Month\'s Revenue'}
+                {timeRange === 'yearly' && 'This Year\'s Revenue'}
+              </CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <Sparkline data={sparklineData} color="#3b82f6" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <div className="flex-1">
+                  <div className="text-3xl font-bold">
+                    ${currentRevenue.toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <TrendBadge trend={revenueTrend} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      vs {timeRange === 'daily' ? 'yesterday' : `last ${timeRange.slice(0, -2)}`}
+                    </span>
+                  </div>
+                </div>
+                <Sparkline data={sparklineData} color="#3b82f6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {timeRange === 'daily' && 'Today\'s Bookings'}
+                {timeRange === 'weekly' && 'This Week\'s Bookings'}
+                {timeRange === 'monthly' && 'This Month\'s Bookings'}
+                {timeRange === 'yearly' && 'This Year\'s Bookings'}
+              </CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <div className="flex-1">
+                  <div className="text-3xl font-bold">{currentBookings}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <TrendBadge trend={bookingTrend} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {timeRange === 'daily' && bookings.dailyCompleted || 
+                       timeRange === 'weekly' && bookings.weeklyCompleted ||
+                       timeRange === 'monthly' && bookings.monthlyCompleted ||
+                       bookings.completed || 0} completed
+                    </span>
+                  </div>
+                </div>
+                <Sparkline data={sparklineData.map((_, i) => 140 + Math.random() * 30)} color="#10b981" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Overall Metrics - Not affected by filter */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Overall Metrics</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Bookings
-                </CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-end justify-between">
-                  <div className="flex-1">
-                    <div className="text-3xl font-bold">{currentBookings}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <TrendBadge trend={bookingTrend} size="sm" />
-                      <span className="text-xs text-muted-foreground">
-                        {bookings.completed || 0} completed
-                      </span>
-                    </div>
-                  </div>
-                  <Sparkline data={sparklineData.map((_, i) => 140 + Math.random() * 30)} color="#10b981" />
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid gap-4 md:grid-cols-2">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">

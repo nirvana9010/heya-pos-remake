@@ -128,44 +128,92 @@ export class ReportsService {
 
   async getBookingStats(merchantId: string, locationId?: string) {
     const now = new Date();
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+    const weekStart = startOfWeek(now);
+    const weekEnd = endOfWeek(now);
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
+    const yearStart = startOfYear(now);
+    const yearEnd = endOfYear(now);
 
     const baseWhere = {
       merchantId,
       ...(locationId && { locationId }),
     };
 
-    const [total, completed, cancelled, noShow, pending] = await Promise.all([
-      // Total bookings this month
+    // Get bookings for different time periods (based on startTime for actual appointments)
+    const [daily, weekly, monthly, yearly, dailyCompleted, weeklyCompleted, monthlyCompleted] = await Promise.all([
+      // Today's bookings
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          createdAt: { gte: monthStart, lte: monthEnd },
+          startTime: { gte: todayStart, lte: todayEnd },
         },
       }),
-      // Completed bookings
+      // This week's bookings
+      this.prisma.booking.count({
+        where: {
+          ...baseWhere,
+          startTime: { gte: weekStart, lte: weekEnd },
+        },
+      }),
+      // This month's bookings
+      this.prisma.booking.count({
+        where: {
+          ...baseWhere,
+          startTime: { gte: monthStart, lte: monthEnd },
+        },
+      }),
+      // This year's bookings
+      this.prisma.booking.count({
+        where: {
+          ...baseWhere,
+          startTime: { gte: yearStart, lte: yearEnd },
+        },
+      }),
+      // Today's completed bookings
       this.prisma.booking.count({
         where: {
           ...baseWhere,
           status: 'COMPLETED',
-          completedAt: { gte: monthStart, lte: monthEnd },
+          startTime: { gte: todayStart, lte: todayEnd },
         },
       }),
-      // Cancelled bookings
+      // This week's completed bookings
+      this.prisma.booking.count({
+        where: {
+          ...baseWhere,
+          status: 'COMPLETED',
+          startTime: { gte: weekStart, lte: weekEnd },
+        },
+      }),
+      // This month's completed bookings
+      this.prisma.booking.count({
+        where: {
+          ...baseWhere,
+          status: 'COMPLETED',
+          startTime: { gte: monthStart, lte: monthEnd },
+        },
+      }),
+    ]);
+
+    // Get status breakdown for the current month (for backwards compatibility)
+    const [cancelled, noShow, pending] = await Promise.all([
+      // Cancelled bookings this month
       this.prisma.booking.count({
         where: {
           ...baseWhere,
           status: 'CANCELLED',
-          cancelledAt: { gte: monthStart, lte: monthEnd },
+          startTime: { gte: monthStart, lte: monthEnd },
         },
       }),
-      // No-show bookings
+      // No-show bookings this month
       this.prisma.booking.count({
         where: {
           ...baseWhere,
           status: 'NO_SHOW',
-          updatedAt: { gte: monthStart, lte: monthEnd },
+          startTime: { gte: monthStart, lte: monthEnd },
         },
       }),
       // Pending bookings (future)
@@ -178,10 +226,24 @@ export class ReportsService {
       }),
     ]);
 
+    // Calculate total for all time (for backward compatibility)
+    const total = await this.prisma.booking.count({
+      where: baseWhere,
+    });
+
     return {
       bookings: {
+        // Time-based breakdowns (new)
+        daily,
+        weekly,
+        monthly,
+        yearly,
+        // Status breakdowns
         total,
-        completed,
+        completed: monthlyCompleted, // For backward compatibility
+        dailyCompleted,
+        weeklyCompleted,
+        monthlyCompleted,
         cancelled,
         noShow,
         pending,
