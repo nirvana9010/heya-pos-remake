@@ -24,30 +24,65 @@ echo -e "${GREEN}✓ PM2 processes stopped${NC}"
 
 echo ""
 echo -e "${YELLOW}Step 2: Killing all Node.js processes...${NC}"
-# Kill Next.js processes
+# Kill Next.js processes (including zombie next-server processes)
 pkill -9 -f "next dev" 2>/dev/null || true
+pkill -9 -f "next-server" 2>/dev/null || true
 pkill -9 -f "nest" 2>/dev/null || true
+# Kill any npm run processes that might be stuck
+pkill -9 -f "npm run dev" 2>/dev/null || true
 # Kill processes by port
 pkill -9 -f "node.*3000" 2>/dev/null || true
 pkill -9 -f "node.*3001" 2>/dev/null || true
 pkill -9 -f "node.*3002" 2>/dev/null || true
 pkill -9 -f "node.*3003" 2>/dev/null || true
+# Use fuser as backup to kill by port
+fuser -k 3000/tcp 2>/dev/null || true
+fuser -k 3001/tcp 2>/dev/null || true
+fuser -k 3002/tcp 2>/dev/null || true
+fuser -k 3003/tcp 2>/dev/null || true
+sleep 2
 echo -e "${GREEN}✓ Node.js processes killed${NC}"
 
 echo ""
 echo -e "${YELLOW}Step 3: Clearing ports explicitly...${NC}"
 for port in 3000 3001 3002 3003; do
     # Try multiple methods to clear the port
+    port_in_use=false
+    
+    # Check with lsof
     if lsof -i :$port > /dev/null 2>&1; then
+        port_in_use=true
+    fi
+    
+    # Also check with fuser
+    if fuser $port/tcp > /dev/null 2>&1; then
+        port_in_use=true
+    fi
+    
+    if [ "$port_in_use" = true ]; then
         # Method 1: Using lsof
-        lsof -ti:$port | xargs kill -9 2>/dev/null || true
+        lsof -ti:$port | xargs -r kill -9 2>/dev/null || true
+        
+        # Method 2: Using fuser
+        fuser -k $port/tcp 2>/dev/null || true
+        
         sleep 1
-        # Method 2: Double check and force kill
+        
+        # Method 3: Double check and force kill any remaining
         if lsof -i :$port > /dev/null 2>&1; then
             for pid in $(lsof -ti:$port); do
                 kill -9 $pid 2>/dev/null || true
             done
         fi
+        
+        # Final check with fuser
+        remaining_pids=$(fuser $port/tcp 2>/dev/null | tr -d ' ')
+        if [ ! -z "$remaining_pids" ]; then
+            for pid in $remaining_pids; do
+                kill -9 $pid 2>/dev/null || true
+            done
+        fi
+        
         echo -e "${GREEN}✓ Port $port cleared${NC}"
     else
         echo -e "  Port $port already free"
