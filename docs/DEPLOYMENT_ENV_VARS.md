@@ -50,9 +50,9 @@ For Vercel deployments, set these environment variables in the Vercel dashboard:
 2. Go to "Environment Variables"
 3. Add each variable for the appropriate environment (Production/Preview/Development)
 
-### Render
-For Render deployments, the production environment files already contain:
-- API URL: `https://heya-pos-reboapirn.onrender.com/api`
+### Fly.io
+For Fly.io deployments, the production environment files already contain:
+- API URL: `https://heya-pos-api.fly.dev/api`
 
 ### Docker
 When using Docker, pass environment variables via:
