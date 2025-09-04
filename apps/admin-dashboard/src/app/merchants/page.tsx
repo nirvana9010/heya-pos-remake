@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Alert, AlertDescription, AlertTitle } from "@heya-pos/ui";
+import { Switch } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { adminApi, type Merchant, type Package } from "@/lib/admin-api";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -34,7 +35,8 @@ function MerchantsPage() {
     subdomain: '',
     password: '',
     packageId: '',
-    abn: ''
+    abn: '',
+    skipTrial: false
   });
   const [checkingAvailability, setCheckingAvailability] = useState({
     subdomain: false
@@ -124,7 +126,8 @@ function MerchantsPage() {
       subdomain: '',
       password: '',
       packageId: '',
-      abn: ''
+      abn: '',
+      skipTrial: false
     });
     setAvailability({
       subdomain: true
@@ -451,6 +454,24 @@ Please save these credentials securely.
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
+            
+            {/* Trial Period Button */}
+            <div className="border-t pt-4 mt-4">
+              <div className="space-y-2">
+                <Label>Trial Period Option</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Choose whether to give the merchant a 30-day trial or full access immediately
+                </p>
+                <Button
+                  type="button"
+                  variant={formData.skipTrial ? "default" : "outline"}
+                  onClick={() => setFormData(prev => ({ ...prev, skipTrial: !prev.skipTrial }))}
+                  className="w-full"
+                >
+                  {formData.skipTrial ? '✓ Full Access (No Trial)' : '30-Day Trial Period'}
+                </Button>
               </div>
             </div>
             

@@ -24,7 +24,7 @@ interface CreateMerchantDto {
 export class AdminService {
   constructor(private prisma: PrismaService) {}
 
-  async createMerchant(dto: CreateMerchantDto) {
+  async createMerchant(dto: CreateMerchantDto & { skipTrial?: boolean }) {
     // Check if subdomain already exists
     const existingMerchant = await this.prisma.merchant.findUnique({
       where: { subdomain: dto.subdomain },
@@ -71,8 +71,8 @@ export class AdminService {
           subdomain: dto.subdomain,
           abn: dto.abn,
           packageId: merchantPackage.id,
-          subscriptionStatus: 'TRIAL',
-          trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          subscriptionStatus: dto.skipTrial ? 'ACTIVE' : 'TRIAL',
+          trialEndsAt: dto.skipTrial ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           settings: DEFAULT_MERCHANT_SETTINGS as any,
         },
       });
@@ -205,7 +205,12 @@ export class AdminService {
     };
   }
 
-  async updateMerchant(id: string, dto: Partial<CreateMerchantDto & { isActive?: boolean }>) {
+  async updateMerchant(id: string, dto: Partial<CreateMerchantDto & { 
+    isActive?: boolean;
+    subscriptionStatus?: string;
+    trialEndsAt?: Date | null;
+    skipTrial?: boolean;
+  }>) {
     const updateData: any = {};
     
     if (dto.name) updateData.name = dto.name;
@@ -213,6 +218,22 @@ export class AdminService {
     if (dto.phone) updateData.phone = dto.phone;
     if (dto.abn) updateData.abn = dto.abn;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
+    // Handle subscription status updates
+    if (dto.subscriptionStatus) {
+      updateData.subscriptionStatus = dto.subscriptionStatus;
+    }
+    
+    // Handle trial end date updates
+    if (dto.trialEndsAt !== undefined) {
+      updateData.trialEndsAt = dto.trialEndsAt;
+    }
+    
+    // If skipTrial is true, set to ACTIVE status and clear trial end date
+    if (dto.skipTrial) {
+      updateData.subscriptionStatus = 'ACTIVE';
+      updateData.trialEndsAt = null;
+    }
 
     // Handle subdomain updates with conflict validation
     if (dto.subdomain) {

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertCircle, Calendar } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { adminApi, type Merchant, type Package } from "@/lib/admin-api";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -31,6 +32,9 @@ function EditMerchantPage() {
     subdomain: '',
     packageId: '',
     isActive: true,
+    subscriptionStatus: '',
+    trialEndsAt: null as Date | null,
+    skipTrial: false,
   });
 
   useEffect(() => {
@@ -57,6 +61,9 @@ function EditMerchantPage() {
         subdomain: merchantData.subdomain,
         packageId: merchantData.subscription?.package?.id || '',
         isActive: merchantData.isActive,
+        subscriptionStatus: merchantData.subscriptionStatus || 'TRIAL',
+        trialEndsAt: merchantData.trialEndsAt,
+        skipTrial: false,
       });
     } catch (error) {
       console.error('Failed to load merchant:', error);
@@ -89,6 +96,13 @@ function EditMerchantPage() {
       // Only include packageId if it's changed
       if (formData.packageId && formData.packageId !== merchant?.subscription?.package?.id) {
         updateData.packageId = formData.packageId;
+      }
+
+      // Handle trial/subscription status updates
+      if (formData.skipTrial) {
+        updateData.skipTrial = true;
+      } else if (formData.subscriptionStatus !== merchant?.subscriptionStatus) {
+        updateData.subscriptionStatus = formData.subscriptionStatus;
       }
 
       await adminApi.updateMerchant(merchantId, updateData);
@@ -244,6 +258,50 @@ function EditMerchantPage() {
                 <p className="text-xs text-muted-foreground">
                   Used for booking URLs and public access.
                 </p>
+              </div>
+
+              {/* Trial Period Section */}
+              <div className="border-t pt-4">
+                <div className="space-y-4">
+                  {/* Current Status Display */}
+                  <div className="flex items-center gap-2">
+                    <Label>Current Status:</Label>
+                    <Badge variant={formData.subscriptionStatus === 'TRIAL' ? 'secondary' : 'default'}>
+                      {formData.subscriptionStatus}
+                    </Badge>
+                    {formData.subscriptionStatus === 'TRIAL' && formData.trialEndsAt && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        Ends: {new Date(formData.trialEndsAt).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Skip Trial Button */}
+                  <div className="space-y-2">
+                    <Label>Remove Trial Period</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {formData.subscriptionStatus === 'TRIAL' 
+                        ? 'Click to give the merchant full access immediately'
+                        : 'Merchant already has full access'
+                      }
+                    </p>
+                    {formData.subscriptionStatus === 'TRIAL' ? (
+                      <Button
+                        type="button"
+                        variant={formData.skipTrial ? "default" : "outline"}
+                        onClick={() => setFormData(prev => ({ ...prev, skipTrial: !prev.skipTrial }))}
+                        className="w-full"
+                      >
+                        {formData.skipTrial ? '✓ Trial Will Be Removed on Save' : 'Click to Remove Trial'}
+                      </Button>
+                    ) : (
+                      <div className="p-3 bg-muted rounded text-center text-sm">
+                        Merchant already has full access (no trial)
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

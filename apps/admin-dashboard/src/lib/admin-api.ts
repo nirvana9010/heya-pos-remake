@@ -22,6 +22,7 @@ export interface CreateMerchantData {
   password: string;
   packageId: string;
   abn?: string;
+  skipTrial?: boolean;
 }
 
 export interface Merchant {
@@ -33,6 +34,8 @@ export interface Merchant {
   abn?: string;
   isActive: boolean;
   status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  subscriptionStatus?: string;
+  trialEndsAt?: string | null;
   createdAt: string;
   updatedAt: string;
   locations?: Array<{

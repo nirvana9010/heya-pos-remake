@@ -47,8 +47,20 @@ if tool in {"Write", "Edit", "MultiEdit"}:
     path_field = input_.get("file_path") or input_.get("path", "")
     if path_field:
         target = pathlib.Path(path_field).resolve()
-        if not str(target).startswith(os.getcwd()):
-            print(json.dumps({"decision": "block", "reason": "Write outside workspace"}))
+        
+        # Find the actual project root (where .git or .claude directory is)
+        current = pathlib.Path(os.getcwd()).resolve()
+        workspace_root = current
+        
+        # Walk up to find the project root
+        while workspace_root.parent != workspace_root:
+            if (workspace_root / '.git').exists() or (workspace_root / '.claude').exists():
+                break
+            workspace_root = workspace_root.parent
+        
+        # Allow writes anywhere within the project root
+        if not str(target).startswith(str(workspace_root)):
+            print(json.dumps({"decision": "block", "reason": f"Write outside workspace root ({workspace_root})"}))
             sys.exit(2)
 
 # ------- 3. Unknown outbound fetches -------
