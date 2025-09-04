@@ -111,7 +111,12 @@ class AdminApi {
     return response;
   }
 
-  async updateMerchant(id: string, data: Partial<CreateMerchantData>): Promise<Merchant> {
+  async updateMerchant(id: string, data: Partial<CreateMerchantData> & {
+    isActive?: boolean;
+    subscriptionStatus?: string;
+    trialEndsAt?: Date | null;
+    skipTrial?: boolean;
+  }): Promise<Merchant> {
     const response = await apiClient.patch<Merchant>(`/v1/admin/merchants/${id}`, data);
     return response;
   }

@@ -211,6 +211,7 @@ export class AdminService {
     trialEndsAt?: Date | null;
     skipTrial?: boolean;
   }>) {
+    console.log('[AdminService] updateMerchant called with:', { id, dto });
     const updateData: any = {};
     
     if (dto.name) updateData.name = dto.name;
@@ -231,6 +232,7 @@ export class AdminService {
     
     // If skipTrial is true, set to ACTIVE status and clear trial end date
     if (dto.skipTrial) {
+      console.log('[AdminService] Removing trial for merchant:', id);
       updateData.subscriptionStatus = 'ACTIVE';
       updateData.trialEndsAt = null;
     }
@@ -262,12 +264,18 @@ export class AdminService {
       delete updateData.isActive;
     }
 
+    console.log('[AdminService] Updating merchant with data:', updateData);
     const merchant = await this.prisma.merchant.update({
       where: { id },
       data: updateData,
       include: {
         package: true,
       },
+    });
+    console.log('[AdminService] Updated merchant:', { 
+      id: merchant.id, 
+      subscriptionStatus: merchant.subscriptionStatus,
+      trialEndsAt: merchant.trialEndsAt 
     });
 
     // Transform to match frontend expectations

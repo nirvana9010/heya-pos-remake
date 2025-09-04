@@ -32,6 +32,20 @@ interface CreateMerchantDto {
   city?: string;
   state?: string;
   postalCode?: string;
+  skipTrial?: boolean;
+}
+
+interface UpdateMerchantDto {
+  name?: string;
+  email?: string;
+  phone?: string;
+  subdomain?: string;
+  packageId?: string;
+  abn?: string;
+  isActive?: boolean;
+  subscriptionStatus?: string;
+  trialEndsAt?: Date | null;
+  skipTrial?: boolean;
 }
 
 interface AdminLoginDto {
@@ -88,7 +102,7 @@ export class AdminController {
   }
 
   @Patch('merchants/:id')
-  async updateMerchant(@Param('id') id: string, @Body() dto: Partial<CreateMerchantDto>) {
+  async updateMerchant(@Param('id') id: string, @Body() dto: UpdateMerchantDto) {
     return this.adminService.updateMerchant(id, dto);
   }
 
