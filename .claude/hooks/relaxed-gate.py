@@ -6,6 +6,10 @@ data = json.load(sys.stdin)
 tool = data.get("tool_name")
 input_ = data.get("tool_input", {})
 
+# Skip auto-approval for Task tool (to preserve Plan Mode)
+if tool == "Task":
+    sys.exit(0)  # Exit without outputting a decision
+
 # ------- 1. Hard-stop shell nukes -------
 dangerous_patterns = [
     r'rm\s+-rf\s+/',           # rm -rf /
@@ -25,22 +29,27 @@ if tool == "Bash":
         print(json.dumps({"decision": "block", "reason": "Irreversible destructive shell command"}))
         sys.exit(2)
     
-    # Check for kill commands that should use restart script
-    kill_patterns = [
-        r'\bkill\s+(?!-9\s+-1)',      # kill (but not kill -9 -1 which is caught above)
-        r'\bpkill\b',                  # pkill
-        r'\bkillall\b',                # killall
-        r'ps\s+aux.*grep.*kill',       # ps aux | grep ... | kill
-        r'lsof.*\|\s*xargs\s*kill',    # lsof piped to kill
-        r'fuser\s+-k'                  # fuser -k (kill)
-    ]
-    
-    if any(re.search(pattern, command, re.I) for pattern in kill_patterns):
-        print(json.dumps({
-            "decision": "block", 
-            "reason": "Don't use manual kill commands! Use the clean restart script instead: ./scripts/restart.sh\n\nThis ensures proper cleanup and graceful shutdown. If you need to restart a specific service, use: ./scripts/restart.sh [service-name]"
-        }))
-        sys.exit(2)
+    # Check for kill commands - but be smarter about it
+    if re.search(r'\b(kill|pkill|killall)\b', command, re.I):
+        # Allow these legitimate use cases:
+        allowed_kill_patterns = [
+            r'kill\s+-0\s+',           # kill -0 (just checks if process exists)
+            r'kill\s+\$',              # kill $VARIABLE (targeted, specific)
+            r'kill\s+\d{1,5}$',        # kill specific PID (up to 5 digits)
+            r'pkill\s+-f\s+"[^"]{5,}"', # pkill with specific pattern
+            r'fuser\s+-k\s+\d{4}/tcp', # fuser killing specific port
+            r'lsof.*\|\s*awk.*\|\s*xargs\s+kill', # specific pipeline for port cleanup
+        ]
+        
+        # If it matches any allowed pattern, let it through
+        if not any(re.search(pattern, command) for pattern in allowed_kill_patterns):
+            # Only block if it's a careless kill command
+            if re.search(r'kill\s+-9\s+-1|killall\s+-9|pkill\s+-9\s+(?!-f)', command):
+                print(json.dumps({
+                    "decision": "block", 
+                    "reason": "Dangerous kill command. Use targeted PIDs or the restart script: ./scripts/restart.sh"
+                }))
+                sys.exit(2)
 
 # ------- 2. Writes outside repo -------
 if tool in {"Write", "Edit", "MultiEdit"}:
@@ -65,25 +74,16 @@ if tool in {"Write", "Edit", "MultiEdit"}:
 
 # ------- 3. Unknown outbound fetches -------
 if tool in {"WebFetch", "WebSearch"}:
-    # Always allow web searches
-    if tool == "WebSearch":
-        sys.exit(0)  # Approve
-    
-    # For WebFetch, only block obviously suspicious domains
     url = input_.get("url", "")
-    blocked_patterns = [
-        r'\.exe$',
-        r'\.zip$',
-        r'\.rar$',
-        r'download\.com',
-        r'softonic\.com',
-        # Add other suspicious patterns
-    ]
-    
-    if any(re.search(pattern, url, re.I) for pattern in blocked_patterns):
-        print(json.dumps({"decision": "block", "reason": "Suspicious domain/file"}))
+    # allow calls to GitHub, PyPI, Debian mirrors, official docs; block the rest
+    if not any(url.startswith(p) for p in (
+        "https://github.com",
+        "https://pypi.org",
+        "https://deb.debian.org",
+        "https://docs."
+    )):
+        print(json.dumps({"decision": "block", "reason": "External domain not on allow-list"}))
         sys.exit(2)
 
 # Default: approve everything else
 print(json.dumps({"decision": "approve", "reason": "relaxed gate"}))
-sys.exit(0)
