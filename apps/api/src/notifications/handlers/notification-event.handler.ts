@@ -256,55 +256,13 @@ export class NotificationEventHandler {
         },
       };
 
-      // Check merchant settings and booking status before sending booking confirmation
+      // Note: Customer booking confirmations are now handled by the booking.confirmed event
+      // This prevents duplicate SMS/email confirmations when a booking is auto-confirmed
       const merchantSettings = booking.merchant.settings as any;
-      const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false; // Default to true
-      const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false; // Default to true
       
-      // Only send confirmation emails for CONFIRMED bookings, not PENDING ones
-      const isBookingConfirmed = booking.status === 'CONFIRMED';
-      
-      // Debug logging
-      this.logger.log(`[${new Date().toISOString()}] ====== NOTIFICATION DECISION ======`);
+      this.logger.log(`[${new Date().toISOString()}] ====== BOOKING CREATED - NO CUSTOMER CONFIRMATIONS ======`);
       this.logger.log(`Booking ${booking.id} status: ${booking.status}`);
-      this.logger.log(`Auto-confirm setting: ${merchantSettings?.autoConfirmBookings}`);
-      this.logger.log(`Is booking confirmed: ${isBookingConfirmed}`);
-      this.logger.log(`Should send email: ${shouldSendEmail}`);
-      this.logger.log(`Should send SMS: ${shouldSendSms}`);
-      this.logger.log(`Will send notification: ${(shouldSendEmail || shouldSendSms) && isBookingConfirmed}`);
-
-      if ((shouldSendEmail || shouldSendSms) && isBookingConfirmed) {
-        // Override context to respect merchant settings
-        const notificationContext = {
-          ...context,
-          customer: {
-            ...context.customer,
-            preferredChannel: this.determineMerchantPreferredChannel(
-              context.customer.preferredChannel,
-              shouldSendEmail,
-              shouldSendSms
-            ),
-          },
-        };
-
-        // Send booking confirmation
-        const results = await this.notificationsService.sendNotification(
-          NotificationType.BOOKING_CONFIRMATION,
-          notificationContext,
-        );
-
-        this.logger.log(
-          `Booking confirmation sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`,
-        );
-      } else if (!isBookingConfirmed) {
-        this.logger.log(
-          `Booking confirmation skipped - booking status is ${booking.status}, confirmations only sent for CONFIRMED bookings`,
-        );
-      } else {
-        this.logger.log(
-          `Booking confirmation skipped - merchant has disabled all notification channels`,
-        );
-      }
+      this.logger.log(`Customer confirmations will be sent via booking.confirmed event to avoid duplicates`);
 
       // Create merchant notification only for external bookings (from booking app) and if enabled
       if (event.source === 'ONLINE') {
