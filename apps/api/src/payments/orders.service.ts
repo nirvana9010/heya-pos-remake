@@ -40,7 +40,7 @@ export class OrdersService {
     // Generate unique order number
     const orderNumber = await this.generateOrderNumber(data.merchantId);
 
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         ...data,
         customerId: finalCustomerId,
@@ -59,6 +59,8 @@ export class OrdersService {
         booking: true,
       },
     });
+    
+    return this.prisma.transformResult(order);
   }
 
   async findOrderForPayment(orderId: string, merchantId: string): Promise<OrderWithRelations> {
@@ -148,7 +150,7 @@ export class OrdersService {
     // Cache the order for 5 minutes
     await this.redisService.set(cacheKey, order, 300);
 
-    return order as OrderWithRelations;
+    return this.prisma.transformResult(order) as OrderWithRelations;
   }
 
   async findOrder(orderId: string, merchantId: string) {
@@ -188,7 +190,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    return order;
+    return this.prisma.transformResult(order);
   }
 
   async updateOrderState(orderId: string, merchantId: string, newState: OrderState) {
@@ -224,7 +226,7 @@ export class OrdersService {
       await this.redisService.del(RedisService.getOrderByBookingCacheKey(order.bookingId));
     }
 
-    return updatedOrder;
+    return this.prisma.transformResult(updatedOrder);
   }
 
   async addOrderItems(orderId: string, merchantId: string, items: any[]) {
@@ -589,7 +591,7 @@ export class OrdersService {
       const result = await this.findOrderForPayment(existingOrderCheck.id, merchantId);
       console.log(`[PERF] Find order for payment took ${Date.now() - findOrderStart}ms`);
       console.log(`[PERF] Total createOrderFromBooking took ${Date.now() - bookingStart}ms`);
-      return result;
+      return this.prisma.transformResult(result);
     }
 
     // Create new order
@@ -1088,7 +1090,7 @@ export class OrdersService {
     }
     
     console.log(`[PrepareOrder] Completed in ${Date.now() - startTime}ms`);
-    return response;
+    return this.prisma.transformResult(response);
     } catch (error: any) {
       console.error('[PrepareOrder] Error:', error);
       

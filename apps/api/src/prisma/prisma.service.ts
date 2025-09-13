@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, Optional } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { memoryLogger } from '../utils/memory-logger';
-import { typeConversionMiddleware } from './middleware/type-conversion.middleware';
 import { getPrismaConfig, CONNECTION_POOL_CONFIG } from './prisma-config';
 import { QueryMonitorService } from '../common/monitoring/query-monitor.service';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -21,43 +21,51 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const config = getPrismaConfig();
     super(config as Prisma.PrismaClientOptions);
 
-    // Add type conversion middleware
-    this.$use(typeConversionMiddleware());
+    this.logger.log('PrismaService initialized');
+  }
 
-    // Hook into Prisma middleware to log memory usage
-    this.$use(async (params, next) => {
-      this.queryCount++;
-      const before = Date.now();
-      const beforeMemory = process.memoryUsage();
+  /**
+   * Transform Prisma results to convert Decimal objects to numbers
+   * This maintains compatibility with frontend expecting numbers
+   */
+  transformResult(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
 
-      const result = await next(params);
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transformResult(item));
+    }
 
-      const duration = Date.now() - before;
-      const memoryDelta = process.memoryUsage().heapUsed - beforeMemory.heapUsed;
+    // Handle objects
+    if (typeof obj === 'object') {
+      const transformed: any = {};
 
-      // Log the query and result
-      memoryLogger.logQuery(`${params.model}.${params.action}`, params.args, result);
-
-      // Record query metrics
-      if (this.queryMonitor && params.model) {
-        this.queryMonitor.recordQuery(params.model, params.action, duration);
+      for (const [key, value] of Object.entries(obj)) {
+        if (value instanceof Decimal) {
+          // Convert Decimal to number
+          transformed[key] = value.toNumber();
+        } else if (typeof value === 'object' && value !== null) {
+          // Recursively transform nested objects
+          transformed[key] = this.transformResult(value);
+        } else {
+          transformed[key] = value;
+        }
       }
 
-      // Log slow queries or memory-intensive ones
-      if (duration > 100 || memoryDelta > 1024 * 1024) {
-        this.logger.warn(`Slow/Heavy query: ${params.model}.${params.action} took ${duration}ms, memory delta: ${Math.round(memoryDelta / 1024)}KB`);
-      }
+      return transformed;
+    }
 
-      // Log every 100 queries
-      if (this.queryCount % 100 === 0) {
-        memoryLogger.logMemory('PrismaService', { totalQueries: this.queryCount });
-      }
-
-      return result;
-    });
+    return obj;
   }
 
   async onModuleInit() {
+
+    // Note: Using transformResult() method for Decimal conversion
+    // instead of deprecated $use middleware
+    this.logger.log('✅ Type conversion available via transformResult() method');
+    
     const maxRetries = 5;
     const retryDelay = 2000; // 2 seconds
     

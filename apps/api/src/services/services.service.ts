@@ -179,9 +179,9 @@ export class ServicesService {
       }),
     ]);
 
-    // Add categoryName to each service
+    // Add categoryName to each service and transform Decimal fields to numbers
     const servicesWithCategoryName = services.map(service => ({
-      ...service,
+      ...this.prisma.transformResult(service),
       categoryName: service.categoryModel?.name || service.category || null,
     }));
 
@@ -209,7 +209,7 @@ export class ServicesService {
     }
 
     return {
-      ...service,
+      ...this.prisma.transformResult(service),
       categoryName: service.categoryModel?.name || service.category || null,
     };
   }

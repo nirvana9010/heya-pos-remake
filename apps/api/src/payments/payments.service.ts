@@ -234,7 +234,8 @@ export class PaymentsService {
         });
       }
 
-      return { payment: await this.prisma.orderPayment.findUnique({ where: { id: payment.id } }) };
+      const paymentData = await this.prisma.orderPayment.findUnique({ where: { id: payment.id } });
+      return { payment: this.prisma.transformResult(paymentData) };
     } catch (error) {
       // Update payment as failed
       await this.prisma.orderPayment.update({
@@ -503,7 +504,7 @@ export class PaymentsService {
       }
     }
 
-    return refund;
+    return this.prisma.transformResult(refund);
   }
 
   /**
@@ -553,6 +554,6 @@ export class PaymentsService {
     // Update order state
     await this.updateOrderPaymentState(payment.orderId, merchantId);
 
-    return payment;
+    return this.prisma.transformResult(payment);
   }
 }

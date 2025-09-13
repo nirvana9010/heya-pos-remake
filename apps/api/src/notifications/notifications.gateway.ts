@@ -22,7 +22,7 @@ import { JwtService } from '@nestjs/jwt';
       : ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
     credentials: true,
   },
-  namespace: '/notifications',
+  // namespace: '/notifications', // Temporarily remove namespace to debug
   transports: ['websocket', 'polling'], // Support both transports
 })
 export class NotificationsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
