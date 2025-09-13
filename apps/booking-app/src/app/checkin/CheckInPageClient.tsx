@@ -159,8 +159,11 @@ export default function CheckInPageClient() {
       newErrors.phone = 'Phone number is required';
     }
     
-    if (customerData.email && !customerData.email.includes('@')) {
-      newErrors.email = 'Please enter a valid email address';
+    if (customerData.email && customerData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(customerData.email.trim())) {
+        newErrors.email = 'Please enter a valid email address';
+      }
     }
     
     setErrors(newErrors);

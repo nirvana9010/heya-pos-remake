@@ -570,9 +570,18 @@ export default function BookingPageClient() {
       case 4:
         // Only firstName and lastName are required
         const hasRequiredFields = customerInfo.firstName && customerInfo.lastName;
-        // At least one contact method (email or phone) is required
-        const hasContactMethod = customerInfo.email || customerInfo.phone;
-        const canProceedStep4 = hasRequiredFields && hasContactMethod;
+        
+        // Validate email format if email is provided
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isEmailValid = !customerInfo.email || emailRegex.test(customerInfo.email.trim());
+        
+        // Validate phone format if phone is provided  
+        const phoneRegex = /^[\+]?[\d\s\-\(\)]+$/;
+        const isPhoneValid = !customerInfo.phone || (phoneRegex.test(customerInfo.phone.trim()) && customerInfo.phone.trim().length >= 8);
+        
+        // At least one contact method (email or phone) is required and must be valid
+        const hasValidContactMethod = (customerInfo.email && isEmailValid) || (customerInfo.phone && isPhoneValid);
+        const canProceedStep4 = hasRequiredFields && hasValidContactMethod && isEmailValid && isPhoneValid;
         
         console.log('[BookingPageClient] Step 4 canProceed check:', {
           firstName: customerInfo.firstName,
@@ -580,7 +589,9 @@ export default function BookingPageClient() {
           email: customerInfo.email,
           phone: customerInfo.phone,
           hasRequiredFields,
-          hasContactMethod,
+          isEmailValid,
+          isPhoneValid,
+          hasValidContactMethod,
           canProceedStep4,
           isReturningCustomer,
           showCustomerForm,

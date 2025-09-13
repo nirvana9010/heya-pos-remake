@@ -49,6 +49,24 @@ export function CustomerIdentification({
       return;
     }
 
+    // Validate email format if email is selected
+    if (identificationMethod === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(identifier.trim())) {
+        setError('Please enter a valid email address');
+        return;
+      }
+    }
+
+    // Validate phone format if phone is selected
+    if (identificationMethod === 'phone') {
+      const phoneRegex = /^[\+]?[\d\s\-\(\)]+$/;
+      if (!phoneRegex.test(identifier.trim()) || identifier.trim().length < 8) {
+        setError('Please enter a valid phone number');
+        return;
+      }
+    }
+
     setIsSearching(true);
     setError('');
 
