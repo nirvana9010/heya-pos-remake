@@ -45,9 +45,16 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         debug('Token found, connecting to WebSocket...');
         
         // Socket.IO connects to the base URL, not the API prefix
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace('/api', '');
+        // Dynamically determine API URL based on current window location for Tailscale/network compatibility
+        let baseUrl: string;
+        if (process.env.NEXT_PUBLIC_API_URL) {
+          baseUrl = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
+        } else {
+          // Use current window location but with API port (3000)
+          baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+        }
         
-        const socket = io(`${baseUrl}/notifications`, {
+        const socket = io(`${baseUrl}`, {
           auth: { token },
           transports: ['websocket', 'polling'],
           reconnection: true,
@@ -239,9 +246,16 @@ export function getGlobalWebSocket(): Socket | null {
   
   if (!globalSocket || !globalSocket.connected) {
     // Socket.IO connects to the base URL, not the API prefix
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace('/api', '');
+    // Dynamically determine API URL based on current window location for Tailscale/network compatibility
+    let baseUrl: string;
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
+    } else {
+      // Use current window location but with API port (3000)
+      baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+    }
     
-    globalSocket = io(`${baseUrl}/notifications`, {
+    globalSocket = io(`${baseUrl}`, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
