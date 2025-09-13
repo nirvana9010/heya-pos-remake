@@ -483,7 +483,7 @@ export class BookingCreationService {
    * Generate a unique 6-character booking reference like airline codes
    * Format: 3 letters + 3 numbers (e.g., ABC123)
    */
-  private async generateBookingNumber(
+  async generateBookingNumber(
     merchantId: string,
     tx: Prisma.TransactionClient
   ): Promise<string> {

@@ -392,8 +392,8 @@ export class PublicBookingService {
           });
         }
 
-        // Generate booking number
-        const bookingNumber = `BK${Date.now()}${Math.random().toString(36).substring(2, 5)}`.toUpperCase();
+        // Generate proper 6-character booking number
+        const bookingNumber = await this.bookingCreationService.generateBookingNumber(merchant.id, tx);
 
         // Check merchant's auto-confirm setting
         const merchantSettings = merchant.settings as any;
