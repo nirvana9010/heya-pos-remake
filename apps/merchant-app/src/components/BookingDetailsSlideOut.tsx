@@ -657,7 +657,7 @@ function BookingDetailsSlideOutComponent({
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
                   {booking.status !== "in-progress" && getStatusIcon(booking.status)}
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                  {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1).replace('-', ' ') || 'Unknown'}
                 </>
               )}
             </Badge>
