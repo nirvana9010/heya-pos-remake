@@ -184,8 +184,6 @@ function CalendarContent() {
         refresh();
       }
     }, [merchant?.id, refresh]),
-    
-    debug: process.env.NODE_ENV === 'development', // Enable debug logging in development
   });
   
   // Set staff from BookingContext when it's loaded
