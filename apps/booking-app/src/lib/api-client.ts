@@ -125,9 +125,27 @@ class ApiClient {
   }
 }
 
+// Dynamic API URL that works with both localhost and external IPs
+const getApiBaseUrl = () => {
+  // Use explicit env var if set
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // For server-side rendering, use localhost
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3000/api';
+  }
+  
+  // For client-side, use the same host as the current page
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:3000/api`;
+};
+
 // Create the API client instance
 const apiClient = new ApiClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: getApiBaseUrl(),
 });
 
 export default apiClient;
