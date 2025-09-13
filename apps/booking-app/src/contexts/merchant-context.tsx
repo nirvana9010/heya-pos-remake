@@ -140,8 +140,10 @@ export function MerchantProvider({ children, initialSubdomain }: MerchantProvide
         
         // If no env variable or it's just the path, construct full URL
         if (!apiUrl) {
-          // Default to localhost in development
-          apiUrl = 'http://localhost:3000/api';
+          // Use dynamic hostname detection for multi-host support
+          const protocol = window.location.protocol;
+          const hostname = window.location.hostname;
+          apiUrl = `${protocol}//${hostname}:3000/api`;
         } else if (!apiUrl.startsWith('http')) {
           // If it's just a path like '/api', prepend the origin
           apiUrl = `${window.location.origin}${apiUrl}`;
