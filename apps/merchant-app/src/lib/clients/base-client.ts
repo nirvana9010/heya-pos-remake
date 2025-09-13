@@ -3,7 +3,23 @@ import { transformApiResponse } from '../db-transforms';
 import { validateRequest, validateResponse, ApiValidationError } from './validation';
 import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '../cache-config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// Dynamic API URL that works with both localhost and external IPs
+const getApiBaseUrl = () => {
+  // Use explicit env var if set
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // For server-side rendering, use localhost
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3000/api';
+  }
+  
+  // For client-side, use the same host as the current page
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:3000/api`;
+};
 
 export interface ApiError {
   message: string;
@@ -19,7 +35,7 @@ export class BaseApiClient {
 
   constructor() {
     this.axiosInstance = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: getApiBaseUrl(),
       headers: {
         'Content-Type': 'application/json',
       },

@@ -1348,18 +1348,10 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">Email</span>
                       <Switch 
-                        checked={false} 
-                        onCheckedChange={() => {
-                          toast({
-                            title: "SMS Not Available",
-                            description: "SMS notifications are coming soon!",
-                            variant: "default",
-                          });
-                        }}
-                        disabled={true}
-                        className="opacity-50"
+                        checked={bookingConfirmationSms} 
+                        onCheckedChange={setBookingConfirmationSms}
                       />
-                      <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1376,18 +1368,10 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">Email</span>
                       <Switch 
-                        checked={false} 
-                        onCheckedChange={() => {
-                          toast({
-                            title: "SMS Not Available",
-                            description: "SMS notifications are coming soon!",
-                            variant: "default",
-                          });
-                        }}
-                        disabled={true}
-                        className="opacity-50"
+                        checked={appointmentReminder24hSms} 
+                        onCheckedChange={setAppointmentReminder24hSms}
                       />
-                      <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1404,18 +1388,10 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">Email</span>
                       <Switch 
-                        checked={false} 
-                        onCheckedChange={() => {
-                          toast({
-                            title: "SMS Not Available",
-                            description: "SMS notifications are coming soon!",
-                            variant: "default",
-                          });
-                        }}
-                        disabled={true}
-                        className="opacity-50"
+                        checked={appointmentReminder2hSms} 
+                        onCheckedChange={setAppointmentReminder2hSms}
                       />
-                      <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                 </div>
@@ -1445,18 +1421,10 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">Email</span>
                       <Switch 
-                        checked={false} 
-                        onCheckedChange={() => {
-                          toast({
-                            title: "SMS Not Available",
-                            description: "SMS notifications are coming soon!",
-                            variant: "default",
-                          });
-                        }}
-                        disabled={true}
-                        className="opacity-50"
+                        checked={newBookingNotificationSms} 
+                        onCheckedChange={setNewBookingNotificationSms}
                       />
-                      <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1478,18 +1446,10 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">Email</span>
                       <Switch 
-                        checked={false} 
-                        onCheckedChange={() => {
-                          toast({
-                            title: "SMS Not Available",
-                            description: "SMS notifications are coming soon!",
-                            variant: "default",
-                          });
-                        }}
-                        disabled={true}
-                        className="opacity-50"
+                        checked={cancellationNotificationSms} 
+                        onCheckedChange={setCancellationNotificationSms}
                       />
-                      <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                      <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
                   </div>
                 </div>
@@ -1501,17 +1461,17 @@ export default function SettingsPage() {
                   try {
                     await apiClient.put("/merchant/settings", {
                       bookingConfirmationEmail,
-                      bookingConfirmationSms: false, // SMS disabled until credits available
+                      bookingConfirmationSms,
                       appointmentReminder24hEmail,
-                      appointmentReminder24hSms: false, // SMS disabled until credits available
+                      appointmentReminder24hSms,
                       appointmentReminder2hEmail,
-                      appointmentReminder2hSms: false, // SMS disabled until credits available
+                      appointmentReminder2hSms,
                       newBookingNotification,
                       newBookingNotificationEmail,
-                      newBookingNotificationSms: false, // SMS disabled until credits available
+                      newBookingNotificationSms,
                       cancellationNotification,
                       cancellationNotificationEmail,
-                      cancellationNotificationSms: false, // SMS disabled until credits available
+                      cancellationNotificationSms
                     });
                     toast({
                       title: "Success",
