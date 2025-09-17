@@ -18,18 +18,18 @@ Run these commands to update your production API:
 
 ```bash
 # 1. Update database URLs (internal Fly.io connection)
-/home/nirvana9010/.fly/bin/flyctl secrets set DATABASE_URL='postgres://postgres:[YOUR-FLY-POSTGRES-PASSWORD]@heya-pos-db.flycast:5432/postgres?sslmode=disable' -a heya-pos-api
+/home/lukas/.fly/bin/flyctl secrets set DATABASE_URL='postgres://postgres:[YOUR-FLY-POSTGRES-PASSWORD]@heya-pos-db.flycast:5432/postgres?sslmode=disable' -a heya-pos-api
 
-/home/nirvana9010/.fly/bin/flyctl secrets set DIRECT_URL='postgres://postgres:[YOUR-FLY-POSTGRES-PASSWORD]@heya-pos-db.flycast:5432/postgres?sslmode=disable' -a heya-pos-api
+/home/lukas/.fly/bin/flyctl secrets set DIRECT_URL='postgres://postgres:[YOUR-FLY-POSTGRES-PASSWORD]@heya-pos-db.flycast:5432/postgres?sslmode=disable' -a heya-pos-api
 
 # 2. Remove old DigitalOcean/Supabase secrets (if any exist)
-/home/nirvana9010/.fly/bin/flyctl secrets unset SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_KEY -a heya-pos-api
+/home/lukas/.fly/bin/flyctl secrets unset SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_KEY -a heya-pos-api
 
 # 3. Deploy the changes
-/home/nirvana9010/.fly/bin/flyctl deploy -a heya-pos-api
+/home/lukas/.fly/bin/flyctl deploy -a heya-pos-api
 
 # 4. Monitor logs
-/home/nirvana9010/.fly/bin/flyctl logs -a heya-pos-api
+/home/lukas/.fly/bin/flyctl logs -a heya-pos-api
 ```
 
 ## 🔍 Verify Production Update
@@ -38,13 +38,13 @@ After deployment, verify everything is working:
 
 ```bash
 # Check database connection
-/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db pull --print | head -20"
+/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db pull --print | head -20"
 
 # Check API health
 curl https://heya-pos-api.fly.dev/api/v1/auth/health
 
 # Check logs for any errors
-/home/nirvana9010/.fly/bin/flyctl logs -a heya-pos-api | grep -i "error\|database"
+/home/lukas/.fly/bin/flyctl logs -a heya-pos-api | grep -i "error\|database"
 ```
 
 ## 💾 Database Connection Details
@@ -74,7 +74,7 @@ curl https://heya-pos-api.fly.dev/api/v1/auth/health
 
 If you need to rollback to DigitalOcean:
 ```bash
-/home/nirvana9010/.fly/bin/flyctl secrets set DATABASE_URL='postgresql://[DIGITALOCEAN-USER]:[DIGITALOCEAN-PASSWORD]@[DIGITALOCEAN-HOST]:25060/defaultdb?sslmode=require' -a heya-pos-api
+/home/lukas/.fly/bin/flyctl secrets set DATABASE_URL='postgresql://[DIGITALOCEAN-USER]:[DIGITALOCEAN-PASSWORD]@[DIGITALOCEAN-HOST]:25060/defaultdb?sslmode=require' -a heya-pos-api
 ```
 
 But note: Any new data created in Fly.io won't be in DigitalOcean!

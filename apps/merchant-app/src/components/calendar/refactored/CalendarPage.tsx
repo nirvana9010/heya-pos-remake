@@ -4,7 +4,7 @@
 const __BUILD_TIME__ = new Date().toLocaleString();
 // Checkbox removed - rostered staff filter now controlled by merchant settings only
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { CalendarProvider, useCalendar } from './CalendarProvider';
 import { DailyView } from './views/DailyView';
 import { WeeklyView } from './views/WeeklyView';
@@ -81,6 +81,9 @@ function CalendarContent() {
   } = useCalendarNavigation();
   const { handleDragEnd } = useCalendarDragDrop();
   const { updateBookingTime } = useBookingOperations();
+
+  // Track locally created bookings to prevent WebSocket refresh conflicts
+  const locallyCreatedBookings = useRef<Set<string>>(new Set());
   
   // WebSocket connection for real-time updates
   const { isConnected, lastNotification } = useWebSocket({
@@ -89,15 +92,29 @@ function CalendarContent() {
       // Only refresh if this booking is for our merchant
       if (data.merchantId === merchant?.id) {
         console.log('[Calendar] Real-time: Booking created', data.id);
-        
+
+        // Check if this booking was created locally (to prevent refresh conflicts)
+        if (locallyCreatedBookings.current.has(data.id)) {
+          console.log('[Calendar] 🎯 SKIPPING WebSocket refresh for locally created booking', data.id);
+          console.log('[Calendar] 🎯 Locally created bookings set:', Array.from(locallyCreatedBookings.current));
+          // Remove from tracking after 5 seconds to allow future refreshes
+          setTimeout(() => {
+            locallyCreatedBookings.current.delete(data.id);
+            console.log('[Calendar] 🎯 Removed booking from tracking set:', data.id);
+          }, 5000);
+          return;
+        }
+
         // Clear cache and refresh
+        console.log('[Calendar] 🎯 WebSocket triggering REFRESH for external booking', data.id);
         apiClient.clearBookingsCache();
-        
+
         // Add a small delay to ensure database consistency
         setTimeout(() => {
+          console.log('[Calendar] 🎯 Executing WebSocket refresh now');
           refresh();
         }, 500);
-        
+
         // Show toast notification
         toast({
           title: 'New Booking',
@@ -399,6 +416,14 @@ function CalendarContent() {
   }, [actions]);
   
   const handleBookingSlideOutSave = useCallback(async (bookingData: any) => {
+    console.log('[Calendar] 🎯 handleBookingSlideOutSave called with data:', {
+      id: bookingData.id,
+      customerName: bookingData.customerName,
+      serviceName: bookingData.serviceName,
+      startTime: bookingData.startTime,
+      status: bookingData.status
+    });
+
     try {
       
       // Create booking via V2 API with correct format
@@ -581,11 +606,24 @@ function CalendarContent() {
         updatedAt: new Date().toISOString(),
       };
       
-      
+
+      // Track this booking as locally created to prevent WebSocket refresh conflicts
+      locallyCreatedBookings.current.add(transformedBooking.id);
+      console.log('[Calendar] 🎯 Added booking to tracking set:', transformedBooking.id);
+
       // Add the new booking to the calendar
+      console.log('[Calendar] 🎯 Calling actions.addBooking with:', {
+        id: transformedBooking.id,
+        date: transformedBooking.date,
+        time: transformedBooking.time,
+        customerName: transformedBooking.customerName,
+        serviceName: transformedBooking.serviceName
+      });
       actions.addBooking(transformedBooking);
+
+      console.log('[Calendar] 🎯 Closing booking slideout');
       actions.closeBookingSlideOut();
-      
+
       // Broadcast the booking creation to other tabs
       bookingEvents.broadcast({
         type: 'booking_created',

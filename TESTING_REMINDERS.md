@@ -55,7 +55,7 @@ The scheduler runs every 5 minutes, so reminders will be processed in the next c
 Run the test script to manipulate scheduled notifications directly:
 
 ```bash
-cd /home/nirvana9010/projects/heya-pos-remake/heya-pos
+cd /home/lukas/projects/heya-pos-remake
 node test-reminders.js
 ```
 

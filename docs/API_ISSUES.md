@@ -5,7 +5,7 @@
 ### 1. Module Resolution Error
 **Error:**
 ```
-Error: Cannot find module '/home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/api/dist/main'
+Error: Cannot find module '/home/lukas/projects/heya-pos-remake/apps/api/dist/main'
 ```
 
 **Root Cause:**
@@ -26,7 +26,7 @@ Error: Cannot find module '/home/nirvana9010/projects/heya-pos-remake/heya-pos/a
 ### 2. Package Import Issues
 **Error:**
 ```
-Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/nirvana9010/projects/heya-pos-remake/heya-pos/packages/utils/src/date'
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/lukas/projects/heya-pos-remake/packages/utils/src/date'
 ```
 
 **Root Cause:**

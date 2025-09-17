@@ -33,7 +33,7 @@ echo "Triggering database event..."
 echo "Inserting test booking into database..."
 
 # Connect to database and insert a test booking
-DATABASE_URL=$(grep DATABASE_URL /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/api/.env | cut -d'=' -f2- | tr -d '"')
+DATABASE_URL=$(grep DATABASE_URL /home/lukas/projects/heya-pos-remake/apps/api/.env | cut -d'=' -f2- | tr -d '"')
 
 # Use psql to insert a test booking
 PGPASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p') \

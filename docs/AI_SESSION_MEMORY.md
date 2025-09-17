@@ -730,7 +730,7 @@ cd apps/api
 npx ts-node prisma/seed-bookings-quick.ts
 
 # Or if you get path errors
-cd /home/nirvana9010/projects/heya-pos-remake/heya-pos/apps/api
+cd /home/lukas/projects/heya-pos-remake/apps/api
 npx ts-node prisma/seed-bookings-quick.ts
 ```
 
@@ -1296,11 +1296,11 @@ cd apps/api && npx prisma studio
 
 ## 📸 Screenshots Location
 
-**All screenshots are stored in**: `/home/nirvana9010/projects/heya-pos-remake/screenshots/`
+**All screenshots are stored in**: `/home/lukas/projects/heya-pos-remake/screenshots/`
 
 To view the latest screenshot:
 ```bash
-ls -la /home/nirvana9010/projects/heya-pos-remake/screenshots/*.png | tail -5
+ls -la /home/lukas/projects/heya-pos-remake/screenshots/*.png | tail -5
 ```
 
 ## 📌 Session Checklist

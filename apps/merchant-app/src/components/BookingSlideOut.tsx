@@ -107,15 +107,15 @@ export function BookingSlideOut({
   const [defaultTime] = useState(() => {
     const now = new Date();
     const minutes = now.getMinutes();
-    const remainder = minutes % 5;
+    const remainder = minutes % 15;
     
-    // Round up to next 5-minute interval
+    // Round up to next 15-minute interval
     if (remainder === 0) {
-      // Already on a 5-minute mark, add 5 minutes
-      now.setMinutes(minutes + 5);
+      // Already on a 15-minute mark, add 15 minutes
+      now.setMinutes(minutes + 15);
     } else {
-      // Round up to next 5-minute mark
-      now.setMinutes(minutes + (5 - remainder));
+      // Round up to next 15-minute mark
+      now.setMinutes(minutes + (15 - remainder));
     }
     
     // Reset seconds and milliseconds
@@ -397,6 +397,14 @@ export function BookingSlideOut({
           isPaid: false,
           notes: notes || ''
         };
+
+        console.log('[BookingSlideOut] 🎯 Calling onSave with booking data:', {
+          id: realBooking.id,
+          customerName: realBooking.customerName,
+          serviceName: realBooking.serviceName,
+          startTime: realBooking.startTime,
+          status: realBooking.status
+        });
         onSave(realBooking);
         
         // Dismiss the loading toast
@@ -521,9 +529,9 @@ export function BookingSlideOut({
                   
                   <span className="text-gray-400">:</span>
                   
-                  {/* Minute selector - 5 minute increments */}
+                  {/* Minute selector - 15 minute increments */}
                   <Select
-                    value={time ? (Math.round(time.getMinutes() / 5) * 5).toString() : ""}
+                    value={time ? (Math.round(time.getMinutes() / 15) * 15).toString() : ""}
                     onValueChange={(minute) => {
                       const newTime = new Date(time || defaultTime);
                       newTime.setMinutes(parseInt(minute));
@@ -534,8 +542,8 @@ export function BookingSlideOut({
                       <SelectValue placeholder="MM" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => {
-                        const minutes = i * 5;
+                      {Array.from({ length: 4 }, (_, i) => {
+                        const minutes = i * 15;
                         return (
                           <SelectItem key={minutes} value={minutes.toString()}>
                             {minutes.toString().padStart(2, '0')}

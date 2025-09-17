@@ -4,8 +4,8 @@
 echo "Getting Supabase connection details..."
 
 # Get the secrets
-SUPABASE_URL=$(/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api -C "echo \$SUPABASE_URL")
-SUPABASE_SERVICE_KEY=$(/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api -C "echo \$SUPABASE_SERVICE_KEY")
+SUPABASE_URL=$(/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api -C "echo \$SUPABASE_URL")
+SUPABASE_SERVICE_KEY=$(/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api -C "echo \$SUPABASE_SERVICE_KEY")
 
 echo "SUPABASE_URL: $SUPABASE_URL"
 

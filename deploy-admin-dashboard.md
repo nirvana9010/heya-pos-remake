@@ -42,13 +42,13 @@ The API needs to allow requests from the admin dashboard domain:
 
 ```bash
 # Get current FRONTEND_URLS
-/home/nirvana9010/.fly/bin/flyctl secrets list -a heya-pos-api | grep FRONTEND_URLS
+/home/lukas/.fly/bin/flyctl secrets list -a heya-pos-api | grep FRONTEND_URLS
 
 # Add admin dashboard URL to FRONTEND_URLS
-/home/nirvana9010/.fly/bin/flyctl secrets set FRONTEND_URLS="https://your-booking-app.vercel.app,https://your-merchant-app.vercel.app,https://your-admin-dashboard.vercel.app,http://localhost:3001,http://localhost:3002,http://localhost:3003" -a heya-pos-api
+/home/lukas/.fly/bin/flyctl secrets set FRONTEND_URLS="https://your-booking-app.vercel.app,https://your-merchant-app.vercel.app,https://your-admin-dashboard.vercel.app,http://localhost:3001,http://localhost:3002,http://localhost:3003" -a heya-pos-api
 
 # Restart API to apply changes
-/home/nirvana9010/.fly/bin/flyctl apps restart heya-pos-api
+/home/lukas/.fly/bin/flyctl apps restart heya-pos-api
 ```
 
 ## Step 4: Test Production Deployment

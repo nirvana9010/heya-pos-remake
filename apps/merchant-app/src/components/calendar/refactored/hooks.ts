@@ -116,7 +116,11 @@ export function useCalendarData() {
         };
       });
       
-      
+      console.log('[Calendar] 🎯 fetchBookings setting bookings:', {
+        count: transformedBookings.length,
+        bookingIds: transformedBookings.map(b => b.id).slice(0, 5), // First 5 IDs
+        source: 'fetchBookings'
+      });
       actions.setBookings(transformedBookings);
     } catch (error) {
       actions.setError('Failed to load bookings');
