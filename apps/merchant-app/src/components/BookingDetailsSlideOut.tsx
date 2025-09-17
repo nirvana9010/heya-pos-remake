@@ -40,6 +40,7 @@ import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
+import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
 
 interface BookingService {
   id: string;
@@ -722,40 +723,40 @@ function BookingDetailsSlideOutComponent({
                 </Select>
               </div>
 
-              <div>
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={format(formData.date, "yyyy-MM-dd")}
-                  onChange={(e) => {
-                    const newDate = new Date(e.target.value);
-                    // Create a new time object with the new date but keeping the same time
-                    const updatedTime = new Date(formData.time);
-                    updatedTime.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
-                    setFormData({ 
-                      ...formData, 
-                      date: newDate, 
-                      time: updatedTime 
-                    });
-                  }}
-                  className="mt-1"
-                />
-              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Date</Label>
+                  <Input
+                    type="date"
+                    value={format(formData.date, "yyyy-MM-dd")}
+                    onChange={(e) => {
+                      const newDate = new Date(e.target.value);
+                      // Create a new time object with the new date but keeping the same time
+                      const updatedTime = new Date(formData.time);
+                      updatedTime.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
+                      setFormData({ 
+                        ...formData, 
+                        date: newDate, 
+                        time: updatedTime 
+                      });
+                    }}
+                    className="mt-1"
+                  />
+                </div>
 
-              <div>
-                <Label>Time</Label>
-                <Input
-                  type="time"
-                  value={format(formData.time, "HH:mm")}
-                  onChange={(e) => {
-                    const [hours, minutes] = e.target.value.split(':');
-                    // Create a NEW Date object based on the current date
-                    const newTime = new Date(formData.date.getTime()); // Clone the date
-                    newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                    setFormData({ ...formData, time: newTime });
-                  }}
-                  className="mt-1"
-                />
+                <div>
+                  <Label>Time</Label>
+                  <FifteenMinuteTimeSelect
+                    className="mt-1"
+                    value={format(formData.time, "HH:mm")}
+                    onChange={(timeValue) => {
+                      const [hours, minutes] = timeValue.split(':');
+                      const newTime = new Date(formData.date.getTime());
+                      newTime.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10), 0, 0);
+                      setFormData({ ...formData, time: newTime });
+                    }}
+                  />
+                </div>
               </div>
 
               <Separator className="my-4" />
