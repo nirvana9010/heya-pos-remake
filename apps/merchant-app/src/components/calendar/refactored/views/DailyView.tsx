@@ -104,29 +104,9 @@ export function DailyView({
   
   // Get bookings for current day
   const todaysBookings = useMemo(() => {
-    console.log('[DailyView] 🎯 Filtering bookings for current day:', {
-      currentDate: state.currentDate,
-      totalFilteredBookings: filteredBookings.length,
-      filteredBookingDates: filteredBookings.map(b => ({ id: b.id, date: b.date }))
-    });
-
-    const result = filteredBookings.filter(booking => {
-      const bookingDate = parseISO(booking.date);
-      const isToday = isSameDay(bookingDate, state.currentDate);
-      console.log('[DailyView] 🎯 Checking booking for today:', {
-        bookingId: booking.id,
-        bookingDate: booking.date,
-        parsedDate: bookingDate,
-        currentDate: state.currentDate,
-        isSameDay: isToday
-      });
-      return isToday;
-    });
-
-    console.log('[DailyView] 🎯 Today\'s bookings result:', {
-      count: result.length,
-      bookingIds: result.map(b => b.id)
-    });
+    const result = filteredBookings.filter(booking =>
+      isSameDay(parseISO(booking.date), state.currentDate)
+    );
 
     return result;
   }, [filteredBookings, state.currentDate]);
@@ -177,12 +157,6 @@ export function DailyView({
   const bookingsByStaff = useMemo(() => {
     const grouped = new Map<string | null, Booking[]>();
 
-    console.log('[DailyView] 🎯 Grouping bookings by staff:', {
-      todaysBookingsCount: todaysBookings.length,
-      availableStaff: state.staff.map(s => ({ id: s.id, name: s.name })),
-      showUnassignedColumn: state.showUnassignedColumn
-    });
-
     // Initialize with empty arrays for all staff + unassigned
     state.staff.forEach(staff => {
       grouped.set(staff.id, []);
@@ -195,28 +169,9 @@ export function DailyView({
     // Group bookings - normalize falsy staffIds to null
     todaysBookings.forEach(booking => {
       const staffId = booking.staffId || null;
-      console.log('[DailyView] 🎯 Assigning booking to staff:', {
-        bookingId: booking.id,
-        originalStaffId: booking.staffId,
-        normalizedStaffId: staffId,
-        hasStaffBucket: grouped.has(staffId),
-        customerName: booking.customerName
-      });
-
       if (grouped.has(staffId)) {
         grouped.get(staffId)!.push(booking);
-      } else {
-        console.log('[DailyView] 🚨 BOOKING LOST - No staff bucket for:', staffId, 'Available buckets:', Array.from(grouped.keys()));
       }
-    });
-
-    // Debug final grouping
-    console.log('[DailyView] 🎯 Final staff grouping:', {
-      totalGroups: grouped.size,
-      groupSizes: Object.fromEntries(Array.from(grouped.entries()).map(([staffId, bookings]) => [
-        staffId || 'unassigned',
-        bookings.length
-      ]))
     });
 
     return grouped;
@@ -773,30 +728,9 @@ export function DailyView({
               {visibleStaff.map((staff, staffIndex) => (
                 <div key={staff.id}>
                   {timeSlots.map((slot, slotIndex) => {
-                    const allStaffBookings = bookingsByStaff.get(staff.id) || [];
-                    const slotBookings = allStaffBookings.filter(booking => {
-                      const matches = booking.time === slot.time;
-                      if (allStaffBookings.length > 0 && slot.time.endsWith(':00')) {
-                        console.log('[DailyView] 🎯 Checking time slot:', {
-                          staffId: staff.id,
-                          staffName: staff.name,
-                          slotTime: slot.time,
-                          bookingTime: booking.time,
-                          matches,
-                          bookingId: booking.id
-                        });
-                      }
-                      return matches;
-                    });
-
-                    if (slotBookings.length > 0) {
-                      console.log('[DailyView] 🎯 Rendering bookings for slot:', {
-                        staffName: staff.name,
-                        slotTime: slot.time,
-                        bookingCount: slotBookings.length,
-                        bookings: slotBookings.map(b => ({ id: b.id, customerName: b.customerName }))
-                      });
-                    }
+                    const slotBookings = bookingsByStaff.get(staff.id)?.filter(booking =>
+                      booking.time === slot.time
+                    ) || [];
 
                     return (
                       <DroppableTimeSlot

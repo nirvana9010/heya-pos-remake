@@ -187,13 +187,21 @@ export class BookingsClient extends BaseApiClient {
     
     
     const booking = await this.patch(
-      `/bookings/${id}`, 
-      data, 
-      undefined, 
+      `/bookings/${id}`,
+      data,
+      undefined,
       'v2',
       requestSchemas.updateBooking,
       responseSchemas.booking
     );
+
+    // CRITICAL: Check if the response is actually an error disguised as success
+    if (booking && (booking.statusCode >= 400 || booking.errorMessage || booking.error)) {
+      const errorMessage = booking.errorMessage || booking.message || booking.error || 'Update failed';
+      const error = new Error(errorMessage);
+      (error as any).response = { data: booking, status: booking.statusCode };
+      throw error;
+    }
     
     
     if (window.dispatchEvent && booking) {

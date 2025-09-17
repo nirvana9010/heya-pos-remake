@@ -428,15 +428,7 @@ function BookingDetailsSlideOutComponent({
     };
     
     onSave(updatePayload).then(async (response) => {
-      // Show success toast
-      toast({
-        title: "Booking updated",
-        description: `${booking.customerName}'s appointment has been updated successfully.`,
-        variant: "default",
-        className: "bg-green-50 border-green-200",
-        duration: 5000,
-      });
-      
+      // Success handled - BookingsManager shows the success toast
       // Trigger notification refresh after a delay to ensure backend processing
       setTimeout(() => {
         refreshNotifications();
@@ -444,6 +436,7 @@ function BookingDetailsSlideOutComponent({
     }).catch(error => {
       // If save fails, re-enter edit mode
       setIsEditing(true);
+      // BookingsManager already shows the error toast
     });
   };
 

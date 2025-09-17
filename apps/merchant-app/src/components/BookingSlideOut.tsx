@@ -397,14 +397,6 @@ export function BookingSlideOut({
           isPaid: false,
           notes: notes || ''
         };
-
-        console.log('[BookingSlideOut] 🎯 Calling onSave with booking data:', {
-          id: realBooking.id,
-          customerName: realBooking.customerName,
-          serviceName: realBooking.serviceName,
-          startTime: realBooking.startTime,
-          status: realBooking.status
-        });
         onSave(realBooking);
         
         // Dismiss the loading toast

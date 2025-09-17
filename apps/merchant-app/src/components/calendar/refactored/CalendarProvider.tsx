@@ -215,20 +215,9 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       // If we're adding a booking, ensure it's not in the recently deleted map
       recentlyDeletedBookings.delete(action.payload.id);
 
-      console.log('[Calendar] 🎯 ADD_BOOKING reducer called:', {
-        bookingId: action.payload.id,
-        currentBookingsCount: state.bookings.length,
-        newBookingDate: action.payload.date,
-        newBookingTime: action.payload.time,
-        customerName: action.payload.customerName
-      });
-
-      const newBookings = [...state.bookings, action.payload];
-      console.log('[Calendar] 🎯 New bookings array length:', newBookings.length);
-
       return {
         ...state,
-        bookings: newBookings,
+        bookings: [...state.bookings, action.payload],
       };
     
     case 'REMOVE_BOOKING':
@@ -456,91 +445,47 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   // Memoized filtered bookings
   const filteredBookings = useMemo(() => {
     let filtered = state.bookings;
-    const totalBookings = filtered.length;
-
-    console.log('[Calendar] 🎯 Starting to filter bookings:', {
-      totalBookings,
-      dateRange: { start: state.dateRange.start, end: state.dateRange.end },
-      selectedStaffIds: state.selectedStaffIds,
-      selectedStatusFilters: state.selectedStatusFilters
-    });
 
     // Date range filter
-    const beforeDateFilter = filtered.length;
     filtered = filtered.filter(booking => {
       const bookingDate = new Date(booking.date);
-      const inRange = bookingDate >= state.dateRange.start && bookingDate <= state.dateRange.end;
-      if (!inRange) {
-        console.log('[Calendar] 🎯 FILTERED OUT by date:', booking.id, 'booking date:', booking.date, 'range:', state.dateRange.start, '-', state.dateRange.end);
-      }
-      return inRange;
+      return bookingDate >= state.dateRange.start && bookingDate <= state.dateRange.end;
     });
-    console.log('[Calendar] 🎯 After date filter:', beforeDateFilter, '->', filtered.length);
 
     // Staff filter
-    const beforeStaffFilter = filtered.length;
     if (state.selectedStaffIds.length > 0) {
       filtered = filtered.filter(booking => {
         // Always show unassigned bookings if the column is visible
         if (booking.staffId === null) {
-          const show = state.showUnassignedColumn;
-          if (!show) {
-            console.log('[Calendar] 🎯 FILTERED OUT unassigned booking:', booking.id);
-          }
-          return show;
+          return state.showUnassignedColumn;
         }
-        const included = state.selectedStaffIds.includes(booking.staffId);
-        if (!included) {
-          console.log('[Calendar] 🎯 FILTERED OUT by staff:', booking.id, 'staffId:', booking.staffId, 'selected:', state.selectedStaffIds);
-        }
-        return included;
+        return state.selectedStaffIds.includes(booking.staffId);
       });
     }
-    console.log('[Calendar] 🎯 After staff filter:', beforeStaffFilter, '->', filtered.length);
 
     // Service filter
-    const beforeServiceFilter = filtered.length;
     if (state.selectedServiceIds.length > 0) {
-      filtered = filtered.filter(booking => {
-        const included = state.selectedServiceIds.includes(booking.serviceId);
-        if (!included) {
-          console.log('[Calendar] 🎯 FILTERED OUT by service:', booking.id, 'serviceId:', booking.serviceId);
-        }
-        return included;
-      });
+      filtered = filtered.filter(booking =>
+        state.selectedServiceIds.includes(booking.serviceId)
+      );
     }
-    console.log('[Calendar] 🎯 After service filter:', beforeServiceFilter, '->', filtered.length);
 
     // Status filter
-    const beforeStatusFilter = filtered.length;
     if (state.selectedStatusFilters.length > 0) {
-      filtered = filtered.filter(booking => {
-        const included = state.selectedStatusFilters.includes(booking.status);
-        if (!included) {
-          console.log('[Calendar] 🎯 FILTERED OUT by status:', booking.id, 'status:', booking.status, 'allowed:', state.selectedStatusFilters);
-        }
-        return included;
-      });
+      filtered = filtered.filter(booking =>
+        state.selectedStatusFilters.includes(booking.status)
+      );
     }
-    console.log('[Calendar] 🎯 After status filter:', beforeStatusFilter, '->', filtered.length);
 
     // Search filter
-    const beforeSearchFilter = filtered.length;
     if (state.searchQuery) {
       const query = state.searchQuery.toLowerCase();
-      filtered = filtered.filter(booking => {
-        const matches = booking.customerName?.toLowerCase().includes(query) ||
-                       booking.serviceName?.toLowerCase().includes(query) ||
-                       booking.staffName?.toLowerCase().includes(query);
-        if (!matches) {
-          console.log('[Calendar] 🎯 FILTERED OUT by search:', booking.id, 'query:', query);
-        }
-        return matches;
-      });
+      filtered = filtered.filter(booking =>
+        booking.customerName?.toLowerCase().includes(query) ||
+        booking.serviceName?.toLowerCase().includes(query) ||
+        booking.staffName?.toLowerCase().includes(query)
+      );
     }
-    console.log('[Calendar] 🎯 After search filter:', beforeSearchFilter, '->', filtered.length);
-
-    console.log('[Calendar] 🎯 Final filtered bookings:', filtered.length, 'out of', totalBookings);
 
     return filtered;
   }, [

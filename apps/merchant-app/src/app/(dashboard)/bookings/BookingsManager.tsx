@@ -1570,7 +1570,7 @@ export default function BookingsManager() {
                 })
               );
 
-              // Also update the selected booking for the slideout to reflect changes immediately
+              // Store the updated details for slideout
               const updatedDetails = {
                 ...selectedBookingForDetails,
                 startTime: updatedBooking.startTime,
@@ -1585,7 +1585,6 @@ export default function BookingsManager() {
                 price: totalPrice,
                 servicePrice: totalPrice,
               };
-              setSelectedBookingForDetails(updatedDetails);
               
               // Map services for API call - ensure proper service ID structure
               const mappedServices = updatedBooking.services?.map((s: any) => ({
@@ -1606,35 +1605,105 @@ export default function BookingsManager() {
               }
               
               // Update the booking through API with mapped services
-              
-              const apiResponse = await apiClient.updateBooking(selectedBookingForDetails.id, {
+              console.log('🔧 Creating booking update promise...');
+              const updatePromise = apiClient.updateBooking(selectedBookingForDetails.id, {
                 startTime: updatedBooking.startTime,
                 staffId: updatedBooking.staffId,
                 services: mappedServices,
                 notes: updatedBooking.notes
               });
-              
-              toast({
-                title: "Success",
-                description: "Booking updated successfully",
-              });
-              
+
+              console.log('🔧 Promise created, now awaiting...');
+
+              try {
+                const apiResponse = await updatePromise;
+
+                console.log('✅ API promise resolved, checking response:', apiResponse);
+
+                // CRITICAL: Check if the "successful" response is actually an error
+                if (apiResponse && (
+                  apiResponse.statusCode >= 400 ||
+                  apiResponse.errorMessage ||
+                  apiResponse.error ||
+                  apiResponse.message === "Error Response"
+                )) {
+                  console.log('🚨 Response contains error, treating as failure:', apiResponse);
+                  // Manually throw to trigger catch block
+                  const error = new Error(apiResponse.errorMessage || apiResponse.message || 'Update failed');
+                  (error as any).response = { data: apiResponse };
+                  throw error;
+                }
+
+                // If we get here, the API call truly succeeded
+                console.log('✅ API call truly successful');
+
+                // Update the slideout with the new data since API call succeeded
+                setSelectedBookingForDetails(updatedDetails);
+
+                toast({
+                  title: "Success",
+                  description: "Booking updated successfully",
+                });
+
+              } catch (error: any) {
+                console.log('🚨 CAUGHT ERROR in try-catch:', error);
+                // API call failed - extract the error message
+                let errorMessage = "Failed to update booking";
+
+                // Try multiple paths to get the conflict error message
+                if (error?.response?.data?.errorMessage) {
+                  errorMessage = error.response.data.errorMessage;
+                } else if (error?.response?.data?.message) {
+                  errorMessage = error.response.data.message;
+                } else if (error?.message) {
+                  errorMessage = error.message;
+                } else if (error?.data?.errorMessage) {
+                  errorMessage = error.data.errorMessage;
+                } else if (error?.data?.message) {
+                  errorMessage = error.data.message;
+                }
+
+                // Show error toast with specific conflict message
+                toast({
+                  title: "Update Failed",
+                  description: errorMessage,
+                  variant: "destructive",
+                });
+
+                // Revert optimistic updates (both bookings list and slideout)
+                loadBookings();
+
+                // CRITICAL: Throw the error to prevent outer success handling
+                throw error;
+              }
+
               // DON'T refresh from server - it returns old single-service format
               // and overwrites our multi-service data. The optimistic update already has the correct data.
               // This matches the calendar implementation pattern.
-              
+
               // Return the updated booking data
               return apiResponse || updatedDetails;
-              
-            } catch (error) {
-              
-              toast({
-                title: "Error",
-                description: "Failed to update booking",
-                variant: "destructive",
-              });
-              // On error, reload to revert optimistic update
+
+            } catch (error: any) {
+              // Fallback error handler for any errors not caught by the inner try-catch
+              console.error('Outer error handler:', error);
+
+              // Revert optimistic update
               loadBookings();
+
+              // Only show a toast if we haven't already shown one (check if error was already handled)
+              // If the error message contains "Time slot has conflicts" or similar, it was already handled
+              if (!error?.message?.includes('conflicts') && !error?.message?.includes('Update failed')) {
+                toast({
+                  title: "Error",
+                  description: "Failed to update booking",
+                  variant: "destructive",
+                });
+              }
+
+              // CRITICAL: Re-throw the error so the promise is rejected
+              // This prevents BookingDetailsSlideOut's .then() from running
+              throw error;
             }
           }}
           onDelete={async (bookingId) => {
