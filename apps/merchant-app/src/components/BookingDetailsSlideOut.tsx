@@ -145,7 +145,7 @@ function BookingDetailsSlideOutComponent({
 
   // Track if services have been initialized to avoid re-initialization
   const [servicesInitialized, setServicesInitialized] = useState(false);
-  
+
   useEffect(() => {
     // Only reset form data if we're not currently editing
     // This prevents the form from resetting while the user is making changes

@@ -95,6 +95,44 @@ export default function BookingsManager() {
   const [isDetailsSlideOutOpen, setIsDetailsSlideOutOpen] = useState(false);
   const mountedRef = useRef(true);
 
+  const parseBookingUpdateError = (response: any) => {
+    if (!response || typeof response !== 'object') {
+      return null;
+    }
+
+    if (typeof response.statusCode === 'number' && response.statusCode >= 400) {
+      return response.message || response.errorMessage || response.error || 'Failed to update booking';
+    }
+
+    if (response.success === false) {
+      return response.message || response.errorMessage || 'Failed to update booking';
+    }
+
+    if (Array.isArray(response.errors) && response.errors.length > 0) {
+      const firstError = response.errors[0];
+      if (typeof firstError === 'string') {
+        return firstError;
+      }
+      if (firstError?.message) {
+        return firstError.message;
+      }
+    }
+
+    if (response.errorMessage || response.error) {
+      return response.errorMessage || response.error;
+    }
+
+    if (response.message === 'Error Response' || response.status === 'error') {
+      return response.detail || response.message || 'Failed to update booking';
+    }
+
+    if (Array.isArray(response.conflicts) && response.conflicts.length > 0) {
+      return response.message || 'Time slot has conflicts';
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     let isCancelled = false;
     
@@ -1519,7 +1557,6 @@ export default function BookingsManager() {
           customers={customers}
           onSave={async (updatedBooking) => {
             try {
-              
               // Calculate total price from services
               const totalPrice = updatedBooking.services?.reduce((sum: number, s: any) => {
                 const price = s.adjustedPrice || s.price || 0;
@@ -1605,7 +1642,6 @@ export default function BookingsManager() {
               }
               
               // Update the booking through API with mapped services
-              console.log('🔧 Creating booking update promise...');
               const updatePromise = apiClient.updateBooking(selectedBookingForDetails.id, {
                 startTime: updatedBooking.startTime,
                 staffId: updatedBooking.staffId,
@@ -1613,30 +1649,19 @@ export default function BookingsManager() {
                 notes: updatedBooking.notes
               });
 
-              console.log('🔧 Promise created, now awaiting...');
+              let apiResponse: any = null;
 
               try {
-                const apiResponse = await updatePromise;
+                apiResponse = await updatePromise;
 
-                console.log('✅ API promise resolved, checking response:', apiResponse);
-
-                // CRITICAL: Check if the "successful" response is actually an error
-                if (apiResponse && (
-                  apiResponse.statusCode >= 400 ||
-                  apiResponse.errorMessage ||
-                  apiResponse.error ||
-                  apiResponse.message === "Error Response"
-                )) {
-                  console.log('🚨 Response contains error, treating as failure:', apiResponse);
-                  // Manually throw to trigger catch block
-                  const error = new Error(apiResponse.errorMessage || apiResponse.message || 'Update failed');
+                const detectedErrorMessage = parseBookingUpdateError(apiResponse);
+                if (detectedErrorMessage) {
+                  const error = new Error(detectedErrorMessage || 'Update failed');
                   (error as any).response = { data: apiResponse };
                   throw error;
                 }
 
                 // If we get here, the API call truly succeeded
-                console.log('✅ API call truly successful');
-
                 // Update the slideout with the new data since API call succeeded
                 setSelectedBookingForDetails(updatedDetails);
 
@@ -1646,7 +1671,6 @@ export default function BookingsManager() {
                 });
 
               } catch (error: any) {
-                console.log('🚨 CAUGHT ERROR in try-catch:', error);
                 // API call failed - extract the error message
                 let errorMessage = "Failed to update booking";
 
@@ -1686,8 +1710,6 @@ export default function BookingsManager() {
 
             } catch (error: any) {
               // Fallback error handler for any errors not caught by the inner try-catch
-              console.error('Outer error handler:', error);
-
               // Revert optimistic update
               loadBookings();
 
