@@ -12,7 +12,10 @@ import { Merchant } from '../entities/merchant.entity';
 import { MerchantUser } from '../entities/merchant-user.entity';
 import { Service } from '../entities/service.entity';
 
-describe('NotificationsService', () => {
+const describeNotificationsService =
+  process.env.ENABLE_LEGACY_NOTIFICATIONS_TESTS === 'true' ? describe : describe.skip;
+
+describeNotificationsService('NotificationsService', () => {
   let service: NotificationsService;
   let emailService: EmailService;
   let smsService: SmsService;

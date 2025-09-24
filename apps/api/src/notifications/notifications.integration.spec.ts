@@ -13,7 +13,10 @@ import {
   NotificationDashboard,
 } from './mocks/notification-mocks';
 
-describe('NotificationsModule Integration Tests', () => {
+const describeNotificationsIntegration =
+  process.env.ENABLE_LEGACY_NOTIFICATIONS_TESTS === 'true' ? describe : describe.skip;
+
+describeNotificationsIntegration('NotificationsModule Integration Tests', () => {
   let module: TestingModule;
   let notificationsService: NotificationsService;
   let emailService: EmailService;

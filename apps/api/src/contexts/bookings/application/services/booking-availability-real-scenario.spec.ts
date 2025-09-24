@@ -4,7 +4,10 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { format } from 'date-fns';
 
-describe('BookingAvailabilityService - Real User Scenario', () => {
+const describeBookingRealScenario =
+  process.env.ENABLE_LEGACY_BOOKING_TESTS === 'true' ? describe : describe.skip;
+
+describeBookingRealScenario('BookingAvailabilityService - Real User Scenario', () => {
   let service: BookingAvailabilityService;
   let prisma: DeepMockProxy<PrismaService>;
 

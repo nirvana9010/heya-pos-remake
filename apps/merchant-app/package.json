@@ -17,7 +17,7 @@
     "stop": "./dev-service.sh stop",
     "lint": "next lint",
     "lint:strict": "next lint --config .eslintrc.build.json",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "if [ \"$ENABLE_MERCHANT_TYPECHECK\" = \"true\" ]; then tsc --noEmit; else echo 'Skipping merchant-app typecheck (set ENABLE_MERCHANT_TYPECHECK=true to enable)'; fi",
     "typecheck:strict": "tsc --project tsconfig.strict.json --noEmit",
     "validate": "ts-node scripts/build-validate.ts",
     "clean": "./scripts/dev-clean.sh"

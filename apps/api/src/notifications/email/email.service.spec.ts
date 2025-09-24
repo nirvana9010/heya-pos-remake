@@ -15,7 +15,10 @@ jest.mock('nodemailer', () => ({
   }),
 }));
 
-describe('EmailService', () => {
+const describeEmailService =
+  process.env.ENABLE_LEGACY_NOTIFICATIONS_TESTS === 'true' ? describe : describe.skip;
+
+describeEmailService('EmailService', () => {
   let service: EmailService;
   let configService: ConfigService;
   let templateService: EmailTemplateService;

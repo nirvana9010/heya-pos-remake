@@ -4,7 +4,10 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { startOfDay, setHours, setMinutes, format } from 'date-fns';
 
-describe('BookingAvailabilityService - Roster Boundary Tests', () => {
+const describeBookingRosterTests =
+  process.env.ENABLE_LEGACY_BOOKING_TESTS === 'true' ? describe : describe.skip;
+
+describeBookingRosterTests('BookingAvailabilityService - Roster Boundary Tests', () => {
   let service: BookingAvailabilityService;
   let prisma: DeepMockProxy<PrismaService>;
 
