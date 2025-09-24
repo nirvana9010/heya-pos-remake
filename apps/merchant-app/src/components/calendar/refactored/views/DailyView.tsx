@@ -235,7 +235,7 @@ export function DailyView({
   // Show loading state while BookingContext is loading staff data
   if (bookingContextLoading) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-pulse">
             <div className="h-8 w-48 bg-gray-200 rounded mb-4"></div>
@@ -249,7 +249,7 @@ export function DailyView({
   // Show empty state when no staff are rostered (only after data is loaded)
   if (actuallyRosteredStaff.length === 0 && state.showOnlyRosteredStaff) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center p-8">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -270,82 +270,80 @@ export function DailyView({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Fixed header row */}
-      <div 
-        className="grid sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm min-w-[600px]"
-        style={{ gridTemplateColumns: gridColumns }}
-      >
-        <div className="h-16 border-r border-gray-100 bg-gray-50" /> {/* Time column header */}
-        
-        {/* Unassigned column header */}
-        {state.showUnassignedColumn && (
-          <div className="h-16 px-4 flex items-center justify-between border-r border-gray-100 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm shadow-sm bg-gray-200">
-                  <Users className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-medium text-sm text-gray-700">Unassigned</span>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-gray-600 font-medium">
-                    {todaysBookings.filter(b => !b.staffId).length} bookings
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {visibleStaff.map((staffMember) => {
-          const staffBookings = todaysBookings.filter(b => b.staffId === staffMember.id);
-          const confirmedCount = staffBookings.filter(b => 
-            b.status === 'confirmed' || b.status === 'in-progress'
-          ).length;
-          
-          return (
-            <div key={staffMember.id} className="h-16 px-4 flex items-center justify-between border-r border-gray-100 last:border-r-0 bg-white">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm" 
-                       style={{ backgroundColor: staffMember.color }}>
-                    {staffMember.name.split(' ').map(n => n[0]).join('')}
+    <div className="flex flex-col h-full">
+      <div ref={calendarScrollRef} className="flex-1 overflow-x-auto">
+        <div className="min-w-[600px]">
+          <div 
+            className="grid sticky top-16 z-30 bg-white border-b border-gray-200 shadow-sm"
+            style={{ gridTemplateColumns: gridColumns }}
+          >
+            <div className="h-16 border-r border-gray-100 bg-gray-50" />
+
+            {state.showUnassignedColumn && (
+              <div className="h-16 px-4 flex items-center justify-between border-r border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm shadow-sm bg-gray-200">
+                      <Users className="w-5 h-5" />
+                    </div>
                   </div>
-                  {staffMember.isActive && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm text-gray-900">{staffMember.name}</span>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-600 font-medium">
-                      {confirmedCount}
-                    </span>
-                    {staffBookings.length > confirmedCount && (
-                      <span className="text-gray-500">
-                        · {staffBookings.length - confirmedCount} other
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm text-gray-700">Unassigned</span>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 font-medium">
+                        {todaysBookings.filter(b => !b.staffId).length} bookings
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Calendar grid */}
-      <div ref={calendarScrollRef} className="flex-1 overflow-auto">
-        <DndContext 
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-        >
-          <div className="relative">
+            )}
+
+            {visibleStaff.map((staffMember) => {
+              const staffBookings = todaysBookings.filter(b => b.staffId === staffMember.id);
+              const confirmedCount = staffBookings.filter(b => 
+                b.status === 'confirmed' || b.status === 'in-progress'
+              ).length;
+
+              return (
+                <div key={staffMember.id} className="h-16 px-4 flex items-center justify-between border-r border-gray-100 last:border-r-0 bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm" 
+                           style={{ backgroundColor: staffMember.color }}>
+                        {staffMember.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      {staffMember.isActive && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm text-gray-900">{staffMember.name}</span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-600 font-medium">
+                          {confirmedCount}
+                        </span>
+                        {staffBookings.length > confirmedCount && (
+                          <span className="text-gray-500">
+                            · {staffBookings.length - confirmedCount} other
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+          >
+            <div className="relative">
             {/* Current time indicator */}
             {isCurrentDateToday && currentTimeInfo && (
               <div 
@@ -1025,6 +1023,7 @@ export function DailyView({
             dragOverSlot={dragOverSlot}
           />
         </DndContext>
+        </div>
       </div>
       
       {/* Tooltip rendered at document level */}
