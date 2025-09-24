@@ -264,6 +264,19 @@ export class AdminService {
       delete updateData.isActive;
     }
 
+    // Handle package updates by validating the incoming packageId
+    if (dto.packageId) {
+      const targetPackage = await this.prisma.package.findUnique({
+        where: { id: dto.packageId },
+      });
+
+      if (!targetPackage) {
+        throw new BadRequestException(`Package with id "${dto.packageId}" not found`);
+      }
+
+      updateData.packageId = dto.packageId;
+    }
+
     console.log('[AdminService] Updating merchant with data:', updateData);
     const merchant = await this.prisma.merchant.update({
       where: { id },
