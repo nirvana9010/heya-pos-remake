@@ -74,7 +74,7 @@ export function WeeklyView({
                 .reduce((sum, b) => sum + b.servicePrice, 0);
 
               return (
-                <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 px-3 py-2 h-full">
+                <div key={day.toISOString()} className="flex-1 border-r border-gray-200 last:border-r-0 px-3 py-2 h-full">
                   <div className="flex items-center justify-between h-full">
                     <div>
                       <div className={cn(
@@ -119,7 +119,7 @@ export function WeeklyView({
             const dayBookings = bookingsByDay.get(dayKey) || [];
             
             return (
-              <div key={day.toISOString()} className="flex-1 border-r border-gray-100 last:border-r-0 min-h-full overflow-hidden">
+              <div key={day.toISOString()} className="flex-1 border-r border-gray-200 last:border-r-0 min-h-full overflow-hidden">
                 <div className="p-2 space-y-2">
                   {dayBookings.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm py-8">

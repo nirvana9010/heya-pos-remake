@@ -1100,31 +1100,18 @@ function CalendarContent() {
                 </Tooltip>
               </TooltipProvider>
               
-              {/* Refresh button */}
+              {/* New booking button */}
               <Button
-                variant="outline"
+                className="bg-teal-600 hover:bg-teal-700 text-white"
                 size="sm"
                 onClick={() => {
-                  refresh();
+                  setBookingSlideOutData(null);
+                  actions.openBookingSlideOut();
                 }}
-                disabled={isRefreshing}
-                title="Manually refresh calendar"
               >
-                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                <Plus className="h-4 w-4 mr-1" />
+                New Booking
               </Button>
-            
-            {/* New booking button */}
-            <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
-              size="sm"
-              onClick={() => {
-                setBookingSlideOutData(null);
-                actions.openBookingSlideOut();
-              }}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              New Booking
-            </Button>
           </div>
         </div>
       </div>

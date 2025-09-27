@@ -110,7 +110,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "min-h-[120px] p-2 border-r border-b cursor-pointer transition-colors",
+                  "min-h-[120px] p-2 border-r border-b border-gray-200 cursor-pointer transition-colors",
                   !isCurrentMonth && "bg-gray-50 text-gray-400",
                   isCurrentMonth && isWeekend && "bg-gray-50",
                   isToday(day) && "bg-teal-50",

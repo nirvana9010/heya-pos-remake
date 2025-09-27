@@ -284,10 +284,10 @@ export function DailyView({
               top: 0
             }}
           >
-            <div className="h-16 border-r border-gray-100 bg-gray-50" />
+            <div className="h-16 border-r border-gray-200 bg-gray-50" />
 
             {state.showUnassignedColumn && (
-              <div className="h-16 px-4 flex items-center justify-between border-r border-gray-100 bg-gray-50">
+              <div className="h-16 px-4 flex items-center justify-between border-r border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm shadow-sm bg-gray-200">
@@ -313,7 +313,7 @@ export function DailyView({
               ).length;
 
               return (
-                <div key={staffMember.id} className="h-16 px-4 flex items-center justify-between border-r border-gray-100 last:border-r-0 bg-white">
+                <div key={staffMember.id} className="h-16 px-4 flex items-center justify-between border-r border-gray-200 last:border-r-0 bg-white">
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm" 
@@ -374,7 +374,7 @@ export function DailyView({
               style={{ gridTemplateColumns: gridColumns }}
             >
               {/* Time slots column */}
-              <div className="bg-gray-50 border-r border-gray-100">
+              <div className="bg-gray-50 border-r border-gray-200">
                 {timeSlots.map((slot) => {
                   // Determine if we should show the time label based on interval
                   const shouldShowLabel = () => {
@@ -407,9 +407,9 @@ export function DailyView({
                     if (slot.minute === 0) {
                       return "text-sm font-semibold text-gray-700"; // Larger, bolder for hours
                     } else if (slot.minute === 30) {
-                      return "text-xs font-medium text-gray-500"; // Medium for half-hours
+                      return "text-xs font-medium text-gray-600"; // Darker for half-hours
                     } else {
-                      return "text-xs text-gray-400"; // Smaller, lighter for 15-min marks
+                      return "text-xs text-gray-500"; // Darker for 15-min marks
                     }
                   };
                   
@@ -439,7 +439,7 @@ export function DailyView({
               
               {/* Unassigned column */}
               {state.showUnassignedColumn && (
-                <div className="border-r border-gray-100">
+                <div className="border-r border-gray-200">
                   {timeSlots.map((slot, slotIndex) => {
                     const slotBookings = bookingsByStaff.get(null)?.filter(booking => 
                       booking.time === slot.time
@@ -453,7 +453,7 @@ export function DailyView({
                         time={slot.time}
                         staffId={null}
                         className={cn(
-                          "h-[40px] cursor-pointer relative border-r border-gray-100 transition-colors duration-100",
+                          "h-[40px] cursor-pointer relative border-r border-gray-200 transition-colors duration-100",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
@@ -746,7 +746,7 @@ export function DailyView({
                         staffId={staff.id}
                         className={cn(
                           "h-[40px] cursor-pointer relative transition-colors duration-100",
-                          staffIndex < visibleStaff.length - 1 && "border-r border-gray-100",
+                          staffIndex < visibleStaff.length - 1 && "border-r border-gray-200",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
