@@ -1,0 +1,492 @@
+
+> heya-pos@0.0.0 dev
+> ./scripts/ensure-db.sh && turbo dev
+
+[INFO] Checking database availability on localhost:5432...
+[OK] Database already reachable on localhost:5432
+turbo 2.5.3
+
+• Packages in scope: @heya-pos/shared, @heya-pos/types, @heya-pos/ui, @heya-pos/utils, admin-dashboard, api, booking-app, merchant-app
+• Running dev in 8 packages
+• Remote caching disabled
+@heya-pos/shared:build: cache hit, replaying logs 3c43f99adb43dcb4
+@heya-pos/shared:build: 
+@heya-pos/shared:build: > @heya-pos/shared@1.0.0 build
+@heya-pos/shared:build: > tsup
+@heya-pos/shared:build: 
+@heya-pos/shared:build: CLI Building entry: src/index.ts
+@heya-pos/shared:build: CLI Using tsconfig: tsconfig.json
+@heya-pos/shared:build: CLI tsup v8.5.0
+@heya-pos/shared:build: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/shared/tsup.config.ts
+@heya-pos/shared:build: CLI Target: es2022
+@heya-pos/shared:build: CLI Cleaning output folder
+@heya-pos/shared:build: CJS Build start
+@heya-pos/shared:build: ESM Build start
+@heya-pos/shared:build: ESM dist/index.mjs     22.61 KB
+@heya-pos/shared:build: ESM dist/index.mjs.map 42.03 KB
+@heya-pos/shared:build: ESM ⚡️ Build success in 19ms
+@heya-pos/shared:build: CJS dist/index.js     23.88 KB
+@heya-pos/shared:build: CJS dist/index.js.map 42.21 KB
+@heya-pos/shared:build: CJS ⚡️ Build success in 20ms
+@heya-pos/shared:build: DTS Build start
+@heya-pos/shared:build: DTS ⚡️ Build success in 1241ms
+@heya-pos/shared:build: DTS dist/index.d.ts  8.83 KB
+@heya-pos/shared:build: DTS dist/index.d.mts 8.83 KB
+@heya-pos/utils:dev: cache bypass, force executing 0341dcf653944889
+api:dev: cache bypass, force executing 7503846616852f50
+@heya-pos/shared:dev: cache bypass, force executing a068d94a6500b993
+@heya-pos/ui:dev: cache bypass, force executing 9db5b8bd443c96c2
+@heya-pos/types:dev: cache bypass, force executing 48bcaf64fa365e5d
+@heya-pos/ui:build: cache hit, replaying logs a5a8629c00028acf
+@heya-pos/ui:build: 
+@heya-pos/ui:build: > @heya-pos/ui@0.0.1 build
+@heya-pos/ui:build: > tsup
+@heya-pos/ui:build: 
+@heya-pos/ui:build: CLI Building entry: src/index.ts
+@heya-pos/ui:build: CLI Using tsconfig: tsconfig.json
+@heya-pos/ui:build: CLI tsup v8.5.0
+@heya-pos/ui:build: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/ui/tsup.config.ts
+@heya-pos/ui:build: CLI Target: es2022
+@heya-pos/ui:build: CLI Cleaning output folder
+@heya-pos/ui:build: CJS Build start
+@heya-pos/ui:build: ESM Build start
+@heya-pos/ui:build: ESM dist/index.mjs     106.92 KB
+@heya-pos/ui:build: ESM dist/index.mjs.map 179.66 KB
+@heya-pos/ui:build: ESM ⚡️ Build success in 49ms
+@heya-pos/ui:build: CJS dist/index.js     122.17 KB
+@heya-pos/ui:build: CJS dist/index.js.map 180.07 KB
+@heya-pos/ui:build: CJS ⚡️ Build success in 49ms
+@heya-pos/ui:build: DTS Build start
+@heya-pos/ui:build: DTS ⚡️ Build success in 3113ms
+@heya-pos/ui:build: DTS dist/index.d.ts  35.21 KB
+@heya-pos/ui:build: DTS dist/index.d.mts 35.21 KB
+booking-app:dev: cache bypass, force executing 5521f6eb0345136a
+admin-dashboard:dev: cache bypass, force executing 1ecc87d0964a3094
+merchant-app:dev: cache bypass, force executing 0843ee5a643550b0
+@heya-pos/ui:dev: 
+@heya-pos/ui:dev: > @heya-pos/ui@0.0.1 dev
+@heya-pos/ui:dev: > tsup --watch
+@heya-pos/ui:dev: 
+admin-dashboard:dev: 
+admin-dashboard:dev: > admin-dashboard@0.1.0 dev
+admin-dashboard:dev: > next dev -p 3003
+admin-dashboard:dev: 
+api:dev: 
+api:dev: > api@0.0.1 dev
+api:dev: > NODE_OPTIONS='--max-old-space-size=4096' nest start --watch
+api:dev: 
+merchant-app:dev: 
+merchant-app:dev: > merchant-app@0.1.0 dev
+merchant-app:dev: > DEV_SERVICE_DETACH=0 ./dev-service.sh start
+merchant-app:dev: 
+booking-app:dev: 
+booking-app:dev: > booking-app@0.1.0 dev
+booking-app:dev: > next dev -p 3001
+booking-app:dev: 
+merchant-app:dev: [1;33mmerchant-app is already running (PID: 74483) -- restarting for a clean state...[0m
+merchant-app:dev: [1;33m🛑 Stopping merchant-app with cleanup...[0m
+@heya-pos/utils:dev: 
+@heya-pos/utils:dev: > @heya-pos/utils@0.0.1 dev
+@heya-pos/utils:dev: > tsup --watch
+@heya-pos/utils:dev: 
+@heya-pos/types:dev: 
+@heya-pos/types:dev: > @heya-pos/types@0.0.1 dev
+@heya-pos/types:dev: > tsup --watch
+@heya-pos/types:dev: 
+@heya-pos/shared:dev: 
+@heya-pos/shared:dev: > @heya-pos/shared@1.0.0 dev
+@heya-pos/shared:dev: > tsup --watch
+@heya-pos/shared:dev: 
+@heya-pos/ui:dev: CLI Building entry: src/index.ts
+@heya-pos/ui:dev: CLI Using tsconfig: tsconfig.json
+@heya-pos/ui:dev: CLI tsup v8.5.0
+@heya-pos/ui:dev: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/ui/tsup.config.ts
+@heya-pos/ui:dev: CLI Running in watch mode
+@heya-pos/ui:dev: CLI Target: es2022
+@heya-pos/ui:dev: CLI Cleaning output folder
+@heya-pos/ui:dev: CJS Build start
+@heya-pos/ui:dev: ESM Build start
+@heya-pos/utils:dev: CLI Building entry: src/index.ts
+@heya-pos/utils:dev: CLI Using tsconfig: tsconfig.json
+@heya-pos/utils:dev: CLI tsup v8.5.0
+@heya-pos/utils:dev: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/utils/tsup.config.ts
+@heya-pos/utils:dev: CLI Running in watch mode
+@heya-pos/utils:dev: CLI Target: es2022
+@heya-pos/utils:dev: CLI Cleaning output folder
+@heya-pos/utils:dev: CJS Build start
+@heya-pos/utils:dev: ESM Build start
+@heya-pos/utils:dev: CJS dist/index.js     43.84 KB
+@heya-pos/utils:dev: CJS dist/index.js.map 70.35 KB
+@heya-pos/utils:dev: CJS ⚡️ Build success in 47ms
+@heya-pos/utils:dev: ESM dist/index.mjs     37.09 KB
+@heya-pos/utils:dev: ESM dist/index.mjs.map 69.51 KB
+@heya-pos/utils:dev: ESM ⚡️ Build success in 47ms
+@heya-pos/utils:dev: CLI Watching for changes in "."
+@heya-pos/utils:dev: CLI Ignoring changes in "**/{.git,node_modules}/**" | "dist"
+@heya-pos/shared:dev: CLI Building entry: src/index.ts
+@heya-pos/ui:dev: ESM dist/index.mjs     106.92 KB
+@heya-pos/ui:dev: ESM dist/index.mjs.map 179.66 KB
+@heya-pos/ui:dev: ESM ⚡️ Build success in 112ms
+@heya-pos/ui:dev: CJS dist/index.js     122.17 KB
+@heya-pos/ui:dev: CJS dist/index.js.map 180.07 KB
+@heya-pos/ui:dev: CJS ⚡️ Build success in 113ms
+@heya-pos/shared:dev: CLI Using tsconfig: tsconfig.json
+@heya-pos/shared:dev: CLI tsup v8.5.0
+@heya-pos/shared:dev: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/shared/tsup.config.ts
+@heya-pos/shared:dev: CLI Running in watch mode
+@heya-pos/ui:dev: CLI Watching for changes in "."
+@heya-pos/ui:dev: CLI Ignoring changes in "**/{.git,node_modules}/**" | "dist"
+@heya-pos/shared:dev: CLI Target: es2022
+@heya-pos/shared:dev: CLI Cleaning output folder
+@heya-pos/shared:dev: CJS Build start
+@heya-pos/shared:dev: ESM Build start
+api:dev: [2J[3J[H[[90m12:18:36 PM[0m] Starting compilation in watch mode...
+api:dev: 
+@heya-pos/types:dev: CLI Building entry: src/index.ts
+@heya-pos/types:dev: CLI Using tsconfig: tsconfig.json
+@heya-pos/types:dev: CLI tsup v8.5.0
+@heya-pos/types:dev: CLI Using tsup config: /home/lukas/projects/heya-pos-remake/packages/types/tsup.config.ts
+@heya-pos/types:dev: CLI Running in watch mode
+@heya-pos/types:dev: CLI Target: es2022
+@heya-pos/types:dev: CLI Cleaning output folder
+@heya-pos/types:dev: CJS Build start
+@heya-pos/types:dev: ESM Build start
+@heya-pos/shared:dev: CJS dist/index.js     23.88 KB
+@heya-pos/shared:dev: CJS dist/index.js.map 42.21 KB
+@heya-pos/shared:dev: CJS ⚡️ Build success in 54ms
+@heya-pos/shared:dev: ESM dist/index.mjs     22.61 KB
+@heya-pos/shared:dev: ESM dist/index.mjs.map 42.03 KB
+@heya-pos/shared:dev: ESM ⚡️ Build success in 53ms
+@heya-pos/shared:dev: CLI Watching for changes in "."
+@heya-pos/shared:dev: CLI Ignoring changes in "**/{.git,node_modules}/**" | "dist"
+@heya-pos/types:dev: CJS dist/index.js     9.44 KB
+@heya-pos/types:dev: CJS dist/index.js.map 17.71 KB
+@heya-pos/types:dev: CJS ⚡️ Build success in 43ms
+@heya-pos/types:dev: ESM dist/index.mjs     7.67 KB
+@heya-pos/types:dev: ESM dist/index.mjs.map 17.42 KB
+@heya-pos/types:dev: ESM ⚡️ Build success in 43ms
+@heya-pos/types:dev: CLI Watching for changes in "."
+@heya-pos/types:dev: CLI Ignoring changes in "**/{.git,node_modules}/**" | "dist"
+@heya-pos/utils:dev: DTS Build start
+admin-dashboard:dev:    ▲ Next.js 15.3.2
+admin-dashboard:dev:    - Local:        http://localhost:3003
+admin-dashboard:dev:    - Network:      http://192.168.68.62:3003
+admin-dashboard:dev: 
+admin-dashboard:dev:  ✓ Starting...
+admin-dashboard:dev:  ⚠ Invalid next.config.js options detected: 
+admin-dashboard:dev:  ⚠     Unrecognized key(s) in object: 'swcMinify'
+admin-dashboard:dev:  ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+booking-app:dev:    ▲ Next.js 15.3.2
+booking-app:dev:    - Local:        http://localhost:3001
+booking-app:dev:    - Network:      http://192.168.68.62:3001
+booking-app:dev:    - Environments: .env.local
+booking-app:dev: 
+booking-app:dev:  ✓ Starting...
+@heya-pos/shared:dev: DTS Build start
+@heya-pos/types:dev: DTS Build start
+@heya-pos/ui:dev: DTS Build start
+merchant-app:dev: [0;32m✅ merchant-app stopped with zombie cleanup complete[0m
+merchant-app:dev: [0;32m🚀 Starting merchant-app on port 3002 with zombie cleanup...[0m
+merchant-app:dev: 
+merchant-app:dev: > merchant-app@0.1.0 dev:direct
+merchant-app:dev: > next dev -p 3002
+merchant-app:dev: 
+admin-dashboard:dev:  ✓ Ready in 1846ms
+booking-app:dev:  ✓ Ready in 1866ms
+@heya-pos/types:dev: DTS ⚡️ Build success in 1946ms
+@heya-pos/utils:dev: DTS ⚡️ Build success in 2203ms
+@heya-pos/shared:dev: DTS ⚡️ Build success in 2051ms
+merchant-app:dev:    ▲ Next.js 15.3.2
+merchant-app:dev:    - Local:        http://localhost:3002
+merchant-app:dev:    - Network:      http://192.168.68.62:3002
+merchant-app:dev:    - Environments: .env.local
+merchant-app:dev:    - Experiments (use with caution):
+merchant-app:dev:      ✓ optimizeCss
+merchant-app:dev: 
+merchant-app:dev:  ✓ Starting...
+merchant-app:dev:  ✓ Ready in 1501ms
+@heya-pos/ui:dev: DTS ⚡️ Build success in 4290ms
+api:dev: [[90m12:18:42 PM[0m] Found 0 errors. Watching for file changes.
+api:dev: 
+api:dev: === ENVIRONMENT VARIABLES CHECK ===
+api:dev: NODE_ENV: development
+api:dev: DATABASE_URL: postgres://postgres:cUWfqrUuuKlcnDWT@localhost:5432/postgres...
+api:dev: DIRECT_URL: postgres://user:password@localhost:5432/heya_pos...
+api:dev: DATABASE_CONNECTION_LIMIT: 10
+api:dev: ===================================
+api:dev: 
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCommonServicesModule dependencies initialized[39m[38;5;3m +15ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMonitoringModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mPrismaService initialized[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsGateway] [39m[32m🔧 NotificationsGateway constructor called[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsModule] [39m[32m🔧 NotificationsModule constructor called[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsModule] [39m[32m🔧 NotificationsGateway injected: true[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsModule] [39m[32m🔧 NotificationsGateway instance exists in module[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEventEmitterModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [33m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [33m   WARN[39m [38;5;3m[SupabaseService] [39m[33mSupabase configuration missing. Realtime features will be disabled.[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[SendGridEmailService] [39m[32mSendGrid email service initialized[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[TwilioSmsService] [39m[32mTwilio SMS service initialized[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[PostgresListenerService] [39m[32m🔧 PostgresListenerService constructor called[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mValidationModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSupabaseModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCqrsModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHealthModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRedisModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMerchantModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLoyaltyModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFeaturesModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mServicesModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCustomersModule dependencies initialized[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStaffModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mOutboxModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPublicModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPaymentsModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsContextModule dependencies initialized[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[Bootstrap] [39m[32m✅ WebSocket adapter enabled successfully[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsGateway] [39m[32m🚀 WebSocket Gateway initialized on /notifications namespace[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsGateway] [39m[32mCORS origins: http://localhost:3001, 3002, 3003[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[NotificationsGateway] [39m[32mServer listening for WebSocket connections[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mNotificationsGateway subscribed to the "subscribe" message[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mNotificationsGateway subscribed to the "unsubscribe" message[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mNotificationsGateway subscribed to the "ping" message[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api} (version: 1):[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/migrate-database-one-time, POST} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/debug/auth, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/customers, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/merchant/login, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/refresh, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/logout, POST} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/merchant/change-password, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/verify-action, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/session, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/health, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mServicesController {/api/services} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/:id, GET} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/:id, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/reorder, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/bulk/status, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/import/mapping, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/import/preview, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/import/execute, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/services/import/template, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mServiceCategoriesController {/api/service-categories} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/service-categories, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/service-categories, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/service-categories/:id, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/service-categories/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMerchantController {/api/merchant} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/settings, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/settings, PUT} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/profile, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/profile, PUT} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/settings/debug, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/settings/raw, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/location/:locationId, PUT} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCustomersController {/api/customers} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/search, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/export, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/stats, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/import, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/:id, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/:id, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/customers/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOutboxMonitoringController {/api/admin/outbox} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/outbox/status, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/outbox/unprocessed, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBookingsV2Controller {/api/bookings} (version: 2):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings, GET} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/calendar, GET} (version: 2) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/availability, GET} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id, GET} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings, POST} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id, PATCH} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id/start, PATCH} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id/complete, PATCH} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id/cancel, PATCH} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id, DELETE} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bookings/:id/mark-paid, POST} (version: 2) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLoyaltyController {/api/loyalty} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/program, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/program, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/customers/:customerId, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/redeem-visit, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/redeem-points, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/adjust, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/loyalty/check/:customerId, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPaymentsController {/api/payments} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/process, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/split, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/refund, POST} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/void/:paymentId, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders/:orderId, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders/:orderId/items, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders/:orderId/modifiers, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders/:orderId/state, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/orders/from-booking/:bookingId, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/init, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/payments/prepare-order, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMerchantNotificationsController {/api/merchant/notifications} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/:id/read, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/read-all, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/test, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/realtime-token, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsSseController {/api/merchant/notifications} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/merchant/notifications/stream, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTestNotificationsController {/api/test/notifications} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/send-test, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/send-booking/:bookingId, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/dashboard, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/dashboard/clear, POST} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/merchant-notification, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/staff-notification, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/verify-connections, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/test-scenarios/:scenario, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/test-reminder/:type, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/test/notifications/force-process-reminders, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStaffController {/api/staff} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/schedules, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id/schedule, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id/schedule, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id/overrides, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id/overrides, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/staff/:id/overrides/:date, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPublicBookingController {/api/public} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/merchant-info, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/services, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/staff, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/customers/lookup, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/bookings/check-availability, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/bookings, POST} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/customers/:customerId/bookings, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/bookings/:id, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/service-categories, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPublicCheckInController {/api/public} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/checkin, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/bookings/:bookingId/checkin, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAvailabilityController {/api/public/availability} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/public/availability, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFeaturesController {/api/features} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/features, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/features/modules, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/login, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/merchants, POST} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/merchants, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/merchants/:id, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/merchants/:id, PATCH} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/merchants/:id, DELETE} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/check-subdomain, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/packages, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReportsController {/api/reports} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/revenue, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/bookings, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/customers, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/top-services, GET} (version: 1) route[39m[38;5;3m +1ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/staff-performance, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/revenue-trend, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/reports/overview, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health} (version: 1):[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health/database, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health/detailed, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health/queries, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health/queries/slow, GET} (version: 1) route[39m[38;5;3m +0ms[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32m✅ Type conversion available via transformResult() method[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mAttempting to connect to database (attempt 1/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mFailed to connect to database (attempt 1/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mPrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:43 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mRetrying in 2 seconds...[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:45 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mAttempting to connect to database (attempt 2/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:45 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mFailed to connect to database (attempt 2/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:45 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mPrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:45 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mRetrying in 2 seconds...[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:47 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mAttempting to connect to database (attempt 3/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:47 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mFailed to connect to database (attempt 3/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:47 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mPrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:47 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mRetrying in 2 seconds...[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:49 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mAttempting to connect to database (attempt 4/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:49 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mFailed to connect to database (attempt 4/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:49 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mPrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:49 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mRetrying in 2 seconds...[39m
+api:dev: [32m[Nest] 77331  - [39m09/27/2025, 12:18:51 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mAttempting to connect to database (attempt 5/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:51 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mFailed to connect to database (attempt 5/5)[39m
+api:dev: [31m[Nest] 77331  - [39m09/27/2025, 12:18:51 PM [31m  ERROR[39m [38;5;3m[PrismaService] [39m[31mPrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.[39m
+api:dev: Failed to start application: PrismaClientInitializationError: Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+api:dev: 
+api:dev: Please make sure to provide valid database credentials for the database server at the configured address.
+api:dev:     at r (/home/lukas/projects/heya-pos-remake/node_modules/@prisma/client/src/runtime/core/engines/library/LibraryEngine.ts:440:17)
+api:dev:     at async Proxy.onModuleInit (/home/lukas/projects/heya-pos-remake/apps/api/src/prisma/prisma.service.ts:75:9)
+api:dev:     at async Promise.all (index 0)
+api:dev:     at async callModuleInitHook (/home/lukas/projects/heya-pos-remake/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+api:dev:     at async NestApplication.callInitHook (/home/lukas/projects/heya-pos-remake/node_modules/@nestjs/core/nest-application-context.js:234:13)
+api:dev:     at async NestApplication.init (/home/lukas/projects/heya-pos-remake/node_modules/@nestjs/core/nest-application.js:100:9)
+api:dev:     at async NestApplication.listen (/home/lukas/projects/heya-pos-remake/node_modules/@nestjs/core/nest-application.js:170:13)
+api:dev:     at async bootstrap (/home/lukas/projects/heya-pos-remake/apps/api/src/main.ts:103:3) {
+api:dev:   clientVersion: '6.16.1',
+api:dev:   errorCode: 'P1000',
+api:dev:   retryable: undefined
+api:dev: }
+merchant-app:dev: npm error Lifecycle script `dev` failed with error:
+merchant-app:dev: npm error code 143
+merchant-app:dev: npm error path /home/lukas/projects/heya-pos-remake/apps/merchant-app
+merchant-app:dev: npm error workspace merchant-app@0.1.0
+merchant-app:dev: npm error location /home/lukas/projects/heya-pos-remake/apps/merchant-app
+merchant-app:dev: npm error command failed
+merchant-app:dev: npm error command sh -c DEV_SERVICE_DETACH=0 ./dev-service.sh start
+merchant-app:dev: ERROR: command finished with error: command (/home/lukas/projects/heya-pos-remake/apps/merchant-app) /home/lukas/.nvm/versions/node/v22.19.0/bin/npm run dev exited (143)
+booking-app:dev: [?25h
+admin-dashboard:dev: [?25h
+merchant-app#dev: command (/home/lukas/projects/heya-pos-remake/apps/merchant-app) /home/lukas/.nvm/versions/node/v22.19.0/bin/npm run dev exited (143)
+
+ Tasks:    2 successful, 10 total
+Cached:    2 cached, 10 total
+  Time:    45.059s 
+Failed:    merchant-app#dev
+
+ ERROR  run failed: command  exited (143)

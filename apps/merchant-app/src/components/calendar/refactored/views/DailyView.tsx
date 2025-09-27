@@ -271,11 +271,18 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={calendarScrollRef} className="flex-1 overflow-x-auto">
+      <div
+        ref={calendarScrollRef}
+        className="flex-1 overflow-x-auto overflow-y-auto"
+        style={{ maxHeight: 'calc(100vh - var(--calendar-topbar-offset, 160px))' }}
+      >
         <div className="min-w-[600px]">
           <div 
-            className="grid sticky top-16 z-30 bg-white border-b border-gray-200 shadow-sm"
-            style={{ gridTemplateColumns: gridColumns }}
+            className="grid sticky z-30 bg-white border-b border-gray-200 shadow-sm"
+            style={{
+              gridTemplateColumns: gridColumns,
+              top: 0
+            }}
           >
             <div className="h-16 border-r border-gray-100 bg-gray-50" />
 

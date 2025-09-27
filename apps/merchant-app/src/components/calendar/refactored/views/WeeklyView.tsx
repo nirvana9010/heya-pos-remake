@@ -58,9 +58,12 @@ export function WeeklyView({
   }, [filteredBookings, state.staff]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Fixed header row */}
-      <div className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm">
+      <div
+        className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm sticky z-30"
+        style={{ top: 'var(--calendar-sticky-offset, 176px)' }}
+      >
         <div className="flex h-full min-w-[860px]">
             {weekDays.map((day) => {
               const dayBookings = filteredBookings.filter(b => 
@@ -105,7 +108,10 @@ export function WeeklyView({
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        style={{ maxHeight: 'calc(100vh - var(--calendar-topbar-offset, 160px))' }}
+      >
         <div className="flex min-w-[860px]">
           {/* Days columns with stacked bookings */}
           {weekDays.map((day) => {

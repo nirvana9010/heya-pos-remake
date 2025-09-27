@@ -63,8 +63,7 @@ fi
 
 # Step 3: Ensure database exists
 echo -e "\n${YELLOW}Step 3: Checking database...${NC}"
-# For PostgreSQL/Supabase, we just check connectivity
-if nc -zv aws-0-ap-southeast-2.pooler.supabase.com 6543 >/dev/null 2>&1; then
+if ./scripts/ensure-db.sh; then
     echo -e "${GREEN}✅ Database ready${NC}"
 else
     echo -e "${RED}❌ Cannot connect to database${NC}"

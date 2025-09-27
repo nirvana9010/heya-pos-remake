@@ -2,6 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@heya-pos/ui', '@heya-pos/utils', '@heya-pos/types', '@heya-pos/shared'],
+  // Allow common LAN and tunnel origins so the dev UI can load assets outside localhost
+  allowedDevOrigins: [
+    'localhost',
+    '127.0.0.1',
+    '192.168.68.62',
+    '100.107.58.75',
+    '*.local',
+    '*.lan',
+  ],
   
   // Production optimizations
   productionBrowserSourceMaps: false,

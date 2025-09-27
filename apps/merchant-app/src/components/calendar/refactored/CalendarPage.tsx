@@ -18,7 +18,6 @@ import {
 import { Button } from '@heya-pos/ui';
 import { formatName } from '@heya-pos/utils';
 import { Card, CardContent } from '@heya-pos/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { Switch } from '@heya-pos/ui';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
@@ -661,6 +660,63 @@ function CalendarContent() {
     }
   }, [actions]);
   
+  // Sticky offset management
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
+
+  const updateStickyOffsets = React.useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const topbar = document.querySelector('.topbar') as HTMLElement | null;
+    const topbarHeight = topbar?.offsetHeight ?? 0;
+    const headerHeight = headerRef.current?.offsetHeight ?? 0;
+    const root = rootRef.current;
+
+    if (root) {
+      const offset = topbarHeight + headerHeight;
+      root.style.setProperty('--calendar-topbar-offset', `${offset}px`);
+      root.style.setProperty('--calendar-sticky-offset', `${offset}px`);
+    }
+  }, []);
+
+  React.useLayoutEffect(() => {
+    updateStickyOffsets();
+
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
+      const observer = new ResizeObserver(() => {
+        updateStickyOffsets();
+      });
+      resizeObserverRef.current = observer;
+
+      const observedElements: HTMLElement[] = [];
+      if (headerRef.current) {
+        observer.observe(headerRef.current);
+        observedElements.push(headerRef.current);
+      }
+      const topbar = document.querySelector('.topbar');
+      if (topbar instanceof HTMLElement) {
+        observer.observe(topbar);
+        observedElements.push(topbar);
+      }
+
+      return () => {
+        observedElements.forEach((element) => observer.unobserve(element));
+        observer.disconnect();
+        resizeObserverRef.current = null;
+      };
+    }
+
+    window.addEventListener('resize', updateStickyOffsets);
+    return () => window.removeEventListener('resize', updateStickyOffsets);
+  }, [updateStickyOffsets]);
+
+  React.useEffect(() => {
+    updateStickyOffsets();
+  }, [updateStickyOffsets, currentView, state.staff.length, state.selectedStaffIds.length, state.showOnlyRosteredStaff, state.showUnassignedColumn, filtersOpen]);
+
   // Drag and drop handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -765,7 +821,14 @@ function CalendarContent() {
   
   return (
     <TooltipProvider>
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div
+        ref={rootRef}
+        className="min-h-screen flex flex-col bg-gray-50"
+        style={{
+          '--calendar-topbar-offset': '120px',
+          '--calendar-sticky-offset': '120px',
+        } as React.CSSProperties}
+      >
         {/* Dev mode timestamp */}
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-xs font-mono border-b border-yellow-300">
@@ -773,10 +836,10 @@ function CalendarContent() {
           </div>
         )}
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-          <div className="flex items-center justify-between h-14 px-6">
+        <div ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-3">
             {/* Left: Navigation */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-1 items-center gap-4 min-w-[260px]">
               <Button
                 variant="ghost"
                 size="sm"
@@ -829,7 +892,7 @@ function CalendarContent() {
             </div>
             
             {/* Center: View Selector */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1">
               {(["day", "week", "month"] as const).map((view) => (
                 <button
                   key={view}
@@ -847,7 +910,154 @@ function CalendarContent() {
             </div>
             
             {/* Right: Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-1 items-center justify-end gap-3 min-w-[280px] flex-wrap md:flex-nowrap">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Users className="h-4 w-4 text-gray-500" />
+                <span>
+                  {state.showOnlyRosteredStaff && state.currentView === 'day' 
+                    ? `${rosteredStaffInfo.rosteredCount}/${rosteredStaffInfo.totalCount}`
+                    : `${state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/${rosteredStaffInfo.totalCount}`
+                  } staff
+                  {rosteredStaffInfo.hiddenCount > 0 && state.showOnlyRosteredStaff && state.currentView === 'day' && (
+                    <span className="text-gray-400 ml-1">
+                      ({rosteredStaffInfo.hiddenCount} not rostered)
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 min-w-[20px]">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
+                  <div className="p-4 space-y-4">
+                    {/* Display Options */}
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900 mb-3">Display Options</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStatusFilters.includes('pending')}
+                            onCheckedChange={(checked) => {
+                              const newFilters = checked 
+                                ? [...state.selectedStatusFilters, 'pending']
+                                : state.selectedStatusFilters.filter(s => s !== 'pending');
+                              actions.setStatusFilter(newFilters);
+                            }}
+                          />
+                          <span className="flex-1">Show pending bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {state.bookings.filter(b => b.status === 'pending').length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStatusFilters.includes('completed')}
+                            onCheckedChange={(checked) => {
+                              const newFilters = checked 
+                                ? [...state.selectedStatusFilters, 'completed']
+                                : state.selectedStatusFilters.filter(s => s !== 'completed');
+                              actions.setStatusFilter(newFilters);
+                            }}
+                          />
+                          <span className="flex-1">Show completed bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {state.bookings.filter(b => b.status === 'completed').length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStatusFilters.includes('cancelled')}
+                            onCheckedChange={(checked) => {
+                              const newFilters = checked 
+                                ? [...state.selectedStatusFilters, 'cancelled']
+                                : state.selectedStatusFilters.filter(s => s !== 'cancelled');
+                              actions.setStatusFilter(newFilters);
+                            }}
+                          />
+                          <span className="flex-1">Show cancelled bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {state.bookings.filter(b => b.status === 'cancelled').length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStatusFilters.includes('no-show')}
+                            onCheckedChange={(checked) => {
+                              const newFilters = checked 
+                                ? [...state.selectedStatusFilters, 'no-show']
+                                : state.selectedStatusFilters.filter(s => s !== 'no-show');
+                              actions.setStatusFilter(newFilters);
+                            }}
+                          />
+                          <span className="flex-1">Show no-show bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {state.bookings.filter(b => b.status === 'no-show').length}
+                          </Badge>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Staff Filter */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
+                        <button
+                          onClick={() => {
+                            const activeStaff = state.staff.filter(s => s.isActive !== false);
+                            if (state.selectedStaffIds.length === activeStaff.length) {
+                              actions.setStaffFilter([]);
+                            } else {
+                              actions.setStaffFilter(activeStaff.map(s => s.id));
+                            }
+                          }}
+                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                        >
+                          {state.selectedStaffIds.length === state.staff.filter(s => s.isActive !== false).length ? "Clear all" : "Select all"}
+                        </button>
+                      </div>
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {state.staff.filter(member => member.isActive !== false).map(member => (
+                          <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                            <Checkbox
+                              checked={state.selectedStaffIds.includes(member.id)}
+                              onCheckedChange={(checked) => {
+                                const newIds = checked
+                                  ? [...state.selectedStaffIds, member.id]
+                                  : state.selectedStaffIds.filter(id => id !== member.id);
+                                actions.setStaffFilter(newIds);
+                              }}
+                            />
+                            <div className="flex items-center gap-2 flex-1">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: member.color }}
+                              />
+                              <span>{member.name}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {/* Auto-refresh indicator */}
               {isRefreshing && (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -918,200 +1128,25 @@ function CalendarContent() {
           </div>
         </div>
       </div>
-      
-      {/* Secondary Navigation Bar with Filters */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
-        <div className="flex items-center justify-between">
-          {/* Left: Staff filter and settings */}
-          <div className="flex items-center gap-4">
-            {/* Staff filter */}
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
-                {state.showOnlyRosteredStaff && state.currentView === 'day' 
-                  ? `${rosteredStaffInfo.rosteredCount}/${rosteredStaffInfo.totalCount}`
-                  : `${state.selectedStaffIds.filter(id => state.staff.some(s => s.id === id && s.isActive !== false)).length}/${rosteredStaffInfo.totalCount}`
-                } staff
-                {rosteredStaffInfo.hiddenCount > 0 && state.showOnlyRosteredStaff && state.currentView === 'day' && (
-                  <span className="text-gray-400 ml-1">
-                    ({rosteredStaffInfo.hiddenCount} not rostered)
-                  </span>
-                )}
-              </span>
-            </div>
-            
-            {/* Filter button */}
-            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 gap-2"
-                >
-                  <Filter className="h-4 w-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <Badge variant="secondary" className="ml-1 px-1.5 min-w-[20px]">
-                      {activeFilterCount}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="start" sideOffset={5}>
-                <div className="p-4 space-y-4">
-                  {/* Display Options */}
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-900 mb-3">Display Options</h4>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={state.selectedStatusFilters.includes('pending')}
-                          onCheckedChange={(checked) => {
-                            const newFilters = checked 
-                              ? [...state.selectedStatusFilters, 'pending']
-                              : state.selectedStatusFilters.filter(s => s !== 'pending');
-                            actions.setStatusFilter(newFilters);
-                          }}
-                        />
-                        <span className="flex-1">Show pending bookings</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {state.bookings.filter(b => b.status === 'pending').length}
-                        </Badge>
-                      </label>
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={state.selectedStatusFilters.includes('completed')}
-                          onCheckedChange={(checked) => {
-                            const newFilters = checked 
-                              ? [...state.selectedStatusFilters, 'completed']
-                              : state.selectedStatusFilters.filter(s => s !== 'completed');
-                            actions.setStatusFilter(newFilters);
-                          }}
-                        />
-                        <span className="flex-1">Show completed bookings</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {state.bookings.filter(b => b.status === 'completed').length}
-                        </Badge>
-                      </label>
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={state.selectedStatusFilters.includes('cancelled')}
-                          onCheckedChange={(checked) => {
-                            const newFilters = checked 
-                              ? [...state.selectedStatusFilters, 'cancelled']
-                              : state.selectedStatusFilters.filter(s => s !== 'cancelled');
-                            actions.setStatusFilter(newFilters);
-                          }}
-                        />
-                        <span className="flex-1">Show cancelled bookings</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {state.bookings.filter(b => b.status === 'cancelled').length}
-                        </Badge>
-                      </label>
-                      <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                        <Checkbox
-                          checked={state.selectedStatusFilters.includes('no-show')}
-                          onCheckedChange={(checked) => {
-                            const newFilters = checked 
-                              ? [...state.selectedStatusFilters, 'no-show']
-                              : state.selectedStatusFilters.filter(s => s !== 'no-show');
-                            actions.setStatusFilter(newFilters);
-                          }}
-                        />
-                        <span className="flex-1">Show no-show bookings</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {state.bookings.filter(b => b.status === 'no-show').length}
-                        </Badge>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  {/* Staff Filter */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
-                      <button
-                        onClick={() => {
-                          const activeStaff = state.staff.filter(s => s.isActive !== false);
-                          if (state.selectedStaffIds.length === activeStaff.length) {
-                            actions.setStaffFilter([]);
-                          } else {
-                            actions.setStaffFilter(activeStaff.map(s => s.id));
-                          }
-                        }}
-                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                      >
-                        {state.selectedStaffIds.length === state.staff.filter(s => s.isActive !== false).length ? "Clear all" : "Select all"}
-                      </button>
-                    </div>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {state.staff.filter(member => member.isActive !== false).map(member => (
-                        <label key={member.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
-                          <Checkbox
-                            checked={state.selectedStaffIds.includes(member.id)}
-                            onCheckedChange={(checked) => {
-                              const newIds = checked
-                                ? [...state.selectedStaffIds, member.id]
-                                : state.selectedStaffIds.filter(id => id !== member.id);
-                              actions.setStaffFilter(newIds);
-                            }}
-                          />
-                          <div className="flex items-center gap-2 flex-1">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: member.color }}
-                            />
-                            <span>{member.name}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            {/* Time interval selector - hidden since only 15m is available
-            {currentView === 'day' && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Time Interval</span>
-                <Select
-                  value={state.timeInterval.toString()}
-                  onValueChange={(value) => actions.setTimeInterval(parseInt(value) as 15 | 30 | 60)}
-                >
-                  <SelectTrigger className="w-20 h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15m</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )} */}
-          </div>
-        </div>
-      </div>
-      
+
       {/* Calendar Content */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col">
         {isLoading ? (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">Loading calendar...</p>
             </div>
           </div>
         ) : state.error ? (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <p className="text-destructive mb-4">{state.error}</p>
               <Button onClick={refresh}>Try Again</Button>
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex-1 min-h-0">
             {currentView === 'day' && (
               <DailyView
                 onBookingClick={handleBookingClick}
@@ -1137,7 +1172,7 @@ function CalendarContent() {
                 }}
               />
             )}
-          </>
+          </div>
         )}
       </div>
       

@@ -22,3 +22,10 @@ API services rely on Jest; run `npm run api test:watch` for targeted feedback an
 
 ## Commit & Pull Request Guidelines
 Commit history follows Conventional Commit semantics (`fix:`, `feat:`, `chore:`). Use present-tense, imperative summaries under ~72 characters and include scoped prefixes when touching a single app (`feat(api): ...`). PRs should group related changes, link Jira/Trello references, and describe validation steps; attach screenshots or console captures for UI adjustments. Ensure checks (`lint`, `typecheck`, relevant tests) pass before requesting review and highlight any follow-up tasks in the PR description.
+
+## Local Development (September 27, 2025)
+- Local Postgres now runs via Docker Compose on `localhost:5432` with `POSTGRES_USER=user`, `POSTGRES_PASSWORD=password`, and database `heya_pos`.
+- Export `DATABASE_URL=postgres://user:password@localhost:5432/heya_pos` and `DIRECT_URL=postgres://user:password@localhost:5432/heya_pos` in your shell session before invoking Prisma or `npm run dev`; the old Fly proxy credentials are deprecated.
+- Add `export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"` to your shell init if you rely on NVM, otherwise Turbo won’t find `npm`.
+- To clone production data locally: run `flyctl proxy 6432 -a heya-pos-db`, dump with `pg_dump -h 127.0.0.1 -p 6432 -U postgres --format=custom --no-owner postgres > fly-backup.dump`, then restore into Docker using `pg_restore -h localhost -p 5432 -U user --clean --no-owner -d heya_pos fly-backup.dump`.
+- After restoring, restart your shell (or re-export the vars) before running `npm run dev` so Prisma connects without P1000 authentication failures.

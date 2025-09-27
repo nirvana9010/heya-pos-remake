@@ -66,6 +66,7 @@ The following redundant files were removed during cleanup:
 - Database: `DATABASE_URL`, `DIRECT_URL`
 - JWT: `JWT_SECRET`, `JWT_REFRESH_SECRET`
 - CORS: `FRONTEND_URL`, `FRONTEND_URLS`
+- Redis cache: `REDIS_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`
 - Email: `SENDGRID_*` variables
 - SMS: `TWILIO_*` variables
 - Payment: `PAYMENT_PROVIDER`, `PAYMENT_MERCHANT_ID`

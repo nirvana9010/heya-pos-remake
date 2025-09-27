@@ -7,6 +7,7 @@ PORT=3002
 APP_NAME="merchant-app"
 PID_FILE="/tmp/${APP_NAME}.pid"
 LOG_FILE="../../logs/merchant-direct.log"
+DETACH_MODE=${DEV_SERVICE_DETACH:-1}
 
 # Colors
 RED='\033[0;31m'
@@ -64,10 +65,12 @@ stop_service() {
 # Function to start the service
 start_service() {
     if is_running; then
-        echo -e "${YELLOW}${APP_NAME} is already running (PID: $(cat $PID_FILE))${NC}"
-        return 1
+        local existing_pid
+        existing_pid=$(cat "$PID_FILE")
+        echo -e "${YELLOW}${APP_NAME} is already running (PID: ${existing_pid}) -- restarting for a clean state...${NC}"
+        stop_service
     fi
-    
+
     # Make sure port is free
     if lsof -Pi :${PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
         echo -e "${RED}Port ${PORT} is already in use!${NC}"
@@ -76,23 +79,46 @@ start_service() {
     fi
     
     echo -e "${GREEN}🚀 Starting ${APP_NAME} on port ${PORT} with zombie cleanup...${NC}"
-    
-    # Start the dev server
-    nohup npm run dev:direct > "$LOG_FILE" 2>&1 &
-    PID=$!
-    echo $PID > "$PID_FILE"
-    
-    # Wait a bit to see if it starts successfully
-    sleep 3
-    
-    if is_running; then
-        echo -e "${GREEN}✅ ${APP_NAME} started successfully with zombie cleanup (PID: $PID)${NC}"
-        echo -e "${GREEN}Logs: tail -f $LOG_FILE${NC}"
-        return 0
+
+    # Ensure log directory exists so nohup redirection doesn't fail on fresh clones
+    mkdir -p "$(dirname "$LOG_FILE")"
+
+    if [ "$DETACH_MODE" = "1" ]; then
+        # Start the dev server detached (service style)
+        nohup npm run dev:direct > "$LOG_FILE" 2>&1 &
+        local launch_status=$?
+        if [ $launch_status -ne 0 ]; then
+            echo -e "${RED}Failed to launch ${APP_NAME} dev server${NC}"
+            return $launch_status
+        fi
+        PID=$!
+        echo $PID > "$PID_FILE"
+
+        # Give the process a moment to boot
+        sleep 3
+
+        if is_running; then
+            echo -e "${GREEN}✅ ${APP_NAME} started successfully with zombie cleanup (PID: $PID)${NC}"
+            echo -e "${GREEN}Logs: tail -f $LOG_FILE${NC}"
+            return 0
+        else
+            echo -e "${RED}Failed to start ${APP_NAME}${NC}"
+            rm -f "$PID_FILE"
+            return 1
+        fi
     else
-        echo -e "${RED}Failed to start ${APP_NAME}${NC}"
+        # Foreground mode for dev workflows (plays nice with Turbo/CTRL+C)
+        npm run dev:direct &
+        PID=$!
+        echo $PID > "$PID_FILE"
+
+        # Clean up on signals
+        trap 'stop_service; exit 0' INT TERM
+
+        wait $PID
+        local exit_status=$?
         rm -f "$PID_FILE"
-        return 1
+        exit $exit_status
     fi
 }
 

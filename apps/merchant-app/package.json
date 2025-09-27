@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "./dev-service.sh start",
+    "dev": "DEV_SERVICE_DETACH=0 ./dev-service.sh start",
     "dev:direct": "next dev -p 3002",
     "dev:clean": "./start-dev-clean.sh",
     "dev:old": "./start-dev.sh",
