@@ -1,6 +1,7 @@
 import { BaseApiClient } from './base-client';
 import { requestSchemas, responseSchemas } from './validation';
 import { formatName } from '@heya-pos/utils';
+import { mapBookingSource } from '../booking-source';
 
 export interface Booking {
   id: string;
@@ -317,7 +318,10 @@ export class BookingsClient extends BaseApiClient {
       (booking.customer ? 
         formatName(booking.customer.firstName, booking.customer.lastName) : 
         'Unknown Customer');
-    
+
+    const customerSource = booking.customerSource || booking.customer?.source || null;
+    const sourceInfo = mapBookingSource(booking.source, customerSource);
+
     // Customer phone - V2 provides it directly, V1 has it nested
     const customerPhone = booking.customerPhone || 
       booking.customer?.phone ||
@@ -379,8 +383,12 @@ export class BookingsClient extends BaseApiClient {
       serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
       staffId: booking.staffId || booking.providerId || '',
       services: booking.services, // IMPORTANT: Preserve the services array for multi-service bookings
+      customerSource,
+      source: sourceInfo.raw,
+      sourceCategory: sourceInfo.category,
+      sourceLabel: sourceInfo.label,
     };
-    
+
     return transformed;
   }
 

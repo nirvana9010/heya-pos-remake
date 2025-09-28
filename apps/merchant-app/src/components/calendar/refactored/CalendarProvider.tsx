@@ -20,6 +20,8 @@ const DELETION_BUFFER_TIME = 30000; // 30 seconds
 const recentStatusUpdates = new Map<string, { status: string, timestamp: number }>(); // bookingId -> {status, timestamp}
 const STATUS_UPDATE_BUFFER_TIME = 60000; // 60 seconds - increased to handle backend processing delays
 
+const LOCAL_BOOKING_RETENTION_TIME = 15000; // 15 seconds retention for locally created bookings
+
 // Local storage keys
 const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
@@ -154,7 +156,7 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     // Data actions
-    case 'SET_BOOKINGS':
+    case 'SET_BOOKINGS': {
       // Clean up old entries from recently deleted map
       const now = Date.now();
       for (const [bookingId, timestamp] of recentlyDeletedBookings.entries()) {
@@ -162,32 +164,56 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
           recentlyDeletedBookings.delete(bookingId);
         }
       }
-      
+
       // Clean up old entries from status updates map
       for (const [bookingId, update] of recentStatusUpdates.entries()) {
         if (now - update.timestamp > STATUS_UPDATE_BUFFER_TIME) {
           recentStatusUpdates.delete(bookingId);
         }
       }
-      
+
+      // Reset local-only flags for server-confirmed bookings
+      const normalizedIncoming = action.payload.map(booking =>
+        booking.isLocalOnly || booking.localOnlyExpiresAt
+          ? { ...booking, isLocalOnly: false, localOnlyExpiresAt: undefined }
+          : booking
+      );
+
+      const incomingIds = new Set(normalizedIncoming.map(booking => booking.id));
+
+      // Preserve locally-created bookings for a short window if the API hasn't returned them yet
+      const preservedLocalBookings = state.bookings.filter(existing => {
+        if (!existing.isLocalOnly || incomingIds.has(existing.id)) {
+          return false;
+        }
+
+        const expiry = typeof existing.localOnlyExpiresAt === 'number'
+          ? existing.localOnlyExpiresAt
+          : new Date(existing.createdAt).getTime() + LOCAL_BOOKING_RETENTION_TIME;
+
+        return now < expiry;
+      });
+
+      const mergedBookings = [...normalizedIncoming, ...preservedLocalBookings];
+
       // Filter out recently deleted bookings and apply recent status updates
-      const filteredBookings = action.payload
+      const filteredBookings = mergedBookings
         .filter(booking => !recentlyDeletedBookings.has(booking.id))
         .map(booking => {
-          // Apply recent status update if exists
           const recentUpdate = recentStatusUpdates.get(booking.id);
           if (recentUpdate) {
             return { ...booking, status: recentUpdate.status };
           }
           return booking;
         });
-      
+
       return {
         ...state,
         bookings: filteredBookings,
         isLoading: false,
         error: null,
       };
+    }
     
     case 'UPDATE_BOOKING':
       // If we're updating a booking, it's clearly not deleted

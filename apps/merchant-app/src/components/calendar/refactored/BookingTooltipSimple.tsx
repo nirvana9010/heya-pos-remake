@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@heya-pos/ui';
 import { Clock, DollarSign, Phone, CheckCircle, X } from 'lucide-react';
+import { getBookingSourcePresentation } from './booking-source';
 import type { Booking } from '../types';
 
 interface BookingTooltipProps {
@@ -33,6 +34,10 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
     const displayHour = endHours === 0 ? 12 : endHours > 12 ? endHours - 12 : endHours;
     return `${displayHour}:${endMinutes.toString().padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`;
   };
+
+  const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+  const SourceIcon = sourcePresentation.icon;
+  const showSourceBadge = sourcePresentation.category !== 'unknown';
   
   return (
     <div 
@@ -47,6 +52,14 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
           <div>
             <div className="font-semibold text-base text-gray-900">{booking.customerName}</div>
             <div className="text-sm text-gray-600">{booking.serviceName}</div>
+            {showSourceBadge && (
+              <div className="mt-1">
+                <span className={sourcePresentation.badgeClassName}>
+                  <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                  <span>{sourcePresentation.label}</span>
+                </span>
+              </div>
+            )}
           </div>
           <div className={cn(
             "px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1",

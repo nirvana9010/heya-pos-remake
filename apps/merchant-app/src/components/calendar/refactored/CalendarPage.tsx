@@ -2,6 +2,7 @@
 
 // Build timestamp - updates when file is saved
 const __BUILD_TIME__ = new Date().toLocaleString();
+const LOCAL_BOOKING_RETENTION_MS = 15000;
 // Checkbox removed - rostered staff filter now controlled by merchant settings only
 
 import React, { useCallback, useRef } from 'react';
@@ -48,6 +49,7 @@ import type { Booking, BookingStatus } from './types';
 import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
+import { mapBookingSource } from '@/lib/booking-source';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useNotifications } from '@/contexts/notifications-context';
 import { useBooking } from '@/contexts/booking-context';
@@ -85,7 +87,7 @@ function CalendarContent() {
   const locallyCreatedBookings = useRef<Set<string>>(new Set());
   
   // WebSocket connection for real-time updates
-  const { isConnected, lastNotification } = useWebSocket({
+  useWebSocket({
     debug: typeof window !== 'undefined' && localStorage.getItem('ws_debug') === 'true',
     onBookingCreated: React.useCallback((data) => {
       // Only refresh if this booking is for our merchant
@@ -569,7 +571,15 @@ function CalendarContent() {
         duration = firstService.duration || duration;
         servicePrice = firstService.price || servicePrice;
       }
+
+      const customerSource = bookingData.customerSource || (bookingData.isWalkIn ? 'WALK_IN' : null);
+      const sourceInfo = mapBookingSource(bookingData.source, customerSource);
       
+      const nowTimestamp = Date.now();
+      const nowIso = new Date(nowTimestamp).toISOString();
+      const createdAt = bookingData.createdAt ?? nowIso;
+      const updatedAt = bookingData.updatedAt ?? nowIso;
+
       const transformedBooking = {
         id: bookingData.id,
         bookingNumber: bookingData.bookingNumber, // Include the booking number
@@ -582,15 +592,21 @@ function CalendarContent() {
         customerName: bookingData.customerName,
         customerPhone: bookingData.customerPhone || '',
         customerEmail: bookingData.customerEmail || '',
+        customerSource,
         serviceId: serviceId,
         serviceName: serviceName,
         servicePrice: servicePrice,
-        staffId: bookingData.staffId || null,
+        staffId: bookingData.staffId ?? finalStaffId ?? null,
         staffName: bookingData.staffName || 'Unassigned',
         notes: bookingData.notes || '',
         paymentStatus: bookingData.isPaid ? 'paid' : 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt,
+        updatedAt,
+        source: sourceInfo.raw,
+        sourceCategory: sourceInfo.category,
+        sourceLabel: sourceInfo.label,
+        isLocalOnly: true,
+        localOnlyExpiresAt: nowTimestamp + LOCAL_BOOKING_RETENTION_MS,
       };
       
 
@@ -1066,40 +1082,6 @@ function CalendarContent() {
                 </div>
               )}
               
-              {/* WebSocket connection indicator */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={cn(
-                      "flex items-center gap-1 px-2 py-1 rounded-md text-xs mr-2",
-                      isConnected 
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
-                    )}>
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        isConnected ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-                      )} />
-                      <span className="font-medium">
-                        {isConnected ? 'Live' : 'Reconnecting'}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-sm">
-                      {isConnected 
-                        ? 'Real-time updates active' 
-                        : 'Attempting to reconnect...'}
-                    </p>
-                    {lastNotification && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last update: {lastNotification.toLocaleTimeString()}
-                      </p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
               {/* New booking button */}
               <Button
                 className="bg-teal-600 hover:bg-teal-700 text-white"
@@ -1215,6 +1197,10 @@ function CalendarContent() {
               totalPrice: booking.servicePrice,
               paidAmount: booking.paidAmount,
               notes: booking.notes,
+              sourceLabel: booking.sourceLabel,
+              sourceCategory: booking.sourceCategory,
+              source: booking.source,
+              customerSource: booking.customerSource,
             }}
             staff={memoizedStaff}
             services={memoizedServices}

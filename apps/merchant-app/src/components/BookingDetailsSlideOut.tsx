@@ -41,6 +41,8 @@ import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
+import { getBookingSourcePresentation } from '@/components/calendar/refactored/booking-source';
+import type { BookingSourceCategory } from '@/lib/booking-source';
 
 interface BookingService {
   id: string;
@@ -71,6 +73,10 @@ interface BookingDetailsSlideOutProps {
     totalPrice: number;
     paidAmount?: number; // Actual amount paid (may differ from totalPrice due to adjustments)
     notes?: string;
+    sourceLabel?: string;
+    sourceCategory?: BookingSourceCategory;
+    source?: string | null;
+    customerSource?: string | null;
   };
   staff: Array<{ id: string; name: string; color: string }>;
   services?: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
@@ -116,6 +122,9 @@ function BookingDetailsSlideOutComponent({
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [orderRefetchTrigger, setOrderRefetchTrigger] = useState(0);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+  const SourceIcon = sourcePresentation.icon;
+  const showSourceBadge = sourcePresentation.category !== 'unknown';
   
   // State for service editing
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
@@ -638,6 +647,14 @@ function BookingDetailsSlideOutComponent({
               <p className="text-xs text-gray-400 mt-1">
                 {booking.bookingNumber || `ID: ${booking.id.slice(-8)}`}
               </p>
+              {showSourceBadge && (
+                <div className="mt-2">
+                  <span className={sourcePresentation.badgeClassName}>
+                    <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                    <span>{sourcePresentation.label}</span>
+                  </span>
+                </div>
+              )}
             </div>
             <Badge className={cn("flex items-center gap-1", getStatusColor(booking.status))}>
               {isStatusUpdating ? (

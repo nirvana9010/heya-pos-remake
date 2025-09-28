@@ -57,7 +57,19 @@ If you encounter "Can't reach database server" errors:
 
 ## Development
 
-### Running Services
+### Local Dev Stack
+
+```bash
+# Launch API, merchant, booking, and admin dashboards with cleanup guards
+./scripts/dev-start.sh
+
+# Stop everything and clear stray nest/next processes
+./scripts/dev-stop.sh
+```
+
+These scripts call the service managers (`apps/api/dev-service.sh`, `apps/merchant-app/dev-service.sh`) so only a single watcher exists per app. Avoid `npm run api:dev` or `npm run merchant:dev` unless you are actively debugging the scripts; running them directly can leave zombie processes on ports 3000/3002.
+
+### Running Services (PM2)
 
 ```bash
 # Start all services

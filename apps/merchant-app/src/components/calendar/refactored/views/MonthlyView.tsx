@@ -16,6 +16,7 @@ import {
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
 import { Check, X } from 'lucide-react';
+import { getBookingSourcePresentation } from '../booking-source';
 
 interface MonthlyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -158,6 +159,9 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                         const staff = state.staff.find(s => s.id === booking.staffId);
                         const isCancelled = booking.status === 'cancelled';
                         const isPending = booking.status === 'pending' || booking.status === 'PENDING';
+                        const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+                        const SourceIcon = sourcePresentation.icon;
+                        const showSourceBadge = sourcePresentation.category !== 'unknown';
                         return (
                           <div
                             key={booking.id}
@@ -178,6 +182,12 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                               onBookingClick(booking);
                             }}
                           >
+                            {showSourceBadge && (
+                              <span className="inline-flex items-center gap-0.5 bg-white/80 text-[9px] font-semibold text-gray-700 rounded px-1 py-[1px] uppercase tracking-wide">
+                                <SourceIcon className={cn('h-2.5 w-2.5', sourcePresentation.iconClassName)} />
+                                {sourcePresentation.label}
+                              </span>
+                            )}
                             {booking.status === 'completed' && (
                               <Check className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
                             )}

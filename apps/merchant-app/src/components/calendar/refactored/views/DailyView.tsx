@@ -12,6 +12,7 @@ import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
 import { Users, Check, X, AlertTriangle } from 'lucide-react';
+import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
@@ -574,6 +575,10 @@ export function DailyView({
                             const b = parseInt(hex.slice(5, 7), 16);
                             return `rgba(${r}, ${g}, ${b}, ${opacity})`;
                           };
+
+                          const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+                          const SourceIcon = sourcePresentation.icon;
+                          const showSourceBadge = sourcePresentation.category !== 'unknown';
                           
                           return (
                             <DraggableBooking
@@ -646,6 +651,15 @@ export function DailyView({
                                   <div className="absolute top-2 right-2 flex items-center gap-1">
                                     <X className="w-5 h-5 text-red-600" strokeWidth={3} />
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
+                                  </div>
+                                )}
+                                {/* Source badge */}
+                                {showSourceBadge && (
+                                  <div className="mb-2">
+                                    <span className={sourcePresentation.badgeClassName}>
+                                      <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                                      <span>{sourcePresentation.label}</span>
+                                    </span>
                                   </div>
                                 )}
                                 {/* Status badges - bottom right - responsive */}

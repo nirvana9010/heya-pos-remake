@@ -6,6 +6,7 @@ import { format, startOfWeek, addDays, isSameDay, isToday, parseISO } from 'date
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
 import { Check, X } from 'lucide-react';
+import { getBookingSourcePresentation } from '../booking-source';
 
 
 interface WeeklyViewProps {
@@ -162,6 +163,10 @@ export function WeeklyView({
                         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
                       };
                       
+                      const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+                      const SourceIcon = sourcePresentation.icon;
+                      const showSourceBadge = sourcePresentation.category !== 'unknown';
+
                       return (
                         <div
                           key={booking.id}
@@ -206,6 +211,16 @@ export function WeeklyView({
                             </div>
                           )}
                           
+                          {/* Source badge */}
+                          {showSourceBadge && (
+                            <div className="mb-1">
+                              <span className={sourcePresentation.badgeClassName}>
+                                <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                                <span>{sourcePresentation.label}</span>
+                              </span>
+                            </div>
+                          )}
+
                           {/* Time and duration on its own row */}
                           {booking.status !== 'cancelled' && (
                             <div className="text-xs font-medium opacity-75 mb-1">

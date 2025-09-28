@@ -8,15 +8,20 @@ type BookingEvent = {
   bookingId: string;
   timestamp: number;
   source: 'slideout' | 'external' | 'api';
+  originId: string;
 };
 
 class BookingEventsService {
   private channel: BroadcastChannel | null = null;
   private listeners: Set<(event: BookingEvent) => void> = new Set();
+  private originId: string;
 
   constructor() {
     // Only initialize in browser environment
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      this.originId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
       this.channel = new BroadcastChannel('heya-pos-bookings');
       
       this.channel.onmessage = (event) => {
@@ -24,17 +29,20 @@ class BookingEventsService {
         // Notify all listeners
         this.listeners.forEach(listener => listener(bookingEvent));
       };
+    } else {
+      this.originId = Math.random().toString(36).slice(2);
     }
   }
 
   /**
    * Broadcast a booking event to all tabs
    */
-  broadcast(event: Omit<BookingEvent, 'timestamp'>) {
+  broadcast(event: Omit<BookingEvent, 'timestamp' | 'originId'> & { originId?: string }) {
     if (!this.channel) return;
     
     const fullEvent: BookingEvent = {
       ...event,
+      originId: event.originId ?? this.originId,
       timestamp: Date.now()
     };
     
@@ -62,6 +70,14 @@ class BookingEventsService {
       this.channel = null;
     }
     this.listeners.clear();
+  }
+
+  getOriginId() {
+    return this.originId;
+  }
+
+  isLocalEvent(event: BookingEvent) {
+    return event.originId === this.originId;
   }
 }
 

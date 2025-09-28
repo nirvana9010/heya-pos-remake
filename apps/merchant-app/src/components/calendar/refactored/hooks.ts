@@ -15,6 +15,7 @@ import {
 } from 'date-fns';
 import type { Booking, TimeSlot } from './types';
 import { bookingEvents } from '@/lib/services/booking-events';
+import { mapBookingSource } from '@/lib/booking-source';
 
 // Hook for fetching calendar data
 export function useCalendarData() {
@@ -67,15 +68,18 @@ export function useCalendarData() {
         const startTime = new Date(booking.startTime);
         const date = format(startTime, 'yyyy-MM-dd');
         const time = format(startTime, 'HH:mm');
-        
+
         // Debug logging for status transformation
         const originalStatus = booking.status;
         const transformedStatus = booking.status ? 
           ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
            booking.status.toLowerCase().replace(/_/g, '-')) : 
           'confirmed';
-        
-        
+
+        const customerSource = booking.customerSource || booking.customer?.source || null;
+        const sourceInfo = mapBookingSource(booking.source, customerSource);
+
+
         return {
           id: booking.id,
           bookingNumber: booking.bookingNumber, // Include the booking number
@@ -90,11 +94,12 @@ export function useCalendarData() {
           customerName: booking.customerName,
           customerPhone: booking.customerPhone,
           customerEmail: booking.customerEmail,
+          customerSource,
           
           // Service info
           serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
           serviceName: booking.serviceName,
-          servicePrice: booking.price || booking.totalAmount,
+          servicePrice: booking.servicePrice ?? booking.price ?? booking.totalAmount,
           services: booking.services, // Store the full services array for multi-service support
           
           // Staff info - normalize all falsy values to null (including empty strings)
@@ -108,7 +113,10 @@ export function useCalendarData() {
           paymentStatus: booking.paymentStatus,
           isPaid: booking.isPaid,
           paidAmount: booking.paidAmount,
-          
+          source: sourceInfo.raw,
+          sourceCategory: sourceInfo.category,
+          sourceLabel: sourceInfo.label,
+
           // Timestamps
           createdAt: booking.createdAt,
           updatedAt: booking.updatedAt,
@@ -288,6 +296,7 @@ export function useCalendarData() {
       // Refresh if a booking was created or updated from another tab
       // BUT only if no slideouts are open
       if ((event.type === 'booking_created' || event.type === 'booking_updated') &&
+          !(event.type === 'booking_created' && bookingEvents.isLocalEvent(event)) &&
           !state.isBookingSlideOutOpen &&
           !state.isDetailsSlideOutOpen) {
         // Small delay to ensure database is updated
@@ -311,6 +320,8 @@ export function useCalendarData() {
       const startTime = new Date(booking.startTime);
       const date = format(startTime, 'yyyy-MM-dd');
       const time = format(startTime, 'HH:mm');
+      const customerSource = booking.customerSource || booking.customer?.source || null;
+      const sourceInfo = mapBookingSource(booking.source, customerSource);
       
       const transformedBooking = {
         id: booking.id,
@@ -328,6 +339,7 @@ export function useCalendarData() {
         customerName: booking.customerName,
         customerPhone: booking.customerPhone,
         customerEmail: booking.customerEmail,
+        customerSource,
         
         // Service info
         serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
@@ -348,7 +360,10 @@ export function useCalendarData() {
         paymentStatus: booking.paymentStatus,
         isPaid: booking.isPaid,
         paidAmount: booking.paidAmount,
-        
+        source: sourceInfo.raw,
+        sourceCategory: sourceInfo.category,
+        sourceLabel: sourceInfo.label,
+
         // Timestamps
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,

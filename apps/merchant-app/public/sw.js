@@ -5,7 +5,9 @@
  * and offline capabilities.
  */
 
-const CACHE_VERSION = 'v1';
+const swSelf = new URL(self.location.href);
+const buildTag = swSelf.searchParams.get('build');
+const CACHE_VERSION = buildTag ? `build-${buildTag}` : 'v1';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const API_CACHE = `api-${CACHE_VERSION}`;
@@ -19,13 +21,17 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
-  
+  console.log('[ServiceWorker] Installing...', CACHE_VERSION);
+
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[ServiceWorker] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() =>
+        caches.open(STATIC_CACHE).then((cache) => {
+          console.log('[ServiceWorker] Caching static assets');
+          return cache.addAll(STATIC_ASSETS);
+        })
+      )
   );
   
   // Skip waiting to activate immediately
@@ -34,7 +40,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activating...');
+  console.log('[ServiceWorker] Activating...', CACHE_VERSION);
   
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -80,10 +86,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Static assets - Cache first, network fallback
+  // Static assets - Network first, cache fallback to avoid stale bundles
   if (isStaticAsset(url)) {
     event.respondWith(
-      cacheFirstStrategy(request, STATIC_CACHE)
+      networkFirstStrategy(request, STATIC_CACHE, {
+        cacheDuration: 24 * 60 * 60 * 1000, // 24 hours
+      })
     );
     return;
   }
@@ -133,7 +141,8 @@ async function networkFirstStrategy(request, cacheName, options = {}) {
   const cache = await caches.open(cacheName);
   
   try {
-    const networkResponse = await fetch(request);
+    const fetchOptions = request.method === 'GET' ? { cache: 'reload' } : undefined;
+    const networkResponse = await fetch(request, fetchOptions);
     
     if (networkResponse.ok) {
       const responseToCache = networkResponse.clone();

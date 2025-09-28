@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { Bell, Calendar, XCircle, Edit, RefreshCw, Check, X, ExternalLink, Inbox } from 'lucide-react';
 import {
   DropdownMenu,
@@ -9,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Button,
-  Badge,
   ScrollArea,
 } from '@heya-pos/ui';
 import { useNotifications } from '@/contexts/notifications-context';
@@ -24,9 +25,40 @@ const iconMap = {
   RefreshCw,
 };
 
+type ConnectionDetail = {
+  isConnected: boolean;
+  lastNotification: string | null;
+};
+
 export function NotificationsDropdown() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications();
   const grouped = groupNotificationsByDate(notifications);
+  const [connectionStatus, setConnectionStatus] = React.useState<{ isConnected: boolean; lastNotification: Date | null }>({
+    isConnected: false,
+    lastNotification: null,
+  });
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<ConnectionDetail>).detail;
+      if (!detail) {
+        return;
+      }
+
+      setConnectionStatus({
+        isConnected: !!detail.isConnected,
+        lastNotification: detail.lastNotification ? new Date(detail.lastNotification) : null,
+      });
+    };
+
+    window.addEventListener('ws-connection-status', handler as EventListener);
+
+    return () => {
+      window.removeEventListener('ws-connection-status', handler as EventListener);
+    };
+  }, []);
 
   const handleNotificationClick = (notification: any) => {
     if (!notification.read) {
@@ -163,6 +195,11 @@ export function NotificationsDropdown() {
             )}
           </div>
         </div>
+        {connectionStatus.lastNotification && (
+          <div className="px-4 pt-1 text-[11px] text-muted-foreground border-b pb-2">
+            Last update {connectionStatus.lastNotification.toLocaleTimeString()}
+          </div>
+        )}
         
         <ScrollArea className="h-[500px]">
           {notifications.length === 0 ? (

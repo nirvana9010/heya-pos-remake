@@ -21,10 +21,34 @@ export function useWebSocket(options: WebSocketOptions = {}) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastNotification, setLastNotification] = useState<Date | null>(null);
+  const isConnectedRef = useRef(false);
+  const lastNotificationRef = useRef<Date | null>(null);
 
   // Store options in a ref to avoid re-running effect when callbacks change
   const optionsRef = useRef(options);
   optionsRef.current = options;
+
+  const broadcastStatus = useCallback((connected: boolean, notification: Date | null) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(
+      new CustomEvent('ws-connection-status', {
+        detail: {
+          isConnected: connected,
+          lastNotification: notification ? notification.toISOString() : null,
+        },
+      })
+    );
+  }, []);
+
+  // Keep refs in sync when state changes (for internal tracking)
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+    // Do not broadcast here to avoid duplicate events; lifecycle handlers broadcast instead
+  }, [isConnected]);
+
+  useEffect(() => {
+    lastNotificationRef.current = lastNotification;
+  }, [lastNotification]);
 
   // Effect to manage connection lifecycle
   useEffect(() => {
@@ -68,14 +92,18 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('connect', () => {
           if (mounted) {
             debug('Connected successfully');
+            isConnectedRef.current = true;
             setIsConnected(true);
+            broadcastStatus(true, lastNotificationRef.current);
           }
         });
 
         socket.on('disconnect', (reason) => {
           if (mounted) {
             debug('Disconnected:', reason);
+            isConnectedRef.current = false;
             setIsConnected(false);
+            broadcastStatus(false, lastNotificationRef.current);
           }
         });
 
@@ -89,7 +117,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('booking_created', (data) => {
           if (mounted) {
             debug('Booking created:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onBookingCreated?.(data);
           }
         });
@@ -97,7 +128,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('booking_updated', (data) => {
           if (mounted) {
             debug('Booking updated:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onBookingUpdated?.(data);
           }
         });
@@ -105,7 +139,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('booking_deleted', (data) => {
           if (mounted) {
             debug('Booking deleted:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onBookingDeleted?.(data);
           }
         });
@@ -113,7 +150,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('payment_created', (data) => {
           if (mounted) {
             debug('Payment created:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onPaymentCreated?.(data);
           }
         });
@@ -121,7 +161,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('payment_updated', (data) => {
           if (mounted) {
             debug('Payment updated:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onPaymentUpdated?.(data);
           }
         });
@@ -129,7 +172,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('customer_created', (data) => {
           if (mounted) {
             debug('Customer created:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onCustomerCreated?.(data);
           }
         });
@@ -137,7 +183,10 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socket.on('notification', (data) => {
           if (mounted) {
             debug('Generic notification:', data);
-            setLastNotification(new Date());
+            const timestamp = new Date();
+            setLastNotification(timestamp);
+            lastNotificationRef.current = timestamp;
+            broadcastStatus(isConnectedRef.current, timestamp);
             optionsRef.current.onNotification?.(data);
           }
         });
@@ -180,6 +229,8 @@ export function useWebSocket(options: WebSocketOptions = {}) {
       }, 1000);
     }
     
+    broadcastStatus(false, null);
+
     return () => {
       mounted = false;
       if (checkTokenInterval) {
@@ -189,8 +240,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      broadcastStatus(false, null);
     };
-  }, []); // Empty dependency array - run once on mount
+  }, [broadcastStatus]); // Empty dependency array - run once on mount
 
   // Manual reconnect function
   const reconnect = useCallback(() => {

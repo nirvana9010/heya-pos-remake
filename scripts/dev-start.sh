@@ -72,25 +72,25 @@ fi
 
 # Step 4: Start API
 echo -e "\n${YELLOW}Step 4: Starting API on port $API_PORT...${NC}"
-# Create logs directory if it doesn't exist
 mkdir -p logs
 cd apps/api
-# Load environment variables from .env file
-if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
-fi
-NODE_ENV=development PORT=$API_PORT npm run start:dev > ../../logs/api.log 2>&1 &
-API_PID=$!
+./dev-service.sh start
 cd ../..
+
+API_PID=""
+if [ -f logs/api-dev.pid ]; then
+    API_PID=$(cat logs/api-dev.pid)
+fi
 
 # Wait for API to be ready
 echo "Waiting for API to start..."
-for i in {1..30}; do
-    if curl -s http://localhost:$API_PORT/api > /dev/null; then
+for i in {1..40}; do
+    health_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$API_PORT/api/v1/health || true)
+    if [ "$health_status" = "200" ]; then
         echo -e "${GREEN}✅ API is running on port $API_PORT${NC}"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ $i -eq 40 ]; then
         echo -e "${RED}❌ API failed to start. Check logs/api.log${NC}"
         exit 1
     fi

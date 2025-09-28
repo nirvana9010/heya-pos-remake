@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useToast } from '@heya-pos/ui';
 
 /**
@@ -11,6 +11,7 @@ import { useToast } from '@heya-pos/ui';
 
 export function ServiceWorkerRegistration() {
   const { toast } = useToast();
+  const hasReloaded = useRef(false);
 
   useEffect(() => {
     if (
@@ -24,9 +25,19 @@ export function ServiceWorkerRegistration() {
 
   const registerServiceWorker = async () => {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const buildId = (window as any)?.__NEXT_DATA__?.buildId as string | undefined;
+      const swUrl = buildId ? `/sw.js?build=${encodeURIComponent(buildId)}` : '/sw.js';
+
+      const registration = await navigator.serviceWorker.register(swUrl, {
+        updateViaCache: 'none',
+      });
       
       console.log('[ServiceWorker] Registration successful:', registration.scope);
+
+      // Force the active worker to take control of existing clients
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
 
       // Check for updates periodically
       setInterval(() => {
@@ -64,6 +75,11 @@ export function ServiceWorkerRegistration() {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         // This fires when the service worker controlling this page changes
         console.log('[ServiceWorker] Controller changed');
+        if (hasReloaded.current) {
+          return;
+        }
+        hasReloaded.current = true;
+        window.location.reload();
       });
 
     } catch (error) {

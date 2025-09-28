@@ -83,6 +83,9 @@ All frontend apps (merchant-app, booking-app, admin-dashboard) use:
 3. Never commit `.env`, `.env.local`, or `.env.production` files
 4. Always update `.env.example` when adding new variables
 
+### Local Development Services
+- Use `./scripts/dev-start.sh` and `./scripts/dev-stop.sh` to boot the stack. These scripts source `.env` files, invoke `apps/api/dev-service.sh`, and prevent orphaned `nest`/`next` watchers. Avoid `npm run api:dev` / `npm run merchant:dev` unless you are working on the service scripts themselves.
+
 ## Migration Notes
 
 - Migrated from Supabase to DigitalOcean on January 31, 2025

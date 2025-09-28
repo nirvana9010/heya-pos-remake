@@ -1,3 +1,5 @@
+import type { BookingSourceCategory } from '@/lib/booking-source';
+
 // Calendar view types
 export type CalendarView = 'day' | 'week' | 'month';
 
@@ -20,6 +22,10 @@ export interface Booking {
   time: string;
   duration: number;
   status: BookingStatus;
+
+  // Locally created booking state (prevents race conditions)
+  isLocalOnly?: boolean;
+  localOnlyExpiresAt?: number;
   
   // Relations
   customerId: string;
@@ -27,6 +33,9 @@ export interface Booking {
   customerPhone?: string;
   customerEmail?: string;
   customerSource?: string; // e.g., 'WALK_IN'
+  source?: string | null; // Raw booking source from API
+  sourceCategory: BookingSourceCategory;
+  sourceLabel: 'Online' | 'Manual' | 'Walk-in' | 'Unknown';
   
   serviceId: string;
   serviceName: string;

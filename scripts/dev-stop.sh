@@ -20,6 +20,13 @@ if [ -f "apps/merchant-app/dev-service.sh" ]; then
     cd ../..
 fi
 
+echo -e "${YELLOW}Stopping API dev service...${NC}"
+if [ -f "apps/api/dev-service.sh" ]; then
+    cd apps/api
+    ./dev-service.sh stop
+    cd ../..
+fi
+
 # Read PIDs from file if it exists for other services
 if [ -f ".pids" ]; then
     source .pids
