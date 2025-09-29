@@ -18,6 +18,7 @@ export interface BookingListItem {
   customerName: string;
   customerPhone?: string;
   customerEmail?: string;
+  customerSource?: string | null;
   staffId: string;  // Added for calendar display
   staffName: string;
   serviceName: string; // Deprecated - kept for backward compatibility
@@ -29,6 +30,7 @@ export interface BookingListItem {
   totalDuration: number; // Total duration in minutes
   locationName: string;
   createdAt: Date;
+  source?: string | null;
   // Payment fields - using new simplified architecture
   paymentStatus: string; // UNPAID, PARTIAL, PAID, REFUNDED
   isPaid?: boolean; // Kept for backward compatibility (true if paymentStatus === 'PAID')

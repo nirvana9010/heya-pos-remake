@@ -79,6 +79,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           status: true,
           totalAmount: true,
           createdAt: true,
+          source: true,
           // Payment fields
           paymentStatus: true,
           paidAmount: true,
@@ -90,6 +91,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
               firstName: true,
               lastName: true,
               phone: true,
+              source: true,
             },
           },
           provider: {
@@ -155,6 +157,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           : booking.customer.firstName,
         customerPhone: booking.customer.phone,
         customerEmail: undefined, // Not included in list query for performance
+        customerSource: booking.customer.source || null,
         staffId: booking.provider?.id || null,
         staffName: booking.provider 
           ? (booking.provider.lastName 
@@ -174,6 +177,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         totalDuration,
         locationName: booking.location?.name || 'No Location',
         createdAt: booking.createdAt,
+        source: booking.source || null,
         // Payment fields
         paymentStatus: booking.paymentStatus || 'UNPAID',
         isPaid: booking.paymentStatus === 'PAID',

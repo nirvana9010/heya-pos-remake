@@ -17,6 +17,8 @@ import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
 
+const DEV_BUILD_SIGNATURE = process.env.NEXT_PUBLIC_DEV_BUILD_SIGNATURE;
+
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;
   onTimeSlotClick: (date: Date, time: string, staffId: string | null) => void;
@@ -275,6 +277,15 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
+      {DEV_BUILD_SIGNATURE ? (
+        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600">
+          Dev build: {DEV_BUILD_SIGNATURE}
+        </div>
+      ) : (
+        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600">
+          Dev build signature missing — restart with ./scripts/dev-start.sh --fresh
+        </div>
+      )}
       <div
         ref={calendarScrollRef}
         className="flex-1 overflow-x-auto overflow-y-auto"
@@ -582,7 +593,19 @@ export function DailyView({
                           const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
                           const SourceIcon = sourcePresentation.icon;
                           const showSourceBadge = sourcePresentation.category !== 'unknown';
-                          
+                          const showPendingStatusBadge = booking.status === 'PENDING' || booking.status === 'pending';
+                          const showOptimisticStatusBadge = booking.status === 'optimistic';
+                          const showInProgressStatusBadge = booking.status === 'in-progress';
+                          const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
+                          const hasStatusBadge =
+                            showPendingStatusBadge ||
+                            showOptimisticStatusBadge ||
+                            showInProgressStatusBadge ||
+                            showPaidStatusBadge;
+                          const footerPadding = hasStatusBadge || showSourceBadge
+                            ? (isCompactBooking ? 32 : 36)
+                            : (isCompactBooking ? 8 : 12);
+
                           return (
                             <DraggableBooking
                               key={booking.id}
@@ -616,7 +639,7 @@ export function DailyView({
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: isCompactBooking ? '8px' : '12px',
+                                  paddingBottom: `${footerPadding}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -656,37 +679,41 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Source badge */}
-                                {showSourceBadge && (
-                                  <div className="mb-2">
-                                    <span className={sourcePresentation.badgeClassName}>
-                                      <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
-                                      <span>{sourcePresentation.label}</span>
+                                {/* Source badge + status indicators */}
+                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 left-1 sm:left-2 md:left-3 right-1 sm:right-2 md:right-3 flex items-end gap-2">
+                                  {showSourceBadge && (
+                                    <span
+                                      className={cn(
+                                        sourcePresentation.badgeClassName,
+                                        'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
+                                      )}
+                                    >
+                                      <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                      <span className="truncate">{sourcePresentation.label}</span>
                                     </span>
+                                  )}
+                                  <div className="ml-auto flex gap-1 sm:gap-1.5 md:gap-2">
+                                    {showPendingStatusBadge && (
+                                      <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                        <span className="block truncate">PENDING</span>
+                                      </div>
+                                    )}
+                                    {showOptimisticStatusBadge && (
+                                      <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                        <span className="block truncate">Creating...</span>
+                                      </div>
+                                    )}
+                                    {showInProgressStatusBadge && (
+                                      <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                        <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
+                                      </div>
+                                    )}
+                                    {showPaidStatusBadge && (
+                                      <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                        <span className="block truncate">PAID</span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                {/* Status badges - bottom right - responsive */}
-                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
-                                  {(booking.status === 'PENDING' || booking.status === 'pending') && (
-                                    <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
-                                      <span className="block truncate">PENDING</span>
-                                    </div>
-                                  )}
-                                  {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
-                                      <span className="block truncate">Creating...</span>
-                                    </div>
-                                  )}
-                                  {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
-                                      <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
-                                    </div>
-                                  )}
-                                  {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
-                                      <span className="block truncate">PAID</span>
-                                    </div>
-                                  )}
                                 </div>
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (
@@ -884,7 +911,23 @@ export function DailyView({
                             const b = parseInt(hex.slice(5, 7), 16);
                             return `rgba(${r}, ${g}, ${b}, ${opacity})`;
                           };
-                          
+
+                          const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+                          const SourceIcon = sourcePresentation.icon;
+                          const showSourceBadge = sourcePresentation.category !== 'unknown';
+                          const showPendingStatusBadge = booking.status === 'PENDING' || booking.status === 'pending';
+                          const showOptimisticStatusBadge = booking.status === 'optimistic';
+                          const showInProgressStatusBadge = booking.status === 'in-progress';
+                          const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
+                          const hasStatusBadge =
+                            showPendingStatusBadge ||
+                            showOptimisticStatusBadge ||
+                            showInProgressStatusBadge ||
+                            showPaidStatusBadge;
+                          const footerPadding = hasStatusBadge || showSourceBadge
+                            ? (isCompactBooking ? 32 : 36)
+                            : (isCompactBooking ? 8 : 12);
+
                           return (
                             <DraggableBooking
                               key={booking.id}
@@ -918,7 +961,7 @@ export function DailyView({
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: isCompactBooking ? '8px' : '12px',
+                                  paddingBottom: `${footerPadding}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -958,28 +1001,41 @@ export function DailyView({
                                     <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
                                   </div>
                                 )}
-                                {/* Status badges - bottom right - responsive */}
-                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex gap-1 sm:gap-1.5 md:gap-2 max-w-[60%]">
-                                  {(booking.status === 'PENDING' || booking.status === 'pending') && (
-                                    <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
-                                      <span className="block truncate">PENDING</span>
-                                    </div>
+                                {/* Source badge + status indicators */}
+                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 left-1 sm:left-2 md:left-3 right-1 sm:right-2 md:right-3 flex items-end gap-2">
+                                  {showSourceBadge && (
+                                    <span
+                                      className={cn(
+                                        sourcePresentation.badgeClassName,
+                                        'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
+                                      )}
+                                    >
+                                      <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                      <span className="truncate">{sourcePresentation.label}</span>
+                                    </span>
                                   )}
-                                  {booking.status === 'optimistic' && (
-                                    <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
-                                      <span className="block truncate">Creating...</span>
-                                    </div>
-                                  )}
-                                  {booking.status === 'in-progress' && (
-                                    <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
-                                      <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
-                                    </div>
-                                  )}
-                                  {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && (
-                                    <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
-                                      <span className="block truncate">PAID</span>
-                                    </div>
-                                  )}
+                                  <div className="ml-auto flex gap-1 sm:gap-1.5 md:gap-2">
+                                    {showPendingStatusBadge && (
+                                      <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                        <span className="block truncate">PENDING</span>
+                                      </div>
+                                    )}
+                                    {showOptimisticStatusBadge && (
+                                      <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                        <span className="block truncate">Creating...</span>
+                                      </div>
+                                    )}
+                                    {showInProgressStatusBadge && (
+                                      <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                        <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
+                                      </div>
+                                    )}
+                                    {showPaidStatusBadge && (
+                                      <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                        <span className="block truncate">PAID</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (

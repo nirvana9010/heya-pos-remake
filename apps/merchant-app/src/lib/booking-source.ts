@@ -32,7 +32,10 @@ const CATEGORY_LABELS: Record<BookingSourceCategory, BookingSourceInfo['label']>
 };
 
 export function mapBookingSource(rawSource?: string | null, customerSource?: string | null): BookingSourceInfo {
-  const normalizedRaw = (rawSource || customerSource || '').trim().toUpperCase() || null;
+  const normalizedRaw = (rawSource || customerSource || '')
+    .trim()
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase() || null;
   const category = normalizedRaw ? SOURCE_CATEGORY_MAP[normalizedRaw] ?? 'unknown' : 'unknown';
 
   return {

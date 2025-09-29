@@ -182,12 +182,6 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                               onBookingClick(booking);
                             }}
                           >
-                            {showSourceBadge && (
-                              <span className="inline-flex items-center gap-0.5 bg-white/80 text-[9px] font-semibold text-gray-700 rounded px-1 py-[1px] uppercase tracking-wide">
-                                <SourceIcon className={cn('h-2.5 w-2.5', sourcePresentation.iconClassName)} />
-                                {sourcePresentation.label}
-                              </span>
-                            )}
                             {booking.status === 'completed' && (
                               <Check className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={3} />
                             )}
@@ -205,6 +199,11 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                               {/* Fade out gradient for long text */}
                               <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-[inherit] to-transparent pointer-events-none" />
                             </span>
+                            {showSourceBadge && (
+                              <span className={cn(sourcePresentation.indicatorWrapperClassName, 'ml-auto flex-shrink-0 shadow-md')}>
+                                <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                              </span>
+                            )}
                           </div>
                         );
                       })}

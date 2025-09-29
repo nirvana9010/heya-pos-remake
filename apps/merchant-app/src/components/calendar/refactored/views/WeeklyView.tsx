@@ -8,6 +8,8 @@ import type { Booking } from '../types';
 import { Check, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 
+const DEV_BUILD_SIGNATURE = process.env.NEXT_PUBLIC_DEV_BUILD_SIGNATURE;
+
 
 interface WeeklyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -60,6 +62,15 @@ export function WeeklyView({
 
   return (
     <div className="flex flex-col h-full">
+      {DEV_BUILD_SIGNATURE ? (
+        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600">
+          Dev build: {DEV_BUILD_SIGNATURE}
+        </div>
+      ) : (
+        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600">
+          Dev build signature missing — restart with ./scripts/dev-start.sh --fresh
+        </div>
+      )}
       {/* Fixed header row */}
       <div
         className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm sticky z-30"
@@ -166,6 +177,12 @@ export function WeeklyView({
                       const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
                       const SourceIcon = sourcePresentation.icon;
                       const showSourceBadge = sourcePresentation.category !== 'unknown';
+                      const showPendingStatusBadge = booking.status === 'PENDING' || booking.status === 'pending';
+                      const showPaidStatusBadge =
+                        (booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') &&
+                        booking.status !== 'cancelled';
+                      const hasStatusBadge = showPendingStatusBadge || showPaidStatusBadge;
+                      const footerPadding = showSourceBadge || hasStatusBadge ? 32 : 12;
 
                       return (
                         <div
@@ -188,7 +205,7 @@ export function WeeklyView({
                             paddingLeft: `${borderWidth + 8}px`,
                             paddingRight: '12px',
                             paddingTop: '8px',
-                            paddingBottom: '8px',
+                            paddingBottom: `${footerPadding}px`,
                           }}
                           onClick={() => onBookingClick(booking)}
                         >
@@ -211,16 +228,6 @@ export function WeeklyView({
                             </div>
                           )}
                           
-                          {/* Source badge */}
-                          {showSourceBadge && (
-                            <div className="mb-1">
-                              <span className={sourcePresentation.badgeClassName}>
-                                <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
-                                <span>{sourcePresentation.label}</span>
-                              </span>
-                            </div>
-                          )}
-
                           {/* Time and duration on its own row */}
                           {booking.status !== 'cancelled' && (
                             <div className="text-xs font-medium opacity-75 mb-1">
@@ -243,18 +250,32 @@ export function WeeklyView({
                             {booking.staffId ? (state.staff.find(s => s.id === booking.staffId)?.name || 'Unknown Staff') : 'Unassigned'}
                           </div>
                           
-                          {/* Status badges - bottom right */}
-                          <div className="absolute bottom-2 right-2 flex gap-1">
-                            {(booking.status === 'PENDING' || booking.status === 'pending') && (
-                              <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                PENDING
-                              </div>
+                          {/* Source badge + status indicators */}
+                          <div className="absolute bottom-2 left-2 right-2 flex items-end gap-2">
+                            {showSourceBadge && (
+                              <span
+                                className={cn(
+                                  sourcePresentation.badgeClassName,
+                                  'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
+                                )}
+                              >
+                                <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                <span className="truncate">{sourcePresentation.label}</span>
+                              </span>
                             )}
-                            {(booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') && booking.status !== 'cancelled' && (
-                              <div className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                PAID
-                              </div>
-                            )}
+
+                            <div className="ml-auto flex gap-1">
+                              {showPendingStatusBadge && (
+                                <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                  PENDING
+                                </div>
+                              )}
+                              {showPaidStatusBadge && (
+                                <div className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                  PAID
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
