@@ -58,12 +58,12 @@ resolve_start_command() {
     fi
 
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-        START_CMD=("docker" "compose" "up" "-d" "postgres")
+        START_CMD=("docker" "compose" "up" "-d" "postgres" "redis")
         return 0
     fi
 
     if command -v docker-compose >/dev/null 2>&1; then
-        START_CMD=("docker-compose" "up" "-d" "postgres")
+        START_CMD=("docker-compose" "up" "-d" "postgres" "redis")
         return 0
     fi
 

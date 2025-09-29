@@ -4,6 +4,17 @@
 
 set -e
 
+CLEAN_CACHES=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --clean)
+            CLEAN_CACHES=true
+            shift
+            ;;
+    esac
+done
+
 echo "🛑 Stopping Heya POS Development Environment..."
 
 # Colors for output
@@ -66,5 +77,12 @@ echo -e "${YELLOW}Final cleanup of any zombie processes...${NC}"
 for port in 3000 3001 3002 3003; do
     lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
+
+if [ "$CLEAN_CACHES" = true ]; then
+    echo -e "\n${YELLOW}Removing Next.js build caches...${NC}"
+    rm -rf apps/merchant-app/.next apps/booking-app/.next apps/admin-dashboard/.next 2>/dev/null || true
+    rm -rf node_modules/.cache 2>/dev/null || true
+    echo -e "${GREEN}✅ Next.js caches removed${NC}"
+fi
 
 echo -e "\n${GREEN}✅ All services stopped successfully!${NC}"
