@@ -602,7 +602,12 @@ export function DailyView({
                             showOptimisticStatusBadge ||
                             showInProgressStatusBadge ||
                             showPaidStatusBadge;
-                          const footerPadding = hasStatusBadge || showSourceBadge
+                          const requiresBadgeOffset = hasStatusBadge || showSourceBadge;
+                          const contentPaddingRight = requiresBadgeOffset
+                            ? (isCompactBooking ? 96 : 120)
+                            : 16;
+                          const badgeContentMaxWidth = Math.max(contentPaddingRight - 16, 72);
+                          const contentPaddingBottom = requiresBadgeOffset
                             ? (isCompactBooking ? 32 : 36)
                             : (isCompactBooking ? 8 : 12);
 
@@ -637,9 +642,9 @@ export function DailyView({
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: '16px',
+                                  paddingRight: `${contentPaddingRight}px`,
                                   paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: `${footerPadding}px`,
+                                  paddingBottom: `${contentPaddingBottom}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -680,41 +685,54 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Source badge + status indicators */}
-                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 left-1 sm:left-2 md:left-3 right-1 sm:right-2 md:right-3 flex items-end gap-2">
-                                  {showSourceBadge && (
-                                    <span
-                                      className={cn(
-                                        sourcePresentation.badgeClassName,
-                                        'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
-                                      )}
-                                    >
-                                      <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                      <span className="truncate">{sourcePresentation.label}</span>
-                                    </span>
-                                  )}
-                                  <div className="ml-auto flex gap-1 sm:gap-1.5 md:gap-2">
+                                {(showSourceBadge || hasStatusBadge) && (
+                                  <div className="pointer-events-none absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex flex-col items-end gap-1">
+                                    {showSourceBadge && (
+                                      <span
+                                        className={cn(
+                                          sourcePresentation.badgeClassName,
+                                          'shadow-sm flex-shrink-0'
+                                        )}
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
+                                        <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                        <span className="truncate">{sourcePresentation.label}</span>
+                                      </span>
+                                    )}
                                     {showPendingStatusBadge && (
-                                      <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">PENDING</span>
                                       </div>
                                     )}
                                     {showOptimisticStatusBadge && (
-                                      <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">Creating...</span>
                                       </div>
                                     )}
                                     {showInProgressStatusBadge && (
-                                      <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
                                       </div>
                                     )}
                                     {showPaidStatusBadge && (
-                                      <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">PAID</span>
                                       </div>
                                     )}
                                   </div>
-                                </div>
+                                )}
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (
                                   <>
@@ -924,7 +942,12 @@ export function DailyView({
                             showOptimisticStatusBadge ||
                             showInProgressStatusBadge ||
                             showPaidStatusBadge;
-                          const footerPadding = hasStatusBadge || showSourceBadge
+                          const requiresBadgeOffset = hasStatusBadge || showSourceBadge;
+                          const contentPaddingRight = requiresBadgeOffset
+                            ? (isCompactBooking ? 96 : 120)
+                            : 16;
+                          const badgeContentMaxWidth = Math.max(contentPaddingRight - 16, 72);
+                          const contentPaddingBottom = requiresBadgeOffset
                             ? (isCompactBooking ? 32 : 36)
                             : (isCompactBooking ? 8 : 12);
 
@@ -959,9 +982,9 @@ export function DailyView({
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: '16px',
+                                  paddingRight: `${contentPaddingRight}px`,
                                   paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: `${footerPadding}px`,
+                                  paddingBottom: `${contentPaddingBottom}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1002,41 +1025,54 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Source badge + status indicators */}
-                                <div className="absolute bottom-1 sm:bottom-2 md:bottom-3 left-1 sm:left-2 md:left-3 right-1 sm:right-2 md:right-3 flex items-end gap-2">
-                                  {showSourceBadge && (
-                                    <span
-                                      className={cn(
-                                        sourcePresentation.badgeClassName,
-                                        'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
-                                      )}
-                                    >
-                                      <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                      <span className="truncate">{sourcePresentation.label}</span>
-                                    </span>
-                                  )}
-                                  <div className="ml-auto flex gap-1 sm:gap-1.5 md:gap-2">
+                                {(showSourceBadge || hasStatusBadge) && (
+                                  <div className="pointer-events-none absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex flex-col items-end gap-1">
+                                    {showSourceBadge && (
+                                      <span
+                                        className={cn(
+                                          sourcePresentation.badgeClassName,
+                                          'shadow-sm flex-shrink-0'
+                                        )}
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
+                                        <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                        <span className="truncate">{sourcePresentation.label}</span>
+                                      </span>
+                                    )}
                                     {showPendingStatusBadge && (
-                                      <div className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">PENDING</span>
                                       </div>
                                     )}
                                     {showOptimisticStatusBadge && (
-                                      <div className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">Creating...</span>
                                       </div>
                                     )}
                                     {showInProgressStatusBadge && (
-                                      <div className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
                                       </div>
                                     )}
                                     {showPaidStatusBadge && (
-                                      <div className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden">
+                                      <div
+                                        className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
+                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                      >
                                         <span className="block truncate">PAID</span>
                                       </div>
                                     )}
                                   </div>
-                                </div>
+                                )}
                                 {/* Compact layout for short bookings */}
                                 {isCompactBooking ? (
                                   <>

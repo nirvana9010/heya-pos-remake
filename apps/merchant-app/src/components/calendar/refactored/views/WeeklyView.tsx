@@ -182,7 +182,10 @@ export function WeeklyView({
                         (booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') &&
                         booking.status !== 'cancelled';
                       const hasStatusBadge = showPendingStatusBadge || showPaidStatusBadge;
-                      const footerPadding = showSourceBadge || hasStatusBadge ? 32 : 12;
+                      const requiresBadgeOffset = showSourceBadge || hasStatusBadge;
+                      const contentPaddingRight = requiresBadgeOffset ? 96 : 12;
+                      const badgeContentMaxWidth = Math.max(contentPaddingRight - 12, 64);
+                      const contentPaddingBottom = requiresBadgeOffset ? 36 : 12;
 
                       return (
                         <div
@@ -203,9 +206,9 @@ export function WeeklyView({
                               : undefined,
                             borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                             paddingLeft: `${borderWidth + 8}px`,
-                            paddingRight: '12px',
+                            paddingRight: `${contentPaddingRight}px`,
                             paddingTop: '8px',
-                            paddingBottom: `${footerPadding}px`,
+                            paddingBottom: `${contentPaddingBottom}px`,
                           }}
                           onClick={() => onBookingClick(booking)}
                         >
@@ -251,32 +254,39 @@ export function WeeklyView({
                           </div>
                           
                           {/* Source badge + status indicators */}
-                          <div className="absolute bottom-2 left-2 right-2 flex items-end gap-2">
-                            {showSourceBadge && (
-                              <span
-                                className={cn(
-                                  sourcePresentation.badgeClassName,
-                                  'pointer-events-none shadow-sm flex-shrink-0 max-w-[65%]'
-                                )}
-                              >
-                                <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                <span className="truncate">{sourcePresentation.label}</span>
-                              </span>
-                            )}
+                          {(showSourceBadge || hasStatusBadge) && (
+                            <div className="pointer-events-none absolute bottom-2 right-2 flex flex-col items-end gap-1">
+                              {showSourceBadge && (
+                                <span
+                                  className={cn(
+                                    sourcePresentation.badgeClassName,
+                                    'shadow-sm flex-shrink-0'
+                                  )}
+                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                >
+                                  <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                  <span className="truncate">{sourcePresentation.label}</span>
+                                </span>
+                              )}
 
-                            <div className="ml-auto flex gap-1">
                               {showPendingStatusBadge && (
-                                <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                <div
+                                  className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-end"
+                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                >
                                   PENDING
                                 </div>
                               )}
                               {showPaidStatusBadge && (
-                                <div className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                <div
+                                  className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-end"
+                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
+                                >
                                   PAID
                                 </div>
                               )}
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })
