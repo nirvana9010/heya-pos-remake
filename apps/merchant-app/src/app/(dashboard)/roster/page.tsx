@@ -749,6 +749,15 @@ export default function RosterPage() {
                                 </Button>
                                 <Button
                                   size="sm"
+                                  variant="outline"
+                                  className="text-xs flex-1"
+                                  onClick={() => updateSchedule(staffMember.id, dayIndex, date, null, null)}
+                                  disabled={isSaving}
+                                >
+                                  Set Day Off
+                                </Button>
+                                <Button
+                                  size="sm"
                                   variant="ghost"
                                   className="text-xs flex-1"
                                   onClick={() => setEditingCell(null)}

@@ -120,29 +120,29 @@ export function DailyView({
   
   
   // Filter by roster if enabled
+  const currentDayOfWeek = state.currentDate.getDay();
+  const currentDateStr = format(state.currentDate, 'yyyy-MM-dd');
+  const includeUnscheduledStaff = merchant?.settings?.includeUnscheduledStaff ?? false;
+
   const rosteredStaff = useMemo(() => {
     if (!state.showOnlyRosteredStaff) {
       return activeStaff;
     }
-    
-    const currentDayOfWeek = state.currentDate.getDay();
-    // Default to false - don't show unscheduled staff unless explicitly enabled
-    const includeUnscheduledStaff = merchant?.settings?.includeUnscheduledStaff ?? false;
-    
-    const filtered = activeStaff.filter(staff => {
-      const hasSchedules = staff.schedules && staff.schedules.length > 0;
-      
-      if (hasSchedules) {
-        const worksToday = staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
-        return worksToday;
+
+    return activeStaff.filter(staff => {
+      const overrideForToday = staff.scheduleOverrides?.find(override => override.date === currentDateStr);
+      if (overrideForToday) {
+        return Boolean(overrideForToday.startTime && overrideForToday.endTime);
       }
-      
-      // If no schedules defined, include based on setting
+
+      const hasSchedules = staff.schedules && staff.schedules.length > 0;
+      if (hasSchedules) {
+        return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
+      }
+
       return includeUnscheduledStaff;
     });
-    
-    return filtered;
-  }, [activeStaff, state.showOnlyRosteredStaff, state.currentDate, merchant?.settings?.includeUnscheduledStaff]);
+  }, [activeStaff, state.showOnlyRosteredStaff, currentDateStr, currentDayOfWeek, includeUnscheduledStaff]);
   
   const visibleStaff = state.selectedStaffIds.length > 0
     ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
@@ -221,17 +221,20 @@ export function DailyView({
   // Count only staff with actual schedules for the current day
   const actuallyRosteredStaff = useMemo(() => {
     if (!state.showOnlyRosteredStaff) return visibleStaff;
-    
-    const currentDayOfWeek = state.currentDate.getDay();
+
     return visibleStaff.filter(staff => {
-      // Only count staff who have schedules AND are working today
+      const overrideForToday = staff.scheduleOverrides?.find(override => override.date === currentDateStr);
+      if (overrideForToday) {
+        return Boolean(overrideForToday.startTime && overrideForToday.endTime);
+      }
+
       const hasSchedules = staff.schedules && staff.schedules.length > 0;
       if (hasSchedules) {
         return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
       }
-      return false; // Don't count unscheduled staff for empty state check
+      return false;
     });
-  }, [visibleStaff, state.showOnlyRosteredStaff, state.currentDate]);
+  }, [visibleStaff, state.showOnlyRosteredStaff, currentDayOfWeek, currentDateStr]);
   
   // Show loading state while BookingContext is loading staff data
   if (bookingContextLoading) {

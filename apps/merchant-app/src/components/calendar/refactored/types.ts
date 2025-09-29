@@ -81,6 +81,12 @@ export interface Staff {
     startTime: string;
     endTime: string;
   }>;
+  scheduleOverrides?: Array<{
+    date: string;
+    startTime: string | null;
+    endTime: string | null;
+    reason?: string | null;
+  }>;
 }
 
 export interface Service {

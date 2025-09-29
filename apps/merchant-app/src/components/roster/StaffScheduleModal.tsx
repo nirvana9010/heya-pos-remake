@@ -81,18 +81,18 @@ export function StaffScheduleModal({
 }: StaffScheduleModalProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [editableSchedule, setEditableSchedule] = useState<Record<number, { startTime: string; endTime: string }>>({});
+  const [editableSchedule, setEditableSchedule] = useState<Record<number, { startTime: string; endTime: string; isOff: boolean }>>({});
   
   const staffClient = new StaffClient();
 
   useEffect(() => {
     if (isOpen && staff) {
       // Initialize editable schedule
-      const scheduleMap: Record<number, { startTime: string; endTime: string }> = {};
+      const scheduleMap: Record<number, { startTime: string; endTime: string; isOff: boolean }> = {};
       
-      // Initialize all days with empty values
+      // Initialize all days with default off
       DAYS_OF_WEEK.forEach(day => {
-        scheduleMap[day.value] = { startTime: '', endTime: '' };
+        scheduleMap[day.value] = { startTime: '', endTime: '', isOff: true };
       });
       
       // Fill in existing schedule
@@ -100,6 +100,7 @@ export function StaffScheduleModal({
         scheduleMap[schedule.dayOfWeek] = {
           startTime: schedule.startTime,
           endTime: schedule.endTime,
+          isOff: false,
         };
       });
       
@@ -113,14 +114,30 @@ export function StaffScheduleModal({
       [dayOfWeek]: {
         ...prev[dayOfWeek],
         [field]: value,
+        isOff: false,
       },
     }));
+  };
+
+  const toggleDayOff = (dayOfWeek: number) => {
+    setEditableSchedule(prev => {
+      const current = prev[dayOfWeek] || { startTime: '', endTime: '', isOff: true };
+      const nextIsOff = !current.isOff;
+      return {
+        ...prev,
+        [dayOfWeek]: {
+          startTime: nextIsOff ? '' : (current.startTime || '09:00'),
+          endTime: nextIsOff ? '' : (current.endTime || '17:00'),
+          isOff: nextIsOff,
+        },
+      };
+    });
   };
 
   const copyFromBusinessHours = () => {
     if (!businessHours) return;
     
-    const newSchedule: Record<number, { startTime: string; endTime: string }> = {};
+    const newSchedule: Record<number, { startTime: string; endTime: string; isOff: boolean }> = {};
     
     DAYS_OF_WEEK.forEach(day => {
       const dayName = day.label.toLowerCase();
@@ -130,9 +147,10 @@ export function StaffScheduleModal({
         newSchedule[day.value] = {
           startTime: hours.open,
           endTime: hours.close,
+          isOff: false,
         };
       } else {
-        newSchedule[day.value] = { startTime: '', endTime: '' };
+        newSchedule[day.value] = { startTime: '', endTime: '', isOff: true };
       }
     });
     
@@ -149,7 +167,7 @@ export function StaffScheduleModal({
       
       // Convert schedule to array format, only including days with times
       const schedules = Object.entries(editableSchedule)
-        .filter(([_, times]) => times.startTime && times.endTime)
+        .filter(([_, times]) => !times.isOff && times.startTime && times.endTime)
         .map(([dayOfWeek, times]) => ({
           dayOfWeek: parseInt(dayOfWeek),
           startTime: times.startTime,
@@ -209,41 +227,44 @@ export function StaffScheduleModal({
 
               <div className="space-y-2">
                 {DAYS_OF_WEEK.map(day => {
-                  const startTime = editableSchedule[day.value]?.startTime;
-                  const endTime = editableSchedule[day.value]?.endTime;
+                  const entry = editableSchedule[day.value] || { startTime: '', endTime: '', isOff: true };
+                  const { startTime, endTime, isOff } = entry;
                   
                   return (
-                    <div key={day.value} className="grid grid-cols-3 gap-2 items-center">
+                    <div key={day.value} className="grid grid-cols-4 gap-2 items-center">
                       <Label className="text-sm">{day.label}</Label>
                       <div className="relative">
                         <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                         <Input
                           type="time"
-                          value={startTime || ''}
+                          value={isOff ? '' : (startTime || '')}
                           onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
                           className="pl-8"
                           placeholder="Start time"
+                          disabled={isOff || saving}
                         />
-                        {startTime && (
-                          <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                            {formatTime12Hour(startTime)}
-                          </span>
-                        )}
                       </div>
                       <div className="relative">
                         <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                         <Input
                           type="time"
-                          value={endTime || ''}
+                          value={isOff ? '' : (endTime || '')}
                           onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
                           className="pl-8"
                           placeholder="End time"
+                          disabled={isOff || saving}
                         />
-                        {endTime && (
-                          <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                            {formatTime12Hour(endTime)}
-                          </span>
-                        )}
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant={isOff ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => toggleDayOff(day.value)}
+                          disabled={saving}
+                        >
+                          {isOff ? 'Set Working Hours' : 'Mark Day Off'}
+                        </Button>
                       </div>
                     </div>
                   );
@@ -253,8 +274,7 @@ export function StaffScheduleModal({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Leave a day empty if the staff member doesn't work that day. If no schedule is set, 
-                  the business hours will be used as the default.
+                  Use "Mark Day Off" for days the staff member doesn't work. Only days with start and end times will be saved.
                 </AlertDescription>
               </Alert>
             </div>

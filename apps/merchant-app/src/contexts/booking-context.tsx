@@ -1,13 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { BookingSlideOut } from '@/components/BookingSlideOut';
 import { QuickSaleSlideOut } from '@/components/QuickSaleSlideOut';
 import { apiClient } from '@/lib/api-client';
 import { StaffClient } from '@/lib/clients/staff-client';
 import { useToast } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 
 interface BookingContextType {
   openBookingSlideout: () => void;
@@ -47,34 +47,32 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
   const [bookings, setBookings] = useState<any[]>([]);
   const [merchantSettings, setMerchantSettings] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
 
-  // Load data when user is authenticated
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
+  const staffClientRef = useRef<StaffClient | null>(null);
+  if (!staffClientRef.current) {
+    staffClientRef.current = new StaffClient();
+  }
+  const staffClient = staffClientRef.current;
 
-  const loadData = async () => {
-    if (loading) return;
-    
+  const loadData = useCallback(async () => {
+    if (loadingRef.current) return;
+
+    loadingRef.current = true;
     setLoading(true);
     try {
-      // Load all required data in parallel
       const [staffData, servicesResponse, customersData, bookingsData, settingsData, schedulesData] = await Promise.all([
         apiClient.getStaff().catch(() => []),
         apiClient.getServices({ limit: 500, isActive: true }).catch(() => ({ data: [] })),
         apiClient.getCustomers().catch(() => []),
         apiClient.getBookings().catch(() => []),
         apiClient.getMerchantSettings().catch(() => null),
-        new StaffClient().getAllSchedules().catch(() => [])
+        staffClient.getAllSchedules().catch(() => []),
       ]);
-      
-      // Extract services array from paginated response
+
       const servicesData = servicesResponse.data || [];
 
-      // Create a map of schedules by staff ID
-      const scheduleMap = new Map();
+      const scheduleMap = new Map<string, any[]>();
       if (Array.isArray(schedulesData)) {
         schedulesData.forEach((staffSchedule: any) => {
           if (staffSchedule.staffId && staffSchedule.schedules) {
@@ -83,33 +81,70 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         });
       }
 
-      // Transform staff data to include name property and filter out inactive staff
-      const transformedStaff = staffData
-        .filter((member: any) => {
-          return member.status === 'ACTIVE';
+      const activeStaff = staffData.filter((member: any) => member.status === 'ACTIVE');
+
+      // Load overrides for a broad window (two weeks back, five weeks forward) to cover roster edits
+      const overrideStart = format(addDays(startOfWeek(new Date()), -14), 'yyyy-MM-dd');
+      const overrideEnd = format(addDays(endOfWeek(new Date()), 35), 'yyyy-MM-dd');
+      const overridesMap = new Map<string, any[]>();
+
+      await Promise.all(
+        activeStaff.map(async (member: any) => {
+          try {
+            const overrides = await staffClient.getScheduleOverrides(member.id, overrideStart, overrideEnd);
+            overridesMap.set(member.id, Array.isArray(overrides) ? overrides : []);
+          } catch (error) {
+            console.error('[BookingContext] Failed to load overrides for staff', member.id, error);
+            overridesMap.set(member.id, []);
+          }
         })
-        .map((member: any) => ({
-          id: member.id,
-          name: member.lastName ? `${member.firstName} ${member.lastName}`.trim() : member.firstName,
-          color: member.calendarColor || '#7C3AED',
-          email: member.email,
-          firstName: member.firstName,
-          lastName: member.lastName,
-          role: member.role,
-          isActive: true, // Already filtered for ACTIVE status above
-          schedules: scheduleMap.get(member.id) || []
-        }));
-      
+      );
+
+      const transformedStaff = activeStaff.map((member: any) => ({
+        id: member.id,
+        name: member.lastName ? `${member.firstName} ${member.lastName}`.trim() : member.firstName,
+        color: member.calendarColor || '#7C3AED',
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role: member.role,
+        isActive: true,
+        schedules: scheduleMap.get(member.id) || [],
+        scheduleOverrides: overridesMap.get(member.id) || [],
+      }));
+
       setStaff(transformedStaff);
       setServices(servicesData);
       setCustomers(customersData);
       setBookings(bookingsData);
       setMerchantSettings(settingsData);
     } catch (error) {
+      console.error('[BookingContext] Failed to load initial data', error);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [staffClient]);
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, loadData]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handler = () => {
+      loadData();
+    };
+
+    window.addEventListener('roster-override-updated', handler as EventListener);
+    return () => {
+      window.removeEventListener('roster-override-updated', handler as EventListener);
+    };
+  }, [loadData]);
 
   const openBookingSlideout = () => {
     setIsBookingSlideoutOpen(true);

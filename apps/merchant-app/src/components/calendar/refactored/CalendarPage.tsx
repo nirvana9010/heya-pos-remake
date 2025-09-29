@@ -364,28 +364,33 @@ function CalendarContent() {
   // Calculate rostered staff count for the current day
   const rosteredStaffInfo = React.useMemo(() => {
     const activeStaff = state.staff.filter(s => s.isActive !== false);
-    
+
     if (!state.showOnlyRosteredStaff || state.currentView !== 'day') {
       return { rosteredCount: activeStaff.length, totalCount: activeStaff.length, hiddenCount: 0 };
     }
-    
+
     const currentDayOfWeek = state.currentDate.getDay();
+    const currentDateStr = format(state.currentDate, 'yyyy-MM-dd');
     const includeUnscheduledStaff = merchant?.settings?.includeUnscheduledStaff ?? false;
-    
+
     const rosteredStaff = activeStaff.filter(staff => {
+      const overrideForToday = staff.scheduleOverrides?.find(override => override.date === currentDateStr);
+      if (overrideForToday) {
+        return Boolean(overrideForToday.startTime && overrideForToday.endTime);
+      }
+
       const hasSchedules = staff.schedules && staff.schedules.length > 0;
-      
       if (hasSchedules) {
         return staff.schedules.some(schedule => schedule.dayOfWeek === currentDayOfWeek);
       }
-      
+
       return includeUnscheduledStaff;
     });
-    
+
     return {
       rosteredCount: rosteredStaff.length,
       totalCount: activeStaff.length,
-      hiddenCount: activeStaff.length - rosteredStaff.length
+      hiddenCount: activeStaff.length - rosteredStaff.length,
     };
   }, [state.staff, state.showOnlyRosteredStaff, state.currentDate, state.currentView, merchant?.settings?.includeUnscheduledStaff]);
   

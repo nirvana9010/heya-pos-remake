@@ -96,13 +96,33 @@ export class StaffClient extends BaseApiClient {
   }
 
   async createOrUpdateScheduleOverride(
-    staffId: string, 
+    staffId: string,
     data: { date: string; startTime: string | null; endTime: string | null; reason?: string }
   ): Promise<any> {
-    return this.post(`/staff/${staffId}/overrides`, data, undefined, 'v1');
+    const result = await this.post(`/staff/${staffId}/overrides`, data, undefined, 'v1');
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('roster-override-updated', {
+        detail: {
+          staffId,
+          date: data.date,
+        },
+      }));
+    }
+
+    return result;
   }
 
   async deleteScheduleOverride(staffId: string, date: string): Promise<void> {
-    return this.delete(`/staff/${staffId}/overrides/${date}`, undefined, 'v1');
+    await this.delete(`/staff/${staffId}/overrides/${date}`, undefined, 'v1');
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('roster-override-updated', {
+        detail: {
+          staffId,
+          date,
+        },
+      }));
+    }
   }
 }

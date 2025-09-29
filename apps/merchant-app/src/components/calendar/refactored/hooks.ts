@@ -144,54 +144,6 @@ export function useCalendarData() {
   }, [fetchBookings]);
   
   
-  // Fetch staff data
-  const fetchStaff = useCallback(async () => {
-    try {
-      const response = await apiClient.getStaff();
-      
-      // Handle empty or invalid response
-      if (!response || !Array.isArray(response)) {
-        actions.setStaff([]);
-        return;
-      }
-      
-      // Transform staff to calendar format and filter out invalid entries
-      const transformedStaff = response
-        .filter((member: any) => {
-          // Filter out staff with empty or null IDs
-          if (!member.id || member.id === '') return false;
-          
-          // Filter out system "Unassigned" staff member
-          if (member.email && member.email.endsWith('@system.local')) return false;
-          if (member.firstName === 'Unassigned' && !member.lastName) return false;
-          
-          // IMPORTANT: Filter out inactive staff
-          if (member.status !== 'ACTIVE') return false;
-          
-          return true;
-        })
-        .map((member: any) => ({
-          id: member.id,
-          name: formatName(member.firstName, member.lastName),
-          email: member.email,
-          role: member.role,
-          color: member.calendarColor || '#7C3AED',
-          avatar: member.avatar,
-          isActive: member.status === 'ACTIVE', // Ensure isActive is based on status
-          workingHours: member.workingHours,
-          schedules: member.schedules || member.staffSchedules, // Try both possible property names
-        }));
-      
-      actions.setStaff(transformedStaff || []);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error?.message || 'Failed to load staff. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [actions, toast]);
-  
   // Fetch services data
   const fetchServices = useCallback(async () => {
     try {
@@ -408,7 +360,6 @@ export function useCalendarData() {
     actions.setRefreshing(true);
     await Promise.all([
       fetchBookings(),
-      // Removed fetchStaff() - staff will be loaded from BookingContext
       fetchServices(),
       fetchCustomers(),
     ]);
