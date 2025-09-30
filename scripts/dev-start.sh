@@ -43,13 +43,7 @@ if ! command -v python3 >/dev/null 2>&1; then
     PYTHON_AVAILABLE=false
 fi
 
-DEV_BUILD_SIGNATURE="dev-$(date -u +%Y%m%d-%H%M%S)"
-GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "local")
-DEV_BUILD_SIGNATURE="${DEV_BUILD_SIGNATURE}-${GIT_SHA}"
-export NEXT_PUBLIC_DEV_BUILD_SIGNATURE="$DEV_BUILD_SIGNATURE"
-
 echo "🚀 Starting Heya POS Development Environment..."
-echo "   Dev build signature: $NEXT_PUBLIC_DEV_BUILD_SIGNATURE"
 
 if [ "$FRESH_START" = true ]; then
     echo -e "${YELLOW}Prepping fresh start: stopping existing services and cleaning caches...${NC}"
@@ -218,14 +212,14 @@ cd ../..
 # Step 5: Start Booking App
 echo -e "\n${YELLOW}Step 5: Starting Booking App on port $BOOKING_PORT...${NC}"
 cd apps/booking-app
-NEXT_PUBLIC_DEV_BUILD_SIGNATURE="$DEV_BUILD_SIGNATURE" NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/booking.log 2>&1 &
+NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/booking.log 2>&1 &
 BOOKING_PID=$!
 cd ../..
 
 # Step 6: Start Admin Dashboard
 echo -e "\n${YELLOW}Step 6: Starting Admin Dashboard on port $ADMIN_PORT...${NC}"
 cd apps/admin-dashboard
-NEXT_PUBLIC_DEV_BUILD_SIGNATURE="$DEV_BUILD_SIGNATURE" NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/admin.log 2>&1 &
+NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/admin.log 2>&1 &
 ADMIN_PID=$!
 cd ../..
 

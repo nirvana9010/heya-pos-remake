@@ -8,7 +8,6 @@ import type { Booking } from '../types';
 import { Check, Heart, Hourglass, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 
-const DEV_BUILD_SIGNATURE = process.env.NEXT_PUBLIC_DEV_BUILD_SIGNATURE;
 
 
 interface WeeklyViewProps {
@@ -62,15 +61,6 @@ export function WeeklyView({
 
   return (
     <div className="flex flex-col h-full">
-      {DEV_BUILD_SIGNATURE ? (
-        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600">
-          Dev build: {DEV_BUILD_SIGNATURE}
-        </div>
-      ) : (
-        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600">
-          Dev build signature missing — restart with ./scripts/dev-start.sh --fresh
-        </div>
-      )}
       {/* Fixed header row */}
       <div
         className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm sticky z-30"

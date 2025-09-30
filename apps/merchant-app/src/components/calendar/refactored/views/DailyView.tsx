@@ -17,7 +17,6 @@ import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
 
-const DEV_BUILD_SIGNATURE = process.env.NEXT_PUBLIC_DEV_BUILD_SIGNATURE;
 
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -481,15 +480,6 @@ export function DailyView({
           </button>
         </div>
       </div>
-      {DEV_BUILD_SIGNATURE ? (
-        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600">
-          Dev build — compact badge pass: {DEV_BUILD_SIGNATURE}
-        </div>
-      ) : (
-        <div className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600">
-          Dev build signature missing — restart with ./scripts/dev-start.sh --fresh
-        </div>
-      )}
       <div
         ref={calendarScrollRef}
         className="flex-1 overflow-x-auto overflow-y-auto"
