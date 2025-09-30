@@ -35,3 +35,28 @@ Commit history follows Conventional Commit semantics (`fix:`, `feat:`, `chore:`)
 - If the merchant login page reports a "Network Error" or hangs, first verify the API is alive with `curl http://localhost:3000/api/v1/health`. A dead Nest process is the common culprit and will cause every server render of `/login` to time out.
 - When ports appear busy, do **not** launch `npm run api:dev` or `npm run merchant:dev` directly. Run `./scripts/dev-stop.sh` to clean up zombies, then `./scripts/dev-start.sh` to relaunch. As a last resort you can manually kill processes with `ps -eo pid,ppid,cmd | grep heya-pos-remake | grep -v grep`.
 - For quick checks, remember the merchant app proxies features via `/api/v1/features`; if that 403s or times out you will see the login issue. Clearing stale cookies or opening an incognito window can rule out client cache, but the fix is usually restarting the API/merchant app together.
+
+## Production database migrations (Fly.io Managed Postgres)
+Use these steps whenever a manual SQL migration needs to run against the production cluster (`gjpkdon1pn60yln4`):
+
+1. **Open a proxy** so `psql` can talk to the managed instance:
+   ```bash
+   /home/lukas/.fly/bin/flyctl mpg proxy --cluster gjpkdon1pn60yln4
+   ```
+   This binds a local port (normally `127.0.0.1:16380`) to the cluster’s internal IPv6 address. Leave the proxy running in its own shell.
+
+2. **Run the migration** from another terminal using the pooled user:
+   ```bash
+   psql "postgresql://fly-user:Q3PtuT5LzerofXvatBTh5Yna@127.0.0.1:16380/fly-db" \
+     -f apps/api/prisma/migrations/manual/<migration-file>.sql
+   ```
+
+3. **Verify the change** (optional but recommended):
+   ```bash
+   psql "postgresql://fly-user:Q3PtuT5LzerofXvatBTh5Yna@127.0.0.1:16380/fly-db" \
+     -c "SELECT column_name FROM information_schema.columns \n           WHERE table_name = 'Booking' AND column_name = 'customerRequestedStaff';"
+   ```
+
+4. **Close the proxy** once finished (Ctrl+C in the proxy terminal, or `pkill -f "flyctl mpg proxy"`).
+
+If the proxy command fails, confirm you are logged in (`/home/lukas/.fly/bin/flyctl auth whoami`) and that the cluster is ready (`/home/lukas/.fly/bin/flyctl mpg status --cluster gjpkdon1pn60yln4`).
