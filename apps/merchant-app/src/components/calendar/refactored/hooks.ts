@@ -106,6 +106,7 @@ export function useCalendarData() {
           staffId: (booking.staffId && booking.staffId !== '') ? booking.staffId : 
                    (booking.providerId && booking.providerId !== '') ? booking.providerId : null,
           staffName: booking.staffName || booking.providerName || 'Unassigned',
+          customerRequestedStaff: Boolean(booking.customerRequestedStaff),
           
           // Additional fields
           notes: booking.notes,

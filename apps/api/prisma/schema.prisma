@@ -297,6 +297,7 @@ model Booking {
   isOverride             Boolean                 @default(false)
   overrideReason         String?
   overrideApprovedBy     String?
+  customerRequestedStaff Boolean                 @default(false)
   // Payment fields for simplified architecture
   paymentStatus          String                  @default("UNPAID") // UNPAID, PARTIAL, PAID, REFUNDED
   paidAmount             Decimal                 @default(0) @db.Decimal(10, 2)

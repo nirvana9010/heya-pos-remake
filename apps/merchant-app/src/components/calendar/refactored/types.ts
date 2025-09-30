@@ -60,6 +60,7 @@ export interface Booking {
   paymentMethod?: string;
   isPaid?: boolean;
   paidAmount?: number;
+  customerRequestedStaff?: boolean;
   
   // Timestamps
   createdAt: string;
@@ -143,6 +144,7 @@ export interface CalendarState {
   selectedServiceIds: string[];
   selectedStatusFilters: BookingStatus[];
   searchQuery: string;
+  badgeDisplayMode: 'full' | 'icon';
   
   // Feature flags
   showUnassignedColumn: boolean;
@@ -192,6 +194,7 @@ export type CalendarAction =
   | { type: 'SET_SERVICE_FILTER'; payload: string[] }
   | { type: 'SET_STATUS_FILTER'; payload: BookingStatus[] }
   | { type: 'SET_SEARCH'; payload: string }
+  | { type: 'SET_BADGE_DISPLAY_MODE'; payload: 'full' | 'icon' }
   
   // UI actions
   | { type: 'SET_UI_FLAGS'; payload: Partial<Pick<CalendarState, 'showUnassignedColumn' | 'showBlockedTime' | 'showBreaks' | 'showOnlyRosteredStaff'>> }
@@ -244,6 +247,7 @@ export interface CalendarActions {
   setServiceFilter: (serviceIds: string[]) => void;
   setStatusFilter: (statuses: BookingStatus[]) => void;
   setSearch: (query: string) => void;
+  setBadgeDisplayMode: (mode: 'full' | 'icon') => void;
   
   // UI actions
   toggleUnassignedColumn: () => void;
@@ -268,7 +272,7 @@ export interface CalendarActions {
   
   // Reset
   reset: () => void;
-  
+
   // Direct dispatch access
   dispatch: (action: CalendarAction) => void;
 }

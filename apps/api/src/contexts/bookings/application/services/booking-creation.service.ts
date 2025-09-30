@@ -23,6 +23,7 @@ interface CreateBookingData {
   notes?: string;
   source: string;
   createdById: string;
+  customerRequestedStaff?: boolean;
   isOverride?: boolean;
   overrideReason?: string;
   orderId?: string; // Pre-created order ID to link
@@ -217,6 +218,7 @@ export class BookingCreationService {
         notes: data.notes || (data.isBlankBooking ? 'Walk-in customer (blank booking)' : undefined),
         source: data.source,
         createdById: data.createdById,
+        customerRequestedStaff: data.customerRequestedStaff ?? false,
         isOverride: data.isOverride || false,
         overrideReason: data.overrideReason,
         createdAt: new Date(),

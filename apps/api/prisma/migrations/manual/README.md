@@ -1,36 +1,31 @@
-# Payment Method Migration Guide
+# Manual Migration Scripts
 
-## Overview
-This migration updates the payment method values from provider-specific card types (CARD_TYRO, CARD_STRIPE, CARD_MANUAL) to a generic CARD type.
+This directory holds raw SQL migrations that must be applied manually whenever the Prisma schema changes. Run them against the relevant environment **before** deploying code that depends on the new structure.
 
-## Migration Steps
+## 2024-10-12 – Add `customerRequestedStaff` flag to bookings
 
-1. **Backup your database** before running any migrations
+Adds a boolean flag so the platform can tell when an online booking explicitly selected a staff member.
 
-2. **Run the SQL migration**:
+1. Back up your database.
+2. Execute the script:
    ```bash
-   psql $DATABASE_URL -f update_card_payment_method.sql
+   psql "$DATABASE_URL" -f 20241012_add_customer_requested_staff.sql
    ```
+3. No rollback script is provided; restore from backup if needed.
 
-3. **Verify the changes**:
+## Payment method normalisation
+
+`update_card_payment_method.sql` consolidates legacy card method values into a single `CARD` type.
+
+1. Back up your database.
+2. Run:
+   ```bash
+   psql "$DATABASE_URL" -f update_card_payment_method.sql
+   ```
+3. Verify:
    ```sql
-   -- Check OrderPayment table
    SELECT DISTINCT method FROM "OrderPayment" WHERE method LIKE 'CARD%';
-   
-   -- Check Payment table
    SELECT DISTINCT method FROM "Payment" WHERE method LIKE 'CARD%';
    ```
 
-4. **Expected result**: All card payment methods should now be 'CARD'
-
-## Rollback (if needed)
-
-To rollback this migration, you would need to:
-1. Restore from backup, OR
-2. Manually update records back to their original values (not recommended as you'd need to know which provider each payment originally used)
-
-## Notes
-
-- This migration consolidates all card payment types into a single 'CARD' type
-- The payment provider information is now handled separately by the payment gateway configuration
-- This change makes the system more flexible for adding new payment providers in the future
+All card payments should now report the unified `CARD` method.

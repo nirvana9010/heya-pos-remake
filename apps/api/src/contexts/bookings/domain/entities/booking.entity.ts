@@ -20,6 +20,7 @@ export interface BookingProps {
   overrideReason?: string;
   source: string;
   createdById: string;
+  customerRequestedStaff?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   cancelledAt?: Date;
@@ -54,6 +55,7 @@ export class Booking {
   private _overrideReason?: string;
   private _source: string;
   private _createdById: string;
+  private _customerRequestedStaff: boolean;
   private _createdAt: Date;
   private _updatedAt: Date;
   private _cancelledAt?: Date;
@@ -88,6 +90,7 @@ export class Booking {
     this._overrideReason = props.overrideReason;
     this._source = props.source;
     this._createdById = props.createdById;
+    this._customerRequestedStaff = props.customerRequestedStaff ?? false;
     this._createdAt = props.createdAt || new Date();
     this._updatedAt = props.updatedAt || new Date();
     this._cancelledAt = props.cancelledAt;
@@ -351,6 +354,7 @@ export class Booking {
   get isOverride(): boolean { return this._isOverride; }
   get overrideReason(): string | undefined { return this._overrideReason; }
   get source(): string { return this._source; }
+  get customerRequestedStaff(): boolean { return this._customerRequestedStaff; }
   get createdById(): string { return this._createdById; }
   get createdAt(): Date { return this._createdAt; }
   get updatedAt(): Date { return this._updatedAt; }

@@ -255,6 +255,7 @@ export class BookingsV2Controller {
       notes: dto.notes,
       source: dto.source || 'IN_PERSON',
       createdById: createdById, // Use the determined createdById
+      customerRequestedStaff: Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,
       orderId: dto.orderId, // Pass pre-created order ID if provided
@@ -488,6 +489,7 @@ export class BookingsV2Controller {
       serviceId: booking.serviceId,
       locationId: booking.locationId,
       notes: booking.notes,
+      customerRequestedStaff: booking.customerRequestedStaff ?? false,
       totalAmount: booking.totalAmount,
       depositAmount: booking.depositAmount,
       isOverride: booking.isOverride,

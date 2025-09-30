@@ -15,7 +15,7 @@ import {
 } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
-import { Check, X } from 'lucide-react';
+import { Check, Heart, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 
 interface MonthlyViewProps {
@@ -162,6 +162,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                         const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
                         const SourceIcon = sourcePresentation.icon;
                         const showSourceBadge = sourcePresentation.category !== 'unknown';
+                        const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
                         return (
                           <div
                             key={booking.id}
@@ -199,9 +200,18 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                               {/* Fade out gradient for long text */}
                               <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-[inherit] to-transparent pointer-events-none" />
                             </span>
-                            {showSourceBadge && (
-                              <span className={cn(sourcePresentation.indicatorWrapperClassName, 'ml-auto flex-shrink-0 shadow-md')}>
-                                <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                            {(showPreferredIndicator || showSourceBadge) && (
+                              <span className="ml-auto flex items-center gap-1">
+                                {showPreferredIndicator && (
+                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/90 text-white shadow">
+                                    <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+                                  </span>
+                                )}
+                                {showSourceBadge && (
+                                  <span className={cn(sourcePresentation.indicatorWrapperClassName, 'flex-shrink-0 shadow-md')}>
+                                    <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                                  </span>
+                                )}
                               </span>
                             )}
                           </div>

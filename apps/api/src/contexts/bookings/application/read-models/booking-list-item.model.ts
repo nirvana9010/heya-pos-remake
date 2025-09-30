@@ -26,6 +26,7 @@ export interface BookingListItem {
   startTime: Date;
   endTime: Date;
   status: string;
+  customerRequestedStaff: boolean;
   totalAmount: number;
   totalDuration: number; // Total duration in minutes
   locationName: string;

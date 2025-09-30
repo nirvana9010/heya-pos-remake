@@ -68,6 +68,7 @@ export class BookingMapper {
       overrideReason: prismaBooking.overrideReason || undefined,
       source: prismaBooking.source,
       createdById: prismaBooking.createdById,
+      customerRequestedStaff: prismaBooking.customerRequestedStaff ?? false,
       createdAt: prismaBooking.createdAt,
       updatedAt: prismaBooking.updatedAt,
       cancelledAt: prismaBooking.cancelledAt || undefined,
@@ -108,6 +109,7 @@ export class BookingMapper {
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
       completedAt: booking.completedAt,
+      customerRequestedStaff: booking.customerRequestedStaff,
       // Payment fields
       paymentStatus: booking.paymentStatus.toString(),
       paidAmount: booking.paidAmount,

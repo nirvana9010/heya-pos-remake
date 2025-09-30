@@ -80,6 +80,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           totalAmount: true,
           createdAt: true,
           source: true,
+          customerRequestedStaff: true,
           // Payment fields
           paymentStatus: true,
           paidAmount: true,
@@ -171,6 +172,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         startTime: booking.startTime,
         endTime: booking.endTime,
         status: booking.status,
+        customerRequestedStaff: booking.customerRequestedStaff ?? false,
         totalAmount: typeof booking.totalAmount === 'object' && booking.totalAmount.toNumber
           ? booking.totalAmount.toNumber()
           : Number(booking.totalAmount),

@@ -5,7 +5,7 @@ import { useCalendar } from '../CalendarProvider';
 import { format, startOfWeek, addDays, isSameDay, isToday, parseISO } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
-import { Check, X } from 'lucide-react';
+import { Check, Heart, Hourglass, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 
 const DEV_BUILD_SIGNATURE = process.env.NEXT_PUBLIC_DEV_BUILD_SIGNATURE;
@@ -181,11 +181,11 @@ export function WeeklyView({
                       const showPaidStatusBadge =
                         (booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid') &&
                         booking.status !== 'cancelled';
+                      const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
                       const hasStatusBadge = showPendingStatusBadge || showPaidStatusBadge;
-                      const requiresBadgeOffset = showSourceBadge || hasStatusBadge;
-                      const contentPaddingRight = requiresBadgeOffset ? 96 : 12;
-                      const badgeContentMaxWidth = Math.max(contentPaddingRight - 12, 64);
-                      const contentPaddingBottom = requiresBadgeOffset ? 36 : 12;
+                      const requiresBadgeOffset = showSourceBadge || hasStatusBadge || showPreferredIndicator;
+                      const contentPaddingRight = requiresBadgeOffset ? 80 : 12;
+                      const contentPaddingBottom = requiresBadgeOffset ? 26 : 12;
 
                       return (
                         <div
@@ -254,36 +254,35 @@ export function WeeklyView({
                           </div>
                           
                           {/* Source badge + status indicators */}
-                          {(showSourceBadge || hasStatusBadge) && (
-                            <div className="pointer-events-none absolute bottom-2 right-2 flex flex-col items-end gap-1">
+                          {(showSourceBadge || hasStatusBadge || showPreferredIndicator) && (
+                            <div className="pointer-events-none absolute bottom-2 right-2 flex flex-row-reverse flex-wrap items-center gap-1">
+                              {showPreferredIndicator && (
+                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow">
+                                  <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+                                </span>
+                              )}
                               {showSourceBadge && (
                                 <span
                                   className={cn(
                                     sourcePresentation.badgeClassName,
-                                    'shadow-sm flex-shrink-0'
+                                    'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow'
                                   )}
-                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
                                 >
-                                  <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                  <span className="truncate">{sourcePresentation.label}</span>
+                                  <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                                  {sourcePresentation.label}
                                 </span>
                               )}
-
                               {showPendingStatusBadge && (
-                                <div
-                                  className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-end"
-                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                >
-                                  PENDING
-                                </div>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950 shadow">
+                                  <Hourglass className="h-3 w-3" />
+                                  Pending
+                                </span>
                               )}
                               {showPaidStatusBadge && (
-                                <div
-                                  className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-end"
-                                  style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                >
-                                  PAID
-                                </div>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-950 shadow">
+                                  <Check className="h-3 w-3" strokeWidth={3} />
+                                  Paid
+                                </span>
                               )}
                             </div>
                           )}

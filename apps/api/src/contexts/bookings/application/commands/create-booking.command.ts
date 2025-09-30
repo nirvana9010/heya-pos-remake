@@ -18,6 +18,7 @@ export class CreateBookingCommand {
       notes?: string;
       source: string;
       createdById: string;
+      customerRequestedStaff?: boolean;
       isOverride?: boolean;
       overrideReason?: string;
       orderId?: string; // Pre-created order ID to link

@@ -61,13 +61,9 @@ export class StaffClient extends BaseApiClient {
   }
 
   async updateSchedule(staffId: string, data: { schedules: Array<{ dayOfWeek: number; startTime: string; endTime: string }> }): Promise<any> {
-    console.log('[StaffClient] updateSchedule called for staff:', staffId, 'with data:', data);
     try {
-      const response = await this.post(`/staff/${staffId}/schedule`, data, undefined, 'v1');
-      console.log('[StaffClient] updateSchedule response:', response);
-      return response;
+      return await this.post(`/staff/${staffId}/schedule`, data, undefined, 'v1');
     } catch (error) {
-      console.error('[StaffClient] updateSchedule error:', error);
       throw error;
     }
   }
@@ -77,20 +73,9 @@ export class StaffClient extends BaseApiClient {
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
     
-    console.log(`[StaffClient] Getting overrides for staff ${staffId} from ${startDate} to ${endDate}`);
     try {
-      const result = await this.get(`/staff/${staffId}/overrides`, params, 'v1');
-      console.log(`[StaffClient] Overrides result for ${staffId}:`, result);
-      return result;
+      return await this.get(`/staff/${staffId}/overrides`, params, 'v1');
     } catch (error: any) {
-      console.error(`[StaffClient] Error getting overrides for ${staffId}:`, {
-        message: error?.message,
-        status: error?.response?.status,
-        statusText: error?.response?.statusText,
-        data: error?.response?.data,
-        url: error?.config?.url,
-        code: error?.code
-      });
       throw error;
     }
   }

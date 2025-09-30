@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
   staffFilter: 'calendar_staffFilter',
   timeInterval: 'calendar_timeInterval',
+  badgeDisplayMode: 'calendar_badgeDisplayMode',
 } as const;
 
 // Load saved preferences from localStorage
@@ -44,6 +45,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
         : ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
       selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
+      badgeDisplayMode: (localStorage.getItem(STORAGE_KEYS.badgeDisplayMode) as 'full' | 'icon') || 'full',
     };
   } catch (error) {
     return {};
@@ -96,6 +98,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   selectedServiceIds: [],
   selectedStatusFilters: savedPrefs.selectedStatusFilters || ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
   searchQuery: '',
+  badgeDisplayMode: savedPrefs.badgeDisplayMode || 'full',
   
   // Feature flags - Use fresh merchant settings directly
   showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
@@ -297,6 +300,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       return {
         ...state,
         selectedStatusFilters: action.payload,
+      };
+
+    case 'SET_BADGE_DISPLAY_MODE':
+      return {
+        ...state,
+        badgeDisplayMode: action.payload,
       };
     
     case 'SET_SEARCH':
@@ -546,6 +555,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     setServiceFilter: (serviceIds: string[]) => dispatch({ type: 'SET_SERVICE_FILTER', payload: serviceIds }),
     setStatusFilter: (statuses: string[]) => dispatch({ type: 'SET_STATUS_FILTER', payload: statuses as BookingStatus[] }),
     setSearch: (query: string) => dispatch({ type: 'SET_SEARCH', payload: query }),
+    setBadgeDisplayMode: (mode: 'full' | 'icon') => dispatch({ type: 'SET_BADGE_DISPLAY_MODE', payload: mode }),
     
     // UI actions
     toggleUnassignedColumn: () => dispatch({ type: 'TOGGLE_UNASSIGNED' }),
@@ -629,6 +639,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
+      localStorage.setItem(STORAGE_KEYS.badgeDisplayMode, state.badgeDisplayMode);
       
       // If we cleaned up any invalid IDs, update the state
       if (validStaffIds.length !== state.selectedStaffIds.length) {
@@ -640,6 +651,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     JSON.stringify(state.selectedStatusFilters),
     JSON.stringify(state.selectedStaffIds),
     state.timeInterval,
+    state.badgeDisplayMode,
     state.staff.length // Only depend on staff length, not the entire array
   ]);
   

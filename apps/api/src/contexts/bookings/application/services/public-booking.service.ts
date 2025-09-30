@@ -425,6 +425,7 @@ export class PublicBookingService {
           depositAmount: 0,
           source: 'ONLINE',
           notes: dto.notes,
+          customerRequestedStaff: Boolean(dto.staffId || serviceRequests.some(sr => sr.staffId)),
         };
         
         // For online bookings, we need a creator even if no staff is assigned

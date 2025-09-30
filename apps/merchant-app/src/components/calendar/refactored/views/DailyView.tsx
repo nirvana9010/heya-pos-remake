@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useCalendar } from '../CalendarProvider';
 import { useTimeGrid } from '../hooks';
-import { toMerchantTime, formatInMerchantTime } from '@/lib/date-utils';
+import { toMerchantTime } from '@/lib/date-utils';
 import { format, isSameDay, parseISO, isToday } from 'date-fns';
 import { cn } from '@heya-pos/ui';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, pointerWithin, useSensors, useSensor, PointerSensor, TouchSensor } from '@dnd-kit/core';
@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check, X, AlertTriangle } from 'lucide-react';
+import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -82,7 +82,7 @@ export function DailyView({
   activeBooking,
   dragOverSlot 
 }: DailyViewProps) {
-  const { state, filteredBookings } = useCalendar();
+  const { state, filteredBookings, actions } = useCalendar();
   const { merchant } = useAuth();
   const { loading: bookingContextLoading } = useBooking();
   const { timeSlots } = useTimeGrid();
@@ -219,6 +219,13 @@ export function DailyView({
     ? todaysBookings.find(b => b.id === hoveredBookingId) || null
     : null;
   
+  const badgeDisplayMode = state.badgeDisplayMode;
+  const handleBadgeModeToggle = (mode: 'full' | 'icon') => {
+    if (mode !== badgeDisplayMode) {
+      actions.setBadgeDisplayMode(mode);
+    }
+  };
+
   // Show empty state if no staff are rostered
   // Count only staff with actual schedules for the current day
   const actuallyRosteredStaff = useMemo(() => {
@@ -237,6 +244,172 @@ export function DailyView({
       return false;
     });
   }, [visibleStaff, state.showOnlyRosteredStaff, currentDayOfWeek, currentDateStr]);
+
+  const renderBadgeRow = ({
+    showPreferred,
+    showSource,
+    sourceLabel,
+    showPending,
+    showOptimistic,
+    showInProgress,
+    showPaid,
+    SourceIcon,
+    compact = false,
+  }: {
+    showPreferred: boolean;
+    showSource: boolean;
+    sourceLabel: string;
+    showPending: boolean;
+    showOptimistic: boolean;
+    showInProgress: boolean;
+    showPaid: boolean;
+    SourceIcon: React.ComponentType<{ className?: string }>;
+    compact?: boolean;
+  }) => {
+    const mode = compact ? 'icon' : badgeDisplayMode;
+    const items: React.ReactNode[] = [];
+
+    if (showPending) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="pending"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/90 text-amber-950 shadow"
+          >
+            <Hourglass className="h-3 w-3" />
+          </span>
+        ) : (
+          <span
+            key="pending"
+            className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950 shadow"
+          >
+            <Hourglass className="h-3 w-3" />
+            Pending
+          </span>
+        )
+      );
+    }
+
+    if (showOptimistic) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="optimistic"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-400/90 text-white shadow animate-pulse"
+          >
+            <Sparkles className="h-3 w-3" />
+          </span>
+        ) : (
+          <span
+            key="optimistic"
+            className="inline-flex items-center gap-1 rounded-full bg-sky-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow animate-pulse"
+          >
+            <Sparkles className="h-3 w-3" />
+            Creating…
+          </span>
+        )
+      );
+    }
+
+    if (showInProgress) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="in-progress"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white shadow"
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+          </span>
+        ) : (
+          <span
+            key="in-progress"
+            className="inline-flex items-center gap-1 rounded-full bg-teal-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow"
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+            In progress
+          </span>
+        )
+      );
+    }
+
+    if (showPaid) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="paid"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-emerald-950 shadow"
+          >
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+        ) : (
+          <span
+            key="paid"
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-950 shadow"
+          >
+            <Check className="h-3 w-3" strokeWidth={3} />
+            Paid
+          </span>
+        )
+      );
+    }
+
+    if (showSource) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="source"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/90 text-white shadow"
+          >
+            <SourceIcon className="h-3 w-3" />
+          </span>
+        ) : (
+          <span
+            key="source"
+            className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 shadow"
+          >
+            <SourceIcon className="h-3 w-3" />
+            {sourceLabel}
+          </span>
+        )
+      );
+    }
+
+    if (showPreferred) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="preferred"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow"
+          >
+            <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+          </span>
+        ) : (
+          <span
+            key="preferred"
+            className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow"
+          >
+            <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+            Preferred
+          </span>
+        )
+      );
+    }
+
+    if (!items.length) {
+      return null;
+    }
+
+    return (
+      <div
+        className={cn(
+          'pointer-events-none flex flex-wrap items-center gap-1 self-end justify-end',
+          compact ? 'mt-1' : 'mt-2'
+        )}
+      >
+        {items}
+      </div>
+    );
+  };
   
   // Show loading state while BookingContext is loading staff data
   if (bookingContextLoading) {
@@ -277,9 +450,40 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Badge display</div>
+        <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => handleBadgeModeToggle('full')}
+            aria-pressed={badgeDisplayMode === 'full'}
+            className={cn(
+              'px-3 py-1.5 text-xs font-medium transition-colors',
+              badgeDisplayMode === 'full'
+                ? 'bg-slate-900 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            )}
+          >
+            Full badges
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBadgeModeToggle('icon')}
+            aria-pressed={badgeDisplayMode === 'icon'}
+            className={cn(
+              'border-l border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors',
+              badgeDisplayMode === 'icon'
+                ? 'bg-slate-900 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            )}
+          >
+            Icons only
+          </button>
+        </div>
+      </div>
       {DEV_BUILD_SIGNATURE ? (
         <div className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600">
-          Dev build: {DEV_BUILD_SIGNATURE}
+          Dev build — compact badge pass: {DEV_BUILD_SIGNATURE}
         </div>
       ) : (
         <div className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600">
@@ -524,10 +728,14 @@ export function DailyView({
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
                             // Calculate how many time slots this booking spans based in interval
-                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-                            
-                            // Determine if this is a short booking that needs compact layout
-                            const isCompactBooking = booking.duration <= 30;
+                          const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
+                          
+                          // Determine if this is a short booking that needs compact layout
+                          const isCompactBooking = booking.duration <= 30;
+                          const bookingVisualHeight = Math.max(slotsSpanned * 40 - 4, 70);
+                          const showMinimalContent =
+                            isCompactBooking ||
+                            (badgeDisplayMode === 'full' ? bookingVisualHeight <= 150 : bookingVisualHeight <= 110);
                             
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
@@ -597,19 +805,18 @@ export function DailyView({
                           const showOptimisticStatusBadge = booking.status === 'optimistic';
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
-                          const hasStatusBadge =
-                            showPendingStatusBadge ||
-                            showOptimisticStatusBadge ||
-                            showInProgressStatusBadge ||
-                            showPaidStatusBadge;
-                          const requiresBadgeOffset = hasStatusBadge || showSourceBadge;
-                          const contentPaddingRight = requiresBadgeOffset
-                            ? (isCompactBooking ? 96 : 120)
-                            : 16;
-                          const badgeContentMaxWidth = Math.max(contentPaddingRight - 16, 72);
-                          const contentPaddingBottom = requiresBadgeOffset
-                            ? (isCompactBooking ? 32 : 36)
-                            : (isCompactBooking ? 8 : 12);
+                          const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
+                          const badgeRow = renderBadgeRow({
+                            showPreferred: showPreferredIndicator,
+                            showSource: showSourceBadge,
+                            sourceLabel: sourcePresentation.label,
+                            showPending: showPendingStatusBadge,
+                            showOptimistic: showOptimisticStatusBadge,
+                            showInProgress: showInProgressStatusBadge,
+                            showPaid: showPaidStatusBadge,
+                            SourceIcon,
+                            compact: showMinimalContent,
+                          });
 
                           return (
                             <DraggableBooking
@@ -623,7 +830,7 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "cursor-pointer rounded relative z-20 overflow-hidden",
+                                  "cursor-pointer rounded relative z-20 overflow-hidden flex flex-col",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
@@ -642,9 +849,9 @@ export function DailyView({
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: `${contentPaddingRight}px`,
-                                  paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: `${contentPaddingBottom}px`,
+                                  paddingRight: '16px',
+                                  paddingTop: showMinimalContent ? '8px' : '12px',
+                                  paddingBottom: showMinimalContent ? '8px' : '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -663,102 +870,50 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Overlap warning indicator */}
-                                {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
-                                  <div className="absolute top-1 right-1 z-30">
-                                    <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
-                                      <AlertTriangle className="w-3 h-3" />
-                                    </div>
-                                  </div>
-                                )}
+                                {/* Overlap warning indicator handled in top-right stack */}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                   </div>
                                 )}
-                                {/* Cancelled indicator */}
-                                {booking.status === 'cancelled' && (
-                                  <div className="absolute top-2 right-2 flex items-center gap-1">
-                                    <X className="w-5 h-5 text-red-600" strokeWidth={3} />
-                                    <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
-                                  </div>
-                                )}
-                                {/* Source badge + status indicators */}
-                                {(showSourceBadge || hasStatusBadge) && (
-                                  <div className="pointer-events-none absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex flex-col items-end gap-1">
-                                    {showSourceBadge && (
-                                      <span
-                                        className={cn(
-                                          sourcePresentation.badgeClassName,
-                                          'shadow-sm flex-shrink-0'
-                                        )}
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                        <span className="truncate">{sourcePresentation.label}</span>
-                                      </span>
-                                    )}
-                                    {showPendingStatusBadge && (
-                                      <div
-                                        className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">PENDING</span>
+                                {/* Top-right indicators */}
+                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+                                  <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
+                                    {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
+                                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-white shadow">
+                                        <AlertTriangle className="h-3 w-3" />
                                       </div>
                                     )}
-                                    {showOptimisticStatusBadge && (
-                                      <div
-                                        className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">Creating...</span>
+                                    {showPreferredIndicator && (
+                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
+                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
+                                        <span>Preferred</span>
                                       </div>
                                     )}
-                                    {showInProgressStatusBadge && (
-                                      <div
-                                        className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
-                                      </div>
-                                    )}
-                                    {showPaidStatusBadge && (
-                                      <div
-                                        className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">PAID</span>
+                                    {booking.status === 'cancelled' && (
+                                      <div className="flex items-center gap-1 rounded bg-white/95 px-2 py-0.5 text-[11px] font-bold uppercase text-red-600 shadow">
+                                        <X className="h-3.5 w-3.5" strokeWidth={3} />
+                                        <span>Cancelled</span>
                                       </div>
                                     )}
                                   </div>
                                 )}
                                 {/* Compact layout for short bookings */}
-                                {isCompactBooking ? (
-                                  <>
-                                    {/* Inline time and duration for compact bookings */}
-                                    {booking.status !== 'cancelled' && (
-                                      <div className="text-[10px] sm:text-[11px] md:text-xs font-medium opacity-75 mb-0.5">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-1">
-                                      <div 
-                                        className={cn("font-semibold truncate text-xs sm:text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.customerName}
-                                      >
+                                {showMinimalContent ? (
+                                  <div className={cn('flex h-full flex-col justify-between', badgeRow ? 'gap-1' : undefined)}>
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
                                         {booking.customerName}
                                       </div>
+                                      <div className="text-[11px] text-white/80 truncate" title={booking.serviceName}>
+                                        {booking.serviceName}
+                                      </div>
                                     </div>
-                                    <div 
-                                      className={cn("truncate text-[10px] sm:text-[11px] md:text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={`${booking.serviceName} (${booking.duration}min)`}
-                                    >
-                                      {booking.serviceName}
-                                    </div>
-                                  </>
+                                    {badgeRow}
+                                  </div>
                                 ) : (
-                                  <>
+                                  <div className={cn('flex h-full flex-col', badgeRow ? 'gap-2' : 'gap-1')}>
                                     {/* Regular layout for longer bookings */}
                                     {/* Time and duration - on its own row */}
                                     {booking.status !== 'cancelled' && (
@@ -766,19 +921,22 @@ export function DailyView({
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
-                                    <div 
-                                      className={cn("font-bold truncate text-sm sm:text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={booking.customerName}
-                                    >
-                                      {booking.customerName}
+                                    <div className="flex-1 min-w-0">
+                                      <div 
+                                        className={cn("font-bold truncate text-sm sm:text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.customerName}
+                                      >
+                                        {booking.customerName}
+                                      </div>
+                                      <div 
+                                        className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.serviceName}
+                                      >
+                                        {booking.serviceName}
+                                      </div>
                                     </div>
-                                    <div 
-                                      className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={booking.serviceName}
-                                    >
-                                      {booking.serviceName}
-                                    </div>
-                                  </>
+                                    {badgeRow}
+                                  </div>
                                 )}
                               </div>
                             </DraggableBooking>
@@ -868,6 +1026,10 @@ export function DailyView({
                             
                             // Determine if this is a short booking that needs compact layout
                             const isCompactBooking = booking.duration <= 30;
+                            const bookingVisualHeight = Math.max(slotsSpanned * 40 - 4, 70);
+                            const showMinimalContent =
+                              isCompactBooking ||
+                              (badgeDisplayMode === 'full' ? bookingVisualHeight <= 150 : bookingVisualHeight <= 110);
                             
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
@@ -937,19 +1099,18 @@ export function DailyView({
                           const showOptimisticStatusBadge = booking.status === 'optimistic';
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
-                          const hasStatusBadge =
-                            showPendingStatusBadge ||
-                            showOptimisticStatusBadge ||
-                            showInProgressStatusBadge ||
-                            showPaidStatusBadge;
-                          const requiresBadgeOffset = hasStatusBadge || showSourceBadge;
-                          const contentPaddingRight = requiresBadgeOffset
-                            ? (isCompactBooking ? 96 : 120)
-                            : 16;
-                          const badgeContentMaxWidth = Math.max(contentPaddingRight - 16, 72);
-                          const contentPaddingBottom = requiresBadgeOffset
-                            ? (isCompactBooking ? 32 : 36)
-                            : (isCompactBooking ? 8 : 12);
+                          const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
+                          const badgeRow = renderBadgeRow({
+                            showPreferred: showPreferredIndicator,
+                            showSource: showSourceBadge,
+                            sourceLabel: sourcePresentation.label,
+                            showPending: showPendingStatusBadge,
+                            showOptimistic: showOptimisticStatusBadge,
+                            showInProgress: showInProgressStatusBadge,
+                            showPaid: showPaidStatusBadge,
+                            SourceIcon,
+                            compact: showMinimalContent,
+                          });
 
                           return (
                             <DraggableBooking
@@ -963,7 +1124,7 @@ export function DailyView({
                             >
                               <div 
                                 className={cn(
-                                  "cursor-pointer rounded relative z-20 overflow-hidden",
+                                  "cursor-pointer rounded relative z-20 overflow-hidden flex flex-col",
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
@@ -982,9 +1143,9 @@ export function DailyView({
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: `${contentPaddingRight}px`,
-                                  paddingTop: isCompactBooking ? '8px' : '12px',
-                                  paddingBottom: `${contentPaddingBottom}px`,
+                                  paddingRight: '16px',
+                                  paddingTop: showMinimalContent ? '8px' : '12px',
+                                  paddingBottom: showMinimalContent ? '8px' : '12px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1003,102 +1164,50 @@ export function DailyView({
                                   }
                                 }}
                               >
-                                {/* Overlap warning indicator */}
-                                {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
-                                  <div className="absolute top-1 right-1 z-30">
-                                    <div className="bg-yellow-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
-                                      <AlertTriangle className="w-3 h-3" />
-                                    </div>
-                                  </div>
-                                )}
+                                {/* Overlap warning indicator handled in top-right stack */}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
                                   <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                   </div>
                                 )}
-                                {/* Cancelled indicator */}
-                                {booking.status === 'cancelled' && (
-                                  <div className="absolute top-2 right-2 flex items-center gap-1">
-                                    <X className="w-5 h-5 text-red-600" strokeWidth={3} />
-                                    <span className="text-sm font-bold text-red-600 uppercase">Cancelled</span>
-                                  </div>
-                                )}
-                                {/* Source badge + status indicators */}
-                                {(showSourceBadge || hasStatusBadge) && (
-                                  <div className="pointer-events-none absolute bottom-1 sm:bottom-2 md:bottom-3 right-1 sm:right-2 md:right-3 flex flex-col items-end gap-1">
-                                    {showSourceBadge && (
-                                      <span
-                                        className={cn(
-                                          sourcePresentation.badgeClassName,
-                                          'shadow-sm flex-shrink-0'
-                                        )}
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
-                                        <span className="truncate">{sourcePresentation.label}</span>
-                                      </span>
-                                    )}
-                                    {showPendingStatusBadge && (
-                                      <div
-                                        className="bg-yellow-500 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">PENDING</span>
+                                {/* Top-right indicators */}
+                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+                                  <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
+                                    {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
+                                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-white shadow">
+                                        <AlertTriangle className="h-3 w-3" />
                                       </div>
                                     )}
-                                    {showOptimisticStatusBadge && (
-                                      <div
-                                        className="bg-blue-500 text-white text-[10px] sm:text-[11px] md:text-xs font-medium px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded animate-pulse min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">Creating...</span>
+                                    {showPreferredIndicator && (
+                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
+                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
+                                        <span>Preferred</span>
                                       </div>
                                     )}
-                                    {showInProgressStatusBadge && (
-                                      <div
-                                        className="bg-teal-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded shadow-sm sm:shadow md:shadow-lg min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate whitespace-nowrap">IN PROGRESS</span>
-                                      </div>
-                                    )}
-                                    {showPaidStatusBadge && (
-                                      <div
-                                        className="bg-green-600 text-white text-[10px] sm:text-[11px] md:text-xs font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded min-w-0 overflow-hidden self-end"
-                                        style={{ maxWidth: `${badgeContentMaxWidth}px` }}
-                                      >
-                                        <span className="block truncate">PAID</span>
+                                    {booking.status === 'cancelled' && (
+                                      <div className="flex items-center gap-1 rounded bg-white/95 px-2 py-0.5 text-[11px] font-bold uppercase text-red-600 shadow">
+                                        <X className="h-3.5 w-3.5" strokeWidth={3} />
+                                        <span>Cancelled</span>
                                       </div>
                                     )}
                                   </div>
                                 )}
                                 {/* Compact layout for short bookings */}
-                                {isCompactBooking ? (
-                                  <>
-                                    {/* Inline time and duration for compact bookings */}
-                                    {booking.status !== 'cancelled' && (
-                                      <div className="text-[10px] sm:text-[11px] md:text-xs font-medium opacity-75 mb-0.5">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-1">
-                                      <div 
-                                        className={cn("font-semibold truncate text-xs sm:text-sm flex-1", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.customerName}
-                                      >
+                                {showMinimalContent ? (
+                                  <div className={cn('flex h-full flex-col justify-between', badgeRow ? 'gap-1' : undefined)}>
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
                                         {booking.customerName}
                                       </div>
+                                      <div className="text-[11px] text-white/80 truncate" title={booking.serviceName}>
+                                        {booking.serviceName}
+                                      </div>
                                     </div>
-                                    <div 
-                                      className={cn("truncate text-[10px] sm:text-[11px] md:text-xs", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={`${booking.serviceName} (${booking.duration}min)`}
-                                    >
-                                      {booking.serviceName}
-                                    </div>
-                                  </>
+                                    {badgeRow}
+                                  </div>
                                 ) : (
-                                  <>
+                                  <div className={cn('flex h-full flex-col', badgeRow ? 'gap-2' : 'gap-1')}>
                                     {/* Regular layout for longer bookings */}
                                     {/* Time and duration - on its own row */}
                                     {booking.status !== 'cancelled' && (
@@ -1106,19 +1215,22 @@ export function DailyView({
                                         {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                       </div>
                                     )}
-                                    <div 
-                                      className={cn("font-bold truncate text-sm sm:text-base pr-2", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={booking.customerName}
-                                    >
-                                      {booking.customerName}
+                                    <div className="flex-1 min-w-0">
+                                      <div 
+                                        className={cn("font-bold truncate text-sm sm:text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.customerName}
+                                      >
+                                        {booking.customerName}
+                                      </div>
+                                      <div 
+                                        className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
+                                        title={booking.serviceName}
+                                      >
+                                        {booking.serviceName}
+                                      </div>
                                     </div>
-                                    <div 
-                                      className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                      title={booking.serviceName}
-                                    >
-                                      {booking.serviceName}
-                                    </div>
-                                  </>
+                                    {badgeRow}
+                                  </div>
                                 )}
                               </div>
                             </DraggableBooking>

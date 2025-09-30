@@ -149,6 +149,7 @@ export class PrismaBookingRepository implements IBookingRepository {
         depositAmount: booking.depositAmount,
         source: booking.source,
         createdById: booking.createdById,
+        customerRequestedStaff: booking.customerRequestedStaff,
         providerId: booking.staffId,
         notes: booking.notes,
         isOverride: booking.isOverride,

@@ -21,6 +21,7 @@ export interface Booking {
   duration: number;
   date: string; // For backward compatibility
   notes?: string;
+  customerRequestedStaff?: boolean;
 }
 
 export interface CreateBookingRequest {
@@ -371,6 +372,7 @@ export class BookingsClient extends BaseApiClient {
     const transformed = {
       ...booking,
       status,
+      customerRequestedStaff: Boolean((booking as any).customerRequestedStaff),
       customerName,
       customerPhone,
       customerEmail,
