@@ -9,6 +9,16 @@ import { Badge } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@heya-pos/ui';
 import { apiClient } from '@/lib/api-client';
 import { StaffClient } from '@/lib/clients/staff-client';
 import { StaffScheduleModal } from '@/components/roster/StaffScheduleModal';
@@ -90,6 +100,8 @@ export default function RosterPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [businessHours, setBusinessHours] = useState<any>(null);
+  const [showConfirmCopy, setShowConfirmCopy] = useState(false);
+  const [showConfirmBusinessHours, setShowConfirmBusinessHours] = useState(false);
   
   const staffClient = new StaffClient();
 
@@ -309,6 +321,7 @@ export default function RosterPage() {
       
       // First, load overrides from the previous week
       const previousWeekOverrides = new Map<string, ScheduleOverride[]>();
+      const overridesDraft = new Map<string, ScheduleOverride[]>(overrides);
       
       await Promise.all(
         staff.map(async (staffMember) => {
@@ -323,8 +336,9 @@ export default function RosterPage() {
         })
       );
       
-      // Create new overrides for the current week based on previous week
-      const newOverrides: ScheduleOverride[] = [];
+      // Create actions for the current week based on previous week
+      const overridesToUpsert: ScheduleOverride[] = [];
+      const overridesToDelete: { staffId: string; date: string }[] = [];
       
       // For each staff member
       for (const staffMember of staff) {
@@ -341,47 +355,70 @@ export default function RosterPage() {
           const previousOverride = staffOverrides.find(o => o.date === previousDateStr);
           
           if (previousOverride) {
-            // Create new override for current week
+            // Create new override for current week mirroring previous week
             const newOverride: ScheduleOverride = {
               staffId: staffMember.id,
               date: currentDateStr,
               startTime: previousOverride.startTime,
               endTime: previousOverride.endTime,
-              reason: previousOverride.reason ? `Copied from ${format(previousDate, 'MMM d')}` : undefined
+              reason: previousOverride.reason,
             };
-            
-            newOverrides.push(newOverride);
-            
-            // Update local state
-            const currentStaffOverrides = overrides.get(staffMember.id) || [];
+
+            overridesToUpsert.push(newOverride);
+
+            const currentStaffOverrides = overridesDraft.get(staffMember.id) || [];
             const filteredOverrides = currentStaffOverrides.filter(o => o.date !== currentDateStr);
-            const updatedOverrides = [...filteredOverrides, newOverride];
-            setOverrides(prev => new Map(prev).set(staffMember.id, updatedOverrides));
+            overridesDraft.set(staffMember.id, [...filteredOverrides, newOverride]);
+          } else {
+            // No override last week, ensure none exists this week
+            const currentStaffOverrides = overridesDraft.get(staffMember.id) || [];
+            const filteredOverrides = currentStaffOverrides.filter(o => o.date !== currentDateStr);
+
+            if (filteredOverrides.length === 0) {
+              overridesDraft.delete(staffMember.id);
+            } else {
+              overridesDraft.set(staffMember.id, filteredOverrides);
+            }
+
+            const currentOverride = (overrides.get(staffMember.id) || []).find(o => o.date === currentDateStr);
+            if (currentOverride) {
+              overridesToDelete.push({ staffId: staffMember.id, date: currentDateStr });
+            }
           }
         }
       }
       
-      if (newOverrides.length === 0) {
+      if (overridesToUpsert.length === 0 && overridesToDelete.length === 0) {
         toast({
-          title: 'No overrides to copy',
-          description: 'The previous week has no schedule overrides',
+          title: 'No changes copied',
+          description: 'Nothing from last week requires updates for this week.',
         });
       } else {
-        // Save all overrides to API
-        await Promise.all(
-          newOverrides.map(override => 
+        const operations: Promise<unknown>[] = [];
+
+        overridesToUpsert.forEach((override) => {
+          operations.push(
             staffClient.createOrUpdateScheduleOverride(override.staffId, {
               date: override.date,
               startTime: override.startTime,
               endTime: override.endTime,
-              reason: override.reason
+              reason: override.reason,
             })
-          )
-        );
+          );
+        });
+
+        overridesToDelete.forEach(({ staffId, date }) => {
+          operations.push(staffClient.deleteScheduleOverride(staffId, date));
+        });
+
+        await Promise.all(operations);
+
+        setOverrides(overridesDraft);
+        await loadOverridesForWeek();
         
         toast({
           title: 'Success',
-          description: `Copied ${newOverrides.length} schedule override${newOverrides.length > 1 ? 's' : ''} from previous week`,
+          description: 'Copied the previous week schedule into the current week.',
         });
       }
     } catch (error) {
@@ -599,7 +636,8 @@ export default function RosterPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={copyPreviousWeek}
+            onClick={() => setShowConfirmCopy(true)}
+            disabled={loading}
           >
             <Copy className="h-4 w-4 mr-2" />
             Copy Previous Week
@@ -608,7 +646,8 @@ export default function RosterPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={applyBusinessHours}
+            onClick={() => setShowConfirmBusinessHours(true)}
+            disabled={loading}
           >
             <Clock className="h-4 w-4 mr-2" />
             Apply Business Hours
@@ -882,6 +921,52 @@ export default function RosterPage() {
           onScheduleUpdate={handleScheduleModalUpdate}
         />
       )}
+
+      <AlertDialog open={showConfirmCopy} onOpenChange={setShowConfirmCopy}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Copy previous week schedule?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This copies last week&apos;s roster (including days off and overrides) into the current week and replaces any changes you&apos;ve already made for these days.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={loading}
+              onClick={() => {
+                setShowConfirmCopy(false);
+                void copyPreviousWeek();
+              }}
+            >
+              Copy overrides
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showConfirmBusinessHours} onOpenChange={setShowConfirmBusinessHours}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Overwrite staff schedules?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Applying business hours resets every staff member&apos;s weekly schedule to match your business hours. Current schedules will be replaced.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={loading}
+              onClick={() => {
+                setShowConfirmBusinessHours(false);
+                void applyBusinessHours();
+              }}
+            >
+              Apply business hours
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
