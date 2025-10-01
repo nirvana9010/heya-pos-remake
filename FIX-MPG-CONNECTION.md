@@ -41,3 +41,18 @@ curl https://heya-pos-api.fly.dev/api/v1/admin/merchants | jq 'length'
 - Production MPG: 8 merchants ✅
 - Development DB: 9 merchants (includes test data) ✅
 - Admin dashboard: Shows only production data ✅
+
+## Update (October 1, 2025)
+- Production database moved to new MPG cluster `w86750824lj03pk4` (restored snapshot).
+- Internal IPv6: `[fdaa:22:d57d:0:1::22]`
+- Credentials (as of snapshot): `fly-user / 34jaZjy5m2SpLKPxhp4kt6rX`
+
+### Commands to flip production to the new cluster
+```bash
+/home/lukas/.fly/bin/flyctl mpg status w86750824lj03pk4 --json
+
+/home/lukas/.fly/bin/flyctl secrets set \
+  DATABASE_URL='postgresql://fly-user:34jaZjy5m2SpLKPxhp4kt6rX@[fdaa:22:d57d:0:1::22]:5432/fly-db?sslmode=disable' \
+  DIRECT_URL='postgresql://fly-user:34jaZjy5m2SpLKPxhp4kt6rX@[fdaa:22:d57d:0:1::22]:5432/fly-db?sslmode=disable' \
+  -a heya-pos-api
+```
