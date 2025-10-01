@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   ChevronLeft, ChevronRight, Calendar, User, Clock, UserCircle, CheckCircle,
@@ -18,7 +18,7 @@ import { HorizontalDatePicker } from "../../components/HorizontalDatePicker";
 import { cn } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
-import { bookingApi, type Service, type Staff, type TimeSlot, type MerchantInfo } from "../../lib/booking-api";
+import { bookingApi, type Service, type Staff, type TimeSlot, type MerchantInfo, type CreateBookingData } from "../../lib/booking-api";
 import { format } from "date-fns";
 import { TimezoneUtils, formatName } from "@heya-pos/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,13 +60,23 @@ const CustomerFormComponent = React.memo(({
   
   const isFieldValid = (field: keyof typeof customerInfo) => {
     if (!touched[field as keyof typeof touched]) return false;
+
     if (field === 'email') {
-      return customerInfo.email.includes('@') && customerInfo.email.includes('.');
+      const value = customerInfo.email.trim();
+      if (!value) return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(value);
     }
+
     if (field === 'phone') {
-      return customerInfo.phone.length >= 10;
+      const value = customerInfo.phone.trim();
+      if (!value) return false;
+      const phoneRegex = /^[\+]?[\d\s\-\(\)]+$/;
+      return phoneRegex.test(value) && value.replace(/[^\d]/g, '').length >= 8;
     }
-    return customerInfo[field].length > 0;
+
+    const value = customerInfo[field]?.toString().trim();
+    return Boolean(value);
   };
   
   const handleChange = (field: keyof typeof customerInfo, value: string) => {
@@ -178,7 +188,6 @@ const CustomerFormComponent = React.memo(({
               "peer pt-6 pb-2 transition-colors duration-200",
               isFieldValid('lastName') && "border-green-500"
             )}
-            required
           />
           <Label 
             htmlFor="lastName" 
@@ -189,7 +198,7 @@ const CustomerFormComponent = React.memo(({
                 : "top-4 text-sm text-muted-foreground peer-focus:top-2 peer-focus:text-xs"
             )}
           >
-            Last Name *
+            Last Name (optional)
           </Label>
           {isFieldValid('lastName') && (
             <CheckCircle className="absolute right-3 top-4 h-4 w-4 text-green-500" />
@@ -209,7 +218,6 @@ const CustomerFormComponent = React.memo(({
             isFieldValid('email') && "border-green-500"
           )}
           placeholder=" "
-          required
         />
         <Label 
           htmlFor="email" 
@@ -220,13 +228,13 @@ const CustomerFormComponent = React.memo(({
               : "top-4 text-sm text-muted-foreground peer-focus:top-2 peer-focus:text-xs"
           )}
         >
-          Email Address *
+          Email Address (optional)
         </Label>
         {isFieldValid('email') && (
           <CheckCircle className="absolute right-3 top-4 h-4 w-4 text-green-500" />
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          We&apos;ll send your confirmation here
+          We&apos;ll send your confirmation here if you provide one
         </p>
       </div>
       
@@ -242,7 +250,6 @@ const CustomerFormComponent = React.memo(({
             isFieldValid('phone') && "border-green-500"
           )}
           placeholder=" "
-          required
         />
         <Label 
           htmlFor="phone" 
@@ -253,13 +260,13 @@ const CustomerFormComponent = React.memo(({
               : "top-4 text-sm text-muted-foreground peer-focus:top-2 peer-focus:text-xs"
           )}
         >
-          Phone Number *
+          Phone Number (optional)
         </Label>
         {isFieldValid('phone') && (
           <CheckCircle className="absolute right-3 top-4 h-4 w-4 text-green-500" />
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          In case we need to reach you
+          Helps us reach you if needed
         </p>
       </div>
       
@@ -328,6 +335,7 @@ export default function BookingPageClient() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const allStaffRef = useRef<Staff[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(merchantFromContext);
   
@@ -379,7 +387,7 @@ export default function BookingPageClient() {
     date: Date;
     time: string;
     customerName: string;
-    customerEmail: string;
+    customerEmail?: string;
     totalPrice: number;
     totalDuration: number;
   } | null>(null);
@@ -393,6 +401,49 @@ export default function BookingPageClient() {
       loadInitialData();
     }
   }, [merchantSubdomain]);
+
+  useEffect(() => {
+    if (!merchantSubdomain) {
+      return;
+    }
+
+    if (!selectedDate) {
+      if (allStaffRef.current.length > 0) {
+        setStaff([...allStaffRef.current]);
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchStaffForDate = async () => {
+      try {
+        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+        const staffForDate = await bookingApi.getStaff({ date: formattedDate });
+        const activeStaff = staffForDate.filter(s => s.isActive);
+
+        if (!cancelled) {
+          setStaff(activeStaff);
+
+          if (
+            selectedStaff &&
+            selectedStaff !== '' &&
+            !activeStaff.some(member => member.id === selectedStaff)
+          ) {
+            setSelectedStaff('');
+          }
+        }
+      } catch (error) {
+        console.error('[BookingPageClient] Failed to fetch staff for selected date', error);
+      }
+    };
+
+    fetchStaffForDate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, merchantSubdomain, selectedStaff]);
 
   useEffect(() => {
     if (selectedDate && selectedServices.length > 0) {
@@ -420,7 +471,9 @@ export default function BookingPageClient() {
       // Use merchant from context if available, otherwise use API response
       setMerchantInfo(merchantFromContext || merchantData);
       setServices(servicesData.filter(s => s.isActive));
-      setStaff(staffData.filter(s => s.isActive));
+      const activeStaff = staffData.filter(s => s.isActive);
+      allStaffRef.current = [...activeStaff];
+      setStaff(activeStaff);
     } catch (error) {
       toast({
         title: "Error",
@@ -477,25 +530,35 @@ export default function BookingPageClient() {
   const handleBookingSubmit = async () => {
     if (selectedServices.length === 0 || !selectedDate || !selectedTime) return;
     
+    const trimmedFirstName = customerInfo.firstName.trim();
+    const trimmedLastName = customerInfo.lastName.trim();
+    const trimmedEmail = customerInfo.email.trim();
+    const trimmedPhone = customerInfo.phone.trim();
+    const trimmedNotes = customerInfo.notes.trim();
+    const baseCustomerName = formatName(trimmedFirstName, trimmedLastName) || trimmedFirstName;
+    const isGuestCustomer = !trimmedEmail && !trimmedPhone;
+    const customerNameForSubmission = isGuestCustomer ? `${baseCustomerName} (GUEST)` : baseCustomerName;
+    
     // Determine staff assignment
     // When "Any Available" is selected (empty string), don't send a staffId
     // Let the API handle auto-assignment to find an actually available staff member
-    let finalStaffId = selectedStaff === "" ? undefined : selectedStaff || undefined;
+    const finalStaffId = selectedStaff === "" ? undefined : selectedStaff || undefined;
     
-    // Create booking directly
-    await createBooking({
-      customerName: formatName(customerInfo.firstName, customerInfo.lastName),
-      customerPhone: customerInfo.phone,
-      customerEmail: customerInfo.email,
+    const bookingPayload: CreateBookingData = {
+      customerName: customerNameForSubmission,
+      customerPhone: trimmedPhone || undefined,
+      customerEmail: trimmedEmail || undefined,
       services: selectedServices.map(id => ({ serviceId: id })),
       staffId: finalStaffId,
       date: selectedDate,
       startTime: selectedTime,
-      notes: customerInfo.notes
-    });
+      notes: trimmedNotes || undefined,
+    };
+
+    await createBooking(bookingPayload);
   };
 
-  const createBooking = async (bookingData: any) => {
+  const createBooking = async (bookingData: CreateBookingData) => {
     try {
       setSubmitting(true);
       
@@ -505,6 +568,10 @@ export default function BookingPageClient() {
       const totalPrice = selectedServicesList.reduce((sum, s) => sum + s.price, 0);
       const totalDuration = selectedServicesList.reduce((sum, s) => sum + s.duration, 0);
       
+      const confirmationFirstName = customerInfo.firstName.trim();
+      const confirmationLastName = customerInfo.lastName.trim();
+      const confirmationEmail = customerInfo.email.trim();
+
       setConfirmationData({
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber || booking.id,
@@ -512,8 +579,8 @@ export default function BookingPageClient() {
         staffName: selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available',
         date: selectedDate!,
         time: selectedTime!,
-        customerName: formatName(customerInfo.firstName, customerInfo.lastName),
-        customerEmail: customerInfo.email,
+        customerName: formatName(confirmationFirstName, confirmationLastName) || confirmationFirstName,
+        customerEmail: confirmationEmail || undefined,
         totalPrice,
         totalDuration,
       });
@@ -568,8 +635,9 @@ export default function BookingPageClient() {
       case 3:
         return !!selectedDate && !!selectedTime;
       case 4:
-        // Only firstName and lastName are required
-        const hasRequiredFields = customerInfo.firstName && customerInfo.lastName;
+        // Only first name is required for guest checkout
+        const trimmedFirstName = customerInfo.firstName.trim();
+        const hasRequiredFields = Boolean(trimmedFirstName);
         
         // Validate email format if email is provided
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -579,9 +647,7 @@ export default function BookingPageClient() {
         const phoneRegex = /^[\+]?[\d\s\-\(\)]+$/;
         const isPhoneValid = !customerInfo.phone || (phoneRegex.test(customerInfo.phone.trim()) && customerInfo.phone.trim().length >= 8);
         
-        // At least one contact method (email or phone) is required and must be valid
-        const hasValidContactMethod = (customerInfo.email && isEmailValid) || (customerInfo.phone && isPhoneValid);
-        const canProceedStep4 = hasRequiredFields && hasValidContactMethod && isEmailValid && isPhoneValid;
+        const canProceedStep4 = hasRequiredFields && isEmailValid && isPhoneValid;
         
         console.log('[BookingPageClient] Step 4 canProceed check:', {
           firstName: customerInfo.firstName,
@@ -591,7 +657,6 @@ export default function BookingPageClient() {
           hasRequiredFields,
           isEmailValid,
           isPhoneValid,
-          hasValidContactMethod,
           canProceedStep4,
           isReturningCustomer,
           showCustomerForm,
@@ -1648,9 +1713,11 @@ export default function BookingPageClient() {
                       ? <Clock className="h-4 w-4 text-orange-500 mt-0.5" />
                       : <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />}
                     <p>
-                      {merchantInfo?.settings?.autoConfirmBookings === false 
-                        ? `Confirmation email will be sent to ${confirmationData.customerEmail} after the merchant confirms your booking`
-                        : `Confirmation email sent to ${confirmationData.customerEmail}`}
+                      {confirmationData.customerEmail
+                        ? (merchantInfo?.settings?.autoConfirmBookings === false
+                            ? `Confirmation email will be sent to ${confirmationData.customerEmail} after the merchant confirms your booking`
+                            : `Confirmation email sent to ${confirmationData.customerEmail}`)
+                        : 'We\'ll confirm your booking with you at the venue since no contact details were provided.'}
                     </p>
                   </div>
                   {(merchantInfo?.settings?.appointmentReminder24hEmail || 
@@ -1950,7 +2017,7 @@ export default function BookingPageClient() {
                     )}
                     
                     {/* Navigation buttons for step 4 - only show when customer form is shown and has minimal required data */}
-                    {showCustomerForm && customerInfo.firstName && customerInfo.lastName && (customerInfo.email || customerInfo.phone) && (
+                    {showCustomerForm && customerInfo.firstName.trim() && (
                       <div className="flex justify-between mt-12 px-2">
                         <motion.div
                           initial={{ opacity: 0, x: -20 }}
@@ -2037,7 +2104,7 @@ export default function BookingPageClient() {
                           date={selectedDate!}
                           time={selectedTime!}
                           staffName={selectedStaffMember ? cleanStaffName(selectedStaffMember.name) : 'Any Available'}
-                          customerName={formatName(customerInfo.firstName, customerInfo.lastName)}
+                          customerName={formatName(customerInfo.firstName.trim(), customerInfo.lastName.trim()) || customerInfo.firstName.trim()}
                           cancellationHours={merchantInfo?.settings?.cancellationHours}
                         />
                         </>

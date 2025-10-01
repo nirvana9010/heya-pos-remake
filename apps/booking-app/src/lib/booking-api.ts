@@ -44,8 +44,8 @@ export interface TimeSlot {
 
 export interface CreateBookingData {
   customerName: string;
-  customerEmail: string;
-  customerPhone: string;
+  customerEmail?: string;
+  customerPhone?: string;
   serviceId?: string; // For backward compatibility
   staffId?: string;
   services?: Array<{
@@ -61,8 +61,8 @@ export interface Booking {
   id: string;
   bookingNumber?: string;
   customerName: string;
-  customerEmail: string;
-  customerPhone: string;
+  customerEmail?: string;
+  customerPhone?: string;
   serviceId?: string; // For backward compatibility
   serviceName?: string; // For backward compatibility
   services?: Array<{
@@ -130,8 +130,9 @@ class BookingApi {
   }
 
   // Get active staff members (public endpoint)
-  async getStaff(): Promise<Staff[]> {
-    const response = await apiClient.get<{ data: Staff[] }>('/public/staff');
+  async getStaff(params?: { date?: string }): Promise<Staff[]> {
+    const query = params?.date ? `?date=${encodeURIComponent(params.date)}` : '';
+    const response = await apiClient.get<{ data: Staff[] }>(`/public/staff${query}`);
     return response.data;
   }
 
