@@ -60,3 +60,37 @@ Use these steps whenever a manual SQL migration needs to run against the product
 4. **Close the proxy** once finished (Ctrl+C in the proxy terminal, or `pkill -f "flyctl mpg proxy"`).
 
 If the proxy command fails, confirm you are logged in (`/home/lukas/.fly/bin/flyctl auth whoami`) and that the cluster is ready (`/home/lukas/.fly/bin/flyctl mpg status --cluster gjpkdon1pn60yln4`).
+
+## Fly MPG Read-Only Queries (Do **Not** Deviate)
+When you need to inspect data on any Fly Managed Postgres (MPG) cluster, follow this exact flow. Do not improvise or reach for other commands.
+
+1. **Fetch credentials** every time:
+   ```bash
+   /home/lukas/.fly/bin/flyctl mpg status <cluster-id> --json
+   ```
+   Use the JSON output to capture the `user`, `password`, and `dbname` fields for the session.
+
+2. **Start a proxy in the background** and log its output:
+   ```bash
+   nohup /home/lukas/.fly/bin/flyctl mpg proxy --cluster <cluster-id> >/tmp/fly_proxy_<cluster-id>.log 2>&1 &
+   ```
+   The proxy binds `127.0.0.1:16380` unless occupied. Assume that port unless you explicitly see a different one in the log.
+
+3. **Confirm the port is listening** (optional sanity check):
+   ```bash
+   lsof -i :16380
+   ```
+
+4. **Run your SQL via `psql`** using the credentials from step 1. Always pass the password through `PGPASSWORD` and connect to the proxy:
+   ```bash
+   PGPASSWORD=<password> psql "postgresql://<user>@127.0.0.1:16380/<dbname>" -c '<SQL here>'
+   ```
+   - For scripted output use `-t` (tuples only) or `-F '\t' -A` for tab-delimited results.
+   - Never call `flyctl mpg connect` or any other helper; they drop you into interactive shells and often fail with EOFs.
+
+5. **Tear down the proxy** the moment you finish:
+   ```bash
+   /bin/pkill -f "flyctl mpg proxy --cluster <cluster-id>"
+   ```
+
+This is the sole approved sequence for MPG reads. Stick to it and you won't get weird failures or partial connections again.
