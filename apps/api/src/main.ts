@@ -9,6 +9,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
 import compression from 'compression';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { memoryLogger } from './utils/memory-logger';
 
 // Ensure crypto is available globally for uuid package
@@ -36,6 +37,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  // Increase payload limits for large CSV imports
+  app.use(json({ limit: '25mb' }));
+  app.use(urlencoded({ limit: '25mb', extended: true }));
 
   // Enable WebSocket adapter
   try {

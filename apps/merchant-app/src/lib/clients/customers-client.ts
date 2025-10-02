@@ -92,6 +92,16 @@ export interface CustomerImportResult {
   errors: Array<{ row: number; error: string }>;
 }
 
+interface CustomerImportExecutionRow {
+  rowNumber: number;
+  data?: CustomerImportData;
+  validation: {
+    isValid: boolean;
+  };
+  action: 'create' | 'update' | 'skip';
+  existingCustomerId?: string;
+}
+
 export class CustomersClient extends BaseApiClient {
   async getCustomers(params?: { limit?: number; page?: number; search?: string }): Promise<{
     data: Customer[];
@@ -180,6 +190,16 @@ export class CustomersClient extends BaseApiClient {
     rows: CustomerImportPreviewRow[],
     options: CustomerImportOptions,
   ): Promise<CustomerImportResult> {
-    return this.post('/customers/import/execute', { rows, options }, undefined, 'v1');
+    const payloadRows: CustomerImportExecutionRow[] = rows.map(row => ({
+      rowNumber: row.rowNumber,
+      data: row.data,
+      validation: {
+        isValid: row.validation?.isValid ?? true,
+      },
+      action: row.action,
+      existingCustomerId: row.existingCustomerId,
+    }));
+
+    return this.post('/customers/import/execute', { rows: payloadRows, options }, undefined, 'v1');
   }
 }
