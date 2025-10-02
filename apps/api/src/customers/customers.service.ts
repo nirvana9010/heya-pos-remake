@@ -77,7 +77,6 @@ export class CustomersService {
         preferredLanguage: dto.preferredLanguage,
         marketingConsent: dto.marketingConsent,
         source: dto.source,
-        dateAdded: new Date(),
         merchantId,
       },
     });

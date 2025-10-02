@@ -143,6 +143,8 @@ export default function CustomersPageContent() {
     totalRevenue: 0
   });
 
+  const isFiltering = Boolean(searchQuery?.trim()) || selectedSegment !== 'all';
+
   // Forward declaration of loadCustomers to avoid hoisting issues
   const loadCustomersRef = useRef<(params?: { search?: string; limit?: number; page?: number }) => Promise<void>>();
 
@@ -246,18 +248,28 @@ export default function CustomersPageContent() {
   useEffect(() => {
     if (!loading && !isSearching) {
       filterCustomers();
+    }
+  }, [customers, selectedSegment, sortBy, searchQuery, loading, isSearching]);
+
+  // Reset pagination when filters are applied
+  useEffect(() => {
+    const hasActiveFilters = Boolean(searchQuery?.trim()) || selectedSegment !== 'all';
+    if (!loading && !isSearching && hasActiveFilters) {
       setCurrentPage(1);
     }
-  }, [customers, selectedSegment, sortBy, searchQuery]);
+  }, [searchQuery, selectedSegment, sortBy, loading, isSearching]);
 
   const loadCustomers = async (params?: { search?: string; limit?: number; page?: number }) => {
     try {
       setLoading(true);
       
+      const requestedLimit = params?.limit ?? itemsPerPage;
+      const requestedPage = params?.page ?? currentPage;
+
       // Use pagination for better performance
       const apiParams = {
-        limit: itemsPerPage,
-        page: 1,
+        limit: requestedLimit,
+        page: requestedPage,
         ...params
       };
       
@@ -266,7 +278,10 @@ export default function CustomersPageContent() {
       
       // Handle paginated response
       const customersData = response.data || [];
-      const totalCount = response.meta?.total || 0;
+      const meta = response.meta || {};
+      const totalCount = meta.total ?? customersData.length;
+      const responseLimit = meta.limit ?? requestedLimit;
+      const responsePage = meta.page ?? requestedPage;
       
       // Map the API response to include the stats from backend
       const mappedCustomers = customersData.map((customer: any) => ({
@@ -281,7 +296,9 @@ export default function CustomersPageContent() {
       setCustomers(mappedCustomers);
       setFilteredCustomers(mappedCustomers);
       setTotalCustomers(totalCount);
-      setServerTotalPages(Math.ceil(totalCount / itemsPerPage));
+      const calculatedTotalPages = meta.totalPages ?? (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 1);
+      setServerTotalPages(Math.max(1, calculatedTotalPages));
+      setCurrentPage(responsePage);
       setLoading(false);
       
     } catch (error: any) {
@@ -468,8 +485,6 @@ export default function CustomersPageContent() {
   };
 
   // Pagination logic - use server-side pagination when possible
-  const isFiltering = searchQuery || selectedSegment !== 'all';
-
   // Use real stats from database
   const stats = useMemo(() => {
     // When filtering, calculate from filtered results
@@ -923,7 +938,8 @@ export default function CustomersPageContent() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={(event) => {
+                  event.currentTarget.blur();
                   const newPage = Math.max(1, currentPage - 1);
                   setCurrentPage(newPage);
                   if (!isFiltering) {
@@ -942,7 +958,8 @@ export default function CustomersPageContent() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={(event) => {
+                  event.currentTarget.blur();
                   const newPage = Math.min(totalPages, currentPage + 1);
                   setCurrentPage(newPage);
                   if (!isFiltering) {
