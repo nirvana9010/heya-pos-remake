@@ -58,6 +58,7 @@ interface Customer {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  mobile?: string | null;
   dateOfBirth?: string;
   notes?: string;
   tags?: string[];
@@ -142,6 +143,7 @@ export default function CustomersPageContent() {
     newThisMonth: 0,
     totalRevenue: 0
   });
+  const [isRemoteSearchResult, setIsRemoteSearchResult] = useState(false);
 
   const isFiltering = Boolean(searchQuery?.trim()) || selectedSegment !== 'all';
 
@@ -158,6 +160,7 @@ export default function CustomersPageContent() {
     // If empty query, reload all customers to reset from search results
     if (!query || query.trim().length === 0) {
       setIsSearching(false);
+      setIsRemoteSearchResult(false);
       // Reload all customers to clear search results
       loadCustomersRef.current?.({ limit: itemsPerPage, page: currentPage });
       return;
@@ -166,6 +169,7 @@ export default function CustomersPageContent() {
     // Debounce search
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
+      setIsRemoteSearchResult(false);
       
       // Store current selection position before search
       const input = searchInputRef.current;
@@ -173,11 +177,11 @@ export default function CustomersPageContent() {
       const selectionEnd = input?.selectionEnd;
       
       try {
-        const response = await apiClient.customers.getCustomers({ search: query, limit: 100, page: 1 });
-        
-        // Handle paginated response
+        const response = await apiClient.customers.searchCustomers(query);
+
+        // Handle response
         const customersData = response.data || [];
-        const totalCount = response.meta?.total || 0;
+        const totalCount = response.total ?? customersData.length;
         
         // Map the API response
         const mappedCustomers = customersData.map((customer: any) => ({
@@ -187,11 +191,11 @@ export default function CustomersPageContent() {
           loyaltyPoints: customer.loyaltyPoints || 0,
           loyaltyVisits: customer.loyaltyVisits || 0,
         }));
-        
         setCustomers(mappedCustomers);
         setFilteredCustomers(mappedCustomers);
         setTotalCustomers(totalCount);
-        setServerTotalPages(Math.ceil(totalCount / itemsPerPage));
+        setServerTotalPages(1);
+        setIsRemoteSearchResult(true);
       } catch (error: any) {
         console.error('Customer search failed:', error);
         toast({
@@ -199,9 +203,10 @@ export default function CustomersPageContent() {
           description: error.response?.data?.message || "Failed to search customers",
           variant: "destructive",
         });
+        setIsRemoteSearchResult(false);
       } finally {
         setIsSearching(false);
-        
+
         // Restore focus and cursor position
         setTimeout(() => {
           if (input && selectionStart !== undefined && selectionEnd !== undefined) {
@@ -217,6 +222,7 @@ export default function CustomersPageContent() {
   useEffect(() => {
     // Load customers
     loadCustomersRef.current?.({ limit: itemsPerPage, page: 1 });
+    setIsRemoteSearchResult(false);
     
     // Fetch real stats from the database separately
     apiClient.customers.getStats()
@@ -249,7 +255,7 @@ export default function CustomersPageContent() {
     if (!loading && !isSearching) {
       filterCustomers();
     }
-  }, [customers, selectedSegment, sortBy, searchQuery, loading, isSearching]);
+  }, [customers, selectedSegment, sortBy, searchQuery, loading, isSearching, isRemoteSearchResult]);
 
   // Reset pagination when filters are applied
   useEffect(() => {
@@ -434,15 +440,41 @@ export default function CustomersPageContent() {
   const filterCustomers = () => {
     let filtered = [...customers];
 
-    // Apply search filter for client-side filtering (when search is empty or short)
-    if (searchQuery && searchQuery.trim().length > 0 && !isSearching) {
+    const hasSearchQuery = Boolean(searchQuery && searchQuery.trim().length > 0);
+
+    // Apply client-side search filtering only when we don't have remote search results
+    if (hasSearchQuery && !isSearching && !isRemoteSearchResult) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(customer =>
-        (customer.firstName?.toLowerCase() || '').includes(query) ||
-        (customer.lastName?.toLowerCase() || '').includes(query) ||
-        (customer.email?.toLowerCase() || '').includes(query) ||
-        (customer.phone || '').includes(query)
-      );
+      const numericQuery = searchQuery.replace(/\D/g, '');
+      filtered = filtered.filter(customer => {
+        const firstName = customer.firstName?.toLowerCase() || '';
+        const lastName = customer.lastName?.toLowerCase() || '';
+        const email = customer.email?.toLowerCase() || '';
+        const phoneDigits = (customer.phone || '').replace(/\D/g, '');
+        const mobileDigits = (customer.mobile || customer.phone || '').replace(/\D/g, '');
+
+        const stringMatch =
+          firstName.includes(query) ||
+          lastName.includes(query) ||
+          email.includes(query) ||
+          (customer.phone || '').includes(query) ||
+          (customer.mobile || '').includes(query);
+
+        if (stringMatch) {
+          return true;
+        }
+
+        if (!numericQuery) {
+          return false;
+        }
+
+        return (
+          phoneDigits.includes(numericQuery) ||
+          mobileDigits.includes(numericQuery) ||
+          phoneDigits.includes(numericQuery.replace(/^0/, '')) ||
+          mobileDigits.includes(numericQuery.replace(/^0/, ''))
+        );
+      });
     }
 
     // Apply segment filter
@@ -1020,7 +1052,7 @@ export default function CustomersPageContent() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
+                    placeholder="Optional"
                   />
                 </div>
                 <div>
@@ -1029,7 +1061,7 @@ export default function CustomersPageContent() {
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
+                    placeholder="Optional"
                   />
                 </div>
                 <div>

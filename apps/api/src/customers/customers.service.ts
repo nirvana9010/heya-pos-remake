@@ -240,87 +240,96 @@ export class CustomersService {
   }
 
   async searchCustomers(merchantId: string, query: string) {
+    const trimmedQuery = query.trim();
+    const digitQuery = trimmedQuery.replace(/\D/g, '');
+
+    const stringConditions: Prisma.Sql[] = [];
+
+    if (trimmedQuery.length >= 2) {
+      const likeValue = `%${trimmedQuery}%`;
+      stringConditions.push(Prisma.sql`"firstName" ILIKE ${likeValue}`);
+      stringConditions.push(Prisma.sql`"lastName" ILIKE ${likeValue}`);
+      stringConditions.push(Prisma.sql`"email" ILIKE ${likeValue}`);
+    }
+
+    const phonePatterns = this.buildPhoneSearchPatterns(digitQuery);
+
+    const conditions: Prisma.Sql[] = [...stringConditions];
+
+    if (phonePatterns.length > 0) {
+      const patternArray = Prisma.sql`ARRAY[${Prisma.join(
+        phonePatterns.map(pattern => Prisma.sql`${pattern}`),
+        ', '
+      )}]`;
+
+      conditions.push(
+        Prisma.sql`
+          regexp_replace(coalesce("phone", ''), '[^0-9]', '', 'g') LIKE ANY(${patternArray})
+          OR regexp_replace(coalesce("mobile", ''), '[^0-9]', '', 'g') LIKE ANY(${patternArray})
+        `,
+      );
+    }
+
+    if (conditions.length === 0) {
+      return {
+        data: [],
+        displayed: 0,
+        total: 0,
+        hasMore: false,
+      };
+    }
+
+    const combinedCondition = Prisma.sql`${Prisma.join(
+      conditions.map(condition => Prisma.sql`(${condition})`),
+      ' OR ',
+    )}`;
+
+    const baseWhere = Prisma.sql`"merchantId" = ${merchantId} AND (${combinedCondition})`;
+
     // First, get a count of total matching customers
-    const totalCount = await this.prisma.customer.count({
-      where: {
-        merchantId,
-        OR: [
-          {
-            firstName: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            lastName: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            email: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            phone: {
-              contains: query,
-            },
-          },
-          {
-            mobile: {
-              contains: query,
-            },
-          },
-        ],
-      },
-    });
+    const totalResult = await this.prisma.$queryRaw<{ count: bigint }[]>(
+      Prisma.sql`
+        SELECT COUNT(*)::bigint AS count
+        FROM "Customer"
+        WHERE ${baseWhere}
+      `,
+    );
+
+    const totalCount = totalResult[0]?.count ? Number(totalResult[0].count) : 0;
 
     // Then get the most relevant results
-    const customers = await this.prisma.customer.findMany({
-      where: {
-        merchantId,
-        OR: [
-          // Prioritize exact matches first
-          { firstName: { equals: query, mode: 'insensitive' } },
-          { lastName: { equals: query, mode: 'insensitive' } },
-          { email: { equals: query, mode: 'insensitive' } },
-          { phone: { equals: query } },
-          { mobile: { equals: query } },
-          // Then starts with
-          { firstName: { startsWith: query, mode: 'insensitive' } },
-          { lastName: { startsWith: query, mode: 'insensitive' } },
-          { email: { startsWith: query, mode: 'insensitive' } },
-          { phone: { startsWith: query } },
-          { mobile: { startsWith: query } },
-          // Then contains
-          { firstName: { contains: query, mode: 'insensitive' } },
-          { lastName: { contains: query, mode: 'insensitive' } },
-          { email: { contains: query, mode: 'insensitive' } },
-          { phone: { contains: query } },
-          { mobile: { contains: query } },
-        ],
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        mobile: true,
-        visitCount: true,
-        totalSpent: true,
-        createdAt: true,
-      },
-      orderBy: [
-        { visitCount: 'desc' }, // Most frequent customers first
-        { totalSpent: 'desc' }, // Then by spending
-        { firstName: 'asc' },
-        { lastName: 'asc' },
-      ],
-      take: 50, // Reasonable limit for UI performance
-    });
+    const customers = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+        phone: string | null;
+        mobile: string | null;
+        visitCount: number;
+        totalSpent: Prisma.Decimal;
+        createdAt: Date;
+      }>
+    >(
+      Prisma.sql`
+        SELECT "id",
+               "firstName",
+               "lastName",
+               "email",
+               "phone",
+               "mobile",
+               "visitCount",
+               "totalSpent",
+               "createdAt"
+        FROM "Customer"
+        WHERE ${baseWhere}
+        ORDER BY "visitCount" DESC,
+                 "totalSpent" DESC,
+                 "firstName" ASC,
+                 "lastName" ASC
+        LIMIT 50
+      `,
+    );
 
     return {
       data: customers.map(customer => ({
@@ -335,6 +344,44 @@ export class CustomersService {
       total: totalCount,
       hasMore: totalCount > customers.length,
     };
+  }
+
+  private buildPhoneSearchPatterns(digitsOnly: string): string[] {
+    if (!digitsOnly) {
+      return [];
+    }
+
+    const sanitized = digitsOnly.replace(/\D/g, '');
+    if (!sanitized) {
+      return [];
+    }
+
+    const variants = new Set<string>();
+
+    if (sanitized.length >= 3) {
+      variants.add(sanitized);
+    }
+
+    const withoutLeadingZero = sanitized.replace(/^0+/, '');
+    if (withoutLeadingZero && withoutLeadingZero.length >= 3) {
+      variants.add(withoutLeadingZero);
+    }
+
+    if (sanitized.startsWith('61') && sanitized.length >= 5) {
+      const withoutCountry = sanitized.slice(2);
+      if (withoutCountry.length >= 3) {
+        variants.add(withoutCountry);
+      }
+    }
+
+    if (withoutLeadingZero && withoutLeadingZero.length >= 3) {
+      const withCountry = `61${withoutLeadingZero}`;
+      variants.add(withCountry);
+    }
+
+    return Array.from(variants)
+      .filter(value => value.length >= 3)
+      .map(value => `%${value}%`);
   }
 
   async getStats(merchantId: string) {
