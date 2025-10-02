@@ -8,7 +8,7 @@ export default function CheckBuildPage() {
       <h1>Build Environment Check</h1>
       <div style={{ margin: '20px 0', padding: '20px', background: '#f0f0f0' }}>
         <p><strong>NEXT_PUBLIC_API_URL:</strong> {apiUrl || 'NOT SET (undefined)'}</p>
-        <p><strong>Default would be:</strong> http://localhost:3000</p>
+        <p><strong>Default would be:</strong> http://100.107.58.75:3000</p>
         <p><strong>Window location:</strong> {typeof window !== 'undefined' ? window.location.href : 'SSR'}</p>
       </div>
       
@@ -16,7 +16,7 @@ export default function CheckBuildPage() {
       {!apiUrl && (
         <div style={{ color: 'red' }}>
           <p>❌ NEXT_PUBLIC_API_URL is not set in the build!</p>
-          <p>This means all API calls will go to http://localhost:3000 which won't work in production.</p>
+          <p>This means all API calls will go to http://100.107.58.75:3000 which won't work in production.</p>
           <p>You need to add this environment variable in Vercel's project settings and redeploy.</p>
         </div>
       )}

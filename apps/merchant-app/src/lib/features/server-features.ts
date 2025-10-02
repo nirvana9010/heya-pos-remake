@@ -21,7 +21,7 @@ export const getServerFeatures = cache(async (): Promise<MerchantFeatures | null
     }
     
     // Make API call from server
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://100.107.58.75:3000/api';
     const url = `${apiUrl}/v1/features`;
     
     console.log('[ServerFeatures] Fetching from:', url);

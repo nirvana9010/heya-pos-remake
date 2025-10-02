@@ -16,12 +16,17 @@ import { Badge } from "@heya-pos/ui";
 import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
+import { resolveApiBaseUrl } from "@/lib/clients/base-client";
 import { ImportPreviewDialog } from "@/components/services/import-preview-dialog";
 import { ColumnMappingDialog } from "@/components/services/column-mapping-dialog";
+import { CustomerColumnMappingDialog } from "@/components/customers/customer-column-mapping-dialog";
+import { CustomerImportPreviewDialog } from "@/components/customers/customer-import-preview-dialog";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
 import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
 import { useTyro } from "@/hooks/useTyro";
+import type { CustomerImportPreview } from "@/lib/clients/customers-client";
+import { customerKeys } from "@/lib/query/hooks/use-customers";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -111,6 +116,14 @@ export default function SettingsPage() {
   
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
+  const [customerDuplicateAction, setCustomerDuplicateAction] = useState<'skip' | 'update'>('update');
+  const [customerSkipInvalidRows, setCustomerSkipInvalidRows] = useState(true);
+  const [customerCsvHeaders, setCustomerCsvHeaders] = useState<string[]>([]);
+  const [customerCsvPreviewRows, setCustomerCsvPreviewRows] = useState<string[][]>([]);
+  const [customerColumnMappings, setCustomerColumnMappings] = useState<Record<string, string> | null>(null);
+  const [showCustomerMappingDialog, setShowCustomerMappingDialog] = useState(false);
+  const [customerImportPreview, setCustomerImportPreview] = useState<CustomerImportPreview | null>(null);
+  const [showCustomerPreviewDialog, setShowCustomerPreviewDialog] = useState(false);
   const [serviceFile, setServiceFile] = useState<File | null>(null);
   const [importingCustomers, setImportingCustomers] = useState(false);
   const [importingServices, setImportingServices] = useState(false);
@@ -356,37 +369,148 @@ export default function SettingsPage() {
     }
 
     setImportingCustomers(true);
-    const formData = new FormData();
-    formData.append('file', customerFile);
+    setCustomerImportPreview(null);
+    setCustomerColumnMappings(null);
+    setShowCustomerPreviewDialog(false);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/v1/customers/import`, {
+      const formData = new FormData();
+      formData.append('file', customerFile);
+
+      const API_BASE_URL = resolveApiBaseUrl();
+      const token = localStorage.getItem('access_token');
+
+      const response = await fetch(`${API_BASE_URL}/v1/customers/import/mapping`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast({
-          title: "Import successful",
-          description: `Imported: ${result.imported}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
-        });
-        setCustomerFile(null);
-      } else {
-        toast({
-          title: "Import failed",
-          description: result.message || "Please check your CSV format",
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to parse CSV file');
       }
+
+      const mappingData = await response.json();
+      setCustomerCsvHeaders(mappingData.headers || []);
+      setCustomerCsvPreviewRows(mappingData.rows || []);
+      setShowCustomerMappingDialog(true);
     } catch (error) {
       toast({
         title: "Import error",
-        description: "Failed to import customers",
+        description: error instanceof Error ? error.message : "Failed to parse CSV file",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingCustomers(false);
+    }
+  };
+
+  const previewCustomerImport = async (mappings: Record<string, string>) => {
+    if (!customerFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file before previewing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportingCustomers(true);
+    try {
+      const preview = await apiClient.customers.previewCustomerImport(
+        customerFile,
+        {
+          duplicateAction: customerDuplicateAction,
+          skipInvalidRows: customerSkipInvalidRows,
+        },
+        mappings,
+      );
+
+      setCustomerImportPreview(preview);
+      setShowCustomerPreviewDialog(true);
+    } catch (error) {
+      toast({
+        title: "Preview failed",
+        description: error instanceof Error ? error.message : "Unable to preview customer import",
+        variant: "destructive",
+      });
+      if (!customerImportPreview) {
+        setShowCustomerMappingDialog(true);
+      }
+    } finally {
+      setImportingCustomers(false);
+    }
+  };
+
+  const handleCustomerMappingConfirm = async (mappings: Record<string, string>) => {
+    if (!customerFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCustomerColumnMappings(mappings);
+    setShowCustomerMappingDialog(false);
+    await previewCustomerImport(mappings);
+  };
+
+  const refreshCustomerPreview = async () => {
+    if (!customerColumnMappings) {
+      toast({
+        title: "Mapping required",
+        description: "Map your CSV columns before refreshing the preview",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await previewCustomerImport(customerColumnMappings);
+  };
+
+  const executeCustomerImport = async () => {
+    if (!customerImportPreview) {
+      toast({
+        title: "No preview available",
+        description: "Preview the CSV file before importing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportingCustomers(true);
+
+    try {
+      const result = await apiClient.customers.executeCustomerImport(
+        customerImportPreview.rows,
+        {
+          duplicateAction: customerDuplicateAction,
+          skipInvalidRows: customerSkipInvalidRows,
+        },
+      );
+
+      toast({
+        title: "Import complete",
+        description: `Imported ${result.imported}, Updated ${result.updated}, Skipped ${result.skipped}.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+
+      setCustomerFile(null);
+      setCustomerImportPreview(null);
+      setShowCustomerPreviewDialog(false);
+      setCustomerCsvHeaders([]);
+      setCustomerCsvPreviewRows([]);
+      setCustomerColumnMappings(null);
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Unable to import customers",
         variant: "destructive",
       });
     } finally {
@@ -395,9 +519,9 @@ export default function SettingsPage() {
   };
 
   const downloadCustomerTemplate = () => {
-    const csv = `name,email,mobile,phone,address,notes,tags,loyaltyPoints,vip
-"John Smith","john@email.com","+61412345678","0298765432","123 Main St, Sydney","Regular customer","vip,loyal",100,true
-"Jane Doe","jane@email.com","+61423456789",,"456 Queen St, Melbourne","New customer","",0,false`;
+    const csv = `First Name,Last Name,Full Name,Email,Mobile Number,Phone,Accepts Marketing,Accepts SMS Marketing,Date of Birth,Referral Source,Note
+"Anna","Smith",,"anna@example.com","+61 412 345 678",,"Yes","Yes","1992-05-10","Website","Prefers morning appointments"
+"Ben","Brown",,,"0412 000 000","02 9123 4567","No","No",,"Walk-In",""`;
     
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -441,7 +565,7 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append('file', serviceFile);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const API_BASE_URL = resolveApiBaseUrl();
       const token = localStorage.getItem('access_token');
 
       const response = await fetch(`${API_BASE_URL}/v1/services/import/mapping`, {
@@ -1547,6 +1671,41 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Duplicate handling</Label>
+                    <Select
+                      value={customerDuplicateAction}
+                      onValueChange={(value) => setCustomerDuplicateAction(value as 'skip' | 'update')}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select how to handle duplicates" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="update">Update existing customers</SelectItem>
+                        <SelectItem value="skip">Skip duplicate rows</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose whether rows that match an existing email or mobile should update that customer or be skipped.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Skip invalid rows</Label>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={customerSkipInvalidRows}
+                        onCheckedChange={setCustomerSkipInvalidRows}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {customerSkipInvalidRows
+                          ? 'Rows with validation errors are ignored.'
+                          : 'Validation errors stop the import so you can fix them.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 
                 <div className="rounded-lg bg-muted p-4 space-y-2">
                   <h4 className="font-medium flex items-center gap-2">
@@ -1554,11 +1713,11 @@ export default function SettingsPage() {
                     CSV Format Instructions
                   </h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Required fields: name</li>
-                    <li>• Optional fields: email, mobile, phone, address, notes, tags, loyaltyPoints, vip</li>
+                    <li>• Required column: First Name (Last Name optional)</li>
+                    <li>• Optional columns include Email, Mobile Number, Phone, Date of Birth, Gender, Address, Suburb, City, State, Postal Code, Country, Referral Source, Note, Tags, Preferred Language</li>
                     <li>• Use comma-separated values for tags (e.g., "vip,loyal")</li>
-                    <li>• Set vip to "true" or "false"</li>
-                    <li>• Duplicate customers (same email/mobile) will be updated</li>
+                    <li>• Marketing opt-ins accept Yes/No/True/False</li>
+                    <li>• Customize duplicate handling and invalid-row behaviour above before importing</li>
                   </ul>
                 </div>
               </CardContent>
@@ -1741,6 +1900,26 @@ export default function SettingsPage() {
         importing={importingServices}
       />
 
+      <CustomerImportPreviewDialog
+        open={showCustomerPreviewDialog}
+        onClose={() => {
+          if (importingCustomers) {
+            setShowCustomerPreviewDialog(true);
+            return;
+          }
+          setShowCustomerPreviewDialog(false);
+          setCustomerImportPreview(null);
+        }}
+        preview={customerImportPreview}
+        onConfirm={executeCustomerImport}
+        importing={importingCustomers}
+        duplicateAction={customerDuplicateAction}
+        skipInvalidRows={customerSkipInvalidRows}
+        onDuplicateActionChange={setCustomerDuplicateAction}
+        onSkipInvalidRowsChange={setCustomerSkipInvalidRows}
+        onRefresh={refreshCustomerPreview}
+      />
+
       {/* Column Mapping Dialog */}
       <ColumnMappingDialog
         open={showMappingDialog}
@@ -1751,6 +1930,20 @@ export default function SettingsPage() {
         csvHeaders={csvHeaders}
         csvPreviewRows={csvPreviewRows}
         onConfirm={handleColumnMappingConfirm}
+      />
+
+      <CustomerColumnMappingDialog
+        open={showCustomerMappingDialog}
+        onClose={() => {
+          if (importingCustomers) {
+            setShowCustomerMappingDialog(true);
+            return;
+          }
+          setShowCustomerMappingDialog(false);
+        }}
+        csvHeaders={customerCsvHeaders}
+        csvPreviewRows={customerCsvPreviewRows}
+        onConfirm={handleCustomerMappingConfirm}
       />
       
       {/* Tyro Pairing Dialog */}

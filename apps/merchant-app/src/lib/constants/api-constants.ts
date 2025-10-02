@@ -8,7 +8,7 @@
  */
 
 // Base URL MUST include /api path
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://100.107.58.75:3000/api';
 
 // API versions
 export const API_V1 = `${API_BASE_URL}/v1`;

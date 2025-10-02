@@ -241,7 +241,7 @@ const nextConfig = {
   async rewrites() {
     // In production, proxy API calls to the backend
     // The env var should already include /api
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://100.107.58.75:3000/api';
     
     return [
       {

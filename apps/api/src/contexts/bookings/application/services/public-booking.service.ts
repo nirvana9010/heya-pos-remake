@@ -9,8 +9,8 @@ import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 
 export interface PublicCreateBookingData {
   customerName: string;
-  customerEmail: string;
-  customerPhone: string;
+  customerEmail?: string;
+  customerPhone?: string;
   // Support both single service (backward compatibility) and multiple services
   serviceId?: string;
   staffId?: string;
@@ -98,16 +98,27 @@ export class PublicBookingService {
       throw new Error('No active location found');
     }
 
-    // Create or find customer
-    let customer = await this.prisma.customer.findFirst({
-      where: {
-        merchantId: merchant.id,
-        OR: [
-          { email: dto.customerEmail },
-          { phone: dto.customerPhone },
-        ],
-      },
-    });
+    if (!dto.customerEmail && !dto.customerPhone) {
+      throw new Error('Either customer email or phone is required');
+    }
+
+    const lookupConditions: Array<Record<string, string>> = [];
+    if (dto.customerEmail) {
+      lookupConditions.push({ email: dto.customerEmail });
+    }
+    if (dto.customerPhone) {
+      lookupConditions.push({ phone: dto.customerPhone });
+      lookupConditions.push({ mobile: dto.customerPhone });
+    }
+
+    let customer = lookupConditions.length
+      ? await this.prisma.customer.findFirst({
+          where: {
+            merchantId: merchant.id,
+            OR: lookupConditions,
+          },
+        })
+      : null;
 
     if (!customer) {
       const [firstName, ...lastNameParts] = dto.customerName.split(' ');
@@ -116,8 +127,10 @@ export class PublicBookingService {
           merchantId: merchant.id,
           firstName: firstName || '',
           lastName: lastNameParts.join(' ') || '',
-          email: dto.customerEmail,
-          phone: dto.customerPhone,
+          ...(dto.customerEmail ? { email: dto.customerEmail } : {}),
+          ...(dto.customerPhone
+            ? { phone: dto.customerPhone, mobile: dto.customerPhone }
+            : {}),
         },
       });
     } else {
@@ -125,13 +138,18 @@ export class PublicBookingService {
       const updateData: any = {};
       
       // Update email if customer didn't have one before but now provided it
-      if (!customer.email && dto.customerEmail) {
+      if (dto.customerEmail && customer.email !== dto.customerEmail) {
         updateData.email = dto.customerEmail;
       }
       
       // Update phone if customer didn't have one before but now provided it
-      if (!customer.phone && dto.customerPhone) {
-        updateData.phone = dto.customerPhone;
+      if (dto.customerPhone) {
+        if (customer.phone !== dto.customerPhone) {
+          updateData.phone = dto.customerPhone;
+        }
+        if (customer.mobile !== dto.customerPhone) {
+          updateData.mobile = dto.customerPhone;
+        }
       }
       
       // Update name if it has changed

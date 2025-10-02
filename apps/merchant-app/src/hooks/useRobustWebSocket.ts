@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { resolveApiBaseUrl } from '@/lib/clients/base-client';
 
 // Connection states that are clearly communicated to the user
 export type ConnectionState = 
@@ -233,7 +234,7 @@ export function useRobustWebSocket(options: RobustWebSocketOptions = {}) {
     const connectWithToken = (token: string) => {
       if (!mounted || socketRef.current?.connected) return;
       
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace('/api', '');
+      const baseUrl = resolveApiBaseUrl().replace('/api', '');
       
       const socket = io(`${baseUrl}/notifications`, {
         auth: { token },

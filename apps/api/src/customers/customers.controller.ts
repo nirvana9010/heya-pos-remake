@@ -12,6 +12,7 @@ import {
   UploadedFile,
   Res,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -24,6 +25,11 @@ import { PinAuthGuard } from '../auth/guards/pin-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import {
+  CustomerDuplicateAction,
+  CustomerExecuteImportDto,
+  CustomerImportOptionsDto,
+} from './dto/import-customers.dto';
 
 @Controller('customers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -86,7 +92,82 @@ export class CustomersController {
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    this.validateImportFile(file);
     return this.customersService.importCustomers(user.merchantId, file);
+  }
+
+  @Post('import/mapping')
+  @UseGuards(PinAuthGuard)
+  @Permissions('customers.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async getImportMapping(@UploadedFile() file: Express.Multer.File) {
+    this.validateImportFile(file);
+    return this.customersService.getCustomerImportMapping(file);
+  }
+
+  @Post('import/preview')
+  @UseGuards(PinAuthGuard)
+  @Permissions('customers.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async previewImport(
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: any,
+  ) {
+    this.validateImportFile(file);
+
+    const options: CustomerImportOptionsDto = {
+      duplicateAction:
+        body?.duplicateAction === CustomerDuplicateAction.SKIP
+          ? CustomerDuplicateAction.SKIP
+          : CustomerDuplicateAction.UPDATE,
+      skipInvalidRows:
+        body?.skipInvalidRows === 'false' || body?.skipInvalidRows === false
+          ? false
+          : true,
+    };
+
+    let columnMappings: Record<string, string> | undefined;
+    if (body?.columnMappings) {
+      try {
+        columnMappings =
+          typeof body.columnMappings === 'string'
+            ? JSON.parse(body.columnMappings)
+            : body.columnMappings;
+      } catch (error) {
+        throw new BadRequestException('Invalid column mappings format');
+      }
+    }
+
+    return this.customersService.previewCustomerImport(
+      user.merchantId,
+      file.buffer,
+      options,
+      columnMappings,
+    );
+  }
+
+  @Post('import/execute')
+  @UseGuards(PinAuthGuard)
+  @Permissions('customers.import')
+  async executeImport(
+    @CurrentUser() user: any,
+    @Body() body: CustomerExecuteImportDto,
+  ) {
+    if (!body?.rows || !Array.isArray(body.rows)) {
+      throw new BadRequestException('Rows payload is required');
+    }
+
+    const options = body.options ?? {
+      duplicateAction: CustomerDuplicateAction.UPDATE,
+      skipInvalidRows: true,
+    };
+
+    return this.customersService.executeCustomerImport(
+      user.merchantId,
+      body.rows,
+      options,
+    );
   }
 
   @Get(':id')
@@ -111,5 +192,22 @@ export class CustomersController {
   @Permissions('customers.delete')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
     return this.customersService.remove(user.merchantId, id);
+  }
+
+  private validateImportFile(file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (
+      !file.mimetype?.includes('csv') &&
+      !file.originalname?.toLowerCase().endsWith('.csv')
+    ) {
+      throw new BadRequestException('File must be CSV format');
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size must be less than 5MB');
+    }
   }
 }

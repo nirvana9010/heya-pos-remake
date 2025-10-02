@@ -223,7 +223,7 @@ export default function TestPage() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('http://localhost:3000/api', '_blank')}
+            onClick={() => window.open('http://100.107.58.75:3000/api', '_blank')}
           >
             API Docs
           </Button>

@@ -1,4 +1,4 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient, resolveApiBaseUrl } from './base-client';
 
 export interface Customer {
   id: string;
@@ -34,6 +34,62 @@ export interface UpdateCustomerRequest {
   phone?: string;
   mobile?: string;
   notes?: string;
+}
+
+export interface CustomerImportOptions {
+  duplicateAction: 'skip' | 'update';
+  skipInvalidRows: boolean;
+}
+
+export interface CustomerImportData {
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  source?: string;
+  notes?: string;
+  marketingConsent?: boolean;
+  smsNotifications?: boolean;
+  notificationPreference?: string;
+  status?: string;
+}
+
+export interface CustomerImportPreviewRow {
+  rowNumber: number;
+  original: Record<string, any>;
+  data?: CustomerImportData;
+  validation: {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  };
+  action: 'create' | 'update' | 'skip';
+  existingCustomerId?: string;
+}
+
+export interface CustomerImportSummary {
+  total: number;
+  valid: number;
+  invalid: number;
+  duplicates: number;
+  toCreate: number;
+  toUpdate: number;
+  toSkip: number;
+}
+
+export interface CustomerImportPreview {
+  rows: CustomerImportPreviewRow[];
+  summary: CustomerImportSummary;
+}
+
+export interface CustomerImportResult {
+  success: boolean;
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{ row: number; error: string }>;
 }
 
 export class CustomersClient extends BaseApiClient {
@@ -83,5 +139,47 @@ export class CustomersClient extends BaseApiClient {
     totalRevenue: number;
   }> {
     return this.get('/customers/stats', undefined, 'v1');
+  }
+
+  async previewCustomerImport(
+    file: File,
+    options: CustomerImportOptions,
+    columnMappings?: Record<string, string>,
+  ): Promise<CustomerImportPreview> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    Object.entries(options).forEach(([key, value]) => {
+      formData.append(key, value.toString());
+    });
+
+    if (columnMappings) {
+      formData.append('columnMappings', JSON.stringify(columnMappings));
+    }
+
+    const API_BASE_URL = resolveApiBaseUrl();
+    const token = localStorage.getItem('access_token');
+
+    const response = await fetch(`${API_BASE_URL}/v1/customers/import/preview`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Failed to preview customer import');
+    }
+
+    return response.json();
+  }
+
+  async executeCustomerImport(
+    rows: CustomerImportPreviewRow[],
+    options: CustomerImportOptions,
+  ): Promise<CustomerImportResult> {
+    return this.post('/customers/import/execute', { rows, options }, undefined, 'v1');
   }
 }

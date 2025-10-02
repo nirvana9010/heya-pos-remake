@@ -61,9 +61,16 @@ const CalendarPageContent = dynamic(
 
 // This lightweight wrapper loads instantly
 export default function CalendarPage() {
+  const isDev = process.env.NODE_ENV !== 'production';
+
   return (
     <CalendarErrorBoundary>
       <BookingProvider>
+        {isDev && (
+          <div className="bg-red-700 text-white text-center py-2 text-sm font-semibold tracking-wide uppercase">
+            Dev Build • API pinned to 100.107.58.75:3000 • Do not use for production data
+          </div>
+        )}
         <CalendarPageContent />
       </BookingProvider>
     </CalendarErrorBoundary>

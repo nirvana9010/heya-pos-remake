@@ -1,4 +1,4 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient, resolveApiBaseUrl } from './base-client';
 
 export interface Service {
   id: string;
@@ -163,7 +163,7 @@ export class ServicesClient extends BaseApiClient {
       formData.append('columnMappings', JSON.stringify(columnMappings));
     }
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const API_BASE_URL = resolveApiBaseUrl();
     const token = localStorage.getItem('access_token');
 
     const response = await fetch(`${API_BASE_URL}/v1/services/import/preview`, {
@@ -187,7 +187,7 @@ export class ServicesClient extends BaseApiClient {
   }
 
   async downloadServiceTemplate(): Promise<void> {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const API_BASE_URL = resolveApiBaseUrl();
     const token = localStorage.getItem('access_token');
     
     const response = await fetch(`${API_BASE_URL}/v1/services/import/template`, {

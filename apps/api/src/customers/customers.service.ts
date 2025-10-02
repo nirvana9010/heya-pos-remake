@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -11,6 +11,15 @@ import {
   BusinessRuleViolationException 
 } from '../common/exceptions/business-exception';
 import { ErrorCodes } from '../common/exceptions/error-codes';
+import {
+  CustomerDuplicateAction,
+  CustomerImportData,
+  CustomerImportOptionsDto,
+  CustomerImportPreviewDto,
+  CustomerImportPreviewRow,
+  CustomerImportSummary,
+  CustomerImportResultDto,
+} from './dto/import-customers.dto';
 
 @Injectable()
 export class CustomersService {
@@ -68,6 +77,7 @@ export class CustomersService {
         preferredLanguage: dto.preferredLanguage,
         marketingConsent: dto.marketingConsent,
         source: dto.source,
+        dateAdded: new Date(),
         merchantId,
       },
     });
@@ -495,7 +505,10 @@ export class CustomersService {
     });
   }
 
-  async importCustomers(merchantId: string, file: Express.Multer.File) {
+  async importCustomers(
+    merchantId: string,
+    file: Express.Multer.File,
+  ): Promise<CustomerImportResultDto> {
     if (!file || !file.buffer) {
       throw new BusinessRuleViolationException(
         'FILE_REQUIRED',
@@ -503,66 +516,242 @@ export class CustomersService {
       );
     }
 
-    const customers = await this.parseCsvFile(file.buffer);
-    const results = {
-      imported: 0,
-      updated: 0,
-      skipped: 0,
-      errors: [] as { row: number; error: string }[],
+    const options: CustomerImportOptionsDto = {
+      duplicateAction: CustomerDuplicateAction.UPDATE,
+      skipInvalidRows: true,
+    };
+
+    const preview = await this.previewCustomerImport(
+      merchantId,
+      file.buffer,
+      options,
+    );
+
+    const execution = await this.executeCustomerImport(
+      merchantId,
+      preview.rows,
+      options,
+    );
+
+    return execution;
+  }
+
+  async getCustomerImportMapping(file: Express.Multer.File) {
+    if (!file || !file.buffer) {
+      throw new BusinessRuleViolationException(
+        'FILE_REQUIRED',
+        'No file uploaded',
+      );
+    }
+
+    return this.parseCsvForMapping(file.buffer);
+  }
+
+  async previewCustomerImport(
+    merchantId: string,
+    buffer: Buffer,
+    options: CustomerImportOptionsDto = {
+      duplicateAction: CustomerDuplicateAction.UPDATE,
+      skipInvalidRows: true,
+    },
+    columnMappings?: Record<string, string>,
+  ): Promise<CustomerImportPreviewDto> {
+    const customers = await this.parseCsvFile(buffer, columnMappings);
+
+    if (!customers.length) {
+      throw new BusinessRuleViolationException(
+        'INVALID_FILE_FORMAT',
+        'CSV file is empty',
+      );
+    }
+
+    const rows: CustomerImportPreviewRow[] = [];
+    const summary: CustomerImportSummary = {
+      total: customers.length,
+      valid: 0,
+      invalid: 0,
+      duplicates: 0,
+      toCreate: 0,
+      toUpdate: 0,
+      toSkip: 0,
     };
 
     for (let i = 0; i < customers.length; i++) {
-      const row = i + 2; // Account for header row
+      const rowNumber = i + 2; // Header offset
+      const originalRow = customers[i];
+      const validation = {
+        isValid: true,
+        errors: [] as string[],
+        warnings: [] as string[],
+      };
+      let data = undefined;
+      let action: 'create' | 'update' | 'skip' = 'create';
+      let existingCustomerId: string | undefined;
+
       try {
-        const customerData = this.parseCustomerImport(customers[i]);
-        
-        // Check if customer exists by email or mobile
+        data = this.parseCustomerImport(originalRow);
+      } catch (error) {
+        validation.isValid = false;
+        validation.errors.push(
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+      }
+
+      if (validation.isValid && data) {
+        summary.valid++;
+
+        if (!data.email && !data.mobile) {
+          validation.warnings.push(
+            'No email or mobile provided. Duplicate detection will be skipped.',
+          );
+        }
+
         let existing = null;
-        if (customerData.email) {
+        if (data.email) {
           existing = await this.prisma.customer.findFirst({
             where: {
               merchantId,
-              email: customerData.email,
+              email: data.email,
             },
           });
         }
-        
-        if (!existing && customerData.mobile) {
+
+        if (!existing && data.mobile) {
           existing = await this.prisma.customer.findFirst({
             where: {
               merchantId,
-              mobile: customerData.mobile,
+              mobile: data.mobile,
             },
           });
         }
 
         if (existing) {
-          // Update existing customer
+          existingCustomerId = existing.id;
+          summary.duplicates++;
+
+          if (options.duplicateAction === CustomerDuplicateAction.UPDATE) {
+            action = 'update';
+            summary.toUpdate++;
+          } else {
+            action = 'skip';
+            summary.toSkip++;
+            validation.warnings.push('Existing customer will be skipped.');
+          }
+        } else {
+          summary.toCreate++;
+        }
+      } else {
+        summary.invalid++;
+        if (options.skipInvalidRows) {
+          action = 'skip';
+          summary.toSkip++;
+        }
+      }
+
+      rows.push({
+        rowNumber,
+        original: originalRow,
+        data,
+        validation,
+        action,
+        existingCustomerId,
+      });
+    }
+
+    return { rows, summary };
+  }
+
+  async executeCustomerImport(
+    merchantId: string,
+    rows: CustomerImportPreviewRow[],
+    options: CustomerImportOptionsDto = {
+      duplicateAction: CustomerDuplicateAction.UPDATE,
+      skipInvalidRows: true,
+    },
+  ): Promise<CustomerImportResultDto> {
+    const result: CustomerImportResultDto = {
+      success: true,
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    for (const row of rows) {
+      if (!row.data || row.action === 'skip') {
+        result.skipped++;
+        continue;
+      }
+
+      if (!row.validation?.isValid && options.skipInvalidRows) {
+        result.skipped++;
+        continue;
+      }
+
+      const { createdAtOverride, ...dataForSanitizing } = row.data as {
+        createdAtOverride?: Date;
+      } & CustomerImportData;
+      const customerData = this.prepareCustomerDataForPersistence(
+        dataForSanitizing,
+      );
+
+      try {
+        if (row.action === 'update') {
+          let targetCustomerId = row.existingCustomerId;
+
+          if (!targetCustomerId) {
+            if (row.data.email) {
+              const emailMatch = await this.prisma.customer.findFirst({
+                where: {
+                  merchantId,
+                  email: row.data.email,
+                },
+              });
+              targetCustomerId = emailMatch?.id;
+            }
+
+            if (!targetCustomerId && row.data.mobile) {
+              const mobileMatch = await this.prisma.customer.findFirst({
+                where: {
+                  merchantId,
+                  mobile: row.data.mobile,
+                },
+              });
+              targetCustomerId = mobileMatch?.id;
+            }
+          }
+
+          if (!targetCustomerId) {
+            throw new Error('Unable to locate matching customer for update');
+          }
+
           await this.prisma.customer.update({
-            where: { id: existing.id },
+            where: { id: targetCustomerId },
             data: customerData,
           });
-          results.updated++;
+          result.updated++;
         } else {
-          // Create new customer
           await this.prisma.customer.create({
             data: {
               ...customerData,
               merchantId,
-            },
+              ...(createdAtOverride ? { createdAt: createdAtOverride } : {}),
+            } as Prisma.CustomerUncheckedCreateInput,
           });
-          results.imported++;
+          result.imported++;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push({
-          row,
-          error: errorMessage,
+        result.failed++;
+        result.errors.push({
+          row: row.rowNumber,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
+        result.success = false;
       }
     }
 
-    return results;
+    return result;
   }
 
   async exportCustomers(merchantId: string, format: 'csv' | 'json' = 'csv') {
@@ -648,7 +837,10 @@ export class CustomersService {
     }
   }
 
-  private async parseCsvFile(buffer: Buffer): Promise<any[]> {
+  private async parseCsvFile(
+    buffer: Buffer,
+    columnMappings?: Record<string, string>,
+  ): Promise<any[]> {
     const { parse } = await import('csv-parse/sync');
     
     try {
@@ -656,7 +848,20 @@ export class CustomersService {
         columns: true,
         skip_empty_lines: true,
         trim: true,
+        relax_column_count: true,
       });
+
+      if (columnMappings && Object.keys(columnMappings).length > 0) {
+        return records.map(record => {
+          const mappedRecord = { ...record };
+          for (const [source, target] of Object.entries(columnMappings)) {
+            if (source in record && target) {
+              mappedRecord[target] = record[source];
+            }
+          }
+          return mappedRecord;
+        });
+      }
 
       return records;
     } catch (error) {
@@ -667,31 +872,505 @@ export class CustomersService {
     }
   }
 
-  private parseCustomerImport(item: any) {
-    // Validate required fields
-    if (!item['First Name'] || !item['Last Name']) {
-      throw new Error('First Name and Last Name are required');
+  private async parseCsvForMapping(buffer: Buffer) {
+    const { parse } = await import('csv-parse/sync');
+
+    try {
+      const rows = parse(buffer, {
+        columns: false,
+        skip_empty_lines: true,
+        trim: true,
+        relax_column_count: true,
+        to: 11,
+      });
+
+      if (!rows.length) {
+        throw new BusinessRuleViolationException(
+          'INVALID_FILE_FORMAT',
+          'CSV file is empty',
+        );
+      }
+
+      const [headers, ...previewRows] = rows;
+      return {
+        headers,
+        rows: previewRows,
+      };
+    } catch (error) {
+      throw new BusinessRuleViolationException(
+        'INVALID_FILE_FORMAT',
+        'Invalid CSV file format',
+      );
+    }
+  }
+
+  private parseCustomerImport(item: Record<string, any>) {
+    const row = this.normalizeImportRow(item);
+
+    const firstNameValue = this.getFirstFilledValue(row, [
+      'firstname',
+      'givenname',
+      'given',
+      'customerfirstname',
+    ]);
+    const lastNameValue = this.getFirstFilledValue(row, [
+      'lastname',
+      'surname',
+      'familyname',
+      'customerlastname',
+    ]);
+    const fullNameValue = this.getFirstFilledValue(row, [
+      'fullname',
+      'name',
+      'customername',
+      'clientname',
+    ]);
+
+    const { firstName, lastName } = this.resolveCustomerName(
+      firstNameValue,
+      lastNameValue,
+      fullNameValue,
+    );
+
+    if (!firstName) {
+      throw new Error('First Name is required');
+    }
+
+    const rawEmail = this.getFirstFilledValue(row, [
+      'email',
+      'emailaddress',
+      'contactemail',
+    ]);
+    const email = rawEmail ? rawEmail.toLowerCase() : undefined;
+
+    const rawMobile = this.getFirstFilledValue(row, [
+      'mobilenumber',
+      'mobile',
+      'cell',
+      'cellphone',
+      'cellnumber',
+      'mobilephone',
+      'phonenumbermobile',
+      'primaryphone',
+      'contactnumber',
+    ]);
+    const rawPhone = this.getFirstFilledValue(row, [
+      'phone',
+      'phonenumber',
+      'homephone',
+      'landline',
+      'workphone',
+      'officephone',
+    ]);
+
+    const normalizedMobile = this.normalizePhoneNumber(rawMobile, 'mobile');
+    const normalizedPhone = this.normalizePhoneNumber(rawPhone, 'phone');
+
+    const mobile =
+      normalizedMobile ??
+      (normalizedPhone && this.isLikelyMobileNumber(normalizedPhone)
+        ? normalizedPhone
+        : undefined);
+    const phone =
+      normalizedPhone && normalizedPhone !== mobile ? normalizedPhone : undefined;
+
+    const dateOfBirth = this.parseDateValue(
+      this.getFirstFilledValue(row, ['dateofbirth', 'dob', 'birthdate']),
+    );
+
+    const marketingConsent = this.parseBooleanValue(
+      this.getFirstFilledValue(row, [
+        'marketingconsent',
+        'acceptsmarketing',
+        'emailmarketing',
+        'marketingoptin',
+        'marketing',
+      ]),
+    );
+    const smsConsent = this.parseBooleanValue(
+      this.getFirstFilledValue(row, [
+        'acceptssmsmarketing',
+        'smsmarketing',
+        'smsoptin',
+        'smsconsent',
+        'marketingoptinsms',
+      ]),
+    );
+
+    const blocked = this.parseBooleanValue(
+      this.getFirstFilledValue(row, ['blocked', 'isblocked', 'blacklisted']),
+    );
+    const blockReason = this.getFirstFilledValue(row, [
+      'blockreason',
+      'blockedreason',
+    ]);
+    const legacyId = this.getFirstFilledValue(row, [
+      'clientid',
+      'customerid',
+      'legacyid',
+    ]);
+
+    const addedDateRaw = this.getFirstFilledValue(row, ['added', 'dateadded']);
+    const createdAtOverride = addedDateRaw ? this.parseDateValue(addedDateRaw) : undefined;
+    const notes = this.buildNotes([
+      this.getFirstFilledValue(row, ['note', 'notes', 'customernotes']),
+      blockReason ? `Block reason: ${blockReason}` : undefined,
+      legacyId ? `Legacy ID: ${legacyId}` : undefined,
+    ]);
+
+    const source =
+      this.getFirstFilledValue(row, ['source', 'referralsource', 'origin']) ||
+      'MIGRATED';
+
+    const tagsValue = this.getFirstFilledValue(row, ['tags', 'labels']);
+    const tags = tagsValue
+      ? tagsValue
+          .split(/[,;]/)
+          .map(tag => tag.trim())
+          .filter(Boolean)
+      : undefined;
+
+    const preferredLanguage = this.getFirstFilledValue(row, [
+      'preferredlanguage',
+      'language',
+    ]);
+
+    const gender = this.getFirstFilledValue(row, ['gender', 'sex']);
+    const address = this.getFirstFilledValue(row, [
+      'address',
+      'street',
+      'streetaddress',
+    ]);
+    const suburb = this.getFirstFilledValue(row, ['suburb', 'district']);
+    const city =
+      this.getFirstFilledValue(row, ['city', 'town']) ?? suburb ?? undefined;
+    const state = this.getFirstFilledValue(row, [
+      'state',
+      'stateprovince',
+      'province',
+    ]);
+    const postalCode = this.getFirstFilledValue(row, [
+      'postalcode',
+      'postcode',
+      'zipcode',
+      'zip',
+    ]);
+    const country = this.getFirstFilledValue(row, [
+      'country',
+      'countrycode',
+    ]);
+
+    const notificationPreference = this.resolveNotificationPreference(
+      marketingConsent,
+      smsConsent,
+    );
+
+    return {
+      email,
+      firstName,
+      lastName: lastName ?? undefined,
+      phone,
+      mobile,
+      dateOfBirth,
+      gender: gender ?? undefined,
+      address: address ?? undefined,
+      suburb: suburb ?? undefined,
+      city: city ?? undefined,
+      state: state ?? undefined,
+      postalCode: postalCode ?? undefined,
+      country: country ?? undefined,
+      notes: notes ?? undefined,
+      marketingConsent: marketingConsent ?? undefined,
+      emailNotifications: marketingConsent ?? undefined,
+      smsNotifications: smsConsent ?? undefined,
+      notificationPreference: notificationPreference ?? undefined,
+      source,
+      tags: tags ?? undefined,
+      preferredLanguage: preferredLanguage ?? undefined,
+      status:
+        blocked === undefined ? undefined : blocked ? 'INACTIVE' : 'ACTIVE',
+      createdAtOverride,
+    };
+  }
+
+  private normalizeImportRow(item: Record<string, any>): Map<string, string> {
+    const normalized = new Map<string, string>();
+    for (const [key, rawValue] of Object.entries(item || {})) {
+      if (!key) {
+        continue;
+      }
+      const normalizedKey = this.normalizeFieldKey(key);
+      if (!normalizedKey) {
+        continue;
+      }
+      const value =
+        rawValue === null || rawValue === undefined
+          ? ''
+          : String(rawValue).trim();
+      if (value !== '' || !normalized.has(normalizedKey)) {
+        normalized.set(normalizedKey, value);
+      }
+    }
+    return normalized;
+  }
+
+  private normalizeFieldKey(key: string): string {
+    return key.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  private getFirstFilledValue(
+    row: Map<string, string>,
+    aliases: string[],
+  ): string | undefined {
+    for (const alias of aliases) {
+      const normalizedAlias = this.normalizeFieldKey(alias);
+      const value = row.get(normalizedAlias);
+      if (value && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+    return undefined;
+  }
+
+  private resolveCustomerName(
+    firstName?: string,
+    lastName?: string,
+    fullName?: string,
+  ): { firstName?: string; lastName?: string } {
+    let resolvedFirstName = firstName?.trim();
+    let resolvedLastName = lastName?.trim();
+
+    if ((!resolvedFirstName || !resolvedLastName) && fullName) {
+      const cleanedFull = fullName.trim();
+      if (cleanedFull.includes(',')) {
+        const [lastPart, firstPart] = cleanedFull
+          .split(',')
+          .map(part => part.trim())
+          .filter(Boolean);
+        resolvedFirstName = resolvedFirstName || firstPart || lastPart;
+        resolvedLastName =
+          resolvedLastName || (firstPart && lastPart ? lastPart : undefined);
+      } else {
+        const parts = cleanedFull.split(/\s+/);
+        if (!resolvedFirstName && parts.length > 0) {
+          resolvedFirstName = parts[0];
+        }
+        if (!resolvedLastName && parts.length > 1) {
+          resolvedLastName = parts.slice(1).join(' ');
+        }
+      }
     }
 
     return {
-      email: item['Email'] || undefined,
-      firstName: item['First Name'],
-      lastName: item['Last Name'],
-      phone: item['Phone'] || undefined,
-      mobile: item['Mobile'] || undefined,
-      dateOfBirth: item['Date of Birth'] ? new Date(item['Date of Birth']) : undefined,
-      gender: item['Gender'] || undefined,
-      address: item['Address'] || undefined,
-      suburb: item['Suburb'] || undefined,
-      city: item['City'] || undefined,
-      state: item['State'] || undefined,
-      postalCode: item['Postal Code'] || undefined,
-      country: item['Country'] || undefined,
-      marketingConsent: item['Marketing Consent'] === 'true' || item['Marketing Consent'] === '1' || item['Marketing Consent'] === 'Yes',
-      source: item['Source'] || 'MIGRATED',
-      tags: item['Tags'] ? item['Tags'].split(',').map((t: string) => t.trim()) : [],
-      preferredLanguage: item['Preferred Language'] || 'en',
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
     };
+  }
+
+  private parseBooleanValue(value?: string): boolean | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (['yes', 'y', 'true', '1', 'accept', 'accepted'].includes(normalized)) {
+      return true;
+    }
+    if (['no', 'n', 'false', '0', 'decline', 'declined'].includes(normalized)) {
+      return false;
+    }
+    return undefined;
+  }
+
+  private parseDateValue(value?: string): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const direct = Date.parse(trimmed);
+    if (!Number.isNaN(direct)) {
+      return new Date(direct);
+    }
+
+    const parts = trimmed.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})$/);
+    if (parts) {
+      let [, first, second, third] = parts;
+      let year: number;
+      let month: number;
+      let day: number;
+
+      if (first.length === 4) {
+        year = Number(first);
+        month = Number(second);
+        day = Number(third);
+      } else if (third.length === 4) {
+        year = Number(third);
+        // Assume Australian format DD/MM/YYYY
+        day = Number(first);
+        month = Number(second);
+      } else {
+        year = Number(third.length === 2 ? `20${third}` : third);
+        day = Number(second);
+        month = Number(first);
+      }
+
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        const parsed = new Date(Date.UTC(year, month - 1, day));
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private normalizePhoneNumber(
+    value?: string,
+    type: 'mobile' | 'phone' = 'mobile',
+  ): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    let digits = trimmed.replace(/\D+/g, '');
+    if (digits.length < 8) {
+      return trimmed;
+    }
+
+    if (digits.startsWith('0011')) {
+      digits = digits.slice(4);
+    } else if (digits.startsWith('011')) {
+      digits = digits.slice(3);
+    } else if (digits.startsWith('00')) {
+      digits = digits.slice(2);
+    }
+
+    if (digits.startsWith('61')) {
+      const local = digits.slice(2);
+      if (local.length >= 8 && local.length <= 10) {
+        return `+61${local}`;
+      }
+    }
+
+    if (digits.startsWith('0') && digits.length >= 9) {
+      const local = digits.slice(1);
+      if (local.length >= 8 && local.length <= 9) {
+        return `+61${local}`;
+      }
+    }
+
+    if (digits.length === 9) {
+      if (type === 'mobile' && digits[0] !== '4') {
+        // Fall through and treat as a landline if it doesn't look like a mobile
+      } else {
+        return `+61${digits}`;
+      }
+    }
+
+    if (trimmed.startsWith('+')) {
+      return `+${digits}`;
+    }
+
+    if (digits.startsWith('61') && digits.length === 11) {
+      return `+${digits}`;
+    }
+
+    if (digits.length >= 9 && digits.length <= 11) {
+      return `+61${digits}`;
+    }
+
+    return trimmed;
+  }
+
+  private isLikelyMobileNumber(phone: string | undefined): boolean {
+    if (!phone) {
+      return false;
+    }
+    const digits = phone.replace(/\D+/g, '');
+    if (digits.startsWith('04') && digits.length === 10) {
+      return true;
+    }
+    if (digits.startsWith('614') && digits.length === 11) {
+      return true;
+    }
+    if (digits.startsWith('61') && digits.length === 11 && digits[2] === '4') {
+      return true;
+    }
+    if (digits.startsWith('4') && digits.length === 9) {
+      return true;
+    }
+    return false;
+  }
+
+  private resolveNotificationPreference(
+    emailConsent?: boolean,
+    smsConsent?: boolean,
+  ): string | undefined {
+    if (emailConsent === undefined && smsConsent === undefined) {
+      return undefined;
+    }
+    if (emailConsent && smsConsent) {
+      return 'both';
+    }
+    if (emailConsent) {
+      return 'email';
+    }
+    if (smsConsent) {
+      return 'sms';
+    }
+    return 'none';
+  }
+
+  private buildNotes(parts: (string | undefined)[]): string | undefined {
+    const filtered = parts.filter((part): part is string => !!(part && part.trim()));
+    if (filtered.length === 0) {
+      return undefined;
+    }
+    return filtered.join(' | ');
+  }
+
+  private prepareCustomerDataForPersistence(data: CustomerImportData) {
+    const cleaned: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (value === undefined || value === null || value === '') {
+        continue;
+      }
+
+      if (value instanceof Date) {
+        if (!Number.isNaN(value.getTime())) {
+          cleaned[key] = value;
+        }
+        continue;
+      }
+
+      if (Array.isArray(value)) {
+        cleaned[key] = value;
+        continue;
+      }
+
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          continue;
+        }
+        cleaned[key] = trimmed;
+        continue;
+      }
+
+      cleaned[key] = value;
+    }
+
+    return cleaned;
   }
 
   private async findOrCreateWalkInCustomer(merchantId: string) {

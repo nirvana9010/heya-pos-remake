@@ -3,23 +3,24 @@ import { transformApiResponse } from '../db-transforms';
 import { validateRequest, validateResponse, ApiValidationError } from './validation';
 import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '../cache-config';
 
-// Dynamic API URL that works with both localhost and external IPs
-const getApiBaseUrl = () => {
+// Dynamic API URL that works with both localhost and hosted environments
+export const resolveApiBaseUrl = () => {
   // Use explicit env var if set
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
   }
   
   // For server-side rendering, use localhost
   if (typeof window === 'undefined') {
-    return 'http://localhost:3000/api';
+    return 'http://100.107.58.75:3000/api';
   }
   
-  // For client-side, use the same host as the current page
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
+  const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:3000/api`;
 };
+
+// Backwards compatibility alias
+const getApiBaseUrl = () => resolveApiBaseUrl();
 
 export interface ApiError {
   message: string;
@@ -160,7 +161,7 @@ export class BaseApiClient {
   private async performTokenRefresh(refreshToken: string): Promise<void> {
     try {
       // Create new axios instance to avoid interceptor loops
-      const response = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
+      const response = await axios.post(`${resolveApiBaseUrl()}/v1/auth/refresh`, {
         refreshToken
       });
 
