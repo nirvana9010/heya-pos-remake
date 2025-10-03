@@ -173,8 +173,8 @@ export default function CustomersPageContent() {
       
       // Store current selection position before search
       const input = searchInputRef.current;
-      const selectionStart = input?.selectionStart;
-      const selectionEnd = input?.selectionEnd;
+      const selectionStart = input?.selectionStart ?? null;
+      const selectionEnd = input?.selectionEnd ?? null;
       
       try {
         const response = await apiClient.customers.searchCustomers(query);
@@ -207,13 +207,21 @@ export default function CustomersPageContent() {
       } finally {
         setIsSearching(false);
 
-        // Restore focus and cursor position
-        setTimeout(() => {
-          if (input && selectionStart !== undefined && selectionEnd !== undefined) {
-            input.focus();
+        const shouldRestoreSelection =
+          input &&
+          input.value === query &&
+          selectionStart !== null &&
+          selectionEnd !== null;
+
+        if (shouldRestoreSelection) {
+          requestAnimationFrame(() => {
+            if (!input) return;
+            if (document.activeElement !== input) {
+              input.focus();
+            }
             input.setSelectionRange(selectionStart, selectionEnd);
-          }
-        }, 0);
+          });
+        }
       }
     }, 300); // 300ms debounce
   }, [toast, itemsPerPage, currentPage]);

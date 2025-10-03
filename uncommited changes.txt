@@ -1,0 +1,1072 @@
+When user is typing phone numbers in the Customers page to search for customers, the cursor keeps jumping around and this is super annoying
+
+• Explored
+  └ List ls
+    Search Customers in merchant-app
+    Read CustomerSearchInput.tsx
+
+• Ran rg "CustomerSearchInput" -n apps/merchant-app/src -g"*.tsx"
+
+• Explored
+  └ List customers
+    Search find apps/merchant-app/src/app -maxdepth 2 -type d
+
+• Ran sed -n '1,200p' apps/merchant-app/src/app/(dashboard)/customers/page.tsx
+  └ bash: -c: line 1: syntax error near unexpected token `('
+    bash: -c: line 1: `sed -n '1,200p' apps/merchant-app/src/app/(dashboard)/customers/page.tsx'
+
+• Explored
+  └ Read page.tsx, CustomersPageContent.tsx
+    Search searchInputRef in CustomersPageContent.tsx
+    Read CustomersPageContent.tsx
+    Search setSearchQuery in CustomersPageContent.tsx
+    Read CustomersPageContent.tsx
+    Search searchQuery in CustomersPageContent.tsx
+    Read CustomersPageContent.tsx, input.tsx
+    Search replace(/\\D/g
+    Search replace\(/\\D in merchant-app
+    Read CustomersPageContent.tsx
+
+• Edited apps/merchant-app/src/app/(dashboard)/customers/CustomersPageContent.tsx (+16 -8)
+    175          const input = searchInputRef.current;
+    176   -      const selectionStart = input?.selectionStart;
+    177   -      const selectionEnd = input?.selectionEnd;
+    176   +      const selectionStart = input?.selectionStart ?? null;
+    177   +      const selectionEnd = input?.selectionEnd ?? null;
+    178
+    ⋮
+    209
+    210   -        // Restore focus and cursor position
+    211   -        setTimeout(() => {
+    212   -          if (input && selectionStart !== undefined && selectionEnd !== undefined) {
+    213   -            input.focus();
+    210   +        const shouldRestoreSelection =
+    211   +          input &&
+    212   +          input.value === query &&
+    213   +          selectionStart !== null &&
+    214   +          selectionEnd !== null;
+    215   +
+    216   +        if (shouldRestoreSelection) {
+    217   +          requestAnimationFrame(() => {
+    218   +            if (!input) return;
+    219   +            if (document.activeElement !== input) {
+    220   +              input.focus();
+    221   +            }
+    222                input.setSelectionRange(selectionStart, selectionEnd);
+    215   -          }
+    216   -        }, 0);
+    223   +          });
+    224   +        }
+    225          }
+
+• Ran npx eslint 'apps/merchant-app/src/app/(dashboard)/customers/CustomersPageContent.tsx'
+
+• Ran git diff
+
+• Explored
+  └ Read CustomersPageContent.tsx
+
+• I'm putting together a clear final message explaining the fix to avoid cursor jumps during async search by guarding cursor restoration with a query check and using
+  requestAnimationFrame for smooth focus handling. I'll include file paths with line numbers, note the lint warning, and suggest testing the search input manually and optionally running
+  full lint/typecheck commands—all wrapped in a friendly, approachable tone.
+
+> Fix
+
+  - Skip resetting the caret when an older search completes by confirming the current input value still matches the queried string, so typing phone numbers no longer gets the cursor
+  yanked back (apps/merchant-app/src/app/(dashboard)/customers/CustomersPageContent.tsx:175).
+  - Restore focus and selection within requestAnimationFrame only when needed, avoiding unnecessary focus flips while keeping the input steady (apps/merchant-app/src/app/(dashboard)/
+  customers/CustomersPageContent.tsx:210).
+
+  Tests
+
+  - npx eslint apps/merchant-app/src/app/(dashboard)/customers/CustomersPageContent.tsx (shows the prior exhaustive-deps warning).
+
+  Next Steps
+
+      1. Manually bang on the Customers search with rapid phone-number typing to confirm the cursor now behaves.
+
+▌ We also need to fix how the "Preferred staff" logic works (one with the heart icon). It's automatically marking preferred for all manual orders and this can't be undone. There should
+▌ be a toggle next to the staff selector (in the shape of a heart) to manually mark that staff/booking as preferred or not. If it's not toggled on then manual bookings shouldn't show
+▌ the heart/preferred badge.
+
+• Ran rg "preferred" -n apps/merchant-app/src/app/(dashboard)/bookings
+  └ bash: -c: line 1: syntax error near unexpected token `('
+    bash: -c: line 1: `rg "preferred" -n apps/merchant-app/src/app/(dashboard)/bookings'
+
+• Explored
+  └ Search preferred in bookings
+    Search Preferred in merchant-app
+    Search customerRequestedStaff in merchant-app
+    Search Heart in merchant-app
+    Search customerRequestedStaff
+
+• Updated Plan
+  └ Need to locate the manual booking creation flow, add a preferred staff toggle, and ensure bookings respect the toggle when displayed.
+    □ Inspect booking creation UI/logic to locate staff selection and understand current preferred flag handling.
+    □ Add heart toggle to manual booking UI, wire it to booking payload, and ensure display logic respects it.
+    □ Run targeted lint/checks if feasible and summarize changes.
+
+• Ran rg "createBooking" -n apps/merchant-app/src/app/(dashboard)/bookings
+  └ bash: -c: line 1: syntax error near unexpected token `('
+    bash: -c: line 1: `rg "createBooking" -n apps/merchant-app/src/app/(dashboard)/bookings'
+
+• Explored
+  └ Search createBooking in bookings
+    Search *Booking* in merchant-app
+    Read BookingSlideOut.tsx
+    Search heart in BookingSlideOut.tsx
+    Search customerRequestedStaff in BookingSlideOut.tsx
+    Search customerRequestedStaff in components
+    Search handleSave in BookingSlideOut.tsx
+    Search onSave in BookingSlideOut.tsx
+    Read BookingSlideOut.tsx
+    Search selectedStaffId in BookingSlideOut.tsx
+    Read BookingSlideOut.tsx, BookingDetailsSlideOut.tsx
+    Search customerRequestedStaff in BookingDetailsSlideOut.tsx
+    Read bookings-client.ts
+    Search createBooking in validation
+    List clients
+    Read validation.ts
+
+• I’m updating the create and update booking schemas to include an optional customerRequestedStaff boolean, ensuring it passes through API requests and responses properly. I also
+  need to adjust the backend controller to respect the provided value instead of overriding it based on staff assignment, aligning with the UI toggle that lets users mark a staff as
+  preferred manually. I’ll inspect DTOs and controller code next to make these changes consistent.
+
+• Explored
+  └ Read bookings.v2.controller.ts
+    Search class CreateBookingV2Dto in bookings
+    Read create-booking-v2.dto.ts, update-booking-v2.dto.ts, create-booking.command.ts
+    Search customerRequestedStaff in api
+    Read bookings.v2.controller.ts
+    Search updateBooking( in bookings
+    Search updateBooking in bookings
+    Read booking-update.service.ts
+    Search updateBooking in merchant-app
+    Search Preferred in refactored
+    Search Preferred in BookingsManager.tsx
+    Read BookingDetailsSlideOut.tsx
+    Search BookingDetailsSlideOut in merchant-app
+
+• Ran nl -ba apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx | sed -n '1500,1760p'
+  └ bash: -c: line 1: syntax error near unexpected token `('
+    bash: -c: line 1: `nl -ba apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx | sed -n '1500,1760p''
+
+• Explored
+  └ Read BookingsManager.tsx
+    Search BookingSlideOut in CalendarPage.tsx
+    Search customerRequestedStaff in CalendarPage.tsx
+    Search <BookingSlideOut
+    Read booking-context.tsx
+    Search handleSaveBooking in booking-context.tsx
+    Read booking-context.tsx
+    Search transformBooking in bookings-client.ts
+    Read bookings-client.ts
+
+• Updated Plan
+  └ ✔ Inspect booking creation UI/logic to locate staff selection and understand current preferred flag handling.
+    □ Add heart toggle to manual booking UI, wire it to booking payload, and ensure display logic respects it.
+    □ Run targeted lint/checks if feasible and summarize changes.
+
+• Explored
+  └ Search initialStaffId in CalendarPage.tsx
+    Read CalendarPage.tsx, BookingsManager.tsx
+    Search setSelectedBookingForDetails in BookingsManager.tsx
+
+• I'm planning to integrate this new property throughout the booking system, touching front-end UI states, service interfaces, DTOs, controllers, and validation layers to keep data
+  consistent and avoid breaking existing logic, while carefully verifying default values and service behaviors that may override it.
+
+• Explored
+  └ Read get-bookings-list.handler.ts
+
+• I'm outlining changes to BookingSlideOut and BookingDetailsSlideOut components, adding a heart toggle with accessible labels and managing a new customerRequestedStaff state that
+  resets on open. I’ll also adjust form data handling to include this property, ensuring it syncs properly without defaulting to true.
+
+• Explored
+  └ Search setFormData in BookingDetailsSlideOut.tsx
+    Read BookingDetailsSlideOut.tsx
+    Search Preferred in BookingDetailsSlideOut.tsx
+    Search Staff Member in BookingDetailsSlideOut.tsx
+
+• I’m working through adding a heart-shaped toggle button for marking a staff member as preferred on bookings, mostly shown in edit mode, with accessible labels and visual states. I’m
+  also updating the API DTOs and service layers to handle the new customerRequestedStaff boolean property consistently across create and update flows, ensuring the new property flows
+  from front-end to back-end properly. There’s careful consideration about where to default the value and how to integrate it into existing logic for both internal and public booking
+  services.
+
+• Explored
+  └ Search CreatePublicBookingDto in bookings
+    Read public-booking.service.ts
+    Search interface Booking in BookingsManager.tsx
+    Read BookingsManager.tsx
+    Search customerRequestedStaff in shared
+    Search interface Booking in shared
+    Read index.ts
+
+• I'm planning to add the optional customerRequestedStaff property to the Booking interface and ensure this change flows through the front-end state, API client, and backend services.
+  I’ll need to update type definitions, adjust state management in BookingsManager, enrich API requests and responses, and verify domain entity support to make sure this property is
+  properly handled everywhere.
+
+• Explored
+  └ Read booking.entity.ts
+    Search customerRequestedStaff in booking.entity.ts
+
+• I'll confirm that the property updates correctly flow from direct DB updates through domain mapping, and that the API responses include the new property so the front-end can access
+  it. Then I'll focus on modifying the front-end BookingSlideOut component to add UI elements, state management, and handlers for the new customerRequestedStaff property, making sure
+  the property is synced properly during saves and resets.
+
+• Edited apps/merchant-app/src/components/BookingSlideOut.tsx (+10 -5)
+    3      import React, { useState, useEffect, useCallback, useMemo } from "react";
+    4     -import {
+    4     +import {
+    5        ChevronRight,
+    ⋮
+    18       Pencil,
+    19    -  Check
+    19    +  Check,
+    20    +  Heart
+    21     } from "lucide-react";
+    ⋮
+    140      const [sendReminder, setSendReminder] = useState(true);
+    141   +  const [customerRequestedStaff, setCustomerRequestedStaff] = useState(false);
+    142
+    ⋮
+    186          setSelectedCustomer(null);
+    187   +      setCustomerRequestedStaff(false);
+    188
+    ⋮
+    347            source: 'IN_PERSON',
+    345   -        isOverride: true
+    348   +        isOverride: true,
+    349   +        customerRequestedStaff
+    350          };
+    ⋮
+    401              isPaid: false,
+    398   -          notes: notes || ''
+    402   +          notes: notes || '',
+    403   +          customerRequestedStaff: response.customerRequestedStaff ?? customerRequestedStaff
+    404            };
+    ⋮
+    843      );
+    839   -}
+    844   +}
+
+• Edited apps/merchant-app/src/components/BookingSlideOut.tsx (+56 -35)
+    572                </h3>
+    573   -            <Select
+    574   -              value={selectedStaffId}
+    575   -              onValueChange={setSelectedStaffId}
+    576   -            >
+    577   -              <SelectTrigger className="w-full">
+    578   -                {selectedStaffId && (() => {
+    579   -                  const selected = filteredStaff.find(s => s.id === selectedStaffId);
+    580   -                  return selected ? (
+    581   -                    <div className="flex items-center gap-2">
+    582   -                      <div
+    583   -                        className="w-3 h-3 rounded-full"
+    584   -                        style={{ backgroundColor: selected.color }}
+    585   -                      />
+    586   -                      <span>{selected.name}</span>
+    587   -                    </div>
+    588   -                  ) : (
+    589   -                    <SelectValue placeholder="Select staff member" />
+    590   -                  );
+    591   -                })()}
+    592   -                {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
+    593   -              </SelectTrigger>
+    594   -              <SelectContent>
+    595   -                {filteredStaff.map((member) => (
+    596   -                  <SelectItem key={member.id} value={member.id}>
+    597   -                    <div className="flex items-center gap-2">
+    598   -                      <div
+    599   -                        className="w-3 h-3 rounded-full"
+    600   -                        style={{ backgroundColor: member.color }}
+    601   -                      />
+    602   -                      {member.name}
+    603   -                    </div>
+    604   -                  </SelectItem>
+    605   -                ))}
+    606   -              </SelectContent>
+    607   -            </Select>
+    573   +            <div className="flex items-center gap-3">
+    574   +              <Select
+    575   +                value={selectedStaffId}
+    576   +                onValueChange={setSelectedStaffId}
+    577   +              >
+    578   +                <SelectTrigger className="w-full">
+    579   +                  {selectedStaffId && (() => {
+    580   +                    const selected = filteredStaff.find(s => s.id === selectedStaffId);
+    581   +                    return selected ? (
+    582   +                      <div className="flex items-center gap-2">
+    583   +                        <div
+    584   +                          className="w-3 h-3 rounded-full"
+    585   +                          style={{ backgroundColor: selected.color }}
+    586   +                        />
+    587   +                        <span>{selected.name}</span>
+    588   +                      </div>
+    589   +                    ) : (
+    590   +                      <SelectValue placeholder="Select staff member" />
+    591   +                    );
+    592   +                  })()}
+    593   +                  {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
+    594   +                </SelectTrigger>
+    595   +                <SelectContent>
+    596   +                  {filteredStaff.map((member) => (
+    597   +                    <SelectItem key={member.id} value={member.id}>
+    598   +                      <div className="flex items-center gap-2">
+    599   +                        <div
+    600   +                          className="w-3 h-3 rounded-full"
+    601   +                          style={{ backgroundColor: member.color }}
+    602   +                        />
+    603   +                        {member.name}
+    604   +                      </div>
+    605   +                    </SelectItem>
+    606   +                  ))}
+    607   +                </SelectContent>
+    608   +              </Select>
+    609   +              <button
+    610   +                type="button"
+    611   +                onClick={() => setCustomerRequestedStaff(prev => !prev)}
+    612   +                className={cn(
+    613   +                  "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    614   +                  customerRequestedStaff
+    615   +                    ? "border-teal-500 bg-teal-50 text-teal-600"
+    616   +                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    617   +                )}
+    618   +                aria-pressed={customerRequestedStaff}
+    619   +                aria-label={customerRequestedStaff ? 'Unmark preferred staff' : 'Mark staff as preferred'}
+    620   +                title={customerRequestedStaff ? 'Preferred staff selected' : 'Mark this staff as preferred'}
+    621   +              >
+    622   +                <Heart
+    623   +                  className="h-4 w-4"
+    624   +                  strokeWidth={2.2}
+    625   +                  fill={customerRequestedStaff ? "currentColor" : "none"}
+    626   +                />
+    627   +              </button>
+    628   +            </div>
+    629              </div>
+
+• I’m adding the Heart import and updating the booking interface and form data to include customerRequestedStaff. I’m carefully updating state initialization, save handling, and UI
+  toggles while ensuring the new property is preserved through form updates and passed up properly. Next, I'll integrate this with BookingsManager to ensure API-level support.
+
+• Edited apps/merchant-app/src/components/BookingDetailsSlideOut.tsx (+7 -3)
+    24       Plus,
+    25    -  Minus
+    25    +  Minus,
+    26    +  Heart
+    27     } from "lucide-react";
+    ⋮
+    80         customerSource?: string | null;
+    81    +    customerRequestedStaff?: boolean;
+    82       };
+    ⋮
+    151          time: startTime,
+    150   -      notes: booking.notes || ""
+    152   +      notes: booking.notes || "",
+    153   +      customerRequestedStaff: Boolean(booking.customerRequestedStaff)
+    154        };
+    ⋮
+    439          notes: formData.notes,
+    437   -      services: servicesToSend
+    440   +      services: servicesToSend,
+    441   +      customerRequestedStaff: formData.customerRequestedStaff
+    442        };
+
+• Edited apps/merchant-app/src/components/BookingDetailsSlideOut.tsx (+56 -35)
+    709                    <Label>Staff Member</Label>
+    710   -                <Select
+    711   -                  value={formData.staffId}
+    712   -                  onValueChange={(value) => setFormData({ ...formData, staffId: value })}
+    713   -                >
+    714   -                  <SelectTrigger className="mt-1">
+    715   -                    {formData.staffId && (() => {
+    716   -                      const selected = staff.find(s => s.id === formData.staffId);
+    717   -                      return selected ? (
+    718   -                        <div className="flex items-center gap-2">
+    719   -                          <div
+    720   -                            className="w-3 h-3 rounded-full"
+    721   -                            style={{ backgroundColor: selected.color }}
+    722   -                          />
+    723   -                          <span>{selected.name}</span>
+    724   -                        </div>
+    725   -                      ) : (
+    726   -                        <SelectValue placeholder="Select staff member" />
+    727   -                      );
+    728   -                    })()}
+    729   -                    {!formData.staffId && <SelectValue placeholder="Select staff member" />}
+    730   -                  </SelectTrigger>
+    731   -                  <SelectContent>
+    732   -                    {staff.map((member) => (
+    733   -                      <SelectItem key={member.id} value={member.id}>
+    734   -                        <div className="flex items-center gap-2">
+    735   -                          <div
+    736   -                            className="w-3 h-3 rounded-full"
+    737   -                            style={{ backgroundColor: member.color }}
+    738   -                          />
+    739   -                          {member.name}
+    740   -                        </div>
+    741   -                      </SelectItem>
+    742   -                    ))}
+    743   -                  </SelectContent>
+    744   -                </Select>
+    710   +                <div className="mt-1 flex items-center gap-3">
+    711   +                  <Select
+    712   +                    value={formData.staffId}
+    713   +                    onValueChange={(value) => setFormData({ ...formData, staffId: value })}
+    714   +                  >
+    715   +                    <SelectTrigger>
+    716   +                      {formData.staffId && (() => {
+    717   +                        const selected = staff.find(s => s.id === formData.staffId);
+    718   +                        return selected ? (
+    719   +                          <div className="flex items-center gap-2">
+    720   +                            <div
+    721   +                              className="w-3 h-3 rounded-full"
+    722   +                              style={{ backgroundColor: selected.color }}
+    723   +                            />
+    724   +                            <span>{selected.name}</span>
+    725   +                          </div>
+    726   +                        ) : (
+    727   +                          <SelectValue placeholder="Select staff member" />
+    728   +                        );
+    729   +                      })()}
+    730   +                      {!formData.staffId && <SelectValue placeholder="Select staff member" />}
+    731   +                    </SelectTrigger>
+    732   +                    <SelectContent>
+    733   +                      {staff.map((member) => (
+    734   +                        <SelectItem key={member.id} value={member.id}>
+    735   +                          <div className="flex items-center gap-2">
+    736   +                            <div
+    737   +                              className="w-3 h-3 rounded-full"
+    738   +                              style={{ backgroundColor: member.color }}
+    739   +                            />
+    740   +                            {member.name}
+    741   +                          </div>
+    742   +                        </SelectItem>
+    743   +                      ))}
+    744   +                    </SelectContent>
+    745   +                  </Select>
+    746   +                  <button
+    747   +                    type="button"
+    748   +                    onClick={() => setFormData({ ...formData, customerRequestedStaff: !formData.customerRequestedStaff })}
+    749   +                    className={cn(
+    750   +                      "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    751   +                      formData.customerRequestedStaff
+    752   +                        ? "border-teal-500 bg-teal-50 text-teal-600"
+    753   +                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    754   +                    )}
+    755   +                    aria-pressed={formData.customerRequestedStaff}
+    756   +                    aria-label={formData.customerRequestedStaff ? 'Unmark preferred staff' : 'Mark staff as preferred'}
+    757   +                    title={formData.customerRequestedStaff ? 'Preferred staff selected' : 'Mark this staff as preferred'}
+    758   +                  >
+    759   +                    <Heart
+    760   +                      className="h-4 w-4"
+    761   +                      strokeWidth={2.2}
+    762   +                      fill={formData.customerRequestedStaff ? "currentColor" : "none"}
+    763   +                    />
+    764   +                  </button>
+    765   +                </div>
+    766                  </div>
+
+• Edited apps/merchant-app/src/components/BookingDetailsSlideOut.tsx (+1 -1)
+    714                      >
+    715   -                    <SelectTrigger>
+    715   +                    <SelectTrigger className="w-full">
+    716                          {formData.staffId && (() => {
+
+• Edited apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx (+1 -0)
+    1553               notes: selectedBookingForDetails.notes || '',
+    1554  +            customerRequestedStaff: Boolean(selectedBookingForDetails.customerRequestedStaff),
+    1555             }}
+
+• Explored
+  └ Read BookingsManager.tsx
+
+• Edited apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx (+1 -0)
+    1603                         servicePrice: totalPrice,
+    1604  +                      customerRequestedStaff: updatedBooking.customerRequestedStaff,
+    1605                       };
+
+• Edited apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx (+1 -0)
+    1625                   servicePrice: totalPrice,
+    1626  +                customerRequestedStaff: updatedBooking.customerRequestedStaff,
+    1627                 };
+
+• Edited apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx (+2 -1)
+    1651                   services: mappedServices,
+    1652  -                notes: updatedBooking.notes
+    1652  +                notes: updatedBooking.notes,
+    1653  +                customerRequestedStaff: updatedBooking.customerRequestedStaff
+    1654                 });
+
+• Explored
+  └ Read BookingsManager.tsx
+
+• Edited apps/merchant-app/src/components/calendar/refactored/CalendarPage.tsx (+1 -0)
+    614            localOnlyExpiresAt: nowTimestamp + LOCAL_BOOKING_RETENTION_MS,
+    615   +        customerRequestedStaff: Boolean(bookingData.customerRequestedStaff),
+    616          };
+
+• Edited apps/merchant-app/src/lib/clients/bookings-client.ts (+2 -0)
+    38       source?: string;
+    39    +  customerRequestedStaff?: boolean;
+    40     }
+    ⋮
+    52       }>;
+    53    +  customerRequestedStaff?: boolean;
+    54     }
+
+• Explored
+  └ Search customerRequestedStaff in bookings-client.ts
+    Read bookings-client.ts
+
+• Edited apps/merchant-app/src/lib/clients/validation.ts (+15 -3)
+    166        }),
+    167   -    source: validators.optional(validators.string)
+    167   +    source: validators.optional(validators.string),
+    168   +    customerRequestedStaff: validators.optional((value: any, field: string) => {
+    169   +      if (typeof value !== 'boolean') {
+    170   +        return { field, message: 'must be a boolean', value };
+    171   +      }
+    172   +      return null;
+    173   +    })
+    174      },
+    ⋮
+    181        notes: validators.optional(validators.string),
+    176   -    services: validators.optional(validators.array)
+    182   +    services: validators.optional(validators.array),
+    183   +    customerRequestedStaff: validators.optional((value: any, field: string) => {
+    184   +      if (typeof value !== 'boolean') {
+    185   +        return { field, message: 'must be a boolean', value };
+    186   +      }
+    187   +      return null;
+    188   +    })
+    189      },
+    ⋮
+    279      return data;
+    268   -}
+    280   +}
+
+• Edited packages/shared/src/types/index.ts (+2 -1)
+    95       locationName?: string;
+    96    +  customerRequestedStaff?: boolean;
+    97     }
+    ⋮
+    175      pin: string;
+    175   -}
+    176   +}
+
+• I'll add the optional boolean customerRequestedStaff field to several DTOs, controller methods, and update services to handle this new property consistently during booking creation
+  and updates, making sure everywhere it’s used reflects this new optional flag without breaking existing logic.
+
+• Explored
+  └ Search class CreateBookingDto in bookings
+
+• Edited apps/api/src/contexts/bookings/infrastructure/dto/create-booking-v2.dto.ts (+5 -1)
+    88       orderId?: string;
+    89    -}
+    89    +
+    90    +  @IsOptional()
+    91    +  @IsBoolean()
+    92    +  customerRequestedStaff?: boolean;
+    93    +}
+
+• Edited apps/api/src/contexts/bookings/infrastructure/dto/update-booking-v2.dto.ts (+6 -1)
+    9        MaxLength,
+    10    +  IsBoolean,
+    11     } from 'class-validator';
+    ⋮
+    54       cancellationReason?: string;
+    54    -}
+    55    +
+    56    +  @IsOptional()
+    57    +  @IsBoolean()
+    58    +  customerRequestedStaff?: boolean;
+    59    +}
+
+• Edited apps/api/src/contexts/bookings/infrastructure/controllers/bookings.v2.controller.ts (+5 -1)
+    257          createdById: createdById, // Use the determined createdById
+    258   -      customerRequestedStaff: Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
+    258   +      customerRequestedStaff: dto.customerRequestedStaff ?? Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
+    259          isOverride: dto.isOverride,
+    ⋮
+    292          createdAt: enrichedBooking.createdAt,
+    293   +      customerRequestedStaff: enrichedBooking.customerRequestedStaff ?? false,
+    294        };
+    ⋮
+    333        if (dto.cancellationReason) updateData.cancellationReason = dto.cancellationReason;
+    334   +    if (dto.customerRequestedStaff !== undefined) {
+    335   +      updateData.customerRequestedStaff = dto.customerRequestedStaff;
+    336   +    }
+    337
+
+• Edited apps/api/src/contexts/bookings/application/services/booking-update.service.ts (+2 -1)
+    29       cancellationReason?: string;
+    30    +  customerRequestedStaff?: boolean;
+    31     }
+    ⋮
+    714      }
+    714   -}
+    715   +}
+
+• Edited apps/api/src/contexts/bookings/application/services/booking-update.service.ts (+4 -0)
+    134
+    135   +      if (data.customerRequestedStaff !== undefined) {
+    136   +        directUpdates.customerRequestedStaff = data.customerRequestedStaff;
+    137   +      }
+    138   +
+    139          // 6a. Handle backward compatibility - convert single serviceId to services array
+
+• I'm verifying that the new customerRequestedStaff property is properly handled throughout both backend and frontend, including DTOs, API calls, and UI components like BookingSlideOut
+  and BookingDetailsSlideOut. I'll check that types and default behaviors are consistent and look for any other manual booking flows that might need updating.
+
+• Explored
+  └ Search customerRequestedStaff in merchant-app
+    Read public-booking.service.ts
+    Search customerRequestedStaff in api
+    Read get-bookings-list.handler.ts
+
+• Edited apps/merchant-app/src/components/BookingSlideOut.tsx (+2 -2)
+    618                    aria-pressed={customerRequestedStaff}
+    619   -                aria-label={customerRequestedStaff ? 'Unmark preferred staff' : 'Mark staff as preferred'}
+    620   -                title={customerRequestedStaff ? 'Preferred staff selected' : 'Mark this staff as preferred'}
+    619   +                aria-label={customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    620   +                title={customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    621                  >
+
+• Edited apps/merchant-app/src/components/BookingDetailsSlideOut.tsx (+2 -2)
+    755                        aria-pressed={formData.customerRequestedStaff}
+    756   -                    aria-label={formData.customerRequestedStaff ? 'Unmark preferred staff' : 'Mark staff as preferred'}
+    757   -                    title={formData.customerRequestedStaff ? 'Preferred staff selected' : 'Mark this staff as preferred'}
+    756   +                    aria-label={formData.customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    757   +                    title={formData.customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    758                      >
+
+• Ran
+  └ npx eslint 'apps/merchant-app/src/components/BookingSlideOut.tsx' 'apps/merchant-app/src/components/BookingDetailsSlideOut.tsx' 'apps/merchant-app/src/app/(dashboard)/bookings/
+        BookingsManager.tsx' 'apps/merchant-app/src/components/calendar/refactored/CalendarPage.tsx'
+
+• Updated Plan
+  └ ✔ Inspect booking creation UI/logic to locate staff selection and understand current preferred flag handling.
+    ✔ Add heart toggle to manual booking UI, wire it to booking payload, and ensure display logic respects it.
+    ✔ Run targeted lint/checks if feasible and summarize changes.
+
+• Ran git status -sb
+
+• Explored
+  └ Read BookingSlideOut.tsx, BookingDetailsSlideOut.tsx, BookingsManager.tsx, CalendarPage.tsx, CustomersPageContent.tsx, booking-update.service.ts, bookings.v2.controller.ts
+
+• I’m putting together a final overview of updates involving DTOs for create and update booking flows, client and shared type adjustments, and API service changes. I’ll include key file
+  lines for mentions, a note about running eslint with existing warnings, and suggest logical next steps like verifying front-end toggles and running API tests. Let’s make sure this
+  summary is clear, concise, and well structured with bullet points and headers.
+
+> Changes
+
+  - Preserved the caret during customer search by only restoring the selection when the input still matches the pending query and shimming the focus into requestAnimationFrame, which
+  stops the jumpiness while users type phone numbers (apps/merchant-app/src/app/(dashboard)/customers/CustomersPageContent.tsx:176, apps/merchant-app/src/app/(dashboard)/customers/
+  CustomersPageContent.tsx:210).
+  - Added a heart toggle to manual booking creation that tracks customerRequestedStaff, threads it through the payload, and reflects the state in the optimistic booking stub so new
+  bookings only show the preferred badge when explicitly requested (apps/merchant-app/src/components/BookingSlideOut.tsx:141, apps/merchant-app/src/components/BookingSlideOut.tsx:333,
+  apps/merchant-app/src/components/BookingSlideOut.tsx:609, apps/merchant-app/src/components/BookingSlideOut.tsx:403).
+  - Let editors flip the same flag when updating bookings by seeding the form with the current value, persisting it in the update payload, and surfacing a heart toggle next to the
+  staff select (apps/merchant-app/src/components/BookingDetailsSlideOut.tsx:153, apps/merchant-app/src/components/BookingDetailsSlideOut.tsx:441, apps/merchant-app/src/components/
+  BookingDetailsSlideOut.tsx:746).
+  - Threaded the preferred flag through booking management so the slide-out, optimistic state, and calendar cache all stay in sync and PATCH payloads carry the toggle value (apps/
+  merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx:1554, apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx:1604, apps/merchant-app/src/app/(dashboard)/
+  bookings/BookingsManager.tsx:1653, apps/merchant-app/src/components/calendar/refactored/CalendarPage.tsx:615).
+  - Extended client-side contracts to understand the new boolean, keeping runtime validation up to date and exposing the field on shared booking types (apps/merchant-app/src/lib/
+  clients/bookings-client.ts:39, apps/merchant-app/src/lib/clients/bookings-client.ts:53, apps/merchant-app/src/lib/clients/validation.ts:168, packages/shared/src/types/index.ts:82).
+  - Allowed the API to accept, persist, and return the explicit preferred flag by updating DTOs, controller mapping, and the booking update service so manual orders no longer default
+  to “preferred” (apps/api/src/contexts/bookings/infrastructure/dto/create-booking-v2.dto.ts:92, apps/api/src/contexts/bookings/infrastructure/dto/update-booking-v2.dto.ts:58, apps/api/
+  src/contexts/bookings/infrastructure/controllers/bookings.v2.controller.ts:258, apps/api/src/contexts/bookings/infrastructure/controllers/bookings.v2.controller.ts:293, apps/api/src/
+  contexts/bookings/infrastructure/controllers/bookings.v2.controller.ts:334, apps/api/src/contexts/bookings/application/services/booking-update.service.ts:30, apps/api/src/contexts/
+  bookings/application/services/booking-update.service.ts:135).
+
+  Tests
+
+  - npx eslint apps/merchant-app/src/components/BookingSlideOut.tsx apps/merchant-app/src/components/BookingDetailsSlideOut.tsx apps/merchant-app/src/app/(dashboard)/bookings/
+  BookingsManager.tsx apps/merchant-app/src/components/calendar/refactored/CalendarPage.tsx (existing exhaustive-deps warnings remain)
+
+  Next Steps
+
+      1. Smoke-test creating and editing manual bookings to confirm the heart toggle behaves and the badge only appears when toggled.
+
+▌ Two other bugs: Preferred Badge is showing on both the top right AND the bottom right. Toggling between showing just the icon or the badge seems to do nothing. It always shows the
+▌ full badge.
+
+• Explored
+  └ Search Preferred in DailyView.tsx
+    Read DailyView.tsx
+    Search renderBadgeRow in DailyView.tsx
+    Read DailyView.tsx
+    Search badgeDisplayMode in DailyView.tsx
+    Read WeeklyView.tsx, MonthlyView.tsx
+    Search showPreferredIndicator in DailyView.tsx
+    Read DailyView.tsx
+    Search requiresBadgeOffset in DailyView.tsx
+
+• Edited apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx (+1 -7)
+    870                                    {/* Top-right indicators */}
+    871   -                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+    871   +                                {(hasOverlaps || booking.status === 'cancelled') && (
+    872                                      <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
+    ⋮
+    875                                            <AlertTriangle className="h-3 w-3" />
+    876   -                                      </div>
+    877   -                                    )}
+    878   -                                    {showPreferredIndicator && (
+    879   -                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-w
+           hite shadow">
+    880   -                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
+    881   -                                        <span>Preferred</span>
+    876                                          </div>
+
+• Edited apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx (+1 -7)
+    1158                                   {/* Top-right indicators */}
+    1159  -                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+    1159  +                                {(hasOverlaps || booking.status === 'cancelled') && (
+    1160                                     <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
+    ⋮
+    1163                                           <AlertTriangle className="h-3 w-3" />
+    1164  -                                      </div>
+    1165  -                                    )}
+    1166  -                                    {showPreferredIndicator && (
+    1167  -                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-w
+           hite shadow">
+    1168  -                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
+    1169  -                                        <span>Preferred</span>
+    1164                                         </div>
+
+• Ran git diff apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx
+
+> Update
+
+  - Let Daily view render the preferred indicator only via the shared badge row so the heart no longer duplicates, and the icon/full toggle now visibly switches between compact and full
+  badges (apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx:868, apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx:1162).
+
+  Next Steps
+
+      1. Toggle the badge display mode in the calendar UI to confirm the preferred indicator switches between icon-only and full badge and no longer appears twice.
+
+▌ I don't know why the booking slider needs to be so wide? We can reduce the width by at least 25%. Also put the heart on the left side of the staff selection rather than right
+
+• Explored
+  └ Search BookingSlideOut in SlideOutPanel.tsx
+    Search SlideOutPanel* in components
+    Read SlideOutPanel.tsx
+    Search SlideOutPanel in BookingSlideOut.tsx
+    Read BookingSlideOut.tsx
+
+• Edited apps/merchant-app/src/components/BookingSlideOut.tsx (+20 -19)
+    454            width="wide"
+    455   +        className="lg:w-[55vw] xl:w-[45vw] max-w-3xl"
+    456            preserveState={true}
+    ⋮
+    574                <div className="flex items-center gap-3">
+    575   +              <button
+    576   +                type="button"
+    577   +                onClick={() => setCustomerRequestedStaff(prev => !prev)}
+    578   +                className={cn(
+    579   +                  "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    580   +                  customerRequestedStaff
+    581   +                    ? "border-teal-500 bg-teal-50 text-teal-600"
+    582   +                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    583   +                )}
+    584   +                aria-pressed={customerRequestedStaff}
+    585   +                aria-label={customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    586   +                title={customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    587   +              >
+    588   +                <Heart
+    589   +                  className="h-4 w-4"
+    590   +                  strokeWidth={2.2}
+    591   +                  fill={customerRequestedStaff ? "currentColor" : "none"}
+    592   +                />
+    593   +              </button>
+    594                  <Select
+    ⋮
+    628                  </Select>
+    609   -              <button
+    610   -                type="button"
+    611   -                onClick={() => setCustomerRequestedStaff(prev => !prev)}
+    612   -                className={cn(
+    613   -                  "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    614   -                  customerRequestedStaff
+    615   -                    ? "border-teal-500 bg-teal-50 text-teal-600"
+    616   -                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    617   -                )}
+    618   -                aria-pressed={customerRequestedStaff}
+    619   -                aria-label={customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    620   -                title={customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    621   -              >
+    622   -                <Heart
+    623   -                  className="h-4 w-4"
+    624   -                  strokeWidth={2.2}
+    625   -                  fill={customerRequestedStaff ? "currentColor" : "none"}
+    626   -                />
+    627   -              </button>
+    629                </div>
+
+• Edited apps/merchant-app/src/components/BookingDetailsSlideOut.tsx (+19 -19)
+    710                    <div className="mt-1 flex items-center gap-3">
+    711   +                  <button
+    712   +                    type="button"
+    713   +                    onClick={() => setFormData({ ...formData, customerRequestedStaff: !formData.customerRequestedStaff })}
+    714   +                    className={cn(
+    715   +                      "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    716   +                      formData.customerRequestedStaff
+    717   +                        ? "border-teal-500 bg-teal-50 text-teal-600"
+    718   +                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    719   +                    )}
+    720   +                    aria-pressed={formData.customerRequestedStaff}
+    721   +                    aria-label={formData.customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    722   +                    title={formData.customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    723   +                  >
+    724   +                    <Heart
+    725   +                      className="h-4 w-4"
+    726   +                      strokeWidth={2.2}
+    727   +                      fill={formData.customerRequestedStaff ? "currentColor" : "none"}
+    728   +                    />
+    729   +                  </button>
+    730                      <Select
+    ⋮
+    764                      </Select>
+    746   -                  <button
+    747   -                    type="button"
+    748   -                    onClick={() => setFormData({ ...formData, customerRequestedStaff: !formData.customerRequestedStaff })}
+    749   -                    className={cn(
+    750   -                      "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+    751   -                      formData.customerRequestedStaff
+    752   -                        ? "border-teal-500 bg-teal-50 text-teal-600"
+    753   -                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+    754   -                    )}
+    755   -                    aria-pressed={formData.customerRequestedStaff}
+    756   -                    aria-label={formData.customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+    757   -                    title={formData.customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+    758   -                  >
+    759   -                    <Heart
+    760   -                      className="h-4 w-4"
+    761   -                      strokeWidth={2.2}
+    762   -                      fill={formData.customerRequestedStaff ? "currentColor" : "none"}
+    763   -                    />
+    764   -                  </button>
+    765                    </div>
+
+• Explored
+  └ Search SlideOutPanel in BookingDetailsSlideOut.tsx
+
+• Ran git status -sb
+
+• I’m preparing a clear summary that highlights the key UI tweaks: width changes around line 452 and heart reposition near line 585 in BookingSlideOut.tsx, updates near line 708 in
+  BookingDetailsSlideOut.tsx, and width adjustments with className ratio around line 868 in DailyView.tsx — all with file paths for easy reference, and noting no new tests were added.
+
+> - Slimmed down the booking creation slide-out by overriding its layout to use roughly 45–55% of the viewport instead of the former 60–90%, trimming the panel by just over 25% for
+  large screens (apps/merchant-app/src/components/BookingSlideOut.tsx:455).
+  - Moved the preferred-staff heart toggle ahead of the staff selector in both the creation and edit slide-outs so the control now sits on the left edge as requested (apps/merchant-app/
+  src/components/BookingSlideOut.tsx:606, apps/merchant-app/src/components/BookingDetailsSlideOut.tsx:742).
+  - Removed the duplicate “Preferred” badge that was rendered in the top-right corner of each booking card so only the configurable badge row drives the heart indicator (apps/merchant-
+  app/src/components/calendar/refactored/views/DailyView.tsx:868, apps/merchant-app/src/components/calendar/refactored/views/DailyView.tsx:1162).
+
+  Let me know if you’d like the edit slide-out width matched to the slimmer create panel as well.
+
+▌ When creating a new booking the "Add Services" button sits on top. Put it on the bottom in between the Total bit (not under the header "Services")
+
+• Explored
+  └ Read BookingSlideOut.tsx
+
+• Edited apps/merchant-app/src/components/BookingSlideOut.tsx (+14 -11)
+    637                </h3>
+    638   -
+    639   -            <Button
+    640   -              onClick={() => setIsServiceSlideoutOpen(true)}
+    641   -              variant="outline"
+    642   -              className="w-full justify-start gap-2 mb-3"
+    643   -            >
+    644   -              <Plus className="h-4 w-4" />
+    645   -              Add Services
+    646   -            </Button>
+    647   -
+    648   -            {selectedServices.length > 0 && (
+    638   +            {selectedServices.length > 0 ? (
+    639                  <div className="space-y-2">
+    ⋮
+    774                  </div>
+    775   +            ) : (
+    776   +              <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+    777   +                No services selected yet.
+    778   +              </div>
+    779                )}
+    780   +
+    781   +            <Button
+    782   +              onClick={() => setIsServiceSlideoutOpen(true)}
+    783   +              variant="outline"
+    784   +              className="w-full justify-start gap-2 mt-3"
+    785   +            >
+    786   +              <Plus className="h-4 w-4" />
+    787   +              Add Services
+    788   +            </Button>
+    789              </div>
+
+> - Moved the “Add Services” button to sit beneath the service list/total summary (or the empty-state message when none are selected) so it no longer crowds the section header (apps/
+  merchant-app/src/components/BookingSlideOut.tsx:618).
+
+▌ The BADGE DISPLAY setting (full or icons only) should apply to week view as well when it gets set in the Day view
+
+• Explored
+  └ Search badgeDisplayMode in refactored
+    Read WeeklyView.tsx
+
+• I’m piecing together how to switch the weekly view badges between icon and full modes like the daily view does. I want to reuse or mimic daily’s helper functions and styles, carefully
+  handling preferred, source, pending, and paid badges with the right classes and icons or text depending on mode. I’ll wrap this in a helper to keep rendering clean and ensure no label
+  duplication or styling issues while adjusting top and bottom badge placements accordingly. Time to implement the patch!
+
+• Edited apps/merchant-app/src/components/calendar/refactored/views/WeeklyView.tsx (+105 -32)
+    21       const { state, filteredBookings } = useCalendar();
+    22    +  const badgeDisplayMode = state.badgeDisplayMode;
+    23
+    ⋮
+    247                              {/* Source badge + status indicators */}
+    247   -                          {(showSourceBadge || hasStatusBadge || showPreferredIndicator) && (
+    248   -                            <div className="pointer-events-none absolute bottom-2 right-2 flex flex-row-reverse flex-wrap items-center gap-1">
+    249   -                              {showPreferredIndicator && (
+    250   -                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow">
+    251   -                                  <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+    252   -                                </span>
+    253   -                              )}
+    254   -                              {showSourceBadge && (
+    255   -                                <span
+    256   -                                  className={cn(
+    257   -                                    sourcePresentation.badgeClassName,
+    258   -                                    'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow'
+    259   -                                  )}
+    260   -                                >
+    261   -                                  <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+    262   -                                  {sourcePresentation.label}
+    263   -                                </span>
+    264   -                              )}
+    265   -                              {showPendingStatusBadge && (
+    266   -                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide t
+           ext-amber-950 shadow">
+    267   -                                  <Hourglass className="h-3 w-3" />
+    268   -                                  Pending
+    269   -                                </span>
+    270   -                              )}
+    271   -                              {showPaidStatusBadge && (
+    272   -                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide te
+           xt-emerald-950 shadow">
+    273   -                                  <Check className="h-3 w-3" strokeWidth={3} />
+    274   -                                  Paid
+    275   -                                </span>
+    276   -                              )}
+    277   -                            </div>
+    278   -                          )}
+    248   +                          {(showSourceBadge || hasStatusBadge || showPreferredIndicator) && (() => {
+    249   +                            const mode = badgeDisplayMode;
+    250   +                            const badgeItems: React.ReactNode[] = [];
+    251   +
+    252   +                            if (showPreferredIndicator) {
+    253   +                              badgeItems.push(
+    254   +                                mode === 'icon' ? (
+    255   +                                  <span
+    256   +                                    key="preferred"
+    257   +                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow"
+    258   +                                  >
+    259   +                                    <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+    260   +                                  </span>
+    261   +                                ) : (
+    262   +                                  <span
+    263   +                                    key="preferred"
+    264   +                                    className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-wh
+           ite shadow"
+    265   +                                  >
+    266   +                                    <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+    267   +                                    Preferred
+    268   +                                  </span>
+    269   +                                )
+    270   +                              );
+    271   +                            }
+    272   +
+    273   +                            if (showSourceBadge) {
+    274   +                              badgeItems.push(
+    275   +                                mode === 'icon' ? (
+    276   +                                  <span
+    277   +                                    key="source"
+    278   +                                    className={cn(
+    279   +                                      'inline-flex h-5 w-5 items-center justify-center rounded-full shadow',
+    280   +                                      sourcePresentation.indicatorWrapperClassName
+    281   +                                    )}
+    282   +                                  >
+    283   +                                    <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+    284   +                                  </span>
+    285   +                                ) : (
+    286   +                                  <span
+    287   +                                    key="source"
+    288   +                                    className={cn(
+    289   +                                      sourcePresentation.badgeClassName,
+    290   +                                      'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow'
+    291   +                                    )}
+    292   +                                  >
+    293   +                                    <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+    294   +                                    {sourcePresentation.label}
+    295   +                                  </span>
+    296   +                                )
+    297   +                              );
+    298   +                            }
+    299   +
+    300   +                            if (showPendingStatusBadge) {
+    301   +                              badgeItems.push(
+    302   +                                mode === 'icon' ? (
+    303   +                                  <span
+    304   +                                    key="pending"
+    305   +                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/90 text-amber-950 shadow"
+    306   +                                  >
+    307   +                                    <Hourglass className="h-3 w-3" />
+    308   +                                  </span>
+    309   +                                ) : (
+    310   +                                  <span
+    311   +                                    key="pending"
+    312   +                                    className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide tex
+           t-amber-950 shadow"
+    313   +                                  >
+    314   +                                    <Hourglass className="h-3 w-3" />
+    315   +                                    Pending
+    316   +                                  </span>
+    317   +                                )
+    318   +                              );
+    319   +                            }
+    320   +
+    321   +                            if (showPaidStatusBadge) {
+    322   +                              badgeItems.push(
+    323   +                                mode === 'icon' ? (
+    324   +                                  <span
+    325   +                                    key="paid"
+    326   +                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-emerald-950 shadow"
+    327   +                                  >
+    328   +                                    <Check className="h-3 w-3" strokeWidth={3} />
+    329   +                                  </span>
+    330   +                                ) : (
+    331   +                                  <span
+    332   +                                    key="paid"
+    333   +                                    className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text
+           -emerald-950 shadow"
+    334   +                                  >
+    335   +                                    <Check className="h-3 w-3" strokeWidth={3} />
+    336   +                                    Paid
+    337   +                                  </span>
+    338   +                                )
+    339   +                              );
+    340   +                            }
+    341   +
+    342   +                            if (!badgeItems.length) {
+    343   +                              return null;
+    344   +                            }
+    345   +
+    346   +                            return (
+    347   +                              <div className="pointer-events-none absolute bottom-2 right-2 flex flex-row-reverse flex-wrap items-center gap-1">
+    348   +                                {badgeItems}
+    349   +                              </div>
+    350   +                            );
+    351   +                          })()}
+    352                            </div>
+
+• Ran npx eslint 'apps/merchant-app/src/components/calendar/refactored/views/WeeklyView.tsx'
+
+> - Made the week view respect the shared badge display preference by mirroring the day view’s icon/full toggle for preferred, source, pending, and paid indicators (apps/merchant-app/
+  src/components/calendar/refactored/views/WeeklyView.tsx:11, apps/merchant-app/src/components/calendar/refactored/views/WeeklyView.tsx:316).
+

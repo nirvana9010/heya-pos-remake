@@ -868,17 +868,11 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Top-right indicators */}
-                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+                                {(hasOverlaps || booking.status === 'cancelled') && (
                                   <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
                                     {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
                                       <div className="flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-white shadow">
                                         <AlertTriangle className="h-3 w-3" />
-                                      </div>
-                                    )}
-                                    {showPreferredIndicator && (
-                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
-                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
-                                        <span>Preferred</span>
                                       </div>
                                     )}
                                     {booking.status === 'cancelled' && (
@@ -1162,17 +1156,11 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Top-right indicators */}
-                                {(hasOverlaps || showPreferredIndicator || booking.status === 'cancelled') && (
+                                {(hasOverlaps || booking.status === 'cancelled') && (
                                   <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
                                     {hasOverlaps && booking.status !== 'cancelled' && booking.status !== 'optimistic' && (
                                       <div className="flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-white shadow">
                                         <AlertTriangle className="h-3 w-3" />
-                                      </div>
-                                    )}
-                                    {showPreferredIndicator && (
-                                      <div className="flex items-center gap-1 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
-                                        <Heart className="h-3 w-3" strokeWidth={2.3} fill="currentColor" />
-                                        <span>Preferred</span>
                                       </div>
                                     )}
                                     {booking.status === 'cancelled' && (

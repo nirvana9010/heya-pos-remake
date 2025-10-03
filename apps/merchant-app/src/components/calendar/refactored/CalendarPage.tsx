@@ -604,6 +604,7 @@ function CalendarContent() {
         staffId: bookingData.staffId ?? finalStaffId ?? null,
         staffName: bookingData.staffName || 'Unassigned',
         notes: bookingData.notes || '',
+        customerRequestedStaff: Boolean(bookingData.customerRequestedStaff),
         paymentStatus: bookingData.isPaid ? 'paid' : 'pending',
         createdAt,
         updatedAt,

@@ -7,6 +7,7 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BookingServiceDto } from './create-booking-v2.dto';
@@ -51,4 +52,8 @@ export class UpdateBookingV2Dto {
   @IsString()
   @MaxLength(200)
   cancellationReason?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  customerRequestedStaff?: boolean;
 }

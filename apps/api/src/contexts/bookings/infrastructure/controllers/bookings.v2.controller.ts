@@ -255,7 +255,7 @@ export class BookingsV2Controller {
       notes: dto.notes,
       source: dto.source || 'IN_PERSON',
       createdById: createdById, // Use the determined createdById
-      customerRequestedStaff: Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
+      customerRequestedStaff: dto.customerRequestedStaff ?? Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,
       orderId: dto.orderId, // Pass pre-created order ID if provided
@@ -290,6 +290,7 @@ export class BookingsV2Controller {
       totalDuration: enrichedBooking.totalDuration,
       locationName: enrichedBooking.location.name,
       createdAt: enrichedBooking.createdAt,
+      customerRequestedStaff: enrichedBooking.customerRequestedStaff ?? false,
     };
   }
 
@@ -317,6 +318,9 @@ export class BookingsV2Controller {
     if (dto.notes !== undefined) updateData.notes = dto.notes;
     if (dto.staffId) {
       updateData.staffId = dto.staffId;
+    }
+    if (dto.customerRequestedStaff !== undefined) {
+      updateData.customerRequestedStaff = dto.customerRequestedStaff;
     }
     if (dto.services && dto.services.length > 0) {
       // Pass full services array to update service

@@ -19,6 +19,7 @@ export function WeeklyView({
   onBookingClick
 }: WeeklyViewProps) {
   const { state, filteredBookings } = useCalendar();
+  const badgeDisplayMode = state.badgeDisplayMode;
   
   
   const weekStart = startOfWeek(state.currentDate);
@@ -244,38 +245,110 @@ export function WeeklyView({
                           </div>
                           
                           {/* Source badge + status indicators */}
-                          {(showSourceBadge || hasStatusBadge || showPreferredIndicator) && (
-                            <div className="pointer-events-none absolute bottom-2 right-2 flex flex-row-reverse flex-wrap items-center gap-1">
-                              {showPreferredIndicator && (
-                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow">
-                                  <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
-                                </span>
-                              )}
-                              {showSourceBadge && (
-                                <span
-                                  className={cn(
-                                    sourcePresentation.badgeClassName,
-                                    'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow'
-                                  )}
-                                >
-                                  <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
-                                  {sourcePresentation.label}
-                                </span>
-                              )}
-                              {showPendingStatusBadge && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950 shadow">
-                                  <Hourglass className="h-3 w-3" />
-                                  Pending
-                                </span>
-                              )}
-                              {showPaidStatusBadge && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-950 shadow">
-                                  <Check className="h-3 w-3" strokeWidth={3} />
-                                  Paid
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          {(showSourceBadge || hasStatusBadge || showPreferredIndicator) && (() => {
+                            const mode = badgeDisplayMode;
+                            const badgeItems: React.ReactNode[] = [];
+
+                            if (showPreferredIndicator) {
+                              badgeItems.push(
+                                mode === 'icon' ? (
+                                  <span
+                                    key="preferred"
+                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white shadow"
+                                  >
+                                    <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+                                  </span>
+                                ) : (
+                                  <span
+                                    key="preferred"
+                                    className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow"
+                                  >
+                                    <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
+                                    Preferred
+                                  </span>
+                                )
+                              );
+                            }
+
+                            if (showSourceBadge) {
+                              badgeItems.push(
+                                mode === 'icon' ? (
+                                  <span
+                                    key="source"
+                                    className={cn(
+                                      'inline-flex h-5 w-5 items-center justify-center rounded-full shadow',
+                                      sourcePresentation.indicatorWrapperClassName
+                                    )}
+                                  >
+                                    <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                                  </span>
+                                ) : (
+                                  <span
+                                    key="source"
+                                    className={cn(
+                                      sourcePresentation.badgeClassName,
+                                      'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow'
+                                    )}
+                                  >
+                                    <SourceIcon className={cn('h-3 w-3', sourcePresentation.iconClassName)} />
+                                    {sourcePresentation.label}
+                                  </span>
+                                )
+                              );
+                            }
+
+                            if (showPendingStatusBadge) {
+                              badgeItems.push(
+                                mode === 'icon' ? (
+                                  <span
+                                    key="pending"
+                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/90 text-amber-950 shadow"
+                                  >
+                                    <Hourglass className="h-3 w-3" />
+                                  </span>
+                                ) : (
+                                  <span
+                                    key="pending"
+                                    className="inline-flex items-center gap-1 rounded-full bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950 shadow"
+                                  >
+                                    <Hourglass className="h-3 w-3" />
+                                    Pending
+                                  </span>
+                                )
+                              );
+                            }
+
+                            if (showPaidStatusBadge) {
+                              badgeItems.push(
+                                mode === 'icon' ? (
+                                  <span
+                                    key="paid"
+                                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-emerald-950 shadow"
+                                  >
+                                    <Check className="h-3 w-3" strokeWidth={3} />
+                                  </span>
+                                ) : (
+                                  <span
+                                    key="paid"
+                                    className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-950 shadow"
+                                  >
+                                    <Check className="h-3 w-3" strokeWidth={3} />
+                                    Paid
+                                  </span>
+                                )
+                              );
+                            }
+
+                            if (!badgeItems.length) {
+                              return null;
+                            }
+
+                            return (
+                              <div className="pointer-events-none absolute bottom-2 right-2 flex flex-row-reverse flex-wrap items-center gap-1">
+                                {badgeItems}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })

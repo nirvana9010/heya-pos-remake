@@ -1551,6 +1551,7 @@ export default function BookingsManager() {
             totalPrice: selectedBookingForDetails.totalAmount || selectedBookingForDetails.price || 0,
             paidAmount: selectedBookingForDetails.paidAmount || 0,
             notes: selectedBookingForDetails.notes || '',
+            customerRequestedStaff: Boolean(selectedBookingForDetails.customerRequestedStaff),
           }}
           staff={staff}
           services={services}
@@ -1600,6 +1601,7 @@ export default function BookingsManager() {
                       price: totalPrice,
                       // Also update servicePrice if it exists
                       servicePrice: totalPrice,
+                      customerRequestedStaff: updatedBooking.customerRequestedStaff,
                     };
                     return updated;
                   }
@@ -1621,6 +1623,7 @@ export default function BookingsManager() {
                 totalAmount: totalPrice,
                 price: totalPrice,
                 servicePrice: totalPrice,
+                customerRequestedStaff: updatedBooking.customerRequestedStaff,
               };
               
               // Map services for API call - ensure proper service ID structure
@@ -1646,7 +1649,8 @@ export default function BookingsManager() {
                 startTime: updatedBooking.startTime,
                 staffId: updatedBooking.staffId,
                 services: mappedServices,
-                notes: updatedBooking.notes
+                notes: updatedBooking.notes,
+                customerRequestedStaff: updatedBooking.customerRequestedStaff
               });
 
               let apiResponse: any = null;

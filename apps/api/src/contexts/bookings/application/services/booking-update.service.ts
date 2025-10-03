@@ -27,6 +27,7 @@ interface UpdateBookingData {
   locationId?: string;
   status?: string;
   cancellationReason?: string;
+  customerRequestedStaff?: boolean;
 }
 
 interface CancelBookingData {
@@ -129,6 +130,9 @@ export class BookingUpdateService {
       // Note: serviceId field doesn't exist on Booking table anymore - using BookingService relation
       if (data.locationId && data.locationId !== booking.locationId) {
         directUpdates.locationId = data.locationId;
+      }
+      if (data.customerRequestedStaff !== undefined) {
+        directUpdates.customerRequestedStaff = data.customerRequestedStaff;
       }
 
       // 6a. Handle backward compatibility - convert single serviceId to services array

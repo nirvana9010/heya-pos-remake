@@ -36,6 +36,7 @@ export interface CreateBookingRequest {
   notes?: string;
   isOverride?: boolean;
   source?: string;
+  customerRequestedStaff?: boolean;
 }
 
 export interface UpdateBookingRequest {
@@ -49,6 +50,7 @@ export interface UpdateBookingRequest {
     price?: number;
     duration?: number;
   }>;
+  customerRequestedStaff?: boolean;
 }
 
 export interface RescheduleBookingRequest {

@@ -93,6 +93,7 @@ export interface Booking {
   paidAmount?: number;
   isPaid?: boolean;
   locationName?: string;
+  customerRequestedStaff?: boolean;
 }
 
 export interface Payment {

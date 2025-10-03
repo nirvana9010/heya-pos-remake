@@ -16,7 +16,8 @@ import {
   X,
   Gift,
   Pencil,
-  Check
+  Check,
+  Heart
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -137,6 +138,7 @@ export function BookingSlideOut({
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [notes, setNotes] = useState("");
   const [sendReminder, setSendReminder] = useState(true);
+  const [customerRequestedStaff, setCustomerRequestedStaff] = useState(false);
   
   // UI state
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
@@ -182,6 +184,7 @@ export function BookingSlideOut({
       setSendReminder(true);
       setFinalCustomerId("");
       setSelectedCustomer(null);
+      setCustomerRequestedStaff(false);
       
       hasInitializedRef.current = true;
     } else if (wasOpenNowClosed) {
@@ -342,7 +345,8 @@ export function BookingSlideOut({
         startTime: startTimeISO,
         notes: notes,
         source: 'IN_PERSON',
-        isOverride: true
+        isOverride: true,
+        customerRequestedStaff
       };
       
       
@@ -395,7 +399,8 @@ export function BookingSlideOut({
           // Normalize status to lowercase to match our BookingStatus type
           status: (response.status || 'CONFIRMED').toLowerCase() as any,
           isPaid: false,
-          notes: notes || ''
+          notes: notes || '',
+          customerRequestedStaff: response.customerRequestedStaff ?? customerRequestedStaff
         };
         onSave(realBooking);
         
@@ -447,6 +452,7 @@ export function BookingSlideOut({
         onClose={onClose}
         title="New Booking"
         width="wide"
+        className="lg:w-[55vw] xl:w-[45vw] max-w-3xl"
         preserveState={true}
         footer={
           <div className="flex justify-end gap-3">
@@ -565,41 +571,62 @@ export function BookingSlideOut({
               <User className="h-4 w-4" />
               Staff Member
             </h3>
-            <Select
-              value={selectedStaffId}
-              onValueChange={setSelectedStaffId}
-            >
-              <SelectTrigger className="w-full">
-                {selectedStaffId && (() => {
-                  const selected = filteredStaff.find(s => s.id === selectedStaffId);
-                  return selected ? (
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: selected.color }}
-                      />
-                      <span>{selected.name}</span>
-                    </div>
-                  ) : (
-                    <SelectValue placeholder="Select staff member" />
-                  );
-                })()}
-                {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
-              </SelectTrigger>
-              <SelectContent>
-                {filteredStaff.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: member.color }}
-                      />
-                      {member.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCustomerRequestedStaff(prev => !prev)}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+                  customerRequestedStaff
+                    ? "border-teal-500 bg-teal-50 text-teal-600"
+                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+                )}
+                aria-pressed={customerRequestedStaff}
+                aria-label={customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+                title={customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+              >
+                <Heart
+                  className="h-4 w-4"
+                  strokeWidth={2.2}
+                  fill={customerRequestedStaff ? "currentColor" : "none"}
+                />
+              </button>
+              <Select
+                value={selectedStaffId}
+                onValueChange={setSelectedStaffId}
+              >
+                <SelectTrigger className="w-full">
+                  {selectedStaffId && (() => {
+                    const selected = filteredStaff.find(s => s.id === selectedStaffId);
+                    return selected ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: selected.color }}
+                        />
+                        <span>{selected.name}</span>
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Select staff member" />
+                    );
+                  })()}
+                  {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredStaff.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: member.color }}
+                        />
+                        {member.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           {/* Services Section */}
@@ -608,17 +635,7 @@ export function BookingSlideOut({
               <Scissors className="h-4 w-4" />
               Services
             </h3>
-            
-            <Button
-              onClick={() => setIsServiceSlideoutOpen(true)}
-              variant="outline"
-              className="w-full justify-start gap-2 mb-3"
-            >
-              <Plus className="h-4 w-4" />
-              Add Services
-            </Button>
-            
-            {selectedServices.length > 0 && (
+            {selectedServices.length > 0 ? (
               <div className="space-y-2">
                 {selectedServices.map((service) => (
                   <div key={service.id} className="p-3 border rounded-lg bg-gray-50">
@@ -741,9 +758,17 @@ export function BookingSlideOut({
                       </div>
                     </div>
                 ))}
-                
+                <Button
+                  onClick={() => setIsServiceSlideoutOpen(true)}
+                  variant="outline"
+                  className="mt-3 w-full justify-start gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Services
+                </Button>
+
                 {/* Total Summary */}
-                <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg">
                   <div className="flex justify-between font-medium">
                     <span>Total ({selectedServices.length} services)</span>
                     <div className="text-right">
@@ -755,6 +780,20 @@ export function BookingSlideOut({
                   </div>
                 </div>
               </div>
+            ) : (
+              <>
+                <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                  No services selected yet.
+                </div>
+                <Button
+                  onClick={() => setIsServiceSlideoutOpen(true)}
+                  variant="outline"
+                  className="mt-3 w-full justify-start gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Services
+                </Button>
+              </>
             )}
           </div>
           

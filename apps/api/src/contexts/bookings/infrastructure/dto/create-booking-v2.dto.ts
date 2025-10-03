@@ -86,4 +86,8 @@ export class CreateBookingV2Dto {
   @IsOptional()
   @IsUUID()
   orderId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  customerRequestedStaff?: boolean;
 }

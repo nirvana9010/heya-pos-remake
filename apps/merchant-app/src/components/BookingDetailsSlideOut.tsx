@@ -22,7 +22,8 @@ import {
   PauseCircle,
   Loader2,
   Plus,
-  Minus
+  Minus,
+  Heart
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -77,6 +78,7 @@ interface BookingDetailsSlideOutProps {
     sourceCategory?: BookingSourceCategory;
     source?: string | null;
     customerSource?: string | null;
+    customerRequestedStaff?: boolean;
   };
   staff: Array<{ id: string; name: string; color: string }>;
   services?: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
@@ -147,7 +149,8 @@ function BookingDetailsSlideOutComponent({
       staffId: booking.staffId,
       date: startDate,
       time: startTime,
-      notes: booking.notes || ""
+      notes: booking.notes || "",
+      customerRequestedStaff: Boolean(booking.customerRequestedStaff)
     };
   };
   
@@ -434,7 +437,8 @@ function BookingDetailsSlideOutComponent({
       startTime: startTimeISO,
       endTime: endTimeISO,
       notes: formData.notes,
-      services: servicesToSend
+      services: servicesToSend,
+      customerRequestedStaff: formData.customerRequestedStaff
     };
     
     onSave(updatePayload).then(async (response) => {
@@ -703,41 +707,62 @@ function BookingDetailsSlideOutComponent({
             <div className="space-y-4">
               <div>
                 <Label>Staff Member</Label>
-                <Select
-                  value={formData.staffId}
-                  onValueChange={(value) => setFormData({ ...formData, staffId: value })}
-                >
-                  <SelectTrigger className="mt-1">
-                    {formData.staffId && (() => {
-                      const selected = staff.find(s => s.id === formData.staffId);
-                      return selected ? (
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: selected.color }}
-                          />
-                          <span>{selected.name}</span>
-                        </div>
-                      ) : (
-                        <SelectValue placeholder="Select staff member" />
-                      );
-                    })()}
-                    {!formData.staffId && <SelectValue placeholder="Select staff member" />}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {staff.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: member.color }}
-                          />
-                          {member.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="mt-1 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, customerRequestedStaff: !formData.customerRequestedStaff })}
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
+                      formData.customerRequestedStaff
+                        ? "border-teal-500 bg-teal-50 text-teal-600"
+                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+                    )}
+                    aria-pressed={formData.customerRequestedStaff}
+                    aria-label={formData.customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
+                    title={formData.customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+                  >
+                    <Heart
+                      className="h-4 w-4"
+                      strokeWidth={2.2}
+                      fill={formData.customerRequestedStaff ? "currentColor" : "none"}
+                    />
+                  </button>
+                  <Select
+                    value={formData.staffId}
+                    onValueChange={(value) => setFormData({ ...formData, staffId: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      {formData.staffId && (() => {
+                        const selected = staff.find(s => s.id === formData.staffId);
+                        return selected ? (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: selected.color }}
+                            />
+                            <span>{selected.name}</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Select staff member" />
+                        );
+                      })()}
+                      {!formData.staffId && <SelectValue placeholder="Select staff member" />}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {staff.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: member.color }}
+                            />
+                            {member.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

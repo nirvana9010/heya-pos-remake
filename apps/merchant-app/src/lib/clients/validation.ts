@@ -164,7 +164,13 @@ export const requestSchemas = {
       }
       return null;
     }),
-    source: validators.optional(validators.string)
+    source: validators.optional(validators.string),
+    customerRequestedStaff: validators.optional((value: any, field: string) => {
+      if (typeof value !== 'boolean') {
+        return { field, message: 'must be a boolean', value };
+      }
+      return null;
+    })
   },
 
   updateBooking: {
@@ -173,7 +179,13 @@ export const requestSchemas = {
     // NUCLEAR: Removed enum validation - accept any string for status
     status: validators.optional(validators.string),
     notes: validators.optional(validators.string),
-    services: validators.optional(validators.array)
+    services: validators.optional(validators.array),
+    customerRequestedStaff: validators.optional((value: any, field: string) => {
+      if (typeof value !== 'boolean') {
+        return { field, message: 'must be a boolean', value };
+      }
+      return null;
+    })
   },
 
   createCustomer: {
