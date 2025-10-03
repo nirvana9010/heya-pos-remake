@@ -109,6 +109,54 @@ const getInitials = (firstName: string, lastName: string | null | undefined) => 
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
+const formatPhoneNumber = (value?: string | null) => {
+  if (!value) {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, '');
+
+  if (!digits) {
+    return trimmed;
+  }
+
+  let normalized = digits;
+
+  if (digits.startsWith('61') && digits.length >= 9) {
+    const withoutCountryCode = digits.slice(2);
+    normalized = withoutCountryCode.startsWith('0')
+      ? withoutCountryCode
+      : `0${withoutCountryCode}`;
+  }
+
+  if (normalized.length === 10 && normalized.startsWith('04')) {
+    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+  }
+
+  if (normalized.length === 10 && /^0[2378]/.test(normalized)) {
+    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3');
+  }
+
+  if (trimmed.startsWith('+61')) {
+    const localPortion = trimmed.slice(3).replace(/\s+/g, '');
+    if (localPortion.length >= 3) {
+      return `+61 ${localPortion}`;
+    }
+  }
+
+  return trimmed;
+};
+
+const getDisplayPhone = (customer: Customer) => {
+  const rawPhone = customer.mobile ?? customer.phone ?? '';
+  if (!rawPhone) {
+    return '';
+  }
+
+  return formatPhoneNumber(rawPhone);
+};
+
 export default function CustomersPageContent() {
   const router = useRouter();
   const { toast } = useToast();
@@ -857,6 +905,7 @@ export default function CustomersPageContent() {
                 // Only show last visit if customer has actually visited
                 const lastVisitDate = customer.totalVisits > 0 && customer.updatedAt ? new Date(customer.updatedAt) : null;
                 const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                const displayPhone = getDisplayPhone(customer);
                 
                 return (
                   <div key={customer.id} className="group hover:bg-gray-50 transition-colors duration-200">
@@ -891,10 +940,10 @@ export default function CustomersPageContent() {
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="truncate">{customer.email || 'No email'}</span>
-                            {customer.phone && (
+                            {displayPhone && (
                               <>
                                 <span className="text-gray-300">•</span>
-                                <span>{customer.phone}</span>
+                                <span>{displayPhone}</span>
                               </>
                             )}
                             {daysSinceLastVisit !== null && (
