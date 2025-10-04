@@ -758,13 +758,13 @@ export function DailyView({
                             
                             // Calculate how many time slots this booking spans based in interval
                           const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-                          
-                          // Determine if this is a short booking that needs compact layout
-                          const isCompactBooking = booking.duration <= 30;
-                          const bookingVisualHeight = Math.max(slotsSpanned * 40 - 4, 70);
-                          const showMinimalContent =
-                            isCompactBooking ||
-                            (badgeDisplayMode === 'full' ? bookingVisualHeight <= 150 : bookingVisualHeight <= 110);
+                            
+                            // Determine if this is a short booking that needs compact layout
+                            const isCompactBooking = booking.duration <= 30;
+                            const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
+                            const showMinimalContent =
+                              isCompactBooking ||
+                              (badgeDisplayMode === 'full' ? initialHeight <= 150 : initialHeight <= 110);
                             
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
@@ -847,6 +847,9 @@ export function DailyView({
                             compact: showMinimalContent,
                           });
 
+                          const badgeAllowance = badgeRow ? (showMinimalContent ? 20 : 32) : 0;
+                          const bookingVisualHeight = initialHeight + badgeAllowance;
+
                           return (
                             <DraggableBooking
                               key={booking.id}
@@ -866,7 +869,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
+                                  height: `${bookingVisualHeight}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   backgroundImage: (booking.status === 'PENDING' || booking.status === 'pending')
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
@@ -880,7 +883,7 @@ export function DailyView({
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: showMinimalContent ? '8px' : '12px',
-                                  paddingBottom: showMinimalContent ? '8px' : '12px',
+                                  paddingBottom: showMinimalContent ? '10px' : '16px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1049,10 +1052,10 @@ export function DailyView({
                             
                             // Determine if this is a short booking that needs compact layout
                             const isCompactBooking = booking.duration <= 30;
-                            const bookingVisualHeight = Math.max(slotsSpanned * 40 - 4, 70);
+                            const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
                             const showMinimalContent =
                               isCompactBooking ||
-                              (badgeDisplayMode === 'full' ? bookingVisualHeight <= 150 : bookingVisualHeight <= 110);
+                              (badgeDisplayMode === 'full' ? initialHeight <= 150 : initialHeight <= 110);
                             
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
@@ -1135,6 +1138,9 @@ export function DailyView({
                             compact: showMinimalContent,
                           });
 
+                          const badgeAllowance = badgeRow ? (showMinimalContent ? 20 : 32) : 0;
+                          const bookingVisualHeight = initialHeight + badgeAllowance;
+
                           return (
                             <DraggableBooking
                               key={booking.id}
@@ -1154,7 +1160,7 @@ export function DailyView({
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
-                                  height: `${Math.max(slotsSpanned * 40 - 4, 70)}px`,
+                                  height: `${bookingVisualHeight}px`,
                                   backgroundColor: hexToRgba(bgColor, bgOpacity),
                                   backgroundImage: (booking.status === 'PENDING' || booking.status === 'pending')
                                     ? 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))'
@@ -1168,7 +1174,7 @@ export function DailyView({
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
                                   paddingTop: showMinimalContent ? '8px' : '12px',
-                                  paddingBottom: showMinimalContent ? '8px' : '12px',
+                                  paddingBottom: showMinimalContent ? '10px' : '16px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
