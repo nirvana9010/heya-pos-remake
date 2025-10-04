@@ -19,8 +19,11 @@ const DELETION_BUFFER_TIME = 30000; // 30 seconds
 // This solves the race condition where backend hasn't processed the status update yet
 const recentStatusUpdates = new Map<string, { status: string, timestamp: number }>(); // bookingId -> {status, timestamp}
 const STATUS_UPDATE_BUFFER_TIME = 60000; // 60 seconds - increased to handle backend processing delays
+const PREFERRED_STAFF_BUFFER_TIME = 120000; // Preserve preferred flag overrides for 2 minutes
 
-const LOCAL_BOOKING_RETENTION_TIME = 15000; // 15 seconds retention for locally created bookings
+const LOCAL_BOOKING_RETENTION_TIME = 60000; // 60 seconds retention for locally created bookings
+
+const recentPreferredStaffSelections = new Map<string, { value: boolean; timestamp: number }>();
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -72,6 +75,14 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
     }
   }
   
+  const merchantBadgeMode = freshMerchantSettings?.calendarBadgeDisplayMode;
+  const initialBadgeDisplayMode: 'full' | 'icon' =
+    merchantBadgeMode === 'icon' || merchantBadgeMode === 'full'
+      ? merchantBadgeMode
+      : (savedPrefs.badgeDisplayMode === 'icon' || savedPrefs.badgeDisplayMode === 'full'
+          ? savedPrefs.badgeDisplayMode
+          : 'full');
+  
   // Initial state based on merchant settings
   
   return {
@@ -98,7 +109,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   selectedServiceIds: [],
   selectedStatusFilters: savedPrefs.selectedStatusFilters || ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
   searchQuery: '',
-  badgeDisplayMode: savedPrefs.badgeDisplayMode || 'full',
+  badgeDisplayMode: initialBadgeDisplayMode,
   
   // Feature flags - Use fresh merchant settings directly
   showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
@@ -175,6 +186,12 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         }
       }
 
+      for (const [bookingId, selection] of recentPreferredStaffSelections.entries()) {
+        if (now - selection.timestamp > PREFERRED_STAFF_BUFFER_TIME) {
+          recentPreferredStaffSelections.delete(bookingId);
+        }
+      }
+
       // Reset local-only flags for server-confirmed bookings
       const normalizedIncoming = action.payload.map(booking =>
         booking.isLocalOnly || booking.localOnlyExpiresAt
@@ -204,10 +221,17 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         .filter(booking => !recentlyDeletedBookings.has(booking.id))
         .map(booking => {
           const recentUpdate = recentStatusUpdates.get(booking.id);
-          if (recentUpdate) {
-            return { ...booking, status: recentUpdate.status };
+          const preferredOverride = recentPreferredStaffSelections.get(booking.id);
+
+          if (!recentUpdate && !preferredOverride) {
+            return booking;
           }
-          return booking;
+
+          return {
+            ...booking,
+            ...(recentUpdate ? { status: recentUpdate.status } : null),
+            ...(preferredOverride ? { customerRequestedStaff: preferredOverride.value } : null),
+          };
         });
 
       return {
@@ -232,6 +256,13 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
           timestamp: Date.now()
         });
       }
+
+      if (Object.prototype.hasOwnProperty.call(action.payload.updates, 'customerRequestedStaff')) {
+        recentPreferredStaffSelections.set(action.payload.id, {
+          value: Boolean(action.payload.updates.customerRequestedStaff),
+          timestamp: Date.now()
+        });
+      }
       
       return {
         ...state,
@@ -244,14 +275,22 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       // If we're adding a booking, ensure it's not in the recently deleted map
       recentlyDeletedBookings.delete(action.payload.id);
 
+      if (Object.prototype.hasOwnProperty.call(action.payload, 'customerRequestedStaff')) {
+        recentPreferredStaffSelections.set(action.payload.id, {
+          value: Boolean(action.payload.customerRequestedStaff),
+          timestamp: Date.now()
+        });
+      }
+
       return {
         ...state,
         bookings: [...state.bookings, action.payload],
       };
-    
+
     case 'REMOVE_BOOKING':
       // Track this booking as recently deleted to prevent it from reappearing
       recentlyDeletedBookings.set(action.payload, Date.now());
+      recentPreferredStaffSelections.delete(action.payload);
       
       return {
         ...state,
@@ -606,6 +645,10 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
               { calendarEndHour: e.detail.settings.calendarEndHour }),
             ...(e.detail.settings.showOnlyRosteredStaffDefault !== undefined && 
               { showOnlyRosteredStaff: e.detail.settings.showOnlyRosteredStaffDefault }),
+            ...(e.detail.settings.calendarBadgeDisplayMode !== undefined && {
+              badgeDisplayMode:
+                e.detail.settings.calendarBadgeDisplayMode === 'icon' ? 'icon' : 'full'
+            }),
           };
           
           if (Object.keys(newSettings).length > 0) {

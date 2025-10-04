@@ -5,7 +5,7 @@ import { useCalendar } from '../CalendarProvider';
 import { useTimeGrid } from '../hooks';
 import { toMerchantTime } from '@/lib/date-utils';
 import { format, isSameDay, parseISO, isToday } from 'date-fns';
-import { cn } from '@heya-pos/ui';
+import { cn, useToast } from '@heya-pos/ui';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, pointerWithin, useSensors, useSensor, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
@@ -16,6 +16,7 @@ import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
+import { apiClient } from '@/lib/api-client';
 
 
 interface DailyViewProps {
@@ -88,6 +89,7 @@ export function DailyView({
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+  const { toast } = useToast();
   
   // Configure drag sensors
   const sensors = useSensors(
@@ -219,11 +221,48 @@ export function DailyView({
     : null;
   
   const badgeDisplayMode = state.badgeDisplayMode;
-  const handleBadgeModeToggle = (mode: 'full' | 'icon') => {
-    if (mode !== badgeDisplayMode) {
-      actions.setBadgeDisplayMode(mode);
+  const handleBadgeModeToggle = React.useCallback(async (mode: 'full' | 'icon') => {
+    if (mode === badgeDisplayMode) {
+      return;
     }
-  };
+
+    const previousMode = badgeDisplayMode;
+    actions.setBadgeDisplayMode(mode);
+
+    try {
+      await apiClient.updateMerchantSettings({ calendarBadgeDisplayMode: mode });
+
+      if (typeof window !== 'undefined') {
+        try {
+          const storedMerchant = localStorage.getItem('merchant');
+          if (storedMerchant) {
+            const merchantData = JSON.parse(storedMerchant);
+            merchantData.settings = {
+              ...merchantData.settings,
+              calendarBadgeDisplayMode: mode,
+            };
+            localStorage.setItem('merchant', JSON.stringify(merchantData));
+            window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', {
+              detail: { settings: merchantData.settings },
+            }));
+          } else {
+            window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', {
+              detail: { settings: { calendarBadgeDisplayMode: mode } },
+            }));
+          }
+        } catch (storageError) {
+          console.error('Failed to persist calendar badge preference locally', storageError);
+        }
+      }
+    } catch (error) {
+      actions.setBadgeDisplayMode(previousMode);
+      toast({
+        title: 'Unable to update preference',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [actions, badgeDisplayMode, toast]);
 
   // Show empty state if no staff are rostered
   // Count only staff with actual schedules for the current day

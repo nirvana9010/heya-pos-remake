@@ -2,7 +2,7 @@
 
 // Build timestamp - updates when file is saved
 const __BUILD_TIME__ = new Date().toLocaleString();
-const LOCAL_BOOKING_RETENTION_MS = 15000;
+const LOCAL_BOOKING_RETENTION_MS = 60000;
 // Checkbox removed - rostered staff filter now controlled by merchant settings only
 
 import React, { useCallback, useRef } from 'react';
@@ -854,7 +854,7 @@ function CalendarContent() {
         {/* Dev mode timestamp */}
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-xs font-mono border-b border-yellow-300">
-            Build Time: {__BUILD_TIME__} | Current: {new Date().toLocaleTimeString()} | BookingSlideOut default time should round to next 15min
+            Build Time: {__BUILD_TIME__} • Preferred flag hotfix | Current: {new Date().toLocaleTimeString()} | BookingSlideOut default time should round to next 15min
           </div>
         )}
         {/* Header */}
@@ -1268,7 +1268,8 @@ function CalendarContent() {
                 services: updatedBooking.services,
                 serviceName: serviceName,
                 servicePrice: totalPrice,
-                duration: totalDuration
+                duration: totalDuration,
+                customerRequestedStaff: Boolean(updatedBooking.customerRequestedStaff)
               });
               
               try {

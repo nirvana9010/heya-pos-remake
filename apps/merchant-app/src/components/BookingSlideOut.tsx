@@ -329,6 +329,8 @@ export function BookingSlideOut({
         throw new Error('Customer ID is required for booking creation');
       }
       
+      const resolvedCustomerSource = isWalkIn ? 'WALK_IN' : (selectedCustomer ? (selectedCustomer as any).source ?? null : null);
+
       const bookingData: any = {
         // Use 'WALK_IN' as customerId for walk-in customers
         customerId: finalCustomerIdForBooking,
@@ -377,6 +379,10 @@ export function BookingSlideOut({
       // Pass the real booking data to parent component
       if (response && response.id) {
         // Map the API response to the expected format
+        const requestedPreferredFlag = Boolean(customerRequestedStaff);
+        const serverPreferredFlag = response.customerRequestedStaff;
+        const finalPreferredFlag = requestedPreferredFlag ? true : Boolean(serverPreferredFlag);
+
         const realBooking = {
           id: response.id,
           bookingNumber: response.bookingNumber || 'PENDING',
@@ -400,7 +406,9 @@ export function BookingSlideOut({
           status: (response.status || 'CONFIRMED').toLowerCase() as any,
           isPaid: false,
           notes: notes || '',
-          customerRequestedStaff: response.customerRequestedStaff ?? customerRequestedStaff
+          customerRequestedStaff: finalPreferredFlag,
+          source: response.source ?? bookingData.source ?? 'IN_PERSON',
+          customerSource: response.customerSource ?? resolvedCustomerSource
         };
         onSave(realBooking);
         
