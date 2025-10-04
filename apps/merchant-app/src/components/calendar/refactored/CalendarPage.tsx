@@ -1279,16 +1279,17 @@ function CalendarContent() {
                   : updatedBooking.startTime;
                 const timeChanged = originalStartTime.getTime() !== newStartTime.getTime();
                 const staffChanged = originalBooking.staffId !== updatedBooking.staffId;
-                
-                // Check if services have changed
                 const servicesChanged = JSON.stringify(originalBooking.services) !== JSON.stringify(updatedBooking.services);
-                
-                // 2. Make API calls
-                if (timeChanged || staffChanged || servicesChanged) {
+                const notesChanged = originalBooking.notes !== updatedBooking.notes;
+                const preferredChanged = Boolean(originalBooking.customerRequestedStaff) !== Boolean(updatedBooking.customerRequestedStaff);
+
+                let mappedServices: any[] | undefined;
+
+                if (servicesChanged) {
                   // Use updateBooking API which supports all fields including services
-                  
+
                   // Log service mapping for debugging
-                  const mappedServices = updatedBooking.services?.map((s: any) => ({
+                  mappedServices = updatedBooking.services?.map((s: any) => ({
                     serviceId: s.serviceId || s.id,  // Use serviceId if available, fallback to id
                     staffId: s.staffId || updatedBooking.staffId,
                     price: s.price || s.adjustedPrice,  // Support both field names
@@ -1328,21 +1329,29 @@ function CalendarContent() {
                     // Don't send the update if service IDs are invalid
                     return;
                   }
-                  
-                  
-                  await apiClient.updateBooking(state.detailsBookingId!, {
-                    startTime: updatedBooking.startTime,
-                    staffId: updatedBooking.staffId,
-                    services: mappedServices,
-                    notes: updatedBooking.notes
-                  });
-                } else if (originalBooking.notes !== updatedBooking.notes) {
-                  // Only notes changed
-                  await apiClient.updateBooking(state.detailsBookingId!, {
-                    notes: updatedBooking.notes
-                  });
                 }
-                
+
+                const updatePayload: Record<string, any> = {};
+                if (timeChanged) {
+                  updatePayload.startTime = updatedBooking.startTime;
+                }
+                if (staffChanged) {
+                  updatePayload.staffId = updatedBooking.staffId;
+                }
+                if (servicesChanged && mappedServices) {
+                  updatePayload.services = mappedServices;
+                }
+                if (notesChanged) {
+                  updatePayload.notes = updatedBooking.notes;
+                }
+                if (preferredChanged) {
+                  updatePayload.customerRequestedStaff = Boolean(updatedBooking.customerRequestedStaff);
+                }
+
+                if (Object.keys(updatePayload).length > 0) {
+                  await apiClient.updateBooking(state.detailsBookingId!, updatePayload);
+                }
+
                 // DON'T refresh from server - it returns old single-service format
                 // and overwrites our multi-service data
                 // The optimistic update already has the correct data
@@ -1354,15 +1363,58 @@ function CalendarContent() {
                 const updatedTime = new Date(updatedBooking.startTime);
                 const formattedTime = format(updatedTime, 'h:mm a');
                 const formattedDate = format(updatedTime, 'MMM d, yyyy');
-                
+
+                const changeMessages: React.ReactNode[] = [];
+                if (timeChanged) {
+                  changeMessages.push(
+                    <p key="time" className="text-sm text-gray-600">
+                      New time: {formattedDate} at {formattedTime}
+                    </p>
+                  );
+                }
+                if (staffChanged) {
+                  changeMessages.push(
+                    <p key="staff" className="text-sm text-gray-600">
+                      Assigned to {staffName}.
+                    </p>
+                  );
+                }
+                if (servicesChanged) {
+                  changeMessages.push(
+                    <p key="services" className="text-sm text-gray-600">
+                      Services updated.
+                    </p>
+                  );
+                }
+                if (preferredChanged) {
+                  changeMessages.push(
+                    <p key="preferred" className="text-sm text-gray-600">
+                      Preferred staff {Boolean(updatedBooking.customerRequestedStaff) ? 'enabled' : 'disabled'}.
+                    </p>
+                  );
+                }
+                if (notesChanged) {
+                  changeMessages.push(
+                    <p key="notes" className="text-sm text-gray-600">
+                      Notes updated.
+                    </p>
+                  );
+                }
+
+                if (changeMessages.length === 0) {
+                  changeMessages.push(
+                    <p key="default" className="text-sm text-gray-600">
+                      Booking details saved.
+                    </p>
+                  );
+                }
+
                 toast({
                   title: 'Booking updated',
                   description: (
-                    <div>
-                      <p>{booking.customerName}'s appointment has been rescheduled.</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        New time: {formattedDate} at {formattedTime}
-                      </p>
+                    <div className="space-y-1">
+                      <p>{booking.customerName}'s booking has been updated.</p>
+                      {changeMessages}
                     </div>
                   ),
                   variant: "default",
