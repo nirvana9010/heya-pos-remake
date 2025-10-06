@@ -2,12 +2,12 @@ import { BaseApiClient, resolveApiBaseUrl } from './base-client';
 
 export interface Customer {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  mobile?: string;
-  notes?: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile?: string | null;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
   visitCount?: number;
@@ -20,9 +20,9 @@ export interface Customer {
 
 export interface CreateCustomerRequest {
   firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
   mobile?: string;
   notes?: string;
 }

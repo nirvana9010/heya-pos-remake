@@ -12,7 +12,7 @@ import { Textarea } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, CreateCustomerRequest } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { prefetchManager } from '@/lib/prefetch';
 
@@ -155,6 +155,11 @@ const getDisplayPhone = (customer: Customer) => {
   }
 
   return formatPhoneNumber(rawPhone);
+};
+
+const sanitizeOptionalField = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 };
 
 export default function CustomersPageContent() {
@@ -646,14 +651,22 @@ export default function CustomersPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload: CreateCustomerRequest = {
+        firstName: formData.firstName.trim(),
+        lastName: sanitizeOptionalField(formData.lastName),
+        email: sanitizeOptionalField(formData.email),
+        phone: sanitizeOptionalField(formData.phone),
+        notes: sanitizeOptionalField(formData.notes),
+      };
+
       if (editingCustomer) {
-        await apiClient.updateCustomer(editingCustomer.id, formData);
+        await apiClient.updateCustomer(editingCustomer.id, payload);
         toast({
           title: "Success",
           description: "Customer updated successfully",
         });
       } else {
-        await apiClient.createCustomer(formData);
+        await apiClient.createCustomer(payload);
         toast({
           title: "Success",
           description: "Customer created successfully",
