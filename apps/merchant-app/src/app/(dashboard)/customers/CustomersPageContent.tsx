@@ -659,6 +659,8 @@ export default function CustomersPageContent() {
         notes: sanitizeOptionalField(formData.notes),
       };
 
+      const targetPage = editingCustomer ? currentPage : 1;
+
       if (editingCustomer) {
         await apiClient.updateCustomer(editingCustomer.id, payload);
         toast({
@@ -676,7 +678,9 @@ export default function CustomersPageContent() {
       setEditingCustomer(null);
       setFormData({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
       // Reload customers and stats
-      loadCustomers();
+      setCurrentPage(targetPage);
+      await loadCustomers({ limit: itemsPerPage, page: targetPage });
+      setIsRemoteSearchResult(false);
       apiClient.customers.getStats()
         .then(stats => {
           if (stats) {
