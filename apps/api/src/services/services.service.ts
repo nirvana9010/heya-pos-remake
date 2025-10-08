@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -10,6 +10,7 @@ import { Service, ServiceCategory, Prisma } from '@prisma/client';
 import { PaginatedResponse } from '../types';
 import { CsvParserService } from './csv-parser.service';
 import { MerchantService } from '../merchant/merchant.service';
+import { DuplicateResourceException } from '../common/exceptions/business-exception';
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {
@@ -74,7 +75,7 @@ export class ServicesService {
     });
 
     if (existing) {
-      throw new ConflictException('Service with this name already exists');
+      throw new DuplicateResourceException('Service', 'name', dto.name);
     }
 
     // If category name is provided instead of ID, find or create category
@@ -91,37 +92,48 @@ export class ServicesService {
     // Generate a unique service ID for this manually created service
     const serviceId = await this.generateServiceId(merchantId);
     
-    const service = await this.prisma.service.create({
-      data: {
-        merchantId,
-        name: dto.name,
-        description: dto.description,
-        categoryId,
-        category: dto.category,
-        duration: dto.duration,
-        price: dto.price,
-        currency: dto.currency || 'AUD',
-        taxRate: dto.taxRate ?? 0.0, // Prices are GST-inclusive
-        isActive: dto.isActive ?? true,
-        requiresDeposit: dto.requiresDeposit ?? false,
-        depositAmount: dto.depositAmount,
-        maxAdvanceBooking: dto.maxAdvanceBooking ?? 90,
-        minAdvanceBooking: dto.minAdvanceBooking ?? 0,
-        displayOrder: dto.displayOrder ?? 0,
-        metadata: {
-          importId: serviceId,
-          createdManually: true, // Flag to distinguish from imported services
+    try {
+      const service = await this.prisma.service.create({
+        data: {
+          merchantId,
+          name: dto.name,
+          description: dto.description,
+          categoryId,
+          category: dto.category,
+          duration: dto.duration,
+          price: dto.price,
+          currency: dto.currency || 'AUD',
+          taxRate: dto.taxRate ?? 0.0, // Prices are GST-inclusive
+          isActive: dto.isActive ?? true,
+          requiresDeposit: dto.requiresDeposit ?? false,
+          depositAmount: dto.depositAmount,
+          maxAdvanceBooking: dto.maxAdvanceBooking ?? 90,
+          minAdvanceBooking: dto.minAdvanceBooking ?? 0,
+          displayOrder: dto.displayOrder ?? 0,
+          metadata: {
+            importId: serviceId,
+            createdManually: true, // Flag to distinguish from imported services
+          },
         },
-      },
-      include: {
-        categoryModel: true,
-      },
-    });
+        include: {
+          categoryModel: true,
+        },
+      });
 
-    return {
-      ...service,
-      categoryName: service.categoryModel?.name || service.category || null,
-    };
+      return {
+        ...service,
+        categoryName: service.categoryModel?.name || service.category || null,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new DuplicateResourceException('Service', 'name', dto.name);
+      }
+
+      throw error;
+    }
   }
 
   async findAll(
@@ -232,7 +244,7 @@ export class ServicesService {
       });
 
       if (existing) {
-        throw new ConflictException('Service with this name already exists');
+        throw new DuplicateResourceException('Service', 'name', dto.name);
       }
     }
 
@@ -246,23 +258,35 @@ export class ServicesService {
     // Preserve existing metadata while updating other fields
     const { metadata, ...updateData } = dto as any;
     
-    const updatedService = await this.prisma.service.update({
-      where: { id },
-      data: {
-        ...updateData,
-        categoryId: categoryId !== undefined ? categoryId : service.categoryId,
-        // Preserve existing metadata (like importId) - don't overwrite unless explicitly provided
-        metadata: metadata !== undefined ? metadata : undefined,
-      },
-      include: {
-        categoryModel: true,
-      },
-    });
+    try {
+      const updatedService = await this.prisma.service.update({
+        where: { id },
+        data: {
+          ...updateData,
+          categoryId: categoryId !== undefined ? categoryId : service.categoryId,
+          // Preserve existing metadata (like importId) - don't overwrite unless explicitly provided
+          metadata: metadata !== undefined ? metadata : undefined,
+        },
+        include: {
+          categoryModel: true,
+        },
+      });
 
-    return {
-      ...updatedService,
-      categoryName: updatedService.categoryModel?.name || updatedService.category || null,
-    };
+      return {
+        ...updatedService,
+        categoryName:
+          updatedService.categoryModel?.name || updatedService.category || null,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new DuplicateResourceException('Service', 'name', dto.name ?? service.name);
+      }
+
+      throw error;
+    }
   }
 
   async remove(id: string, merchantId: string): Promise<void> {
@@ -301,20 +325,31 @@ export class ServicesService {
     });
 
     if (existing) {
-      throw new ConflictException('Category with this name already exists');
+      throw new DuplicateResourceException('Service Category', 'name', dto.name);
     }
 
-    return this.prisma.serviceCategory.create({
-      data: {
-        merchantId,
-        name: dto.name,
-        description: dto.description,
-        icon: dto.icon,
-        color: dto.color,
-        sortOrder: dto.sortOrder ?? 0,
-        isActive: dto.isActive ?? true,
-      },
-    });
+    try {
+      return await this.prisma.serviceCategory.create({
+        data: {
+          merchantId,
+          name: dto.name,
+          description: dto.description,
+          icon: dto.icon,
+          color: dto.color,
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: dto.isActive ?? true,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new DuplicateResourceException('Service Category', 'name', dto.name);
+      }
+
+      throw error;
+    }
   }
 
   async findAllCategories(merchantId: string): Promise<ServiceCategory[]> {
@@ -352,14 +387,25 @@ export class ServicesService {
       });
 
       if (existing) {
-        throw new ConflictException('Category with this name already exists');
+        throw new DuplicateResourceException('Service Category', 'name', dto.name);
       }
     }
 
-    return this.prisma.serviceCategory.update({
-      where: { id },
-      data: dto,
-    });
+    try {
+      return await this.prisma.serviceCategory.update({
+        where: { id },
+        data: dto,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new DuplicateResourceException('Service Category', 'name', dto.name ?? category.name);
+      }
+
+      throw error;
+    }
   }
 
   async removeCategory(id: string, merchantId: string): Promise<void> {
