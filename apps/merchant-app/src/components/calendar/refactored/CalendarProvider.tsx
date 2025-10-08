@@ -6,7 +6,22 @@ import { toMerchantTime, toUTC } from '@/lib/date-utils';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { getAuthHeader } from '@/lib/constants/auth-constants';
 import { API_ENDPOINTS } from '@/lib/constants/api-constants';
-import type { CalendarState, CalendarAction, CalendarContextType, CalendarView, DateRange, BookingStatus, TimeInterval, BusinessHours } from './types';
+import { coerceBookingStatus } from '@/lib/clients/bookings-client';
+import type {
+  CalendarState,
+  CalendarAction,
+  CalendarContextType,
+  CalendarView,
+  DateRange,
+  BookingStatus,
+  TimeInterval,
+  BusinessHours,
+  Booking,
+  Staff,
+  Service,
+  Customer,
+} from './types';
+import { ALL_CALENDAR_STATUSES } from './types';
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
 
@@ -17,7 +32,7 @@ const DELETION_BUFFER_TIME = 30000; // 30 seconds
 
 // Track recent status updates to prevent them from reverting during refresh
 // This solves the race condition where backend hasn't processed the status update yet
-const recentStatusUpdates = new Map<string, { status: string, timestamp: number }>(); // bookingId -> {status, timestamp}
+const recentStatusUpdates = new Map<string, { status: BookingStatus; timestamp: number }>(); // bookingId -> {status, timestamp}
 const STATUS_UPDATE_BUFFER_TIME = 60000; // 60 seconds - increased to handle backend processing delays
 const PREFERRED_STAFF_BUFFER_TIME = 120000; // Preserve preferred flag overrides for 2 minutes
 
@@ -34,6 +49,27 @@ const STORAGE_KEYS = {
 } as const;
 
 // Load saved preferences from localStorage
+function parseStoredStatuses(raw: string | null): BookingStatus[] {
+  if (!raw) {
+    return ALL_CALENDAR_STATUSES;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return ALL_CALENDAR_STATUSES;
+    }
+
+    const normalized = parsed
+      .map(value => (typeof value === 'string' ? coerceBookingStatus(value) : null))
+      .filter((value): value is BookingStatus => value !== null);
+
+    return normalized.length > 0 ? normalized : ALL_CALENDAR_STATUSES;
+  } catch {
+    return ALL_CALENDAR_STATUSES;
+  }
+}
+
 function loadSavedPreferences(): Partial<CalendarState> {
   if (typeof window === 'undefined') return {};
   
@@ -43,9 +79,7 @@ function loadSavedPreferences(): Partial<CalendarState> {
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
     
     return {
-      selectedStatusFilters: savedStatusFilters 
-        ? JSON.parse(savedStatusFilters) 
-        : ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+      selectedStatusFilters: parseStoredStatuses(savedStatusFilters),
       selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
       badgeDisplayMode: (localStorage.getItem(STORAGE_KEYS.badgeDisplayMode) as 'full' | 'icon') || 'full',
@@ -107,7 +141,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   selectedBookingId: null,
   selectedStaffIds: savedPrefs.selectedStaffIds || [],
   selectedServiceIds: [],
-  selectedStatusFilters: savedPrefs.selectedStatusFilters || ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+  selectedStatusFilters: savedPrefs.selectedStatusFilters || ALL_CALENDAR_STATUSES,
   searchQuery: '',
   badgeDisplayMode: initialBadgeDisplayMode,
   
@@ -249,11 +283,10 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       
       // Track status updates to prevent them from reverting
       if (action.payload.updates.status) {
-        // Ensure status is normalized to lowercase format
-        const normalizedStatus = action.payload.updates.status.toLowerCase().replace(/_/g, '-');
+        const normalizedStatus = coerceBookingStatus(action.payload.updates.status);
         recentStatusUpdates.set(action.payload.id, {
           status: normalizedStatus,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
 
@@ -540,7 +573,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     // Service filter
     if (state.selectedServiceIds.length > 0) {
       filtered = filtered.filter(booking =>
-        state.selectedServiceIds.includes(booking.serviceId)
+        booking.serviceId !== null && state.selectedServiceIds.includes(booking.serviceId)
       );
     }
 
@@ -573,7 +606,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   ]);
   
   // Action creators
-  const actions = useMemo(() => ({
+  const actions: CalendarActions = useMemo(() => ({
     // View actions
     setView: (view: CalendarView) => dispatch({ type: 'SET_VIEW', payload: view }),
     setDate: (date: Date) => dispatch({ type: 'SET_DATE', payload: date }),
@@ -581,18 +614,20 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     navigate: (direction: 'prev' | 'next') => dispatch({ type: 'NAVIGATE', payload: direction }),
     
     // Data actions
-    setBookings: (bookings: any[]) => dispatch({ type: 'SET_BOOKINGS', payload: bookings }),
-    updateBooking: (id: string, updates: any) => dispatch({ type: 'UPDATE_BOOKING', payload: { id, updates } }),
-    addBooking: (booking: any) => dispatch({ type: 'ADD_BOOKING', payload: booking }),
+    setBookings: (bookings: Booking[]) => dispatch({ type: 'SET_BOOKINGS', payload: bookings }),
+    updateBooking: (id: string, updates: Partial<Booking>) => dispatch({ type: 'UPDATE_BOOKING', payload: { id, updates } }),
+    addBooking: (booking: Booking) => dispatch({ type: 'ADD_BOOKING', payload: booking }),
     removeBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
-    setStaff: (staff: any[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
-    setServices: (services: any[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
-    setCustomers: (customers: any[]) => dispatch({ type: 'SET_CUSTOMERS', payload: customers }),
+    deleteBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
+    replaceBooking: (oldId: string, newBooking: Booking) => dispatch({ type: 'REPLACE_BOOKING', payload: { oldId, newBooking } }),
+    setStaff: (staff: Staff[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
+    setServices: (services: Service[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
+    setCustomers: (customers: Customer[]) => dispatch({ type: 'SET_CUSTOMERS', payload: customers }),
     
     // Filter actions
     setStaffFilter: (staffIds: string[]) => dispatch({ type: 'SET_STAFF_FILTER', payload: staffIds }),
     setServiceFilter: (serviceIds: string[]) => dispatch({ type: 'SET_SERVICE_FILTER', payload: serviceIds }),
-    setStatusFilter: (statuses: string[]) => dispatch({ type: 'SET_STATUS_FILTER', payload: statuses as BookingStatus[] }),
+    setStatusFilter: (statuses: BookingStatus[]) => dispatch({ type: 'SET_STATUS_FILTER', payload: statuses }),
     setSearch: (query: string) => dispatch({ type: 'SET_SEARCH', payload: query }),
     setBadgeDisplayMode: (mode: 'full' | 'icon') => dispatch({ type: 'SET_BADGE_DISPLAY_MODE', payload: mode }),
     

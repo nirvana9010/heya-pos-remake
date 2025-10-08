@@ -1,4 +1,5 @@
 import type { BookingSourceCategory } from '@/lib/booking-source';
+import type { BookingServiceSummary } from '@/lib/clients/bookings-client';
 
 // Calendar view types
 export type CalendarView = 'day' | 'week' | 'month';
@@ -13,11 +14,33 @@ export interface DateRange {
 }
 
 // Booking status types
-export type BookingStatus = 'pending' | 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show' | 'deleted';
+export type BookingStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'confirmed'
+  | 'in-progress'
+  | 'completed'
+  | 'cancelled'
+  | 'no-show'
+  | 'deleted'
+  | 'optimistic';
+
+export const ALL_CALENDAR_STATUSES: BookingStatus[] = [
+  'pending',
+  'scheduled',
+  'confirmed',
+  'in-progress',
+  'completed',
+  'cancelled',
+  'no-show',
+  'deleted',
+  'optimistic',
+];
 
 // Core data models
 export interface Booking {
   id: string;
+  bookingNumber?: string;
   date: string;
   time: string;
   duration: number;
@@ -35,18 +58,12 @@ export interface Booking {
   customerSource?: string; // e.g., 'WALK_IN'
   source?: string | null; // Raw booking source from API
   sourceCategory: BookingSourceCategory;
-  sourceLabel: 'Online' | 'Manual' | 'Walk-in' | 'Unknown';
+  sourceLabel: string;
   
-  serviceId: string;
+  serviceId: string | null;
   serviceName: string;
   servicePrice: number;
-  services?: Array<{
-    id?: string;
-    serviceId?: string;
-    name?: string;
-    duration?: number;
-    price?: number;
-  }>;
+  services?: BookingServiceSummary[];
   
   staffId: string | null;  // null for unassigned
   staffName: string;
@@ -60,6 +77,7 @@ export interface Booking {
   paymentMethod?: string;
   isPaid?: boolean;
   paidAmount?: number;
+  totalAmount?: number;
   customerRequestedStaff?: boolean;
   
   // Timestamps
@@ -73,9 +91,14 @@ export interface Staff {
   name: string;
   email: string;
   role: string;
+  accessLevel?: string;
+  calendarColor?: string;
+  status?: string;
   color: string;  // Required for calendar display
   avatar?: string;
   isActive: boolean;
+  firstName?: string;
+  lastName?: string;
   workingHours?: WorkingHours;
   schedules?: Array<{
     dayOfWeek: number;
@@ -88,6 +111,8 @@ export interface Staff {
     endTime: string | null;
     reason?: string | null;
   }>;
+  generatedPin?: string | null;
+  pin?: string | null;
 }
 
 export interface Service {
@@ -237,6 +262,7 @@ export interface CalendarActions {
   updateBooking: (id: string, updates: Partial<Booking>) => void;
   addBooking: (booking: Booking) => void;
   removeBooking: (id: string) => void;
+  deleteBooking: (id: string) => void;
   replaceBooking: (oldId: string, newBooking: Booking) => void;
   setStaff: (staff: Staff[]) => void;
   setServices: (services: Service[]) => void;

@@ -8,6 +8,7 @@ import { StaffClient } from '@/lib/clients/staff-client';
 import { useToast } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { mapStaffToCalendar } from '@/components/calendar/refactored/calendar-booking-mapper';
 
 interface BookingContextType {
   openBookingSlideout: () => void;
@@ -101,16 +102,11 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
       );
 
       const transformedStaff = activeStaff.map((member: any) => ({
-        id: member.id,
-        name: member.lastName ? `${member.firstName} ${member.lastName}`.trim() : member.firstName,
-        color: member.calendarColor || '#7C3AED',
-        email: member.email,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        role: member.role,
-        isActive: true,
+        ...mapStaffToCalendar(member),
         schedules: scheduleMap.get(member.id) || [],
         scheduleOverrides: overridesMap.get(member.id) || [],
+        firstName: member.firstName,
+        lastName: member.lastName,
       }));
 
       setStaff(transformedStaff);
@@ -236,11 +232,13 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
         customers={customers}
         bookings={bookings}
         onSave={handleSaveBooking}
-        merchant={merchantSettings ? { 
-          settings: merchantSettings.settings || merchantSettings,
-          locations: merchant?.locations,
-          locationId: merchant?.locationId
-        } : merchant}
+        merchant={merchantSettings
+          ? {
+              settings: merchantSettings.settings || merchantSettings,
+              locations: merchant?.locations,
+              locationId: merchant?.locationId,
+            }
+          : merchant ?? undefined}
       />
       
       {/* Global Quick Sale Slideout */}
