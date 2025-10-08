@@ -20,6 +20,7 @@ export interface ServiceCategory {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  color?: string;
 }
 
 export interface CreateServiceRequest {
@@ -105,6 +106,8 @@ export class ServicesClient extends BaseApiClient {
     searchTerm?: string;
     categoryId?: string;
     isActive?: boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }): Promise<{ data: Service[]; meta: { total: number; page: number; limit: number; totalPages: number } }> {
     const response = await this.get('/services', { params }, 'v1');
     // Return full paginated response

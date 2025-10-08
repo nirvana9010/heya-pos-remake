@@ -21,12 +21,12 @@ import { Checkbox } from "@heya-pos/ui";
 import { DataTable, createSelectColumn } from "@heya-pos/ui";
 import { Skeleton, TableSkeleton } from "@heya-pos/ui";
 import { Spinner, SuccessCheck, ErrorShake, FadeIn } from "@heya-pos/ui";
-import { type Service, type ServiceCategory } from "@heya-pos/shared";
 import { useToast } from "@heya-pos/ui";
 import { SlideOutPanel } from '@/components/SlideOutPanel';
 import CategoryDialog from '@/components/CategoryDialog';
 import { ColumnDef } from "@tanstack/react-table";
 import { debounce } from "lodash";
+import { apiClient } from '@/lib/api-client';
 import { 
   useServicesData, 
   useCreateService, 
@@ -36,10 +36,19 @@ import {
   useUpdateCategory,
   useDeleteCategory 
 } from '@/hooks/use-services';
+import type { ServiceRecord, ServiceCategoryRecord } from '@/lib/normalizers/service';
 
-interface ServiceRow extends Service {
+const SORT_OPTIONS = [
+  { value: 'name-asc', label: 'Name (A-Z)', sortBy: 'name', sortOrder: 'asc' as const },
+  { value: 'name-desc', label: 'Name (Z-A)', sortBy: 'name', sortOrder: 'desc' as const },
+  { value: 'price-asc', label: 'Price (Low to High)', sortBy: 'price', sortOrder: 'asc' as const },
+  { value: 'price-desc', label: 'Price (High to Low)', sortBy: 'price', sortOrder: 'desc' as const },
+] as const;
+
+type SortOptionValue = typeof SORT_OPTIONS[number]['value'];
+
+interface ServiceRow extends ServiceRecord {
   staffCount: number;
-  categoryColor?: string;
 }
 
 export default function ServicesPageContent() {
@@ -67,13 +76,13 @@ export default function ServicesPageContent() {
   });
   const [isSearching, setIsSearching] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingService, setEditingService] = useState<ServiceRecord | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ServiceCategoryRecord | null>(null);
   const [savingService, setSavingService] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'price' | 'duration' } | null>(null);
@@ -94,13 +103,27 @@ export default function ServicesPageContent() {
     dependencies: [] as string[]
   });
 
+  const defaultSort = SORT_OPTIONS[0];
+  const [sortOption, setSortOption] = useState<SortOptionValue>(() => {
+    const sort = searchParams.get('sort');
+    return SORT_OPTIONS.some(option => option.value === sort)
+      ? (sort as SortOptionValue)
+      : defaultSort.value;
+  });
+
+  const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption) ?? defaultSort;
+  const sortBy = selectedSort.sortBy;
+  const sortOrder = selectedSort.sortOrder;
+
   // Data fetching hooks - now all state is declared
-  const queryParams = { 
-    page: currentPage, 
+  const queryParams = useMemo(() => ({
+    page: currentPage,
     limit: pageSize,
     searchTerm: debouncedSearchQuery || undefined,
-    categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter
-  };
+    categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter,
+    sortBy,
+    sortOrder,
+  }), [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, sortBy, sortOrder]);
   
   const servicesData = useServicesData(queryParams);
   const { services, categories, serviceCounts, totalServices, meta, isLoading, refetch } = servicesData;
@@ -127,9 +150,10 @@ export default function ServicesPageContent() {
     if (pageSize !== 20) params.set('pageSize', pageSize.toString());
     if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
     if (selectedCategoryFilter !== 'all') params.set('category', selectedCategoryFilter);
+    if (sortOption !== defaultSort.value) params.set('sort', sortOption);
     
     router.replace(`/services${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
-  }, [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, router]);
+  }, [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, sortOption, router, defaultSort.value]);
 
   // Debounced search
   const debouncedSearch = useMemo(
@@ -157,7 +181,7 @@ export default function ServicesPageContent() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategoryFilter, debouncedSearchQuery]);
+  }, [selectedCategoryFilter, debouncedSearchQuery, sortOption]);
 
   // Get staff count for a service - TODO: Replace with real staff assignments from API
   const getStaffCount = (serviceId: string) => {
@@ -166,14 +190,16 @@ export default function ServicesPageContent() {
   };
 
   // Transform services for the table
-  const tableData = useMemo(() => {
-    // No client-side filtering needed - server handles it
-    return services.map(service => ({
+  const tableData = useMemo<ServiceRow[]>(() => {
+    return services.map((service) => ({
       ...service,
       staffCount: getStaffCount(service.id),
-      categoryColor: categories.find(c => c.id === service.categoryId)?.color
+      categoryColor: categories.find((category) => category.id === service.categoryId)?.color,
+      categoryName: categories.find((category) => category.id === service.categoryId)?.name ?? service.categoryName,
     }));
   }, [services, categories]);
+
+  const serviceToDelete = deletingServiceId ? tableData.find((service) => service.id === deletingServiceId) : undefined;
 
   // Handle row selection changes
   const handleRowSelectionChange = useCallback((newRowSelection: Record<string, boolean>) => {
@@ -182,9 +208,9 @@ export default function ServicesPageContent() {
     
     // Convert row selection object to array of selected service IDs
     const selectedIds = Object.keys(newRowSelection)
-      .filter(key => newRowSelection[key])
-      .map(index => tableData[parseInt(index)]?.id)
-      .filter(Boolean);
+      .filter((key) => newRowSelection[key])
+      .map((index) => tableData[Number(index)]?.id)
+      .filter((id): id is string => Boolean(id));
     setSelectedServices(selectedIds);
   }, [tableData]);
 
@@ -284,10 +310,14 @@ export default function ServicesPageContent() {
             >
               {service.categoryName?.charAt(0) || 'U'}
             </div>
-            <div className="min-w-0">
-              <p className="font-medium text-gray-900 truncate">{service.name}</p>
+            <div className="min-w-0 max-w-[320px]">
+              <p className="font-medium text-gray-900 line-clamp-1 break-words">
+                {service.name}
+              </p>
               {service.description && (
-                <p className="text-sm text-gray-500 truncate">{service.description}</p>
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2 break-words whitespace-normal">
+                  {service.description}
+                </p>
               )}
             </div>
           </div>
@@ -512,7 +542,7 @@ export default function ServicesPageContent() {
     },
   ];
 
-  const openEditDialog = (service: Service) => {
+  const openEditDialog = (service: ServiceRecord) => {
     // Close ALL other dialogs first
     setIsDeleteDialogOpen(false);
     setDeletingServiceId(null);
@@ -532,7 +562,7 @@ export default function ServicesPageContent() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDuplicateService = async (service: Service) => {
+  const handleDuplicateService = async (service: ServiceRecord) => {
     try {
       const duplicatedService = {
         name: `${service.name} (Copy)`,
@@ -875,6 +905,21 @@ export default function ServicesPageContent() {
                     )}
                   </div>
                 </div>
+                <Select
+                  value={sortOption}
+                  onValueChange={(value) => setSortOption(value as SortOptionValue)}
+                >
+                  <SelectTrigger className="w-52">
+                    <SelectValue placeholder="Sort services" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button 
                 onClick={() => {
@@ -1318,18 +1363,18 @@ export default function ServicesPageContent() {
             </AlertDescription>
           </Alert>
           
-          {deletingServiceId && services.find(s => s.id === deletingServiceId) && (
+          {serviceToDelete && (
             <div className="p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium text-sm text-gray-900 mb-2">Service to be deleted:</h4>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-gray-900">
-                  {services.find(s => s.id === deletingServiceId)?.name}
+                  {serviceToDelete.name}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {services.find(s => s.id === deletingServiceId)?.categoryName}
+                  {serviceToDelete.categoryName ?? 'Uncategorized'}
                 </p>
                 <p className="text-sm text-gray-600">
-                  ${services.find(s => s.id === deletingServiceId)?.price} • {services.find(s => s.id === deletingServiceId)?.duration} min
+                  ${serviceToDelete.price} • {serviceToDelete.duration} min
                 </p>
               </div>
             </div>

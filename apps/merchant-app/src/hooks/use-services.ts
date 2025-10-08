@@ -4,7 +4,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
 import { prefetchManager } from '@/lib/prefetch';
-import type { Service, ServiceCategory } from '@heya-pos/shared';
+import type {
+  CreateServiceRequest,
+  UpdateServiceRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+} from '@/lib/clients/services-client';
+import {
+  mapApiServicesToRecords,
+  mapApiCategoriesToRecords,
+} from '@/lib/normalizers/service';
+import type { ServiceRecord, ServiceCategoryRecord } from '@/lib/normalizers/service';
 
 // Query keys
 export const servicesKeys = {
@@ -12,24 +22,48 @@ export const servicesKeys = {
   services: () => [...servicesKeys.all, 'list'] as const,
   service: (id: string) => [...servicesKeys.all, 'detail', id] as const,
   categories: () => [...servicesKeys.all, 'categories'] as const,
+  counts: () => [...servicesKeys.all, 'counts'] as const,
 };
 
+interface ServicesMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface ServicesDataResult {
+  services: ServiceRecord[];
+  categories: ServiceCategoryRecord[];
+  serviceCounts: Record<string, number>;
+  totalServices: number;
+  meta?: ServicesMeta;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => void;
+}
+
 // Hook to fetch all services with pagination and filtering
-export function useServices(params?: { 
-  page?: number; 
+export function useServices(params?: {
+  page?: number;
   limit?: number;
   searchTerm?: string;
   categoryId?: string;
   isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }) {
   const queryKey = [...servicesKeys.services(), params];
-  
-  return useQuery({
+
+  return useQuery<{ data: ServiceRecord[]; meta?: ServicesMeta }>({
     queryKey,
     queryFn: async () => {
-      // Always fetch from API for paginated data
       const response = await apiClient.getServices(params);
-      return response;
+      return {
+        data: mapApiServicesToRecords(response?.data),
+        meta: response.meta,
+      };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -38,16 +72,17 @@ export function useServices(params?: {
 
 // Hook to fetch all categories
 export function useCategories() {
-  return useQuery({
+  return useQuery<ServiceCategoryRecord[]>({
     queryKey: servicesKeys.categories(),
     queryFn: async () => {
       // Check prefetch cache first
       const cached = prefetchManager.getCached('services');
       if (cached?.categories) {
         // Return cached data immediately, React Query will refetch in background
-        return cached.categories;
+        return cached.categories as ServiceCategoryRecord[];
       }
-      return apiClient.getCategories();
+      const categories = await apiClient.getCategories();
+      return mapApiCategoriesToRecords(categories);
     },
     staleTime: 10 * 60 * 1000, // 10 minutes - categories change less often
     gcTime: 15 * 60 * 1000, // 15 minutes
@@ -57,10 +92,10 @@ export function useCategories() {
 // Hook to get service counts per category
 export function useServiceCounts() {
   return useQuery({
-    queryKey: servicesKeys.services({ limit: 1000 }), // Get all services to count
+    queryKey: servicesKeys.counts(),
     queryFn: async () => {
       const response = await apiClient.getServices({ limit: 1000 });
-      const services = response.data || [];
+      const services = mapApiServicesToRecords(response?.data);
       
       // Calculate counts per category
       const counts: Record<string, number> = {};
@@ -92,12 +127,16 @@ export function useServicesData(params?: {
   const categoriesQuery = useCategories();
   const countsQuery = useServiceCounts();
 
-  return {
-    services: servicesQuery.data?.data || [],
-    categories: categoriesQuery.data || [],
-    serviceCounts: countsQuery.data?.counts || {},
-    totalServices: countsQuery.data?.total || 0,
-    meta: servicesQuery.data?.meta,
+  const services = servicesQuery.data?.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const meta = servicesQuery.data?.meta;
+
+  const result: ServicesDataResult = {
+    services,
+    categories,
+    serviceCounts: countsQuery.data?.counts ?? {},
+    totalServices: countsQuery.data?.total ?? services.length,
+    meta,
     isLoading: servicesQuery.isLoading || categoriesQuery.isLoading || countsQuery.isLoading,
     isError: servicesQuery.isError || categoriesQuery.isError || countsQuery.isError,
     error: servicesQuery.error || categoriesQuery.error || countsQuery.error,
@@ -105,8 +144,10 @@ export function useServicesData(params?: {
       servicesQuery.refetch();
       categoriesQuery.refetch();
       countsQuery.refetch();
-    }
+    },
   };
+
+  return result;
 }
 
 // Hook to create a service
@@ -115,11 +156,11 @@ export function useCreateService() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => 
+    mutationFn: (data: CreateServiceRequest) =>
       apiClient.createService(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
-      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       toast({
         title: 'Success',
         description: 'Service created successfully',
@@ -141,12 +182,12 @@ export function useUpdateService() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Service> }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateServiceRequest }) =>
       apiClient.updateService(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
       queryClient.invalidateQueries({ queryKey: servicesKeys.service(id) });
-      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       toast({
         title: 'Success',
         description: 'Service updated successfully',
@@ -171,7 +212,7 @@ export function useDeleteService(options?: { suppressToast?: boolean }) {
     mutationFn: (id: string) => apiClient.deleteService(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
-      queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       if (!options?.suppressToast) {
         toast({
           title: 'Success',
@@ -197,7 +238,7 @@ export function useCreateCategory() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: Omit<ServiceCategory, 'id' | 'createdAt' | 'updatedAt'>) => 
+    mutationFn: (data: CreateCategoryRequest) =>
       apiClient.createCategory(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
@@ -223,7 +264,7 @@ export function useUpdateCategory() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ServiceCategory> }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateCategoryRequest }) =>
       apiClient.updateCategory(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
@@ -254,7 +295,7 @@ export function useDeleteCategory() {
       // Invalidate and refetch to ensure immediate update
       await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
       await queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
-      await queryClient.invalidateQueries({ queryKey: servicesKeys.services({ limit: 1000 }) }); // Invalidate counts
+      await queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       
       // Force refetch categories to ensure immediate UI update
       queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
