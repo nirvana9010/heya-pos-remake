@@ -44,6 +44,7 @@ const recentPreferredStaffSelections = new Map<string, { value: boolean; timesta
 const STORAGE_KEYS = {
   statusFilters: 'calendar_statusFilters',
   staffFilter: 'calendar_staffFilter',
+  staffOrder: 'calendar_staffOrder',
   timeInterval: 'calendar_timeInterval',
   badgeDisplayMode: 'calendar_badgeDisplayMode',
 } as const;
@@ -70,17 +71,38 @@ function parseStoredStatuses(raw: string | null): BookingStatus[] {
   }
 }
 
+function parseStoredIdList(raw: string | null): string[] {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .filter((value, index, self) => self.indexOf(value) === index);
+  } catch {
+    return [];
+  }
+}
+
 function loadSavedPreferences(): Partial<CalendarState> {
   if (typeof window === 'undefined') return {};
   
   try {
     const savedStatusFilters = localStorage.getItem(STORAGE_KEYS.statusFilters);
     const savedStaffFilter = localStorage.getItem(STORAGE_KEYS.staffFilter);
+    const savedStaffOrder = localStorage.getItem(STORAGE_KEYS.staffOrder);
     const savedTimeInterval = localStorage.getItem(STORAGE_KEYS.timeInterval);
     
     return {
       selectedStatusFilters: parseStoredStatuses(savedStatusFilters),
-      selectedStaffIds: savedStaffFilter ? [...new Set(JSON.parse(savedStaffFilter))] : [],
+      selectedStaffIds: parseStoredIdList(savedStaffFilter),
+      staffDisplayOrder: parseStoredIdList(savedStaffOrder),
       timeInterval: savedTimeInterval ? parseInt(savedTimeInterval) as TimeInterval : 15,
       badgeDisplayMode: (localStorage.getItem(STORAGE_KEYS.badgeDisplayMode) as 'full' | 'icon') || 'full',
     };
@@ -116,58 +138,62 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
       : (savedPrefs.badgeDisplayMode === 'icon' || savedPrefs.badgeDisplayMode === 'full'
           ? savedPrefs.badgeDisplayMode
           : 'full');
-  
+  const initialStaffOrder = Array.isArray(freshMerchantSettings?.calendarStaffOrder)
+    ? freshMerchantSettings.calendarStaffOrder.filter((value: unknown) => typeof value === 'string')
+    : savedPrefs.staffDisplayOrder || [];
+
   // Initial state based on merchant settings
   
   return {
-  // View management
-  currentView: 'day',
-  currentDate: new Date(),
-  dateRange: { start: new Date(), end: new Date() },
-  timeInterval: savedPrefs.timeInterval || 15,
-  
-  // Data
-  bookings: [],
-  staff: [],
-  services: [],
-  customers: [],
-  businessHours: {
-    start: "09:00",
-    end: "18:00", 
-    days: [1, 2, 3, 4, 5] // Monday to Friday
-  },
-  
-  // UI State
-  selectedBookingId: null,
-  selectedStaffIds: savedPrefs.selectedStaffIds || [],
-  selectedServiceIds: [],
-  selectedStatusFilters: savedPrefs.selectedStatusFilters || ALL_CALENDAR_STATUSES,
-  searchQuery: '',
-  badgeDisplayMode: initialBadgeDisplayMode,
-  
-  // Feature flags - Use fresh merchant settings directly
-  showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
-  showBlockedTime: true,
-  showBreaks: true,
-  showOnlyRosteredStaff: freshMerchantSettings?.showOnlyRosteredStaffDefault ?? true,
-  
-  // Calendar display settings - use fresh merchant settings
-  calendarStartHour: freshMerchantSettings?.calendarStartHour ?? 6,
-  calendarEndHour: freshMerchantSettings?.calendarEndHour ?? 23,
-  
-  // Loading states
-  isLoading: false,
-  isRefreshing: false,
-  error: null,
-  
-  // Drag state
-  isDragging: false,
-  draggedBookingId: null,
-  
-  // Sidebar states
-  isBookingSlideOutOpen: false,
-  isDetailsSlideOutOpen: false,
-  detailsBookingId: null,
+    // View management
+    currentView: 'day',
+    currentDate: new Date(),
+    dateRange: { start: new Date(), end: new Date() },
+    timeInterval: savedPrefs.timeInterval || 15,
+
+    // Data
+    bookings: [],
+    staff: [],
+    services: [],
+    customers: [],
+    businessHours: {
+      start: '09:00',
+      end: '18:00',
+      days: [1, 2, 3, 4, 5], // Monday to Friday
+    },
+
+    // UI State
+    selectedBookingId: null,
+    selectedStaffIds: savedPrefs.selectedStaffIds || [],
+    selectedServiceIds: [],
+    selectedStatusFilters: savedPrefs.selectedStatusFilters || ALL_CALENDAR_STATUSES,
+    searchQuery: '',
+    badgeDisplayMode: initialBadgeDisplayMode,
+    staffDisplayOrder: initialStaffOrder,
+
+    // Feature flags - Use fresh merchant settings directly
+    showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
+    showBlockedTime: true,
+    showBreaks: true,
+    showOnlyRosteredStaff: freshMerchantSettings?.showOnlyRosteredStaffDefault ?? true,
+
+    // Calendar display settings - use fresh merchant settings
+    calendarStartHour: freshMerchantSettings?.calendarStartHour ?? 6,
+    calendarEndHour: freshMerchantSettings?.calendarEndHour ?? 23,
+
+    // Loading states
+    isLoading: false,
+    isRefreshing: false,
+    error: null,
+
+    // Drag state
+    isDragging: false,
+    draggedBookingId: null,
+
+    // Sidebar states
+    isBookingSlideOutOpen: false,
+    isDetailsSlideOutOpen: false,
+    detailsBookingId: null,
   };
 };
 
@@ -331,17 +357,34 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       };
     
     
-    case 'SET_STAFF':
+    case 'SET_STAFF': {
+      const incomingStaff = action.payload;
+      const existingOrder = state.staffDisplayOrder.length > 0
+        ? state.staffDisplayOrder
+        : incomingStaff.map(staff => staff.id);
+
+      const normalizedOrder = existingOrder.filter(id => incomingStaff.some(staff => staff.id === id));
+      const missingIds = incomingStaff
+        .map(staff => staff.id)
+        .filter(id => !normalizedOrder.includes(id));
+      const appliedOrder = [...normalizedOrder, ...missingIds];
+
+      const orderedStaff = appliedOrder
+        .map(id => incomingStaff.find(staff => staff.id === id))
+        .filter((staff): staff is Staff => Boolean(staff));
+
       return {
         ...state,
-        staff: action.payload,
+        staff: orderedStaff,
+        staffDisplayOrder: appliedOrder,
         // Clean up selectedStaffIds to only include valid staff IDs
         selectedStaffIds: state.selectedStaffIds.length === 0 
-          ? action.payload.filter(s => s.isActive !== false).map(s => s.id)
+          ? orderedStaff.filter(s => s.isActive !== false).map(s => s.id)
           : state.selectedStaffIds.filter(id => 
-              action.payload.some(s => s.id === id && s.isActive !== false)
+              orderedStaff.some(s => s.id === id && s.isActive !== false)
             ),
       };
+    }
     
     case 'SET_SERVICES':
       return {
@@ -361,6 +404,25 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         ...state,
         selectedStaffIds: action.payload,
       };
+    
+    case 'SET_STAFF_ORDER': {
+      const currentStaffIds = state.staff.map(staff => staff.id);
+      const requestedOrder = action.payload.filter((id, index, self) => 
+        typeof id === 'string' && id.trim().length > 0 && self.indexOf(id) === index
+      );
+      const sanitizedOrder = requestedOrder.filter(id => currentStaffIds.includes(id));
+      const missingIds = currentStaffIds.filter(id => !sanitizedOrder.includes(id));
+      const finalOrder = [...sanitizedOrder, ...missingIds];
+      const reorderedStaff = finalOrder
+        .map(id => state.staff.find(staff => staff.id === id))
+        .filter((staff): staff is Staff => Boolean(staff));
+
+      return {
+        ...state,
+        staff: reorderedStaff,
+        staffDisplayOrder: finalOrder,
+      };
+    }
     
     case 'SET_SERVICE_FILTER':
       return {
@@ -621,6 +683,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     deleteBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
     replaceBooking: (oldId: string, newBooking: Booking) => dispatch({ type: 'REPLACE_BOOKING', payload: { oldId, newBooking } }),
     setStaff: (staff: Staff[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
+    setStaffOrder: (order: string[]) => dispatch({ type: 'SET_STAFF_ORDER', payload: order }),
     setServices: (services: Service[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
     setCustomers: (customers: Customer[]) => dispatch({ type: 'SET_CUSTOMERS', payload: customers }),
     
@@ -685,6 +748,11 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
                 e.detail.settings.calendarBadgeDisplayMode === 'icon' ? 'icon' : 'full'
             }),
           };
+
+          if (Array.isArray(e.detail.settings.calendarStaffOrder)) {
+            const incomingOrder = e.detail.settings.calendarStaffOrder.filter((id: unknown) => typeof id === 'string');
+            dispatch({ type: 'SET_STAFF_ORDER', payload: incomingOrder });
+          }
           
           if (Object.keys(newSettings).length > 0) {
             dispatch({ type: 'SET_UI_FLAGS', payload: newSettings });
@@ -714,8 +782,13 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
         state.staff.some(s => s.id === id && s.isActive !== false) // Only active staff
       );
       
+      const validStaffOrder = state.staffDisplayOrder.filter((id, index, self) =>
+        self.indexOf(id) === index && state.staff.some(staff => staff.id === id)
+      );
+
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
+      localStorage.setItem(STORAGE_KEYS.staffOrder, JSON.stringify(validStaffOrder));
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
       localStorage.setItem(STORAGE_KEYS.badgeDisplayMode, state.badgeDisplayMode);
       
@@ -728,6 +801,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   }, [
     JSON.stringify(state.selectedStatusFilters),
     JSON.stringify(state.selectedStaffIds),
+    JSON.stringify(state.staffDisplayOrder),
     state.timeInterval,
     state.badgeDisplayMode,
     state.staff.length // Only depend on staff length, not the entire array

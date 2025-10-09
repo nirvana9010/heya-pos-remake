@@ -170,6 +170,7 @@ export interface CalendarState {
   selectedStatusFilters: BookingStatus[];
   searchQuery: string;
   badgeDisplayMode: 'full' | 'icon';
+  staffDisplayOrder: string[];
   
   // Feature flags
   showUnassignedColumn: boolean;
@@ -216,6 +217,7 @@ export type CalendarAction =
   
   // Filter actions
   | { type: 'SET_STAFF_FILTER'; payload: string[] }
+  | { type: 'SET_STAFF_ORDER'; payload: string[] }
   | { type: 'SET_SERVICE_FILTER'; payload: string[] }
   | { type: 'SET_STATUS_FILTER'; payload: BookingStatus[] }
   | { type: 'SET_SEARCH'; payload: string }
@@ -265,6 +267,7 @@ export interface CalendarActions {
   deleteBooking: (id: string) => void;
   replaceBooking: (oldId: string, newBooking: Booking) => void;
   setStaff: (staff: Staff[]) => void;
+  setStaffOrder: (order: string[]) => void;
   setServices: (services: Service[]) => void;
   setCustomers: (customers: Customer[]) => void;
   

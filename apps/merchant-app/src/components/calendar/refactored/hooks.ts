@@ -224,6 +224,11 @@ export function useCalendarData() {
               actions.toggleUnassignedColumn();
             }
           }
+
+          if (Array.isArray(merchant.settings.calendarStaffOrder)) {
+            const orderedIds = merchant.settings.calendarStaffOrder.filter((value: unknown) => typeof value === 'string');
+            actions.setStaffOrder(orderedIds);
+          }
         }
       }
     } catch (error) {

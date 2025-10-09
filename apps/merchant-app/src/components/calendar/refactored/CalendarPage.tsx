@@ -17,6 +17,7 @@ import {
   useBookingOperations 
 } from './hooks';
 import { Button } from '@heya-pos/ui';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@heya-pos/ui';
 import { formatName } from '@heya-pos/utils';
 import { Card, CardContent } from '@heya-pos/ui';
 import { Switch } from '@heya-pos/ui';
@@ -38,14 +39,34 @@ import {
   RefreshCw,
   Filter,
   Users,
-  CheckCircle2
+  CheckCircle2,
+  GripVertical,
+  Loader2
 } from 'lucide-react';
 import { BookingSlideOut } from '@/components/BookingSlideOut';
 import { BookingDetailsSlideOut } from '@/components/BookingDetailsSlideOut';
-import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
-import type { Booking, BookingStatus } from './types';
+import type { Booking, BookingStatus, Staff } from './types';
 import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
@@ -61,6 +82,186 @@ export function CalendarPage() {
     <CalendarProvider>
       <CalendarContent />
     </CalendarProvider>
+  );
+}
+
+interface StaffReorderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  staff: Staff[];
+  onSave: (order: string[]) => Promise<void> | void;
+}
+
+function StaffReorderDialog({ open, onOpenChange, staff, onSave }: StaffReorderDialogProps) {
+  const [localOrder, setLocalOrder] = React.useState<string[]>([]);
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const defaultOrder = React.useMemo(() => staff.map(member => member.id), [staff]);
+
+  React.useEffect(() => {
+    if (open) {
+      setLocalOrder(defaultOrder);
+    }
+  }, [open, defaultOrder]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const orderedStaff = React.useMemo(() => {
+    if (localOrder.length === 0) {
+      return staff;
+    }
+
+    const orderIndex = new Map(localOrder.map((id, index) => [id, index]));
+    return [...staff].sort((a, b) => {
+      const indexA = orderIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const indexB = orderIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return indexA - indexB;
+    });
+  }, [localOrder, staff]);
+
+  const hasChanges = React.useMemo(() => {
+    if (localOrder.length !== defaultOrder.length) {
+      return true;
+    }
+    return defaultOrder.some((id, index) => localOrder[index] !== id);
+  }, [localOrder, defaultOrder]);
+
+  const handleDragEnd = React.useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    setLocalOrder(prev => {
+      const oldIndex = prev.indexOf(active.id as string);
+      const newIndex = prev.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1) {
+        return prev;
+      }
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  }, []);
+
+  const handleSave = React.useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await onSave(localOrder);
+      setIsSaving(false);
+      onOpenChange(false);
+    } catch (error) {
+      setIsSaving(false);
+    }
+  }, [localOrder, onOpenChange, onSave]);
+
+  const handleOpenChange = React.useCallback((nextOpen: boolean) => {
+    if (isSaving) {
+      return;
+    }
+    onOpenChange(nextOpen);
+  }, [isSaving, onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Reorder staff</DialogTitle>
+          <DialogDescription>
+            Drag staff to adjust how columns appear in the calendar. This order applies to day and week views.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-4">
+          {orderedStaff.length === 0 ? (
+            <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-center text-sm text-gray-500">
+              No active staff available to reorder.
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={localOrder.length > 0 ? localOrder : defaultOrder} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {orderedStaff.map((member) => (
+                    <SortableStaffRow key={member.id} staffMember={member} disabled={isSaving} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+
+          <p className="mt-3 text-xs text-gray-500">
+            Tip: Keep your most requested staff at the top so they appear first on the calendar.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+            {isSaving ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving
+              </span>
+            ) : (
+              'Save'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface SortableStaffRowProps {
+  staffMember: Staff;
+  disabled?: boolean;
+}
+
+function SortableStaffRow({ staffMember, disabled }: SortableStaffRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: staffMember.id, disabled });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-shadow',
+        isDragging && 'shadow-md ring-1 ring-teal-500'
+      )}
+    >
+      <button
+        type="button"
+        className="text-gray-400 hover:text-gray-600 focus:outline-none"
+        {...attributes}
+        {...listeners}
+        disabled={disabled}
+        aria-label={`Move ${staffMember.name}`}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex flex-1 items-center gap-2">
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: staffMember.color || '#CBD5F5' }}
+        />
+        <span className="text-sm font-medium text-gray-900">{staffMember.name}</span>
+      </div>
+    </div>
   );
 }
 
@@ -286,6 +487,7 @@ function CalendarContent() {
   
   // Filter popover state
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [reorderDialogOpen, setReorderDialogOpen] = React.useState(false);
   
   // Booking slide out data
   const [bookingSlideOutData, setBookingSlideOutData] = React.useState<{
@@ -302,7 +504,61 @@ function CalendarContent() {
     detail?: any;
   }>>([]);
   const [isActivityLogMinimized, setIsActivityLogMinimized] = React.useState(false);
-  
+
+  const handlePersistStaffOrder = React.useCallback(async (orderedIds: string[]) => {
+    const validStaffIds = state.staff.map(member => member.id);
+    const uniqueIds = orderedIds.filter((id, index, self) => self.indexOf(id) === index);
+    const sanitizedOrder = uniqueIds.filter(id => validStaffIds.includes(id));
+    const completedOrder = [...sanitizedOrder, ...validStaffIds.filter(id => !sanitizedOrder.includes(id))];
+    const previousOrder = [...state.staffDisplayOrder];
+
+    if (completedOrder.length === 0) {
+      return;
+    }
+
+    actions.setStaffOrder(completedOrder);
+
+    try {
+      await apiClient.updateMerchantSettings({ calendarStaffOrder: completedOrder });
+
+      if (typeof window !== 'undefined') {
+        try {
+          const storedMerchant = localStorage.getItem('merchant');
+          if (storedMerchant) {
+            const merchantData = JSON.parse(storedMerchant);
+            merchantData.settings = {
+              ...merchantData.settings,
+              calendarStaffOrder: completedOrder,
+            };
+            localStorage.setItem('merchant', JSON.stringify(merchantData));
+            window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', {
+              detail: { settings: merchantData.settings },
+            }));
+          } else {
+            window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', {
+              detail: { settings: { calendarStaffOrder: completedOrder } },
+            }));
+          }
+        } catch (storageError) {
+          console.error('[Calendar] Failed to persist staff order locally', storageError);
+        }
+      }
+
+      toast({
+        title: 'Staff order updated',
+        description: 'Calendar columns now follow the new order.',
+      });
+    } catch (error) {
+      actions.setStaffOrder(previousOrder);
+      toast({
+        title: 'Unable to update staff order',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  }, [actions, state.staff, state.staffDisplayOrder, toast]);
+
   // Memoize the initial time to prevent infinite renders
   const initialTime = React.useMemo(() => {
     if (!bookingSlideOutData?.time) return undefined;
@@ -1039,19 +1295,32 @@ function CalendarContent() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm text-gray-900">Staff Members</h4>
-                        <button
-                          onClick={() => {
-                            const activeStaff = state.staff.filter(s => s.isActive !== false);
-                            if (state.selectedStaffIds.length === activeStaff.length) {
-                              actions.setStaffFilter([]);
-                            } else {
-                              actions.setStaffFilter(activeStaff.map(s => s.id));
-                            }
-                          }}
-                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                        >
-                          {state.selectedStaffIds.length === state.staff.filter(s => s.isActive !== false).length ? "Clear all" : "Select all"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const activeStaff = state.staff.filter(s => s.isActive !== false);
+                              if (state.selectedStaffIds.length === activeStaff.length) {
+                                actions.setStaffFilter([]);
+                              } else {
+                                actions.setStaffFilter(activeStaff.map(s => s.id));
+                              }
+                            }}
+                            className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                          >
+                            {state.selectedStaffIds.length === state.staff.filter(s => s.isActive !== false).length ? 'Clear all' : 'Select all'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFiltersOpen(false);
+                              setReorderDialogOpen(true);
+                            }}
+                            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                          >
+                            <GripVertical className="h-3.5 w-3.5" />
+                            Reorder
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2 max-h-[200px] overflow-y-auto">
                         {state.staff.filter(member => member.isActive !== false).map(member => (
@@ -1151,6 +1420,13 @@ function CalendarContent() {
         )}
       </div>
       
+      <StaffReorderDialog
+        open={reorderDialogOpen}
+        onOpenChange={setReorderDialogOpen}
+        staff={state.staff}
+        onSave={handlePersistStaffOrder}
+      />
+
       {/* Slide outs */}
       <BookingSlideOut
         isOpen={state.isBookingSlideOutOpen}
