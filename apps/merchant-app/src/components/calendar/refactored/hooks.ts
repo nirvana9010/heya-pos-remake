@@ -13,7 +13,7 @@ import {
   parseISO,
   format
 } from 'date-fns';
-import type { Booking, TimeSlot } from './types';
+import type { Booking, Service, TimeSlot } from './types';
 import { bookingEvents } from '@/lib/services/booking-events';
 import { mapBookingSource } from '@/lib/booking-source';
 
@@ -160,10 +160,73 @@ export function useCalendarData() {
       }
       
       // Transform services to match our type
-      const transformedServices = servicesData.map(service => ({
-        ...service,
-        categoryName: service.category?.name || 'General',
-      }));
+      const sanitizeColor = (value: unknown): string | undefined => {
+        if (typeof value !== 'string') {
+          return undefined;
+        }
+
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return undefined;
+        }
+
+        const lowered = trimmed.toLowerCase();
+        if (['auto', 'automatic', 'inherit', 'default', 'none'].includes(lowered)) {
+          return undefined;
+        }
+
+        return trimmed;
+      };
+
+      const transformedServices: Service[] = servicesData.map(rawService => {
+        const service: any = rawService;
+        const id = typeof service.id === 'string' ? service.id : String(service.id);
+
+        const categoryModel = service.categoryModel ?? service.category ?? service.categoryData;
+
+        const categoryId =
+          typeof service.categoryId === 'string' && service.categoryId.trim().length > 0
+            ? service.categoryId
+            : typeof categoryModel?.id === 'string' && categoryModel.id.trim().length > 0
+              ? categoryModel.id
+              : typeof service.category?.id === 'string' && service.category.id.trim().length > 0
+                ? service.category.id
+                : '';
+
+        const categoryName =
+          typeof categoryModel?.name === 'string' && categoryModel.name.trim().length > 0
+            ? categoryModel.name.trim()
+            : typeof service.categoryName === 'string' && service.categoryName.trim().length > 0
+              ? service.categoryName.trim()
+              : typeof service.category === 'string' && service.category.trim().length > 0
+                ? service.category.trim()
+                : 'General';
+
+        const categoryStyle = categoryModel?.style ?? service.category?.style;
+
+        const categoryColor =
+          sanitizeColor(categoryModel?.color) ??
+          sanitizeColor(service.category?.color) ??
+          sanitizeColor(service.categoryColor) ??
+          sanitizeColor(service.categoryColorHex) ??
+          sanitizeColor(categoryStyle?.color) ??
+          sanitizeColor(categoryModel?.theme?.color);
+
+        const directColor =
+          sanitizeColor(service.color) ??
+          sanitizeColor(service.displayColor) ??
+          sanitizeColor(service.primaryColor) ??
+          sanitizeColor(service.palette?.primary);
+
+        return {
+          ...service,
+          id,
+          categoryId,
+          categoryName,
+          categoryColor: categoryColor ?? undefined,
+          color: directColor ?? categoryColor ?? service.color,
+        } satisfies Service;
+      });
       actions.setServices(transformedServices);
     } catch (error) {
     }
