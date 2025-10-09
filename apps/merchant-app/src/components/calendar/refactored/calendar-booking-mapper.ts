@@ -39,9 +39,10 @@ const mapServicesForCalendar = (services?: BookingServiceSummary[]): BookingServ
 
   return services.map(service => ({
     ...service,
-    serviceId: service.serviceId ? String(service.serviceId) : service.serviceId,
+    serviceId: service.serviceId ? String(service.serviceId) : service.id ? String(service.id) : service.serviceId,
     duration: service.duration ?? 0,
     price: service.price ?? 0,
+    categoryId: service.categoryId ? String(service.categoryId) : undefined,
   }));
 };
 
@@ -122,10 +123,11 @@ export const mapServiceToCalendar = (service: ApiService): Service => ({
   name: service.name,
   categoryId: service.categoryId ?? service.category?.id ?? '',
   categoryName: service.category?.name ?? 'General',
+  categoryColor: (service as any).categoryColor ?? service.category?.color ?? (service as any).categoryColorHex,
   duration: service.duration,
   price: service.price,
   description: service.description ?? undefined,
-  color: (service as any).color ?? undefined,
+  color: (service as any).color ?? (service as any).displayColor ?? undefined,
 });
 
 const resolveStaffColor = (staff: ApiStaff | Staff): string => {

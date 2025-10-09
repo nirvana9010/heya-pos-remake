@@ -7,6 +7,7 @@ import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
 import { Check, Heart, Hourglass, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
+import { BookingServiceLabels, createServiceLookup } from '../BookingServiceLabels';
 
 
 
@@ -20,6 +21,7 @@ export function WeeklyView({
 }: WeeklyViewProps) {
   const { state, filteredBookings } = useCalendar();
   const badgeDisplayMode = state.badgeDisplayMode;
+  const serviceLookup = useMemo(() => createServiceLookup(state.services), [state.services]);
   
   
   const weekStart = startOfWeek(state.currentDate);
@@ -235,9 +237,13 @@ export function WeeklyView({
                           </div>
                           
                           {/* Service name */}
-                          <div className="truncate text-xs mt-1 opacity-90">
-                            {booking.serviceName}
-                          </div>
+                          <BookingServiceLabels
+                            booking={booking}
+                            lookup={serviceLookup}
+                            className="mt-1"
+                            textClassName="text-xs opacity-90"
+                            dotClassName="h-2 w-2"
+                          />
                           
                           {/* Staff name */}
                           <div className="text-xs mt-1 opacity-75">

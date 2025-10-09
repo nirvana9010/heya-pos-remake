@@ -17,6 +17,7 @@ import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
 import { apiClient } from '@/lib/api-client';
+import { BookingServiceLabels, createServiceLookup } from '../BookingServiceLabels';
 
 
 interface DailyViewProps {
@@ -86,6 +87,7 @@ export function DailyView({
   const { merchant } = useAuth();
   const { loading: bookingContextLoading } = useBooking();
   const { timeSlots } = useTimeGrid();
+  const serviceLookup = useMemo(() => createServiceLookup(state.services), [state.services]);
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
@@ -932,9 +934,12 @@ export function DailyView({
                                       <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
                                         {booking.customerName}
                                       </div>
-                                      <div className="text-[11px] text-white/80 truncate" title={booking.serviceName}>
-                                        {booking.serviceName}
-                                      </div>
+                                      <BookingServiceLabels
+                                        booking={booking}
+                                        lookup={serviceLookup}
+                                        textClassName="text-[11px] text-white/80"
+                                        dotClassName="h-2 w-2"
+                                      />
                                     </div>
                                     {badgeRow}
                                   </div>
@@ -954,12 +959,12 @@ export function DailyView({
                                       >
                                         {booking.customerName}
                                       </div>
-                                      <div 
-                                        className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.serviceName}
-                                      >
-                                        {booking.serviceName}
-                                      </div>
+                                      <BookingServiceLabels
+                                        booking={booking}
+                                        lookup={serviceLookup}
+                                        className={cn('mt-1', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                        textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      />
                                     </div>
                                     {badgeRow}
                                   </div>
@@ -1223,9 +1228,12 @@ export function DailyView({
                                       <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
                                         {booking.customerName}
                                       </div>
-                                      <div className="text-[11px] text-white/80 truncate" title={booking.serviceName}>
-                                        {booking.serviceName}
-                                      </div>
+                                      <BookingServiceLabels
+                                        booking={booking}
+                                        lookup={serviceLookup}
+                                        textClassName="text-[11px] text-white/80"
+                                        dotClassName="h-2 w-2"
+                                      />
                                     </div>
                                     {badgeRow}
                                   </div>
@@ -1245,12 +1253,12 @@ export function DailyView({
                                       >
                                         {booking.customerName}
                                       </div>
-                                      <div 
-                                        className={cn("truncate text-xs sm:text-sm mt-1", isPast ? "text-gray-600" : "opacity-90", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.serviceName}
-                                      >
-                                        {booking.serviceName}
-                                      </div>
+                                      <BookingServiceLabels
+                                        booking={booking}
+                                        lookup={serviceLookup}
+                                        className={cn('mt-1', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                        textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      />
                                     </div>
                                     {badgeRow}
                                   </div>

@@ -120,6 +120,7 @@ export interface Service {
   name: string;
   categoryId: string;
   categoryName: string;
+  categoryColor?: string;
   duration: number;
   price: number;
   description?: string;
