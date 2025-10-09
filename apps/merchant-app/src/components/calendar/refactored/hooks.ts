@@ -16,6 +16,10 @@ import {
 import type { Booking, Service, TimeSlot } from './types';
 import { bookingEvents } from '@/lib/services/booking-events';
 import { mapBookingSource } from '@/lib/booking-source';
+import {
+  mapApiServicesToRecords,
+  mapApiCategoriesToRecords,
+} from '@/lib/normalizers/service';
 
 // Hook for fetching calendar data
 export function useCalendarData() {
@@ -148,18 +152,19 @@ export function useCalendarData() {
   // Fetch services data
   const fetchServices = useCallback(async () => {
     try {
-      const response = await apiClient.getServices({ limit: 500, isActive: true });
-      
-      // Extract services array from paginated response
-      const servicesData = response.data || [];
-      
-      // Handle empty or invalid response
-      if (!servicesData || !Array.isArray(servicesData)) {
+      const [servicesResponse, categoriesResponse] = await Promise.all([
+        apiClient.getServices({ limit: 500, isActive: true }),
+        apiClient.getCategories().catch(() => undefined),
+      ]);
+
+      const serviceRecords = mapApiServicesToRecords(servicesResponse?.data ?? []);
+      const categoryRecords = mapApiCategoriesToRecords(categoriesResponse ?? []);
+
+      if (!Array.isArray(serviceRecords) || serviceRecords.length === 0) {
         actions.setServices([]);
         return;
       }
-      
-      // Transform services to match our type
+
       const sanitizeColor = (value: unknown): string | undefined => {
         if (typeof value !== 'string') {
           return undefined;
@@ -178,45 +183,50 @@ export function useCalendarData() {
         return trimmed;
       };
 
-      const transformedServices: Service[] = servicesData.map(rawService => {
+      const categoryColorById = new Map<string, string>();
+      const categoryColorByName = new Map<string, string>();
+      categoryRecords.forEach(record => {
+        const categoryId = typeof record.id === 'string' ? record.id : String(record.id);
+        const colorCandidate =
+          sanitizeColor((record as any)?.color) ??
+          sanitizeColor((record as any)?.style?.color) ??
+          sanitizeColor((record as any)?.theme?.color);
+        const categoryName = typeof record.name === 'string' ? record.name.trim() : undefined;
+
+        if (categoryId && colorCandidate) {
+          categoryColorById.set(categoryId, colorCandidate);
+        }
+
+        if (categoryName && colorCandidate) {
+          categoryColorByName.set(categoryName.toLowerCase(), colorCandidate);
+        }
+      });
+
+      const transformedServices: Service[] = serviceRecords.map(rawService => {
         const service: any = rawService;
         const id = typeof service.id === 'string' ? service.id : String(service.id);
-
-        const categoryModel = service.categoryModel ?? service.category ?? service.categoryData;
 
         const categoryId =
           typeof service.categoryId === 'string' && service.categoryId.trim().length > 0
             ? service.categoryId
-            : typeof categoryModel?.id === 'string' && categoryModel.id.trim().length > 0
-              ? categoryModel.id
-              : typeof service.category?.id === 'string' && service.category.id.trim().length > 0
-                ? service.category.id
-                : '';
+            : service.categoryId
+              ? String(service.categoryId)
+              : '';
 
         const categoryName =
-          typeof categoryModel?.name === 'string' && categoryModel.name.trim().length > 0
-            ? categoryModel.name.trim()
-            : typeof service.categoryName === 'string' && service.categoryName.trim().length > 0
-              ? service.categoryName.trim()
-              : typeof service.category === 'string' && service.category.trim().length > 0
-                ? service.category.trim()
-                : 'General';
-
-        const categoryStyle = categoryModel?.style ?? service.category?.style;
+          typeof service.categoryName === 'string' && service.categoryName.trim().length > 0
+            ? service.categoryName.trim()
+            : 'General';
 
         const categoryColor =
-          sanitizeColor(categoryModel?.color) ??
-          sanitizeColor(service.category?.color) ??
           sanitizeColor(service.categoryColor) ??
-          sanitizeColor(service.categoryColorHex) ??
-          sanitizeColor(categoryStyle?.color) ??
-          sanitizeColor(categoryModel?.theme?.color);
+          (categoryId ? categoryColorById.get(categoryId) : undefined) ??
+          categoryColorByName.get(categoryName.toLowerCase());
 
         const directColor =
           sanitizeColor(service.color) ??
           sanitizeColor(service.displayColor) ??
-          sanitizeColor(service.primaryColor) ??
-          sanitizeColor(service.palette?.primary);
+          sanitizeColor(service.primaryColor);
 
         return {
           ...service,
@@ -227,6 +237,13 @@ export function useCalendarData() {
           color: directColor ?? categoryColor ?? service.color,
         } satisfies Service;
       });
+
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        (window as any).__calendarServiceCatalog = {
+          services: transformedServices,
+          categories: categoryRecords,
+        };
+      }
       actions.setServices(transformedServices);
     } catch (error) {
     }

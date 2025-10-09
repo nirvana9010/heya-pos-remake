@@ -15,6 +15,20 @@ export interface ServiceLookup {
 
 export const DEFAULT_SERVICE_COLOR = '#94A3B8'; // slate-400
 
+const generateDeterministicColor = (seed: string): string => {
+  if (!seed) {
+    return DEFAULT_SERVICE_COLOR;
+  }
+
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
+  }
+
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+};
+
 const normalizeColor = (value: unknown): string | null => {
   if (typeof value !== 'string') {
     return null;
@@ -111,17 +125,21 @@ const deriveServiceItems = (
       ? lookup.serviceColors.get(serviceRecord.id)
       : undefined;
 
-    const color =
-      pickNormalizedColor(
-        explicitColor,
-        serviceRecord?.categoryColor,
-        serviceRecord?.color,
-        lookupColorByService,
-        lookupColorById,
-        lookupColorByName,
-      ) ?? DEFAULT_SERVICE_COLOR;
+    const color = pickNormalizedColor(
+      explicitColor,
+      serviceRecord?.categoryColor,
+      serviceRecord?.color,
+      lookupColorByService,
+      lookupColorById,
+      lookupColorByName,
+    );
 
-    items.push({ key, name, color });
+    const resolvedColor =
+      color ??
+      (serviceRecord?.id ? generateDeterministicColor(serviceRecord.id) : undefined) ??
+      generateDeterministicColor(name || key);
+
+    items.push({ key, name, color: resolvedColor });
   };
 
   if (Array.isArray(booking.services) && booking.services.length > 0) {
