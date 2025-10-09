@@ -285,7 +285,7 @@ export function DailyView({
     });
   }, [visibleStaff, state.showOnlyRosteredStaff, currentDayOfWeek, currentDateStr]);
 
-  const renderBadgeRow = ({
+  const renderBadgeItems = ({
     showPreferred,
     showSource,
     sourceLabel,
@@ -294,7 +294,6 @@ export function DailyView({
     showInProgress,
     showPaid,
     SourceIcon,
-    compact = false,
   }: {
     showPreferred: boolean;
     showSource: boolean;
@@ -304,9 +303,8 @@ export function DailyView({
     showInProgress: boolean;
     showPaid: boolean;
     SourceIcon: React.ComponentType<{ className?: string }>;
-    compact?: boolean;
   }) => {
-    const mode = compact ? 'icon' : badgeDisplayMode;
+    const mode = badgeDisplayMode;
     const items: React.ReactNode[] = [];
 
     if (showPending) {
@@ -439,16 +437,7 @@ export function DailyView({
       return null;
     }
 
-    return (
-      <div
-        className={cn(
-          'pointer-events-none flex flex-wrap items-center gap-1 self-end justify-end',
-          compact ? 'mt-1' : 'mt-2'
-        )}
-      >
-        {items}
-      </div>
-    );
+    return items;
   };
   
   // Show loading state while BookingContext is loading staff data
@@ -759,19 +748,15 @@ export function DailyView({
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
                             // Calculate how many time slots this booking spans based in interval
-                          const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-                            
-                            // Determine if this is a short booking that needs compact layout
-                            const isCompactBooking = booking.duration <= 30;
+                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
+
+                            // Base visual height anchored to the slot span
                             const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
-                            const showMinimalContent =
-                              isCompactBooking ||
-                              (badgeDisplayMode === 'full' ? initialHeight <= 150 : initialHeight <= 110);
-                            
+
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
                             }
-                          
+
                           // Determine if booking is in the past
                           const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
@@ -837,7 +822,7 @@ export function DailyView({
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
                           const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
-                          const badgeRow = renderBadgeRow({
+                          const badgeItems = renderBadgeItems({
                             showPreferred: showPreferredIndicator,
                             showSource: showSourceBadge,
                             sourceLabel: sourcePresentation.label,
@@ -846,11 +831,12 @@ export function DailyView({
                             showInProgress: showInProgressStatusBadge,
                             showPaid: showPaidStatusBadge,
                             SourceIcon,
-                            compact: showMinimalContent,
                           });
 
-                          const badgeAllowance = badgeRow ? (showMinimalContent ? 20 : 32) : 0;
-                          const bookingVisualHeight = initialHeight + badgeAllowance;
+                          const badgePadding = badgeItems
+                            ? (badgeDisplayMode === 'icon' ? 12 : 18)
+                            : 0;
+                          const bookingVisualHeight = initialHeight + badgePadding;
 
                           return (
                             <DraggableBooking
@@ -884,8 +870,8 @@ export function DailyView({
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
-                                  paddingTop: showMinimalContent ? '8px' : '12px',
-                                  paddingBottom: showMinimalContent ? '10px' : '16px',
+                                  paddingTop: '4px',
+                                  paddingBottom: badgeItems ? '10px' : '6px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -927,46 +913,34 @@ export function DailyView({
                                     )}
                                   </div>
                                 )}
-                                {/* Compact layout for short bookings */}
-                                {showMinimalContent ? (
-                                  <div className={cn('flex h-full flex-col justify-between', badgeRow ? 'gap-1' : undefined)}>
-                                    <div className="space-y-0.5 min-w-0">
-                                      <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
-                                        {booking.customerName}
-                                      </div>
-                                      <BookingServiceLabels
-                                        booking={booking}
-                                        lookup={serviceLookup}
-                                        textClassName="text-[11px] text-white/80"
-                                        dotClassName="h-2 w-2"
-                                      />
+                                <div className='flex h-full flex-col gap-1 pr-1'>
+                                  {booking.status !== 'cancelled' && (
+                                    <div className="text-[11px] sm:text-xs font-medium opacity-70">
+                                      {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                     </div>
-                                    {badgeRow}
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div 
+                                      className={cn(
+                                        "font-bold truncate text-sm sm:text-base",
+                                        isPast && "text-gray-900",
+                                        (booking.completedAt || booking.status === 'completed') && "pl-5"
+                                      )}
+                                      title={booking.customerName}
+                                    >
+                                      {booking.customerName}
+                                    </div>
+                                    <BookingServiceLabels
+                                      booking={booking}
+                                      lookup={serviceLookup}
+                                      className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                      textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                    />
                                   </div>
-                                ) : (
-                                  <div className={cn('flex h-full flex-col', badgeRow ? 'gap-2' : 'gap-1')}>
-                                    {/* Regular layout for longer bookings */}
-                                    {/* Time and duration - on its own row */}
-                                    {booking.status !== 'cancelled' && (
-                                      <div className="text-[11px] sm:text-xs md:text-sm font-medium opacity-75 mb-1">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div 
-                                        className={cn("font-bold truncate text-sm sm:text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.customerName}
-                                      >
-                                        {booking.customerName}
-                                      </div>
-                                      <BookingServiceLabels
-                                        booking={booking}
-                                        lookup={serviceLookup}
-                                        className={cn('mt-1', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                        textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
-                                      />
-                                    </div>
-                                    {badgeRow}
+                                </div>
+                                {badgeItems && (
+                                  <div className='pointer-events-none absolute bottom-[6px] right-[6px] flex flex-row-reverse flex-wrap items-center gap-1'>
+                                    {badgeItems}
                                   </div>
                                 )}
                               </div>
@@ -1054,18 +1028,14 @@ export function DailyView({
                             
                             // Calculate how many time slots this booking spans based in interval
                             const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-                            
-                            // Determine if this is a short booking that needs compact layout
-                            const isCompactBooking = booking.duration <= 30;
+
+                            // Base visual height anchored to the slot span
                             const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
-                            const showMinimalContent =
-                              isCompactBooking ||
-                              (badgeDisplayMode === 'full' ? initialHeight <= 150 : initialHeight <= 110);
-                            
+
                             // Debug duration calculation for walk-in
                             if (booking.customerName?.includes('Walk-in')) {
                             }
-                          
+
                           // Determine if booking is in the past
                           const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
@@ -1131,7 +1101,7 @@ export function DailyView({
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
                           const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
-                          const badgeRow = renderBadgeRow({
+                          const badgeItems = renderBadgeItems({
                             showPreferred: showPreferredIndicator,
                             showSource: showSourceBadge,
                             sourceLabel: sourcePresentation.label,
@@ -1140,11 +1110,12 @@ export function DailyView({
                             showInProgress: showInProgressStatusBadge,
                             showPaid: showPaidStatusBadge,
                             SourceIcon,
-                            compact: showMinimalContent,
                           });
 
-                          const badgeAllowance = badgeRow ? (showMinimalContent ? 20 : 32) : 0;
-                          const bookingVisualHeight = initialHeight + badgeAllowance;
+                          const badgePadding = badgeItems
+                            ? (badgeDisplayMode === 'icon' ? 12 : 18)
+                            : 0;
+                          const bookingVisualHeight = initialHeight + badgePadding;
 
                           return (
                             <DraggableBooking
@@ -1178,8 +1149,8 @@ export function DailyView({
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
                                   paddingLeft: `${borderWidth + 12}px`,
                                   paddingRight: '16px',
-                                  paddingTop: showMinimalContent ? '8px' : '12px',
-                                  paddingBottom: showMinimalContent ? '10px' : '16px',
+                                  paddingTop: '4px',
+                                  paddingBottom: badgeItems ? '10px' : '6px',
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1221,46 +1192,34 @@ export function DailyView({
                                     )}
                                   </div>
                                 )}
-                                {/* Compact layout for short bookings */}
-                                {showMinimalContent ? (
-                                  <div className={cn('flex h-full flex-col justify-between', badgeRow ? 'gap-1' : undefined)}>
-                                    <div className="space-y-0.5 min-w-0">
-                                      <div className="text-xs font-semibold leading-snug text-white truncate" title={booking.customerName}>
-                                        {booking.customerName}
-                                      </div>
-                                      <BookingServiceLabels
-                                        booking={booking}
-                                        lookup={serviceLookup}
-                                        textClassName="text-[11px] text-white/80"
-                                        dotClassName="h-2 w-2"
-                                      />
+                                <div className='flex h-full flex-col gap-1 pr-1'>
+                                  {booking.status !== 'cancelled' && (
+                                    <div className="text-[11px] sm:text-xs font-medium opacity-70">
+                                      {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
                                     </div>
-                                    {badgeRow}
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div 
+                                      className={cn(
+                                        "font-bold truncate text-sm sm:text-base",
+                                        isPast && "text-gray-900",
+                                        (booking.completedAt || booking.status === 'completed') && "pl-5"
+                                      )}
+                                      title={booking.customerName}
+                                    >
+                                      {booking.customerName}
+                                    </div>
+                                    <BookingServiceLabels
+                                      booking={booking}
+                                      lookup={serviceLookup}
+                                      className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                      textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                    />
                                   </div>
-                                ) : (
-                                  <div className={cn('flex h-full flex-col', badgeRow ? 'gap-2' : 'gap-1')}>
-                                    {/* Regular layout for longer bookings */}
-                                    {/* Time and duration - on its own row */}
-                                    {booking.status !== 'cancelled' && (
-                                      <div className="text-[11px] sm:text-xs md:text-sm font-medium opacity-75 mb-1">
-                                        {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div 
-                                        className={cn("font-bold truncate text-sm sm:text-base", isPast && "text-gray-900", (booking.completedAt || booking.status === 'completed') && "pl-5")}
-                                        title={booking.customerName}
-                                      >
-                                        {booking.customerName}
-                                      </div>
-                                      <BookingServiceLabels
-                                        booking={booking}
-                                        lookup={serviceLookup}
-                                        className={cn('mt-1', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                        textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
-                                      />
-                                    </div>
-                                    {badgeRow}
+                                </div>
+                                {badgeItems && (
+                                  <div className='pointer-events-none absolute bottom-[6px] right-[6px] flex flex-row-reverse flex-wrap items-center gap-1'>
+                                    {badgeItems}
                                   </div>
                                 )}
                               </div>
