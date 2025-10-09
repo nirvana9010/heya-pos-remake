@@ -59,7 +59,7 @@ const CalendarPageContent = dynamic(
   }
 );
 
-const DEV_BANNER_MESSAGE = `Dev Build • Refreshed ${new Date().toISOString()} • API pinned to 100.107.58.75:3000 • Do not use for production data`;
+const DEV_BANNER_MESSAGE = `Dev Build • Refreshed ${new Date().toISOString()} • Calendar colours live • Force refresh (Cmd/Ctrl+Shift+R) if dots look grey`;
 const DEV_BANNER_TESTID = 'dev-calendar-banner';
 
 // This lightweight wrapper loads instantly
