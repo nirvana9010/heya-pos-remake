@@ -20,6 +20,8 @@ export interface NotificationContext {
     locationName: string;
     locationAddress?: string;
     locationPhone?: string;
+    customerName?: string;
+    customerPhone?: string;
   };
   merchant: {
     id: string;

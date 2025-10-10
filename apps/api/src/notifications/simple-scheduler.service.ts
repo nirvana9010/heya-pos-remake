@@ -112,6 +112,12 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
           }
 
           const firstService = notification.booking.services[0];
+          const customerName = notification.booking.customer
+            ? (notification.booking.customer.lastName
+                ? `${notification.booking.customer.firstName} ${notification.booking.customer.lastName}`.trim()
+                : notification.booking.customer.firstName || notification.booking.customer.email || 'Customer')
+            : 'Customer';
+          const customerPhone = notification.booking.customer?.phone || '';
           const context = {
             booking: {
               id: notification.booking.id,
@@ -128,6 +134,8 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
               locationName: notification.booking.location?.name || '',
               locationAddress: notification.booking.location?.address || '',
               locationPhone: notification.booking.location?.phone || '',
+              customerName,
+              customerPhone,
             },
             merchant: {
               id: notification.booking.merchant.id,

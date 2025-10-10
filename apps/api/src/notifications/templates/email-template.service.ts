@@ -455,6 +455,8 @@ ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ''}
   private renderStaffNewBooking(context: NotificationContext): EmailTemplate {
     const { booking, merchant } = context;
     const formattedDate = format(booking.date, 'EEEE, MMMM d, yyyy');
+    const customerName = booking.customerName || 'Not provided';
+    const customerContact = booking.customerPhone || 'Not provided';
     
     const subject = `New Booking Alert - ${booking.serviceName}`;
     
@@ -475,6 +477,8 @@ ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ''}
             <p style="margin: 5px 0;"><strong>Staff:</strong> ${booking.staffName}</p>
             <p style="margin: 5px 0;"><strong>Duration:</strong> ${booking.duration} minutes</p>
             <p style="margin: 5px 0;"><strong>Booking #:</strong> ${booking.bookingNumber}</p>
+            <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
+            <p style="margin: 5px 0;"><strong>Contact Number:</strong> ${customerContact}</p>
           </div>
           
           <div style="margin-top: 30px; padding: 20px; background-color: #e0f2fe; border-radius: 5px;">
@@ -497,6 +501,8 @@ Time: ${booking.time}
 Staff: ${booking.staffName}
 Duration: ${booking.duration} minutes
 Booking #: ${booking.bookingNumber}
+Customer: ${customerName}
+Contact Number: ${customerContact}
 
 View this booking in your calendar to see more details.
     `.trim();
@@ -507,6 +513,8 @@ View this booking in your calendar to see more details.
   private renderStaffCancellation(context: NotificationContext): EmailTemplate {
     const { booking, merchant } = context;
     const formattedDate = format(booking.date, 'EEEE, MMMM d, yyyy');
+    const customerName = booking.customerName || 'Not provided';
+    const customerContact = booking.customerPhone || 'Not provided';
     
     const subject = `Booking Cancelled - ${booking.serviceName}`;
     
@@ -527,6 +535,8 @@ View this booking in your calendar to see more details.
             <p style="margin: 5px 0;"><strong>Staff:</strong> ${booking.staffName}</p>
             <p style="margin: 5px 0;"><strong>Duration:</strong> ${booking.duration} minutes</p>
             <p style="margin: 5px 0;"><strong>Booking #:</strong> ${booking.bookingNumber}</p>
+            <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
+            <p style="margin: 5px 0;"><strong>Contact Number:</strong> ${customerContact}</p>
           </div>
           
           <div style="margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 5px;">
@@ -549,6 +559,8 @@ Time: ${booking.time}
 Staff: ${booking.staffName}
 Duration: ${booking.duration} minutes
 Booking #: ${booking.bookingNumber}
+Customer: ${customerName}
+Contact Number: ${customerContact}
 
 This time slot is now available for other bookings.
     `.trim();

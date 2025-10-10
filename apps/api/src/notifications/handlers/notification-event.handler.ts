@@ -72,6 +72,12 @@ export class NotificationEventHandler {
 
       // Prepare notification context
       const firstService = booking.services[0];
+      const customerName = booking.customer
+        ? (booking.customer.lastName
+            ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+            : booking.customer.firstName || booking.customer.email || 'Customer')
+        : 'Customer';
+      const customerPhone = booking.customer?.phone || '';
       const context = {
         booking: {
           id: booking.id,
@@ -88,6 +94,8 @@ export class NotificationEventHandler {
           locationName: booking.location?.name || '',
           locationAddress: booking.location?.address || '',
           locationPhone: booking.location?.phone || '',
+          customerName,
+          customerPhone,
         },
         merchant: {
           id: booking.merchant.id,
@@ -216,6 +224,12 @@ export class NotificationEventHandler {
       // Prepare notification context
       // Get the first service (for now, assume single service booking)
       const firstService = booking.services[0];
+      const customerName = booking.customer
+        ? (booking.customer.lastName
+            ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+            : booking.customer.firstName || booking.customer.email || 'Customer')
+        : 'Customer';
+      const customerPhone = booking.customer?.phone || '';
       const context = {
         booking: {
           id: booking.id,
@@ -232,6 +246,8 @@ export class NotificationEventHandler {
           locationName: booking.location?.name || '',
           locationAddress: booking.location?.address || '',
           locationPhone: booking.location?.phone || '',
+          customerName,
+          customerPhone,
         },
         merchant: {
           id: booking.merchant.id,
@@ -269,10 +285,6 @@ export class NotificationEventHandler {
 
       // Create merchant notification only for external bookings (from booking app) and if enabled
       if (event.source === 'ONLINE') {
-        const customerName = booking.customer.lastName 
-          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-          : booking.customer.firstName;
-        
         // Panel notification
         if (merchantSettings?.newBookingNotification !== false) {
           this.logger.log(`[${new Date().toISOString()}] ====== CREATING MERCHANT NOTIFICATION ======`);
@@ -423,6 +435,12 @@ export class NotificationEventHandler {
       // Prepare notification context
       // Get the first service (for now, assume single service booking)
       const firstService = booking.services[0];
+      const customerName = booking.customer
+        ? (booking.customer.lastName
+            ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+            : booking.customer.firstName || booking.customer.email || 'Customer')
+        : 'Customer';
+      const customerPhone = booking.customer?.phone || '';
       const context = {
         booking: {
           id: booking.id,
@@ -439,6 +457,8 @@ export class NotificationEventHandler {
           locationName: booking.location?.name || '',
           locationAddress: booking.location?.address || '',
           locationPhone: booking.location?.phone || '',
+          customerName,
+          customerPhone,
         },
         merchant: {
           id: booking.merchant.id,
@@ -479,10 +499,6 @@ export class NotificationEventHandler {
       // Create merchant notification only for external bookings and if enabled
       const merchantSettings = booking.merchant.settings as any;
       if (event.source === 'ONLINE') {
-        const customerName = booking.customer.lastName 
-          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-          : booking.customer.firstName;
-        
         // Panel notification
         if (merchantSettings?.cancellationNotification !== false) {
           await this.merchantNotificationsService.createBookingNotification(
@@ -607,6 +623,12 @@ export class NotificationEventHandler {
       }
 
       const firstService = booking.services[0];
+      const customerName = booking.customer
+        ? (booking.customer.lastName
+            ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+            : booking.customer.firstName || booking.customer.email || 'Customer')
+        : 'Customer';
+      const customerPhone = booking.customer?.phone || '';
 
       const merchantSettings = booking.merchant.settings as any;
 
@@ -631,6 +653,8 @@ export class NotificationEventHandler {
           locationName: booking.location?.name || '',
           locationAddress: booking.location?.address || '',
           locationPhone: booking.location?.phone || '',
+          customerName,
+          customerPhone,
         },
         merchant: {
           id: booking.merchant.id,
@@ -687,10 +711,6 @@ export class NotificationEventHandler {
 
       // Create merchant notification only for external bookings
       if (event.source === 'ONLINE') {
-        const customerName = booking.customer.lastName 
-          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-          : booking.customer.firstName;
-        
         this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE rescheduled booking ${booking.id}`);
         await this.merchantNotificationsService.createBookingNotification(
           booking.merchantId,
