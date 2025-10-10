@@ -338,6 +338,28 @@ export default function BookingPageClient() {
   const allStaffRef = useRef<Staff[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [merchantInfo, setMerchantInfo] = useState<MerchantInfo | null>(merchantFromContext);
+  const heroSubtitle = React.useMemo(() => {
+    const fromMerchant = merchantInfo?.settings?.publicHeroSubtitle;
+    if (typeof fromMerchant === "string") {
+      const trimmed = fromMerchant.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+
+    const fromContext = merchantFromContext?.settings?.publicHeroSubtitle;
+    if (typeof fromContext === "string") {
+      const trimmed = fromContext.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+
+    return "Where luxury meets tranquility";
+  }, [
+    merchantInfo?.settings?.publicHeroSubtitle,
+    merchantFromContext?.settings?.publicHeroSubtitle,
+  ]);
   
   // Create dynamic steps based on merchant settings
   const steps = React.useMemo(() => {
@@ -1896,7 +1918,7 @@ export default function BookingPageClient() {
               {merchantInfo?.name || merchantFromContext?.name || ''}
             </h1>
             <p className="text-lg md:text-xl text-foreground/70 font-light mb-12">
-              Where luxury meets tranquility
+              {heroSubtitle}
             </p>
             
             {/* Elegant Trust Signals */}
