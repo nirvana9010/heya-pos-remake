@@ -59,7 +59,6 @@
     "@nestjs/platform-socket.io": "^10.4.20",
     "@nestjs/websockets": "^10.4.20",
     "@prisma/client": "^6.16.1",
-    "@heya-pos/utils": "*",
     "@sendgrid/mail": "^8.1.5",
     "@supabase/supabase-js": "^2.50.3",
     "@types/bcrypt": "^5.0.2",

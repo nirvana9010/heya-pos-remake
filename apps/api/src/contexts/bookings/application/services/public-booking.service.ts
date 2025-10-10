@@ -1,4 +1,3 @@
-import { formatAdvanceBookingWindow } from '@heya-pos/utils';
 import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { BookingCreationService } from './booking-creation.service';
@@ -687,4 +686,34 @@ export class PublicBookingService {
 
     return { slots };
   }
+}
+function formatAdvanceBookingWindow(hours: number): string {
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return '0 hours';
+  }
+
+  const HOURS_IN_DAY = 24;
+  const HOURS_IN_WEEK = HOURS_IN_DAY * 7;
+  const HOURS_IN_MONTH = HOURS_IN_DAY * 30;
+
+  const pluralize = (value: number, unit: string) =>
+    `${value} ${unit}${value === 1 ? '' : 's'}`;
+
+  if (hours >= HOURS_IN_MONTH && hours % HOURS_IN_MONTH === 0) {
+    const months = hours / HOURS_IN_MONTH;
+    return pluralize(months, 'month');
+  }
+
+  if (hours >= HOURS_IN_WEEK && hours % HOURS_IN_WEEK === 0) {
+    const weeks = hours / HOURS_IN_WEEK;
+    return pluralize(weeks, 'week');
+  }
+
+  if (hours >= HOURS_IN_DAY && hours % HOURS_IN_DAY === 0) {
+    const days = hours / HOURS_IN_DAY;
+    return pluralize(days, 'day');
+  }
+
+  const roundedHours = Math.round(hours * 100) / 100;
+  return pluralize(roundedHours, 'hour');
 }
