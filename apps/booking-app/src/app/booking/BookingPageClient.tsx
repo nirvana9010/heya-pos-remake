@@ -7,7 +7,7 @@ import {
   Sparkles, Shield, CalendarCheck, Star, MapPin, Phone, Mail, Download,
   Zap, CalendarDays, Sun, Cloud, Moon, DollarSign, Search, LayoutGrid, List
 } from "lucide-react";
-import { Button } from "@heya-pos/ui";
+import { Button, Calendar as UiCalendar } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -19,8 +19,8 @@ import { cn } from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { bookingApi, type Service, type Staff, type TimeSlot, type MerchantInfo, type CreateBookingData } from "../../lib/booking-api";
-import { format } from "date-fns";
-import { TimezoneUtils, formatName } from "@heya-pos/utils";
+import { addDays, format, startOfDay } from "date-fns";
+import { TimezoneUtils, formatName, formatAdvanceBookingWindow } from "@heya-pos/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CustomerIdentification } from "../../components/CustomerIdentification";
 import { PaymentStep } from "../../components/PaymentStep";
@@ -394,6 +394,74 @@ export default function BookingPageClient() {
 
   const selectedServicesList = services.filter(s => selectedServices.includes(s.id));
   const selectedStaffMember = staff.find(s => s.id === selectedStaff);
+  const computedMaxAdvanceDays = React.useMemo(() => {
+    const bookingAdvanceHours = merchantInfo?.settings?.bookingAdvanceHours ?? 168;
+    let maxDays = Math.max(1, Math.ceil(bookingAdvanceHours / 24));
+
+    for (const service of selectedServicesList) {
+      if (service.maxAdvanceBooking && service.maxAdvanceBooking < maxDays) {
+        maxDays = service.maxAdvanceBooking;
+      }
+    }
+
+    return maxDays;
+  }, [merchantInfo?.settings?.bookingAdvanceHours, selectedServicesList]);
+
+  const horizontalMaxAdvanceDays = Math.min(computedMaxAdvanceDays, 60);
+  const isCalendarMode = computedMaxAdvanceDays > 7;
+  const calendarFromDate = startOfDay(new Date());
+  const calendarToDate = addDays(calendarFromDate, Math.max(computedMaxAdvanceDays - 1, 0));
+
+  const disabledDates = React.useCallback(
+    (date: Date) => {
+      if (!merchantInfo) {
+        return date < startOfDay(new Date());
+      }
+
+      const timezone = merchantInfo.timezone;
+      const todayInTz = TimezoneUtils.startOfDayInTimezone(new Date(), timezone);
+      const dateStartOfDay = TimezoneUtils.startOfDayInTimezone(date, timezone);
+
+      if (dateStartOfDay < todayInTz) {
+        return true;
+      }
+
+      const advanceHours = merchantInfo.settings?.bookingAdvanceHours;
+      if (advanceHours) {
+        const maxDateUTC = new Date(Date.now() + advanceHours * 60 * 60 * 1000);
+        const maxDateStartOfDay = TimezoneUtils.startOfDayInTimezone(maxDateUTC, timezone);
+
+        if (dateStartOfDay.getTime() > maxDateStartOfDay.getTime()) {
+          return true;
+        }
+      }
+
+      for (const service of selectedServicesList) {
+        if (service.maxAdvanceBooking) {
+          const maxServiceDate = new Date(todayInTz);
+          maxServiceDate.setDate(maxServiceDate.getDate() + service.maxAdvanceBooking);
+          if (date > maxServiceDate) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    [merchantInfo, selectedServicesList]
+  );
+
+  const handleDateSelect = React.useCallback(
+    (date: Date | undefined) => {
+      if (!date || disabledDates(date)) {
+        return;
+      }
+
+      setSelectedDate(date);
+      setSelectedTime(null);
+    },
+    [disabledDates]
+  );
 
   useEffect(() => {
     // Only load data once merchant subdomain is available
@@ -1228,11 +1296,7 @@ export default function BookingPageClient() {
               <div className="text-sm text-muted-foreground mt-2 space-y-1">
                 {merchantInfo?.settings?.bookingAdvanceHours && (
                   <p>
-                    Bookings can be made up to {merchantInfo.settings.bookingAdvanceHours > 168 
-                      ? `${Math.floor(merchantInfo.settings.bookingAdvanceHours / 168)} weeks` 
-                      : merchantInfo.settings.bookingAdvanceHours > 24 
-                      ? `${Math.floor(merchantInfo.settings.bookingAdvanceHours / 24)} days`
-                      : `${merchantInfo.settings.bookingAdvanceHours} hours`} in advance
+                    Bookings can be made up to {formatAdvanceBookingWindow(Number(merchantInfo.settings.bookingAdvanceHours))} in advance
                   </p>
                 )}
                 {merchantInfo?.settings?.minimumBookingNotice > 0 && (
@@ -1249,76 +1313,28 @@ export default function BookingPageClient() {
           </div>
           
           <div className="w-full flex justify-center">
-            <HorizontalDatePicker
-              selectedDate={selectedDate}
-              onSelectDate={(date) => {
-                setSelectedDate(date);
-                setSelectedTime(null); // Reset time when date changes
-              }}
-              maxAdvanceDays={(() => {
-                // Calculate max advance days based on merchant settings
-                const settings = merchantInfo?.settings || {};
-                const bookingAdvanceHours = settings.bookingAdvanceHours || 168; // Default 7 days
-                let maxDays = Math.ceil(bookingAdvanceHours / 24);
-                
-                // Apply service-specific max advance booking if available
-                for (const service of selectedServicesList) {
-                  if (service.maxAdvanceBooking && service.maxAdvanceBooking < maxDays) {
-                    maxDays = service.maxAdvanceBooking;
-                  }
-                }
-                
-                return Math.min(maxDays, 60); // Cap at 60 days for UI performance
-              })()}
-              disabledDates={(date) => {
-                // Get today's start of day in merchant timezone
-                const today = merchantInfo ? 
-                  TimezoneUtils.startOfDayInTimezone(new Date(), merchantInfo.timezone) :
-                  new Date();
-                
-                // Compare the date's start of day with today's start of day in merchant timezone
-                const dateStartOfDay = merchantInfo ?
-                  TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone) :
-                  new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                
-                // Disable dates in the past
-                if (dateStartOfDay < today) {
-                  return true;
-                }
-                
-                // Apply advance booking limit from merchant settings
-                if (merchantInfo?.settings?.bookingAdvanceHours) {
-                  // Get current time in UTC
-                  const now = new Date();
-                  
-                  // Add the advance booking hours
-                  const maxDateUTC = new Date(now.getTime() + (merchantInfo.settings.bookingAdvanceHours * 60 * 60 * 1000));
-                  
-                  // Convert both dates to start of day in merchant timezone for comparison
-                  const dateStartOfDay = TimezoneUtils.startOfDayInTimezone(date, merchantInfo.timezone);
-                  const maxDateStartOfDay = TimezoneUtils.startOfDayInTimezone(maxDateUTC, merchantInfo.timezone);
-                  
-                  // If the selected date is after the max allowed date, disable it
-                  if (dateStartOfDay.getTime() > maxDateStartOfDay.getTime()) {
-                    return true;
-                  }
-                }
-                
-                // Apply service-specific max advance booking if available
-                for (const service of selectedServicesList) {
-                  if (service.maxAdvanceBooking) {
-                    const maxServiceDate = new Date(today);
-                    maxServiceDate.setDate(maxServiceDate.getDate() + service.maxAdvanceBooking);
-                    if (date > maxServiceDate) {
-                      return true;
-                    }
-                  }
-                }
-                
-                return false;
-              }}
-              className="max-w-5xl mx-auto"
-            />
+            {isCalendarMode ? (
+              <div className="rounded-2xl border bg-card p-4 shadow-sm">
+                <UiCalendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={disabledDates}
+                  defaultMonth={selectedDate ?? new Date()}
+                  fromDate={calendarFromDate}
+                  toDate={calendarToDate}
+                  className="rounded-md"
+                />
+              </div>
+            ) : (
+              <HorizontalDatePicker
+                selectedDate={selectedDate}
+                onSelectDate={handleDateSelect}
+                maxAdvanceDays={horizontalMaxAdvanceDays}
+                disabledDates={disabledDates}
+                className="max-w-5xl mx-auto"
+              />
+            )}
           </div>
         </motion.div>
 

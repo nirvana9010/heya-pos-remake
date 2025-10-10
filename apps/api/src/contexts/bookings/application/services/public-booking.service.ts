@@ -1,3 +1,4 @@
+import { formatAdvanceBookingWindow } from '@heya-pos/utils';
 import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { BookingCreationService } from './booking-creation.service';
@@ -195,11 +196,9 @@ export class PublicBookingService {
     
     // Check if booking is too far in advance
     if (hoursUntilBooking > bookingAdvanceHours) {
-      throw new Error(`Bookings can only be made up to ${bookingAdvanceHours > 168 
-        ? Math.floor(bookingAdvanceHours / 168) + ' weeks' 
-        : bookingAdvanceHours > 24 
-        ? Math.floor(bookingAdvanceHours / 24) + ' days'
-        : bookingAdvanceHours + ' hours'} in advance`);
+      throw new Error(
+        `Bookings can only be made up to ${formatAdvanceBookingWindow(bookingAdvanceHours)} in advance`,
+      );
     }
     
     // Check minimum booking notice

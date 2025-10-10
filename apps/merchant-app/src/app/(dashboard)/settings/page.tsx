@@ -973,6 +973,10 @@ export default function SettingsPage() {
                       <SelectItem value="48">48 hours</SelectItem>
                       <SelectItem value="72">72 hours</SelectItem>
                       <SelectItem value="168">1 week</SelectItem>
+                      <SelectItem value="336">2 weeks</SelectItem>
+                      <SelectItem value="720">1 month</SelectItem>
+                      <SelectItem value="2160">3 months</SelectItem>
+                      <SelectItem value="4320">6 months</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
