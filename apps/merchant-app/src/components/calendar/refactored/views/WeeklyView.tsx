@@ -205,22 +205,11 @@ export function WeeklyView({
                           }}
                           onClick={() => onBookingClick(booking)}
                         >
-                          {/* Completed and Cancelled indicators */}
-                          {(booking.completedAt || booking.status === 'completed' || booking.status === 'cancelled') && (
-                            <div className="flex items-center justify-between mb-1">
-                              {/* Completed indicator */}
-                              {(booking.completedAt || booking.status === 'completed') && (
-                                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                </div>
-                              )}
-                              {/* Cancelled indicator */}
-                              {booking.status === 'cancelled' && (
-                                <div className="flex items-center gap-1">
-                                  <X className="w-3 h-3 text-red-600" strokeWidth={3} />
-                                  <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
-                                </div>
-                              )}
+                          {/* Cancelled indicator */}
+                          {booking.status === 'cancelled' && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <X className="w-3 h-3 text-red-600" strokeWidth={3} />
+                              <span className="text-[10px] font-bold text-red-600 uppercase">Cancelled</span>
                             </div>
                           )}
                           

@@ -1126,12 +1126,6 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Overlap warning indicator handled in top-right stack */}
-                                {/* Completed indicator */}
-                                {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
-                                  <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                  </div>
-                                )}
                                 {/* Top-right indicators */}
                                 {(hasOverlaps || booking.status === 'cancelled') && (
                                   <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
@@ -1164,7 +1158,6 @@ export function DailyView({
                                       className={cn(
                                         "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
-                                        (booking.completedAt || booking.status === 'completed') && "pl-5",
                                         isDeleted && 'line-through decoration-[1.5px] decoration-slate-500 text-gray-600'
                                       )}
                                       title={booking.customerName}
@@ -1174,7 +1167,7 @@ export function DailyView({
                                     <BookingServiceLabels
                                       booking={booking}
                                       lookup={serviceLookup}
-                                      className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                      className="mt-0.5"
                                       textClassName={cn(
                                         'text-[11px] sm:text-xs',
                                         isDeleted ? 'text-gray-500 line-through' : isPast ? 'text-gray-600' : 'opacity-90'
@@ -1453,12 +1446,6 @@ export function DailyView({
                                   </div>
                                 )}
                                 {/* Overlap warning indicator handled in top-right stack */}
-                                {/* Completed indicator */}
-                                {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
-                                  <div className="absolute top-1 left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                  </div>
-                                )}
                                 {/* Top-right indicators */}
                                 {(hasOverlaps || booking.status === 'cancelled') && (
                                   <div className="pointer-events-none absolute top-1 right-1 z-30 flex flex-col items-end gap-1">
@@ -1491,7 +1478,6 @@ export function DailyView({
                                       className={cn(
                                         "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
-                                        (booking.completedAt || booking.status === 'completed') && "pl-5",
                                         isDeleted && 'line-through decoration-[1.5px] decoration-slate-500 text-gray-600'
                                       )}
                                       title={booking.customerName}
@@ -1501,7 +1487,7 @@ export function DailyView({
                                     <BookingServiceLabels
                                       booking={booking}
                                       lookup={serviceLookup}
-                                      className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
+                                      className="mt-0.5"
                                       textClassName={cn(
                                         'text-[11px] sm:text-xs',
                                         isDeleted ? 'text-gray-500 line-through' : isPast ? 'text-gray-600' : 'opacity-90'
