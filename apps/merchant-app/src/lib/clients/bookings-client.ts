@@ -214,7 +214,19 @@ export const normalizeBooking = (raw: unknown): Booking => {
   const createdAt = toIsoString(booking.createdAt) ?? startTime;
   const updatedAt =
     toIsoString(booking.updatedAt ?? booking.modifiedAt) ?? createdAt;
-  const completedAt = toIsoString(booking.completedAt ?? booking.endTime);
+  const normalizedStatus = coerceBookingStatus(
+    booking.status ??
+      booking.bookingStatus ??
+      booking.currentStatus ??
+      booking.state ??
+      booking.workflowStatus ??
+      booking.current_state,
+  );
+  const completedAt =
+    toIsoString(booking.completedAt) ??
+    (normalizedStatus === 'completed'
+      ? endTime
+      : undefined);
 
   const bookingNumber = toOptionalString(
     booking.bookingNumber ??
@@ -242,14 +254,7 @@ export const normalizeBooking = (raw: unknown): Booking => {
     '',
   );
 
-  const status = coerceBookingStatus(
-    booking.status ??
-      booking.bookingStatus ??
-      booking.currentStatus ??
-      booking.state ??
-      booking.workflowStatus ??
-      booking.current_state,
-  );
+  const status = normalizedStatus;
 
   const serviceId = ensureString(
     booking.serviceId ??

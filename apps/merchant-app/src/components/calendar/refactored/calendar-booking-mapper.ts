@@ -59,6 +59,9 @@ const baseCalendarBooking = (booking: ApiBooking): Booking => {
   const serviceId = typeof rawServiceId === 'string' ? rawServiceId : rawServiceId ? String(rawServiceId) : null;
   const serviceName = booking.serviceName ?? primaryService?.serviceName ?? primaryService?.name ?? 'Service';
   const servicePrice = booking.totalAmount ?? booking.price ?? primaryService?.price ?? 0;
+  const completedAt =
+    booking.completedAt ??
+    (status === 'completed' ? booking.endTime ?? undefined : undefined);
 
   return {
     id: booking.id,
@@ -94,7 +97,7 @@ const baseCalendarBooking = (booking: ApiBooking): Booking => {
     customerRequestedStaff: booking.customerRequestedStaff ?? false,
     createdAt,
     updatedAt: booking.updatedAt ?? createdAt,
-    completedAt: booking.endTime ?? undefined,
+    completedAt,
   };
 };
 
