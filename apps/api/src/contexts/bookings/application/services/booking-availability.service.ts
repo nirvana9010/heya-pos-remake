@@ -183,6 +183,23 @@ export class BookingAvailabilityService {
         // Use staff schedule if available, otherwise fall back to business hours
         let openTimeStr: string;
         let closeTimeStr: string;
+        const businessOpenStr = dayHours?.open;
+        const businessCloseStr = dayHours?.close;
+        const toMinutes = (time: string | null | undefined) => {
+          if (!time || time === 'closed') return null;
+          const [hourPart, minutePart] = time.split(':');
+          const hour = parseInt(hourPart ?? '0', 10);
+          const minute = parseInt(minutePart ?? '0', 10);
+          if (Number.isNaN(hour) || Number.isNaN(minute)) {
+            return null;
+          }
+          return hour * 60 + minute;
+        };
+        const toTimeString = (minutes: number) => {
+          const hrs = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        };
         
         if (scheduleOverride) {
           // Staff has an override for this specific date
@@ -206,7 +223,34 @@ export class BookingAvailabilityService {
           currentDate.setDate(currentDate.getDate() + 1);
           continue;
         }
-  
+
+        const openMinutes = toMinutes(openTimeStr);
+        const closeMinutes = toMinutes(closeTimeStr);
+        const businessOpenMinutes = toMinutes(businessOpenStr);
+        const businessCloseMinutes = toMinutes(businessCloseStr);
+
+        let clampedOpenMinutes = openMinutes ?? businessOpenMinutes;
+        let clampedCloseMinutes = closeMinutes ?? businessCloseMinutes;
+
+        if (businessOpenMinutes !== null && clampedOpenMinutes !== null) {
+          clampedOpenMinutes = Math.max(clampedOpenMinutes, businessOpenMinutes);
+        }
+        if (businessCloseMinutes !== null && clampedCloseMinutes !== null) {
+          clampedCloseMinutes = Math.min(clampedCloseMinutes, businessCloseMinutes);
+        }
+
+        if (
+          clampedOpenMinutes === null ||
+          clampedCloseMinutes === null ||
+          clampedOpenMinutes >= clampedCloseMinutes
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+
+        openTimeStr = toTimeString(clampedOpenMinutes);
+        closeTimeStr = toTimeString(clampedCloseMinutes);
+        
         // Parse hours for this day
         const [openHour, openMinute] = openTimeStr.split(':').map(Number);
         const [closeHour, closeMinute] = closeTimeStr.split(':').map(Number);

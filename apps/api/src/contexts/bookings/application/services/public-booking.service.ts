@@ -584,7 +584,6 @@ export class PublicBookingService {
     }
 
     // If no staff specified, check availability across all staff
-    // Get existing bookings for the date using timezone-aware boundaries
     const startOfDay = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
     const endOfDay = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
 
@@ -597,93 +596,94 @@ export class PublicBookingService {
       },
     });
 
-    // Get all bookings for these staff members on this date
-    const existingBookings = await this.prisma.booking.findMany({
-      where: {
-        merchantId: merchant.id,
-        providerId: {
-          in: activeStaff.map(s => s.id),
-        },
-        startTime: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        status: {
-          notIn: ['CANCELLED', 'NO_SHOW'],
-        },
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
-    });
+    if (activeStaff.length === 0) {
+      return { slots: [] };
+    }
 
-    // Generate time slots from 9 AM to 5 PM with 30-minute intervals
-    const slots = [];
-    const startHour = 9;
-    const endHour = 17; // 5 PM
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        
-        // Check if this slot conflicts with existing bookings
-        const slotStart = TimezoneUtils.createDateInTimezone(
-          dto.date,
-          time,
-          location.timezone
-        );
-        
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
-        
-        // Skip time slots that are in the past
-        const now = new Date();
-        if (slotStart < now) {
-          continue;
+    const settings = merchant.settings as any;
+    const businessHours = settings?.businessHours || location.businessHours;
+    const minimumBookingNotice = settings?.minimumBookingNotice || 0;
+
+    const dayName = new Date(`${dto.date}T12:00:00Z`).toLocaleDateString('en-US', {
+      weekday: 'long',
+      timeZone: location.timezone,
+    }).toLowerCase();
+
+    const dayHours = businessHours?.[dayName];
+    if (!dayHours || dayHours.isOpen === false || !dayHours.open || !dayHours.close || dayHours.open === 'closed') {
+      return { slots: [] };
+    }
+
+    const openTime = TimezoneUtils.createDateInTimezone(dto.date, dayHours.open, location.timezone);
+    const closeTime = TimezoneUtils.createDateInTimezone(dto.date, dayHours.close, location.timezone);
+
+    if (!(openTime < closeTime)) {
+      return { slots: [] };
+    }
+
+    const now = new Date();
+    const slotAvailability = new Map<string, { available: boolean }>();
+
+    const staffSlotResults = await Promise.all(
+      activeStaff.map(async (staff) => {
+        try {
+          return await this.bookingAvailabilityService.getAvailableSlots({
+            staffId: staff.id,
+            serviceId: serviceRequests[0].serviceId,
+            merchantId: merchant.id,
+            startDate: startOfDay,
+            endDate: endOfDay,
+            timezone: location.timezone,
+            duration: totalDuration,
+          });
+        } catch (error) {
+          return [];
         }
-        
-        // Skip time slots that don't meet minimum booking notice requirement
-        const minimumBookingNotice = (merchant.settings as any)?.minimumBookingNotice || 0;
+      })
+    );
+
+    staffSlotResults.forEach((staffSlots) => {
+      staffSlots.forEach((slot) => {
+        const slotStart = slot.startTime;
+        const slotEnd = slot.endTime;
+
+        if (slotStart < openTime || slotEnd > closeTime) {
+          return;
+        }
+
+        if (slotStart < now) {
+          return;
+        }
+
         if (minimumBookingNotice > 0) {
           const minutesUntilSlot = (slotStart.getTime() - now.getTime()) / (1000 * 60);
           if (minutesUntilSlot < minimumBookingNotice) {
-            continue;
+            return;
           }
         }
-        
-        // Check which staff are busy during this slot
-        const busyStaffIds = new Set<string>();
-        existingBookings.forEach(booking => {
-          const bookingStart = new Date(booking.startTime);
-          const bookingEnd = new Date(booking.endTime);
-          
-          // Check if slots overlap: booking starts before slot ends AND ends after slot starts
-          const conflicts = (
-            bookingStart < slotEnd && bookingEnd > slotStart
-          );
-          
-          if (conflicts && booking.providerId) {
-            busyStaffIds.add(booking.providerId);
-          }
+
+        const time = slotStart.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: location.timezone,
         });
-        
-        // Slot is available if at least one staff member is free
-        const availableStaffCount = activeStaff.length - busyStaffIds.size;
-        const isAvailable = availableStaffCount > 0;
-        
-        // Check if slot would run past closing time in the location's timezone
-        const slotEndDisplay = TimezoneUtils.toTimezoneDisplay(slotEnd, location.timezone);
-        const slotEndHour = parseInt(slotEndDisplay.time.split(':')[0]);
-        
-        // Don't allow slots that would run past closing time
-        if (slotEndHour < endHour || (slotEndHour === endHour && slotEnd.getMinutes() === 0)) {
-          slots.push({
-            time,
-            available: isAvailable,
-          });
+
+        const existing = slotAvailability.get(time);
+        if (!existing) {
+          slotAvailability.set(time, { available: slot.available });
+        } else if (slot.available) {
+          existing.available = true;
         }
-      }
-    }
+      });
+    });
+
+    const slots = Array.from(slotAvailability.entries())
+      .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
+      .map(([time, info]) => ({
+        time,
+        available: info.available,
+      }));
 
     return { slots };
   }
