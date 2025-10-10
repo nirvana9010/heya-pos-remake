@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Separator, Badge, Textarea } from '@heya-pos/ui';
-import { User, Building2, Mail, Phone, MapPin, Key, Shield, Clock, Save, Globe, FileText } from 'lucide-react';
+import { User, Building2, Mail, Phone, MapPin, Key, Shield, Clock, Save, Globe, FileText, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { apiClient } from '@/lib/api-client';
 import { format } from 'date-fns';
@@ -31,6 +31,7 @@ export default function ProfilePage() {
     state: '',
     postalCode: '',
     country: 'Australia',
+    heroSubtitle: '',
   });
 
   // Password change state
@@ -69,6 +70,7 @@ export default function ProfilePage() {
         state: location?.state || '',
         postalCode: location?.postalCode || '',
         country: location?.country || 'Australia',
+        heroSubtitle: profile.settings?.publicHeroSubtitle || '',
       });
     } catch (error) {
       console.error('Failed to load merchant profile:', error);
@@ -107,6 +109,11 @@ export default function ProfilePage() {
       };
       
       await apiClient.updateLocation(locationData);
+
+      const heroSubtitleValue = businessInfo.heroSubtitle.trim();
+      await apiClient.updateMerchantSettings({
+        publicHeroSubtitle: heroSubtitleValue ? heroSubtitleValue : null,
+      });
       
       toast.success('Business information updated successfully');
       
@@ -329,6 +336,23 @@ export default function ProfilePage() {
                         rows={3}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="heroSubtitle">Booking Page Subheader</Label>
+                    <div className="relative">
+                      <Sparkles className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="heroSubtitle"
+                        value={businessInfo.heroSubtitle}
+                        onChange={(e) => setBusinessInfo({ ...businessInfo, heroSubtitle: e.target.value })}
+                        placeholder="e.g. Where luxury meets tranquility"
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      This line appears under your booking page title. Leave blank to use the default message.
+                    </p>
                   </div>
                 </div>
                 

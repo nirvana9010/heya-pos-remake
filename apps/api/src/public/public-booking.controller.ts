@@ -151,6 +151,7 @@ export class PublicBookingController {
           settings?.appointmentReminder2hEmail ?? true,
         appointmentReminder2hSms: settings?.appointmentReminder2hSms ?? false,
         autoConfirmBookings: settings?.autoConfirmBookings ?? true, // Default to auto-confirm
+        publicHeroSubtitle: settings?.publicHeroSubtitle || null,
       },
     };
   }

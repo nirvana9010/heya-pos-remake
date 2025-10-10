@@ -9,8 +9,15 @@ import { Badge } from "@heya-pos/ui";
 import { useMerchant } from "@/contexts/merchant-context";
 import { MerchantGuard } from "@/components/merchant-guard";
 
-// Merchant-specific content
+// Merchant-specific content defaults
 const merchantContent = {
+  default: {
+    hero: {
+      title: "Welcome to Heya POS Merchant",
+      subtitle: "Experience tailored treatments designed to help you look and feel your best.",
+      gradient: "from-primary/80 via-primary to-secondary/80",
+    },
+  },
   hamilton: {
     hero: {
       title: "Where Beauty Meets Excellence",
@@ -63,8 +70,13 @@ export default function Home() {
   const { merchant, merchantSubdomain, loading } = useMerchant();
   
   // Get merchant-specific content
-  const content = merchantContent[merchantSubdomain as keyof typeof merchantContent] || merchantContent.hamilton;
+  const content =
+    merchantContent[merchantSubdomain as keyof typeof merchantContent] ||
+    merchantContent.default;
   const isZen = merchantSubdomain === 'zen-wellness';
+
+  const heroSubtitle =
+    merchant?.settings?.publicHeroSubtitle?.trim() || content.hero.subtitle;
   
   // Format address helper
   const formatAddress = (address?: string, suburb?: string, state?: string, postalCode?: string) => {
@@ -108,7 +120,7 @@ export default function Home() {
               {content.hero.title}
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-white/90">
-              {content.hero.subtitle}
+              {heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href={`/${merchantSubdomain}/booking`}>

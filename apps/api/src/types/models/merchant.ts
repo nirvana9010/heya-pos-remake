@@ -59,6 +59,8 @@ export interface MerchantSettings {
   appointmentReminder24hSms?: boolean;
   appointmentReminder2hEmail?: boolean;
   appointmentReminder2hSms?: boolean;
+  // Booking site branding
+  publicHeroSubtitle?: string;
   // Staff Notification settings
   newBookingNotification?: boolean;
   newBookingNotificationEmail?: boolean;

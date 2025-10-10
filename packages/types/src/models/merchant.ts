@@ -54,6 +54,8 @@ export interface MerchantSettings {
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
   // Payment terminal settings
   tyroEnabled: boolean;
+  // Booking site branding
+  publicHeroSubtitle?: string;
 }
 
 export enum MerchantStatus {
