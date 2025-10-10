@@ -39,7 +39,6 @@ import {
   RefreshCw,
   Filter,
   Users,
-  CheckCircle2,
   GripVertical,
   Loader2
 } from 'lucide-react';
@@ -892,26 +891,20 @@ function CalendarContent() {
       }
       
       // Show success toast with icon
-      const toastMessage = (
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-          <div>
-            <p className="font-semibold">Booking created successfully!</p>
-            <p className="text-sm text-gray-600 mt-1">
+      toast({
+        title: 'Booking created successfully!',
+        description: (
+          <div className="space-y-1">
+            <p className="text-sm text-gray-600">
               {transformedBooking.customerName} • {format(startTime, 'h:mm a')}
             </p>
             <p className="text-sm text-gray-500">
               {transformedBooking.serviceName} with {transformedBooking.staffName}
             </p>
           </div>
-        </div>
-      );
-      
-      toast({
-        title: "",
-        description: toastMessage,
-        variant: "default",
-        className: "bg-green-50 border-green-200",
+        ),
+        variant: 'default',
+        className: 'bg-green-50 border-green-200',
         duration: 5000,
       });
     } catch (error: any) {

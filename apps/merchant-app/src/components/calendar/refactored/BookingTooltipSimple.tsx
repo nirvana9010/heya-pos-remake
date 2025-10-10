@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@heya-pos/ui';
-import { Clock, DollarSign, Phone, CheckCircle, X } from 'lucide-react';
+import { Clock, DollarSign, Phone, X } from 'lucide-react';
 import { getBookingSourcePresentation } from './booking-source';
 import type { Booking } from '../types';
 
@@ -82,8 +82,7 @@ export function BookingTooltip({ booking, visible, x, y }: BookingTooltipProps) 
             <DollarSign className="h-3.5 w-3.5" />
             <span>${booking.servicePrice}</span>
             {booking.paymentStatus === 'paid' && (
-              <span className="text-green-600 font-medium ml-1 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
+              <span className="text-green-600 font-medium ml-1">
                 Paid
               </span>
             )}
