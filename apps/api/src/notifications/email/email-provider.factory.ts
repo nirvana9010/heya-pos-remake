@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from './email.service';
 import { SendGridEmailService } from './sendgrid-email.service';
-import { EmailTemplateService } from '../templates/email-template.service';
 import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
 
 export interface EmailProvider {
@@ -20,14 +19,28 @@ export class EmailProviderFactory {
     private readonly sendGridService: SendGridEmailService,
   ) {}
 
-  getProvider(): EmailProvider {
-    // Choose provider based on configuration
-    if (this.configService.get('SENDGRID_API_KEY')) {
-      this.logger.log('Using SendGrid as email provider');
-      return this.sendGridService;
-    } else {
-      this.logger.log('Using SMTP as email provider');
-      return this.emailService;
+  getProviders(): EmailProvider[] {
+    const providers: EmailProvider[] = [];
+    const sendGridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
+    if (sendGridApiKey) {
+      providers.push(this.sendGridService);
     }
+
+    const emailUser = this.configService.get<string>('EMAIL_USER');
+    const emailPass = this.configService.get<string>('EMAIL_PASS');
+    if (emailUser && emailPass) {
+      providers.push(this.emailService);
+    }
+
+    if (providers.length === 0) {
+      this.logger.warn('No configured email providers found; booking emails will be skipped');
+    }
+
+    return providers;
+  }
+
+  getProvider(): EmailProvider {
+    const [primary] = this.getProviders();
+    return primary ?? this.emailService;
   }
 }

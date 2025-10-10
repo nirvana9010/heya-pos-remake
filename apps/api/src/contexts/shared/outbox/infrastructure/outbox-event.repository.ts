@@ -10,6 +10,14 @@ export class OutboxEventRepository {
   async save(event: OutboxEvent, tx?: Prisma.TransactionClient): Promise<void> {
     const db = tx || this.prisma;
     
+    if (event.eventType === 'confirmed') {
+      console.log('[OutboxEventRepository] Saving confirmed event', {
+        eventId: event.id,
+        aggregateId: event.aggregateId,
+        merchantId: event.merchantId,
+      });
+    }
+    
     await db.outboxEvent.create({
       data: {
         id: event.id,

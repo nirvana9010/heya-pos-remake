@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, ConflictException, Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
@@ -11,6 +11,7 @@ import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/out
 import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
 import { BookingServiceData } from '../commands/create-booking.command';
 import { OrdersService } from '../../../../payments/orders.service';
+import { BookingMapper } from '../../infrastructure/persistence/booking.mapper';
 
 interface CreateBookingData {
   staffId?: string; // Optional for multi-service bookings
@@ -38,6 +39,8 @@ interface ServiceDetails {
 
 @Injectable()
 export class BookingCreationService {
+  private readonly logger = new Logger(BookingCreationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject('IBookingRepository')
@@ -196,7 +199,7 @@ export class BookingCreationService {
       const shouldAutoConfirm = data.source === 'ONLINE' ? autoConfirmBookings : true;
       
       // Debug logging
-      console.log('[BookingCreationService] Status determination:', {
+      this.logger.log('[BookingCreationService] Status determination start', {
         bookingSource: data.source,
         autoConfirmBookings: autoConfirmBookings,
         shouldAutoConfirm: shouldAutoConfirm,
@@ -212,7 +215,7 @@ export class BookingCreationService {
         serviceId: data.isBlankBooking ? null : serviceDetails[0]?.id, // Null for blank bookings
         locationId: data.locationId,
         timeSlot: new TimeSlot(data.startTime, endTime),
-        status: shouldAutoConfirm ? BookingStatusValue.CONFIRMED : BookingStatusValue.PENDING,
+        status: BookingStatusValue.PENDING,
         totalAmount,
         depositAmount: 0, // TODO: Calculate based on merchant settings
         notes: data.notes || (data.isBlankBooking ? 'Walk-in customer (blank booking)' : undefined),
@@ -228,41 +231,40 @@ export class BookingCreationService {
 
       // 8. Persist the booking with all services
       const savedBooking = await this.bookingRepository.save(booking, tx, serviceDetails);
-
-      // 9. Save booking created event to outbox
-      const outboxEvent = OutboxEvent.create({
-        aggregateId: savedBooking.id,
-        aggregateType: 'booking',
-        eventType: 'created',
-        eventData: {
-          bookingId: savedBooking.id,
-          bookingNumber: savedBooking.bookingNumber,
-          customerId: savedBooking.customerId,
-          staffId: primaryStaffId,
-          serviceIds: serviceDetails.map(s => s.id),
-          locationId: savedBooking.locationId,
-          startTime: savedBooking.timeSlot.start,
-          endTime: savedBooking.timeSlot.end,
-          status: savedBooking.status.value,
-          totalAmount: savedBooking.totalAmount,
-          source: savedBooking.source,
-        },
-        eventVersion: 1,
-        merchantId: savedBooking.merchantId,
+      this.logger.log('[BookingCreationService] Booking persisted', {
+        bookingId: savedBooking.id,
+        bookingNumber: savedBooking.bookingNumber,
+        initialStatus: savedBooking.status.value,
       });
 
-      await this.outboxRepository.save(outboxEvent, tx);
+      let finalBooking = savedBooking;
+      let finalStatus = savedBooking.status.value;
 
-      // Emit confirmation event immediately when booking starts confirmed so downstream
-      // notification handlers still fire even without a pending→confirmed transition.
-      if (booking.status.value === BookingStatusValue.CONFIRMED) {
+      if (shouldAutoConfirm) {
+        const confirmationTimestamp = new Date();
+        this.logger.log('[BookingCreationService] Auto-confirm enabled, updating booking status inside transaction', {
+          bookingId: savedBooking.id,
+          confirmationTimestamp: confirmationTimestamp.toISOString(),
+        });
+
+        await tx.booking.update({
+          where: {
+            id: savedBooking.id,
+            merchantId: data.merchantId,
+          },
+          data: {
+            status: BookingStatusValue.CONFIRMED,
+            confirmedAt: confirmationTimestamp,
+          },
+        });
+
         const confirmedEvent = OutboxEvent.create({
           aggregateId: savedBooking.id,
           aggregateType: 'booking',
           eventType: 'confirmed',
           eventData: {
             bookingId: savedBooking.id,
-            previousStatus: 'CONFIRMED',
+            previousStatus: 'PENDING',
             newStatus: 'CONFIRMED',
             source: savedBooking.source,
           },
@@ -270,24 +272,87 @@ export class BookingCreationService {
           merchantId: savedBooking.merchantId,
         });
         await this.outboxRepository.save(confirmedEvent, tx);
+        this.logger.log('[BookingCreationService] Confirmed outbox event enqueued', {
+          bookingId: savedBooking.id,
+          eventId: confirmedEvent.id,
+        });
+
+        const refreshedBooking = await tx.booking.findUnique({
+          where: { id: savedBooking.id },
+          include: {
+            services: {
+              include: {
+                service: true,
+                staff: true,
+              },
+            },
+            customer: true,
+            provider: true,
+            location: true,
+          },
+        });
+
+        if (!refreshedBooking) {
+          throw new Error(`Booking ${savedBooking.id} not found after auto-confirmation`);
+        }
+
+        finalBooking = BookingMapper.toDomain(refreshedBooking);
+        finalStatus = finalBooking.status.value;
+        this.logger.log('[BookingCreationService] Booking auto-confirmed and reloaded', {
+          bookingId: finalBooking.id,
+          finalStatus,
+        });
       }
+
+      // 9. Save booking created event to outbox
+      const outboxEvent = OutboxEvent.create({
+        aggregateId: finalBooking.id,
+        aggregateType: 'booking',
+        eventType: 'created',
+        eventData: {
+          bookingId: finalBooking.id,
+          bookingNumber: finalBooking.bookingNumber,
+          customerId: finalBooking.customerId,
+          staffId: primaryStaffId,
+          serviceIds: serviceDetails.map(s => s.id),
+          locationId: finalBooking.locationId,
+          startTime: finalBooking.timeSlot.start,
+          endTime: finalBooking.timeSlot.end,
+          status: finalStatus,
+          totalAmount: finalBooking.totalAmount,
+          source: finalBooking.source,
+        },
+        eventVersion: 1,
+        merchantId: finalBooking.merchantId,
+      });
+
+      await this.outboxRepository.save(outboxEvent, tx);
+      this.logger.log('[BookingCreationService] Booking created outbox event enqueued', {
+        bookingId: finalBooking.id,
+        eventId: outboxEvent.id,
+        statusInPayload: finalStatus,
+      });
 
       // Emit event immediately for real-time notifications
       // This is in addition to the OutboxPublisher which provides reliability
       this.eventEmitter.emit('booking.created', {
-        aggregateId: savedBooking.id,
-        merchantId: savedBooking.merchantId,
-        bookingId: savedBooking.id,
-        bookingNumber: savedBooking.bookingNumber,
-        customerId: savedBooking.customerId,
+        aggregateId: finalBooking.id,
+        merchantId: finalBooking.merchantId,
+        bookingId: finalBooking.id,
+        bookingNumber: finalBooking.bookingNumber,
+        customerId: finalBooking.customerId,
         staffId: primaryStaffId,
         serviceIds: serviceDetails.map(s => s.id),
-        locationId: savedBooking.locationId,
-        startTime: savedBooking.timeSlot.start,
-        endTime: savedBooking.timeSlot.end,
-        status: savedBooking.status.value,
-        totalAmount: savedBooking.totalAmount,
-        source: savedBooking.source,
+        locationId: finalBooking.locationId,
+        startTime: finalBooking.timeSlot.start,
+        endTime: finalBooking.timeSlot.end,
+        status: finalStatus,
+        totalAmount: finalBooking.totalAmount,
+        source: finalBooking.source,
+      });
+      this.logger.log('[BookingCreationService] booking.created emitted', {
+        bookingId: finalBooking.id,
+        emittedStatus: finalStatus,
       });
 
       // 10. Link pre-created order if provided
@@ -295,7 +360,7 @@ export class BookingCreationService {
         await this.linkOrderToBooking(data.orderId, savedBooking.id, tx);
       }
 
-      return savedBooking;
+      return finalBooking;
     }, {
       timeout: 10000,
       isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,

@@ -25,30 +25,19 @@ export class NotificationsService {
 
     // Send via email if enabled
     if (channels.email && context.customer.email) {
-      try {
-        const emailProvider = this.emailProviderFactory.getProvider();
-        results.email = await emailProvider.sendNotification(type, context);
-        
-        // Log notification in database
-        await this.logNotification({
-          customerId: context.customer.id,
-          merchantId: context.merchant.id,
-          bookingId: context.booking?.id,
-          type,
-          channel: 'email',
-          recipient: context.customer.email,
-          status: results.email.success ? 'sent' : 'failed',
-          messageId: results.email.messageId,
-          error: results.email.error,
-        });
-      } catch (error) {
-        this.logger.error('Failed to send email notification', error);
-        results.email = {
-          success: false,
-          error: (error as Error).message,
-          channel: 'email',
-        };
-      }
+      results.email = await this.sendEmailWithFallback(type, context);
+
+      await this.logNotification({
+        customerId: context.customer.id,
+        merchantId: context.merchant.id,
+        bookingId: context.booking?.id,
+        type,
+        channel: 'email',
+        recipient: context.customer.email,
+        status: results.email.success ? 'sent' : 'failed',
+        messageId: results.email.messageId,
+        error: results.email.error,
+      });
     }
 
     // Send via SMS if enabled
@@ -80,6 +69,65 @@ export class NotificationsService {
     }
 
     return results;
+  }
+
+  private async sendEmailWithFallback(
+    type: NotificationType,
+    context: NotificationContext,
+  ): Promise<NotificationResult> {
+    const providers = this.emailProviderFactory.getProviders();
+
+    if (providers.length === 0) {
+      this.logger.warn('No email providers configured; skipping email notification');
+      return {
+        success: false,
+        error: 'No email provider configured',
+        channel: 'email',
+      };
+    }
+
+    let attempt = 0;
+    let lastError: string | undefined;
+
+    for (const provider of providers) {
+      attempt += 1;
+      const providerName = provider.constructor?.name ?? 'EmailProvider';
+
+      try {
+        this.logger.debug(`Attempting booking email via ${providerName}`);
+        const result = await provider.sendNotification(type, context);
+
+        if (result.success) {
+          if (attempt > 1) {
+            this.logger.warn(
+              `Primary email provider failed; fallback ${providerName} succeeded for booking ${context.booking?.id ?? 'unknown'}`,
+            );
+          }
+          return result;
+        }
+
+        lastError = result.error || 'Unknown error';
+        this.logger.warn(
+          `Email provider ${providerName} responded with failure: ${lastError}`,
+        );
+      } catch (error) {
+        lastError = (error as Error).message;
+        this.logger.error(
+          `Email provider ${providerName} threw an error`,
+          error,
+        );
+      }
+    }
+
+    this.logger.error(
+      `All configured email providers failed to send booking confirmation. Last error: ${lastError ?? 'Unknown error'}`,
+    );
+
+    return {
+      success: false,
+      error: lastError || 'All email providers failed',
+      channel: 'email',
+    };
   }
 
   private determineChannels(context: NotificationContext): { email: boolean; sms: boolean } {

@@ -34,7 +34,7 @@ export class NotificationEventHandler {
 
       // Fetch full booking details
       const booking = await this.prisma.booking.findUnique({
-        where: { id: event.bookingId },
+        where: { id: bookingId },
         include: {
           customer: true,
           merchant: {
@@ -65,6 +65,7 @@ export class NotificationEventHandler {
       this.logger.log(`[${new Date().toISOString()}] ✅ Booking found:`, {
         id: booking.id,
         status: booking.status,
+        confirmedAt: booking.confirmedAt,
         customerEmail: booking.customer?.email,
         merchantName: booking.merchant?.name
       });
@@ -121,6 +122,7 @@ export class NotificationEventHandler {
       this.logger.log(`[${new Date().toISOString()}] 📧 ====== CONFIRMATION EMAIL DECISION ======`);
       this.logger.log(`[${new Date().toISOString()}] Should send email: ${shouldSendEmail}`);
       this.logger.log(`[${new Date().toISOString()}] Should send SMS: ${shouldSendSms}`);
+      this.logger.log(`[${new Date().toISOString()}] Merchant settings snapshot:`, merchantSettings);
       this.logger.log(`[${new Date().toISOString()}] Customer email: ${context.customer.email}`);
       this.logger.log(`[${new Date().toISOString()}] Customer preferred channel: ${context.customer.preferredChannel}`);
 
@@ -170,7 +172,8 @@ export class NotificationEventHandler {
       await this.scheduleReminders(booking.id, booking.startTime, booking.merchant.settings as any);
 
     } catch (error) {
-      this.logger.error(`Failed to handle booking confirmed event: ${event.bookingId}`, error);
+      const fallbackBookingId = event.bookingId || event.aggregateId;
+      this.logger.error(`Failed to handle booking confirmed event: ${fallbackBookingId}`, error);
     }
   }
 

@@ -24,7 +24,7 @@ describe('BookingCreationService', () => {
     staff: { findUnique: jest.fn() },
     staffSchedule: { findFirst: jest.fn() },
     service: { findUnique: jest.fn() },
-    booking: { findFirst: jest.fn(), findUnique: jest.fn() },
+    booking: { findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
   };
 
   beforeEach(async () => {
@@ -88,6 +88,70 @@ describe('BookingCreationService', () => {
       return monday;
     };
 
+    const buildPrismaBooking = (overrides: Record<string, any> = {}) => {
+      const start = overrides.startTime ?? createDateTime(11, 0);
+      const end = overrides.endTime ?? new Date(start.getTime() + 60 * 60000);
+
+      return {
+        id: overrides.id ?? 'booking-123',
+        bookingNumber: overrides.bookingNumber ?? 'BK-001',
+        status: overrides.status ?? 'CONFIRMED',
+        startTime: start,
+        endTime: end,
+        customerId: overrides.customerId ?? customerId,
+        providerId: overrides.providerId ?? staffId,
+        locationId: overrides.locationId ?? null,
+        merchantId: overrides.merchantId ?? merchantId,
+        notes: overrides.notes ?? null,
+        totalAmount: overrides.totalAmount ?? 100,
+        depositAmount: overrides.depositAmount ?? 0,
+        source: overrides.source ?? 'MERCHANT_APP',
+        createdById: overrides.createdById ?? createdById,
+        customerRequestedStaff: overrides.customerRequestedStaff ?? false,
+        createdAt: overrides.createdAt ?? start,
+        updatedAt: overrides.updatedAt ?? start,
+        cancelledAt: overrides.cancelledAt ?? null,
+        cancellationReason: overrides.cancellationReason ?? null,
+        completedAt: overrides.completedAt ?? null,
+        paymentStatus: overrides.paymentStatus ?? 'UNPAID',
+        paidAmount: overrides.paidAmount ?? 0,
+        paymentMethod: overrides.paymentMethod ?? null,
+        paymentReference: overrides.paymentReference ?? null,
+        paidAt: overrides.paidAt ?? null,
+        isOverride: overrides.isOverride ?? false,
+        overrideReason: overrides.overrideReason ?? null,
+        services: overrides.services ?? [
+          {
+            serviceId: serviceId,
+            price: 100,
+            duration: 60,
+            service: {
+              id: serviceId,
+              name: 'Test Service',
+              duration: 60,
+              price: 100,
+            },
+            staff: {
+              id: staffId,
+              firstName: 'John',
+              lastName: 'Doe',
+            },
+          },
+        ],
+        customer: overrides.customer ?? {
+          id: customerId,
+          firstName: 'Jane',
+          lastName: 'Customer',
+        },
+        provider: overrides.provider ?? {
+          id: staffId,
+          firstName: 'John',
+          lastName: 'Doe',
+        },
+        location: overrides.location ?? null,
+      };
+    };
+
     beforeEach(() => {
       // Default mocks
       mockTransaction.merchant.findUnique.mockResolvedValue({
@@ -112,7 +176,8 @@ describe('BookingCreationService', () => {
       });
 
       mockTransaction.booking.findFirst.mockResolvedValue(null);
-      mockTransaction.booking.findUnique.mockResolvedValue(null);
+      mockTransaction.booking.findUnique.mockResolvedValue(buildPrismaBooking());
+      mockTransaction.booking.update.mockResolvedValue({});
 
       mockTransaction.staff.findUnique.mockResolvedValue({
         id: staffId,
@@ -149,6 +214,7 @@ describe('BookingCreationService', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
+      expect(result.status.value).toBe(BookingStatusValue.CONFIRMED);
       expect(bookingRepository.save).toHaveBeenCalled();
       expect(outboxRepository.save).toHaveBeenCalled();
     });
@@ -369,6 +435,15 @@ describe('BookingCreationService', () => {
 
       const eventTypes = outboxRepository.save.mock.calls.map(([event]) => event.eventType);
       expect(eventTypes).toContain('confirmed');
+
+      const confirmedCall = outboxRepository.save.mock.calls.find(([event]) => event.eventType === 'confirmed');
+      expect(confirmedCall).toBeDefined();
+      const confirmedEvent = confirmedCall?.[0];
+      expect(confirmedEvent?.eventData.previousStatus).toBe('PENDING');
+      expect(confirmedEvent?.eventData.newStatus).toBe('CONFIRMED');
+
+      const createdCall = outboxRepository.save.mock.calls.find(([event]) => event.eventType === 'created');
+      expect(createdCall?.[0].eventData.status).toBe('CONFIRMED');
     });
 
     it('should skip confirmed outbox event when booking starts pending', async () => {
