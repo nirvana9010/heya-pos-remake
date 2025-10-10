@@ -3,26 +3,360 @@ import { requestSchemas, responseSchemas } from './validation';
 import { formatName } from '@heya-pos/utils';
 import { mapBookingSource } from '../booking-source';
 
+export type BookingStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'confirmed'
+  | 'in-progress'
+  | 'completed'
+  | 'cancelled'
+  | 'no-show'
+  | 'deleted'
+  | 'optimistic';
+
+const BOOKING_STATUS_ALIASES: Record<string, BookingStatus> = {
+  pending: 'pending',
+  'pending-confirmation': 'pending',
+  'pending-confirm': 'pending',
+  'pending-approval': 'pending',
+  awaiting: 'pending',
+  'awaiting-confirmation': 'pending',
+  provisional: 'pending',
+  scheduled: 'scheduled',
+  confirm: 'confirmed',
+  confirmed: 'confirmed',
+  booked: 'confirmed',
+  inprogress: 'in-progress',
+  'in-progress': 'in-progress',
+  in_progress: 'in-progress',
+  started: 'in-progress',
+  ongoing: 'in-progress',
+  complete: 'completed',
+  completed: 'completed',
+  done: 'completed',
+  finished: 'completed',
+  cancelled: 'cancelled',
+  canceled: 'cancelled',
+  'cancelled-late': 'cancelled',
+  noshow: 'no-show',
+  'no-show': 'no-show',
+  no_show: 'no-show',
+  deleted: 'deleted',
+  removed: 'deleted',
+  optimistic: 'optimistic',
+};
+
+const BOOKING_STATUS_VALUES: readonly BookingStatus[] = [
+  'pending',
+  'scheduled',
+  'confirmed',
+  'in-progress',
+  'completed',
+  'cancelled',
+  'no-show',
+  'deleted',
+  'optimistic',
+];
+
+const normalizeStatusKey = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
+
+export const coerceBookingStatus = (
+  value: unknown,
+  fallback: BookingStatus = 'confirmed',
+): BookingStatus => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+  const key = normalizeStatusKey(value);
+  if (BOOKING_STATUS_ALIASES[key]) {
+    return BOOKING_STATUS_ALIASES[key];
+  }
+  return BOOKING_STATUS_VALUES.includes(key as BookingStatus)
+    ? (key as BookingStatus)
+    : fallback;
+};
+
+export interface BookingServiceSummary {
+  id?: string;
+  serviceId?: string;
+  name?: string;
+  serviceName?: string;
+  duration?: number;
+  price?: number;
+  [key: string]: unknown;
+}
+
 export interface Booking {
   id: string;
-  bookingNumber?: string; // 6-character airline-style booking reference
+  bookingNumber?: string;
   customerId: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  customerSource?: string | null;
   serviceId: string;
   serviceName: string;
+  services?: BookingServiceSummary[];
   staffId: string;
   staffName: string;
   startTime: string;
-  status: string;
+  endTime?: string;
+  status: BookingStatus;
   price: number;
   totalAmount: number;
   duration: number;
-  date: string; // For backward compatibility
+  date: string;
   notes?: string;
+  internalNotes?: string;
   customerRequestedStaff?: boolean;
+  source?: string | null;
+  sourceCategory?: string;
+  sourceLabel?: string;
+  isPaid?: boolean;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  paidAmount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
 }
+
+const toOptionalString = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return String(value);
+  }
+  return undefined;
+};
+
+const ensureString = (value: unknown, fallback = ''): string =>
+  toOptionalString(value) ?? fallback;
+
+const toIsoString = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const date = new Date(value as any);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+};
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+// Normalizes raw booking payloads from multiple API shapes into the client-facing schema.
+export const normalizeBooking = (raw: unknown): Booking => {
+  const booking = (raw ?? {}) as any;
+
+  const services = Array.isArray(booking.services)
+    ? (booking.services as BookingServiceSummary[])
+    : undefined;
+  const primaryService = services?.[0];
+
+  const customerSource =
+    booking.customerSource ?? booking.customer?.source ?? null;
+  const sourceInfo = mapBookingSource(
+    booking.source ?? booking.origin ?? booking.bookingSource,
+    customerSource,
+  );
+
+  const totalAmount =
+    toNumber(
+      booking.totalAmount ??
+        booking.totalPrice ??
+        booking.price ??
+        (services?.reduce(
+          (sum: number, service: any) => sum + toNumber(service.price, 0),
+          0,
+        ) ?? 0),
+    );
+
+  const duration =
+    toNumber(
+      booking.duration ??
+        booking.totalDuration ??
+        (services?.reduce(
+          (sum: number, service: any) => sum + toNumber(service.duration, 0),
+          0,
+        ) ?? 0),
+    );
+
+  const startTime =
+    toIsoString(
+      booking.startTime ??
+        booking.start ??
+        booking.start_date ??
+        booking.startAt ??
+        booking.startDate,
+    ) ?? new Date().toISOString();
+
+  const endTime = toIsoString(
+    booking.endTime ??
+      booking.end ??
+      booking.finishTime ??
+      booking.completedAt ??
+      booking.endDate,
+  );
+
+  const createdAt = toIsoString(booking.createdAt) ?? startTime;
+  const updatedAt =
+    toIsoString(booking.updatedAt ?? booking.modifiedAt) ?? createdAt;
+  const completedAt = toIsoString(booking.completedAt ?? booking.endTime);
+
+  const bookingNumber = toOptionalString(
+    booking.bookingNumber ??
+      booking.reference ??
+      booking.code ??
+      booking.reservationCode,
+  );
+
+  const id = ensureString(
+    booking.id ??
+      booking.bookingId ??
+      booking.uuid ??
+      booking._id ??
+      primaryService?.bookingId,
+    'unknown',
+  );
+
+  const customerId = ensureString(
+    booking.customerId ?? booking.customer?.id ?? booking.clientId,
+    'unknown',
+  );
+
+  const staffId = ensureString(
+    booking.staffId ?? booking.providerId ?? booking.staff?.id,
+    '',
+  );
+
+  const status = coerceBookingStatus(
+    booking.status ??
+      booking.bookingStatus ??
+      booking.currentStatus ??
+      booking.state ??
+      booking.workflowStatus ??
+      booking.current_state,
+  );
+
+  const serviceId = ensureString(
+    booking.serviceId ??
+      primaryService?.serviceId ??
+      primaryService?.id ??
+      primaryService?.service?.id,
+    '',
+  );
+
+  const serviceName =
+    booking.serviceName ??
+    primaryService?.serviceName ??
+    primaryService?.name ??
+    primaryService?.service?.name ??
+    'Service';
+
+  const staffName =
+    booking.staffName ??
+    booking.staff?.name ??
+    (booking.provider
+      ? formatName(booking.provider.firstName, booking.provider.lastName)
+      : 'Staff');
+
+  const customerName =
+    booking.customerName ??
+    booking.customer?.name ??
+    (booking.customer
+      ? formatName(booking.customer.firstName, booking.customer.lastName)
+      : 'Unknown Customer');
+
+  const customerPhone = ensureString(
+    booking.customerPhone ??
+      booking.customer?.phone ??
+      booking.customer?.mobile,
+    '',
+  );
+
+  const customerEmail = ensureString(
+    booking.customerEmail ?? booking.customer?.email,
+    '',
+  );
+
+  const isPaid =
+    typeof booking.isPaid === 'boolean'
+      ? booking.isPaid
+      : typeof booking.paymentStatus === 'string'
+      ? normalizeStatusKey(booking.paymentStatus) === 'paid'
+      : toNumber(booking.paidAmount, 0) > 0;
+
+  const paymentStatus =
+    typeof booking.paymentStatus === 'string'
+      ? booking.paymentStatus
+      : isPaid
+      ? 'paid'
+      : 'unpaid';
+
+  const paymentMethod = toOptionalString(booking.paymentMethod);
+
+  const paidAmount = toNumber(
+    booking.paidAmount ?? booking.amountPaid ?? (isPaid ? totalAmount : 0),
+    0,
+  );
+
+  const customerRequestedStaff = Boolean(
+    booking.customerRequestedStaff ??
+      booking.preferredStaff ??
+      booking.customer?.requestedStaff,
+  );
+
+  const transformed: Booking = {
+    ...booking,
+    id,
+    bookingNumber,
+    customerId,
+    customerName,
+    customerPhone,
+    customerEmail,
+    customerSource: customerSource ?? undefined,
+    serviceId,
+    serviceName,
+    services,
+    staffId,
+    staffName,
+    startTime,
+    endTime,
+    status,
+    price: totalAmount,
+    totalAmount,
+    duration,
+    date: toIsoString(booking.date) ?? startTime,
+    notes: toOptionalString(booking.notes),
+    internalNotes: toOptionalString(booking.internalNotes),
+    customerRequestedStaff,
+    source: sourceInfo.raw,
+    sourceCategory: sourceInfo.category,
+    sourceLabel: sourceInfo.label,
+    isPaid,
+    paymentStatus,
+    paymentMethod,
+    paidAmount,
+    createdAt,
+    updatedAt,
+    completedAt,
+  };
+
+  return transformed;
+};
 
 export interface CreateBookingRequest {
   customerId: string;
@@ -312,89 +646,9 @@ export class BookingsClient extends BaseApiClient {
     return this.get(`/bookings/availability?${params.toString()}`, undefined, 'v2');
   }
 
-  // Helper method to transform booking data
+  // Helper method retained for backwards compatibility inside the client
   private transformBooking(booking: any): Booking {
-    // Handle both V1 (nested) and V2 (flat) response formats
-    
-    // Customer name - V2 provides it directly, V1 needs to be constructed
-    const customerName = booking.customerName || 
-      booking.customer?.name ||
-      (booking.customer ? 
-        formatName(booking.customer.firstName, booking.customer.lastName) : 
-        'Unknown Customer');
-
-    const customerSource = booking.customerSource || booking.customer?.source || null;
-    const sourceInfo = mapBookingSource(booking.source, customerSource);
-
-    // Customer phone - V2 provides it directly, V1 has it nested
-    const customerPhone = booking.customerPhone || 
-      booking.customer?.phone ||
-      booking.customer?.mobile || 
-      '';
-    
-    // Customer email - handle both formats
-    const customerEmail = booking.customerEmail || 
-      booking.customer?.email || 
-      '';
-    
-    // Staff name - V2 provides it directly, V1 needs to be constructed
-    const staffName = booking.staffName || 
-      booking.staff?.name ||
-      (booking.provider ? 
-        formatName(booking.provider.firstName, booking.provider.lastName) : 
-        'Staff');
-    
-    // Service name - V2 provides it directly, V1 has it nested
-    // For multiple services, use the first one or concatenate names
-    const serviceName = booking.serviceName || 
-      (booking.services && Array.isArray(booking.services) && booking.services.length > 0 ? 
-        (booking.services.length === 1 ? 
-          booking.services[0].name || booking.services[0]?.service?.name : 
-          booking.services.map((s: any) => s.name || s.service?.name).join(' + ')) :
-        'Service');
-    
-    // Calculate total amount from services if not set
-    const totalAmount = Number(booking.totalAmount) || 
-      (booking.services?.reduce((sum: number, s: any) => sum + (Number(s.price) || 0), 0) || 0);
-    
-    // Calculate total duration from all services
-    // API returns totalDuration for list endpoints, duration for detail endpoints
-    const duration = booking.duration || booking.totalDuration ||
-      (booking.services?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0);
-    
-    // Transform status from uppercase to lowercase with hyphens
-    // Special cases: 
-    // - COMPLETE/COMPLETED -> completed (with 'd')
-    // - DELETED -> deleted (for recycle bin)
-    const status = booking.status ? 
-      ((booking.status === 'COMPLETE' || booking.status === 'COMPLETED') ? 'completed' : 
-       (booking.status === 'DELETED') ? 'deleted' :
-       booking.status.toLowerCase().replace(/_/g, '-')) : 
-      'confirmed';
-    
-    const transformed = {
-      ...booking,
-      status,
-      customerRequestedStaff: Boolean((booking as any).customerRequestedStaff),
-      customerName,
-      customerPhone,
-      customerEmail,
-      serviceName,
-      staffName,
-      price: totalAmount,
-      totalAmount: totalAmount,
-      duration,
-      date: booking.startTime, // For backward compatibility
-      serviceId: booking.serviceId || booking.services?.[0]?.serviceId || '',
-      staffId: booking.staffId || booking.providerId || '',
-      services: booking.services, // IMPORTANT: Preserve the services array for multi-service bookings
-      customerSource,
-      source: sourceInfo.raw,
-      sourceCategory: sourceInfo.category,
-      sourceLabel: sourceInfo.label,
-    };
-
-    return transformed;
+    return normalizeBooking(booking);
   }
 
   async markBookingAsPaid(id: string, paymentMethod: string = 'CASH'): Promise<{
