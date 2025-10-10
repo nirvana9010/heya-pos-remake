@@ -4,8 +4,7 @@ import { BookingCreationService } from './booking-creation.service';
 import { BookingAvailabilityService } from './booking-availability.service';
 import { TimezoneUtils } from '../../../../utils/shared/timezone';
 import { toNumber } from '../../../../utils/decimal';
-import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
-import { OutboxEvent } from '../../../shared/outbox/domain/outbox-event.entity';
+import { BookingServiceData } from '../commands/create-booking.command';
 
 export interface PublicCreateBookingData {
   customerName: string;
@@ -34,7 +33,6 @@ export class PublicBookingService {
     private readonly prisma: PrismaService,
     private readonly bookingCreationService: BookingCreationService,
     private readonly bookingAvailabilityService: BookingAvailabilityService,
-    private readonly outboxRepository: OutboxEventRepository,
   ) {}
 
   async createPublicBooking(dto: PublicCreateBookingData, merchantId: string) {
@@ -334,181 +332,72 @@ export class PublicBookingService {
     const creatorStaffId = anyActiveStaff.id;
 
     try {
-      // For multiple services, create booking directly with transaction
-      const booking = await this.prisma.$transaction(async (tx) => {
-        // Debug: Find ALL bookings for this staff on this day
-        if (staffId) {
-          const dayStart = new Date(startTime);
-          dayStart.setHours(0, 0, 0, 0);
-          const dayEnd = new Date(startTime);
-          dayEnd.setHours(23, 59, 59, 999);
-          
-          const allDayBookings = await tx.booking.findMany({
-            where: {
-              merchantId: merchant.id,
-              providerId: staffId,
-              startTime: { gte: dayStart, lte: dayEnd },
-              status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-            },
-            orderBy: { startTime: 'asc' },
-          });
-          
-          console.error('ALL BOOKINGS FOR STAFF ON DAY:', {
-            staffId,
-            date: dayStart.toISOString().split('T')[0],
-            bookings: allDayBookings.map(b => ({
-              id: b.id,
-              start: b.startTime.toISOString(),
-              end: b.endTime.toISOString(),
-              status: b.status,
-            })),
-          });
-        }
-        
-        // Check for conflicts only if a staff member is assigned
-        const conflicts = staffId ? await tx.booking.findMany({
+      // Check for conflicts only if a staff member is assigned
+      if (staffId) {
+        const conflicts = await this.prisma.booking.findMany({
           where: {
             merchantId: merchant.id,
             providerId: staffId,
             status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-            OR: [
-              // Existing booking overlaps if it starts before our end AND ends after our start
-              {
-                AND: [
-                  { startTime: { lt: endTime } },
-                  { endTime: { gt: startTime } },
-                ],
-              },
-            ],
-          },
-        }) : [];
-
-        if (conflicts.length > 0) {
-          // Log conflict details for debugging
-          console.error('BOOKING CONFLICT:', {
-            requestedSlot: {
-              start: startTime.toISOString(),
-              end: endTime.toISOString(),
-              duration: `${totalDuration} minutes`
+          OR: [
+            {
+              AND: [
+                { startTime: { lt: endTime } },
+                { endTime: { gt: startTime } },
+              ],
             },
-            conflictingBookings: conflicts.map(c => ({
-              id: c.id,
-              start: c.startTime.toISOString(),
-              end: c.endTime.toISOString(),
-              provider: c.providerId
-            }))
-          });
-          
-          throw new ConflictException({
-            message: 'This time slot is no longer available. Please choose a different time.',
-            conflicts: conflicts.map(c => ({
-              id: c.id,
-              startTime: c.startTime,
-              endTime: c.endTime,
-              status: c.status,
-            })),
-          });
-        }
+          ],
+        },
+      });
 
-        // Generate proper 6-character booking number
-        const bookingNumber = await this.bookingCreationService.generateBookingNumber(merchant.id, tx);
-
-        // Check merchant's auto-confirm setting
-        const merchantSettings = merchant.settings as any;
-        const autoConfirmBookings = merchantSettings?.autoConfirmBookings ?? true;
-        
-        console.log('[PublicBookingService] Creating ONLINE booking:', {
-          merchantId: merchant.id,
-          merchantSettings: merchantSettings,
-          autoConfirmBookings: autoConfirmBookings,
-          settingsType: typeof merchantSettings,
-          hasAutoConfirmSetting: merchantSettings?.hasOwnProperty('autoConfirmBookings')
-        });
-        
-        // For ONLINE bookings, respect the auto-confirm setting
-        const bookingStatus = autoConfirmBookings ? 'CONFIRMED' : 'PENDING';
-        
-        console.log('[PublicBookingService] Booking will be created with status:', bookingStatus);
-
-        // Create the booking
-        const bookingData: any = {
-          merchantId: merchant.id,
-          locationId: location.id,
-          customerId: customer.id,
-          bookingNumber,
-          status: bookingStatus,
-          startTime,
-          endTime,
-          totalAmount: totalPrice,
-          depositAmount: 0,
-          source: 'ONLINE',
-          notes: dto.notes,
-          customerRequestedStaff: Boolean(dto.staffId || serviceRequests.some(sr => sr.staffId)),
-        };
-        
-        // For online bookings, we need a creator even if no staff is assigned
-        // Use the provided staff ID, or use any active staff as creator (for audit purposes only)
-        bookingData.createdById = staffId || creatorStaffId;
-        
-        // Only set provider if staffId is provided (can be null for unassigned)
-        if (staffId) {
-          bookingData.providerId = staffId;
-        }
-        
-        const newBooking = await tx.booking.create({
-          data: bookingData,
-        });
-
-        // Create booking services
-        let currentStartTime = new Date(startTime);
-        for (let i = 0; i < services.length; i++) {
-          const service = services[i];
-          const serviceRequest = serviceRequests.find(sr => sr.serviceId === service.id);
-          const serviceStaffId = serviceRequest?.staffId || staffId;
-          
-          await tx.bookingService.create({
-            data: {
-              bookingId: newBooking.id,
-              serviceId: service.id,
-              staffId: serviceStaffId,
-              price: toNumber(service.price),
-              duration: service.duration,
-            },
-          });
-          
-          currentStartTime = new Date(currentStartTime.getTime() + service.duration * 60 * 1000);
-        }
-
-        // Create OutboxEvent for notification system
-        const outboxEvent = OutboxEvent.create({
-          aggregateId: newBooking.id,
-          aggregateType: 'booking',  // lowercase to match handler
-          eventType: 'created',      // lowercase to match handler
-          eventData: {
-            bookingId: newBooking.id,
-            bookingNumber: newBooking.bookingNumber,
-            customerId: newBooking.customerId,
-            staffId: newBooking.providerId,
-            serviceId: services[0]?.id, // First service for backward compatibility
-            locationId: newBooking.locationId,
-            startTime: newBooking.startTime,
-            endTime: newBooking.endTime,
-            status: newBooking.status,
-            totalAmount: newBooking.totalAmount,
-            source: newBooking.source,
+      if (conflicts.length > 0) {
+        console.error('BOOKING CONFLICT:', {
+          requestedSlot: {
+            start: startTime.toISOString(),
+            end: endTime.toISOString(),
+            duration: `${totalDuration} minutes`,
           },
-          eventVersion: 1,
-          merchantId: newBooking.merchantId,
+          conflictingBookings: conflicts.map(c => ({
+            id: c.id,
+            start: c.startTime.toISOString(),
+            end: c.endTime.toISOString(),
+            provider: c.providerId,
+          })),
         });
 
-        await this.outboxRepository.save(outboxEvent, tx);
+        throw new ConflictException({
+          message: 'This time slot is no longer available. Please choose a different time.',
+          conflicts: conflicts.map(c => ({
+            id: c.id,
+            startTime: c.startTime,
+            endTime: c.endTime,
+            status: c.status,
+          })),
+        });
+      }
+      }
 
-        return newBooking;
+      const bookingServices: BookingServiceData[] = serviceRequests.map(service => ({
+        serviceId: service.serviceId,
+        staffId: service.staffId || staffId || undefined,
+      }));
+
+      const createdBooking = await this.bookingCreationService.createBooking({
+        merchantId: merchant.id,
+        customerId: customer.id,
+        locationId: location.id,
+        services: bookingServices,
+        staffId: staffId || undefined,
+        startTime,
+        source: 'ONLINE',
+        notes: dto.notes,
+        customerRequestedStaff: Boolean(dto.staffId || serviceRequests.some(sr => sr.staffId)),
+        createdById: staffId || creatorStaffId,
       });
 
       // Fetch the complete booking with all relations for the response
       const completeBooking = await this.prisma.booking.findUnique({
-        where: { id: booking.id },
+        where: { id: createdBooking.id },
         include: {
           services: {
             include: {
