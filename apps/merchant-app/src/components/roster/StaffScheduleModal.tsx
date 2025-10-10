@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -12,9 +12,9 @@ import {
 import { Button } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
 import { Input } from '@heya-pos/ui';
-import { Alert, AlertDescription } from '@heya-pos/ui';
+import { Alert, AlertDescription, AlertTitle } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
-import { Clock, Copy, Info } from 'lucide-react';
+import { Clock, Copy, Info, AlertTriangle } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { StaffClient } from '@/lib/clients/staff-client';
 
@@ -161,6 +161,59 @@ export function StaffScheduleModal({
     });
   };
 
+  const coverageWarnings = useMemo(() => {
+    if (!businessHours || Object.keys(editableSchedule).length === 0) {
+      return [];
+    }
+
+    const warnings: string[] = [];
+
+    DAYS_OF_WEEK.forEach(day => {
+      const dayKey = day.label.toLowerCase();
+      const businessDay = businessHours[dayKey];
+
+      const isClosed =
+        !businessDay ||
+        businessDay.isOpen === false ||
+        businessDay.open === 'closed' ||
+        !businessDay.open ||
+        !businessDay.close;
+
+      if (isClosed) {
+        return;
+      }
+
+      const schedule = editableSchedule[day.value];
+
+      if (!schedule || schedule.isOff || !schedule.startTime || !schedule.endTime) {
+        warnings.push(
+          `${day.label}: no staff rostered from ${formatTime12Hour(businessDay.open)} to ${formatTime12Hour(businessDay.close)}.`
+        );
+        return;
+      }
+
+      const startsLate = schedule.startTime > businessDay.open;
+      const endsEarly = schedule.endTime < businessDay.close;
+
+      if (startsLate || endsEarly) {
+        const parts: string[] = [];
+        if (startsLate) {
+          parts.push(
+            `starts at ${formatTime12Hour(schedule.startTime)} (business opens ${formatTime12Hour(businessDay.open)})`
+          );
+        }
+        if (endsEarly) {
+          parts.push(
+            `ends at ${formatTime12Hour(schedule.endTime)} (business closes ${formatTime12Hour(businessDay.close)})`
+          );
+        }
+        warnings.push(`${day.label}: ${parts.join(' and ')}.`);
+      }
+    });
+
+    return warnings;
+  }, [businessHours, editableSchedule]);
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -279,6 +332,20 @@ export function StaffScheduleModal({
               </Alert>
             </div>
         </div>
+
+        {coverageWarnings.length > 0 && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Schedule doesn&apos;t cover full opening hours</AlertTitle>
+            <AlertDescription>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                {coverageWarnings.map(warning => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
