@@ -57,6 +57,8 @@ export default function ProfilePage() {
       setPrimaryLocation(location);
       
       // Update form with real data - use location email/phone if available
+      const settings = await apiClient.getMerchantSettings();
+
       setBusinessInfo({
         name: profile.name || '',
         email: location?.email || profile.email || '',
@@ -70,7 +72,7 @@ export default function ProfilePage() {
         state: location?.state || '',
         postalCode: location?.postalCode || '',
         country: location?.country || 'Australia',
-        heroSubtitle: profile.settings?.publicHeroSubtitle || '',
+        heroSubtitle: settings?.publicHeroSubtitle || '',
       });
     } catch (error) {
       console.error('Failed to load merchant profile:', error);
