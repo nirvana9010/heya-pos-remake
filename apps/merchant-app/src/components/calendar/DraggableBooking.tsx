@@ -11,13 +11,15 @@ interface DraggableBookingProps {
   children: React.ReactNode;
   isDisabled?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function DraggableBooking({ 
   id, 
   children, 
   isDisabled = false,
-  className 
+  className,
+  style: userStyle
 }: DraggableBookingProps) {
   const {
     attributes,
@@ -34,7 +36,8 @@ export function DraggableBooking({
     disabled: isDisabled,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
+    ...userStyle,
     transform: CSS.Transform.toString(transform),
     touchAction: 'none',
   };

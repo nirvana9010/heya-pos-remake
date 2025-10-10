@@ -41,6 +41,7 @@ export interface CreateBookingRequest {
 
 export interface UpdateBookingRequest {
   startTime?: string;
+  endTime?: string;
   staffId?: string;
   status?: string;
   notes?: string;

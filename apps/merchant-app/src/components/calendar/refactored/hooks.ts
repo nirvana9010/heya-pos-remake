@@ -3,7 +3,7 @@ import { useCalendar } from './CalendarProvider';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
 import { formatName } from '@heya-pos/utils';
-import { toMerchantTime, formatInMerchantTime } from '@/lib/date-utils';
+import { toMerchantTime, formatInMerchantTime, formatMerchantDateTimeISO } from '@/lib/date-utils';
 import { 
   startOfDay, 
   endOfDay, 
@@ -20,6 +20,38 @@ import {
   mapApiServicesToRecords,
   mapApiCategoriesToRecords,
 } from '@/lib/normalizers/service';
+
+export const timeStringToMinutes = (time: string): number => {
+  const [hours = '0', minutes = '0'] = time.split(':');
+  return Number.parseInt(hours, 10) * 60 + Number.parseInt(minutes, 10);
+};
+
+export const minutesToTimeString = (totalMinutes: number): string => {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+const extractErrorMessage = (error: unknown): string => {
+  if (error && typeof error === 'object') {
+    const responseData = (error as any).response?.data;
+    if (responseData) {
+      if (typeof responseData.message === 'string') {
+        return responseData.message;
+      }
+      if (Array.isArray(responseData.message) && responseData.message.length > 0) {
+        return responseData.message[0];
+      }
+      if (typeof responseData.error === 'string') {
+        return responseData.error;
+      }
+    }
+    if (typeof (error as any).message === 'string') {
+      return (error as any).message;
+    }
+  }
+  return 'Failed to update booking. Please try again.';
+};
 
 // Hook for fetching calendar data
 export function useCalendarData() {
@@ -514,43 +546,75 @@ export function useBookingOperations() {
     bookingId: string,
     newDate: string,
     newTime: string,
-    newStaffId: string | null
+    newStaffId: string | null,
+    options?: {
+      endMinutes?: number;
+      newDuration?: number;
+      showSuccessToast?: boolean;
+    }
   ) => {
+    const existingBooking = state.bookings.find(b => b.id === bookingId);
+    if (!existingBooking) {
+      const missingMessage = 'Booking could not be found locally. Please refresh and try again.';
+      toast({
+        title: 'Error',
+        description: missingMessage,
+        variant: 'destructive',
+      });
+      throw new Error(missingMessage);
+    }
+
+    const showSuccessToast = options?.showSuccessToast ?? true;
+
     try {
       actions.setLoading(true);
-      
+
+      const startMinutes = timeStringToMinutes(newTime);
+      const requestedDuration = options?.newDuration ?? existingBooking.duration;
+      const requestedEndMinutes = options?.endMinutes ?? (startMinutes + requestedDuration);
+      const safeEndMinutes = Math.max(requestedEndMinutes, startMinutes + Math.max(1, state.timeInterval));
+      const updatedDuration = options?.newDuration ?? (safeEndMinutes - startMinutes);
+
+      const startTimeIso = formatMerchantDateTimeISO(newDate, newTime);
+      const endTimeIso = formatMerchantDateTimeISO(newDate, minutesToTimeString(safeEndMinutes));
+
       await apiClient.updateBooking(bookingId, {
-        startTime: `${newDate}T${newTime}`,
-        staffId: newStaffId,
+        startTime: startTimeIso,
+        endTime: endTimeIso,
+        staffId: newStaffId ?? undefined,
       });
       
-      // Find the staff member name
       const staffMember = newStaffId ? state.staff.find(s => s.id === newStaffId) : null;
-      const staffName = staffMember ? staffMember.name : 'Unassigned';
-      
-      // Update local state
+      const staffName = newStaffId
+        ? staffMember?.name ?? existingBooking.staffName ?? 'Unassigned'
+        : existingBooking.staffName ?? 'Unassigned';
+
       actions.updateBooking(bookingId, {
         date: newDate,
         time: newTime,
         staffId: newStaffId,
         staffName,
+        duration: updatedDuration,
       });
-      
-      toast({
-        title: 'Success',
-        description: 'Booking updated successfully',
-      });
+
+      if (showSuccessToast) {
+        toast({
+          title: 'Success',
+          description: 'Booking updated successfully',
+        });
+      }
     } catch (error) {
+      const description = extractErrorMessage(error);
       toast({
         title: 'Error',
-        description: 'Failed to update booking. Please try again.',
+        description,
         variant: 'destructive',
       });
       throw error;
     } finally {
       actions.setLoading(false);
     }
-  }, [state.staff, actions, toast]);
+  }, [state.bookings, state.staff, state.timeInterval, actions, toast]);
   
   const updateBookingStatus = useCallback(async (
     bookingId: string,
@@ -704,6 +768,7 @@ export function useCalendarDragDrop() {
   const { state, actions } = useCalendar();
   const { updateBookingTime } = useBookingOperations();
   const { checkTimeConflict } = useBookingConflicts();
+  const { toast } = useToast();
   
   const handleDragStart = useCallback((bookingId: string) => {
     actions.startDrag(bookingId);
@@ -722,6 +787,12 @@ export function useCalendarDragDrop() {
     
     // Check for conflicts
     if (checkTimeConflict(targetStaffId, targetDate, targetTime, booking.duration, bookingId)) {
+      const staffName = booking.staffName || 'selected staff member';
+      toast({
+        title: 'Slot unavailable',
+        description: `That time overlaps with another booking for ${staffName}.`,
+        variant: 'destructive',
+      });
       return {
         success: false,
         error: 'Time slot conflict',
@@ -729,15 +800,18 @@ export function useCalendarDragDrop() {
     }
     
     try {
-      await updateBookingTime(bookingId, targetDate, targetTime, targetStaffId);
+      const startMinutes = timeStringToMinutes(targetTime);
+      await updateBookingTime(bookingId, targetDate, targetTime, targetStaffId, {
+        endMinutes: startMinutes + booking.duration,
+      });
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to update booking',
+        error: extractErrorMessage(error),
       };
     }
-  }, [state.bookings, actions, checkTimeConflict, updateBookingTime]);
+  }, [state.bookings, actions, checkTimeConflict, updateBookingTime, toast]);
   
   return {
     isDragging: state.isDragging,

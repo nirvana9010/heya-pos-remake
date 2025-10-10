@@ -1092,7 +1092,7 @@ function CalendarContent() {
     
     
     try {
-      await updateBookingTime(activeBooking.id, date, time, staffId);
+      await updateBookingTime(activeBooking.id, date, time, staffId ?? null);
     } catch (error) {
     }
   }, [activeBooking, updateBookingTime]);

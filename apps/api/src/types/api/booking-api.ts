@@ -20,6 +20,7 @@ export interface CreateBookingRequest {
 export interface UpdateBookingRequest {
   status?: BookingStatus;
   startTime?: Date;
+  endTime?: Date;
   providerId?: string;
   notes?: string;
   services?: {

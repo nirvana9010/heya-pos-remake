@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useCalendar } from '../CalendarProvider';
-import { useTimeGrid } from '../hooks';
+import { useTimeGrid, useBookingOperations, useBookingConflicts, timeStringToMinutes, minutesToTimeString } from '../hooks';
 import { toMerchantTime } from '@/lib/date-utils';
 import { format, isSameDay, parseISO, isToday } from 'date-fns';
 import { cn, useToast } from '@heya-pos/ui';
@@ -36,6 +36,23 @@ interface DailyViewProps {
 }
 
 // Simple stacking for overlapping bookings - removed complex column layout
+
+const SLOT_PIXEL_HEIGHT = 40;
+
+type ResizeDirection = 'start' | 'end';
+
+interface BookingResizeState {
+  bookingId: string;
+  direction: ResizeDirection;
+  initialPointerY: number;
+  startMinutes: number;
+  endMinutes: number;
+  previewStartMinutes: number;
+  previewEndMinutes: number;
+  deltaIntervals: number;
+  staffId: string | null;
+  date: string;
+}
 
 
 // Simple DroppableTimeSlot component for the refactored calendar
@@ -92,6 +109,165 @@ export function DailyView({
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
   const { toast } = useToast();
+  const { updateBookingTime } = useBookingOperations();
+  const { checkTimeConflict } = useBookingConflicts();
+  const resizeStateRef = React.useRef<BookingResizeState | null>(null);
+  const [resizeState, setResizeState] = React.useState<BookingResizeState | null>(null);
+
+  const updateResizeState = React.useCallback((updater: React.SetStateAction<BookingResizeState | null>) => {
+    setResizeState(prev => {
+      const next = typeof updater === 'function'
+        ? (updater as (prevState: BookingResizeState | null) => BookingResizeState | null)(prev)
+        : updater;
+      resizeStateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const onResizePointerMove = React.useCallback((event: PointerEvent) => {
+    event.preventDefault();
+    updateResizeState(prev => {
+      if (!prev) {
+        return prev;
+      }
+
+      const intervalMinutes = state.timeInterval;
+      const minDuration = Math.max(intervalMinutes, 15);
+      const dayStartMinutes = state.calendarStartHour * 60;
+      const dayEndMinutes = state.calendarEndHour * 60;
+      const deltaIntervals = Math.round((event.clientY - prev.initialPointerY) / SLOT_PIXEL_HEIGHT);
+
+      if (deltaIntervals === prev.deltaIntervals) {
+        return prev;
+      }
+
+      let nextStart = prev.previewStartMinutes;
+      let nextEnd = prev.previewEndMinutes;
+
+      if (prev.direction === 'start') {
+        const proposedStart = prev.startMinutes + deltaIntervals * intervalMinutes;
+        const clampedStart = Math.min(
+          Math.max(proposedStart, dayStartMinutes),
+          prev.endMinutes - minDuration
+        );
+        nextStart = clampedStart;
+      } else {
+        const proposedEnd = prev.endMinutes + deltaIntervals * intervalMinutes;
+        const clampedEnd = Math.max(
+          Math.min(proposedEnd, dayEndMinutes),
+          prev.startMinutes + minDuration
+        );
+        nextEnd = clampedEnd;
+      }
+
+      if (nextStart === prev.previewStartMinutes && nextEnd === prev.previewEndMinutes) {
+        return { ...prev, deltaIntervals };
+      }
+
+      return {
+        ...prev,
+        deltaIntervals,
+        previewStartMinutes: nextStart,
+        previewEndMinutes: nextEnd,
+      };
+    });
+  }, [state.timeInterval, state.calendarStartHour, state.calendarEndHour, updateResizeState]);
+
+  const finalizeResize = React.useCallback(async () => {
+    const current = resizeStateRef.current;
+    updateResizeState(null);
+
+    if (!current) {
+      return;
+    }
+
+    const changedStart = current.previewStartMinutes !== current.startMinutes;
+    const changedEnd = current.previewEndMinutes !== current.endMinutes;
+
+    if (!changedStart && !changedEnd) {
+      return;
+    }
+
+    const newDuration = current.previewEndMinutes - current.previewStartMinutes;
+    const minDuration = Math.max(state.timeInterval, 15);
+    if (newDuration < minDuration) {
+      return;
+    }
+
+    const newStartTime = minutesToTimeString(current.previewStartMinutes);
+
+    if (checkTimeConflict(current.staffId, current.date, newStartTime, newDuration, current.bookingId)) {
+      const staffName = current.staffId
+        ? state.staff.find(s => s.id === current.staffId)?.name ?? 'selected staff member'
+        : 'selected staff member';
+      toast({
+        title: 'Slot unavailable',
+        description: `That time overlaps with another booking for ${staffName}.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await updateBookingTime(current.bookingId, current.date, newStartTime, current.staffId, {
+        endMinutes: current.previewEndMinutes,
+        newDuration,
+      });
+    } catch (error) {
+      // updateBookingTime already shows a toast for errors
+    }
+  }, [updateResizeState, state.timeInterval, checkTimeConflict, state.staff, toast, updateBookingTime]);
+
+  const onResizePointerUp = React.useCallback((event: PointerEvent) => {
+    event.preventDefault();
+    window.removeEventListener('pointermove', onResizePointerMove);
+    window.removeEventListener('pointerup', onResizePointerUp);
+    window.removeEventListener('pointercancel', onResizePointerUp);
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    finalizeResize();
+  }, [finalizeResize, onResizePointerMove]);
+
+  const startResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>, booking: Booking, direction: ResizeDirection) => {
+    if (resizeStateRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const bookingStartMinutes = timeStringToMinutes(booking.time);
+    const bookingEndMinutes = bookingStartMinutes + booking.duration;
+
+    updateResizeState({
+      bookingId: booking.id,
+      direction,
+      initialPointerY: event.clientY,
+      startMinutes: bookingStartMinutes,
+      endMinutes: bookingEndMinutes,
+      previewStartMinutes: bookingStartMinutes,
+      previewEndMinutes: bookingEndMinutes,
+      deltaIntervals: 0,
+      staffId: booking.staffId ?? null,
+      date: booking.date,
+    });
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ns-resize';
+    window.addEventListener('pointermove', onResizePointerMove, { passive: false });
+    window.addEventListener('pointerup', onResizePointerUp);
+    window.addEventListener('pointercancel', onResizePointerUp);
+  }, [onResizePointerMove, onResizePointerUp, updateResizeState]);
+
+  React.useEffect(() => {
+    return () => {
+      window.removeEventListener('pointermove', onResizePointerMove);
+      window.removeEventListener('pointerup', onResizePointerUp);
+      window.removeEventListener('pointercancel', onResizePointerUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [onResizePointerMove, onResizePointerUp]);
   
   // Configure drag sensors
   const sensors = useSensors(
@@ -747,18 +923,22 @@ export function DailyView({
                             // Simple stacking: find this booking's index in the overlapping set
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
-                            // Calculate how many time slots this booking spans based in interval
-                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-
-                            // Base visual height anchored to the slot span
-                            const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
-
-                            // Debug duration calculation for walk-in
-                            if (booking.customerName?.includes('Walk-in')) {
-                            }
+                            const bookingStartMinutes = timeStringToMinutes(booking.time);
+                            const isResizingThisBooking = resizeState?.bookingId === booking.id;
+                            const previewStartMinutes = isResizingThisBooking ? resizeState.previewStartMinutes : bookingStartMinutes;
+                            const previewEndMinutes = isResizingThisBooking ? resizeState.previewEndMinutes : bookingStartMinutes + booking.duration;
+                            const previewDuration = Math.max(previewEndMinutes - previewStartMinutes, state.timeInterval);
+                            const slotsSpanned = Math.ceil(previewDuration / state.timeInterval);
+                            const initialHeight = Math.max(slotsSpanned * SLOT_PIXEL_HEIGHT - 4, 70);
+                            const startOffsetMinutes = previewStartMinutes - bookingStartMinutes;
+                            const cardTopOffset = 2 + (startOffsetMinutes / state.timeInterval) * SLOT_PIXEL_HEIGHT;
+                            const cardZIndex = isResizingThisBooking ? 60 : (hasOverlaps ? overlapIndex + 10 : 1);
+                            const previewStartTimeString = minutesToTimeString(previewStartMinutes);
+                            const displayStartLabel = format(parseISO(`2000-01-01T${previewStartTimeString}`), 'h:mm a');
+                            const displayDuration = previewDuration;
 
                           // Determine if booking is in the past
-                          const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
+                          const bookingStartTime = parseISO(`${booking.date}T${previewStartTimeString}`);
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
                           
                           // Style based on status and time
@@ -837,16 +1017,18 @@ export function DailyView({
                             ? (badgeDisplayMode === 'icon' ? 12 : 18)
                             : 0;
                           const bookingVisualHeight = initialHeight + badgePadding;
+                          const canResize = booking.status !== 'cancelled';
 
                           return (
                             <DraggableBooking
                               key={booking.id}
                               id={booking.id}
                               className="absolute inset-x-1"
-                              style={{ 
-                                top: '2px',
-                                zIndex: hasOverlaps ? overlapIndex + 10 : 1
+                              style={{
+                                top: `${cardTopOffset}px`,
+                                zIndex: cardZIndex
                               }}
+                              isDisabled={resizeState?.bookingId === booking.id}
                             >
                               <div 
                                 className={cn(
@@ -854,6 +1036,7 @@ export function DailyView({
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
+                                  isResizingThisBooking && 'ring-2 ring-white/60 ring-offset-1',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -890,6 +1073,22 @@ export function DailyView({
                                   }
                                 }}
                               >
+                                {canResize && (
+                                  <div
+                                    className="absolute left-3 right-3 top-0 h-3 cursor-ns-resize flex items-center justify-center z-40"
+                                    onPointerDown={(event) => startResize(event, booking, 'start')}
+                                  >
+                                    <span className="block h-1 w-10 rounded-full bg-white/50 transition-colors duration-150 hover:bg-white/80" />
+                                  </div>
+                                )}
+                                {canResize && (
+                                  <div
+                                    className="absolute left-3 right-3 bottom-0 h-3 cursor-ns-resize flex items-center justify-center z-40"
+                                    onPointerDown={(event) => startResize(event, booking, 'end')}
+                                  >
+                                    <span className="block h-1 w-10 rounded-full bg-white/50 transition-colors duration-150 hover:bg-white/80" />
+                                  </div>
+                                )}
                                 {/* Overlap warning indicator handled in top-right stack */}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
@@ -915,8 +1114,13 @@ export function DailyView({
                                 )}
                                 <div className='flex h-full flex-col gap-1 pr-1'>
                                   {booking.status !== 'cancelled' && (
-                                    <div className="text-[11px] sm:text-xs font-medium opacity-70">
-                                      {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                    <div
+                                      className={cn(
+                                        "text-[11px] sm:text-xs font-medium opacity-70",
+                                        isResizingThisBooking && 'opacity-100'
+                                      )}
+                                    >
+                                      {displayStartLabel} • {displayDuration}m
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
@@ -1026,18 +1230,22 @@ export function DailyView({
                             // Simple stacking: find this booking's index in the overlapping set
                             const overlapIndex = hasOverlaps ? overlappingBookings.findIndex(b => b.id === booking.id) : 0;
                             
-                            // Calculate how many time slots this booking spans based in interval
-                            const slotsSpanned = Math.ceil(booking.duration / state.timeInterval);
-
-                            // Base visual height anchored to the slot span
-                            const initialHeight = Math.max(slotsSpanned * 40 - 4, 70);
-
-                            // Debug duration calculation for walk-in
-                            if (booking.customerName?.includes('Walk-in')) {
-                            }
+                            const bookingStartMinutes = timeStringToMinutes(booking.time);
+                            const isResizingThisBooking = resizeState?.bookingId === booking.id;
+                            const previewStartMinutes = isResizingThisBooking ? resizeState.previewStartMinutes : bookingStartMinutes;
+                            const previewEndMinutes = isResizingThisBooking ? resizeState.previewEndMinutes : bookingStartMinutes + booking.duration;
+                            const previewDuration = Math.max(previewEndMinutes - previewStartMinutes, state.timeInterval);
+                            const slotsSpanned = Math.ceil(previewDuration / state.timeInterval);
+                            const initialHeight = Math.max(slotsSpanned * SLOT_PIXEL_HEIGHT - 4, 70);
+                            const startOffsetMinutes = previewStartMinutes - bookingStartMinutes;
+                            const cardTopOffset = 2 + (startOffsetMinutes / state.timeInterval) * SLOT_PIXEL_HEIGHT;
+                            const cardZIndex = isResizingThisBooking ? 60 : (hasOverlaps ? overlapIndex + 10 : 1);
+                            const previewStartTimeString = minutesToTimeString(previewStartMinutes);
+                            const displayStartLabel = format(parseISO(`2000-01-01T${previewStartTimeString}`), 'h:mm a');
+                            const displayDuration = previewDuration;
 
                           // Determine if booking is in the past
-                          const bookingStartTime = parseISO(`${booking.date}T${booking.time}`);
+                          const bookingStartTime = parseISO(`${booking.date}T${previewStartTimeString}`);
                           const isPast = bookingStartTime < currentTime && booking.status !== 'in-progress';
                           
                           // Style based on status and time
@@ -1116,16 +1324,18 @@ export function DailyView({
                             ? (badgeDisplayMode === 'icon' ? 12 : 18)
                             : 0;
                           const bookingVisualHeight = initialHeight + badgePadding;
+                          const canResize = booking.status !== 'cancelled';
 
                           return (
                             <DraggableBooking
                               key={booking.id}
                               id={booking.id}
                               className="absolute inset-x-1"
-                              style={{ 
-                                top: '2px',
-                                zIndex: hasOverlaps ? overlapIndex + 10 : 1
+                              style={{
+                                top: `${cardTopOffset}px`,
+                                zIndex: cardZIndex
                               }}
+                              isDisabled={resizeState?.bookingId === booking.id}
                             >
                               <div 
                                 className={cn(
@@ -1133,6 +1343,7 @@ export function DailyView({
                                   textColor,
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
+                                  isResizingThisBooking && 'ring-2 ring-white/60 ring-offset-1',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -1169,6 +1380,22 @@ export function DailyView({
                                   }
                                 }}
                               >
+                                {canResize && (
+                                  <div
+                                    className="absolute left-3 right-3 top-0 h-3 cursor-ns-resize flex items-center justify-center z-40"
+                                    onPointerDown={(event) => startResize(event, booking, 'start')}
+                                  >
+                                    <span className="block h-1 w-10 rounded-full bg-white/50 transition-colors duration-150 hover:bg-white/80" />
+                                  </div>
+                                )}
+                                {canResize && (
+                                  <div
+                                    className="absolute left-3 right-3 bottom-0 h-3 cursor-ns-resize flex items-center justify-center z-40"
+                                    onPointerDown={(event) => startResize(event, booking, 'end')}
+                                  >
+                                    <span className="block h-1 w-10 rounded-full bg-white/50 transition-colors duration-150 hover:bg-white/80" />
+                                  </div>
+                                )}
                                 {/* Overlap warning indicator handled in top-right stack */}
                                 {/* Completed indicator */}
                                 {(booking.completedAt || (booking.completedAt || booking.status === 'completed')) && (
@@ -1194,8 +1421,13 @@ export function DailyView({
                                 )}
                                 <div className='flex h-full flex-col gap-1 pr-1'>
                                   {booking.status !== 'cancelled' && (
-                                    <div className="text-[11px] sm:text-xs font-medium opacity-70">
-                                      {format(parseISO(`2000-01-01T${booking.time}`), 'h:mm a')} • {booking.duration}m
+                                    <div
+                                      className={cn(
+                                        "text-[11px] sm:text-xs font-medium opacity-70",
+                                        isResizingThisBooking && 'opacity-100'
+                                      )}
+                                    >
+                                      {displayStartLabel} • {displayDuration}m
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">

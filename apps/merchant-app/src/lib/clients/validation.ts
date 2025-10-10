@@ -175,6 +175,7 @@ export const requestSchemas = {
 
   updateBooking: {
     startTime: validators.optional(validators.isoDate),
+    endTime: validators.optional(validators.isoDate),
     staffId: validators.optional(validators.string),
     // NUCLEAR: Removed enum validation - accept any string for status
     status: validators.optional(validators.string),
