@@ -1126,7 +1126,7 @@ export function DailyView({
                                   <div className="flex-1 min-w-0">
                                     <div 
                                       className={cn(
-                                        "font-bold truncate text-sm sm:text-base",
+                                        "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
                                         (booking.completedAt || booking.status === 'completed') && "pl-5"
                                       )}
@@ -1138,7 +1138,7 @@ export function DailyView({
                                       booking={booking}
                                       lookup={serviceLookup}
                                       className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                      textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      textClassName={cn('text-[11px] sm:text-xs', isPast ? 'text-gray-600' : 'opacity-90')}
                                     />
                                   </div>
                                 </div>
@@ -1436,7 +1436,7 @@ export function DailyView({
                                   <div className="flex-1 min-w-0">
                                     <div 
                                       className={cn(
-                                        "font-bold truncate text-sm sm:text-base",
+                                        "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
                                         (booking.completedAt || booking.status === 'completed') && "pl-5"
                                       )}
@@ -1448,7 +1448,7 @@ export function DailyView({
                                       booking={booking}
                                       lookup={serviceLookup}
                                       className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                      textClassName={cn('text-xs sm:text-sm', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      textClassName={cn('text-[11px] sm:text-xs', isPast ? 'text-gray-600' : 'opacity-90')}
                                     />
                                   </div>
                                 </div>

@@ -232,7 +232,7 @@ export function WeeklyView({
                           )}
                           
                           {/* Customer name */}
-                          <div className="font-bold truncate text-sm">
+                          <div className="font-semibold truncate text-xs sm:text-sm">
                             {booking.customerName?.replace(/Walk-in.*\d{1,2}-\d{1,2}(AM|PM)$/i, 'Walk-in').replace(/Walk-in \d{2}-\w+-\d{1,2}-\d{2}-\w+/i, 'Walk-in')}
                           </div>
                           
@@ -241,7 +241,7 @@ export function WeeklyView({
                             booking={booking}
                             lookup={serviceLookup}
                             className="mt-1"
-                            textClassName="text-xs opacity-90"
+                            textClassName="text-[11px] opacity-90"
                             dotClassName="h-2 w-2"
                           />
                           
