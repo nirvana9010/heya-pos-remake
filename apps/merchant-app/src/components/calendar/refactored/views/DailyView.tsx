@@ -1013,10 +1013,10 @@ export function DailyView({
                             SourceIcon,
                           });
 
-                          const badgePadding = badgeItems
-                            ? (badgeDisplayMode === 'icon' ? 12 : 18)
-                            : 0;
-                          const bookingVisualHeight = initialHeight + badgePadding;
+                          const basePadding = badgeItems
+                            ? (badgeDisplayMode === 'icon' ? 10 : 14)
+                            : 8;
+                          const bookingVisualHeight = initialHeight + (badgeItems ? basePadding : 0);
                           const canResize = booking.status !== 'cancelled';
 
                           return (
@@ -1051,10 +1051,10 @@ export function DailyView({
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
-                                  paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: '16px',
-                                  paddingTop: '4px',
-                                  paddingBottom: badgeItems ? '10px' : '6px',
+                                  paddingLeft: `${borderWidth + basePadding}px`,
+                                  paddingRight: `${basePadding}px`,
+                                  paddingTop: `${basePadding}px`,
+                                  paddingBottom: `${basePadding}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1143,7 +1143,10 @@ export function DailyView({
                                   </div>
                                 </div>
                                 {badgeItems && (
-                                  <div className='pointer-events-none absolute bottom-[6px] right-[6px] flex flex-row-reverse flex-wrap items-center gap-1'>
+                                  <div
+                                    className="pointer-events-none absolute flex flex-row-reverse flex-wrap items-center gap-1"
+                                    style={{ bottom: basePadding, right: basePadding }}
+                                  >
                                     {badgeItems}
                                   </div>
                                 )}
@@ -1320,10 +1323,10 @@ export function DailyView({
                             SourceIcon,
                           });
 
-                          const badgePadding = badgeItems
-                            ? (badgeDisplayMode === 'icon' ? 12 : 18)
-                            : 0;
-                          const bookingVisualHeight = initialHeight + badgePadding;
+                          const basePadding = badgeItems
+                            ? (badgeDisplayMode === 'icon' ? 10 : 14)
+                            : 8;
+                          const bookingVisualHeight = initialHeight + (badgeItems ? basePadding : 0);
                           const canResize = booking.status !== 'cancelled';
 
                           return (
@@ -1358,10 +1361,10 @@ export function DailyView({
                                     ? 'overlay' as any
                                     : undefined,
                                   borderLeft: `${borderWidth}px ${borderStyle} ${bgColor}`,
-                                  paddingLeft: `${borderWidth + 12}px`,
-                                  paddingRight: '16px',
-                                  paddingTop: '4px',
-                                  paddingBottom: badgeItems ? '10px' : '6px',
+                                  paddingLeft: `${borderWidth + basePadding}px`,
+                                  paddingRight: `${basePadding}px`,
+                                  paddingTop: `${basePadding}px`,
+                                  paddingBottom: `${basePadding}px`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1450,7 +1453,10 @@ export function DailyView({
                                   </div>
                                 </div>
                                 {badgeItems && (
-                                  <div className='pointer-events-none absolute bottom-[6px] right-[6px] flex flex-row-reverse flex-wrap items-center gap-1'>
+                                  <div
+                                    className="pointer-events-none absolute flex flex-row-reverse flex-wrap items-center gap-1"
+                                    style={{ bottom: basePadding, right: basePadding }}
+                                  >
                                     {badgeItems}
                                   </div>
                                 )}
