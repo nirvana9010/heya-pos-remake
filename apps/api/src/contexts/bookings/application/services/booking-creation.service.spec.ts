@@ -5,21 +5,26 @@ import { IBookingRepository } from '../../domain/repositories/booking.repository
 import { OutboxEventRepository } from '../../../shared/outbox/infrastructure/outbox-event.repository';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ConflictException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Booking } from '../../domain/entities/booking.entity';
 import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 import { BookingStatusValue } from '../../domain/value-objects/booking-status.vo';
+import { OrdersService } from '../../../../payments/orders.service';
 
 describe('BookingCreationService', () => {
   let service: BookingCreationService;
   let prisma: DeepMockProxy<PrismaService>;
   let bookingRepository: DeepMockProxy<IBookingRepository>;
   let outboxRepository: DeepMockProxy<OutboxEventRepository>;
+  let eventEmitter: DeepMockProxy<EventEmitter2>;
+  let ordersService: DeepMockProxy<OrdersService>;
 
   const mockTransaction = {
     merchant: { findUnique: jest.fn() },
     staff: { findUnique: jest.fn() },
     staffSchedule: { findFirst: jest.fn() },
     service: { findUnique: jest.fn() },
+    booking: { findFirst: jest.fn(), findUnique: jest.fn() },
   };
 
   beforeEach(async () => {
@@ -38,6 +43,14 @@ describe('BookingCreationService', () => {
           provide: OutboxEventRepository,
           useValue: mockDeep<OutboxEventRepository>(),
         },
+        {
+          provide: EventEmitter2,
+          useValue: mockDeep<EventEmitter2>(),
+        },
+        {
+          provide: OrdersService,
+          useValue: mockDeep<OrdersService>(),
+        },
       ],
     }).compile();
 
@@ -45,6 +58,8 @@ describe('BookingCreationService', () => {
     prisma = module.get(PrismaService);
     bookingRepository = module.get('IBookingRepository');
     outboxRepository = module.get(OutboxEventRepository);
+    eventEmitter = module.get(EventEmitter2);
+    ordersService = module.get(OrdersService);
 
     // Setup transaction mock
     prisma.$transaction.mockImplementation(async (callback) => {
@@ -95,6 +110,9 @@ describe('BookingCreationService', () => {
         duration: 60,
         price: 100,
       });
+
+      mockTransaction.booking.findFirst.mockResolvedValue(null);
+      mockTransaction.booking.findUnique.mockResolvedValue(null);
 
       mockTransaction.staff.findUnique.mockResolvedValue({
         id: staffId,
@@ -327,6 +345,71 @@ describe('BookingCreationService', () => {
       expect(result).toBeDefined();
       expect(bookingRepository.lockStaff).toHaveBeenCalledTimes(2);
       expect(bookingRepository.save).toHaveBeenCalled();
+    });
+
+    it('should enqueue confirmed outbox event when booking auto-confirms', async () => {
+      mockTransaction.staffSchedule.findFirst.mockResolvedValue({
+        staffId,
+        dayOfWeek: 1,
+        startTime: '10:00',
+        endTime: '16:00',
+      });
+
+      const startTime = createDateTime(11, 0);
+
+      await service.createBooking({
+        merchantId,
+        staffId,
+        customerId,
+        serviceId,
+        startTime,
+        source: 'MERCHANT_APP',
+        createdById,
+      });
+
+      const eventTypes = outboxRepository.save.mock.calls.map(([event]) => event.eventType);
+      expect(eventTypes).toContain('confirmed');
+    });
+
+    it('should skip confirmed outbox event when booking starts pending', async () => {
+      mockTransaction.staffSchedule.findFirst.mockResolvedValue({
+        staffId,
+        dayOfWeek: 1,
+        startTime: '10:00',
+        endTime: '16:00',
+      });
+
+      mockTransaction.merchant.findUnique.mockResolvedValue({
+        id: merchantId,
+        settings: {
+          autoConfirmBookings: false,
+          businessHours: {
+            monday: { open: '09:00', close: '18:00', isOpen: true },
+            tuesday: { open: '09:00', close: '18:00', isOpen: true },
+            wednesday: { open: '09:00', close: '18:00', isOpen: true },
+            thursday: { open: '09:00', close: '18:00', isOpen: true },
+            friday: { open: '09:00', close: '18:00', isOpen: true },
+            saturday: { open: '10:00', close: '16:00', isOpen: true },
+            sunday: { open: '10:00', close: '16:00', isOpen: false },
+          },
+        },
+      });
+
+      const startTime = createDateTime(11, 0);
+
+      await service.createBooking({
+        merchantId,
+        staffId,
+        customerId,
+        serviceId,
+        startTime,
+        source: 'ONLINE',
+        createdById,
+      });
+
+      const eventTypes = outboxRepository.save.mock.calls.map(([event]) => event.eventType);
+      const confirmedEvents = eventTypes.filter((type) => type === 'confirmed');
+      expect(confirmedEvents.length).toBe(0);
     });
   });
 

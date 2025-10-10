@@ -61,10 +61,10 @@ const BOOKING_STATUS_VALUES: readonly BookingStatus[] = [
 const normalizeStatusKey = (value: string) =>
   value.trim().toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
 
-export const coerceBookingStatus = (
+export function coerceBookingStatus(
   value: unknown,
   fallback: BookingStatus = 'confirmed',
-): BookingStatus => {
+): BookingStatus {
   if (typeof value !== 'string') {
     return fallback;
   }
@@ -75,7 +75,7 @@ export const coerceBookingStatus = (
   return BOOKING_STATUS_VALUES.includes(key as BookingStatus)
     ? (key as BookingStatus)
     : fallback;
-};
+}
 
 export interface BookingServiceSummary {
   id?: string;

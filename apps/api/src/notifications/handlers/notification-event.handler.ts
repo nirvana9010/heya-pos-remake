@@ -603,12 +603,90 @@ export class NotificationEventHandler {
         return;
       }
 
+      const firstService = booking.services[0];
+
+      const merchantSettings = booking.merchant.settings as any;
+
+      // Prepare customer notification context
+      const context = {
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          date: booking.startTime,
+          time: booking.startTime.toLocaleTimeString('en-AU', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          serviceName: firstService?.service?.name || 'Service',
+          staffName: firstService?.staff
+            ? (firstService.staff.lastName
+                ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim()
+                : firstService.staff.firstName)
+            : 'Staff',
+          duration: firstService?.duration || 60,
+          price: Number(booking.totalAmount),
+          locationName: booking.location?.name || '',
+          locationAddress: booking.location?.address || '',
+          locationPhone: booking.location?.phone || '',
+        },
+        merchant: {
+          id: booking.merchant.id,
+          name: booking.merchant.name,
+          email: booking.merchant.email,
+          phone: booking.merchant.phone,
+          website: booking.merchant.website,
+          address: booking.merchant.locations?.[0]
+            ? [
+                booking.merchant.locations[0].address,
+                booking.merchant.locations[0].suburb,
+                booking.merchant.locations[0].state,
+                booking.merchant.locations[0].postalCode,
+              ]
+                .filter(Boolean)
+                .join(', ')
+            : '',
+        },
+        customer: {
+          id: booking.customer.id,
+          email: booking.customer.email,
+          phone: booking.customer.phone,
+          firstName: booking.customer.firstName,
+          lastName: booking.customer.lastName,
+          preferredChannel: booking.customer.notificationPreference as 'email' | 'sms' | 'both',
+        },
+      };
+
+      const shouldSendEmail = merchantSettings?.rescheduleNotificationEmail !== false;
+      const shouldSendSms = merchantSettings?.rescheduleNotificationSms !== false;
+
+      if (shouldSendEmail || shouldSendSms) {
+        const notificationContext = {
+          ...context,
+          customer: {
+            ...context.customer,
+            preferredChannel: this.determineMerchantPreferredChannel(
+              context.customer.preferredChannel,
+              shouldSendEmail,
+              shouldSendSms,
+            ),
+          },
+        };
+
+        const results = await this.notificationsService.sendNotification(
+          NotificationType.BOOKING_RESCHEDULED,
+          notificationContext,
+        );
+
+        this.logger.log(`Booking reschedule notification sent - Email: ${results.email?.success}, SMS: ${results.sms?.success}`);
+      } else {
+        this.logger.log('Skipping customer reschedule notification - merchant disabled all channels');
+      }
+
       // Create merchant notification only for external bookings
       if (event.source === 'ONLINE') {
         const customerName = booking.customer.lastName 
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName;
-        const firstService = booking.services[0];
         
         this.logger.log(`[${new Date().toISOString()}] Creating merchant notification for ONLINE rescheduled booking ${booking.id}`);
         await this.merchantNotificationsService.createBookingNotification(

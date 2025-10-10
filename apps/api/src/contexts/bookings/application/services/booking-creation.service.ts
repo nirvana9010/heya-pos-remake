@@ -253,6 +253,25 @@ export class BookingCreationService {
 
       await this.outboxRepository.save(outboxEvent, tx);
 
+      // Emit confirmation event immediately when booking starts confirmed so downstream
+      // notification handlers still fire even without a pending→confirmed transition.
+      if (booking.status.value === BookingStatusValue.CONFIRMED) {
+        const confirmedEvent = OutboxEvent.create({
+          aggregateId: savedBooking.id,
+          aggregateType: 'booking',
+          eventType: 'confirmed',
+          eventData: {
+            bookingId: savedBooking.id,
+            previousStatus: 'CONFIRMED',
+            newStatus: 'CONFIRMED',
+            source: savedBooking.source,
+          },
+          eventVersion: 1,
+          merchantId: savedBooking.merchantId,
+        });
+        await this.outboxRepository.save(confirmedEvent, tx);
+      }
+
       // Emit event immediately for real-time notifications
       // This is in addition to the OutboxPublisher which provides reliability
       this.eventEmitter.emit('booking.created', {
