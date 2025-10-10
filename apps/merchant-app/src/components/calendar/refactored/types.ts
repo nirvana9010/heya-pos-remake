@@ -37,6 +37,10 @@ export const ALL_CALENDAR_STATUSES: BookingStatus[] = [
   'optimistic',
 ];
 
+export const DEFAULT_CALENDAR_STATUS_FILTERS: BookingStatus[] = ALL_CALENDAR_STATUSES.filter(
+  (status) => status !== 'deleted',
+);
+
 // Core data models
 export interface Booking {
   id: string;

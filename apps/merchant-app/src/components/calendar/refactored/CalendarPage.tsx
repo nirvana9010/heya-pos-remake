@@ -66,6 +66,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
 import { apiClient } from '@/lib/api-client';
 import type { Booking, BookingStatus, Staff } from './types';
+import { DEFAULT_CALENDAR_STATUS_FILTERS } from './types';
 import { checkStaffAvailability, ensureValidStaffId, isValidStaffId } from '@/lib/services/booking-availability.service';
 import { NEXT_AVAILABLE_STAFF_ID, isNextAvailableStaff } from '@/lib/constants/booking-constants';
 import { bookingEvents } from '@/lib/services/booking-events';
@@ -600,11 +601,12 @@ function CalendarContent() {
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
     
-    // Check if we're hiding any statuses (default is to show all)
-    const allStatuses = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
-    const hiddenStatuses = allStatuses.filter(status => !state.selectedStatusFilters.includes(status));
+    const defaultStatusSet = new Set(DEFAULT_CALENDAR_STATUS_FILTERS);
+    const matchesDefaultStatuses =
+      state.selectedStatusFilters.length === DEFAULT_CALENDAR_STATUS_FILTERS.length &&
+      state.selectedStatusFilters.every(status => defaultStatusSet.has(status));
     
-    if (hiddenStatuses.length > 0) {
+    if (!matchesDefaultStatuses) {
       count++;
     }
     
@@ -1277,6 +1279,21 @@ function CalendarContent() {
                           <span className="flex-1">Show no-show bookings</span>
                           <Badge variant="secondary" className="text-xs">
                             {state.bookings.filter(b => b.status === 'no-show').length}
+                          </Badge>
+                        </label>
+                        <label className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2">
+                          <Checkbox
+                            checked={state.selectedStatusFilters.includes('deleted')}
+                            onCheckedChange={(checked) => {
+                              const newFilters = checked
+                                ? [...state.selectedStatusFilters, 'deleted']
+                                : state.selectedStatusFilters.filter(s => s !== 'deleted');
+                              actions.setStatusFilter(newFilters);
+                            }}
+                          />
+                          <span className="flex-1">Show deleted bookings</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {state.bookings.filter(b => b.status === 'deleted').length}
                           </Badge>
                         </label>
                       </div>

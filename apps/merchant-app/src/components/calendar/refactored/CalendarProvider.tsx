@@ -21,7 +21,7 @@ import type {
   Service,
   Customer,
 } from './types';
-import { ALL_CALENDAR_STATUSES } from './types';
+import { ALL_CALENDAR_STATUSES, DEFAULT_CALENDAR_STATUS_FILTERS } from './types';
 
 const CalendarContext = createContext<CalendarContextType | null>(null);
 
@@ -52,22 +52,22 @@ const STORAGE_KEYS = {
 // Load saved preferences from localStorage
 function parseStoredStatuses(raw: string | null): BookingStatus[] {
   if (!raw) {
-    return ALL_CALENDAR_STATUSES;
+    return DEFAULT_CALENDAR_STATUS_FILTERS;
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      return ALL_CALENDAR_STATUSES;
+      return DEFAULT_CALENDAR_STATUS_FILTERS;
     }
 
     const normalized = parsed
       .map(value => (typeof value === 'string' ? coerceBookingStatus(value) : null))
       .filter((value): value is BookingStatus => value !== null);
 
-    return normalized.length > 0 ? normalized : ALL_CALENDAR_STATUSES;
+    return normalized.length > 0 ? normalized : DEFAULT_CALENDAR_STATUS_FILTERS;
   } catch {
-    return ALL_CALENDAR_STATUSES;
+    return DEFAULT_CALENDAR_STATUS_FILTERS;
   }
 }
 
@@ -166,7 +166,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
     selectedBookingId: null,
     selectedStaffIds: savedPrefs.selectedStaffIds || [],
     selectedServiceIds: [],
-    selectedStatusFilters: savedPrefs.selectedStatusFilters || ALL_CALENDAR_STATUSES,
+    selectedStatusFilters: savedPrefs.selectedStatusFilters || DEFAULT_CALENDAR_STATUS_FILTERS,
     searchQuery: '',
     badgeDisplayMode: initialBadgeDisplayMode,
     staffDisplayOrder: initialStaffOrder,

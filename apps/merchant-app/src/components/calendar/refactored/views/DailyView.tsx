@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles } from 'lucide-react';
+import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -469,6 +469,7 @@ export function DailyView({
     showOptimistic,
     showInProgress,
     showPaid,
+    showDeleted,
     SourceIcon,
   }: {
     showPreferred: boolean;
@@ -478,6 +479,7 @@ export function DailyView({
     showOptimistic: boolean;
     showInProgress: boolean;
     showPaid: boolean;
+    showDeleted: boolean;
     SourceIcon: React.ComponentType<{ className?: string }>;
   }) => {
     const mode = badgeDisplayMode;
@@ -562,6 +564,27 @@ export function DailyView({
           >
             <Check className="h-3 w-3" strokeWidth={3} />
             Paid
+          </span>
+        )
+      );
+    }
+
+    if (showDeleted) {
+      items.push(
+        mode === 'icon' ? (
+          <span
+            key="deleted"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-500/80 text-white shadow"
+          >
+            <Trash2 className="h-3 w-3" />
+          </span>
+        ) : (
+          <span
+            key="deleted"
+            className="inline-flex items-center gap-1 rounded-full bg-slate-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow"
+          >
+            <Trash2 className="h-3 w-3" />
+            Deleted
           </span>
         )
       );
@@ -1001,7 +1024,18 @@ export function DailyView({
                           const showOptimisticStatusBadge = booking.status === 'optimistic';
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
+                          const isDeleted = booking.status === 'deleted';
+
+                          if (isDeleted) {
+                            bgColor = '#6B7280';
+                            bgOpacity = 0.22;
+                            borderWidth = 3;
+                            borderStyle = 'dashed';
+                            textColor = 'text-gray-500';
+                          }
+
                           const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
+                          const showDeletedStatusBadge = isDeleted;
                           const badgeItems = renderBadgeItems({
                             showPreferred: showPreferredIndicator,
                             showSource: showSourceBadge,
@@ -1010,6 +1044,7 @@ export function DailyView({
                             showOptimistic: showOptimisticStatusBadge,
                             showInProgress: showInProgressStatusBadge,
                             showPaid: showPaidStatusBadge,
+                            showDeleted: showDeletedStatusBadge,
                             SourceIcon,
                           });
 
@@ -1017,7 +1052,7 @@ export function DailyView({
                             ? (badgeDisplayMode === 'icon' ? 10 : 14)
                             : 8;
                           const bookingVisualHeight = initialHeight + (badgeItems ? basePadding : 0);
-                          const canResize = booking.status !== 'cancelled';
+                          const canResize = booking.status !== 'cancelled' && !isDeleted;
 
                           return (
                             <DraggableBooking
@@ -1037,6 +1072,7 @@ export function DailyView({
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
                                   isResizingThisBooking && 'ring-2 ring-white/60 ring-offset-1',
+                                  isDeleted && 'opacity-60',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -1128,7 +1164,8 @@ export function DailyView({
                                       className={cn(
                                         "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
-                                        (booking.completedAt || booking.status === 'completed') && "pl-5"
+                                        (booking.completedAt || booking.status === 'completed') && "pl-5",
+                                        isDeleted && 'line-through decoration-[1.5px] decoration-slate-500 text-gray-600'
                                       )}
                                       title={booking.customerName}
                                     >
@@ -1138,7 +1175,10 @@ export function DailyView({
                                       booking={booking}
                                       lookup={serviceLookup}
                                       className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                      textClassName={cn('text-[11px] sm:text-xs', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      textClassName={cn(
+                                        'text-[11px] sm:text-xs',
+                                        isDeleted ? 'text-gray-500 line-through' : isPast ? 'text-gray-600' : 'opacity-90'
+                                      )}
                                     />
                                   </div>
                                 </div>
@@ -1311,7 +1351,18 @@ export function DailyView({
                           const showOptimisticStatusBadge = booking.status === 'optimistic';
                           const showInProgressStatusBadge = booking.status === 'in-progress';
                           const showPaidStatusBadge = booking.paymentStatus === 'PAID' || booking.paymentStatus === 'paid';
+                          const isDeleted = booking.status === 'deleted';
+
+                          if (isDeleted) {
+                            bgColor = '#6B7280';
+                            bgOpacity = 0.22;
+                            borderWidth = 3;
+                            borderStyle = 'dashed';
+                            textColor = 'text-gray-500';
+                          }
+
                           const showPreferredIndicator = Boolean(booking.customerRequestedStaff);
+                          const showDeletedStatusBadge = isDeleted;
                           const badgeItems = renderBadgeItems({
                             showPreferred: showPreferredIndicator,
                             showSource: showSourceBadge,
@@ -1320,6 +1371,7 @@ export function DailyView({
                             showOptimistic: showOptimisticStatusBadge,
                             showInProgress: showInProgressStatusBadge,
                             showPaid: showPaidStatusBadge,
+                            showDeleted: showDeletedStatusBadge,
                             SourceIcon,
                           });
 
@@ -1327,7 +1379,7 @@ export function DailyView({
                             ? (badgeDisplayMode === 'icon' ? 10 : 14)
                             : 8;
                           const bookingVisualHeight = initialHeight + (badgeItems ? basePadding : 0);
-                          const canResize = booking.status !== 'cancelled';
+                          const canResize = booking.status !== 'cancelled' && !isDeleted;
 
                           return (
                             <DraggableBooking
@@ -1347,6 +1399,7 @@ export function DailyView({
                                   booking.status === 'cancelled' && 'cancelled-booking',
                                   booking.status === 'in-progress' && 'animate-[inProgressRing_3s_ease-in-out_infinite]',
                                   isResizingThisBooking && 'ring-2 ring-white/60 ring-offset-1',
+                                  isDeleted && 'opacity-60',
                                   !isPast && booking.status !== 'completed' && booking.status !== 'cancelled' && 'cursor-grab active:cursor-grabbing'
                                 )}
                                 style={{
@@ -1438,7 +1491,8 @@ export function DailyView({
                                       className={cn(
                                         "font-semibold truncate text-sm sm:text-[0.95rem]",
                                         isPast && "text-gray-900",
-                                        (booking.completedAt || booking.status === 'completed') && "pl-5"
+                                        (booking.completedAt || booking.status === 'completed') && "pl-5",
+                                        isDeleted && 'line-through decoration-[1.5px] decoration-slate-500 text-gray-600'
                                       )}
                                       title={booking.customerName}
                                     >
@@ -1448,7 +1502,10 @@ export function DailyView({
                                       booking={booking}
                                       lookup={serviceLookup}
                                       className={cn('mt-0.5', (booking.completedAt || booking.status === 'completed') && 'pl-5')}
-                                      textClassName={cn('text-[11px] sm:text-xs', isPast ? 'text-gray-600' : 'opacity-90')}
+                                      textClassName={cn(
+                                        'text-[11px] sm:text-xs',
+                                        isDeleted ? 'text-gray-500 line-through' : isPast ? 'text-gray-600' : 'opacity-90'
+                                      )}
                                     />
                                   </div>
                                 </div>
