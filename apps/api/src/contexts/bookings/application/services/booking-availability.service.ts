@@ -115,6 +115,7 @@ export class BookingAvailabilityService {
           staffId: staffId,
         },
       });
+      const staffHasDefinedSchedule = staffSchedules.length > 0;
   
       // Get schedule overrides for the date range
       const scheduleOverrides = await this.prisma.scheduleOverride.findMany({
@@ -171,6 +172,13 @@ export class BookingAvailabilityService {
           timeZone: timezone 
         }).toLowerCase();
         const dayHours = businessHours[dayOfWeek];
+        const dayIsOpen =
+          Boolean(dayHours) &&
+          dayHours.isOpen !== false &&
+          dayHours.open &&
+          dayHours.close &&
+          dayHours.open !== 'closed' &&
+          dayHours.close !== 'closed';
         
         // Get day number (0 = Sunday, 6 = Saturday)
         const dayNumber = currentDate.getDay();
@@ -181,8 +189,8 @@ export class BookingAvailabilityService {
         const scheduleOverride = overrideMap.get(overrideDateStr);
         
         // Use staff schedule if available, otherwise fall back to business hours
-        let openTimeStr: string;
-        let closeTimeStr: string;
+        let openTimeStr: string | null = null;
+        let closeTimeStr: string | null = null;
         const businessOpenStr = dayHours?.open;
         const businessCloseStr = dayHours?.close;
         const toMinutes = (time: string | null | undefined) => {
@@ -214,12 +222,22 @@ export class BookingAvailabilityService {
           // Staff has a regular schedule for this day
           openTimeStr = staffSchedule.startTime;
           closeTimeStr = staffSchedule.endTime;
-        } else if (dayHours && dayHours.open && dayHours.close) {
-          // Fall back to business hours
+        } else if (!staffHasDefinedSchedule && dayIsOpen) {
+          // Fall back to business hours only when no roster is defined
           openTimeStr = dayHours.open;
           closeTimeStr = dayHours.close;
         } else {
           // No hours available for this day
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+
+        if (
+          !openTimeStr ||
+          !closeTimeStr ||
+          openTimeStr === 'closed' ||
+          closeTimeStr === 'closed'
+        ) {
           currentDate.setDate(currentDate.getDate() + 1);
           continue;
         }

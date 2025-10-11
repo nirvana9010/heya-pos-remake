@@ -249,6 +249,10 @@ export class PublicBookingService {
     
     // Use provided staff or leave unassigned (null) if not specified
     let staffId = dto.staffId || serviceRequests[0].staffId || null;
+    const primaryServiceId = serviceRequests[0].serviceId;
+
+    const dayStart = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
+    const dayEnd = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
     
     // If no staff selected and merchant doesn't allow unassigned bookings,
     // we need to find an available staff member
@@ -284,6 +288,29 @@ export class PublicBookingService {
         });
 
         if (conflicts.length === 0) {
+          let rosterSupportsSlot = false;
+          try {
+            const rosterSlots = await this.bookingAvailabilityService.getAvailableSlots({
+              staffId: staff.id,
+              serviceId: primaryServiceId,
+              merchantId: merchant.id,
+              startDate: dayStart,
+              endDate: dayEnd,
+              timezone: location.timezone,
+              duration: totalDuration,
+            });
+
+            rosterSupportsSlot = rosterSlots.some(
+              (slot) => slot.available && slot.startTime.getTime() === startTime.getTime(),
+            );
+          } catch (error) {
+            rosterSupportsSlot = false;
+          }
+
+          if (!rosterSupportsSlot) {
+            continue;
+          }
+
           staffId = staff.id;
           foundAvailableStaff = true;
           console.error('AUTO-ASSIGNED STAFF:', {
