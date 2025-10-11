@@ -1980,9 +1980,9 @@ export default function BookingPageClient() {
                   {currentStep === 6 && `Welcome to ${merchantInfo?.name || merchantFromContext?.name || ''}`}
                 </CardTitle>
                 <CardDescription className="text-lg text-foreground/60 max-w-2xl mx-auto">
-                  {currentStep === 1 && "Indulge in our curated collection of rejuvenating treatments"}
-                  {currentStep === 2 && "Our expert therapists are here to provide you with an exceptional experience"}
-                  {currentStep === 3 && "Find the perfect time for your moment of relaxation"}
+                  {currentStep === 1 && "Browse our available services to get started"}
+                  {currentStep === 2 && "Choose an available team member for this booking"}
+                  {currentStep === 3 && "Pick a time that works best for your visit"}
                   {currentStep === 4 && "Just a few details to secure your appointment"}
                   {currentStep === 5 && merchantInfo?.requireDeposit && "Pay deposit to secure your booking"}
                   {currentStep === 5 && !merchantInfo?.requireDeposit && "Your journey to wellness begins here"}
