@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { toNumber, addDecimals, subtractDecimals, multiplyDecimals, isLessThan, toDecimal } from '../utils/decimal';
+import { CacheService } from '../common/cache/cache.service';
 
 @Injectable()
 export class LoyaltyService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   // Get or create loyalty program for merchant
   async getProgram(merchantId: string) {
@@ -522,6 +526,9 @@ export class LoyaltyService {
 
       return updatedCustomer;
     });
+
+    // Invalidate cached customer lists so UI reflects latest loyalty totals
+    await this.cacheService.deletePattern(`^${merchantId}:customers-list`);
 
     return {
       success: true,
