@@ -1,5 +1,7 @@
 # Testing Supabase Realtime Integration
 
+> **Archived September 2025** – Supabase realtime support has been removed from the merchant app codebase. These steps are retained for reference only.
+
 ## Current Status
 ✅ Supabase keys configured
 ✅ Backend service created and working

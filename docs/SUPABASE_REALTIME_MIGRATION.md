@@ -1,6 +1,8 @@
 # Supabase Realtime Migration Guide
 
-This guide documents the migration from custom SSE implementation to Supabase Realtime for notifications.
+> **Archived September 2025** – Supabase realtime integration was paused and its client code (`apps/merchant-app/src/lib/services/supabase.ts`) has been removed. This guide remains for historical context only.
+
+This guide documents the migration from custom SSE implementation to Supabase Realtime for notifications (legacy).
 
 ## Current Status
 

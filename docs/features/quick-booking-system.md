@@ -46,7 +46,7 @@ ENTRY POINTS:
 - apps/merchant-app/src/app/(dashboard)/bookings/BookingsManager.tsx - Bookings page
 
 SUPPORTING:
-- apps/merchant-app/src/lib/services/mock-availability.service.ts - Staff availability logic
+- (Removed Sep 2025) apps/merchant-app/src/lib/services/mock-availability.service.ts - superseded by real availability endpoints
 - apps/merchant-app/src/lib/constants/booking-constants.ts - Status/state constants
 - apps/merchant-app/src/components/customers/CustomerSearchInput.tsx - Customer search
 ```

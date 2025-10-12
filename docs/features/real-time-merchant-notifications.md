@@ -11,7 +11,8 @@
 **What It Does**: Provides real-time notifications to merchants about booking events with in-app alerts, browser notifications, and sound alerts  
 **Where To Find It**: `apps/api/src/notifications` and `apps/merchant-app/src/contexts/notifications-context.tsx`  
 **How To Test It**: Manual testing - create/cancel/modify bookings and observe notifications  
-**Key Dependencies**: NestJS EventEmitter, React Query, Browser Notifications API
+**Key Dependencies**: NestJS EventEmitter, React Query, Browser Notifications API  
+> September 2025: Supabase realtime wiring was deprecated and the client wrapper (`apps/merchant-app/src/lib/services/supabase.ts`) has been removed. Notifications rely solely on polling until a future realtime capsule lands.
 
 ## 🎯 Business Context
 

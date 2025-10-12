@@ -98,7 +98,7 @@ Implement a proper "Next Available" feature that actually checks staff availabil
 ### Step 1: Create Mock Availability Service
 Create a temporary frontend service that simulates availability checking:
 ```typescript
-// apps/merchant-app/src/lib/services/mock-availability.service.ts
+// (Removed Sep 2025) apps/merchant-app/src/lib/services/mock-availability.service.ts
 export async function getAvailableStaff(
   serviceId: string,
   startTime: Date,
