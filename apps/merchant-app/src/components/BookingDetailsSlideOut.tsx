@@ -111,7 +111,7 @@ function BookingDetailsSlideOutComponent({
         // Potential prop mismatch: Multi-service name but only one service
       }
     }
-  }, [booking?.id, booking?.services?.length, booking?.bookingNumber]);
+  }, [booking]);
   
   const { toast } = useToast();
   const { refreshNotifications } = useNotifications();
@@ -155,9 +155,7 @@ function BookingDetailsSlideOutComponent({
   };
   
   const [formData, setFormData] = useState(() => initializeFormData(booking));
-
-  // Track if services have been initialized to avoid re-initialization
-  const [servicesInitialized, setServicesInitialized] = useState(false);
+  const lastInitializedServicesSignature = useRef<string | null>(null);
 
   useEffect(() => {
     // Only reset form data if we're not currently editing
@@ -167,15 +165,13 @@ function BookingDetailsSlideOutComponent({
     }
   }, [booking, isEditing]);
   
-  // Initialize services separately - only once when component mounts or booking ID changes
+  // Initialize services whenever the booking payload changes and we're not editing
   useEffect(() => {
     // Don't re-initialize if we're in the middle of editing
     if (isEditing) {
       return;
     }
     
-    // Reset initialization flag when booking changes
-    setServicesInitialized(false);
     // Ensure service slideout is closed when booking changes
     setIsServiceSlideoutOpen(false);
     
@@ -199,7 +195,7 @@ function BookingDetailsSlideOutComponent({
           serviceId: s.serviceId || s.id || '',  // Always use the actual Service ID
           name: s.name || '',
           duration: s.duration || booking.duration || 60,
-          price: s.price || 0,
+          price: Number(s.price || (s as any).adjustedPrice || 0),
           staffId: s.staffId
         };
         return mapped;
@@ -225,13 +221,15 @@ function BookingDetailsSlideOutComponent({
         id: serviceId,
         name: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 'Service not selected' : booking.serviceName,
         duration: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 15 : duration,
-        price: booking.totalPrice || booking.price || 0
+        price: Number(booking.totalPrice || booking.price || 0)
       }];
     }
       
     
     const initializedServices = bookingServices.map((service, index) => {
       const serviceId = service.serviceId || service.id || booking.serviceId || '';
+      const catalogService = services.find(s => s.id === serviceId);
+      const catalogPrice = catalogService ? Number(catalogService.price ?? 0) : undefined;
       
       
       const initialized = {
@@ -240,17 +238,26 @@ function BookingDetailsSlideOutComponent({
         serviceId: serviceId,  // Already extracted correctly above
         name: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 'Service not selected' : service.name,
         duration: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 15 : service.duration,
-        basePrice: Number(service.price || 0),
+        basePrice: catalogPrice ?? Number(service.price || 0),
         adjustedPrice: Number(service.price || 0)
         // Removed staffId - we'll use the main staff selection from formData
       };
       
       return initialized;
     });
-    
-    setSelectedServices(initializedServices);
-    setServicesInitialized(true);
-  }, [booking.id]); // Only re-run when booking ID changes, NOT when edit mode changes
+
+    const signature = JSON.stringify(initializedServices.map(s => ({
+      id: s.id,
+      serviceId: s.serviceId,
+      price: s.adjustedPrice,
+      duration: s.duration
+    })));
+
+    if (lastInitializedServicesSignature.current !== signature) {
+      lastInitializedServicesSignature.current = signature;
+      setSelectedServices(initializedServices);
+    }
+  }, [booking, services, isEditing]);
 
 
   // Fetch associated order for the booking
@@ -951,16 +958,42 @@ function BookingDetailsSlideOutComponent({
                 <div className="space-y-2">
                   {booking.services?.length > 0 ? (
                     <>
-                      {booking.services.map((service) => (
-                        <div key={service.id} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <Scissors className="h-4 w-4 text-gray-400" />
-                            <span>{service.name}</span>
-                            <span className="text-gray-500">({service.duration}min)</span>
+                      {booking.services.map((service, index) => {
+                        const serviceId = service.serviceId || service.id || '';
+                        const displayPrice = Number(
+                          service.price ??
+                          (service as any).adjustedPrice ??
+                          0
+                        );
+                        const catalogService = services.find((s) => s.id === serviceId);
+                        const basePrice = catalogService ? Number(catalogService.price ?? 0) : undefined;
+                        const priceDifference = basePrice !== undefined ? displayPrice - basePrice : 0;
+                        const hasAdjustment = basePrice !== undefined && Math.abs(priceDifference) > 0.009;
+                        const formattedDifference = hasAdjustment
+                          ? Math.abs(priceDifference).toFixed(2)
+                          : null;
+                        
+                        return (
+                          <div
+                            key={service.id || `${serviceId || 'service'}-${index}`}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Scissors className="h-4 w-4 text-gray-400" />
+                              <span>{service.name}</span>
+                              <span className="text-gray-500">({service.duration}min)</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-medium">${displayPrice.toFixed(2)}</span>
+                              {hasAdjustment && formattedDifference && (
+                                <div className="text-xs text-orange-600">
+                                  Adjusted {priceDifference > 0 ? `+$${formattedDifference}` : `-$${formattedDifference}`} from ${basePrice!.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <span className="font-medium">${service.price.toFixed(2)}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {booking.services.length > 1 && (
                         <div className="pt-2 border-t">
                           <div className="flex items-center justify-between text-sm font-semibold">
@@ -1133,19 +1166,39 @@ function BookingDetailsSlideOutComponent({
 }
 
 // Memoize the component to prevent unnecessary re-renders when payment dialog state changes
-export const BookingDetailsSlideOut = memo(BookingDetailsSlideOutComponent, (prevProps, nextProps) => {
-  // Check if services array changed
-  const prevServicesCount = prevProps.booking?.services?.length || 0;
-  const nextServicesCount = nextProps.booking?.services?.length || 0;
-  
-  // Only re-render if these critical props change
-  return (
-    prevProps.isOpen === nextProps.isOpen &&
-    prevProps.booking?.id === nextProps.booking?.id &&
-    prevProps.booking?.status === nextProps.booking?.status &&
-    prevProps.booking?.isPaid === nextProps.booking?.isPaid &&
-    prevServicesCount === nextServicesCount && // Check services count
-    prevProps.staff === nextProps.staff &&
-    prevProps.services === nextProps.services
-  );
-});
+const getServiceSignature = (services?: BookingService[] | any[]): string => {
+  if (!services || services.length === 0) {
+    return '';
+  }
+
+  return services
+    .map((service) => {
+      const id = service.id ?? service.serviceId ?? '';
+      const price = Number(service.price ?? service.adjustedPrice ?? 0);
+      const duration = Number(service.duration ?? 0);
+      return `${id}:${price}:${duration}`;
+    })
+    .join('|');
+};
+
+export const BookingDetailsSlideOut = memo(
+  BookingDetailsSlideOutComponent,
+  (prevProps, nextProps) => {
+    if (prevProps.isOpen !== nextProps.isOpen) return false;
+    if (prevProps.booking?.id !== nextProps.booking?.id) return false;
+    if (prevProps.booking?.status !== nextProps.booking?.status) return false;
+    if (prevProps.booking?.isPaid !== nextProps.booking?.isPaid) return false;
+    if (prevProps.booking?.totalPrice !== nextProps.booking?.totalPrice) return false;
+    if (prevProps.booking?.paidAmount !== nextProps.booking?.paidAmount) return false;
+    if (prevProps.booking?.customerRequestedStaff !== nextProps.booking?.customerRequestedStaff) return false;
+    if (
+      getServiceSignature(prevProps.booking?.services) !==
+      getServiceSignature(nextProps.booking?.services)
+    ) {
+      return false;
+    }
+    if (prevProps.staff !== nextProps.staff) return false;
+    if (prevProps.services !== nextProps.services) return false;
+    return true;
+  }
+);
