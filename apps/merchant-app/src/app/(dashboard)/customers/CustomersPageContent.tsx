@@ -260,17 +260,17 @@ export default function CustomersPageContent() {
       } finally {
         setIsSearching(false);
 
+        const isInputActive = input && document.activeElement === input;
         const shouldRestoreSelection =
-          input &&
+          isInputActive &&
           input.value === query &&
           selectionStart !== null &&
           selectionEnd !== null;
 
         if (shouldRestoreSelection) {
           requestAnimationFrame(() => {
-            if (!input) return;
-            if (document.activeElement !== input) {
-              input.focus();
+            if (!input || document.activeElement !== input) {
+              return;
             }
             input.setSelectionRange(selectionStart, selectionEnd);
           });
