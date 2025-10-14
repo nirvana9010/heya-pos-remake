@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { toNumber, addDecimals, subtractDecimals, multiplyDecimals, isLessThan, toDecimal } from '../utils/decimal';
 import { CacheService } from '../common/cache/cache.service';
+import { LoyaltyReminderService } from './loyalty-reminder.service';
 
 @Injectable()
 export class LoyaltyService {
+  private readonly logger = new Logger(LoyaltyService.name);
+
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
+    private loyaltyReminderService: LoyaltyReminderService,
   ) {}
 
   // Get or create loyalty program for merchant
@@ -37,6 +41,82 @@ export class LoyaltyService {
         ...data
       }
     });
+  }
+
+  async getReminderTouchpoints(merchantId: string) {
+    return this.prisma.loyaltyReminderTouchpoint.findMany({
+      where: { merchantId },
+      orderBy: { sequence: 'asc' },
+    });
+  }
+
+  async updateReminderTouchpoints(
+    merchantId: string,
+    touchpoints: Array<{
+      sequence: number;
+      thresholdValue: number;
+      emailSubject?: string | null;
+      emailBody?: string | null;
+      smsBody?: string | null;
+      isEnabled?: boolean;
+    }>,
+  ) {
+    if (touchpoints.length > 3) {
+      throw new BadRequestException('A maximum of three touchpoints are supported.');
+    }
+
+    const sequences = new Set<number>();
+    const cleaned = touchpoints.map((tp) => {
+      if (tp.sequence < 1 || tp.sequence > 3) {
+        throw new BadRequestException('Touchpoint sequence must be between 1 and 3.');
+      }
+
+      if (sequences.has(tp.sequence)) {
+        throw new BadRequestException('Touchpoint sequence values must be unique.');
+      }
+      sequences.add(tp.sequence);
+
+      if (tp.thresholdValue <= 0) {
+        throw new BadRequestException('Threshold value must be greater than zero.');
+      }
+
+      return {
+        sequence: tp.sequence,
+        thresholdValue: new Decimal(tp.thresholdValue),
+        emailSubject: tp.emailSubject?.trim() || null,
+        emailBody: tp.emailBody?.trim() || null,
+        smsBody: tp.smsBody?.trim() || null,
+        isEnabled: tp.isEnabled ?? true,
+      };
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.loyaltyReminderTouchpoint.deleteMany({
+        where: {
+          merchantId,
+          sequence: {
+            notIn: Array.from(sequences.values()),
+          },
+        },
+      }),
+      ...cleaned.map((tp) =>
+        this.prisma.loyaltyReminderTouchpoint.upsert({
+          where: {
+            merchantId_sequence: {
+              merchantId,
+              sequence: tp.sequence,
+            },
+          },
+          update: tp,
+          create: {
+            merchantId,
+            ...tp,
+          },
+        }),
+      ),
+    ]);
+
+    return this.getReminderTouchpoints(merchantId);
   }
 
   // Process booking completion
@@ -118,6 +198,8 @@ export class LoyaltyService {
       }
     });
 
+    const updatedVisitCount = toNumber(customer.loyaltyVisits);
+
     // Record transaction
     await this.prisma.loyaltyTransaction.create({
       data: {
@@ -131,8 +213,21 @@ export class LoyaltyService {
       }
     });
 
+    try {
+      await this.loyaltyReminderService.handleAccrual({
+        merchantId: booking.merchantId,
+        customerId: booking.customerId,
+        programType: 'VISITS',
+        currentValue: new Decimal(updatedVisitCount),
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to enqueue loyalty reminder for booking ${booking.id}: ${(error as Error).message}`,
+      );
+    }
+
     // Check if reward earned
-    const newVisitCount = customer.loyaltyVisits + 1; // Account for increment
+    const newVisitCount = updatedVisitCount;
     if (program.visitsRequired && newVisitCount >= program.visitsRequired) {
       return { 
         rewardAvailable: true,
@@ -192,9 +287,24 @@ export class LoyaltyService {
       }
     });
 
+    const newBalance = addDecimals(updatedCustomer.loyaltyPoints, pointsEarned);
+
+    try {
+      await this.loyaltyReminderService.handleAccrual({
+        merchantId: booking.merchantId,
+        customerId: booking.customerId,
+        programType: 'POINTS',
+        currentValue: newBalance,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to enqueue loyalty reminder for booking ${booking.id}: ${(error as Error).message}`,
+      );
+    }
+
     return { 
       pointsEarned,
-      newBalance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned)
+      newBalance
     };
   }
 
@@ -224,6 +334,8 @@ export class LoyaltyService {
       }
     });
 
+    const updatedVisitCount = toNumber(customer.loyaltyVisits);
+
     // Record transaction
     await this.prisma.loyaltyTransaction.create({
       data: {
@@ -237,8 +349,21 @@ export class LoyaltyService {
       }
     });
 
+    try {
+      await this.loyaltyReminderService.handleAccrual({
+        merchantId: order.merchantId,
+        customerId: order.customerId,
+        programType: 'VISITS',
+        currentValue: new Decimal(updatedVisitCount),
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to enqueue loyalty reminder for order ${order.id}: ${(error as Error).message}`,
+      );
+    }
+
     // Check if reward earned
-    const newVisitCount = customer.loyaltyVisits + 1; // Account for increment
+    const newVisitCount = updatedVisitCount;
     if (program.visitsRequired && newVisitCount >= program.visitsRequired) {
       return { 
         rewardAvailable: true,
@@ -298,9 +423,24 @@ export class LoyaltyService {
       }
     });
 
+    const newBalance = addDecimals(updatedCustomer.loyaltyPoints, pointsEarned);
+
+    try {
+      await this.loyaltyReminderService.handleAccrual({
+        merchantId: order.merchantId,
+        customerId: order.customerId,
+        programType: 'POINTS',
+        currentValue: newBalance,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to enqueue loyalty reminder for order ${order.id}: ${(error as Error).message}`,
+      );
+    }
+
     return { 
       pointsEarned,
-      newBalance: addDecimals(updatedCustomer.loyaltyPoints, pointsEarned)
+      newBalance
     };
   }
 
@@ -401,6 +541,17 @@ export class LoyaltyService {
       }
     });
 
+    try {
+      await this.loyaltyReminderService.handleRedemption({
+        merchantId,
+        customerId,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to reset loyalty reminder state after visit redemption for customer ${customerId}: ${(error as Error).message}`,
+      );
+    }
+
     return {
       success: true,
       rewardType: program.visitRewardType,
@@ -458,6 +609,17 @@ export class LoyaltyService {
         ...(staffId ? { createdByStaffId: staffId } : {})
       }
     });
+
+    try {
+      await this.loyaltyReminderService.handleRedemption({
+        merchantId,
+        customerId,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to reset loyalty reminder state after points redemption for customer ${customerId}: ${(error as Error).message}`,
+      );
+    }
 
     return { 
       success: true,

@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PinRequiredGuard } from '../auth/guards/pin-required.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PinRequired } from '../auth/decorators/pin-required.decorator';
+import { UpdateLoyaltyRemindersDto } from './dto/update-loyalty-reminders.dto';
 
 @Controller('loyalty')
 @UseGuards(JwtAuthGuard)
@@ -48,6 +49,23 @@ export class LoyaltyController {
 
     const merchantId = user?.merchantId || 'cmbcxfd6s0003vopjw80c3qpe';
     return this.loyaltyService.updateProgram(merchantId, data);
+  }
+
+  @Get('reminders')
+  async getReminderConfig(@CurrentUser() user: any) {
+    return this.loyaltyService.getReminderTouchpoints(user.merchantId);
+  }
+
+  @Post('reminders')
+  @HttpCode(HttpStatus.OK)
+  async updateReminderConfig(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateLoyaltyRemindersDto,
+  ) {
+    return this.loyaltyService.updateReminderTouchpoints(
+      user.merchantId,
+      dto.touchpoints ?? [],
+    );
   }
 
   @Get('customers/:customerId')

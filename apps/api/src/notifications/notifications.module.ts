@@ -18,6 +18,7 @@ import { NotificationsSseController } from './sse/notifications-sse.controller';
 import { PostgresListenerService } from './postgres-listener.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { JwtModule } from '@nestjs/jwt';
+import { NotificationHistoryController } from './notification-history.controller';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { JwtModule } from '@nestjs/jwt';
   controllers: [
     MerchantNotificationsController,
     NotificationsSseController,
+    NotificationHistoryController,
     ...(process.env.NODE_ENV !== 'production' ? [TestNotificationsController] : []),
   ],
   providers: [

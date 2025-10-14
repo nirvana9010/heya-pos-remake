@@ -56,12 +56,67 @@ export class EmailTemplateService {
       case NotificationType.BOOKING_RESCHEDULED:
         return this.renderBookingRescheduled(context);
       case NotificationType.BOOKING_NEW_STAFF:
-        return this.renderStaffNewBooking(context);
-      case NotificationType.BOOKING_CANCELLED_STAFF:
-        return this.renderStaffCancellation(context);
-      default:
-        throw new Error(`Template not found for type: ${type}`);
+      return this.renderStaffNewBooking(context);
+    case NotificationType.BOOKING_CANCELLED_STAFF:
+      return this.renderStaffCancellation(context);
+    case NotificationType.LOYALTY_TOUCHPOINT_1:
+    case NotificationType.LOYALTY_TOUCHPOINT_2:
+    case NotificationType.LOYALTY_TOUCHPOINT_3:
+      return this.renderLoyaltyReminder(context);
+    default:
+      throw new Error(`Template not found for type: ${type}`);
     }
+  }
+
+  private renderLoyaltyReminder(context: NotificationContext): EmailTemplate {
+    const { merchant, customer, loyaltyReminder } = context;
+
+    if (!loyaltyReminder) {
+      throw new Error('Loyalty reminder context missing');
+    }
+
+    const subject =
+      loyaltyReminder.emailSubject ??
+      `Thanks for your loyalty at ${merchant.name}!`;
+
+    const defaultMessage =
+      loyaltyReminder.programType === 'VISITS'
+        ? `Hi ${customer.firstName || 'there'}, you've reached ${loyaltyReminder.currentValue} visit${
+            loyaltyReminder.currentValue === 1 ? '' : 's'
+          }! Stop by soon to enjoy your reward.`
+        : `Hi ${customer.firstName || 'there'}, you now have ${
+            loyaltyReminder.currentValue
+          } point${loyaltyReminder.currentValue === 1 ? '' : 's'} with ${
+            merchant.name
+          }. Redeem them on your next visit!`;
+
+    const body = loyaltyReminder.emailBody ?? defaultMessage;
+
+    const htmlContent = body.includes('<')
+      ? body
+      : `<p style="font-size: 16px;">${body}</p>`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h1 style="color: #333; margin: 0;">${merchant.name}</h1>
+        </div>
+
+        <div style="padding: 30px;">
+          ${htmlContent}
+        </div>
+
+${this.renderEmailFooter(merchant)}
+      </div>
+    `;
+
+    const textBody = this.toPlainText(body);
+
+    return {
+      subject,
+      html,
+      text: textBody,
+    };
   }
 
   private renderBookingConfirmation(context: NotificationContext): EmailTemplate {
@@ -566,5 +621,13 @@ This time slot is now available for other bookings.
     `.trim();
     
     return { subject, html, text };
+  }
+
+  private toPlainText(content: string): string {
+    return content
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

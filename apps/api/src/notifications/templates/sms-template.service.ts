@@ -20,11 +20,15 @@ export class SmsTemplateService {
       case NotificationType.BOOKING_RESCHEDULED:
         return this.renderBookingRescheduled(context);
       case NotificationType.BOOKING_NEW_STAFF:
-        return this.renderStaffNewBooking(context);
-      case NotificationType.BOOKING_CANCELLED_STAFF:
-        return this.renderStaffCancellation(context);
-      default:
-        throw new Error(`SMS template not found for type: ${type}`);
+      return this.renderStaffNewBooking(context);
+    case NotificationType.BOOKING_CANCELLED_STAFF:
+      return this.renderStaffCancellation(context);
+    case NotificationType.LOYALTY_TOUCHPOINT_1:
+    case NotificationType.LOYALTY_TOUCHPOINT_2:
+    case NotificationType.LOYALTY_TOUCHPOINT_3:
+      return this.renderLoyaltyReminder(context);
+    default:
+      throw new Error(`SMS template not found for type: ${type}`);
     }
   }
 
@@ -83,5 +87,25 @@ export class SmsTemplateService {
     
     return `CANCELLED: ${booking.serviceName} on ${date} at ${booking.time} ` +
            `with ${booking.staffName}. Time slot now available.`;
+  }
+
+  private renderLoyaltyReminder(context: NotificationContext): string {
+    const { loyaltyReminder, merchant, customer } = context;
+
+    if (!loyaltyReminder) {
+      throw new Error('Loyalty reminder context missing');
+    }
+
+    if (loyaltyReminder.smsBody && loyaltyReminder.smsBody.trim().length > 0) {
+      return loyaltyReminder.smsBody.trim();
+    }
+
+    if (loyaltyReminder.programType === 'VISITS') {
+      return `${merchant.name}: Hi ${customer.firstName || 'there'}, you've reached ${
+        loyaltyReminder.currentValue
+      } visit${loyaltyReminder.currentValue === 1 ? '' : 's'}! Drop in soon to enjoy your reward.`;
+    }
+
+    return `${merchant.name}: You now have ${loyaltyReminder.currentValue} points. Redeem them on your next visit!`;
   }
 }

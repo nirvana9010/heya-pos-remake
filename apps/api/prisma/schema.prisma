@@ -51,6 +51,8 @@ model Merchant {
   merchantAuth       MerchantAuth?
   merchantNotifications MerchantNotification[]
   notificationLogs   NotificationLog[]
+  loyaltyReminderTouchpoints LoyaltyReminderTouchpoint[]
+  loyaltyReminderStates LoyaltyReminderState[]
   orders             Order[]
   outboxEvents       OutboxEvent[]
   services           Service[]
@@ -211,6 +213,7 @@ model Customer {
   loyaltyCards           LoyaltyCard[]
   loyaltyTransactions    LoyaltyTransaction[]
   notificationLogs       NotificationLog[]
+  loyaltyReminderStates  LoyaltyReminderState[]
   orders                 Order[]
 
   @@unique([merchantId, email])
@@ -721,6 +724,42 @@ model NotificationLog {
   @@index([type])
   @@index([status])
   @@index([sentAt])
+}
+
+model LoyaltyReminderTouchpoint {
+  id             String   @id @default(uuid())
+  merchantId     String
+  sequence       Int
+  thresholdValue Decimal  @db.Decimal(10, 2)
+  emailSubject   String?
+  emailBody      String?
+  smsBody        String?
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, sequence])
+  @@index([merchantId, sequence])
+}
+
+model LoyaltyReminderState {
+  id                 String   @id @default(uuid())
+  merchantId         String
+  customerId         String
+  lastTouchpointSent Int      @default(0)
+  lastValueSnapshot  Decimal? @db.Decimal(10, 2)
+  lastRedeemCount    Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, customerId])
+  @@index([merchantId])
+  @@index([customerId])
 }
 
 model ScheduledNotification {

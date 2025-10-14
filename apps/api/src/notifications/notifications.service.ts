@@ -131,16 +131,28 @@ export class NotificationsService {
   }
 
   private determineChannels(context: NotificationContext): { email: boolean; sms: boolean } {
-    // Check customer preferences
-    if (context.customer.preferredChannel === 'email') {
-      return { email: true, sms: false };
+    const emailOptIn = context.customer.emailNotifications ?? true;
+    const smsOptIn = context.customer.smsNotifications ?? true;
+
+    let emailPreferred = true;
+    let smsPreferred = true;
+
+    switch (context.customer.preferredChannel) {
+      case 'email':
+        smsPreferred = false;
+        break;
+      case 'sms':
+        emailPreferred = false;
+        break;
+      case 'both':
+      default:
+        break;
     }
-    if (context.customer.preferredChannel === 'sms') {
-      return { email: false, sms: true };
-    }
-    
-    // Default to both channels if preference is 'both' or not set
-    return { email: true, sms: true };
+
+    return {
+      email: emailOptIn && emailPreferred,
+      sms: smsOptIn && smsPreferred,
+    };
   }
 
   private async logNotification(data: {
@@ -185,7 +197,7 @@ export class NotificationsService {
     status?: 'sent' | 'failed';
     startDate?: Date;
     endDate?: Date;
-  }): Promise<any[]> {
+  }, take = 100): Promise<any[]> {
     return this.prisma.notificationLog.findMany({
       where: {
         ...(filters.customerId && { customerId: filters.customerId }),
@@ -202,6 +214,15 @@ export class NotificationsService {
         }),
       },
       orderBy: { sentAt: 'desc' },
+      include: {
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      take,
     });
   }
 
@@ -247,5 +268,117 @@ export class NotificationsService {
         ...(preferences.preferredChannel && { notificationPreference: preferences.preferredChannel }),
       },
     });
+  }
+
+  async sendLoyaltyReminder(params: {
+    type: NotificationType;
+    merchant: NotificationContext['merchant'];
+    customer: NotificationContext['customer'] & {
+      emailNotifications?: boolean;
+      smsNotifications?: boolean;
+    };
+    template: {
+      emailSubject?: string;
+      emailBody?: string;
+      smsBody?: string;
+    };
+    context: {
+      programType: 'VISITS' | 'POINTS';
+      thresholdValue: number;
+      currentValue: number;
+      rewardType?: string | null;
+      rewardValue?: number | null;
+      pointsValue?: number | null;
+    };
+  }): Promise<void> {
+    const sequence = this.getTouchpointSequence(params.type);
+
+    const notificationContext: NotificationContext = {
+      merchant: params.merchant,
+      customer: params.customer,
+      loyaltyReminder: {
+        sequence,
+        emailSubject: params.template.emailSubject,
+        emailBody: params.template.emailBody,
+        smsBody: params.template.smsBody,
+        programType: params.context.programType,
+        thresholdValue: params.context.thresholdValue,
+        currentValue: params.context.currentValue,
+        rewardType: params.context.rewardType ?? undefined,
+        rewardValue: params.context.rewardValue ?? undefined,
+        pointsValue: params.context.pointsValue ?? undefined,
+      },
+    };
+
+    const channels = this.determineChannels(notificationContext);
+
+    const hasEmailContent =
+      (!!params.template.emailSubject && params.template.emailSubject.trim().length > 0) ||
+      (!!params.template.emailBody && params.template.emailBody.trim().length > 0);
+
+    if (channels.email && params.customer.email && hasEmailContent) {
+      const emailResult = await this.sendEmailWithFallback(
+        params.type,
+        notificationContext,
+      );
+
+      await this.logNotification({
+        customerId: params.customer.id,
+        merchantId: params.merchant.id,
+        type: params.type,
+        channel: 'email',
+        recipient: params.customer.email,
+        status: emailResult.success ? 'sent' : 'failed',
+        messageId: emailResult.messageId,
+        error: emailResult.error,
+      });
+    }
+
+    const hasSmsContent =
+      !!params.template.smsBody && params.template.smsBody.trim().length > 0;
+
+    if (channels.sms && params.customer.phone && (hasSmsContent || hasEmailContent)) {
+      try {
+        const smsProvider = this.smsProviderFactory.getProvider();
+        const smsResult = await smsProvider.sendNotification(
+          params.type,
+          notificationContext,
+        );
+
+        await this.logNotification({
+          customerId: params.customer.id,
+          merchantId: params.merchant.id,
+          type: params.type,
+          channel: 'sms',
+          recipient: params.customer.phone,
+          status: smsResult.success ? 'sent' : 'failed',
+          messageId: smsResult.messageId,
+          error: smsResult.error,
+        });
+      } catch (error) {
+        this.logger.error('Failed to send loyalty reminder SMS', error);
+        await this.logNotification({
+          customerId: params.customer.id,
+          merchantId: params.merchant.id,
+          type: params.type,
+          channel: 'sms',
+          recipient: params.customer.phone,
+          status: 'failed',
+          error: (error as Error).message,
+        });
+      }
+    }
+  }
+
+  private getTouchpointSequence(type: NotificationType): number {
+    switch (type) {
+      case NotificationType.LOYALTY_TOUCHPOINT_1:
+        return 1;
+      case NotificationType.LOYALTY_TOUCHPOINT_2:
+        return 2;
+      case NotificationType.LOYALTY_TOUCHPOINT_3:
+      default:
+        return 3;
+    }
   }
 }

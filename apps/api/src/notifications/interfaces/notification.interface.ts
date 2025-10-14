@@ -5,6 +5,8 @@ export interface NotificationRecipient {
   firstName?: string;
   lastName?: string;
   preferredChannel?: 'email' | 'sms' | 'both';
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
 }
 
 export interface NotificationContext {
@@ -32,6 +34,18 @@ export interface NotificationContext {
     address?: string;
   };
   customer: NotificationRecipient;
+  loyaltyReminder?: {
+    sequence: number;
+    emailSubject?: string;
+    emailBody?: string;
+    smsBody?: string;
+    programType: 'VISITS' | 'POINTS';
+    thresholdValue: number;
+    currentValue: number;
+    rewardType?: string | null;
+    rewardValue?: number | null;
+    pointsValue?: number | null;
+  };
 }
 
 export enum NotificationType {
@@ -42,6 +56,9 @@ export enum NotificationType {
   BOOKING_RESCHEDULED = 'booking_rescheduled',
   BOOKING_NEW_STAFF = 'booking_new_staff',
   BOOKING_CANCELLED_STAFF = 'booking_cancelled_staff',
+  LOYALTY_TOUCHPOINT_1 = 'loyalty_touchpoint_1',
+  LOYALTY_TOUCHPOINT_2 = 'loyalty_touchpoint_2',
+  LOYALTY_TOUCHPOINT_3 = 'loyalty_touchpoint_3',
 }
 
 export interface NotificationResult {
