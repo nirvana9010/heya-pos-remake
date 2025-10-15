@@ -1555,7 +1555,11 @@ function CalendarContent() {
                 serviceName: serviceName,
                 servicePrice: totalPrice,
                 duration: totalDuration,
-                customerRequestedStaff: Boolean(updatedBooking.customerRequestedStaff)
+                customerRequestedStaff: Boolean(updatedBooking.customerRequestedStaff),
+                customerId: updatedBooking.customerId ?? originalBooking.customerId,
+                customerName: updatedBooking.customerName ?? originalBooking.customerName,
+                customerPhone: updatedBooking.customerPhone ?? originalBooking.customerPhone,
+                customerEmail: updatedBooking.customerEmail ?? originalBooking.customerEmail,
               });
               
               try {
@@ -1568,6 +1572,9 @@ function CalendarContent() {
                 const servicesChanged = JSON.stringify(originalBooking.services) !== JSON.stringify(updatedBooking.services);
                 const notesChanged = originalBooking.notes !== updatedBooking.notes;
                 const preferredChanged = Boolean(originalBooking.customerRequestedStaff) !== Boolean(updatedBooking.customerRequestedStaff);
+                const customerChanged =
+                  typeof updatedBooking.customerId !== 'undefined' &&
+                  updatedBooking.customerId !== originalBooking.customerId;
 
                 let mappedServices: any[] | undefined;
 
@@ -1633,6 +1640,9 @@ function CalendarContent() {
                 if (preferredChanged) {
                   updatePayload.customerRequestedStaff = Boolean(updatedBooking.customerRequestedStaff);
                 }
+                if (customerChanged) {
+                  updatePayload.customerId = updatedBooking.customerId;
+                }
 
                 if (Object.keys(updatePayload).length > 0) {
                   await apiClient.updateBooking(state.detailsBookingId!, updatePayload);
@@ -1679,6 +1689,13 @@ function CalendarContent() {
                     </p>
                   );
                 }
+                if (customerChanged) {
+                  changeMessages.push(
+                    <p key="customer" className="text-sm text-gray-600">
+                      Customer updated to {updatedBooking.customerName ?? 'selected customer'}.
+                    </p>
+                  );
+                }
                 if (notesChanged) {
                   changeMessages.push(
                     <p key="notes" className="text-sm text-gray-600">
@@ -1699,7 +1716,14 @@ function CalendarContent() {
                   title: 'Booking updated',
                   description: (
                     <div className="space-y-1">
-                      <p>{booking.customerName}'s booking has been updated.</p>
+                      <p>
+                        {(() => {
+                          const customerLabel = updatedBooking.customerName ?? booking.customerName;
+                          return customerLabel
+                            ? `${customerLabel}'s booking has been updated.`
+                            : 'Booking has been updated.';
+                        })()}
+                      </p>
                       {changeMessages}
                     </div>
                   ),
@@ -1719,7 +1743,11 @@ function CalendarContent() {
                   time: originalBooking.time,
                   staffId: originalBooking.staffId,
                   staffName: originalBooking.staffName,
-                  notes: originalBooking.notes
+                  notes: originalBooking.notes,
+                  customerId: originalBooking.customerId,
+                  customerName: originalBooking.customerName,
+                  customerPhone: originalBooking.customerPhone,
+                  customerEmail: originalBooking.customerEmail,
                 });
                 
                 toast({

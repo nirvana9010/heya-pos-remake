@@ -17,6 +17,7 @@ interface UpdateBookingData {
   endTime?: Date;
   notes?: string;
   staffId?: string;
+  customerId?: string;
   serviceId?: string;  // Keep for backward compatibility
   services?: Array<{    // NEW: Add services array
     serviceId: string;
@@ -58,6 +59,9 @@ export class BookingUpdateService {
     let originalBooking: Booking | null = null;
     let isRescheduling = false;
     let wasStatusConfirmed = false;
+    let customerChanged = false;
+    let previousCustomerId: string | undefined;
+    let newCustomerId: string | undefined;
     
     const updatedBooking = await this.prisma.$transaction(async (tx) => {
       // 1. Get the existing booking
@@ -67,6 +71,25 @@ export class BookingUpdateService {
       }
       
       originalBooking = booking;
+
+      if (data.customerId && data.customerId !== booking.customerId) {
+        const customer = await tx.customer.findFirst({
+          where: {
+            id: data.customerId,
+            merchantId: data.merchantId,
+          },
+          select: { id: true },
+        });
+
+        if (!customer) {
+          throw new BadRequestException(`Customer not found: ${data.customerId}`);
+        }
+
+        previousCustomerId = booking.customerId;
+        booking.changeCustomer(data.customerId);
+        newCustomerId = data.customerId;
+        customerChanged = true;
+      }
 
       // 2. Check if we're rescheduling (time change)
       isRescheduling = data.startTime && (
@@ -350,6 +373,41 @@ export class BookingUpdateService {
         
         await this.outboxRepository.save(servicesUpdatedEvent, tx);
         this.logger.log(`✓ Services updated event saved to outbox`);
+      }
+
+      if (customerChanged && previousCustomerId && newCustomerId) {
+        const linkedOrder = await tx.order.findFirst({
+          where: {
+            bookingId: data.bookingId,
+            merchantId: data.merchantId,
+          },
+          select: { id: true },
+        });
+
+        if (linkedOrder) {
+          await tx.order.update({
+            where: { id: linkedOrder.id },
+            data: { customerId: newCustomerId },
+          });
+          this.logger.log(`Linked order ${linkedOrder.id} customer reassigned to ${newCustomerId}`);
+        }
+
+        const customerChangedEvent = OutboxEvent.create({
+          aggregateId: data.bookingId,
+          aggregateType: 'booking',
+          eventType: 'customer_changed',
+          eventData: {
+            bookingId: data.bookingId,
+            previousCustomerId,
+            newCustomerId,
+            orderId: linkedOrder?.id ?? null,
+          },
+          eventVersion: 1,
+          merchantId: data.merchantId,
+        });
+
+        await this.outboxRepository.save(customerChangedEvent, tx);
+        this.logger.log(`✓ Customer changed event saved to outbox`);
       }
 
       // 12. Reload the booking if we had direct updates

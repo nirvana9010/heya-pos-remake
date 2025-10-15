@@ -186,7 +186,8 @@ export const requestSchemas = {
         return { field, message: 'must be a boolean', value };
       }
       return null;
-    })
+    }),
+    customerId: validators.optional(validators.string)
   },
 
   createCustomer: {

@@ -322,6 +322,12 @@ export class BookingsV2Controller {
     if (dto.customerRequestedStaff !== undefined) {
       updateData.customerRequestedStaff = dto.customerRequestedStaff;
     }
+    if (dto.customerId) {
+      updateData.customerId =
+        dto.customerId === 'WALK_IN'
+          ? await this.resolveWalkInCustomer(user.merchantId)
+          : dto.customerId;
+    }
     if (dto.services && dto.services.length > 0) {
       // Pass full services array to update service
       updateData.services = dto.services.map(s => ({

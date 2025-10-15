@@ -391,6 +391,7 @@ export interface UpdateBookingRequest {
     duration?: number;
   }>;
   customerRequestedStaff?: boolean;
+  customerId?: string;
 }
 
 export interface RescheduleBookingRequest {

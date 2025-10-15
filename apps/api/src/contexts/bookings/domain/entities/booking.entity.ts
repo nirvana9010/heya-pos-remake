@@ -222,6 +222,40 @@ export class Booking {
     });
   }
 
+  changeCustomer(newCustomerId: string): void {
+    if (!newCustomerId) {
+      throw new BadRequestException('Customer is required');
+    }
+
+    if (this._status.isTerminal()) {
+      throw new BadRequestException(
+        `Cannot change customer for booking in ${this._status.toString()} status`
+      );
+    }
+
+    if (!this._paymentStatus.isUnpaid()) {
+      throw new BadRequestException(
+        `Cannot change customer once payment has been recorded (status: ${this._paymentStatus.toString()})`
+      );
+    }
+
+    if (this._customerId === newCustomerId) {
+      return;
+    }
+
+    const previousCustomerId = this._customerId;
+    this._customerId = newCustomerId;
+    this._updatedAt = new Date();
+
+    this.addDomainEvent({
+      type: 'BookingCustomerChanged',
+      bookingId: this._id,
+      previousCustomerId,
+      newCustomerId,
+      occurredAt: new Date(),
+    });
+  }
+
   // Payment methods
   markAsPaid(amount: number, method: string, reference?: string): void {
     if (!this._paymentStatus.canBePaid()) {

@@ -41,9 +41,12 @@ import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
+import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
 import { getBookingSourcePresentation } from '@/components/calendar/refactored/booking-source';
 import type { BookingSourceCategory } from '@/lib/booking-source';
+import type { Customer } from '@/components/customers';
+import { WALK_IN_CUSTOMER_ID } from '@/lib/constants/customer';
 
 interface BookingService {
   id: string;
@@ -89,6 +92,14 @@ interface BookingDetailsSlideOutProps {
   onPaymentStatusChange: (bookingId: string, isPaid: boolean, paidAmount?: number) => void;
 }
 
+interface EditedCustomer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  isWalkIn: boolean;
+}
+
 function BookingDetailsSlideOutComponent({
   isOpen,
   onClose,
@@ -126,11 +137,36 @@ function BookingDetailsSlideOutComponent({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
   const SourceIcon = sourcePresentation.icon;
+  const [editedCustomer, setEditedCustomer] = useState<EditedCustomer>(() => ({
+    id: booking.customerId || '',
+    name: booking.customerName,
+    phone: booking.customerPhone,
+    email: booking.customerEmail,
+    isWalkIn: booking.customerSource === 'WALK_IN',
+  }));
   const showSourceBadge = sourcePresentation.category !== 'unknown';
-  
+  const customerChanged =
+    editedCustomer.id !== (booking.customerId || '') ||
+    (editedCustomer.isWalkIn && booking.customerId !== WALK_IN_CUSTOMER_ID);
+  const displayedCustomerName = isEditing ? editedCustomer.name : booking.customerName;
+  const [editedFirstName, ...editedLastParts] = (editedCustomer.name || '').trim().split(' ');
+  const currentCustomerForSelection: Customer | null =
+    editedCustomer.id && editedCustomer.id !== WALK_IN_CUSTOMER_ID
+      ? {
+          id: editedCustomer.id,
+          firstName: editedFirstName || editedCustomer.name,
+          lastName: editedLastParts.join(' '),
+          name: editedCustomer.name,
+          phone: editedCustomer.phone || '',
+          mobile: editedCustomer.phone || '',
+          email: editedCustomer.email || '',
+        }
+      : null;
+
   // State for service editing
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
+  const [isCustomerSlideoutOpen, setIsCustomerSlideoutOpen] = useState(false);
   
   // Ensure service slideout is closed when booking details slideout opens
   useEffect(() => {
@@ -138,6 +174,18 @@ function BookingDetailsSlideOutComponent({
       setIsServiceSlideoutOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedCustomer({
+        id: booking.customerId || '',
+        name: booking.customerName,
+        phone: booking.customerPhone,
+        email: booking.customerEmail,
+        isWalkIn: booking.customerSource === 'WALK_IN',
+      });
+    }
+  }, [booking, isEditing]);
   
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
@@ -380,6 +428,28 @@ function BookingDetailsSlideOutComponent({
       s.id === serviceId ? { ...s, adjustedPrice: price } : s
     ));
   };
+
+  const handleCustomerSelect = (customer: Customer | null, isWalkIn: boolean) => {
+    if (isWalkIn) {
+      setEditedCustomer({
+        id: WALK_IN_CUSTOMER_ID,
+        name: 'Walk-in Customer',
+        phone: '',
+        email: '',
+        isWalkIn: true,
+      });
+    } else if (customer) {
+      const displayName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown Customer';
+      setEditedCustomer({
+        id: customer.id,
+        name: displayName,
+        phone: customer.mobile || customer.phone || '',
+        email: customer.email || '',
+        isWalkIn: false,
+      });
+    }
+    setIsCustomerSlideoutOpen(false);
+  };
   
   
   // Calculate totals
@@ -438,7 +508,7 @@ function BookingDetailsSlideOutComponent({
     }
     
     // Fire and forget - don't await
-    const updatePayload = {
+    const updatePayload: Record<string, any> = {
       ...bookingWithoutStatus,
       staffId: formData.staffId,
       startTime: startTimeISO,
@@ -447,6 +517,13 @@ function BookingDetailsSlideOutComponent({
       services: servicesToSend,
       customerRequestedStaff: formData.customerRequestedStaff
     };
+
+    if (editedCustomer?.id) {
+      updatePayload.customerId = editedCustomer.id;
+      updatePayload.customerName = editedCustomer.name;
+      updatePayload.customerPhone = editedCustomer.phone || '';
+      updatePayload.customerEmail = editedCustomer.email || '';
+    }
     
     onSave(updatePayload).then(async (response) => {
       // Success handled - BookingsManager shows the success toast
@@ -647,7 +724,7 @@ function BookingDetailsSlideOutComponent({
         <div className="px-6 py-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold">{booking.customerName}</h2>
+              <h2 className="text-lg font-semibold">{displayedCustomerName}</h2>
               <p className="text-sm text-gray-600">
                 {booking.services?.length > 0
                   ? booking.services.map(s => s.name).join(' + ')
@@ -712,6 +789,40 @@ function BookingDetailsSlideOutComponent({
           {isEditing ? (
             // Edit Mode
             <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label>Customer</Label>
+                  {customerChanged && (
+                    <Badge variant="outline" className="text-teal-700 border-teal-200 bg-teal-50">
+                      Updated
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1 flex items-start justify-between rounded-md border border-gray-200 bg-white p-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{editedCustomer.name}</p>
+                    {(editedCustomer.phone || editedCustomer.email) && (
+                      <div className="mt-1 space-y-1 text-xs text-gray-500">
+                        {editedCustomer.phone && <p>{editedCustomer.phone}</p>}
+                        {editedCustomer.email && <p>{editedCustomer.email}</p>}
+                      </div>
+                    )}
+                    {!editedCustomer.phone && !editedCustomer.email && (
+                      <p className="mt-1 text-xs italic text-gray-400">No contact details on file</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsCustomerSlideoutOpen(true)}
+                    className="ml-3 shrink-0"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Change
+                  </Button>
+                </div>
+              </div>
+
               <div>
                 <Label>Staff Member</Label>
                 <div className="mt-1 flex items-center gap-3">
@@ -1160,6 +1271,14 @@ function BookingDetailsSlideOutComponent({
         onClose={() => setIsServiceSlideoutOpen(false)}
         services={services}
         onSelectService={handleAddService}
+      />
+
+      <CustomerSelectionSlideout
+        isOpen={isCustomerSlideoutOpen}
+        onClose={() => setIsCustomerSlideoutOpen(false)}
+        onSelectCustomer={handleCustomerSelect}
+        currentCustomer={currentCustomerForSelection || undefined}
+        isCurrentWalkIn={editedCustomer.id === WALK_IN_CUSTOMER_ID}
       />
     </SlideOutPanel>
   );

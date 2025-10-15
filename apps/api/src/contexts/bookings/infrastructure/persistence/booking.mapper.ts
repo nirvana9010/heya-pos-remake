@@ -127,6 +127,7 @@ export class BookingMapper {
       status: booking.status.value,
       startTime: booking.timeSlot.start,
       endTime: booking.timeSlot.end,
+      customerId: booking.customerId,
       notes: booking.notes,
       updatedAt: booking.updatedAt,
       cancelledAt: booking.cancelledAt,

@@ -6,6 +6,7 @@ import { MerchantNotificationsService } from '../merchant-notifications.service'
 import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { format } from 'date-fns';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationEventHandler {
@@ -182,6 +183,173 @@ export class NotificationEventHandler {
     } catch (error) {
       const fallbackBookingId = event.bookingId || event.aggregateId;
       this.logger.error(`Failed to handle booking confirmed event: ${fallbackBookingId}`, error);
+    }
+  }
+
+  @OnEvent('booking.customer_changed')
+  async handleBookingCustomerChanged(event: {
+    bookingId?: string;
+    aggregateId?: string;
+    previousCustomerId?: string;
+    newCustomerId?: string;
+    orderId?: string | null;
+  }): Promise<void> {
+    const bookingId = event.bookingId || event.aggregateId;
+    if (!bookingId) {
+      this.logger.error('booking.customer_changed received without bookingId');
+      return;
+    }
+
+    this.logger.log(`[${new Date().toISOString()}] Handling customer change for booking ${bookingId}`);
+
+    const [booking, previousCustomer] = await Promise.all([
+      this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          customer: true,
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          },
+          provider: true,
+          services: {
+            include: {
+              service: true,
+              staff: true,
+            },
+          },
+          location: true,
+        },
+      }),
+      event.previousCustomerId
+        ? this.prisma.customer.findUnique({
+            where: { id: event.previousCustomerId },
+            select: { firstName: true, lastName: true, email: true, phone: true },
+          })
+        : null,
+    ]);
+
+    if (!booking) {
+      this.logger.error(`Booking not found while handling customer change: ${bookingId}`);
+      return;
+    }
+
+    const firstService = booking.services[0];
+    const newCustomerName = booking.customer
+      ? (booking.customer.lastName
+          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+          : booking.customer.firstName || booking.customer.email || 'Customer')
+      : 'Customer';
+
+    const previousCustomerName = previousCustomer
+      ? (previousCustomer.lastName
+          ? `${previousCustomer.firstName} ${previousCustomer.lastName}`.trim()
+          : previousCustomer.firstName || previousCustomer.email || 'Customer')
+      : 'previous customer';
+
+    const changeDescription = `changed customer from ${previousCustomerName} to ${newCustomerName}`;
+
+    await this.merchantNotificationsService.createBookingNotification(
+      booking.merchantId,
+      'booking_modified',
+      {
+        id: booking.id,
+        customerName: newCustomerName,
+        serviceName: firstService?.service?.name || 'Service',
+        startTime: booking.startTime,
+        staffName: firstService?.staff
+          ? (firstService.staff.lastName
+              ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim()
+              : firstService.staff.firstName)
+          : undefined,
+      },
+      changeDescription,
+    );
+
+    const merchantSettings = booking.merchant.settings as Prisma.JsonValue as Record<string, any>;
+    const shouldSendEmail = merchantSettings?.bookingConfirmationEmail !== false;
+    const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false;
+
+    if (booking.status === 'CONFIRMED' && (shouldSendEmail || shouldSendSms)) {
+      const customerPhone = booking.customer?.phone || '';
+      const context = {
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          date: booking.startTime,
+          time: booking.startTime.toLocaleTimeString('en-AU', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          serviceName: firstService?.service?.name || 'Service',
+          staffName: firstService?.staff
+            ? (firstService.staff.lastName
+                ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim()
+                : firstService.staff.firstName)
+            : 'Staff',
+          duration: firstService?.duration || 60,
+          price: Number(booking.totalAmount),
+          locationName: booking.location?.name || '',
+          locationAddress: booking.location?.address || '',
+          locationPhone: booking.location?.phone || '',
+          customerName: newCustomerName,
+          customerPhone,
+        },
+        merchant: {
+          id: booking.merchant.id,
+          name: booking.merchant.name,
+          email: booking.merchant.email,
+          phone: booking.merchant.phone,
+          website: booking.merchant.website,
+          address: booking.merchant.locations?.[0]
+            ? [
+                booking.merchant.locations[0].address,
+                booking.merchant.locations[0].suburb,
+                booking.merchant.locations[0].state,
+                booking.merchant.locations[0].postalCode,
+              ]
+                .filter(Boolean)
+                .join(', ')
+            : '',
+        },
+        customer: {
+          id: booking.customer.id,
+          email: booking.customer.email,
+          phone: booking.customer.phone,
+          firstName: booking.customer.firstName,
+          lastName: booking.customer.lastName,
+          preferredChannel: booking.customer.notificationPreference as 'email' | 'sms' | 'both',
+        },
+      };
+
+      const notificationContext = {
+        ...context,
+        customer: {
+          ...context.customer,
+          preferredChannel: this.determineMerchantPreferredChannel(
+            context.customer.preferredChannel,
+            shouldSendEmail,
+            shouldSendSms,
+          ),
+        },
+      };
+
+      this.logger.log(
+        `[${new Date().toISOString()}] Sending refreshed confirmation to ${newCustomerName} after customer change`,
+      );
+      await this.notificationsService.sendNotification(
+        NotificationType.BOOKING_CONFIRMATION,
+        notificationContext,
+      );
+    } else {
+      this.logger.log(
+        `[${new Date().toISOString()}] Skipping confirmation resend (status: ${booking.status}, emailEnabled: ${shouldSendEmail}, smsEnabled: ${shouldSendSms})`,
+      );
     }
   }
 
