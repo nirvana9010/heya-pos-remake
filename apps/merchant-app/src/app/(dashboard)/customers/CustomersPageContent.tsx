@@ -311,12 +311,17 @@ export default function CustomersPageContent() {
     }
   }, [searchQuery, searchCustomers, isInitialLoad]);
 
-  // Filter customers when segment, sort, or search query changes
+  // Filter customers when data or other filters change
+  // NOTE: searchQuery is intentionally NOT in dependencies to prevent cursor jumping.
+  // Search is handled by the debounced searchCustomers effect above (line 308).
+  // This effect should only run when:
+  // - customers data changes (after API search completes)
+  // - segment or sort filters change (user changes dropdowns)
   useEffect(() => {
     if (!loading && !isSearching) {
       filterCustomers();
     }
-  }, [customers, selectedSegment, sortBy, searchQuery, loading, isSearching, isRemoteSearchResult]);
+  }, [customers, selectedSegment, sortBy, loading, isSearching, isRemoteSearchResult]);
 
   // Reset pagination when filters are applied
   useEffect(() => {
