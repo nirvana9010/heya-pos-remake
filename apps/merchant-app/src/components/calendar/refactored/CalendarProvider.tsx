@@ -410,17 +410,25 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
       const requestedOrder = action.payload.filter((id, index, self) => 
         typeof id === 'string' && id.trim().length > 0 && self.indexOf(id) === index
       );
-      const sanitizedOrder = requestedOrder.filter(id => currentStaffIds.includes(id));
-      const missingIds = currentStaffIds.filter(id => !sanitizedOrder.includes(id));
+      const hasLoadedStaff = currentStaffIds.length > 0;
+      const sanitizedOrder = hasLoadedStaff
+        ? requestedOrder.filter(id => currentStaffIds.includes(id))
+        : requestedOrder;
+      const missingIds = hasLoadedStaff
+        ? currentStaffIds.filter(id => !sanitizedOrder.includes(id))
+        : [];
       const finalOrder = [...sanitizedOrder, ...missingIds];
-      const reorderedStaff = finalOrder
-        .map(id => state.staff.find(staff => staff.id === id))
-        .filter((staff): staff is Staff => Boolean(staff));
+
+      const reorderedStaff = hasLoadedStaff
+        ? finalOrder
+            .map(id => state.staff.find(staff => staff.id === id))
+            .filter((staff): staff is Staff => Boolean(staff))
+        : state.staff;
 
       return {
         ...state,
         staff: reorderedStaff,
-        staffDisplayOrder: finalOrder,
+        staffDisplayOrder: hasLoadedStaff ? finalOrder : sanitizedOrder,
       };
     }
     
