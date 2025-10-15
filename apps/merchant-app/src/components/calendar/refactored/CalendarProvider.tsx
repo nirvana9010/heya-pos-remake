@@ -782,24 +782,21 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   // Save filter preferences to localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     try {
       // Clean up selectedStaffIds before saving - only save unique, valid staff IDs
-      const validStaffIds = state.selectedStaffIds.filter((id, index, self) => 
+      const validStaffIds = state.selectedStaffIds.filter((id, index, self) =>
         self.indexOf(id) === index && // Remove duplicates
         state.staff.some(s => s.id === id && s.isActive !== false) // Only active staff
-      );
-      
-      const validStaffOrder = state.staffDisplayOrder.filter((id, index, self) =>
-        self.indexOf(id) === index && state.staff.some(staff => staff.id === id)
       );
 
       localStorage.setItem(STORAGE_KEYS.statusFilters, JSON.stringify(state.selectedStatusFilters));
       localStorage.setItem(STORAGE_KEYS.staffFilter, JSON.stringify(validStaffIds));
-      localStorage.setItem(STORAGE_KEYS.staffOrder, JSON.stringify(validStaffOrder));
+      // NOTE: staffOrder is NOT saved here - it's persisted via merchant settings API only
+      // This prevents race conditions where auto-save conflicts with manual API persistence
       localStorage.setItem(STORAGE_KEYS.timeInterval, state.timeInterval.toString());
       localStorage.setItem(STORAGE_KEYS.badgeDisplayMode, state.badgeDisplayMode);
-      
+
       // If we cleaned up any invalid IDs, update the state
       if (validStaffIds.length !== state.selectedStaffIds.length) {
         dispatch({ type: 'SET_STAFF_FILTER', payload: validStaffIds });
@@ -809,7 +806,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   }, [
     JSON.stringify(state.selectedStatusFilters),
     JSON.stringify(state.selectedStaffIds),
-    JSON.stringify(state.staffDisplayOrder),
+    // NOTE: staffDisplayOrder removed from dependencies - only persisted via merchant settings
     state.timeInterval,
     state.badgeDisplayMode,
     state.staff.length // Only depend on staff length, not the entire array
