@@ -28,13 +28,12 @@ import { Checkbox } from '@heya-pos/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '@heya-pos/ui';
 import { Separator } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
-import { 
-  ChevronLeft, 
+import { Calendar } from '@heya-pos/ui';
+import {
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ChevronDown, 
-  CalendarDays, 
-  Home, 
+  ChevronDown,
   Plus,
   RefreshCw,
   Filter,
@@ -274,7 +273,6 @@ function CalendarContent() {
   const { staff: bookingContextStaff, loading: bookingContextLoading } = useBooking();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
-    navigateToToday,
     navigatePrevious,
     navigateNext,
     navigationLabel,
@@ -488,6 +486,7 @@ function CalendarContent() {
   // Filter popover state
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [reorderDialogOpen, setReorderDialogOpen] = React.useState(false);
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
   
   // Booking slide out data
   const [bookingSlideOutData, setBookingSlideOutData] = React.useState<{
@@ -1111,75 +1110,90 @@ function CalendarContent() {
         {/* Header */}
         <div ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-3">
-            {/* Left: Navigation */}
+            {/* Left: View Selector */}
             <div className="flex flex-1 items-center gap-4 min-w-[260px]">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-10 px-3 hover:bg-gray-100 font-medium"
-                onClick={navigateToToday}
-              >
-                <CalendarDays className="h-4 w-4 mr-2" />
-                Today
-              </Button>
-              
-              <div className="flex items-center bg-gray-100 rounded-lg">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-gray-200 rounded-l-lg rounded-r-none"
-                      onClick={navigatePrevious}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Previous {currentView}</p>
-                  </TooltipContent>
-                </Tooltip>
-                
-                <div className="px-4 py-1 min-w-[240px] text-center">
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    {navigationLabel}
-                  </h2>
-                </div>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-gray-200 rounded-r-lg rounded-l-none"
-                      onClick={navigateNext}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Next {currentView}</p>
-                  </TooltipContent>
-                </Tooltip>
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                {(["day", "week", "month"] as const).map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setView(view)}
+                    className={cn(
+                      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                      currentView === view
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    )}
+                  >
+                    {view.charAt(0).toUpperCase() + view.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
-            
-            {/* Center: View Selector */}
-            <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1">
-              {(["day", "week", "month"] as const).map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setView(view)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                    currentView === view
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  )}
-                >
-    {view.charAt(0).toUpperCase() + view.slice(1)}
-                </button>
-              ))}
+
+            {/* Center: Date Navigation */}
+            <div className="flex items-center justify-center bg-gray-100 rounded-lg">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-gray-200 rounded-l-lg rounded-r-none"
+                    onClick={navigatePrevious}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Previous {currentView}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-w-[240px] h-8 px-4 py-1 hover:bg-gray-200 text-sm font-semibold text-gray-900"
+                  >
+                    {navigationLabel}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={state.currentDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        actions.setDate(date);
+                        setDatePickerOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    modifiers={{
+                      today: new Date(),
+                    }}
+                    modifiersClassNames={{
+                      today: 'flex flex-col items-center justify-center gap-0 after:content-["TODAY"] after:text-[8px] after:font-bold after:text-teal-600 after:whitespace-nowrap after:tracking-wider after:leading-none after:mt-0.5 aria-selected:after:text-white',
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-gray-200 rounded-r-lg rounded-l-none"
+                    onClick={navigateNext}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Next {currentView}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             
             {/* Right: Actions */}

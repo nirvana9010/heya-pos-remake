@@ -522,8 +522,9 @@ This is necessary because PM2's built-in `env_file` option doesn't reliably load
 2. **Kills Node.js processes** - Force kills any remaining Next.js/Nest.js processes
 3. **Clears ports explicitly** - Ensures ports 3000-3003 are free
 4. **Clears PM2 logs** - Optionally flushes PM2 logs
-5. **Starts services** - Starts API first, waits for it to be ready, then starts frontend apps
-6. **Status check** - Shows running processes and port status
+5. **Ensures database is available** - Runs `ensure-db.sh` to start PostgreSQL (Docker or Fly.io proxy)
+6. **Starts services** - Starts API first, waits for it to be ready, then starts frontend apps
+7. **Status check** - Shows running processes and port status
 
 ### Manual Clean Restart Steps (if script fails)
 
@@ -546,7 +547,10 @@ lsof -ti:3001 | xargs kill -9
 lsof -ti:3002 | xargs kill -9
 lsof -ti:3003 | xargs kill -9
 
-# 4. Start services (from their respective directories)
+# 4. Ensure database is running
+./scripts/ensure-db.sh
+
+# 5. Start services (from their respective directories)
 cd apps/api && npm run start:dev &
 cd apps/merchant-app && npm run dev:direct &
 cd apps/booking-app && npm run dev &  # optional

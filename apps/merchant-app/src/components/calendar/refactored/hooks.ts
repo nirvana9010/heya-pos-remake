@@ -738,10 +738,12 @@ export function useCalendarNavigation() {
   
   const navigationLabel = useMemo(() => {
     const merchantDate = toMerchantTime(state.currentDate);
-    
+
     switch (state.currentView) {
       case 'day':
-        return formatInMerchantTime(merchantDate, 'EEEE, MMMM d, yyyy');
+        // Check if viewing today - show "Today" instead of full date
+        const isToday = format(state.currentDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+        return isToday ? 'Today' : formatInMerchantTime(merchantDate, 'EEEE, MMMM d, yyyy');
       case 'week':
         const weekStart = toMerchantTime(state.dateRange.start);
         const weekEnd = toMerchantTime(state.dateRange.end);

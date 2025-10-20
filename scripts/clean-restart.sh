@@ -98,7 +98,18 @@ pm2 flush 2>/dev/null || true
 echo -e "${GREEN}✓ PM2 logs flushed${NC}"
 
 echo ""
-echo -e "${YELLOW}Step 5: Starting services...${NC}"
+echo -e "${YELLOW}Step 5: Ensuring database is available...${NC}"
+SCRIPT_DIR="$PROJECT_ROOT/scripts"
+if "$SCRIPT_DIR/ensure-db.sh"; then
+    echo -e "${GREEN}✓ Database is available${NC}"
+else
+    echo -e "${RED}✗ Database failed to start${NC}"
+    echo "  Please check your database configuration"
+    exit 1
+fi
+
+echo ""
+echo -e "${YELLOW}Step 6: Starting services...${NC}"
 
 # Start API with PM2
 echo -e "  Starting API service..."
