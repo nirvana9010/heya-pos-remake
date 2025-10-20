@@ -5,6 +5,7 @@ import { BookingAvailabilityService } from './booking-availability.service';
 import { TimezoneUtils } from '../../../../utils/shared/timezone';
 import { toNumber } from '../../../../utils/decimal';
 import { BookingServiceData } from '../commands/create-booking.command';
+import { normalizeMerchantSettings } from '../../../../utils/shared/merchant-settings';
 
 export interface PublicCreateBookingData {
   customerName: string;
@@ -183,7 +184,7 @@ export class PublicBookingService {
     }
     
     // Validate booking advance hours with timezone consideration
-    const merchantSettings = merchant.settings as any;
+    const merchantSettings = normalizeMerchantSettings(merchant.settings);
     const bookingAdvanceHours = merchantSettings?.bookingAdvanceHours || 168; // Default 7 days
     const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0; // Default no restriction (in minutes)
     const merchantTimezone = merchant.locations?.[0]?.timezone || 'Australia/Sydney';
@@ -626,7 +627,7 @@ export class PublicBookingService {
       return { slots: [] };
     }
 
-    const settings = merchant.settings as any;
+    const settings = normalizeMerchantSettings(merchant.settings);
     const businessHours = settings?.businessHours || location.businessHours;
     const minimumBookingNotice = settings?.minimumBookingNotice || 0;
 

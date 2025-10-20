@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MerchantSettings } from '../types/models/merchant';
+import { DEFAULT_MERCHANT_SETTINGS } from './merchant.constants';
+import { normalizeMerchantSettings } from '../utils/shared/merchant-settings';
 
 @Injectable()
 export class MerchantService {
@@ -16,24 +18,10 @@ export class MerchantService {
       throw new NotFoundException('Merchant not found');
     }
 
-    // Handle nested settings structure that may occur due to data corruption
-    let settings = merchant.settings as any;
-    
-    // If settings has nested 'settings' property, unwrap it
-    while (settings && typeof settings === 'object' && 'settings' in settings && settings.settings) {
-      // Merge top-level properties with nested settings
-      const topLevelProps = { ...settings };
-      delete topLevelProps.settings;
-      settings = { ...settings.settings, ...topLevelProps };
-    }
-    
-    // Ensure priceToDurationRatio has a default value if not set
-    if (settings && typeof settings === 'object' && !settings.priceToDurationRatio) {
-      settings.priceToDurationRatio = 1.0; // Default: $1 = 1 minute
-    }
+    const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
 
     console.log('[MerchantService] getMerchantSettings returning:', JSON.stringify(settings, null, 2));
-    return settings as MerchantSettings;
+    return settings;
   }
 
   async updateMerchantSettings(
@@ -51,17 +39,44 @@ export class MerchantService {
       throw new NotFoundException('Merchant not found');
     }
 
-    const currentSettings = merchant.settings as unknown as MerchantSettings;
+    const currentSettings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
     const updatedSettings = { ...currentSettings, ...settings };
+
+    const previousAdvanceHours = currentSettings.bookingAdvanceHours ?? DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
+    const requestedAdvanceHours = settings.bookingAdvanceHours;
+    const advanceHoursProvided = requestedAdvanceHours !== undefined && requestedAdvanceHours !== null;
+    const normalizedAdvanceHours = advanceHoursProvided ? Number(requestedAdvanceHours) : undefined;
+    const previousAdvanceDays = Math.ceil(previousAdvanceHours / 24);
+    const nextAdvanceDays = advanceHoursProvided && Number.isFinite(normalizedAdvanceHours)
+      ? Math.ceil((normalizedAdvanceHours as number) / 24)
+      : previousAdvanceDays;
+
+    if (advanceHoursProvided && Number.isFinite(normalizedAdvanceHours)) {
+      updatedSettings.bookingAdvanceHours = normalizedAdvanceHours as number;
+    }
 
     console.log('[MerchantService] Saving settings:', JSON.stringify(updatedSettings, null, 2));
 
-    const updated = await this.prisma.merchant.update({
-      where: { id: merchantId },
-      data: { 
-        settings: updatedSettings as any
-      },
-      select: { settings: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (advanceHoursProvided && Number.isFinite(normalizedAdvanceHours) && previousAdvanceDays !== nextAdvanceDays) {
+        await tx.service.updateMany({
+          where: {
+            merchantId,
+            maxAdvanceBooking: previousAdvanceDays,
+          },
+          data: {
+            maxAdvanceBooking: nextAdvanceDays,
+          },
+        });
+      }
+
+      return tx.merchant.update({
+        where: { id: merchantId },
+        data: {
+          settings: updatedSettings as any,
+        },
+        select: { settings: true },
+      });
     });
 
     console.log('[MerchantService] Settings saved successfully');

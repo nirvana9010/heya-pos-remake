@@ -19,6 +19,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { TimezoneUtils } from "../utils/shared/timezone";
 import { toNumber } from "../utils/decimal";
 import { formatName } from "../utils/shared/format";
+import { normalizeMerchantSettings } from "../utils/shared/merchant-settings";
 import { IsDateString, IsOptional, IsString } from "class-validator";
 
 interface PublicCreateBookingDto {
@@ -122,7 +123,7 @@ export class PublicBookingController {
       throw new BadRequestException("No active location found");
     }
 
-    const settings = merchant.settings as any;
+    const settings = normalizeMerchantSettings(merchant.settings);
 
     return {
       id: merchant.id,

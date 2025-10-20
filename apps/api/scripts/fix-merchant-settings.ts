@@ -24,10 +24,10 @@ async function fixMerchantSettings() {
       
       // Fix nested settings structure
       while (settings && typeof settings === 'object' && 'settings' in settings && settings.settings) {
-        // Merge top-level properties with nested settings
+        // Merge top-level properties with nested settings, preferring nested overrides
         const topLevelProps = { ...settings };
         delete topLevelProps.settings;
-        settings = { ...settings.settings, ...topLevelProps };
+        settings = { ...topLevelProps, ...settings.settings };
       }
       
       // Fix businessHours to include isOpen field
