@@ -20,6 +20,7 @@ import { TimezoneUtils } from "../utils/shared/timezone";
 import { toNumber } from "../utils/decimal";
 import { formatName } from "../utils/shared/format";
 import { normalizeMerchantSettings } from "../utils/shared/merchant-settings";
+import { MerchantSettings } from "../types/models/merchant";
 import { IsDateString, IsOptional, IsString } from "class-validator";
 
 interface PublicCreateBookingDto {
@@ -123,7 +124,7 @@ export class PublicBookingController {
       throw new BadRequestException("No active location found");
     }
 
-    const settings = normalizeMerchantSettings(merchant.settings);
+    const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
 
     return {
       id: merchant.id,
