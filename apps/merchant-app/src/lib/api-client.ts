@@ -54,3 +54,11 @@ export type {
 export type {
   ApiError,
 } from './clients/base-client';
+
+export type {
+  HolidaysResponse,
+  CreateCustomHolidayRequest,
+  UpdateHolidayRequest,
+} from './clients/holidays-client';
+
+export type { MerchantHoliday, AustralianState } from '@heya-pos/types';

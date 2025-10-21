@@ -1,14 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { format, startOfWeek, addDays, isSameDay, isToday } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Copy, Calendar, Clock, Users } from 'lucide-react';
-import { Button } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { Skeleton } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
+import { useState, useEffect } from "react";
+import { format, startOfWeek, addDays, isSameDay, isToday } from "date-fns";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Copy,
+  Calendar,
+  Clock,
+  Users,
+} from "lucide-react";
+import { Button } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +26,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@heya-pos/ui';
-import { apiClient } from '@/lib/api-client';
-import { StaffClient } from '@/lib/clients/staff-client';
-import { StaffScheduleModal } from '@/components/roster/StaffScheduleModal';
+} from "@heya-pos/ui";
+import { apiClient } from "@/lib/api-client";
+import { StaffClient, StaffScheduleOverride } from "@/lib/clients/staff-client";
+import { StaffScheduleModal } from "@/components/roster/StaffScheduleModal";
 
 interface Staff {
   id: string;
@@ -38,54 +46,56 @@ interface Schedule {
   endTime: string;
 }
 
-interface ScheduleOverride {
-  staffId: string;
-  date: string; // ISO date string
-  startTime: string | null;
-  endTime: string | null;
-  reason?: string;
-}
+type ScheduleOverride = StaffScheduleOverride;
 
 interface StaffSchedule {
   staffId: string;
   schedules: Schedule[];
 }
 
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS_OF_WEEK = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // Helper function to convert 24h to 12h format
 const formatTime12Hour = (time24: string): string => {
-  if (!time24) return '';
-  const [hourStr, minute] = time24.split(':');
+  if (!time24) return "";
+  const [hourStr, minute] = time24.split(":");
   const hour = parseInt(hourStr);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const ampm = hour >= 12 ? "PM" : "AM";
   const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   return `${hour12}:${minute} ${ampm}`;
 };
 
 // Helper function to convert 12h to 24h format for storage
 const formatTime24Hour = (time12: string): string => {
-  if (!time12) return '';
-  const [time, ampm] = time12.split(' ');
-  const [hourStr, minute] = time.split(':');
+  if (!time12) return "";
+  const [time, ampm] = time12.split(" ");
+  const [hourStr, minute] = time.split(":");
   let hour = parseInt(hourStr);
-  
-  if (ampm === 'PM' && hour !== 12) {
+
+  if (ampm === "PM" && hour !== 12) {
     hour += 12;
-  } else if (ampm === 'AM' && hour === 12) {
+  } else if (ampm === "AM" && hour === 12) {
     hour = 0;
   }
-  
-  return `${hour.toString().padStart(2, '0')}:${minute}`;
+
+  return `${hour.toString().padStart(2, "0")}:${minute}`;
 };
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const hour = Math.floor(i / 2);
-  const minute = i % 2 === 0 ? '00' : '30';
-  const time24 = `${hour.toString().padStart(2, '0')}:${minute}`;
+  const minute = i % 2 === 0 ? "00" : "30";
+  const time24 = `${hour.toString().padStart(2, "0")}:${minute}`;
   return {
     value: time24,
-    label: formatTime12Hour(time24)
+    label: formatTime12Hour(time24),
   };
 });
 
@@ -94,15 +104,24 @@ export default function RosterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [schedules, setSchedules] = useState<Map<string, Schedule[]>>(new Map());
-  const [overrides, setOverrides] = useState<Map<string, ScheduleOverride[]>>(new Map());
-  const [editingCell, setEditingCell] = useState<{ staffId: string; dayOfWeek: number; date: Date } | null>(null);
+  const [schedules, setSchedules] = useState<Map<string, Schedule[]>>(
+    new Map(),
+  );
+  const [overrides, setOverrides] = useState<Map<string, ScheduleOverride[]>>(
+    new Map(),
+  );
+  const [editingCell, setEditingCell] = useState<{
+    staffId: string;
+    dayOfWeek: number;
+    date: Date;
+  } | null>(null);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [businessHours, setBusinessHours] = useState<any>(null);
   const [showConfirmCopy, setShowConfirmCopy] = useState(false);
-  const [showConfirmBusinessHours, setShowConfirmBusinessHours] = useState(false);
-  
+  const [showConfirmBusinessHours, setShowConfirmBusinessHours] =
+    useState(false);
+
   const staffClient = new StaffClient();
 
   // Load staff and their schedules
@@ -120,32 +139,54 @@ export default function RosterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart, staff.length]);
 
+  useEffect(() => {
+    const handleHolidayUpdate = () => {
+      if (staff.length > 0) {
+        loadOverridesForWeek();
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("merchant-holidays-updated", handleHolidayUpdate);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(
+          "merchant-holidays-updated",
+          handleHolidayUpdate,
+        );
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff.length, weekStart]);
+
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Test authentication first
-      console.log('[Roster] Loading staff data...');
-      
+      console.log("[Roster] Loading staff data...");
+
       // Load all staff and their schedules in parallel
       const [staffData, schedulesData] = await Promise.all([
         apiClient.getStaff(),
-        staffClient.getAllSchedules()
+        staffClient.getAllSchedules(),
       ]);
-      
-      console.log('Loaded staff data:', staffData);
-      const activeStaff = staffData.filter((s: any) => s.status === 'ACTIVE' || s.isActive === true);
-      console.log('Active staff:', activeStaff);
+
+      console.log("Loaded staff data:", staffData);
+      const activeStaff = staffData.filter(
+        (s: any) => s.status === "ACTIVE" || s.isActive === true,
+      );
+      console.log("Active staff:", activeStaff);
       // Ensure color is set for each staff member
       const staffWithColors = activeStaff.map((s: any) => ({
         ...s,
-        color: s.calendarColor || s.color || '#4F46E5'
+        color: s.calendarColor || s.color || "#4F46E5",
       }));
       setStaff(staffWithColors);
-      
+
       // Create schedule map from bulk data
       const scheduleMap = new Map<string, Schedule[]>();
-      
+
       if (Array.isArray(schedulesData)) {
         schedulesData.forEach((staffSchedule: any) => {
           if (staffSchedule.staffId && Array.isArray(staffSchedule.schedules)) {
@@ -157,25 +198,30 @@ export default function RosterPage() {
         await Promise.all(
           activeStaff.map(async (staffMember: any) => {
             try {
-              const scheduleData = await staffClient.getSchedule(staffMember.id);
+              const scheduleData = await staffClient.getSchedule(
+                staffMember.id,
+              );
               if (scheduleData?.schedules) {
                 scheduleMap.set(staffMember.id, scheduleData.schedules);
               }
             } catch (error) {
-              console.error(`Failed to load schedule for ${staffMember.firstName}:`, error);
+              console.error(
+                `Failed to load schedule for ${staffMember.firstName}:`,
+                error,
+              );
               scheduleMap.set(staffMember.id, []);
             }
-          })
+          }),
         );
       }
-      
+
       setSchedules(scheduleMap);
     } catch (error) {
-      console.error('Failed to load roster data:', error);
+      console.error("Failed to load roster data:", error);
       toast({
-        title: 'Error loading roster',
-        description: 'Please try refreshing the page',
-        variant: 'destructive'
+        title: "Error loading roster",
+        description: "Please try refreshing the page",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -184,38 +230,63 @@ export default function RosterPage() {
 
   const loadOverridesForWeek = async () => {
     try {
-      const startDate = format(weekStart, 'yyyy-MM-dd');
-      const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
-      
-      console.log('[Roster] Loading overrides for week:', startDate, 'to', endDate, 'for', staff.length, 'staff members');
-      console.log('[Roster] Staff IDs:', staff.map(s => s.id));
-      
+      const startDate = format(weekStart, "yyyy-MM-dd");
+      const endDate = format(addDays(weekStart, 6), "yyyy-MM-dd");
+
+      console.log(
+        "[Roster] Loading overrides for week:",
+        startDate,
+        "to",
+        endDate,
+        "for",
+        staff.length,
+        "staff members",
+      );
+      console.log(
+        "[Roster] Staff IDs:",
+        staff.map((s) => s.id),
+      );
+
       // Load overrides for all staff in parallel
       const overridesMap = new Map<string, ScheduleOverride[]>();
-      
+
       await Promise.all(
         staff.map(async (staffMember) => {
           try {
-            const overrides = await staffClient.getScheduleOverrides(staffMember.id, startDate, endDate);
-            console.log(`[Roster] Overrides for ${staffMember.firstName} (${staffMember.id}):`, overrides);
+            const overrides = await staffClient.getScheduleOverrides(
+              staffMember.id,
+              startDate,
+              endDate,
+            );
+            console.log(
+              `[Roster] Overrides for ${staffMember.firstName} (${staffMember.id}):`,
+              overrides,
+            );
             if (overrides && overrides.length > 0) {
               overridesMap.set(staffMember.id, overrides);
             }
           } catch (error: any) {
-            console.error(`Failed to load overrides for ${staffMember.firstName}:`, {
-              error,
-              message: error?.message,
-              response: error?.response,
-              status: error?.response?.status
-            });
+            console.error(
+              `Failed to load overrides for ${staffMember.firstName}:`,
+              {
+                error,
+                message: error?.message,
+                response: error?.response,
+                status: error?.response?.status,
+              },
+            );
           }
-        })
+        }),
       );
-      
-      console.log('[Roster] Total overrides loaded:', overridesMap.size, 'staff with overrides');
+
+      console.log(
+        "[Roster] Total overrides loaded:",
+        overridesMap.size,
+        "staff with overrides",
+      );
       setOverrides(overridesMap);
     } catch (error) {
-      console.error('Failed to load overrides:', error);
+      console.error("Failed to load overrides:", error);
     }
   };
 
@@ -225,84 +296,113 @@ export default function RosterPage() {
       const hours = response.businessHours;
       setBusinessHours(hours);
     } catch (error) {
-      console.error('Failed to load business hours:', error);
+      console.error("Failed to load business hours:", error);
     }
   };
 
-  const handleScheduleModalUpdate = (staffId: string, newSchedules: Schedule[]) => {
-    setSchedules(prev => new Map(prev).set(staffId, newSchedules));
+  const handleScheduleModalUpdate = (
+    staffId: string,
+    newSchedules: Schedule[],
+  ) => {
+    setSchedules((prev) => new Map(prev).set(staffId, newSchedules));
   };
 
-  const updateSchedule = async (staffId: string, dayOfWeek: number, date: Date, startTime: string | null, endTime: string | null) => {
+  const updateSchedule = async (
+    staffId: string,
+    dayOfWeek: number,
+    date: Date,
+    startTime: string | null,
+    endTime: string | null,
+  ) => {
     try {
-      const dateStr = format(date, 'yyyy-MM-dd');
+      const dateStr = format(date, "yyyy-MM-dd");
       setSaving(`${staffId}-${dateStr}`);
-      
+
       // Get the regular schedule for this day
       const regularSchedule = getScheduleForDay(staffId, dayOfWeek);
-      
-      // Check if this is different from the regular schedule
-      const isOverride = !regularSchedule || 
-        regularSchedule.startTime !== startTime || 
+      const staffOverrides = overrides.get(staffId) || [];
+      const existingOverride = staffOverrides.find((o) => o.date === dateStr);
+      const isHolidayOverride = existingOverride?.source === "HOLIDAY";
+
+      // Check if this is different from the regular schedule or if a holiday override is in place
+      const isOverride =
+        isHolidayOverride ||
+        !regularSchedule ||
+        regularSchedule.startTime !== startTime ||
         regularSchedule.endTime !== endTime;
-      
+
       if (isOverride) {
         // Create or update override
-        console.log('[Roster] Creating override:', { staffId, date: dateStr, startTime, endTime });
-        const override = await staffClient.createOrUpdateScheduleOverride(staffId, {
-          date: dateStr,
-          startTime,
-          endTime,
-        });
-        console.log('[Roster] Override created:', override);
-        
-        // Update local overrides state
-        const staffOverrides = overrides.get(staffId) || [];
-        const existingOverrideIndex = staffOverrides.findIndex(o => o.date === dateStr);
-        
-        const newOverride: ScheduleOverride = {
+        console.log("[Roster] Creating override:", {
           staffId,
           date: dateStr,
           startTime,
           endTime,
-        };
-        
+        });
+        const overrideResponse =
+          await staffClient.createOrUpdateScheduleOverride(staffId, {
+            date: dateStr,
+            startTime,
+            endTime,
+          });
+        console.log("[Roster] Override created:", overrideResponse);
+
+        // Update local overrides state
+        const existingOverrideIndex = staffOverrides.findIndex(
+          (o) => o.date === dateStr,
+        );
+
         let newOverrides: ScheduleOverride[];
         if (existingOverrideIndex >= 0) {
           newOverrides = [...staffOverrides];
-          newOverrides[existingOverrideIndex] = newOverride;
+          newOverrides[existingOverrideIndex] = {
+            ...overrideResponse,
+            date: dateStr,
+          };
         } else {
-          newOverrides = [...staffOverrides, newOverride];
+          newOverrides = [
+            ...staffOverrides,
+            {
+              ...overrideResponse,
+              date: dateStr,
+            },
+          ];
         }
-        
-        setOverrides(prev => new Map(prev).set(staffId, newOverrides));
-        
+
+        setOverrides((prev) => new Map(prev).set(staffId, newOverrides));
+
         toast({
-          title: 'Schedule override created',
-          description: `Schedule changed for ${format(date, 'MMM d, yyyy')}`
+          title: "Schedule override created",
+          description: `Schedule changed for ${format(date, "MMM d, yyyy")}`,
         });
       } else {
         // If it matches regular schedule, remove any existing override
-        const existingOverride = overrides.get(staffId)?.find(o => o.date === dateStr);
-        if (existingOverride) {
+        const existingOverride = overrides
+          .get(staffId)
+          ?.find((o) => o.date === dateStr);
+        if (existingOverride?.source === "MANUAL") {
           await staffClient.deleteScheduleOverride(staffId, dateStr);
         }
-        
+
         const staffOverrides = overrides.get(staffId) || [];
-        const newOverrides = staffOverrides.filter(o => o.date !== dateStr);
-        setOverrides(prev => new Map(prev).set(staffId, newOverrides));
-        
+        const newOverrides = staffOverrides.filter((o) => {
+          if (o.date !== dateStr) return true;
+          // Keep synthesized holiday overrides in state
+          return o.source === "HOLIDAY";
+        });
+        setOverrides((prev) => new Map(prev).set(staffId, newOverrides));
+
         toast({
-          title: 'Schedule reset',
-          description: 'Returned to regular schedule'
+          title: "Schedule reset",
+          description: "Returned to regular schedule",
         });
       }
     } catch (error) {
-      console.error('Failed to update schedule:', error);
+      console.error("Failed to update schedule:", error);
       toast({
-        title: 'Update failed',
-        description: 'Please try again',
-        variant: 'destructive'
+        title: "Update failed",
+        description: "Please try again",
+        variant: "destructive",
       });
     } finally {
       setSaving(null);
@@ -314,47 +414,59 @@ export default function RosterPage() {
     try {
       const previousWeekStart = addDays(weekStart, -7);
       const previousWeekEnd = addDays(previousWeekStart, 6);
-      const previousStartDate = format(previousWeekStart, 'yyyy-MM-dd');
-      const previousEndDate = format(previousWeekEnd, 'yyyy-MM-dd');
-      
+      const previousStartDate = format(previousWeekStart, "yyyy-MM-dd");
+      const previousEndDate = format(previousWeekEnd, "yyyy-MM-dd");
+
       setLoading(true);
-      
+
       // First, load overrides from the previous week
       const previousWeekOverrides = new Map<string, ScheduleOverride[]>();
       const overridesDraft = new Map<string, ScheduleOverride[]>(overrides);
-      
+
       await Promise.all(
         staff.map(async (staffMember) => {
           try {
-            const overrides = await staffClient.getScheduleOverrides(staffMember.id, previousStartDate, previousEndDate);
+            const overrides = await staffClient.getScheduleOverrides(
+              staffMember.id,
+              previousStartDate,
+              previousEndDate,
+            );
             if (overrides && overrides.length > 0) {
               previousWeekOverrides.set(staffMember.id, overrides);
             }
           } catch (error) {
-            console.error(`Failed to load overrides for ${staffMember.firstName}:`, error);
+            console.error(
+              `Failed to load overrides for ${staffMember.firstName}:`,
+              error,
+            );
           }
-        })
+        }),
       );
-      
+
       // Create actions for the current week based on previous week
       const overridesToUpsert: ScheduleOverride[] = [];
       const overridesToDelete: { staffId: string; date: string }[] = [];
-      
+
       // For each staff member
       for (const staffMember of staff) {
         const staffOverrides = previousWeekOverrides.get(staffMember.id) || [];
-        
+
         // For each day of the week
         for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
           const previousDate = addDays(previousWeekStart, dayOffset);
           const currentDate = addDays(weekStart, dayOffset);
-          const previousDateStr = format(previousDate, 'yyyy-MM-dd');
-          const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-          
+          const previousDateStr = format(previousDate, "yyyy-MM-dd");
+          const currentDateStr = format(currentDate, "yyyy-MM-dd");
+
           // Find override for this day in previous week
-          const previousOverride = staffOverrides.find(o => o.date === previousDateStr);
-          
+          const previousOverride = staffOverrides.find(
+            (o) => o.date === previousDateStr,
+          );
+
           if (previousOverride) {
+            if (previousOverride.source === "HOLIDAY") {
+              continue;
+            }
             // Create new override for current week mirroring previous week
             const newOverride: ScheduleOverride = {
               staffId: staffMember.id,
@@ -362,17 +474,27 @@ export default function RosterPage() {
               startTime: previousOverride.startTime,
               endTime: previousOverride.endTime,
               reason: previousOverride.reason,
+              source: "MANUAL",
             };
 
             overridesToUpsert.push(newOverride);
 
-            const currentStaffOverrides = overridesDraft.get(staffMember.id) || [];
-            const filteredOverrides = currentStaffOverrides.filter(o => o.date !== currentDateStr);
-            overridesDraft.set(staffMember.id, [...filteredOverrides, newOverride]);
+            const currentStaffOverrides =
+              overridesDraft.get(staffMember.id) || [];
+            const filteredOverrides = currentStaffOverrides.filter(
+              (o) => o.date !== currentDateStr,
+            );
+            overridesDraft.set(staffMember.id, [
+              ...filteredOverrides,
+              newOverride,
+            ]);
           } else {
             // No override last week, ensure none exists this week
-            const currentStaffOverrides = overridesDraft.get(staffMember.id) || [];
-            const filteredOverrides = currentStaffOverrides.filter(o => o.date !== currentDateStr);
+            const currentStaffOverrides =
+              overridesDraft.get(staffMember.id) || [];
+            const filteredOverrides = currentStaffOverrides.filter(
+              (o) => o.date !== currentDateStr,
+            );
 
             if (filteredOverrides.length === 0) {
               overridesDraft.delete(staffMember.id);
@@ -380,18 +502,23 @@ export default function RosterPage() {
               overridesDraft.set(staffMember.id, filteredOverrides);
             }
 
-            const currentOverride = (overrides.get(staffMember.id) || []).find(o => o.date === currentDateStr);
+            const currentOverride = (overrides.get(staffMember.id) || []).find(
+              (o) => o.date === currentDateStr,
+            );
             if (currentOverride) {
-              overridesToDelete.push({ staffId: staffMember.id, date: currentDateStr });
+              overridesToDelete.push({
+                staffId: staffMember.id,
+                date: currentDateStr,
+              });
             }
           }
         }
       }
-      
+
       if (overridesToUpsert.length === 0 && overridesToDelete.length === 0) {
         toast({
-          title: 'No changes copied',
-          description: 'Nothing from last week requires updates for this week.',
+          title: "No changes copied",
+          description: "Nothing from last week requires updates for this week.",
         });
       } else {
         const operations: Promise<unknown>[] = [];
@@ -403,7 +530,7 @@ export default function RosterPage() {
               startTime: override.startTime,
               endTime: override.endTime,
               reason: override.reason,
-            })
+            }),
           );
         });
 
@@ -415,18 +542,19 @@ export default function RosterPage() {
 
         setOverrides(overridesDraft);
         await loadOverridesForWeek();
-        
+
         toast({
-          title: 'Success',
-          description: 'Copied the previous week schedule into the current week.',
+          title: "Success",
+          description:
+            "Copied the previous week schedule into the current week.",
         });
       }
     } catch (error) {
-      console.error('Failed to copy previous week:', error);
+      console.error("Failed to copy previous week:", error);
       toast({
-        title: 'Copy failed',
-        description: 'Please try again',
-        variant: 'destructive'
+        title: "Copy failed",
+        description: "Please try again",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -436,142 +564,170 @@ export default function RosterPage() {
   const applyBusinessHours = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch merchant settings to get business hours
       const response = await apiClient.getMerchantSettings();
-      console.log('Merchant settings response:', response);
-      
+      console.log("Merchant settings response:", response);
+
       // Business hours should be directly on the response
       const businessHours = response.businessHours;
-      console.log('Business hours extracted:', businessHours);
-      
+      console.log("Business hours extracted:", businessHours);
+
       if (!businessHours) {
         toast({
-          title: 'No business hours configured',
-          description: 'Please set up business hours in settings first',
-          variant: 'destructive'
+          title: "No business hours configured",
+          description: "Please set up business hours in settings first",
+          variant: "destructive",
         });
         return;
       }
-      
+
       // Check if there are staff members
       if (!staff || staff.length === 0) {
         toast({
-          title: 'No staff members found',
-          description: 'Please add staff members before applying business hours',
-          variant: 'destructive'
+          title: "No staff members found",
+          description:
+            "Please add staff members before applying business hours",
+          variant: "destructive",
         });
         return;
       }
-      
+
       // Apply business hours to all staff
       const updates = [];
-      console.log('Applying to staff:', staff.length, 'members');
-      
+      console.log("Applying to staff:", staff.length, "members");
+
       for (const staffMember of staff) {
         const newSchedules = [];
-        
+
         // Create schedules based on business hours
-        const dayMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        
+        const dayMap = [
+          "sunday",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+        ];
+
         dayMap.forEach((dayName, dayIndex) => {
           const dayHours = businessHours[dayName];
           if (dayHours && dayHours.isOpen) {
             newSchedules.push({
               dayOfWeek: dayIndex,
-              startTime: dayHours.open || '09:00',
-              endTime: dayHours.close || '17:00'
+              startTime: dayHours.open || "09:00",
+              endTime: dayHours.close || "17:00",
             });
           }
         });
-        
-        console.log(`Staff ${staffMember.firstName}: ${newSchedules.length} schedules`);
-        
+
+        console.log(
+          `Staff ${staffMember.firstName}: ${newSchedules.length} schedules`,
+        );
+
         // Update staff schedule
         if (newSchedules.length > 0) {
-          console.log('Updating schedule for:', staffMember.id, newSchedules);
-          const updatePromise = staffClient.updateSchedule(staffMember.id, { schedules: newSchedules })
-            .then(result => {
+          console.log("Updating schedule for:", staffMember.id, newSchedules);
+          const updatePromise = staffClient
+            .updateSchedule(staffMember.id, { schedules: newSchedules })
+            .then((result) => {
               console.log(`Success for ${staffMember.firstName}:`, result);
               return result;
             })
-            .catch(err => {
+            .catch((err) => {
               console.error(`Failed to update ${staffMember.firstName}:`, err);
-              console.error('Error details:', {
+              console.error("Error details:", {
                 message: err?.message,
                 response: err?.response,
                 data: err?.response?.data,
-                status: err?.response?.status
+                status: err?.response?.status,
               });
               throw err;
             });
-          
+
           updates.push(updatePromise);
         }
       }
-      
-      console.log('Waiting for', updates.length, 'updates to complete...');
-      
+
+      console.log("Waiting for", updates.length, "updates to complete...");
+
       try {
         const results = await Promise.all(updates);
-        console.log('All updates completed successfully:', results);
-        
+        console.log("All updates completed successfully:", results);
+
         toast({
-          title: 'Success',
-          description: `Business hours applied to ${staff.length} staff members`
+          title: "Success",
+          description: `Business hours applied to ${staff.length} staff members`,
         });
-        
+
         // Reload data to show updated schedules
         await loadData();
       } catch (promiseError) {
-        console.error('Promise.all error:', promiseError);
+        console.error("Promise.all error:", promiseError);
         throw promiseError;
       }
-      
     } catch (error: any) {
-      console.error('Error applying business hours:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error stack:', error?.stack);
-      console.error('Error response:', error?.response);
-      console.error('Error message:', error?.message);
-      
+      console.error("Error applying business hours:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error stack:", error?.stack);
+      console.error("Error response:", error?.response);
+      console.error("Error message:", error?.message);
+
       // Check if it's a network error or API error
-      let errorMessage = 'Failed to apply business hours';
+      let errorMessage = "Failed to apply business hours";
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
-      } else if (typeof error === 'string') {
+      } else if (typeof error === "string") {
         errorMessage = error;
       }
-      
+
       toast({
-        title: 'Error',
+        title: "Error",
         description: errorMessage,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getScheduleForDay = (staffId: string, dayOfWeek: number): Schedule | undefined => {
+  const getScheduleForDay = (
+    staffId: string,
+    dayOfWeek: number,
+  ): Schedule | undefined => {
     const staffSchedules = schedules.get(staffId) || [];
-    return staffSchedules.find(s => s.dayOfWeek === dayOfWeek);
+    return staffSchedules.find((s) => s.dayOfWeek === dayOfWeek);
   };
 
-  const getOverrideForDate = (staffId: string, date: Date): ScheduleOverride | undefined => {
+  const getOverrideForDate = (
+    staffId: string,
+    date: Date,
+  ): ScheduleOverride | undefined => {
     const staffOverrides = overrides.get(staffId) || [];
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return staffOverrides.find(o => o.date === dateStr);
+    const dateStr = format(date, "yyyy-MM-dd");
+    return staffOverrides.find((o) => o.date === dateStr);
   };
 
-  const formatScheduleTime = (schedule: Schedule | undefined, override: ScheduleOverride | undefined) => {
+  const formatScheduleTime = (
+    schedule: Schedule | undefined,
+    override: ScheduleOverride | undefined,
+  ) => {
     if (override) {
-      if (!override.startTime || !override.endTime) return 'Day off';
+      if (!override.startTime || !override.endTime) {
+        if (override.source === "HOLIDAY") {
+          return `${override.holidayName ?? override.reason ?? "Holiday"} (Day off)`;
+        }
+        if (override.reason) {
+          return `${override.reason} (Day off)`;
+        }
+        return "Day off";
+      }
       return `${formatTime12Hour(override.startTime)} - ${formatTime12Hour(override.endTime)}`;
     }
-    if (!schedule) return '-';
+    if (!schedule) return "-";
     return `${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)}`;
   };
 
@@ -588,7 +744,9 @@ export default function RosterPage() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Staff Roster</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+          Staff Roster
+        </h1>
         <p className="text-gray-600">Manage staff schedules and availability</p>
       </div>
 
@@ -598,25 +756,26 @@ export default function RosterPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setWeekStart(prev => addDays(prev, -7))}
+            onClick={() => setWeekStart((prev) => addDays(prev, -7))}
           >
             <ChevronLeft className="h-4 w-4" />
             Previous Week
           </Button>
-          
+
           <div className="text-center">
             <h2 className="text-lg font-medium">
-              {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
+              {format(weekStart, "MMM d")} -{" "}
+              {format(addDays(weekStart, 6), "MMM d, yyyy")}
             </h2>
             {isSameDay(weekStart, startOfWeek(new Date())) && (
               <p className="text-sm text-gray-500">Current Week</p>
             )}
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setWeekStart(prev => addDays(prev, 7))}
+            onClick={() => setWeekStart((prev) => addDays(prev, 7))}
           >
             Next Week
             <ChevronRight className="h-4 w-4" />
@@ -632,7 +791,7 @@ export default function RosterPage() {
             <Calendar className="h-4 w-4 mr-2" />
             This Week
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -642,7 +801,7 @@ export default function RosterPage() {
             <Copy className="h-4 w-4 mr-2" />
             Copy Previous Week
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -660,186 +819,254 @@ export default function RosterPage() {
         <Card>
           <CardContent className="p-8 text-center">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Staff Members Found</h3>
-            <p className="text-gray-600 mb-4">Add staff members to manage their schedules.</p>
-            <Button onClick={() => window.location.href = '/staff'}>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Staff Members Found
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Add staff members to manage their schedules.
+            </p>
+            <Button onClick={() => (window.location.href = "/staff")}>
               <Plus className="h-4 w-4 mr-2" />
               Add Staff
             </Button>
           </CardContent>
         </Card>
       ) : (
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left p-4 font-medium text-gray-900 sticky left-0 bg-gray-50 z-10 min-w-[200px]">
-                    Staff Member
-                  </th>
-                  {Array.from({ length: 7 }, (_, i) => {
-                    const date = addDays(weekStart, i);
-                    const isCurrentDay = isToday(date);
-                    return (
-                      <th 
-                        key={i} 
-                        className={cn(
-                          "text-center p-4 font-medium min-w-[140px]",
-                          isCurrentDay && "bg-teal-50"
-                        )}
-                      >
-                        <div className="text-sm text-gray-600">{DAYS_OF_WEEK[i]}</div>
-                        <div className={cn(
-                          "text-lg",
-                          isCurrentDay && "text-teal-600 font-semibold"
-                        )}>
-                          {format(date, 'd')}
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map((staffMember) => (
-                  <tr key={staffMember.id} className="border-b hover:bg-gray-50">
-                    <td className="p-4 sticky left-0 bg-white z-10 border-r">
-                      <button
-                        className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors w-full text-left"
-                        onClick={() => setSelectedStaff(staffMember)}
-                      >
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
-                          style={{ backgroundColor: staffMember.color }}
-                        >
-                          {(staffMember.firstName || '?')[0]}{(staffMember.lastName || '?')[0]}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {staffMember.firstName} {staffMember.lastName}
-                          </p>
-                        </div>
-                      </button>
-                    </td>
-                    {Array.from({ length: 7 }, (_, dayIndex) => {
-                      const date = addDays(weekStart, dayIndex);
-                      const schedule = getScheduleForDay(staffMember.id, dayIndex);
-                      const override = getOverrideForDate(staffMember.id, date);
-                      const isEditing = editingCell?.staffId === staffMember.id && 
-                        editingCell?.dayOfWeek === dayIndex &&
-                        isSameDay(editingCell.date, date);
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      const isSaving = saving === `${staffMember.id}-${dateStr}`;
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left p-4 font-medium text-gray-900 sticky left-0 bg-gray-50 z-10 min-w-[200px]">
+                      Staff Member
+                    </th>
+                    {Array.from({ length: 7 }, (_, i) => {
+                      const date = addDays(weekStart, i);
                       const isCurrentDay = isToday(date);
-                      const hasOverride = !!override;
-                      
-                      // Determine current values
-                      const currentStartTime = override ? override.startTime : schedule?.startTime;
-                      const currentEndTime = override ? override.endTime : schedule?.endTime;
-                      
                       return (
-                        <td 
-                          key={dayIndex} 
+                        <th
+                          key={i}
                           className={cn(
-                            "p-2 text-center relative group",
-                            isCurrentDay && "bg-teal-50"
+                            "text-center p-4 font-medium min-w-[140px]",
+                            isCurrentDay && "bg-teal-50",
                           )}
                         >
-                          {isEditing ? (
-                            <div className="flex flex-col gap-1 p-2 bg-white rounded border shadow-lg">
-                              <select
-                                className="text-sm border rounded px-2 py-1"
-                                defaultValue={currentStartTime || ''}
-                                id={`start-${staffMember.id}-${dayIndex}`}
-                                disabled={isSaving}
-                              >
-                                <option value="">Off</option>
-                                {TIME_OPTIONS.slice(0, 36).map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
-                              <select
-                                className="text-sm border rounded px-2 py-1"
-                                defaultValue={currentEndTime || ''}
-                                id={`end-${staffMember.id}-${dayIndex}`}
-                                disabled={isSaving}
-                              >
-                                <option value="">Off</option>
-                                {TIME_OPTIONS.slice(12).map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
-                              <div className="flex gap-1 mt-1">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="text-xs flex-1"
-                                  onClick={() => {
-                                    const startSelect = document.getElementById(`start-${staffMember.id}-${dayIndex}`) as HTMLSelectElement;
-                                    const endSelect = document.getElementById(`end-${staffMember.id}-${dayIndex}`) as HTMLSelectElement;
-                                    const newStart = startSelect.value || null;
-                                    const newEnd = endSelect.value || null;
-                                    updateSchedule(staffMember.id, dayIndex, date, newStart, newEnd);
-                                  }}
-                                  disabled={isSaving}
-                                >
-                                  Confirm
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs flex-1"
-                                  onClick={() => updateSchedule(staffMember.id, dayIndex, date, null, null)}
-                                  disabled={isSaving}
-                                >
-                                  Set Day Off
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-xs flex-1"
-                                  onClick={() => setEditingCell(null)}
-                                  disabled={isSaving}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              className={cn(
-                                "w-full py-2 px-3 rounded text-sm transition-colors",
-                                hasOverride 
-                                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" 
-                                  : schedule 
-                                    ? "bg-teal-100 text-teal-700 hover:bg-teal-200" 
-                                    : "text-gray-400 hover:bg-gray-100",
-                                "group-hover:ring-2",
-                                hasOverride ? "group-hover:ring-yellow-300" : "group-hover:ring-teal-300"
-                              )}
-                              onClick={() => setEditingCell({ staffId: staffMember.id, dayOfWeek: dayIndex, date })}
-                              disabled={isSaving}
-                            >
-                              {isSaving ? (
-                                <div className="flex items-center justify-center">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />
-                                </div>
-                              ) : (
-                                formatScheduleTime(schedule, override)
-                              )}
-                            </button>
-                          )}
-                        </td>
+                          <div className="text-sm text-gray-600">
+                            {DAYS_OF_WEEK[i]}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-lg",
+                              isCurrentDay && "text-teal-600 font-semibold",
+                            )}
+                          >
+                            {format(date, "d")}
+                          </div>
+                        </th>
                       );
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody>
+                  {staff.map((staffMember) => (
+                    <tr
+                      key={staffMember.id}
+                      className="border-b hover:bg-gray-50"
+                    >
+                      <td className="p-4 sticky left-0 bg-white z-10 border-r">
+                        <button
+                          className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors w-full text-left"
+                          onClick={() => setSelectedStaff(staffMember)}
+                        >
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
+                            style={{ backgroundColor: staffMember.color }}
+                          >
+                            {(staffMember.firstName || "?")[0]}
+                            {(staffMember.lastName || "?")[0]}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {staffMember.firstName} {staffMember.lastName}
+                            </p>
+                          </div>
+                        </button>
+                      </td>
+                      {Array.from({ length: 7 }, (_, dayIndex) => {
+                        const date = addDays(weekStart, dayIndex);
+                        const schedule = getScheduleForDay(
+                          staffMember.id,
+                          dayIndex,
+                        );
+                        const override = getOverrideForDate(
+                          staffMember.id,
+                          date,
+                        );
+                        const isEditing =
+                          editingCell?.staffId === staffMember.id &&
+                          editingCell?.dayOfWeek === dayIndex &&
+                          isSameDay(editingCell.date, date);
+                        const dateStr = format(date, "yyyy-MM-dd");
+                        const isSaving =
+                          saving === `${staffMember.id}-${dateStr}`;
+                        const isCurrentDay = isToday(date);
+                        const hasOverride = !!override;
+
+                        // Determine current values
+                        const currentStartTime = override
+                          ? override.startTime
+                          : schedule?.startTime;
+                        const currentEndTime = override
+                          ? override.endTime
+                          : schedule?.endTime;
+
+                        return (
+                          <td
+                            key={dayIndex}
+                            className={cn(
+                              "p-2 text-center relative group",
+                              isCurrentDay && "bg-teal-50",
+                            )}
+                          >
+                            {isEditing ? (
+                              <div className="flex flex-col gap-1 p-2 bg-white rounded border shadow-lg">
+                                <select
+                                  className="text-sm border rounded px-2 py-1"
+                                  defaultValue={currentStartTime || ""}
+                                  id={`start-${staffMember.id}-${dayIndex}`}
+                                  disabled={isSaving}
+                                >
+                                  <option value="">Off</option>
+                                  {TIME_OPTIONS.slice(0, 36).map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  className="text-sm border rounded px-2 py-1"
+                                  defaultValue={currentEndTime || ""}
+                                  id={`end-${staffMember.id}-${dayIndex}`}
+                                  disabled={isSaving}
+                                >
+                                  <option value="">Off</option>
+                                  {TIME_OPTIONS.slice(12).map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="flex gap-1 mt-1">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="text-xs flex-1"
+                                    onClick={() => {
+                                      const startSelect =
+                                        document.getElementById(
+                                          `start-${staffMember.id}-${dayIndex}`,
+                                        ) as HTMLSelectElement;
+                                      const endSelect = document.getElementById(
+                                        `end-${staffMember.id}-${dayIndex}`,
+                                      ) as HTMLSelectElement;
+                                      const newStart =
+                                        startSelect.value || null;
+                                      const newEnd = endSelect.value || null;
+                                      updateSchedule(
+                                        staffMember.id,
+                                        dayIndex,
+                                        date,
+                                        newStart,
+                                        newEnd,
+                                      );
+                                    }}
+                                    disabled={isSaving}
+                                  >
+                                    Confirm
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs flex-1"
+                                    onClick={() =>
+                                      updateSchedule(
+                                        staffMember.id,
+                                        dayIndex,
+                                        date,
+                                        null,
+                                        null,
+                                      )
+                                    }
+                                    disabled={isSaving}
+                                  >
+                                    Set Day Off
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs flex-1"
+                                    onClick={() => setEditingCell(null)}
+                                    disabled={isSaving}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                className={cn(
+                                  "w-full py-2 px-3 rounded text-sm transition-colors",
+                                  hasOverride
+                                    ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                                    : schedule
+                                      ? "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                                      : "text-gray-400 hover:bg-gray-100",
+                                  "group-hover:ring-2",
+                                  hasOverride
+                                    ? "group-hover:ring-yellow-300"
+                                    : "group-hover:ring-teal-300",
+                                )}
+                                onClick={() =>
+                                  setEditingCell({
+                                    staffId: staffMember.id,
+                                    dayOfWeek: dayIndex,
+                                    date,
+                                  })
+                                }
+                                disabled={isSaving}
+                              >
+                                {isSaving ? (
+                                  <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span>
+                                      {formatScheduleTime(schedule, override)}
+                                    </span>
+                                    {override?.source === "HOLIDAY" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1 py-0"
+                                      >
+                                        Holiday
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                              </button>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Summary Stats */}
@@ -855,7 +1082,7 @@ export default function RosterPage() {
             <p className="text-2xl font-semibold">{staff.length}</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -868,24 +1095,30 @@ export default function RosterPage() {
               {(() => {
                 let totalHours = 0;
                 let staffWithSchedules = 0;
-                
+
                 schedules.forEach((staffSchedules) => {
                   if (staffSchedules && staffSchedules.length > 0) {
                     staffWithSchedules++;
-                    staffSchedules.forEach(schedule => {
-                      const start = parseInt(schedule.startTime.split(':')[0]) + parseInt(schedule.startTime.split(':')[1]) / 60;
-                      const end = parseInt(schedule.endTime.split(':')[0]) + parseInt(schedule.endTime.split(':')[1]) / 60;
-                      totalHours += (end - start);
+                    staffSchedules.forEach((schedule) => {
+                      const start =
+                        parseInt(schedule.startTime.split(":")[0]) +
+                        parseInt(schedule.startTime.split(":")[1]) / 60;
+                      const end =
+                        parseInt(schedule.endTime.split(":")[0]) +
+                        parseInt(schedule.endTime.split(":")[1]) / 60;
+                      totalHours += end - start;
                     });
                   }
                 });
-                
-                return staffWithSchedules > 0 ? (totalHours / staffWithSchedules).toFixed(1) : '0';
+
+                return staffWithSchedules > 0
+                  ? (totalHours / staffWithSchedules).toFixed(1)
+                  : "0";
               })()}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -899,12 +1132,16 @@ export default function RosterPage() {
                 const today = new Date().getDay();
                 let count = 0;
                 schedules.forEach((staffSchedules) => {
-                  if (staffSchedules && staffSchedules.find(s => s.dayOfWeek === today)) {
+                  if (
+                    staffSchedules &&
+                    staffSchedules.find((s) => s.dayOfWeek === today)
+                  ) {
                     count++;
                   }
                 });
                 return count;
-              })()}/{staff.length}
+              })()}
+              /{staff.length}
             </p>
           </CardContent>
         </Card>
@@ -927,7 +1164,9 @@ export default function RosterPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Copy previous week schedule?</AlertDialogTitle>
             <AlertDialogDescription>
-              This copies last week&apos;s roster (including days off and overrides) into the current week and replaces any changes you&apos;ve already made for these days.
+              This copies last week&apos;s roster (including days off and
+              overrides) into the current week and replaces any changes
+              you&apos;ve already made for these days.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -945,12 +1184,17 @@ export default function RosterPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showConfirmBusinessHours} onOpenChange={setShowConfirmBusinessHours}>
+      <AlertDialog
+        open={showConfirmBusinessHours}
+        onOpenChange={setShowConfirmBusinessHours}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Overwrite staff schedules?</AlertDialogTitle>
             <AlertDialogDescription>
-              Applying business hours resets every staff member&apos;s weekly schedule to match your business hours. Current schedules will be replaced.
+              Applying business hours resets every staff member&apos;s weekly
+              schedule to match your business hours. Current schedules will be
+              replaced.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

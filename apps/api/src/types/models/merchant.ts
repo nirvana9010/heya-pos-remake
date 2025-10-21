@@ -18,6 +18,7 @@ export interface Merchant {
   package?: Package;
   createdAt: Date;
   updatedAt: Date;
+  holidays?: MerchantHoliday[];
 }
 
 export interface MerchantSettings {
@@ -71,6 +72,8 @@ export interface MerchantSettings {
   cancellationNotificationSms?: boolean;
   // Payment terminal settings
   tyroEnabled: boolean;
+  // Holiday management
+  holidayState?: AustralianState | null;
 }
 
 export interface BusinessHours {
@@ -112,3 +115,4 @@ export interface MerchantAuth {
 }
 
 import type { Package } from './package';
+import type { AustralianState, MerchantHoliday } from '@heya-pos/types';

@@ -13,6 +13,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { SessionService } from './auth/session.service';
 import { PublicModule } from './public/public.module';
 import { DebugModule } from './debug/debug.module';
+import { MerchantHolidaysModule } from './merchant-holidays/merchant-holidays.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DebugModule } from './debug/debug.module';
     StaffModule,
     LoyaltyModule,
     PublicModule,
+    MerchantHolidaysModule,
     DebugModule // Include debug module in development
   ],
   controllers: [AppController],

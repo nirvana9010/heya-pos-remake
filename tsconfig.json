@@ -19,7 +19,7 @@
       "@heya-pos/ui/*": ["./packages/ui/src/*"],
       "@heya-pos/utils": ["./packages/utils/src"],
       "@heya-pos/utils/*": ["./packages/utils/src/*"],
-      "@heya-pos/types": ["./packages/types/src"],
+      "@heya-pos/types": ["./packages/types/src/index.ts"],
       "@heya-pos/types/*": ["./packages/types/src/*"]
     }
   },

@@ -93,6 +93,25 @@ npm run lint
 npm run typecheck
 ```
 
+### Prisma Schema Changes
+
+Whenever you add or modify database columns:
+
+1. **Back up the dev database (optional but recommended).**
+   ```bash
+   pg_dump -h localhost -p 5432 -U user heya_pos > backup_dev_$(date +%Y%m%d_%H%M%S).sql
+   ```
+2. **Edit** `apps/api/prisma/schema.prisma`.
+3. **Generate a migration** and apply it locally:
+   ```bash
+   cd apps/api
+   npx prisma migrate dev --name add_feature_flag_column
+   ```
+4. **Commit both** the schema file and the generated `apps/api/prisma/migrations/<timestamp>_<name>` folder.
+5. **Pulling changes on another machine?** Run `cd apps/api && npx prisma migrate dev` to stay in sync.
+
+If Prisma reports drift, don’t reset the database. Instead reconcile the history using `prisma migrate resolve` (see the “Prisma Migration Workflow” section in `AGENTS.md` for the exact steps). Never run `prisma db push` in shared environments.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and configure your values. Never commit `.env` files with real credentials.

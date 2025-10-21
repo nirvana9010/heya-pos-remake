@@ -1,19 +1,56 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check, Copy, ExternalLink, Plus, Edit, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import {
+  Building2,
+  Clock,
+  CreditCard,
+  Shield,
+  Bell,
+  Users,
+  Database,
+  Globe,
+  Upload,
+  Download,
+  FileText,
+  Check,
+  Copy,
+  ExternalLink,
+  Plus,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@heya-pos/ui";
 import { Spinner } from "@heya-pos/ui";
 import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
@@ -26,6 +63,7 @@ import { CustomerImportPreviewDialog } from "@/components/customers/customer-imp
 import { useAuth } from "@/lib/auth/auth-provider";
 import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
 import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
+import { HolidayManager } from "@/components/settings/HolidayManager";
 import { useTyro } from "@/hooks/useTyro";
 import type { CustomerImportPreview } from "@/lib/clients/customers-client";
 import { customerKeys } from "@/lib/query/hooks/use-customers";
@@ -38,47 +76,116 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   // Initialize with merchant settings if available to prevent flicker
   const merchantSettings = merchant?.settings || {};
-  
-  const [bookingAdvanceHours, setBookingAdvanceHours] = useState(merchantSettings.bookingAdvanceHours?.toString() || "48");
-  const [cancellationHours, setCancellationHours] = useState(merchantSettings.cancellationHours?.toString() || "24");
-  const [minimumBookingNotice, setMinimumBookingNotice] = useState(merchantSettings.minimumBookingNotice?.toString() || "0");
-  const [requirePinForRefunds, setRequirePinForRefunds] = useState(merchantSettings.requirePinForRefunds ?? true);
-  const [requirePinForCancellations, setRequirePinForCancellations] = useState(merchantSettings.requirePinForCancellations ?? true);
-  const [requirePinForReports, setRequirePinForReports] = useState(merchantSettings.requirePinForReports ?? true);
-  const [requirePinForStaff, setRequirePinForStaff] = useState(merchantSettings.requirePinForStaff ?? true);
-  const [selectedTimezone, setSelectedTimezone] = useState(merchantSettings.timezone || "Australia/Sydney");
+
+  const [bookingAdvanceHours, setBookingAdvanceHours] = useState(
+    merchantSettings.bookingAdvanceHours?.toString() || "48",
+  );
+  const [cancellationHours, setCancellationHours] = useState(
+    merchantSettings.cancellationHours?.toString() || "24",
+  );
+  const [minimumBookingNotice, setMinimumBookingNotice] = useState(
+    merchantSettings.minimumBookingNotice?.toString() || "0",
+  );
+  const [requirePinForRefunds, setRequirePinForRefunds] = useState(
+    merchantSettings.requirePinForRefunds ?? true,
+  );
+  const [requirePinForCancellations, setRequirePinForCancellations] = useState(
+    merchantSettings.requirePinForCancellations ?? true,
+  );
+  const [requirePinForReports, setRequirePinForReports] = useState(
+    merchantSettings.requirePinForReports ?? true,
+  );
+  const [requirePinForStaff, setRequirePinForStaff] = useState(
+    merchantSettings.requirePinForStaff ?? true,
+  );
+  const [selectedTimezone, setSelectedTimezone] = useState(
+    merchantSettings.timezone || "Australia/Sydney",
+  );
   // Notification settings - initialize from merchant settings to prevent flicker
-  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(merchantSettings.bookingConfirmationEmail !== false);
-  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(merchantSettings.bookingConfirmationSms !== false);
-  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(merchantSettings.appointmentReminder24hEmail !== false);
-  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(merchantSettings.appointmentReminder24hSms !== false);
-  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(merchantSettings.appointmentReminder2hEmail !== false);
-  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(merchantSettings.appointmentReminder2hSms !== false);
-  const [newBookingNotification, setNewBookingNotification] = useState(merchantSettings.newBookingNotification !== false);
-  const [newBookingNotificationEmail, setNewBookingNotificationEmail] = useState(merchantSettings.newBookingNotificationEmail !== false);
-  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(merchantSettings.newBookingNotificationSms !== false);
-  const [cancellationNotification, setCancellationNotification] = useState(merchantSettings.cancellationNotification !== false);
-  const [cancellationNotificationEmail, setCancellationNotificationEmail] = useState(merchantSettings.cancellationNotificationEmail !== false);
-  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(merchantSettings.cancellationNotificationSms !== false);
+  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(
+    merchantSettings.bookingConfirmationEmail !== false,
+  );
+  const [bookingConfirmationSms, setBookingConfirmationSms] = useState(
+    merchantSettings.bookingConfirmationSms !== false,
+  );
+  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] =
+    useState(merchantSettings.appointmentReminder24hEmail !== false);
+  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(
+    merchantSettings.appointmentReminder24hSms !== false,
+  );
+  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(
+    merchantSettings.appointmentReminder2hEmail !== false,
+  );
+  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(
+    merchantSettings.appointmentReminder2hSms !== false,
+  );
+  const [newBookingNotification, setNewBookingNotification] = useState(
+    merchantSettings.newBookingNotification !== false,
+  );
+  const [newBookingNotificationEmail, setNewBookingNotificationEmail] =
+    useState(merchantSettings.newBookingNotificationEmail !== false);
+  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(
+    merchantSettings.newBookingNotificationSms !== false,
+  );
+  const [cancellationNotification, setCancellationNotification] = useState(
+    merchantSettings.cancellationNotification !== false,
+  );
+  const [cancellationNotificationEmail, setCancellationNotificationEmail] =
+    useState(merchantSettings.cancellationNotificationEmail !== false);
+  const [cancellationNotificationSms, setCancellationNotificationSms] =
+    useState(merchantSettings.cancellationNotificationSms !== false);
   const [loading, setLoading] = useState(false);
-  const [requireDeposit, setRequireDeposit] = useState(merchantSettings.requireDeposit ?? false);
-  const [depositPercentage, setDepositPercentage] = useState(merchantSettings.depositPercentage?.toString() || "30");
-  const [enableTips, setEnableTips] = useState(merchantSettings.enableTips ?? false);
-  const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>(merchantSettings.defaultTipPercentages || [10, 15, 20]);
-  const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(merchantSettings.allowCustomTipAmount ?? true);
-  const [showUnassignedColumn, setShowUnassignedColumn] = useState(merchantSettings.showUnassignedColumn ?? true);
-  const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(merchantSettings.allowUnassignedBookings ?? true);
-  const [autoConfirmBookings, setAutoConfirmBookings] = useState(merchantSettings.autoConfirmBookings ?? true);
-  const [calendarStartHour, setCalendarStartHour] = useState(merchantSettings.calendarStartHour ?? 6);
-  const [calendarEndHour, setCalendarEndHour] = useState(merchantSettings.calendarEndHour ?? 23);
-  const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] = useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
-  const [includeUnscheduledStaff, setIncludeUnscheduledStaff] = useState(merchantSettings.includeUnscheduledStaff ?? false);
-  const [priceToDurationRatio, setPriceToDurationRatio] = useState(merchantSettings.priceToDurationRatio?.toString() || "1.0");
-  const [tyroEnabled, setTyroEnabled] = useState(merchantSettings.tyroEnabled ?? false);
-  const [tyroTerminalId, setTyroTerminalId] = useState(merchantSettings.tyroTerminalId ?? '');
-  const [tyroMerchantId, setTyroMerchantId] = useState((merchantSettings.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || '');
+  const [requireDeposit, setRequireDeposit] = useState(
+    merchantSettings.requireDeposit ?? false,
+  );
+  const [depositPercentage, setDepositPercentage] = useState(
+    merchantSettings.depositPercentage?.toString() || "30",
+  );
+  const [enableTips, setEnableTips] = useState(
+    merchantSettings.enableTips ?? false,
+  );
+  const [defaultTipPercentages, setDefaultTipPercentages] = useState<number[]>(
+    merchantSettings.defaultTipPercentages || [10, 15, 20],
+  );
+  const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(
+    merchantSettings.allowCustomTipAmount ?? true,
+  );
+  const [showUnassignedColumn, setShowUnassignedColumn] = useState(
+    merchantSettings.showUnassignedColumn ?? true,
+  );
+  const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(
+    merchantSettings.allowUnassignedBookings ?? true,
+  );
+  const [autoConfirmBookings, setAutoConfirmBookings] = useState(
+    merchantSettings.autoConfirmBookings ?? true,
+  );
+  const [calendarStartHour, setCalendarStartHour] = useState(
+    merchantSettings.calendarStartHour ?? 6,
+  );
+  const [calendarEndHour, setCalendarEndHour] = useState(
+    merchantSettings.calendarEndHour ?? 23,
+  );
+  const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] =
+    useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
+  const [includeUnscheduledStaff, setIncludeUnscheduledStaff] = useState(
+    merchantSettings.includeUnscheduledStaff ?? false,
+  );
+  const [priceToDurationRatio, setPriceToDurationRatio] = useState(
+    merchantSettings.priceToDurationRatio?.toString() || "1.0",
+  );
+  const [tyroEnabled, setTyroEnabled] = useState(
+    merchantSettings.tyroEnabled ?? false,
+  );
+  const [tyroTerminalId, setTyroTerminalId] = useState(
+    merchantSettings.tyroTerminalId ?? "",
+  );
+  const [tyroMerchantId, setTyroMerchantId] = useState(
+    (merchantSettings.tyroMerchantId ??
+      process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) ||
+      "",
+  );
   const [showTyroPairingDialog, setShowTyroPairingDialog] = useState(false);
-  
+
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
   const [businessName, setBusinessName] = useState("");
@@ -86,7 +193,7 @@ export default function SettingsPage() {
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessAbn, setBusinessAbn] = useState("");
   const [merchantSubdomain, setMerchantSubdomain] = useState("");
-  
+
   // Business hours state - initialize from merchant settings if available
   const defaultHours = {
     monday: { open: "09:00", close: "17:00", isOpen: true },
@@ -97,36 +204,50 @@ export default function SettingsPage() {
     saturday: { open: "09:00", close: "17:00", isOpen: true },
     sunday: { open: "09:00", close: "17:00", isOpen: false },
   };
-  
+
   const [businessHours, setBusinessHours] = useState<any>(() => {
     if (merchantSettings.businessHours) {
       const formattedHours: any = {};
-      Object.entries(merchantSettings.businessHours).forEach(([day, hours]: [string, any]) => {
-        if (hours) {
-          formattedHours[day] = {
-            open: hours.open || "09:00",
-            close: hours.close || "17:00",
-            isOpen: hours.isOpen !== undefined ? hours.isOpen : true
-          };
-        } else {
-          formattedHours[day] = defaultHours[day as keyof typeof defaultHours] || { open: "09:00", close: "17:00", isOpen: false };
-        }
-      });
+      Object.entries(merchantSettings.businessHours).forEach(
+        ([day, hours]: [string, any]) => {
+          if (hours) {
+            formattedHours[day] = {
+              open: hours.open || "09:00",
+              close: hours.close || "17:00",
+              isOpen: hours.isOpen !== undefined ? hours.isOpen : true,
+            };
+          } else {
+            formattedHours[day] = defaultHours[
+              day as keyof typeof defaultHours
+            ] || { open: "09:00", close: "17:00", isOpen: false };
+          }
+        },
+      );
       return { ...defaultHours, ...formattedHours };
     }
     return defaultHours;
   });
-  
+
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
-  const [customerDuplicateAction, setCustomerDuplicateAction] = useState<'skip' | 'update'>('update');
+  const [customerDuplicateAction, setCustomerDuplicateAction] = useState<
+    "skip" | "update"
+  >("update");
   const [customerSkipInvalidRows, setCustomerSkipInvalidRows] = useState(true);
   const [customerCsvHeaders, setCustomerCsvHeaders] = useState<string[]>([]);
-  const [customerCsvPreviewRows, setCustomerCsvPreviewRows] = useState<string[][]>([]);
-  const [customerColumnMappings, setCustomerColumnMappings] = useState<Record<string, string> | null>(null);
-  const [showCustomerMappingDialog, setShowCustomerMappingDialog] = useState(false);
-  const [customerImportPreview, setCustomerImportPreview] = useState<CustomerImportPreview | null>(null);
-  const [showCustomerPreviewDialog, setShowCustomerPreviewDialog] = useState(false);
+  const [customerCsvPreviewRows, setCustomerCsvPreviewRows] = useState<
+    string[][]
+  >([]);
+  const [customerColumnMappings, setCustomerColumnMappings] = useState<Record<
+    string,
+    string
+  > | null>(null);
+  const [showCustomerMappingDialog, setShowCustomerMappingDialog] =
+    useState(false);
+  const [customerImportPreview, setCustomerImportPreview] =
+    useState<CustomerImportPreview | null>(null);
+  const [showCustomerPreviewDialog, setShowCustomerPreviewDialog] =
+    useState(false);
   const [serviceFile, setServiceFile] = useState<File | null>(null);
   const [importingCustomers, setImportingCustomers] = useState(false);
   const [importingServices, setImportingServices] = useState(false);
@@ -135,18 +256,27 @@ export default function SettingsPage() {
   const [showMappingDialog, setShowMappingDialog] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvPreviewRows, setCsvPreviewRows] = useState<string[][]>([]);
-  const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
-  const [lastImportResult, setLastImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
+  const [columnMappings, setColumnMappings] = useState<Record<string, string>>(
+    {},
+  );
+  const [lastImportResult, setLastImportResult] = useState<{
+    imported: number;
+    updated: number;
+    skipped: number;
+  } | null>(null);
   const [allServices, setAllServices] = useState<ApiService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
   const [overrideEditId, setOverrideEditId] = useState<string | null>(null);
-  const [overrideSelectedServiceId, setOverrideSelectedServiceId] = useState<string>("");
+  const [overrideSelectedServiceId, setOverrideSelectedServiceId] =
+    useState<string>("");
   const [overrideMaxDays, setOverrideMaxDays] = useState<number>(0);
   const [overrideMinHours, setOverrideMinHours] = useState<number>(0);
   const [overrideSaving, setOverrideSaving] = useState(false);
   const [overrideError, setOverrideError] = useState<string | null>(null);
-  const [removingOverrideId, setRemovingOverrideId] = useState<string | null>(null);
+  const [removingOverrideId, setRemovingOverrideId] = useState<string | null>(
+    null,
+  );
   const bookingDefaults = useMemo(() => {
     const advanceHoursNumeric = Number(bookingAdvanceHours);
     const minNoticeMinutesNumeric = Number(minimumBookingNotice);
@@ -164,15 +294,16 @@ export default function SettingsPage() {
     try {
       const response = await apiClient.getServices({
         limit: 500,
-        sortBy: 'name',
-        sortOrder: 'asc',
+        sortBy: "name",
+        sortOrder: "asc",
       });
       setAllServices(response?.data ?? []);
     } catch (error: any) {
-      console.error('Failed to load services:', error);
+      console.error("Failed to load services:", error);
       toast({
         title: "Error",
-        description: error?.response?.data?.message || "Failed to load services",
+        description:
+          error?.response?.data?.message || "Failed to load services",
         variant: "destructive",
       });
     } finally {
@@ -184,19 +315,18 @@ export default function SettingsPage() {
     return allServices
       .filter((service) => {
         const maxValue =
-          typeof service.maxAdvanceBooking === 'number'
+          typeof service.maxAdvanceBooking === "number"
             ? service.maxAdvanceBooking
             : bookingDefaults.maxDays;
         const minValue =
-          typeof service.minAdvanceBooking === 'number'
+          typeof service.minAdvanceBooking === "number"
             ? service.minAdvanceBooking
             : bookingDefaults.minNoticeHours;
-        const metadataMode =
-          (service.metadata as any)?.advanceBooking?.mode as
-            | 'merchant_default'
-            | 'custom'
-            | undefined;
-        if (metadataMode === 'custom') {
+        const metadataMode = (service.metadata as any)?.advanceBooking?.mode as
+          | "merchant_default"
+          | "custom"
+          | undefined;
+        if (metadataMode === "custom") {
           return true;
         }
         return (
@@ -206,18 +336,17 @@ export default function SettingsPage() {
       })
       .map((service) => {
         const maxValue =
-          typeof service.maxAdvanceBooking === 'number'
+          typeof service.maxAdvanceBooking === "number"
             ? service.maxAdvanceBooking
             : bookingDefaults.maxDays;
         const minValue =
-          typeof service.minAdvanceBooking === 'number'
+          typeof service.minAdvanceBooking === "number"
             ? service.minAdvanceBooking
             : bookingDefaults.minNoticeHours;
-        const metadataMode =
-          (service.metadata as any)?.advanceBooking?.mode as
-            | 'merchant_default'
-            | 'custom'
-            | undefined;
+        const metadataMode = (service.metadata as any)?.advanceBooking?.mode as
+          | "merchant_default"
+          | "custom"
+          | undefined;
         return {
           id: service.id,
           name: service.name,
@@ -251,7 +380,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (overrideDialogOpen && !overrideEditId) {
-      if (!overrideSelectedServiceId && availableServicesForOverride.length > 0) {
+      if (
+        !overrideSelectedServiceId &&
+        availableServicesForOverride.length > 0
+      ) {
         setOverrideSelectedServiceId(availableServicesForOverride[0].id);
         setOverrideMaxDays(bookingDefaults.maxDays);
         setOverrideMinHours(bookingDefaults.minNoticeHours);
@@ -268,63 +400,100 @@ export default function SettingsPage() {
     bookingDefaults,
   ]);
 
-
   const loadMerchantSettings = async () => {
     try {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
-        setBookingAdvanceHours(response.bookingAdvanceHours?.toString() || "48");
+        setBookingAdvanceHours(
+          response.bookingAdvanceHours?.toString() || "48",
+        );
         setCancellationHours(response.cancellationHours?.toString() || "24");
-        setMinimumBookingNotice(response.minimumBookingNotice?.toString() || "0");
+        setMinimumBookingNotice(
+          response.minimumBookingNotice?.toString() || "0",
+        );
         setRequirePinForRefunds(response.requirePinForRefunds ?? true);
-        setRequirePinForCancellations(response.requirePinForCancellations ?? true);
+        setRequirePinForCancellations(
+          response.requirePinForCancellations ?? true,
+        );
         setRequirePinForReports(response.requirePinForReports ?? true);
         setRequirePinForStaff(response.requirePinForStaff ?? true);
         setRequireDeposit(response.requireDeposit ?? false);
         setDepositPercentage(response.depositPercentage?.toString() || "30");
         setEnableTips(response.enableTips ?? false);
-        setDefaultTipPercentages(response.defaultTipPercentages || [10, 15, 20]);
+        setDefaultTipPercentages(
+          response.defaultTipPercentages || [10, 15, 20],
+        );
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
         setShowUnassignedColumn(response.showUnassignedColumn ?? true);
         setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
         setAutoConfirmBookings(response.autoConfirmBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
-        setShowOnlyRosteredStaffDefault(response.showOnlyRosteredStaffDefault ?? true);
+        setShowOnlyRosteredStaffDefault(
+          response.showOnlyRosteredStaffDefault ?? true,
+        );
         setIncludeUnscheduledStaff(response.includeUnscheduledStaff ?? false);
-        setPriceToDurationRatio(response.priceToDurationRatio?.toString() || "1.0");
+        setPriceToDurationRatio(
+          response.priceToDurationRatio?.toString() || "1.0",
+        );
         setTyroEnabled(response.tyroEnabled ?? false);
         // Set timezone from merchant settings
         if (response.timezone) {
           setSelectedTimezone(response.timezone);
         }
         // Load notification settings
-        setBookingConfirmationEmail(response.bookingConfirmationEmail !== false);
+        setBookingConfirmationEmail(
+          response.bookingConfirmationEmail !== false,
+        );
         setBookingConfirmationSms(response.bookingConfirmationSms !== false);
-        setAppointmentReminder24hEmail(response.appointmentReminder24hEmail !== false);
-        setAppointmentReminder24hSms(response.appointmentReminder24hSms !== false);
-        setAppointmentReminder2hEmail(response.appointmentReminder2hEmail !== false);
-        setAppointmentReminder2hSms(response.appointmentReminder2hSms !== false);
+        setAppointmentReminder24hEmail(
+          response.appointmentReminder24hEmail !== false,
+        );
+        setAppointmentReminder24hSms(
+          response.appointmentReminder24hSms !== false,
+        );
+        setAppointmentReminder2hEmail(
+          response.appointmentReminder2hEmail !== false,
+        );
+        setAppointmentReminder2hSms(
+          response.appointmentReminder2hSms !== false,
+        );
         setNewBookingNotification(response.newBookingNotification !== false);
-        setNewBookingNotificationEmail(response.newBookingNotificationEmail !== false);
-        setNewBookingNotificationSms(response.newBookingNotificationSms !== false);
-        setCancellationNotification(response.cancellationNotification !== false);
-        setCancellationNotificationEmail(response.cancellationNotificationEmail !== false);
-        setCancellationNotificationSms(response.cancellationNotificationSms !== false);
+        setNewBookingNotificationEmail(
+          response.newBookingNotificationEmail !== false,
+        );
+        setNewBookingNotificationSms(
+          response.newBookingNotificationSms !== false,
+        );
+        setCancellationNotification(
+          response.cancellationNotification !== false,
+        );
+        setCancellationNotificationEmail(
+          response.cancellationNotificationEmail !== false,
+        );
+        setCancellationNotificationSms(
+          response.cancellationNotificationSms !== false,
+        );
         // Load business hours from merchant settings
         if (response.businessHours) {
           const formattedHours: any = {};
-          Object.entries(response.businessHours).forEach(([day, hours]: [string, any]) => {
-            if (hours) {
-              formattedHours[day] = {
-                open: hours.open || "09:00",
-                close: hours.close || "17:00",
-                isOpen: hours.isOpen !== undefined ? hours.isOpen : true
-              };
-            } else {
-              formattedHours[day] = { open: "09:00", close: "17:00", isOpen: false };
-            }
-          });
+          Object.entries(response.businessHours).forEach(
+            ([day, hours]: [string, any]) => {
+              if (hours) {
+                formattedHours[day] = {
+                  open: hours.open || "09:00",
+                  close: hours.close || "17:00",
+                  isOpen: hours.isOpen !== undefined ? hours.isOpen : true,
+                };
+              } else {
+                formattedHours[day] = {
+                  open: "09:00",
+                  close: "17:00",
+                  isOpen: false,
+                };
+              }
+            },
+          );
           setBusinessHours(formattedHours);
         }
         await fetchServicesList();
@@ -392,12 +561,12 @@ export default function SettingsPage() {
       setOverrideEditId(serviceId);
       setOverrideSelectedServiceId(serviceId);
       setOverrideMaxDays(
-        typeof service.maxAdvanceBooking === 'number'
+        typeof service.maxAdvanceBooking === "number"
           ? service.maxAdvanceBooking
           : bookingDefaults.maxDays,
       );
       setOverrideMinHours(
-        typeof service.minAdvanceBooking === 'number'
+        typeof service.minAdvanceBooking === "number"
           ? service.minAdvanceBooking
           : bookingDefaults.minNoticeHours,
       );
@@ -412,7 +581,9 @@ export default function SettingsPage() {
     const targetService =
       overrideEditId && editingOverrideService
         ? editingOverrideService
-        : allServices.find((service) => service.id === overrideSelectedServiceId) ?? null;
+        : (allServices.find(
+            (service) => service.id === overrideSelectedServiceId,
+          ) ?? null);
 
     if (!targetService) {
       setOverrideError("Select a service to override.");
@@ -425,17 +596,23 @@ export default function SettingsPage() {
       return;
     }
     if (maxDays > bookingDefaults.maxDays) {
-      setOverrideError(`Maximum advance booking cannot exceed ${bookingDefaults.maxDays} day(s).`);
+      setOverrideError(
+        `Maximum advance booking cannot exceed ${bookingDefaults.maxDays} day(s).`,
+      );
       return;
     }
 
     const minHours = Math.trunc(overrideMinHours);
     if (!Number.isFinite(minHours) || minHours < 0) {
-      setOverrideError("Minimum advance notice must be a positive number of hours.");
+      setOverrideError(
+        "Minimum advance notice must be a positive number of hours.",
+      );
       return;
     }
     if (minHours > maxDays * 24) {
-      setOverrideError("Minimum advance notice cannot exceed the maximum booking window.");
+      setOverrideError(
+        "Minimum advance notice cannot exceed the maximum booking window.",
+      );
       return;
     }
     if (minHours < bookingDefaults.minNoticeHours) {
@@ -450,19 +627,20 @@ export default function SettingsPage() {
       await apiClient.updateService(targetService.id, {
         maxAdvanceBooking: maxDays,
         minAdvanceBooking: minHours,
-        advanceBookingMode: 'custom',
+        advanceBookingMode: "custom",
       });
       toast({
         title: "Override saved",
-        description: `${targetService.name} can now be booked up to ${maxDays} day${maxDays === 1 ? '' : 's'} in advance.`,
+        description: `${targetService.name} can now be booked up to ${maxDays} day${maxDays === 1 ? "" : "s"} in advance.`,
       });
       await fetchServicesList();
       setOverrideDialogOpen(false);
       resetOverrideForm();
     } catch (error: any) {
-      console.error('Failed to save override:', error);
+      console.error("Failed to save override:", error);
       setOverrideError(
-        error?.response?.data?.message || "Failed to save override. Please try again.",
+        error?.response?.data?.message ||
+          "Failed to save override. Please try again.",
       );
     } finally {
       setOverrideSaving(false);
@@ -502,7 +680,7 @@ export default function SettingsPage() {
       setRemovingOverrideId(serviceId);
       try {
         await apiClient.updateService(serviceId, {
-          advanceBookingMode: 'merchant_default',
+          advanceBookingMode: "merchant_default",
           maxAdvanceBooking: bookingDefaults.maxDays,
           minAdvanceBooking: bookingDefaults.minNoticeHours,
         });
@@ -512,10 +690,11 @@ export default function SettingsPage() {
         });
         await fetchServicesList();
       } catch (error: any) {
-        console.error('Failed to remove override:', error);
+        console.error("Failed to remove override:", error);
         toast({
           title: "Error",
-          description: error?.response?.data?.message || "Failed to remove override",
+          description:
+            error?.response?.data?.message || "Failed to remove override",
           variant: "destructive",
         });
       } finally {
@@ -577,36 +756,38 @@ export default function SettingsPage() {
         tyroTerminalId,
         tyroMerchantId,
       };
-      
+
       await apiClient.put("/merchant/settings", updatedSettings);
-      
+
       // Update merchant data in localStorage to reflect the changes immediately
-      const storedMerchant = localStorage.getItem('merchant');
+      const storedMerchant = localStorage.getItem("merchant");
       if (storedMerchant) {
         try {
           const merchantData = JSON.parse(storedMerchant);
           merchantData.settings = {
             ...merchantData.settings,
-            ...updatedSettings
+            ...updatedSettings,
           };
-          localStorage.setItem('merchant', JSON.stringify(merchantData));
-          
+          localStorage.setItem("merchant", JSON.stringify(merchantData));
+
           // Dispatch a custom event for same-tab updates
-          window.dispatchEvent(new CustomEvent('merchantSettingsUpdated', { 
-            detail: { settings: merchantData.settings } 
-          }));
-          
+          window.dispatchEvent(
+            new CustomEvent("merchantSettingsUpdated", {
+              detail: { settings: merchantData.settings },
+            }),
+          );
+
           // Also update the auth context if it has a refresh function
-          if (merchant && typeof window !== 'undefined') {
+          if (merchant && typeof window !== "undefined") {
             // Trigger a re-render by updating query cache
-            queryClient.invalidateQueries({ queryKey: ['merchant'] });
-            queryClient.invalidateQueries({ queryKey: ['calendar'] });
+            queryClient.invalidateQueries({ queryKey: ["merchant"] });
+            queryClient.invalidateQueries({ queryKey: ["calendar"] });
           }
         } catch (e) {
-          console.error('Failed to update local merchant data:', e);
+          console.error("Failed to update local merchant data:", e);
         }
       }
-      
+
       toast({
         title: "Success",
         description: "Booking settings updated successfully",
@@ -649,7 +830,6 @@ export default function SettingsPage() {
 
   // Removed BusinessTab component definition to prevent re-rendering issues
 
-
   // Removed SecurityTab component definition to prevent re-rendering issues
 
   // Removed LoyaltyTab component definition to prevent re-rendering issues
@@ -674,22 +854,25 @@ export default function SettingsPage() {
 
     try {
       const formData = new FormData();
-      formData.append('file', customerFile);
+      formData.append("file", customerFile);
 
       const API_BASE_URL = resolveApiBaseUrl();
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
 
-      const response = await fetch(`${API_BASE_URL}/v1/customers/import/mapping`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const response = await fetch(
+        `${API_BASE_URL}/v1/customers/import/mapping`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to parse CSV file');
+        throw new Error(error.message || "Failed to parse CSV file");
       }
 
       const mappingData = await response.json();
@@ -699,7 +882,8 @@ export default function SettingsPage() {
     } catch (error) {
       toast({
         title: "Import error",
-        description: error instanceof Error ? error.message : "Failed to parse CSV file",
+        description:
+          error instanceof Error ? error.message : "Failed to parse CSV file",
         variant: "destructive",
       });
     } finally {
@@ -733,7 +917,10 @@ export default function SettingsPage() {
     } catch (error) {
       toast({
         title: "Preview failed",
-        description: error instanceof Error ? error.message : "Unable to preview customer import",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Unable to preview customer import",
         variant: "destructive",
       });
       if (!customerImportPreview) {
@@ -744,7 +931,9 @@ export default function SettingsPage() {
     }
   };
 
-  const handleCustomerMappingConfirm = async (mappings: Record<string, string>) => {
+  const handleCustomerMappingConfirm = async (
+    mappings: Record<string, string>,
+  ) => {
     if (!customerFile) {
       toast({
         title: "No file selected",
@@ -809,7 +998,8 @@ export default function SettingsPage() {
     } catch (error) {
       toast({
         title: "Import failed",
-        description: error instanceof Error ? error.message : "Unable to import customers",
+        description:
+          error instanceof Error ? error.message : "Unable to import customers",
         variant: "destructive",
       });
     } finally {
@@ -821,12 +1011,12 @@ export default function SettingsPage() {
     const csv = `First Name,Last Name,Full Name,Email,Mobile Number,Phone,Accepts Marketing,Accepts SMS Marketing,Date of Birth,Referral Source,Note
 "Anna","Smith",,"anna@example.com","+61 412 345 678",,"Yes","Yes","1992-05-10","Website","Prefers morning appointments"
 "Ben","Brown",,,"0412 000 000","02 9123 4567","No","No",,"Walk-In",""`;
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
+
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'customer-import-template.csv';
+    a.download = "customer-import-template.csv";
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -839,10 +1029,13 @@ export default function SettingsPage() {
         description: "Template downloaded successfully",
       });
     } catch (error) {
-      console.error('Template download error:', error);
+      console.error("Template download error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download template",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to download template",
         variant: "destructive",
       });
     }
@@ -862,21 +1055,24 @@ export default function SettingsPage() {
     try {
       // First, get the CSV headers and preview rows for column mapping
       const formData = new FormData();
-      formData.append('file', serviceFile);
+      formData.append("file", serviceFile);
 
       const API_BASE_URL = resolveApiBaseUrl();
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
 
-      const response = await fetch(`${API_BASE_URL}/v1/services/import/mapping`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const response = await fetch(
+        `${API_BASE_URL}/v1/services/import/mapping`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to parse CSV file');
+        throw new Error("Failed to parse CSV file");
       }
 
       const mappingData = await response.json();
@@ -886,7 +1082,8 @@ export default function SettingsPage() {
     } catch (error) {
       toast({
         title: "Import error",
-        description: error instanceof Error ? error.message : "Failed to parse CSV file",
+        description:
+          error instanceof Error ? error.message : "Failed to parse CSV file",
         variant: "destructive",
       });
     } finally {
@@ -894,24 +1091,31 @@ export default function SettingsPage() {
     }
   };
 
-  const handleColumnMappingConfirm = async (mappings: Record<string, string>) => {
+  const handleColumnMappingConfirm = async (
+    mappings: Record<string, string>,
+  ) => {
     setColumnMappings(mappings);
     setShowMappingDialog(false);
     setImportingServices(true);
 
     try {
-      const preview = await apiClient.services.previewServiceImport(serviceFile!, {
-        duplicateAction: 'skip',
-        createCategories: true,
-        skipInvalidRows: false,
-      }, mappings);
-      
+      const preview = await apiClient.services.previewServiceImport(
+        serviceFile!,
+        {
+          duplicateAction: "skip",
+          createCategories: true,
+          skipInvalidRows: false,
+        },
+        mappings,
+      );
+
       setServiceImportPreview(preview);
       setShowPreviewDialog(true);
     } catch (error) {
       toast({
         title: "Import error",
-        description: error instanceof Error ? error.message : "Failed to preview import",
+        description:
+          error instanceof Error ? error.message : "Failed to preview import",
         variant: "destructive",
       });
     } finally {
@@ -927,33 +1131,34 @@ export default function SettingsPage() {
       const result = await apiClient.services.executeServiceImport(
         serviceImportPreview.rows,
         {
-          duplicateAction: 'create_new',
+          duplicateAction: "create_new",
           createCategories: true,
           skipInvalidRows: false,
-        }
+        },
       );
 
       toast({
         title: "✅ Import successful!",
-        description: `Successfully imported ${result.imported} services${result.updated > 0 ? `, updated ${result.updated}` : ''}${result.skipped > 0 ? `, skipped ${result.skipped}` : ''}.`,
+        description: `Successfully imported ${result.imported} services${result.updated > 0 ? `, updated ${result.updated}` : ""}${result.skipped > 0 ? `, skipped ${result.skipped}` : ""}.`,
         duration: 5000, // Show for 5 seconds
       });
 
       // Invalidate services and categories cache so the Services page shows the new data
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['services', 'categories'] });
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["services", "categories"] });
 
       // Reset state
       setServiceFile(null);
       setServiceImportPreview(null);
       setShowPreviewDialog(false);
-      
+
       // Store the result for display
       setLastImportResult(result);
     } catch (error) {
       toast({
         title: "Import failed",
-        description: error instanceof Error ? error.message : "Failed to import services",
+        description:
+          error instanceof Error ? error.message : "Failed to import services",
         variant: "destructive",
       });
     } finally {
@@ -965,7 +1170,9 @@ export default function SettingsPage() {
     <div className="container max-w-5xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your business preferences and configuration</p>
+        <p className="text-muted-foreground mt-1">
+          Manage your business preferences and configuration
+        </p>
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
@@ -977,40 +1184,48 @@ export default function SettingsPage() {
           <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="business">
+        <TabsContent value="business" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Business Information
               </CardTitle>
-              <CardDescription>View your business details and manage location settings</CardDescription>
+              <CardDescription>
+                View your business details and manage location settings
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Customer Booking App - Main URL - MOVED TO TOP */}
               <div className="space-y-2 p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
-                <Label className="text-base font-semibold">🌟 Customer Booking App</Label>
+                <Label className="text-base font-semibold">
+                  🌟 Customer Booking App
+                </Label>
                 <div className="flex items-center gap-2">
-                  <Input 
+                  <Input
                     value={(() => {
-                      const isLocal = window.location.hostname === 'localhost';
-                      const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                      return merchantSubdomain ? 
-                        `${baseUrl}/${merchantSubdomain}/booking` :
-                        `${baseUrl}/booking`;
-                    })()} 
-                    readOnly 
+                      const isLocal = window.location.hostname === "localhost";
+                      const baseUrl = isLocal
+                        ? "http://localhost:3001"
+                        : "https://visit.heyapos.com";
+                      return merchantSubdomain
+                        ? `${baseUrl}/${merchantSubdomain}/booking`
+                        : `${baseUrl}/booking`;
+                    })()}
+                    readOnly
                     className="font-mono text-sm"
                   />
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const isLocal = window.location.hostname === 'localhost';
-                      const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                      const url = merchantSubdomain ? 
-                        `${baseUrl}/${merchantSubdomain}/booking` :
-                        `${baseUrl}/booking`;
+                      const isLocal = window.location.hostname === "localhost";
+                      const baseUrl = isLocal
+                        ? "http://localhost:3001"
+                        : "https://visit.heyapos.com";
+                      const url = merchantSubdomain
+                        ? `${baseUrl}/${merchantSubdomain}/booking`
+                        : `${baseUrl}/booking`;
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Copied!",
@@ -1024,19 +1239,22 @@ export default function SettingsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const isLocal = window.location.hostname === 'localhost';
-                      const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                      const url = merchantSubdomain ? 
-                        `${baseUrl}/${merchantSubdomain}/booking` :
-                        `${baseUrl}/booking`;
-                      window.open(url, '_blank');
+                      const isLocal = window.location.hostname === "localhost";
+                      const baseUrl = isLocal
+                        ? "http://localhost:3001"
+                        : "https://visit.heyapos.com";
+                      const url = merchantSubdomain
+                        ? `${baseUrl}/${merchantSubdomain}/booking`
+                        : `${baseUrl}/booking`;
+                      window.open(url, "_blank");
                     }}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
                 <p className="text-sm font-medium text-primary">
-                  Share this link with customers to allow them to book appointments online 24/7
+                  Share this link with customers to allow them to book
+                  appointments online 24/7
                 </p>
               </div>
 
@@ -1046,31 +1264,40 @@ export default function SettingsPage() {
               <div className="border rounded-lg p-4 bg-muted/50">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium">Basic Information</h3>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="text-xs"
-                    asChild
-                  >
+                  <Button variant="link" size="sm" className="text-xs" asChild>
                     <Link href="/profile">Edit in Profile →</Link>
                   </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Business Name</Label>
-                    <p className="text-sm font-medium">{businessName || 'Not set'}</p>
+                    <Label className="text-xs text-muted-foreground">
+                      Business Name
+                    </Label>
+                    <p className="text-sm font-medium">
+                      {businessName || "Not set"}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">ABN</Label>
-                    <p className="text-sm font-medium">{businessAbn || 'Not set'}</p>
+                    <p className="text-sm font-medium">
+                      {businessAbn || "Not set"}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Business Email</Label>
-                    <p className="text-sm font-medium">{businessEmail || 'Not set'}</p>
+                    <Label className="text-xs text-muted-foreground">
+                      Business Email
+                    </Label>
+                    <p className="text-sm font-medium">
+                      {businessEmail || "Not set"}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Business Phone</Label>
-                    <p className="text-sm font-medium">{businessPhone || 'Not set'}</p>
+                    <Label className="text-xs text-muted-foreground">
+                      Business Phone
+                    </Label>
+                    <p className="text-sm font-medium">
+                      {businessPhone || "Not set"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1085,7 +1312,10 @@ export default function SettingsPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="timezone">Timezone</Label>
-                    <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                    <Select
+                      value={selectedTimezone}
+                      onValueChange={setSelectedTimezone}
+                    >
                       <SelectTrigger id="timezone">
                         <SelectValue />
                       </SelectTrigger>
@@ -1098,7 +1328,8 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-muted-foreground">
-                      All bookings and appointments will be displayed in this timezone
+                      All bookings and appointments will be displayed in this
+                      timezone
                     </p>
                   </div>
                   {/* Currency setting hidden - not currently functional
@@ -1117,31 +1348,37 @@ export default function SettingsPage() {
                   </div>
                   */}
                 </div>
-                
+
                 {/* Customer Check-in URL */}
                 <div className="space-y-2 mt-4">
                   <Label>Customer Check-in URL</Label>
                   <div className="flex items-center gap-2">
-                    <Input 
+                    <Input
                       value={(() => {
-                        const isLocal = window.location.hostname === 'localhost';
-                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                        return merchantSubdomain ? 
-                          `${baseUrl}/${merchantSubdomain}/checkin` :
-                          `${baseUrl}/checkin`;
-                      })()} 
-                      readOnly 
+                        const isLocal =
+                          window.location.hostname === "localhost";
+                        const baseUrl = isLocal
+                          ? "http://localhost:3001"
+                          : "https://visit.heyapos.com";
+                        return merchantSubdomain
+                          ? `${baseUrl}/${merchantSubdomain}/checkin`
+                          : `${baseUrl}/checkin`;
+                      })()}
+                      readOnly
                       className="font-mono text-sm"
                     />
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        const isLocal = window.location.hostname === 'localhost';
-                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                        const url = merchantSubdomain ? 
-                          `${baseUrl}/${merchantSubdomain}/checkin` :
-                          `${baseUrl}/checkin`;
+                        const isLocal =
+                          window.location.hostname === "localhost";
+                        const baseUrl = isLocal
+                          ? "http://localhost:3001"
+                          : "https://visit.heyapos.com";
+                        const url = merchantSubdomain
+                          ? `${baseUrl}/${merchantSubdomain}/checkin`
+                          : `${baseUrl}/checkin`;
                         navigator.clipboard.writeText(url);
                         toast({
                           title: "Copied!",
@@ -1155,19 +1392,23 @@ export default function SettingsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        const isLocal = window.location.hostname === 'localhost';
-                        const baseUrl = isLocal ? 'http://localhost:3001' : 'https://visit.heyapos.com';
-                        const url = merchantSubdomain ? 
-                          `${baseUrl}/${merchantSubdomain}/checkin` :
-                          `${baseUrl}/checkin`;
-                        window.open(url, '_blank');
+                        const isLocal =
+                          window.location.hostname === "localhost";
+                        const baseUrl = isLocal
+                          ? "http://localhost:3001"
+                          : "https://visit.heyapos.com";
+                        const url = merchantSubdomain
+                          ? `${baseUrl}/${merchantSubdomain}/checkin`
+                          : `${baseUrl}/checkin`;
+                        window.open(url, "_blank");
                       }}
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Display this URL on tablets for customer self check-in at your location
+                    Display this URL on tablets for customer self check-in at
+                    your location
                   </p>
                 </div>
               </div>
@@ -1177,37 +1418,60 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Business Hours</h3>
                 <div className="grid gap-3">
-                  {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
-                    <div key={day} className="flex items-center justify-between">
+                  {[
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                    "sunday",
+                  ].map((day) => (
+                    <div
+                      key={day}
+                      className="flex items-center justify-between"
+                    >
                       <Label className="w-24 capitalize">{day}</Label>
                       <div className="flex items-center gap-2">
-                        <Input 
-                          type="time" 
-                          value={businessHours[day]?.open || "09:00"} 
-                          onChange={(e) => setBusinessHours({
-                            ...businessHours,
-                            [day]: { ...businessHours[day], open: e.target.value }
-                          })}
-                          className="w-32" 
+                        <Input
+                          type="time"
+                          value={businessHours[day]?.open || "09:00"}
+                          onChange={(e) =>
+                            setBusinessHours({
+                              ...businessHours,
+                              [day]: {
+                                ...businessHours[day],
+                                open: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-32"
                           disabled={!businessHours[day]?.isOpen}
                         />
                         <span>to</span>
-                        <Input 
-                          type="time" 
+                        <Input
+                          type="time"
                           value={businessHours[day]?.close || "17:00"}
-                          onChange={(e) => setBusinessHours({
-                            ...businessHours,
-                            [day]: { ...businessHours[day], close: e.target.value }
-                          })}
-                          className="w-32" 
+                          onChange={(e) =>
+                            setBusinessHours({
+                              ...businessHours,
+                              [day]: {
+                                ...businessHours[day],
+                                close: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-32"
                           disabled={!businessHours[day]?.isOpen}
                         />
-                        <Switch 
+                        <Switch
                           checked={businessHours[day]?.isOpen || false}
-                          onCheckedChange={(checked) => setBusinessHours({
-                            ...businessHours,
-                            [day]: { ...businessHours[day], isOpen: checked }
-                          })}
+                          onCheckedChange={(checked) =>
+                            setBusinessHours({
+                              ...businessHours,
+                              [day]: { ...businessHours[day], isOpen: checked },
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -1216,34 +1480,40 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={async () => {
-                  setLoading(true);
-                  try {
-                    // Only update timezone and business hours in merchant settings
-                    // Business info is now managed in Profile page
-                    console.log('Saving business hours:', businessHours);
-                    const settingsResponse = await apiClient.updateMerchantSettings({
-                      timezone: selectedTimezone,
-                      businessHours: businessHours
-                    });
-                    console.log('Settings save response:', settingsResponse);
-                    
-                    toast({
-                      title: "Success",
-                      description: "Location settings updated successfully",
-                    });
-                  } catch (error: any) {
-                    console.error('Settings save error:', error);
-                    console.error('Error response:', error.response?.data);
-                    toast({
-                      title: "Error",
-                      description: error.response?.data?.message || "Failed to update location settings",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setLoading(false);
-                  }
-                }} disabled={loading}>
+                <Button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      // Only update timezone and business hours in merchant settings
+                      // Business info is now managed in Profile page
+                      console.log("Saving business hours:", businessHours);
+                      const settingsResponse =
+                        await apiClient.updateMerchantSettings({
+                          timezone: selectedTimezone,
+                          businessHours: businessHours,
+                        });
+                      console.log("Settings save response:", settingsResponse);
+
+                      toast({
+                        title: "Success",
+                        description: "Location settings updated successfully",
+                      });
+                    } catch (error: any) {
+                      console.error("Settings save error:", error);
+                      console.error("Error response:", error.response?.data);
+                      toast({
+                        title: "Error",
+                        description:
+                          error.response?.data?.message ||
+                          "Failed to update location settings",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
                   {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -1257,13 +1527,20 @@ export default function SettingsPage() {
                 <Clock className="h-5 w-5" />
                 Booking Settings
               </CardTitle>
-              <CardDescription>Configure booking rules and policies</CardDescription>
+              <CardDescription>
+                Configure booking rules and policies
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="advance-booking">Advance Booking (Hours)</Label>
-                  <Select value={bookingAdvanceHours} onValueChange={setBookingAdvanceHours}>
+                  <Label htmlFor="advance-booking">
+                    Advance Booking (Hours)
+                  </Label>
+                  <Select
+                    value={bookingAdvanceHours}
+                    onValueChange={setBookingAdvanceHours}
+                  >
                     <SelectTrigger id="advance-booking">
                       <SelectValue />
                     </SelectTrigger>
@@ -1283,8 +1560,13 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cancellation">Cancellation Notice (Hours)</Label>
-                  <Select value={cancellationHours} onValueChange={setCancellationHours}>
+                  <Label htmlFor="cancellation">
+                    Cancellation Notice (Hours)
+                  </Label>
+                  <Select
+                    value={cancellationHours}
+                    onValueChange={setCancellationHours}
+                  >
                     <SelectTrigger id="cancellation">
                       <SelectValue />
                     </SelectTrigger>
@@ -1301,7 +1583,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="minimum-notice">Minimum Booking Notice</Label>
-                  <Select value={minimumBookingNotice} onValueChange={setMinimumBookingNotice}>
+                  <Select
+                    value={minimumBookingNotice}
+                    onValueChange={setMinimumBookingNotice}
+                  >
                     <SelectTrigger id="minimum-notice">
                       <SelectValue />
                     </SelectTrigger>
@@ -1327,9 +1612,12 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-gray-900">Service-Specific Booking Windows</Label>
+                    <Label className="text-sm font-medium text-gray-900">
+                      Service-Specific Booking Windows
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Override the default advance window only for services that require more notice.
+                      Override the default advance window only for services that
+                      require more notice.
                     </p>
                   </div>
                   <Button
@@ -1351,7 +1639,11 @@ export default function SettingsPage() {
                   </div>
                 ) : overrideRows.length === 0 ? (
                   <div className="rounded-md border border-dashed border-gray-200 p-4 text-sm text-muted-foreground">
-                    All services currently follow the merchant default of {bookingDefaults.maxDays} day{bookingDefaults.maxDays === 1 ? "" : "s"} with a minimum notice of {bookingDefaults.minNoticeHours} hour{bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+                    All services currently follow the merchant default of{" "}
+                    {bookingDefaults.maxDays} day
+                    {bookingDefaults.maxDays === 1 ? "" : "s"} with a minimum
+                    notice of {bookingDefaults.minNoticeHours} hour
+                    {bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
                   </div>
                 ) : (
                   <div className="divide-y rounded-md border">
@@ -1361,9 +1653,14 @@ export default function SettingsPage() {
                         className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between"
                       >
                         <div>
-                          <p className="font-medium text-gray-900">{row.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {row.name}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            Up to {row.maxAdvanceBooking} day{row.maxAdvanceBooking === 1 ? "" : "s"} in advance · Minimum notice {row.minAdvanceBooking} hour{row.minAdvanceBooking === 1 ? "" : "s"}
+                            Up to {row.maxAdvanceBooking} day
+                            {row.maxAdvanceBooking === 1 ? "" : "s"} in advance
+                            · Minimum notice {row.minAdvanceBooking} hour
+                            {row.minAdvanceBooking === 1 ? "" : "s"}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1403,14 +1700,16 @@ export default function SettingsPage() {
                   !servicesLoading &&
                   overrideRows.length === 0 && (
                     <p className="text-xs text-muted-foreground">
-                      All services are currently using the merchant default booking window.
+                      All services are currently using the merchant default
+                      booking window.
                     </p>
                   )}
                 {availableServicesForOverride.length === 0 &&
                   !servicesLoading &&
                   overrideRows.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Every service already has an override. Remove one to add another custom window.
+                      Every service already has an override. Remove one to add
+                      another custom window.
                     </p>
                   )}
               </div>
@@ -1432,8 +1731,8 @@ export default function SettingsPage() {
                       Automatically confirm new bookings without manual approval
                     </p>
                   </div>
-                  <Switch 
-                    checked={autoConfirmBookings} 
+                  <Switch
+                    checked={autoConfirmBookings}
                     onCheckedChange={setAutoConfirmBookings}
                   />
                 </div>
@@ -1461,24 +1760,27 @@ export default function SettingsPage() {
                   <div className="space-y-0.5">
                     <Label>Show Unassigned Column</Label>
                     <p className="text-sm text-muted-foreground">
-                      Display an "Unassigned" column in the calendar for bookings without a specific staff member
+                      Display an "Unassigned" column in the calendar for
+                      bookings without a specific staff member
                     </p>
                   </div>
-                  <Switch 
-                    checked={showUnassignedColumn} 
+                  <Switch
+                    checked={showUnassignedColumn}
                     onCheckedChange={setShowUnassignedColumn}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Allow Unassigned Bookings</Label>
                     <p className="text-sm text-muted-foreground">
-                      When customers choose "Any Available" staff: ON = Creates unassigned bookings for manual assignment later, OFF = Automatically assigns the next available staff member
+                      When customers choose "Any Available" staff: ON = Creates
+                      unassigned bookings for manual assignment later, OFF =
+                      Automatically assigns the next available staff member
                     </p>
                   </div>
-                  <Switch 
-                    checked={allowUnassignedBookings} 
+                  <Switch
+                    checked={allowUnassignedBookings}
                     onCheckedChange={setAllowUnassignedBookings}
                   />
                 </div>
@@ -1486,21 +1788,35 @@ export default function SettingsPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-base font-medium">Calendar Display Hours</h4>
+                  <h4 className="text-base font-medium">
+                    Calendar Display Hours
+                  </h4>
                   <p className="text-sm text-muted-foreground">
-                    Set the hours displayed on your calendar view (default: 6 AM - 11 PM)
+                    Set the hours displayed on your calendar view (default: 6 AM
+                    - 11 PM)
                   </p>
                   <div className="grid grid-cols-2 gap-4 max-w-sm">
                     <div className="space-y-2">
                       <Label htmlFor="calendar-start">Start Hour</Label>
-                      <Select value={calendarStartHour.toString()} onValueChange={(value) => setCalendarStartHour(parseInt(value))}>
+                      <Select
+                        value={calendarStartHour.toString()}
+                        onValueChange={(value) =>
+                          setCalendarStartHour(parseInt(value))
+                        }
+                      >
                         <SelectTrigger id="calendar-start">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 24 }, (_, i) => (
                             <SelectItem key={i} value={i.toString()}>
-                              {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                              {i === 0
+                                ? "12 AM"
+                                : i < 12
+                                  ? `${i} AM`
+                                  : i === 12
+                                    ? "12 PM"
+                                    : `${i - 12} PM`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1508,49 +1824,66 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="calendar-end">End Hour</Label>
-                      <Select value={calendarEndHour.toString()} onValueChange={(value) => setCalendarEndHour(parseInt(value))}>
+                      <Select
+                        value={calendarEndHour.toString()}
+                        onValueChange={(value) =>
+                          setCalendarEndHour(parseInt(value))
+                        }
+                      >
                         <SelectTrigger id="calendar-end">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()} disabled={i <= calendarStartHour}>
-                              {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                            <SelectItem
+                              key={i}
+                              value={i.toString()}
+                              disabled={i <= calendarStartHour}
+                            >
+                              {i === 0
+                                ? "12 AM"
+                                : i < 12
+                                  ? `${i} AM`
+                                  : i === 12
+                                    ? "12 PM"
+                                    : `${i - 12} PM`}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                  
+
                   <Separator className="my-4" />
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Show Only Rostered Staff by Default</Label>
                       <p className="text-sm text-muted-foreground">
-                        When opening the calendar, show only staff members who are scheduled to work that day
+                        When opening the calendar, show only staff members who
+                        are scheduled to work that day
                       </p>
                     </div>
-                    <Switch 
-                      checked={showOnlyRosteredStaffDefault} 
+                    <Switch
+                      checked={showOnlyRosteredStaffDefault}
                       onCheckedChange={setShowOnlyRosteredStaffDefault}
                     />
                   </div>
-                  
+
                   {showOnlyRosteredStaffDefault && (
                     <>
                       <Separator className="my-4" />
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label>Include Staff Without Schedules</Label>
                           <p className="text-sm text-muted-foreground">
-                            When roster filter is on, still show staff members who don't have weekly schedules defined
+                            When roster filter is on, still show staff members
+                            who don't have weekly schedules defined
                           </p>
                         </div>
-                        <Switch 
-                          checked={includeUnscheduledStaff} 
+                        <Switch
+                          checked={includeUnscheduledStaff}
                           onCheckedChange={setIncludeUnscheduledStaff}
                         />
                       </div>
@@ -1563,26 +1896,28 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Payment Settings</h3>
-                
+
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Payment settings are managed through your payment provider configuration.
+                    Payment settings are managed through your payment provider
+                    configuration.
                   </p>
-                  
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label>Tyro Payment Terminal</Label>
                         <p className="text-sm text-muted-foreground">
-                          Enable Tyro payment terminal integration for card payments
+                          Enable Tyro payment terminal integration for card
+                          payments
                         </p>
                       </div>
-                      <Switch 
-                        checked={tyroEnabled} 
+                      <Switch
+                        checked={tyroEnabled}
                         onCheckedChange={setTyroEnabled}
                       />
                     </div>
-                    
+
                     {tyroEnabled && (
                       <div className="space-y-4 ml-6 border-l-2 border-gray-200 pl-4">
                         <div className="space-y-2">
@@ -1598,7 +1933,7 @@ export default function SettingsPage() {
                             Your Tyro merchant identifier
                           </p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="tyro-terminal-id">Terminal ID</Label>
                           <div className="flex gap-2">
@@ -1606,7 +1941,9 @@ export default function SettingsPage() {
                               id="tyro-terminal-id"
                               type="text"
                               value={tyroTerminalId}
-                              onChange={(e) => setTyroTerminalId(e.target.value)}
+                              onChange={(e) =>
+                                setTyroTerminalId(e.target.value)
+                              }
                               placeholder="Enter Terminal ID"
                             />
                             <Button
@@ -1622,10 +1959,11 @@ export default function SettingsPage() {
                                 variant="outline"
                                 onClick={() => {
                                   clearPairing();
-                                  setTyroTerminalId('');
+                                  setTyroTerminalId("");
                                   toast({
                                     title: "Terminal unpaired",
-                                    description: "The terminal has been unpaired successfully",
+                                    description:
+                                      "The terminal has been unpaired successfully",
                                   });
                                 }}
                               >
@@ -1637,14 +1975,14 @@ export default function SettingsPage() {
                             Terminal ID for your Tyro EFTPOS device
                           </p>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <TyroStatusIndicator />
                         </div>
                       </div>
                     )}
                   </div>
-                {/* Require Deposit setting hidden - not currently functional
+                  {/* Require Deposit setting hidden - not currently functional
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Require Deposit</Label>
@@ -1743,6 +2081,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          <HolidayManager
+            initialState={merchantSettings?.holidayState ?? null}
+          />
         </TabsContent>
         <TabsContent value="security">
           <div className="space-y-6">
@@ -1752,7 +2093,9 @@ export default function SettingsPage() {
                   <Shield className="h-5 w-5" />
                   PIN Security
                 </CardTitle>
-                <CardDescription>Configure PIN requirements for sensitive actions</CardDescription>
+                <CardDescription>
+                  Configure PIN requirements for sensitive actions
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1762,7 +2105,10 @@ export default function SettingsPage() {
                       Manager PIN required to process refunds
                     </p>
                   </div>
-                  <Switch checked={requirePinForRefunds} onCheckedChange={setRequirePinForRefunds} />
+                  <Switch
+                    checked={requirePinForRefunds}
+                    onCheckedChange={setRequirePinForRefunds}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -1771,7 +2117,10 @@ export default function SettingsPage() {
                       Staff PIN required to cancel bookings
                     </p>
                   </div>
-                  <Switch checked={requirePinForCancellations} onCheckedChange={setRequirePinForCancellations} />
+                  <Switch
+                    checked={requirePinForCancellations}
+                    onCheckedChange={setRequirePinForCancellations}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -1780,18 +2129,26 @@ export default function SettingsPage() {
                       Manager PIN required to access reports
                     </p>
                   </div>
-                  <Switch checked={requirePinForReports} onCheckedChange={setRequirePinForReports} />
+                  <Switch
+                    checked={requirePinForReports}
+                    onCheckedChange={setRequirePinForReports}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Require PIN for Staff Creation</Label>
                     <p className="text-sm text-muted-foreground">
-                      Make PIN mandatory when creating new staff members. 
-                      {requirePinForStaff ? " PIN must be set during staff creation." : " If disabled, a random PIN will be auto-generated."}
+                      Make PIN mandatory when creating new staff members.
+                      {requirePinForStaff
+                        ? " PIN must be set during staff creation."
+                        : " If disabled, a random PIN will be auto-generated."}
                     </p>
                   </div>
-                  <Switch checked={requirePinForStaff} onCheckedChange={setRequirePinForStaff} />
+                  <Switch
+                    checked={requirePinForStaff}
+                    onCheckedChange={setRequirePinForStaff}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -1799,7 +2156,9 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Access Levels</CardTitle>
-                <CardDescription>Define permissions for different staff roles</CardDescription>
+                <CardDescription>
+                  Define permissions for different staff roles
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -1809,7 +2168,8 @@ export default function SettingsPage() {
                       <Badge variant="secondary">Level 1</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Can view their own bookings, process payments, manage customers
+                      Can view their own bookings, process payments, manage
+                      customers
                     </p>
                   </div>
                   <div className="p-4 border rounded-lg space-y-2">
@@ -1818,7 +2178,8 @@ export default function SettingsPage() {
                       <Badge variant="secondary">Level 2</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      All employee permissions plus: view reports, manage staff schedules, process refunds
+                      All employee permissions plus: view reports, manage staff
+                      schedules, process refunds
                     </p>
                   </div>
                   <div className="p-4 border rounded-lg space-y-2">
@@ -1827,13 +2188,14 @@ export default function SettingsPage() {
                       <Badge variant="secondary">Level 3</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Full access to all features including settings, staff management, and financial data
+                      Full access to all features including settings, staff
+                      management, and financial data
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="flex justify-end">
               <Button onClick={handleSaveSecuritySettings} disabled={loading}>
                 Save Changes
@@ -1848,11 +2210,15 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 Notification Settings
               </CardTitle>
-              <CardDescription>Configure how you and your customers receive notifications</CardDescription>
+              <CardDescription>
+                Configure how you and your customers receive notifications
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4">Customer Notifications</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Customer Notifications
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -1862,13 +2228,15 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={bookingConfirmationEmail} 
-                        onCheckedChange={setBookingConfirmationEmail} 
+                      <Switch
+                        checked={bookingConfirmationEmail}
+                        onCheckedChange={setBookingConfirmationEmail}
                       />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch 
-                        checked={bookingConfirmationSms} 
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <Switch
+                        checked={bookingConfirmationSms}
                         onCheckedChange={setBookingConfirmationSms}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
@@ -1882,13 +2250,15 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={appointmentReminder24hEmail} 
-                        onCheckedChange={setAppointmentReminder24hEmail} 
+                      <Switch
+                        checked={appointmentReminder24hEmail}
+                        onCheckedChange={setAppointmentReminder24hEmail}
                       />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch 
-                        checked={appointmentReminder24hSms} 
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <Switch
+                        checked={appointmentReminder24hSms}
                         onCheckedChange={setAppointmentReminder24hSms}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
@@ -1902,13 +2272,15 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={appointmentReminder2hEmail} 
-                        onCheckedChange={setAppointmentReminder2hEmail} 
+                      <Switch
+                        checked={appointmentReminder2hEmail}
+                        onCheckedChange={setAppointmentReminder2hEmail}
                       />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch 
-                        checked={appointmentReminder2hSms} 
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <Switch
+                        checked={appointmentReminder2hSms}
                         onCheckedChange={setAppointmentReminder2hSms}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
@@ -1920,7 +2292,9 @@ export default function SettingsPage() {
               <Separator />
 
               <div>
-                <h3 className="text-lg font-semibold mb-4">Staff Notifications</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Staff Notifications
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -1930,18 +2304,22 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={newBookingNotification} 
-                        onCheckedChange={setNewBookingNotification} 
+                      <Switch
+                        checked={newBookingNotification}
+                        onCheckedChange={setNewBookingNotification}
                       />
-                      <span className="text-sm text-muted-foreground">Panel</span>
-                      <Switch 
-                        checked={newBookingNotificationEmail} 
-                        onCheckedChange={setNewBookingNotificationEmail} 
+                      <span className="text-sm text-muted-foreground">
+                        Panel
+                      </span>
+                      <Switch
+                        checked={newBookingNotificationEmail}
+                        onCheckedChange={setNewBookingNotificationEmail}
                       />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch 
-                        checked={newBookingNotificationSms} 
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <Switch
+                        checked={newBookingNotificationSms}
                         onCheckedChange={setNewBookingNotificationSms}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
@@ -1955,18 +2333,22 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={cancellationNotification} 
-                        onCheckedChange={setCancellationNotification} 
+                      <Switch
+                        checked={cancellationNotification}
+                        onCheckedChange={setCancellationNotification}
                       />
-                      <span className="text-sm text-muted-foreground">Panel</span>
-                      <Switch 
-                        checked={cancellationNotificationEmail} 
-                        onCheckedChange={setCancellationNotificationEmail} 
+                      <span className="text-sm text-muted-foreground">
+                        Panel
+                      </span>
+                      <Switch
+                        checked={cancellationNotificationEmail}
+                        onCheckedChange={setCancellationNotificationEmail}
                       />
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <Switch 
-                        checked={cancellationNotificationSms} 
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <Switch
+                        checked={cancellationNotificationSms}
                         onCheckedChange={setCancellationNotificationSms}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
@@ -1976,37 +2358,41 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={async () => {
-                  setLoading(true);
-                  try {
-                    await apiClient.put("/merchant/settings", {
-                      bookingConfirmationEmail,
-                      bookingConfirmationSms,
-                      appointmentReminder24hEmail,
-                      appointmentReminder24hSms,
-                      appointmentReminder2hEmail,
-                      appointmentReminder2hSms,
-                      newBookingNotification,
-                      newBookingNotificationEmail,
-                      newBookingNotificationSms,
-                      cancellationNotification,
-                      cancellationNotificationEmail,
-                      cancellationNotificationSms
-                    });
-                    toast({
-                      title: "Success",
-                      description: "Notification settings updated successfully",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Error",
-                      description: "Failed to update notification settings",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setLoading(false);
-                  }
-                }} disabled={loading}>
+                <Button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      await apiClient.put("/merchant/settings", {
+                        bookingConfirmationEmail,
+                        bookingConfirmationSms,
+                        appointmentReminder24hEmail,
+                        appointmentReminder24hSms,
+                        appointmentReminder2hEmail,
+                        appointmentReminder2hSms,
+                        newBookingNotification,
+                        newBookingNotificationEmail,
+                        newBookingNotificationSms,
+                        cancellationNotification,
+                        cancellationNotificationEmail,
+                        cancellationNotificationSms,
+                      });
+                      toast({
+                        title: "Success",
+                        description:
+                          "Notification settings updated successfully",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to update notification settings",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
                   {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -2024,7 +2410,8 @@ export default function SettingsPage() {
                   Import Customers
                 </CardTitle>
                 <CardDescription>
-                  Bulk import customers from a CSV file. Download the template to see the required format.
+                  Bulk import customers from a CSV file. Download the template
+                  to see the required format.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2032,7 +2419,10 @@ export default function SettingsPage() {
                   <div className="text-center space-y-2">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div>
-                      <Label htmlFor="customer-file" className="cursor-pointer text-primary hover:underline">
+                      <Label
+                        htmlFor="customer-file"
+                        className="cursor-pointer text-primary hover:underline"
+                      >
                         Choose CSV file
                       </Label>
                       <Input
@@ -2040,7 +2430,9 @@ export default function SettingsPage() {
                         type="file"
                         accept=".csv"
                         className="hidden"
-                        onChange={(e) => setCustomerFile(e.target.files?.[0] || null)}
+                        onChange={(e) =>
+                          setCustomerFile(e.target.files?.[0] || null)
+                        }
                       />
                     </div>
                     {customerFile && (
@@ -2049,7 +2441,7 @@ export default function SettingsPage() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="flex justify-center gap-4">
                     <Button
                       variant="outline"
@@ -2073,18 +2465,25 @@ export default function SettingsPage() {
                     <Label>Duplicate handling</Label>
                     <Select
                       value={customerDuplicateAction}
-                      onValueChange={(value) => setCustomerDuplicateAction(value as 'skip' | 'update')}
+                      onValueChange={(value) =>
+                        setCustomerDuplicateAction(value as "skip" | "update")
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select how to handle duplicates" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="update">Update existing customers</SelectItem>
-                        <SelectItem value="skip">Skip duplicate rows</SelectItem>
+                        <SelectItem value="update">
+                          Update existing customers
+                        </SelectItem>
+                        <SelectItem value="skip">
+                          Skip duplicate rows
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Choose whether rows that match an existing email or mobile should update that customer or be skipped.
+                      Choose whether rows that match an existing email or mobile
+                      should update that customer or be skipped.
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -2096,13 +2495,13 @@ export default function SettingsPage() {
                       />
                       <span className="text-sm text-muted-foreground">
                         {customerSkipInvalidRows
-                          ? 'Rows with validation errors are ignored.'
-                          : 'Validation errors stop the import so you can fix them.'}
+                          ? "Rows with validation errors are ignored."
+                          : "Validation errors stop the import so you can fix them."}
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="rounded-lg bg-muted p-4 space-y-2">
                   <h4 className="font-medium flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -2110,10 +2509,20 @@ export default function SettingsPage() {
                   </h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     <li>• Required column: First Name (Last Name optional)</li>
-                    <li>• Optional columns include Email, Mobile Number, Phone, Date of Birth, Gender, Address, Suburb, City, State, Postal Code, Country, Referral Source, Note, Tags, Preferred Language</li>
-                    <li>• Use comma-separated values for tags (e.g., "vip,loyal")</li>
+                    <li>
+                      • Optional columns include Email, Mobile Number, Phone,
+                      Date of Birth, Gender, Address, Suburb, City, State,
+                      Postal Code, Country, Referral Source, Note, Tags,
+                      Preferred Language
+                    </li>
+                    <li>
+                      • Use comma-separated values for tags (e.g., "vip,loyal")
+                    </li>
                     <li>• Marketing opt-ins accept Yes/No/True/False</li>
-                    <li>• Customize duplicate handling and invalid-row behaviour above before importing</li>
+                    <li>
+                      • Customize duplicate handling and invalid-row behaviour
+                      above before importing
+                    </li>
                   </ul>
                 </div>
               </CardContent>
@@ -2127,7 +2536,8 @@ export default function SettingsPage() {
                   Import Services
                 </CardTitle>
                 <CardDescription>
-                  Bulk import services from a CSV file. Download the template to see the required format.
+                  Bulk import services from a CSV file. Download the template to
+                  see the required format.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2141,8 +2551,10 @@ export default function SettingsPage() {
                     </div>
                     <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                       Imported {lastImportResult.imported} new services
-                      {lastImportResult.updated > 0 && `, updated ${lastImportResult.updated}`}
-                      {lastImportResult.skipped > 0 && `, skipped ${lastImportResult.skipped}`}
+                      {lastImportResult.updated > 0 &&
+                        `, updated ${lastImportResult.updated}`}
+                      {lastImportResult.skipped > 0 &&
+                        `, skipped ${lastImportResult.skipped}`}
                     </p>
                   </div>
                 )}
@@ -2150,7 +2562,10 @@ export default function SettingsPage() {
                   <div className="text-center space-y-2">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div>
-                      <Label htmlFor="service-file" className="cursor-pointer text-primary hover:underline">
+                      <Label
+                        htmlFor="service-file"
+                        className="cursor-pointer text-primary hover:underline"
+                      >
                         Choose CSV file
                       </Label>
                       <Input
@@ -2158,7 +2573,9 @@ export default function SettingsPage() {
                         type="file"
                         accept=".csv"
                         className="hidden"
-                        onChange={(e) => setServiceFile(e.target.files?.[0] || null)}
+                        onChange={(e) =>
+                          setServiceFile(e.target.files?.[0] || null)
+                        }
                       />
                     </div>
                     {serviceFile && (
@@ -2167,12 +2584,9 @@ export default function SettingsPage() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="flex justify-center gap-4">
-                    <Button
-                      variant="outline"
-                      onClick={downloadServiceTemplate}
-                    >
+                    <Button variant="outline" onClick={downloadServiceTemplate}>
                       <Download className="mr-2 h-4 w-4" />
                       Download Template
                     </Button>
@@ -2185,7 +2599,7 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="rounded-lg bg-muted p-4 space-y-2">
                   <h4 className="font-medium flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -2193,16 +2607,31 @@ export default function SettingsPage() {
                   </h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     <li>• Required fields: Service Name, Price</li>
-                    <li>• Optional fields: Category, Description, Duration, Active Status</li>
-                    <li>• Duration can be left empty if price-to-duration ratio is set</li>
-                    <li>• Duration formats: 60, 90, 1h, 1.5h, 1h30m, "90 min"</li>
-                    <li>• Categories will be created automatically if they don't exist</li>
+                    <li>
+                      • Optional fields: Category, Description, Duration, Active
+                      Status
+                    </li>
+                    <li>
+                      • Duration can be left empty if price-to-duration ratio is
+                      set
+                    </li>
+                    <li>
+                      • Duration formats: 60, 90, 1h, 1.5h, 1h30m, "90 min"
+                    </li>
+                    <li>
+                      • Categories will be created automatically if they don't
+                      exist
+                    </li>
                     <li>• Set active to "true" or "false" (default: true)</li>
                     <li>• Duplicate services will be skipped by default</li>
-                    <li>• Tax, deposit, and booking rules use your merchant settings</li>
+                    <li>
+                      • Tax, deposit, and booking rules use your merchant
+                      settings
+                    </li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    💡 Tip: After upload, you'll map your CSV columns to the correct fields
+                    💡 Tip: After upload, you'll map your CSV columns to the
+                    correct fields
                   </p>
                 </div>
               </CardContent>
@@ -2216,15 +2645,20 @@ export default function SettingsPage() {
                   Auto Duration Settings
                 </CardTitle>
                 <CardDescription>
-                  Configure automatic duration calculation for services when importing without duration values
+                  Configure automatic duration calculation for services when
+                  importing without duration values
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price-duration-ratio">Price to Duration Ratio</Label>
+                    <Label htmlFor="price-duration-ratio">
+                      Price to Duration Ratio
+                    </Label>
                     <div className="flex items-center gap-2 max-w-xs">
-                      <span className="text-sm text-muted-foreground">$1 =</span>
+                      <span className="text-sm text-muted-foreground">
+                        $1 =
+                      </span>
                       <Input
                         id="price-duration-ratio"
                         type="number"
@@ -2232,49 +2666,78 @@ export default function SettingsPage() {
                         min="0.1"
                         max="10"
                         value={priceToDurationRatio}
-                        onChange={(e) => setPriceToDurationRatio(e.target.value)}
+                        onChange={(e) =>
+                          setPriceToDurationRatio(e.target.value)
+                        }
                         className="w-24"
                       />
-                      <span className="text-sm text-muted-foreground">minutes</span>
+                      <span className="text-sm text-muted-foreground">
+                        minutes
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      When importing services without duration, the system will automatically calculate duration based on price. 
-                      For example, with a ratio of 1.0, a $60 service will be set to 60 minutes.
+                      When importing services without duration, the system will
+                      automatically calculate duration based on price. For
+                      example, with a ratio of 1.0, a $60 service will be set to
+                      60 minutes.
                     </p>
                   </div>
-                  
+
                   <div className="rounded-lg bg-muted p-4 space-y-2">
-                    <h4 className="font-medium">Examples with current ratio ({priceToDurationRatio}):</h4>
+                    <h4 className="font-medium">
+                      Examples with current ratio ({priceToDurationRatio}):
+                    </h4>
                     <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• $30 service → {Math.round(30 * parseFloat(priceToDurationRatio))} minutes</li>
-                      <li>• $60 service → {Math.round(60 * parseFloat(priceToDurationRatio))} minutes</li>
-                      <li>• $90 service → {Math.round(90 * parseFloat(priceToDurationRatio))} minutes</li>
-                      <li>• $120 service → {Math.round(120 * parseFloat(priceToDurationRatio))} minutes</li>
+                      <li>
+                        • $30 service →{" "}
+                        {Math.round(30 * parseFloat(priceToDurationRatio))}{" "}
+                        minutes
+                      </li>
+                      <li>
+                        • $60 service →{" "}
+                        {Math.round(60 * parseFloat(priceToDurationRatio))}{" "}
+                        minutes
+                      </li>
+                      <li>
+                        • $90 service →{" "}
+                        {Math.round(90 * parseFloat(priceToDurationRatio))}{" "}
+                        minutes
+                      </li>
+                      <li>
+                        • $120 service →{" "}
+                        {Math.round(120 * parseFloat(priceToDurationRatio))}{" "}
+                        minutes
+                      </li>
                     </ul>
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={async () => {
-                    setLoading(true);
-                    try {
-                      await apiClient.put("/merchant/settings", {
-                        priceToDurationRatio: parseFloat(priceToDurationRatio),
-                      });
-                      toast({
-                        title: "Success",
-                        description: "Auto duration settings updated successfully",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to update settings",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLoading(false);
-                    }
-                  }} disabled={loading}>
+                  <Button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await apiClient.put("/merchant/settings", {
+                          priceToDurationRatio:
+                            parseFloat(priceToDurationRatio),
+                        });
+                        toast({
+                          title: "Success",
+                          description:
+                            "Auto duration settings updated successfully",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to update settings",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                  >
                     {loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
@@ -2284,20 +2747,28 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={overrideDialogOpen} onOpenChange={handleOverrideDialogOpenChange}>
+      <Dialog
+        open={overrideDialogOpen}
+        onOpenChange={handleOverrideDialogOpenChange}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {overrideEditId ? "Edit Service Override" : "Add Service Override"}
+              {overrideEditId
+                ? "Edit Service Override"
+                : "Add Service Override"}
             </DialogTitle>
             <DialogDescription>
-              Set a custom booking window for a specific service. Leave fields within the merchant defaults to keep everything aligned.
+              Set a custom booking window for a specific service. Leave fields
+              within the merchant defaults to keep everything aligned.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {overrideEditId ? (
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-gray-700">Service</Label>
+                <Label className="text-sm font-medium text-gray-700">
+                  Service
+                </Label>
                 <p className="text-sm text-gray-900">
                   {editingOverrideService?.name || "Unknown service"}
                 </p>
@@ -2331,7 +2802,9 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="override-max-days">Maximum advance window (days)</Label>
+                <Label htmlFor="override-max-days">
+                  Maximum advance window (days)
+                </Label>
                 <Input
                   id="override-max-days"
                   type="number"
@@ -2342,13 +2815,15 @@ export default function SettingsPage() {
                     setOverrideMaxDays(
                       event.target.value === ""
                         ? 0
-                        : Number(event.target.value)
+                        : Number(event.target.value),
                     )
                   }
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="override-min-hours">Minimum notice (hours)</Label>
+                <Label htmlFor="override-min-hours">
+                  Minimum notice (hours)
+                </Label>
                 <Input
                   id="override-min-hours"
                   type="number"
@@ -2358,7 +2833,7 @@ export default function SettingsPage() {
                     setOverrideMinHours(
                       event.target.value === ""
                         ? 0
-                        : Number(event.target.value)
+                        : Number(event.target.value),
                     )
                   }
                 />
@@ -2366,7 +2841,10 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Merchant default: {bookingDefaults.maxDays} day{bookingDefaults.maxDays === 1 ? "" : "s"} ahead · minimum notice {bookingDefaults.minNoticeHours} hour{bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+              Merchant default: {bookingDefaults.maxDays} day
+              {bookingDefaults.maxDays === 1 ? "" : "s"} ahead · minimum notice{" "}
+              {bookingDefaults.minNoticeHours} hour
+              {bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
             </p>
 
             {overrideError && (
@@ -2374,17 +2852,28 @@ export default function SettingsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => handleOverrideDialogOpenChange(false)}>
+            <Button
+              variant="outline"
+              onClick={() => handleOverrideDialogOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSubmitOverride} disabled={overrideSaving || (availableServicesForOverride.length === 0 && !overrideEditId)}>
+            <Button
+              onClick={handleSubmitOverride}
+              disabled={
+                overrideSaving ||
+                (availableServicesForOverride.length === 0 && !overrideEditId)
+              }
+            >
               {overrideSaving ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
                   Saving...
                 </>
+              ) : overrideEditId ? (
+                "Update Override"
               ) : (
-                overrideEditId ? "Update Override" : "Save Override"
+                "Save Override"
               )}
             </Button>
           </DialogFooter>
@@ -2448,7 +2937,7 @@ export default function SettingsPage() {
         csvPreviewRows={customerCsvPreviewRows}
         onConfirm={handleCustomerMappingConfirm}
       />
-      
+
       {/* Tyro Pairing Dialog */}
       <TyroPairingDialog
         isOpen={showTyroPairingDialog}

@@ -18,6 +18,7 @@ export interface Merchant {
   package?: Package;
   createdAt: Date;
   updatedAt: Date;
+  holidays?: MerchantHoliday[];
 }
 
 export interface MerchantSettings {
@@ -44,6 +45,7 @@ export interface MerchantSettings {
   showUnassignedColumn: boolean;
   // Booking behavior settings
   allowUnassignedBookings: boolean;
+  autoConfirmBookings?: boolean;
   minimumBookingNotice?: number; // Minutes before start time required for bookings
   // Calendar display settings
   calendarStartHour: number; // 0-23 (default: 6 for 6 AM)
@@ -57,6 +59,8 @@ export interface MerchantSettings {
   tyroEnabled: boolean;
   // Booking site branding
   publicHeroSubtitle?: string;
+  // Holiday management
+  holidayState?: AustralianState | null;
 }
 
 export enum MerchantStatus {
@@ -79,6 +83,22 @@ export interface MerchantAuth {
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type AustralianState = 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA';
+
+export type HolidaySource = 'STATE' | 'CUSTOM';
+
+export interface MerchantHoliday {
+  id: string;
+  merchantId: string;
+  name: string;
+  date: string;
+  isDayOff: boolean;
+  source: HolidaySource;
+  state?: AustralianState | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 import type { Package } from './package';

@@ -51,6 +51,7 @@ model Merchant {
   merchantAuth       MerchantAuth?
   merchantNotifications MerchantNotification[]
   notificationLogs   NotificationLog[]
+  merchantHolidays   MerchantHoliday[]
   loyaltyReminderTouchpoints LoyaltyReminderTouchpoint[]
   loyaltyReminderStates LoyaltyReminderState[]
   orders             Order[]
@@ -815,4 +816,26 @@ model ScheduleOverride {
   @@unique([staffId, date])
   @@index([staffId])
   @@index([date])
+}
+
+model MerchantHoliday {
+  id         String        @id @default(uuid())
+  merchantId String
+  name       String
+  date       DateTime      @db.Date
+  isDayOff   Boolean       @default(true)
+  source     HolidaySource @default(STATE)
+  state      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  merchant   Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, date])
+  @@index([merchantId, state])
+}
+
+enum HolidaySource {
+  STATE
+  CUSTOM
 }

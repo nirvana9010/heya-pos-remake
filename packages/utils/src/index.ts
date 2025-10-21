@@ -8,3 +8,4 @@ export * from './invoice';
 export * from './loyalty';
 export * from './timezone';
 export * from './trend';
+export * from './holidays/australia';

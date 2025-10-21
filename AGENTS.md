@@ -94,3 +94,45 @@ When you need to inspect data on any Fly Managed Postgres (MPG) cluster, follow 
    ```
 
 This is the sole approved sequence for MPG reads. Stick to it and you won't get weird failures or partial connections again.
+
+## Prisma Migration Workflow (Local Dev)
+Prisma will only behave if the migration history stays in sync with our live dev database. Whenever you add or modify tables/columns:
+
+1. **Back up first (if data matters).**
+   ```bash
+   pg_dump -h localhost -p 5432 -U user heya_pos > backup_dev_$(date +%Y%m%d_%H%M%S).sql
+   ```
+
+2. **Apply schema changes in `apps/api/prisma/schema.prisma`.**
+
+3. **Generate a new migration.**
+   ```bash
+   cd apps/api
+   npx prisma migrate dev --name add_descriptive_label
+   ```
+   This updates the local database, writes SQL under `apps/api/prisma/migrations`, and regenerates the Prisma client.
+
+4. **Check for drift warnings.** If Prisma reports drift, do **not** reset the database. Instead:
+   - Inspect `_prisma_migrations` to see which migration is missing.
+   - Create placeholder SQL files for any legacy migrations (as we did with `20250615_add_booking_constraints`) so Prisma can record them.
+   - Use `npx prisma migrate resolve --applied <migration_name>` to reconcile history.
+
+5. **Re-run the new migration once history is clean.**
+   ```bash
+   npx prisma migrate dev --skip-generate   # verify it succeeds quickly
+   ```
+
+6. **Commit both the schema and migration files** together with your feature code.
+
+7. **On other machines** (or after pulling):
+   ```bash
+   cd apps/api
+   npx prisma migrate dev
+   ```
+   Do not use `prisma db push` except during emergency prototyping.
+
+Keep the baseline migration (`00000000000000_initial_schema`) intact—it mirrors the current dev schema. If you ever have to re-baseline, regenerate it with:
+```bash
+npx prisma migrate diff --from-empty --to-url "$DATABASE_URL" --script > apps/api/prisma/migrations/00000000000000_initial_schema/migration.sql
+```
+and mark it applied with `npx prisma migrate resolve --applied 00000000000000_initial_schema`.
