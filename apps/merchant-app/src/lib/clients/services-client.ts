@@ -9,6 +9,9 @@ export interface Service {
   categoryId?: string;
   category?: ServiceCategory;
   isActive: boolean;
+  maxAdvanceBooking: number;
+  minAdvanceBooking: number;
+  metadata?: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +33,9 @@ export interface CreateServiceRequest {
   duration: number;
   categoryId?: string;
   isActive?: boolean;
+  maxAdvanceBooking?: number;
+  minAdvanceBooking?: number;
+  advanceBookingMode?: 'merchant_default' | 'custom';
 }
 
 export interface UpdateServiceRequest {
@@ -39,6 +45,10 @@ export interface UpdateServiceRequest {
   duration?: number;
   categoryId?: string;
   isActive?: boolean;
+  maxAdvanceBooking?: number;
+  minAdvanceBooking?: number;
+  advanceBookingMode?: 'merchant_default' | 'custom';
+  idempotencyKey?: string;
 }
 
 export interface CreateCategoryRequest {

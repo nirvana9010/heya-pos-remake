@@ -182,8 +182,17 @@ export function useUpdateService() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateServiceRequest }) =>
-      apiClient.updateService(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateServiceRequest }) => {
+      const payload: UpdateServiceRequest = { ...data };
+      if (
+        !payload.idempotencyKey &&
+        typeof crypto !== 'undefined' &&
+        typeof crypto.randomUUID === 'function'
+      ) {
+        payload.idempotencyKey = crypto.randomUUID();
+      }
+      return apiClient.updateService(id, payload);
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
       queryClient.invalidateQueries({ queryKey: servicesKeys.service(id) });

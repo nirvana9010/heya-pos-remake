@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check, Copy, ExternalLink } from "lucide-react";
+import { Building2, Clock, CreditCard, Shield, Bell, Users, Database, Globe, Upload, Download, FileText, Check, Copy, ExternalLink, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
+import { Spinner } from "@heya-pos/ui";
 import { TimezoneUtils } from "@heya-pos/utils";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
@@ -27,6 +29,7 @@ import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
 import { useTyro } from "@/hooks/useTyro";
 import type { CustomerImportPreview } from "@/lib/clients/customers-client";
 import { customerKeys } from "@/lib/query/hooks/use-customers";
+import type { Service as ApiService } from "@/lib/clients/services-client";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -134,12 +137,136 @@ export default function SettingsPage() {
   const [csvPreviewRows, setCsvPreviewRows] = useState<string[][]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
   const [lastImportResult, setLastImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
+  const [allServices, setAllServices] = useState<ApiService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [overrideEditId, setOverrideEditId] = useState<string | null>(null);
+  const [overrideSelectedServiceId, setOverrideSelectedServiceId] = useState<string>("");
+  const [overrideMaxDays, setOverrideMaxDays] = useState<number>(0);
+  const [overrideMinHours, setOverrideMinHours] = useState<number>(0);
+  const [overrideSaving, setOverrideSaving] = useState(false);
+  const [overrideError, setOverrideError] = useState<string | null>(null);
+  const [removingOverrideId, setRemovingOverrideId] = useState<string | null>(null);
+  const bookingDefaults = useMemo(() => {
+    const advanceHoursNumeric = Number(bookingAdvanceHours);
+    const minNoticeMinutesNumeric = Number(minimumBookingNotice);
+    const maxDays = Number.isFinite(advanceHoursNumeric)
+      ? Math.max(1, Math.ceil(advanceHoursNumeric / 24))
+      : 7;
+    const minNoticeHours = Number.isFinite(minNoticeMinutesNumeric)
+      ? Math.max(0, Math.ceil(minNoticeMinutesNumeric / 60))
+      : 0;
+    return { maxDays, minNoticeHours };
+  }, [bookingAdvanceHours, minimumBookingNotice]);
+
+  const fetchServicesList = useCallback(async () => {
+    setServicesLoading(true);
+    try {
+      const response = await apiClient.getServices({
+        limit: 500,
+        sortBy: 'name',
+        sortOrder: 'asc',
+      });
+      setAllServices(response?.data ?? []);
+    } catch (error: any) {
+      console.error('Failed to load services:', error);
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to load services",
+        variant: "destructive",
+      });
+    } finally {
+      setServicesLoading(false);
+    }
+  }, [toast]);
+
+  const overrideRows = useMemo(() => {
+    return allServices
+      .filter((service) => {
+        const maxValue =
+          typeof service.maxAdvanceBooking === 'number'
+            ? service.maxAdvanceBooking
+            : bookingDefaults.maxDays;
+        const minValue =
+          typeof service.minAdvanceBooking === 'number'
+            ? service.minAdvanceBooking
+            : bookingDefaults.minNoticeHours;
+        const metadataMode =
+          (service.metadata as any)?.advanceBooking?.mode as
+            | 'merchant_default'
+            | 'custom'
+            | undefined;
+        if (metadataMode === 'custom') {
+          return true;
+        }
+        return (
+          maxValue !== bookingDefaults.maxDays ||
+          minValue !== bookingDefaults.minNoticeHours
+        );
+      })
+      .map((service) => {
+        const maxValue =
+          typeof service.maxAdvanceBooking === 'number'
+            ? service.maxAdvanceBooking
+            : bookingDefaults.maxDays;
+        const minValue =
+          typeof service.minAdvanceBooking === 'number'
+            ? service.minAdvanceBooking
+            : bookingDefaults.minNoticeHours;
+        const metadataMode =
+          (service.metadata as any)?.advanceBooking?.mode as
+            | 'merchant_default'
+            | 'custom'
+            | undefined;
+        return {
+          id: service.id,
+          name: service.name,
+          maxAdvanceBooking: maxValue,
+          minAdvanceBooking: minValue,
+          advanceBookingMode: metadataMode,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allServices, bookingDefaults]);
+
+  const availableServicesForOverride = useMemo(() => {
+    const overriddenIds = new Set(overrideRows.map((row) => row.id));
+    return allServices
+      .filter((service) => !overriddenIds.has(service.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allServices, overrideRows]);
+
+  const editingOverrideService = useMemo(() => {
+    if (!overrideEditId) {
+      return null;
+    }
+    return allServices.find((service) => service.id === overrideEditId) ?? null;
+  }, [overrideEditId, allServices]);
 
   // Load data on mount
   useEffect(() => {
     loadMerchantSettings();
     loadMerchantProfile();
   }, []);
+
+  useEffect(() => {
+    if (overrideDialogOpen && !overrideEditId) {
+      if (!overrideSelectedServiceId && availableServicesForOverride.length > 0) {
+        setOverrideSelectedServiceId(availableServicesForOverride[0].id);
+        setOverrideMaxDays(bookingDefaults.maxDays);
+        setOverrideMinHours(bookingDefaults.minNoticeHours);
+      }
+      if (availableServicesForOverride.length === 0) {
+        setOverrideSelectedServiceId("");
+      }
+    }
+  }, [
+    overrideDialogOpen,
+    overrideEditId,
+    overrideSelectedServiceId,
+    availableServicesForOverride,
+    bookingDefaults,
+  ]);
 
 
   const loadMerchantSettings = async () => {
@@ -200,6 +327,7 @@ export default function SettingsPage() {
           });
           setBusinessHours(formattedHours);
         }
+        await fetchServicesList();
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
@@ -225,6 +353,177 @@ export default function SettingsPage() {
       }
     }
   };
+
+  const resetOverrideForm = useCallback(() => {
+    setOverrideEditId(null);
+    setOverrideSelectedServiceId("");
+    setOverrideMaxDays(bookingDefaults.maxDays);
+    setOverrideMinHours(bookingDefaults.minNoticeHours);
+    setOverrideError(null);
+    setOverrideSaving(false);
+  }, [bookingDefaults]);
+
+  const handleOverrideDialogOpenChange = useCallback(
+    (open: boolean) => {
+      setOverrideDialogOpen(open);
+      if (!open) {
+        resetOverrideForm();
+      }
+    },
+    [resetOverrideForm],
+  );
+
+  const openAddOverride = useCallback(() => {
+    resetOverrideForm();
+    setOverrideDialogOpen(true);
+  }, [resetOverrideForm]);
+
+  const handleEditOverride = useCallback(
+    (serviceId: string) => {
+      const service = allServices.find((s) => s.id === serviceId);
+      if (!service) {
+        toast({
+          title: "Service not found",
+          description: "Unable to load the selected service.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setOverrideEditId(serviceId);
+      setOverrideSelectedServiceId(serviceId);
+      setOverrideMaxDays(
+        typeof service.maxAdvanceBooking === 'number'
+          ? service.maxAdvanceBooking
+          : bookingDefaults.maxDays,
+      );
+      setOverrideMinHours(
+        typeof service.minAdvanceBooking === 'number'
+          ? service.minAdvanceBooking
+          : bookingDefaults.minNoticeHours,
+      );
+      setOverrideError(null);
+      setOverrideDialogOpen(true);
+    },
+    [allServices, bookingDefaults, toast],
+  );
+
+  const handleSubmitOverride = useCallback(async () => {
+    setOverrideError(null);
+    const targetService =
+      overrideEditId && editingOverrideService
+        ? editingOverrideService
+        : allServices.find((service) => service.id === overrideSelectedServiceId) ?? null;
+
+    if (!targetService) {
+      setOverrideError("Select a service to override.");
+      return;
+    }
+
+    const maxDays = Math.trunc(overrideMaxDays);
+    if (!Number.isFinite(maxDays) || maxDays < 1) {
+      setOverrideError("Maximum advance booking must be at least 1 day.");
+      return;
+    }
+    if (maxDays > bookingDefaults.maxDays) {
+      setOverrideError(`Maximum advance booking cannot exceed ${bookingDefaults.maxDays} day(s).`);
+      return;
+    }
+
+    const minHours = Math.trunc(overrideMinHours);
+    if (!Number.isFinite(minHours) || minHours < 0) {
+      setOverrideError("Minimum advance notice must be a positive number of hours.");
+      return;
+    }
+    if (minHours > maxDays * 24) {
+      setOverrideError("Minimum advance notice cannot exceed the maximum booking window.");
+      return;
+    }
+    if (minHours < bookingDefaults.minNoticeHours) {
+      setOverrideError(
+        `Minimum advance notice cannot be less than the merchant default of ${bookingDefaults.minNoticeHours} hour(s).`,
+      );
+      return;
+    }
+
+    setOverrideSaving(true);
+    try {
+      await apiClient.updateService(targetService.id, {
+        maxAdvanceBooking: maxDays,
+        minAdvanceBooking: minHours,
+        advanceBookingMode: 'custom',
+      });
+      toast({
+        title: "Override saved",
+        description: `${targetService.name} can now be booked up to ${maxDays} day${maxDays === 1 ? '' : 's'} in advance.`,
+      });
+      await fetchServicesList();
+      setOverrideDialogOpen(false);
+      resetOverrideForm();
+    } catch (error: any) {
+      console.error('Failed to save override:', error);
+      setOverrideError(
+        error?.response?.data?.message || "Failed to save override. Please try again.",
+      );
+    } finally {
+      setOverrideSaving(false);
+    }
+  }, [
+    allServices,
+    bookingDefaults,
+    editingOverrideService,
+    fetchServicesList,
+    overrideEditId,
+    overrideMaxDays,
+    overrideMinHours,
+    overrideSelectedServiceId,
+    resetOverrideForm,
+    toast,
+  ]);
+
+  const handleRemoveOverride = useCallback(
+    async (serviceId: string) => {
+      const service = allServices.find((s) => s.id === serviceId);
+      if (!service) {
+        toast({
+          title: "Service not found",
+          description: "Unable to load the selected service.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const confirmRemove = window.confirm(
+        `Remove the custom booking window for "${service.name}"?`,
+      );
+      if (!confirmRemove) {
+        return;
+      }
+
+      setRemovingOverrideId(serviceId);
+      try {
+        await apiClient.updateService(serviceId, {
+          advanceBookingMode: 'merchant_default',
+          maxAdvanceBooking: bookingDefaults.maxDays,
+          minAdvanceBooking: bookingDefaults.minNoticeHours,
+        });
+        toast({
+          title: "Override removed",
+          description: `${service.name} now follows the merchant default window.`,
+        });
+        await fetchServicesList();
+      } catch (error: any) {
+        console.error('Failed to remove override:', error);
+        toast({
+          title: "Error",
+          description: error?.response?.data?.message || "Failed to remove override",
+          variant: "destructive",
+        });
+      } finally {
+        setRemovingOverrideId(null);
+      }
+    },
+    [allServices, bookingDefaults, fetchServicesList, toast],
+  );
 
   const handleSaveTimezone = async () => {
     setLoading(true);
@@ -1021,6 +1320,99 @@ export default function SettingsPage() {
                     Minimum advance notice required for bookings
                   </p>
                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-gray-900">Service-Specific Booking Windows</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Override the default advance window only for services that require more notice.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={openAddOverride}
+                    disabled={
+                      servicesLoading ||
+                      availableServicesForOverride.length === 0
+                    }
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Override
+                  </Button>
+                </div>
+                {servicesLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Spinner className="h-4 w-4" />
+                    Loading service overrides…
+                  </div>
+                ) : overrideRows.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-gray-200 p-4 text-sm text-muted-foreground">
+                    All services currently follow the merchant default of {bookingDefaults.maxDays} day{bookingDefaults.maxDays === 1 ? "" : "s"} with a minimum notice of {bookingDefaults.minNoticeHours} hour{bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+                  </div>
+                ) : (
+                  <div className="divide-y rounded-md border">
+                    {overrideRows.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{row.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Up to {row.maxAdvanceBooking} day{row.maxAdvanceBooking === 1 ? "" : "s"} in advance · Minimum notice {row.minAdvanceBooking} hour{row.minAdvanceBooking === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditOverride(row.id)}
+                          >
+                            <Edit className="mr-1 h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleRemoveOverride(row.id)}
+                            disabled={removingOverrideId === row.id}
+                          >
+                            {removingOverrideId === row.id ? (
+                              <>
+                                <Spinner className="mr-1 h-4 w-4" />
+                                Removing…
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="mr-1 h-4 w-4" />
+                                Remove
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {availableServicesForOverride.length === 0 &&
+                  !servicesLoading &&
+                  overrideRows.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      All services are currently using the merchant default booking window.
+                    </p>
+                  )}
+                {availableServicesForOverride.length === 0 &&
+                  !servicesLoading &&
+                  overrideRows.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Every service already has an override. Remove one to add another custom window.
+                    </p>
+                  )}
               </div>
 
               <div className="space-y-4">
@@ -1891,6 +2283,113 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={overrideDialogOpen} onOpenChange={handleOverrideDialogOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {overrideEditId ? "Edit Service Override" : "Add Service Override"}
+            </DialogTitle>
+            <DialogDescription>
+              Set a custom booking window for a specific service. Leave fields within the merchant defaults to keep everything aligned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {overrideEditId ? (
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-700">Service</Label>
+                <p className="text-sm text-gray-900">
+                  {editingOverrideService?.name || "Unknown service"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="override-service">Service</Label>
+                <Select
+                  value={overrideSelectedServiceId}
+                  onValueChange={setOverrideSelectedServiceId}
+                  disabled={availableServicesForOverride.length === 0}
+                >
+                  <SelectTrigger id="override-service">
+                    <SelectValue placeholder="Select a service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableServicesForOverride.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availableServicesForOverride.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    All services already have overrides or none are available.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="override-max-days">Maximum advance window (days)</Label>
+                <Input
+                  id="override-max-days"
+                  type="number"
+                  min={1}
+                  max={bookingDefaults.maxDays}
+                  value={overrideMaxDays}
+                  onChange={(event) =>
+                    setOverrideMaxDays(
+                      event.target.value === ""
+                        ? 0
+                        : Number(event.target.value)
+                    )
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="override-min-hours">Minimum notice (hours)</Label>
+                <Input
+                  id="override-min-hours"
+                  type="number"
+                  min={0}
+                  value={overrideMinHours}
+                  onChange={(event) =>
+                    setOverrideMinHours(
+                      event.target.value === ""
+                        ? 0
+                        : Number(event.target.value)
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Merchant default: {bookingDefaults.maxDays} day{bookingDefaults.maxDays === 1 ? "" : "s"} ahead · minimum notice {bookingDefaults.minNoticeHours} hour{bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+            </p>
+
+            {overrideError && (
+              <p className="text-sm text-red-600">{overrideError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleOverrideDialogOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitOverride} disabled={overrideSaving || (availableServicesForOverride.length === 0 && !overrideEditId)}>
+              {overrideSaving ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Saving...
+                </>
+              ) : (
+                overrideEditId ? "Update Override" : "Save Override"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Import Preview Dialog */}
       <ImportPreviewDialog

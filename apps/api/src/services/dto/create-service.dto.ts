@@ -51,11 +51,13 @@ export class CreateServiceDto {
   @IsNumber()
   @IsOptional()
   @Min(0)
+  @Max(365)
   maxAdvanceBooking?: number; // days
 
   @IsNumber()
   @IsOptional()
   @Min(0)
+  @Max(8760)
   minAdvanceBooking?: number; // hours
 
   @IsNumber()

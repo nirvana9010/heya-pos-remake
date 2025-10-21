@@ -11,6 +11,9 @@ import { PaginatedResponse } from '../types';
 import { CsvParserService } from './csv-parser.service';
 import { MerchantService } from '../merchant/merchant.service';
 import { DuplicateResourceException } from '../common/exceptions/business-exception';
+import { normalizeMerchantSettings } from '../utils/shared/merchant-settings';
+import { MerchantSettings } from '../types/models/merchant';
+import { DEFAULT_MERCHANT_SETTINGS } from '../merchant/merchant.constants';
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {
@@ -78,6 +81,65 @@ export class ServicesService {
       throw new DuplicateResourceException('Service', 'name', dto.name);
     }
 
+    const merchantRecord = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { settings: true },
+    });
+
+    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+      merchantRecord?.settings,
+    );
+    const bookingAdvanceHours =
+      merchantSettings?.bookingAdvanceHours ??
+      DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
+    const merchantMaxDays = Math.max(
+      1,
+      Math.ceil(bookingAdvanceHours / 24),
+    );
+    const merchantMinNoticeMinutes =
+      merchantSettings?.minimumBookingNotice ?? 0;
+    const defaultMinNoticeHours =
+      merchantMinNoticeMinutes > 0
+        ? Math.ceil(merchantMinNoticeMinutes / 60)
+        : 0;
+
+    const usesCustomAdvance =
+      dto.maxAdvanceBooking !== undefined ||
+      dto.minAdvanceBooking !== undefined;
+    const requestedMaxAdvance =
+      dto.maxAdvanceBooking !== undefined
+        ? Math.trunc(dto.maxAdvanceBooking)
+        : merchantMaxDays;
+
+    if (requestedMaxAdvance < 1 || requestedMaxAdvance > merchantMaxDays) {
+      throw new BadRequestException(
+        `Maximum advance booking must be between 1 and ${merchantMaxDays} day(s). Update the merchant booking window first if you need a larger limit.`,
+      );
+    }
+
+    const requestedMinAdvanceRaw =
+      dto.minAdvanceBooking !== undefined
+        ? Math.trunc(dto.minAdvanceBooking)
+        : defaultMinNoticeHours;
+
+    if (
+      merchantMinNoticeMinutes > 0 &&
+      requestedMinAdvanceRaw * 60 < merchantMinNoticeMinutes
+    ) {
+      throw new BadRequestException(
+        `Minimum advance notice cannot be less than the merchant default of ${merchantMinNoticeMinutes} minute(s).`,
+      );
+    }
+
+    if (requestedMinAdvanceRaw > requestedMaxAdvance * 24) {
+      throw new BadRequestException(
+        `Minimum advance notice (${requestedMinAdvanceRaw} hour(s)) cannot exceed the maximum advance window (${requestedMaxAdvance} day(s)).`,
+      );
+    }
+
+    const maxAdvanceBooking = requestedMaxAdvance;
+    const minAdvanceBooking = Math.max(requestedMinAdvanceRaw, 0);
+
     // If category name is provided instead of ID, find or create category
     let categoryId = dto.categoryId;
     // Handle empty string as null/undefined
@@ -91,6 +153,20 @@ export class ServicesService {
 
     // Generate a unique service ID for this manually created service
     const serviceId = await this.generateServiceId(merchantId);
+
+    const metadata: Record<string, any> = {
+      importId: serviceId,
+      createdManually: true,
+      advanceBooking: {
+        mode: usesCustomAdvance ? 'custom' : 'merchant_default',
+        lastUpdatedAt: new Date().toISOString(),
+        lastRequestId: null,
+        defaultsSnapshot: {
+          merchantMaxDays,
+          merchantMinNoticeMinutes,
+        },
+      },
+    };
     
     try {
       const service = await this.prisma.service.create({
@@ -107,13 +183,10 @@ export class ServicesService {
           isActive: dto.isActive ?? true,
           requiresDeposit: dto.requiresDeposit ?? false,
           depositAmount: dto.depositAmount,
-          maxAdvanceBooking: dto.maxAdvanceBooking ?? 90,
-          minAdvanceBooking: dto.minAdvanceBooking ?? 0,
+          maxAdvanceBooking,
+          minAdvanceBooking,
           displayOrder: dto.displayOrder ?? 0,
-          metadata: {
-            importId: serviceId,
-            createdManually: true, // Flag to distinguish from imported services
-          },
+          metadata,
         },
         include: {
           categoryModel: true,
@@ -231,62 +304,233 @@ export class ServicesService {
     merchantId: string,
     dto: UpdateServiceDto,
   ): Promise<ServiceWithCategoryName> {
-    const service = await this.findOne(id, merchantId);
-
-    // Check if updating name would create duplicate
-    if (dto.name && dto.name !== service.name) {
-      const existing = await this.prisma.service.findFirst({
-        where: {
-          merchantId,
-          name: dto.name,
-          NOT: { id },
-        },
-      });
-
-      if (existing) {
-        throw new DuplicateResourceException('Service', 'name', dto.name);
-      }
-    }
-
-    // Handle category update
-    let categoryId = dto.categoryId;
-    if (!categoryId && dto.category && dto.category !== service.category) {
-      const category = await this.findOrCreateCategory(merchantId, dto.category);
-      categoryId = category.id;
-    }
-
-    // Preserve existing metadata while updating other fields
-    const { metadata, ...updateData } = dto as any;
-    
-    try {
-      const updatedService = await this.prisma.service.update({
-        where: { id },
-        data: {
-          ...updateData,
-          categoryId: categoryId !== undefined ? categoryId : service.categoryId,
-          // Preserve existing metadata (like importId) - don't overwrite unless explicitly provided
-          metadata: metadata !== undefined ? metadata : undefined,
-        },
+    return this.prisma.$transaction(async (tx) => {
+      const service = await tx.service.findFirst({
+        where: { id, merchantId },
         include: {
           categoryModel: true,
         },
       });
 
-      return {
-        ...updatedService,
-        categoryName:
-          updatedService.categoryModel?.name || updatedService.category || null,
-      };
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new DuplicateResourceException('Service', 'name', dto.name ?? service.name);
+      if (!service) {
+        throw new NotFoundException('Service not found');
       }
 
-      throw error;
-    }
+      if (dto.name && dto.name !== service.name) {
+        const existing = await tx.service.findFirst({
+          where: {
+            merchantId,
+            name: dto.name,
+            NOT: { id },
+          },
+        });
+
+        if (existing) {
+          throw new DuplicateResourceException('Service', 'name', dto.name);
+        }
+      }
+
+      let nextCategoryId: string | null | undefined = service.categoryId;
+      let nextCategory = service.category;
+
+      if (dto.categoryId !== undefined) {
+        if (typeof dto.categoryId === 'string' && dto.categoryId.trim() === '') {
+          nextCategoryId = null;
+        } else {
+          nextCategoryId = dto.categoryId as string | null;
+        }
+      }
+
+      if (
+        dto.category &&
+        dto.category.trim() !== '' &&
+        (!dto.categoryId || dto.categoryId.trim?.() === '')
+      ) {
+        const existingCategory = await tx.serviceCategory.findFirst({
+          where: {
+            merchantId,
+            name: dto.category,
+          },
+        });
+
+        const category =
+          existingCategory ??
+          (await tx.serviceCategory.create({
+            data: {
+              merchantId,
+              name: dto.category,
+              isActive: true,
+              sortOrder: 0,
+            },
+          }));
+
+        nextCategoryId = category.id;
+        nextCategory = category.name;
+      } else if (dto.category !== undefined) {
+        nextCategory = dto.category;
+      }
+
+      const merchantRecord = await tx.merchant.findUnique({
+        where: { id: merchantId },
+        select: { settings: true },
+      });
+
+      const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+        merchantRecord?.settings,
+      );
+
+      const bookingAdvanceHours =
+        merchantSettings?.bookingAdvanceHours ??
+        DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
+      const merchantMaxDays = Math.max(
+        1,
+        Math.ceil(bookingAdvanceHours / 24),
+      );
+      const merchantMinNoticeMinutes =
+        merchantSettings?.minimumBookingNotice ?? 0;
+      const defaultMinNoticeHours =
+        merchantMinNoticeMinutes > 0
+          ? Math.ceil(merchantMinNoticeMinutes / 60)
+          : 0;
+
+      const existingMetadata =
+        service.metadata && typeof service.metadata === 'object' && !Array.isArray(service.metadata)
+          ? { ...(service.metadata as Record<string, any>) }
+          : {};
+
+      const existingAdvanceMeta =
+        existingMetadata.advanceBooking && typeof existingMetadata.advanceBooking === 'object'
+          ? { ...(existingMetadata.advanceBooking as Record<string, any>) }
+          : {};
+
+      if (
+        dto.idempotencyKey &&
+        existingAdvanceMeta.lastRequestId === dto.idempotencyKey
+      ) {
+        return {
+          ...service,
+          categoryName:
+            service.categoryModel?.name || service.category || null,
+        };
+      }
+
+      const advanceMode: 'merchant_default' | 'custom' =
+        dto.advanceBookingMode ??
+        (dto.maxAdvanceBooking !== undefined ||
+        dto.minAdvanceBooking !== undefined
+          ? 'custom'
+          : (existingAdvanceMeta.mode as 'merchant_default' | 'custom') ??
+            'merchant_default');
+
+      let nextMaxAdvance =
+        dto.maxAdvanceBooking !== undefined
+          ? Math.trunc(dto.maxAdvanceBooking)
+          : service.maxAdvanceBooking;
+      let nextMinAdvance =
+        dto.minAdvanceBooking !== undefined
+          ? Math.trunc(dto.minAdvanceBooking)
+          : service.minAdvanceBooking;
+
+      if (advanceMode === 'merchant_default') {
+        nextMaxAdvance = merchantMaxDays;
+        nextMinAdvance = Math.max(defaultMinNoticeHours, nextMinAdvance);
+      }
+
+      if (nextMaxAdvance < 1 || nextMaxAdvance > merchantMaxDays) {
+        throw new BadRequestException(
+          `Maximum advance booking must be between 1 and ${merchantMaxDays} day(s). Update the merchant booking window first if you need a larger limit.`,
+        );
+      }
+
+      if (
+        merchantMinNoticeMinutes > 0 &&
+        nextMinAdvance * 60 < merchantMinNoticeMinutes
+      ) {
+        throw new BadRequestException(
+          `Minimum advance notice cannot be less than the merchant default of ${merchantMinNoticeMinutes} minute(s).`,
+        );
+      }
+
+      if (nextMinAdvance > nextMaxAdvance * 24) {
+        throw new BadRequestException(
+          `Minimum advance notice (${nextMinAdvance} hour(s)) cannot exceed the maximum advance window (${nextMaxAdvance} day(s)).`,
+        );
+      }
+
+      const {
+        metadata: incomingMetadata,
+        idempotencyKey,
+        advanceBookingMode: _ignoredAdvanceBookingMode,
+        maxAdvanceBooking: _ignoredMax,
+        minAdvanceBooking: _ignoredMin,
+        category: dtoCategory,
+        categoryId: _ignoredCategoryId,
+        ...otherUpdates
+      } = dto as any;
+
+      const updateData: Prisma.ServiceUpdateInput = {
+        ...otherUpdates,
+        categoryId:
+          nextCategoryId !== undefined
+            ? nextCategoryId
+            : service.categoryId,
+        category:
+          dtoCategory !== undefined
+            ? dtoCategory
+            : nextCategory ?? service.category,
+        maxAdvanceBooking: nextMaxAdvance,
+        minAdvanceBooking: nextMinAdvance,
+      };
+
+      const nextMetadata =
+        incomingMetadata && typeof incomingMetadata === 'object'
+          ? { ...(incomingMetadata as Record<string, any>) }
+          : { ...existingMetadata };
+
+      nextMetadata.advanceBooking = {
+        ...existingAdvanceMeta,
+        mode: advanceMode,
+        lastUpdatedAt: new Date().toISOString(),
+        defaultsSnapshot: {
+          merchantMaxDays,
+          merchantMinNoticeMinutes,
+        },
+        ...(idempotencyKey ? { lastRequestId: idempotencyKey } : {}),
+      };
+
+      updateData.metadata = nextMetadata as Prisma.InputJsonValue;
+
+      try {
+        const updatedService = await tx.service.update({
+          where: { id },
+          data: updateData,
+          include: {
+            categoryModel: true,
+          },
+        });
+
+        return {
+          ...updatedService,
+          categoryName:
+            updatedService.categoryModel?.name ||
+            updatedService.category ||
+            null,
+        };
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new DuplicateResourceException(
+            'Service',
+            'name',
+            dto.name ?? service.name,
+          );
+        }
+
+        throw error;
+      }
+    });
   }
 
   async remove(id: string, merchantId: string): Promise<void> {

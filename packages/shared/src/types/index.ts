@@ -34,6 +34,9 @@ export interface Service {
   isActive: boolean;
   image?: string;
   staffIds?: string[];
+  maxAdvanceBooking?: number;
+  minAdvanceBooking?: number;
+  advanceBookingMode?: 'merchant_default' | 'custom';
 }
 
 export interface ServiceCategory {
