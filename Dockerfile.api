@@ -8,8 +8,14 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json ./
+COPY apps/admin-dashboard/package.json ./apps/admin-dashboard/
 COPY apps/api/package.json ./apps/api/
+COPY apps/booking-app/package.json ./apps/booking-app/
+COPY apps/merchant-app/package.json ./apps/merchant-app/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/utils/package.json ./packages/utils/
 
 # Install ALL dependencies
 RUN npm ci
@@ -25,6 +31,10 @@ RUN npx prisma generate
 WORKDIR /app/packages/types
 RUN npm run build
 
+# Build utils package
+WORKDIR /app/packages/utils
+RUN npm run build
+
 # Build API
 WORKDIR /app/apps/api
 RUN npm run build
@@ -38,14 +48,21 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json ./
+COPY apps/admin-dashboard/package.json ./apps/admin-dashboard/
 COPY apps/api/package.json ./apps/api/
+COPY apps/booking-app/package.json ./apps/booking-app/
+COPY apps/merchant-app/package.json ./apps/merchant-app/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/utils/package.json ./packages/utils/
 
 # Install production dependencies only
 RUN npm ci --production
 
 # Copy built application from builder
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
