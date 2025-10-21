@@ -1169,6 +1169,10 @@ function CalendarContent() {
                       }
                     }}
                     initialFocus
+                    classNames={{
+                      cell: "h-12",
+                      day: "h-12",
+                    }}
                     modifiers={{
                       today: new Date(),
                     }}
