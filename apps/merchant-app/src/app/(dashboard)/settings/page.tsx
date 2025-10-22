@@ -1519,6 +1519,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          <HolidayManager
+            initialState={merchantSettings?.holidayState ?? null}
+          />
         </TabsContent>
         <TabsContent value="booking">
           <Card>
