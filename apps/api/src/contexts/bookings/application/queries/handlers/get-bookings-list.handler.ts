@@ -87,14 +87,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           paymentMethod: true,
           paidAt: true,
           completedAt: true,
-          customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              phone: true,
-              source: true,
-            },
-          },
+          customerId: true,
           provider: {
             select: {
               id: true,
@@ -135,8 +128,35 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
       this.prisma.booking.count({ where }),
     ]);
 
+    // Load customer details separately to tolerate missing records
+    const customerIds = Array.from(
+      new Set(
+        bookings
+          .map(booking => booking.customerId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    const customers = customerIds.length
+      ? await this.prisma.customer.findMany({
+          where: { id: { in: customerIds } },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            source: true,
+          },
+        })
+      : [];
+
+    const customerMap = new Map(customers.map(customer => [customer.id, customer]));
+
     // Map to read model with proper multi-service support
     const items: BookingListItem[] = bookings.map(booking => {
+      const customer = booking.customerId
+        ? customerMap.get(booking.customerId)
+        : undefined;
       const services = booking.services.map(s => ({
         id: s.service.id,
         name: s.service.name,
@@ -153,12 +173,14 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
       return {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
-        customerName: booking.customer.lastName 
-          ? `${booking.customer.firstName} ${booking.customer.lastName}`
-          : booking.customer.firstName,
-        customerPhone: booking.customer.phone,
+        customerName: customer
+          ? customer.lastName
+            ? `${customer.firstName} ${customer.lastName}`
+            : customer.firstName
+          : 'Unknown Customer',
+        customerPhone: customer?.phone || undefined,
         customerEmail: undefined, // Not included in list query for performance
-        customerSource: booking.customer.source || null,
+        customerSource: customer?.source || null,
         staffId: booking.provider?.id || null,
         staffName: booking.provider 
           ? (booking.provider.lastName 
