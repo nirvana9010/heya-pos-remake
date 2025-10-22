@@ -129,16 +129,36 @@ export class BookingAvailabilityService {
       },
     });
 
-    const holidayEntries = await this.prisma.merchantHoliday.findMany({
-      where: {
-        merchantId,
-        isDayOff: true,
-        date: {
-          gte: new Date(startDate.toISOString().split("T")[0]),
-          lte: new Date(endDate.toISOString().split("T")[0]),
+    let holidayEntries: Array<{ date: Date; name: string }> = [];
+    try {
+      holidayEntries = await this.prisma.merchantHoliday.findMany({
+        where: {
+          merchantId,
+          isDayOff: true,
+          date: {
+            gte: new Date(startDate.toISOString().split("T")[0]),
+            lte: new Date(endDate.toISOString().split("T")[0]),
+          },
         },
-      },
-    });
+      });
+    } catch (error: unknown) {
+      const isMissingHolidayTable =
+        (error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2021") ||
+        (typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code?: string }).code === "P2021");
+
+      if (isMissingHolidayTable) {
+        console.warn(
+          "[AVAILABILITY] MerchantHoliday table missing; skipping holiday checks",
+          { merchantId },
+        );
+      } else {
+        throw error;
+      }
+    }
 
     // Create a map of schedules by day of week
     const scheduleMap = new Map<

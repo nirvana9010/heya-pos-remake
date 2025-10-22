@@ -98,4 +98,58 @@ describe("BookingAvailabilityService - Holidays", () => {
     expect(Array.isArray(slots)).toBe(true);
     expect(slots).toHaveLength(0);
   });
+
+  it("continues when merchant holiday table is missing", async () => {
+    const merchantId = "merchant-2";
+    const staffId = "staff-2";
+    const serviceId = "service-2";
+    const timezone = "Australia/Sydney";
+    const startDate = new Date("2025-02-01T00:00:00.000Z");
+    const endDate = new Date("2025-02-01T23:59:59.000Z");
+
+    prisma.service.findFirst.mockResolvedValue({
+      id: serviceId,
+      duration: 60,
+      paddingBefore: 0,
+      paddingAfter: 0,
+    } as any);
+
+    prisma.staff.findFirst.mockResolvedValue({
+      id: staffId,
+      merchantId,
+    } as any);
+
+    prisma.merchant.findUnique.mockResolvedValue({
+      settings: {
+        businessHours: {
+          saturday: { open: "09:00", close: "17:00", isOpen: true },
+        },
+        minimumBookingNotice: 0,
+      },
+    } as any);
+
+    prisma.booking.findMany.mockResolvedValue([]);
+    prisma.staffSchedule.findMany.mockResolvedValue([
+      {
+        staffId,
+        dayOfWeek: 6,
+        startTime: "09:00",
+        endTime: "17:00",
+      },
+    ] as any);
+
+    prisma.scheduleOverride.findMany.mockResolvedValue([]);
+    prisma.merchantHoliday.findMany.mockRejectedValue({ code: "P2021" } as any);
+
+    const slots = await service.getAvailableSlots({
+      merchantId,
+      staffId,
+      serviceId,
+      startDate,
+      endDate,
+      timezone,
+    });
+
+    expect(slots.length).toBeGreaterThan(0);
+  });
 });
