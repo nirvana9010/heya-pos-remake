@@ -56,6 +56,7 @@ is_running() {
 kill_stragglers() {
     pkill -f "node_modules/.bin/nest start --watch" 2>/dev/null || true
     pkill -f "node dist/main" 2>/dev/null || true
+    pkill -f "apps/api/dist/main" 2>/dev/null || true
 }
 
 stop_service() {
@@ -63,6 +64,7 @@ stop_service() {
         local pid
         pid=$(cat "$PID_FILE")
         echo -e "${YELLOW}🛑 Stopping ${APP_NAME} dev service (PID: ${pid})...${NC}"
+        kill -- -"$pid" 2>/dev/null || true
         kill "$pid" 2>/dev/null || true
 
         for _ in {1..10}; do
