@@ -60,5 +60,8 @@ pm2.json
 
 # Frontend apps (we only need API)
 /apps/merchant-app
+!/apps/merchant-app/package.json
 /apps/booking-app
+!/apps/booking-app/package.json
 /apps/admin-dashboard
+!/apps/admin-dashboard/package.json
