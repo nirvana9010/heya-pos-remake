@@ -59,24 +59,11 @@ const CalendarPageContent = dynamic(
   }
 );
 
-const DEV_BANNER_MESSAGE = `Dev Build • Refreshed ${new Date().toISOString()} • Calendar colours live • Force refresh (Cmd/Ctrl+Shift+R) if dots look grey`;
-const DEV_BANNER_TESTID = 'dev-calendar-banner';
-
 // This lightweight wrapper loads instantly
 export default function CalendarPage() {
-  const isDev = process.env.NODE_ENV !== 'production';
-
   return (
     <CalendarErrorBoundary>
       <BookingProvider>
-        {isDev && (
-          <div
-            data-testid={DEV_BANNER_TESTID}
-            className="bg-red-700 text-white text-center py-2 text-sm font-semibold tracking-wide uppercase"
-          >
-            {DEV_BANNER_MESSAGE}
-          </div>
-        )}
         <CalendarPageContent />
       </BookingProvider>
     </CalendarErrorBoundary>
