@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, startOfWeek, addDays, isSameDay, isToday } from "date-fns";
 import {
   ChevronLeft,
@@ -123,6 +123,14 @@ export default function RosterPage() {
     useState(false);
 
   const staffClient = new StaffClient();
+  const totalOverrides = useMemo(() => {
+    let count = 0;
+    overrides.forEach((entries) => {
+      count += entries.length;
+    });
+    return count;
+  }, [overrides]);
+  const staffWithOverrides = overrides.size;
 
   // Load staff and their schedules
   useEffect(() => {
@@ -748,6 +756,17 @@ export default function RosterPage() {
           Staff Roster
         </h1>
         <p className="text-gray-600">Manage staff schedules and availability</p>
+        <div className="mt-2 text-sm text-gray-500">
+          Overrides this week:{" "}
+          <span className="font-medium text-gray-900">
+            {totalOverrides}
+          </span>{" "}
+          {totalOverrides === 1 ? "override" : "overrides"} across{" "}
+          <span className="font-medium text-gray-900">
+            {staffWithOverrides}
+          </span>{" "}
+          {staffWithOverrides === 1 ? "staff member" : "staff members"}
+        </div>
       </div>
 
       {/* Week Navigation */}
