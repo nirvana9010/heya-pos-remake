@@ -112,6 +112,14 @@ Whenever you add or modify database columns:
 
 If Prisma reports drift, don’t reset the database. Instead reconcile the history using `prisma migrate resolve` (see the “Prisma Migration Workflow” section in `AGENTS.md` for the exact steps). Never run `prisma db push` in shared environments.
 
+#### Guard Rails For Roster Tables
+
+`StaffSchedule` and `ScheduleOverride` contain the live roster. They behave like normal tables as long as we avoid re-baselining:
+
+- **Never regenerate `00000000000000_initial_schema`**; add incremental migrations instead of “diffing from empty”, or include a data-preserving staging copy if you must rebuild.
+- **Use `prisma migrate dev` for schema edits** so the generated SQL is `ALTER TABLE` rather than dropping/recreating the tables.
+- **Keep auto-seeding scripts idempotent** – they should fill gaps only when no schedule exists, not overwrite custom hours after a reset.
+
 ### Targeted Data Restore Playbook (Fly MPG)
 
 When a migration wipes a specific table (for example `StaffSchedule` or `ScheduleOverride`), follow this checklist to recover production data quickly without nuking the rest of the database.
