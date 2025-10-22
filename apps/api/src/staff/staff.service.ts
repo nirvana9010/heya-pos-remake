@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { UpdateStaffDto } from "./dto/update-staff.dto";
@@ -10,9 +11,12 @@ import { PrismaService } from "../prisma/prisma.service";
 import { MerchantService } from "../merchant/merchant.service";
 import { getNextStaffColor } from "../utils/color.utils";
 import * as bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class StaffService {
+  private readonly logger = new Logger(StaffService.name);
+
   constructor(
     private prisma: PrismaService,
     private merchantService: MerchantService,
@@ -705,12 +709,27 @@ export class StaffService {
       }
     }
 
-    const holidayOverrides = await this.prisma.merchantHoliday.findMany({
-      where: holidayWhere,
-      orderBy: {
-        date: "asc",
-      },
-    });
+    let holidayOverrides = [];
+    try {
+      holidayOverrides = await this.prisma.merchantHoliday.findMany({
+        where: holidayWhere,
+        orderBy: {
+          date: "asc",
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2021"
+      ) {
+        this.logger.warn(
+          `[StaffService] MerchantHoliday table missing; skipping holiday overrides for merchant ${merchantId}`,
+        );
+        holidayOverrides = [];
+      } else {
+        throw error;
+      }
+    }
 
     const existingDates = new Set(
       normalizedOverrides.map((override) => override.date),
