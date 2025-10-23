@@ -331,10 +331,16 @@ export function useCalendarData() {
           }
           
           // Update unassigned column visibility
-          if (merchant.settings.showUnassignedColumn !== undefined) {
-            if (merchant.settings.showUnassignedColumn !== state.showUnassignedColumn) {
-              actions.toggleUnassignedColumn();
-            }
+          const desiredShowUnassigned =
+            merchant.settings.allowUnassignedBookings === true
+              ? true
+              : merchant.settings.showUnassignedColumn ?? false;
+
+          if (state.showUnassignedColumn !== desiredShowUnassigned) {
+            actions.dispatch({
+              type: 'SET_UI_FLAGS',
+              payload: { showUnassignedColumn: desiredShowUnassigned },
+            });
           }
 
           if (Array.isArray(merchant.settings.calendarStaffOrder)) {

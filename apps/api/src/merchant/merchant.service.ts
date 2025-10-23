@@ -20,6 +20,18 @@ export class MerchantService {
 
     const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
 
+    const desiredShowUnassigned = !!settings.allowUnassignedBookings;
+    if (settings.showUnassignedColumn !== desiredShowUnassigned) {
+      settings.showUnassignedColumn = desiredShowUnassigned;
+
+      await this.prisma.merchant.update({
+        where: { id: merchantId },
+        data: {
+          settings: settings as any,
+        },
+      });
+    }
+
     console.log('[MerchantService] getMerchantSettings returning:', JSON.stringify(settings, null, 2));
     return settings;
   }
@@ -41,6 +53,7 @@ export class MerchantService {
 
     const currentSettings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
     const updatedSettings = { ...currentSettings, ...settings };
+    updatedSettings.showUnassignedColumn = !!updatedSettings.allowUnassignedBookings;
 
     const previousAdvanceHours = currentSettings.bookingAdvanceHours ?? DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
     const requestedAdvanceHours = settings.bookingAdvanceHours;

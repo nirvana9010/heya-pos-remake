@@ -126,9 +126,9 @@ This tests all four scenarios:
 
 1. **For high-volume businesses**: Keep `true` for flexibility
 2. **For appointment-based services**: Consider `false` for clarity
-3. **Pair with `showUnassignedColumn`**: 
-   - If `allowUnassignedBookings = true`, keep `showUnassignedColumn = true`
-   - If `allowUnassignedBookings = false`, can set `showUnassignedColumn = false`
+3. **Platform enforcement**: 
+   - The merchant app now keeps `showUnassignedColumn` in sync with `allowUnassignedBookings`
+   - Enabling unassigned bookings automatically displays the "Unassigned" calendar column
 
 ## Future Enhancements
 
@@ -136,3 +136,4 @@ This tests all four scenarios:
 2. **Customer Preference**: Remember customer's preferred staff
 3. **Service-Specific Settings**: Some services require specific staff
 4. **Notification Options**: Alert when unassigned bookings are created
+

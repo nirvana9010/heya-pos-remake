@@ -150,9 +150,6 @@ export default function SettingsPage() {
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(
     merchantSettings.allowCustomTipAmount ?? true,
   );
-  const [showUnassignedColumn, setShowUnassignedColumn] = useState(
-    merchantSettings.showUnassignedColumn ?? true,
-  );
   const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(
     merchantSettings.allowUnassignedBookings ?? true,
   );
@@ -424,7 +421,6 @@ export default function SettingsPage() {
           response.defaultTipPercentages || [10, 15, 20],
         );
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
-        setShowUnassignedColumn(response.showUnassignedColumn ?? true);
         setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
         setAutoConfirmBookings(response.autoConfirmBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
@@ -744,8 +740,8 @@ export default function SettingsPage() {
         // enableTips, // Hidden - not functional
         // defaultTipPercentages, // Hidden - not functional
         // allowCustomTipAmount, // Hidden - not functional
-        showUnassignedColumn,
         allowUnassignedBookings,
+        showUnassignedColumn: allowUnassignedBookings,
         autoConfirmBookings,
         calendarStartHour,
         calendarEndHour,
@@ -1761,25 +1757,13 @@ export default function SettingsPage() {
                 */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Show Unassigned Column</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Display an "Unassigned" column in the calendar for
-                      bookings without a specific staff member
-                    </p>
-                  </div>
-                  <Switch
-                    checked={showUnassignedColumn}
-                    onCheckedChange={setShowUnassignedColumn}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
                     <Label>Allow Unassigned Bookings</Label>
                     <p className="text-sm text-muted-foreground">
                       When customers choose "Any Available" staff: ON = Creates
                       unassigned bookings for manual assignment later, OFF =
-                      Automatically assigns the next available staff member
+                      Automatically assigns the next available staff member.
+                      The calendar will always display the "Unassigned" column
+                      whenever this is enabled.
                     </p>
                   </div>
                   <Switch
@@ -2084,9 +2068,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-          <HolidayManager
-            initialState={merchantSettings?.holidayState ?? null}
-          />
         </TabsContent>
         <TabsContent value="security">
           <div className="space-y-6">

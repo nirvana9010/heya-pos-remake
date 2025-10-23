@@ -141,6 +141,12 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
   const initialStaffOrder = Array.isArray(freshMerchantSettings?.calendarStaffOrder)
     ? freshMerchantSettings.calendarStaffOrder.filter((value: unknown) => typeof value === 'string')
     : savedPrefs.staffDisplayOrder || [];
+  const allowUnassigned =
+    freshMerchantSettings?.allowUnassignedBookings ?? false;
+  const showUnassignedDefault =
+    freshMerchantSettings?.showUnassignedColumn === undefined
+      ? allowUnassigned
+      : !!freshMerchantSettings.showUnassignedColumn;
 
   // Initial state based on merchant settings
   
@@ -172,7 +178,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
     staffDisplayOrder: initialStaffOrder,
 
     // Feature flags - Use fresh merchant settings directly
-    showUnassignedColumn: freshMerchantSettings?.showUnassignedColumn ?? false,
+    showUnassignedColumn: showUnassignedDefault,
     showBlockedTime: true,
     showBreaks: true,
     showOnlyRosteredStaff: freshMerchantSettings?.showOnlyRosteredStaffDefault ?? true,
@@ -616,6 +622,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
   
   // Use merchant settings from auth context/localStorage only
   const merchantSettings = merchant?.settings;
+  const allowUnassignedBookings = merchantSettings?.allowUnassignedBookings ?? false;
   
   const [state, dispatch] = useReducer(calendarReducer, getInitialState(merchantSettings));
   
@@ -703,7 +710,12 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     setBadgeDisplayMode: (mode: 'full' | 'icon') => dispatch({ type: 'SET_BADGE_DISPLAY_MODE', payload: mode }),
     
     // UI actions
-    toggleUnassignedColumn: () => dispatch({ type: 'TOGGLE_UNASSIGNED' }),
+    toggleUnassignedColumn: () => {
+      if (allowUnassignedBookings) {
+        return;
+      }
+      dispatch({ type: 'TOGGLE_UNASSIGNED' });
+    },
     toggleBlockedTime: () => dispatch({ type: 'TOGGLE_BLOCKED' }),
     toggleBreaks: () => dispatch({ type: 'TOGGLE_BREAKS' }),
     toggleRosteredOnly: () => dispatch({ type: 'TOGGLE_ROSTERED_ONLY' }),
@@ -728,7 +740,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     
     // Direct dispatch access for complex actions
     dispatch,
-  }), [dispatch]);
+  }), [dispatch, allowUnassignedBookings]);
   
   // Initialize date range on mount and listen for merchant settings updates
   useEffect(() => {
@@ -742,9 +754,14 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
         // Debounce updates to prevent flickering
         clearTimeout(updateTimeout);
         updateTimeout = setTimeout(() => {
+          const allowFromEvent = e.detail.settings.allowUnassignedBookings;
+          const enforcedShow =
+            typeof allowFromEvent === 'boolean'
+              ? allowFromEvent
+              : e.detail.settings.showUnassignedColumn;
+
           const newSettings = {
-            ...(e.detail.settings.showUnassignedColumn !== undefined && 
-              { showUnassignedColumn: e.detail.settings.showUnassignedColumn }),
+            ...(enforcedShow !== undefined && { showUnassignedColumn: !!enforcedShow }),
             ...(e.detail.settings.calendarStartHour !== undefined && 
               { calendarStartHour: e.detail.settings.calendarStartHour }),
             ...(e.detail.settings.calendarEndHour !== undefined && 
