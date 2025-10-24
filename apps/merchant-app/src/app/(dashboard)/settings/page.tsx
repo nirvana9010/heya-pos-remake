@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
@@ -68,6 +68,9 @@ import { useTyro } from "@/hooks/useTyro";
 import type { CustomerImportPreview } from "@/lib/clients/customers-client";
 import { customerKeys } from "@/lib/query/hooks/use-customers";
 import type { Service as ApiService } from "@/lib/clients/services-client";
+import type { MerchantSettings } from "@heya-pos/types";
+
+const AUTO_SAVE_DEBOUNCE_MS = 600;
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -134,7 +137,6 @@ export default function SettingsPage() {
     useState(merchantSettings.cancellationNotificationEmail !== false);
   const [cancellationNotificationSms, setCancellationNotificationSms] =
     useState(merchantSettings.cancellationNotificationSms !== false);
-  const [loading, setLoading] = useState(false);
   const [requireDeposit, setRequireDeposit] = useState(
     merchantSettings.requireDeposit ?? false,
   );
@@ -203,7 +205,7 @@ export default function SettingsPage() {
   };
 
   const [businessHours, setBusinessHours] = useState<any>(() => {
-    if (merchantSettings.businessHours) {
+  if (merchantSettings.businessHours) {
       const formattedHours: any = {};
       Object.entries(merchantSettings.businessHours).forEach(
         ([day, hours]: [string, any]) => {
@@ -224,6 +226,65 @@ export default function SettingsPage() {
     }
     return defaultHours;
   });
+
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUpdatesRef = useRef<Partial<MerchantSettings>>({});
+  const lastSavedSettingsRef = useRef<Partial<MerchantSettings>>(merchantSettings);
+  const hasLoadedSettingsRef = useRef(false);
+  const shouldSkipNextAutoSaveRef = useRef(true);
+  const isUnmountedRef = useRef(false);
+
+  const mergeSettingsIntoLocalCache = useCallback(
+    (updates: Partial<MerchantSettings>) => {
+      if (typeof window !== "undefined") {
+        const storedMerchant = localStorage.getItem("merchant");
+        if (storedMerchant) {
+          try {
+            const merchantData = JSON.parse(storedMerchant);
+            merchantData.settings = {
+              ...(merchantData.settings ?? {}),
+              ...updates,
+            };
+            localStorage.setItem("merchant", JSON.stringify(merchantData));
+            window.dispatchEvent(
+              new CustomEvent("merchantSettingsUpdated", {
+                detail: { settings: merchantData.settings },
+              }),
+            );
+          } catch (error) {
+            console.error("Failed to update local merchant data:", error);
+          }
+        }
+      }
+
+      if (merchant) {
+        queryClient.invalidateQueries({ queryKey: ["merchant"] });
+        queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      }
+    },
+    [merchant, queryClient],
+  );
+
+  const persistSettings = useCallback(
+    async (updates: Partial<MerchantSettings>) => {
+      const response = await apiClient.updateMerchantSettings(updates);
+      if (response) {
+        lastSavedSettingsRef.current = response;
+        mergeSettingsIntoLocalCache(response);
+        return response;
+      }
+
+      const fallback = {
+        ...lastSavedSettingsRef.current,
+        ...updates,
+      } as Partial<MerchantSettings>;
+      lastSavedSettingsRef.current = fallback;
+      mergeSettingsIntoLocalCache(fallback);
+      return fallback;
+    },
+    [mergeSettingsIntoLocalCache],
+  );
 
   // Import states
   const [customerFile, setCustomerFile] = useState<File | null>(null);
@@ -406,12 +467,6 @@ export default function SettingsPage() {
     return allServices.find((service) => service.id === overrideEditId) ?? null;
   }, [overrideEditId, allServices]);
 
-  // Load data on mount
-  useEffect(() => {
-    loadMerchantSettings();
-    loadMerchantProfile();
-  }, []);
-
   useEffect(() => {
     if (overrideDialogOpen && !overrideEditId) {
       if (
@@ -434,7 +489,8 @@ export default function SettingsPage() {
     bookingDefaults,
   ]);
 
-  const loadMerchantSettings = async () => {
+  const loadMerchantSettings = useCallback(async () => {
+    shouldSkipNextAutoSaveRef.current = true;
     try {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
@@ -529,14 +585,18 @@ export default function SettingsPage() {
           );
           setBusinessHours(formattedHours);
         }
+        lastSavedSettingsRef.current = response;
+        mergeSettingsIntoLocalCache(response);
+        hasLoadedSettingsRef.current = true;
+        pendingUpdatesRef.current = {};
         await fetchServicesList();
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
     }
-  };
+  }, [fetchServicesList, mergeSettingsIntoLocalCache]);
 
-  const loadMerchantProfile = async () => {
+  const loadMerchantProfile = useCallback(async () => {
     try {
       const profile = await apiClient.getMerchantProfile();
       setMerchantProfile(profile);
@@ -554,7 +614,186 @@ export default function SettingsPage() {
         setMerchantSubdomain(merchant.subdomain || "");
       }
     }
+  }, [merchant]);
+
+  const flushAutoSave = useCallback(async () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    const updates = pendingUpdatesRef.current;
+    if (
+      !updates ||
+      Object.keys(updates).length === 0 ||
+      !hasLoadedSettingsRef.current
+    ) {
+      return;
+    }
+
+    pendingUpdatesRef.current = {};
+    if (!isUnmountedRef.current) {
+      setIsAutoSaving(true);
+    }
+
+    try {
+      await persistSettings(updates);
+    } catch (error: any) {
+      console.error("Failed to auto-save settings:", error);
+      toast({
+        title: "Auto-save failed",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "We couldn't save your changes. Restoring previous settings.",
+        variant: "destructive",
+      });
+      await loadMerchantSettings();
+    } finally {
+      if (!isUnmountedRef.current) {
+        setIsAutoSaving(false);
+      }
+    }
+  }, [loadMerchantSettings, persistSettings, toast]);
+
+  const queueAutoSave = useCallback(
+    (updates: Partial<MerchantSettings>) => {
+      if (!hasLoadedSettingsRef.current) {
+        return;
+      }
+
+      pendingUpdatesRef.current = {
+        ...pendingUpdatesRef.current,
+        ...updates,
+      };
+
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
+      autoSaveTimerRef.current = setTimeout(() => {
+        autoSaveTimerRef.current = null;
+        void flushAutoSave();
+      }, AUTO_SAVE_DEBOUNCE_MS);
+    },
+    [flushAutoSave],
+  );
+
+  const toNumberOrUndefined = (value: string | number | undefined) => {
+    if (value === "" || value === undefined || value === null) {
+      return undefined;
+    }
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
   };
+
+  const aggregatedSettings = useMemo<Partial<MerchantSettings>>(
+    () => ({
+      bookingAdvanceHours: toNumberOrUndefined(bookingAdvanceHours),
+      cancellationHours: toNumberOrUndefined(cancellationHours),
+      minimumBookingNotice: toNumberOrUndefined(minimumBookingNotice),
+      requirePinForRefunds,
+      requirePinForCancellations,
+      requirePinForReports,
+      requirePinForStaff,
+      timezone: selectedTimezone,
+      requireDeposit,
+      depositPercentage: toNumberOrUndefined(depositPercentage),
+      enableTips,
+      defaultTipPercentages,
+      allowCustomTipAmount,
+      allowUnassignedBookings,
+      autoConfirmBookings,
+      calendarStartHour,
+      calendarEndHour,
+      showOnlyRosteredStaffDefault,
+      includeUnscheduledStaff,
+      priceToDurationRatio: toNumberOrUndefined(priceToDurationRatio),
+      tyroEnabled,
+      tyroTerminalId: tyroTerminalId || undefined,
+      tyroMerchantId: tyroMerchantId || undefined,
+      bookingConfirmationEmail,
+      bookingConfirmationSms,
+      appointmentReminder24hEmail,
+      appointmentReminder24hSms,
+      appointmentReminder2hEmail,
+      appointmentReminder2hSms,
+      newBookingNotification,
+      newBookingNotificationEmail,
+      newBookingNotificationSms,
+      cancellationNotification,
+      cancellationNotificationEmail,
+      cancellationNotificationSms,
+      businessHours,
+    }),
+    [
+      appointmentReminder24hEmail,
+      appointmentReminder24hSms,
+      appointmentReminder2hEmail,
+      appointmentReminder2hSms,
+      autoConfirmBookings,
+      bookingAdvanceHours,
+      bookingConfirmationEmail,
+      bookingConfirmationSms,
+      businessHours,
+      calendarEndHour,
+      calendarStartHour,
+      cancellationHours,
+      cancellationNotification,
+      cancellationNotificationEmail,
+      cancellationNotificationSms,
+      defaultTipPercentages,
+      depositPercentage,
+      enableTips,
+      includeUnscheduledStaff,
+      minimumBookingNotice,
+      newBookingNotification,
+      newBookingNotificationEmail,
+      newBookingNotificationSms,
+      priceToDurationRatio,
+      requireDeposit,
+      requirePinForCancellations,
+      requirePinForReports,
+      requirePinForRefunds,
+      requirePinForStaff,
+      selectedTimezone,
+      showOnlyRosteredStaffDefault,
+      allowCustomTipAmount,
+      allowUnassignedBookings,
+      tyroEnabled,
+      tyroMerchantId,
+      tyroTerminalId,
+    ],
+  );
+
+  useEffect(() => {
+    loadMerchantSettings();
+    loadMerchantProfile();
+  }, [loadMerchantSettings, loadMerchantProfile]);
+
+  useEffect(() => {
+    if (!hasLoadedSettingsRef.current) {
+      return;
+    }
+    if (shouldSkipNextAutoSaveRef.current) {
+      shouldSkipNextAutoSaveRef.current = false;
+      return;
+    }
+    queueAutoSave(aggregatedSettings);
+  }, [aggregatedSettings, queueAutoSave]);
+
+  useEffect(() => {
+    return () => {
+      isUnmountedRef.current = true;
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      if (pendingUpdatesRef.current && Object.keys(pendingUpdatesRef.current).length > 0) {
+        void flushAutoSave();
+      }
+    };
+  }, [flushAutoSave]);
 
   const resetOverrideForm = useCallback(() => {
     setOverrideEditId(null);
@@ -736,130 +975,6 @@ export default function SettingsPage() {
     },
     [allServices, bookingDefaults, fetchServicesList, toast],
   );
-
-  const handleSaveTimezone = async () => {
-    setLoading(true);
-    try {
-      // Update merchant-level timezone
-      await apiClient.put("/merchant/settings", {
-        timezone: selectedTimezone,
-      });
-
-      toast({
-        title: "Success",
-        description: "Timezone updated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update timezone",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveBookingSettings = async () => {
-    setLoading(true);
-    try {
-      const updatedSettings = {
-        bookingAdvanceHours: parseInt(bookingAdvanceHours),
-        cancellationHours: parseInt(cancellationHours),
-        minimumBookingNotice: parseInt(minimumBookingNotice),
-        requirePinForRefunds,
-        requirePinForCancellations,
-        requirePinForReports,
-        requirePinForStaff,
-        // requireDeposit, // Hidden - not functional
-        // depositPercentage: parseInt(depositPercentage), // Hidden - not functional
-        timezone: selectedTimezone,
-        // enableTips, // Hidden - not functional
-        // defaultTipPercentages, // Hidden - not functional
-        // allowCustomTipAmount, // Hidden - not functional
-        allowUnassignedBookings,
-        showUnassignedColumn: allowUnassignedBookings,
-        autoConfirmBookings,
-        calendarStartHour,
-        calendarEndHour,
-        showOnlyRosteredStaffDefault,
-        includeUnscheduledStaff,
-        priceToDurationRatio: parseFloat(priceToDurationRatio),
-        tyroEnabled,
-        tyroTerminalId,
-        tyroMerchantId,
-      };
-
-      await apiClient.put("/merchant/settings", updatedSettings);
-
-      // Update merchant data in localStorage to reflect the changes immediately
-      const storedMerchant = localStorage.getItem("merchant");
-      if (storedMerchant) {
-        try {
-          const merchantData = JSON.parse(storedMerchant);
-          merchantData.settings = {
-            ...merchantData.settings,
-            ...updatedSettings,
-          };
-          localStorage.setItem("merchant", JSON.stringify(merchantData));
-
-          // Dispatch a custom event for same-tab updates
-          window.dispatchEvent(
-            new CustomEvent("merchantSettingsUpdated", {
-              detail: { settings: merchantData.settings },
-            }),
-          );
-
-          // Also update the auth context if it has a refresh function
-          if (merchant && typeof window !== "undefined") {
-            // Trigger a re-render by updating query cache
-            queryClient.invalidateQueries({ queryKey: ["merchant"] });
-            queryClient.invalidateQueries({ queryKey: ["calendar"] });
-          }
-        } catch (e) {
-          console.error("Failed to update local merchant data:", e);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Booking settings updated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update booking settings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveSecuritySettings = async () => {
-    setLoading(true);
-    try {
-      await apiClient.put("/merchant/settings", {
-        requirePinForRefunds,
-        requirePinForCancellations,
-        requirePinForReports,
-        requirePinForStaff,
-      });
-
-      toast({
-        title: "Success",
-        description: "Security settings updated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update security settings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Removed BusinessTab component definition to prevent re-rendering issues
 
@@ -1206,6 +1321,19 @@ export default function SettingsPage() {
         <p className="text-muted-foreground mt-1">
           Manage your business preferences and configuration
         </p>
+        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
+          {isAutoSaving ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              <span>Saving changes…</span>
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4 text-primary" />
+              <span>Changes save automatically</span>
+            </>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
@@ -1512,44 +1640,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      // Only update timezone and business hours in merchant settings
-                      // Business info is now managed in Profile page
-                      console.log("Saving business hours:", businessHours);
-                      const settingsResponse =
-                        await apiClient.updateMerchantSettings({
-                          timezone: selectedTimezone,
-                          businessHours: businessHours,
-                        });
-                      console.log("Settings save response:", settingsResponse);
-
-                      toast({
-                        title: "Success",
-                        description: "Location settings updated successfully",
-                      });
-                    } catch (error: any) {
-                      console.error("Settings save error:", error);
-                      console.error("Error response:", error.response?.data);
-                      toast({
-                        title: "Error",
-                        description:
-                          error.response?.data?.message ||
-                          "Failed to update location settings",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
             </CardContent>
           </Card>
           <HolidayManager
@@ -2099,11 +2189,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleSaveBookingSettings} disabled={loading}>
-                  Save Changes
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -2218,11 +2303,6 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end">
-              <Button onClick={handleSaveSecuritySettings} disabled={loading}>
-                Save Changes
-              </Button>
-            </div>
           </div>
         </TabsContent>
         <TabsContent value="notifications">
@@ -2379,45 +2459,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      await apiClient.put("/merchant/settings", {
-                        bookingConfirmationEmail,
-                        bookingConfirmationSms,
-                        appointmentReminder24hEmail,
-                        appointmentReminder24hSms,
-                        appointmentReminder2hEmail,
-                        appointmentReminder2hSms,
-                        newBookingNotification,
-                        newBookingNotificationEmail,
-                        newBookingNotificationSms,
-                        cancellationNotification,
-                        cancellationNotificationEmail,
-                        cancellationNotificationSms,
-                      });
-                      toast({
-                        title: "Success",
-                        description:
-                          "Notification settings updated successfully",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to update notification settings",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -2734,35 +2775,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        await apiClient.put("/merchant/settings", {
-                          priceToDurationRatio:
-                            parseFloat(priceToDurationRatio),
-                        });
-                        toast({
-                          title: "Success",
-                          description:
-                            "Auto duration settings updated successfully",
-                        });
-                      } catch (error) {
-                        toast({
-                          title: "Error",
-                          description: "Failed to update settings",
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                  >
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>

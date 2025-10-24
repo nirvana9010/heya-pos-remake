@@ -104,8 +104,8 @@ export const useFeatureStore = create<FeatureStore>()(
 
         // Return default from module definition
         const { modules } = get();
-        const module = modules?.find(m => m.id === featureId);
-        const setting = module?.settings?.find(s => s.key === key);
+        const featureModule = modules?.find((m) => m.id === featureId);
+        const setting = featureModule?.settings?.find((s) => s.key === key);
         return setting?.default;
       },
 
