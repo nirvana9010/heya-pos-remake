@@ -277,13 +277,50 @@ export default function SettingsPage() {
   const bookingDefaults = useMemo(() => {
     const advanceHoursNumeric = Number(bookingAdvanceHours);
     const minNoticeMinutesNumeric = Number(minimumBookingNotice);
+
     const maxDays = Number.isFinite(advanceHoursNumeric)
       ? Math.max(1, Math.ceil(advanceHoursNumeric / 24))
       : 7;
-    const minNoticeHours = Number.isFinite(minNoticeMinutesNumeric)
-      ? Math.max(0, Math.ceil(minNoticeMinutesNumeric / 60))
+
+    const minNoticeMinutes = Number.isFinite(minNoticeMinutesNumeric)
+      ? Math.max(0, Math.floor(minNoticeMinutesNumeric))
       : 0;
-    return { maxDays, minNoticeHours };
+    const minNoticeHours = Math.max(0, Math.ceil(minNoticeMinutes / 60));
+
+    const minNoticeLabel = (() => {
+      if (minNoticeMinutes <= 0) {
+        return "no minimum notice requirement";
+      }
+
+      if (minNoticeMinutes % 1440 === 0) {
+        const dayCount = minNoticeMinutes / 1440;
+        return `${dayCount} day${dayCount === 1 ? "" : "s"}`;
+      }
+
+      if (minNoticeMinutes >= 60) {
+        const hours = Math.floor(minNoticeMinutes / 60);
+        const remainingMinutes = minNoticeMinutes % 60;
+
+        if (remainingMinutes === 0) {
+          return `${hours} hour${hours === 1 ? "" : "s"}`;
+        }
+
+        return `${hours} hour${hours === 1 ? "" : "s"} ${remainingMinutes} minute${
+          remainingMinutes === 1 ? "" : "s"
+        }`;
+      }
+
+      return `${minNoticeMinutes} minute${
+        minNoticeMinutes === 1 ? "" : "s"
+      }`;
+    })();
+
+    return {
+      maxDays,
+      minNoticeMinutes,
+      minNoticeHours,
+      minNoticeLabel,
+    };
   }, [bookingAdvanceHours, minimumBookingNotice]);
 
   const fetchServicesList = useCallback(async () => {
@@ -613,7 +650,7 @@ export default function SettingsPage() {
     }
     if (minHours < bookingDefaults.minNoticeHours) {
       setOverrideError(
-        `Minimum advance notice cannot be less than the merchant default of ${bookingDefaults.minNoticeHours} hour(s).`,
+        `Minimum advance notice cannot be less than the merchant default of ${bookingDefaults.minNoticeLabel}.`,
       );
       return;
     }
@@ -1640,9 +1677,10 @@ export default function SettingsPage() {
                   <div className="rounded-md border border-dashed border-gray-200 p-4 text-sm text-muted-foreground">
                     All services currently follow the merchant default of{" "}
                     {bookingDefaults.maxDays} day
-                    {bookingDefaults.maxDays === 1 ? "" : "s"} with a minimum
-                    notice of {bookingDefaults.minNoticeHours} hour
-                    {bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+                    {bookingDefaults.maxDays === 1 ? "" : "s"}{" "}
+                    {bookingDefaults.minNoticeMinutes > 0
+                      ? `with a minimum notice of ${bookingDefaults.minNoticeLabel}.`
+                      : "with no minimum notice requirement."}
                   </div>
                 ) : (
                   <div className="divide-y rounded-md border">
@@ -2826,9 +2864,10 @@ export default function SettingsPage() {
 
             <p className="text-xs text-muted-foreground">
               Merchant default: {bookingDefaults.maxDays} day
-              {bookingDefaults.maxDays === 1 ? "" : "s"} ahead · minimum notice{" "}
-              {bookingDefaults.minNoticeHours} hour
-              {bookingDefaults.minNoticeHours === 1 ? "" : "s"}.
+              {bookingDefaults.maxDays === 1 ? "" : "s"} ahead ·{" "}
+              {bookingDefaults.minNoticeMinutes > 0
+                ? `minimum notice ${bookingDefaults.minNoticeLabel}.`
+                : "no minimum notice requirement."}
             </p>
 
             {overrideError && (
