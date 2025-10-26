@@ -184,6 +184,7 @@ export default function SettingsPage() {
       "",
   );
   const [showTyroPairingDialog, setShowTyroPairingDialog] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   // Merchant profile state
   const [merchantProfile, setMerchantProfile] = useState<any>(null);
@@ -587,12 +588,13 @@ export default function SettingsPage() {
         }
         lastSavedSettingsRef.current = response;
         mergeSettingsIntoLocalCache(response);
-        hasLoadedSettingsRef.current = true;
         pendingUpdatesRef.current = {};
         await fetchServicesList();
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
+    } finally {
+      hasLoadedSettingsRef.current = true;
     }
   }, [fetchServicesList, mergeSettingsIntoLocalCache]);
 
@@ -638,8 +640,15 @@ export default function SettingsPage() {
 
     try {
       await persistSettings(updates);
+      if (!isUnmountedRef.current) {
+        setLastSavedAt(new Date());
+      }
+      toast({
+        title: "Settings saved",
+        description: "Your changes have been saved successfully",
+      });
     } catch (error: any) {
-      console.error("Failed to auto-save settings:", error);
+      console.error("❌ Failed to auto-save settings:", error);
       toast({
         title: "Auto-save failed",
         description:
@@ -765,6 +774,28 @@ export default function SettingsPage() {
       tyroTerminalId,
     ],
   );
+
+  const lastSavedMessage = useMemo(() => {
+    if (!lastSavedAt) {
+      return "Changes save automatically";
+    }
+    const diffMs = Date.now() - lastSavedAt.getTime();
+    if (Number.isNaN(diffMs)) {
+      return "Changes save automatically";
+    }
+    if (diffMs < 15_000) {
+      return "Saved just now";
+    }
+    if (diffMs < 60_000) {
+      const seconds = Math.max(1, Math.round(diffMs / 1000));
+      return `Saved ${seconds} second${seconds === 1 ? "" : "s"} ago`;
+    }
+    const formatter = new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return `Saved at ${formatter.format(lastSavedAt)}`;
+  }, [lastSavedAt]);
 
   useEffect(() => {
     loadMerchantSettings();
@@ -1330,7 +1361,7 @@ export default function SettingsPage() {
           ) : (
             <>
               <Check className="h-4 w-4 text-primary" />
-              <span>Changes save automatically</span>
+              <span>{lastSavedMessage}</span>
             </>
           )}
         </div>
