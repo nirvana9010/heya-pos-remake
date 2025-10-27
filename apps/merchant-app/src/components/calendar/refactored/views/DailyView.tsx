@@ -802,35 +802,37 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Badge display</div>
-        <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
-          <button
-            type="button"
-            onClick={() => handleBadgeModeToggle('full')}
-            aria-pressed={badgeDisplayMode === 'full'}
-            className={cn(
-              'px-3 py-1.5 text-xs font-medium transition-colors',
-              badgeDisplayMode === 'full'
-                ? 'bg-slate-900 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            )}
-          >
-            Full badges
-          </button>
-          <button
-            type="button"
-            onClick={() => handleBadgeModeToggle('icon')}
-            aria-pressed={badgeDisplayMode === 'icon'}
-            className={cn(
-              'border-l border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors',
-              badgeDisplayMode === 'icon'
-                ? 'bg-slate-900 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            )}
-          >
-            Icons only
-          </button>
+      <div className="flex items-center justify-end border-b border-gray-200 bg-white px-3 py-2">
+        <div className="flex items-center gap-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Badge display</div>
+          <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+            <button
+              type="button"
+              onClick={() => handleBadgeModeToggle('full')}
+              aria-pressed={badgeDisplayMode === 'full'}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium transition-colors',
+                badgeDisplayMode === 'full'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              Full badges
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBadgeModeToggle('icon')}
+              aria-pressed={badgeDisplayMode === 'icon'}
+              className={cn(
+                'border-l border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors',
+                badgeDisplayMode === 'icon'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              Icons only
+            </button>
+          </div>
         </div>
       </div>
       <div
@@ -1374,7 +1376,7 @@ export function DailyView({
                           })(),
                           !hasBookingCoverage && !showOffRosterOverlay && "hover:bg-gray-50",
                           (() => {
-                            if (hasBookingCoverage || showOffRosterOverlay) {
+                            if (hasBookingCoverage) {
                               return "";
                             }
                             if (state.timeInterval === 60) {
@@ -1420,9 +1422,6 @@ export function DailyView({
                       >
                         {hasBookingCoverage && (
                           <div className="pointer-events-none absolute inset-0 z-10 rounded bg-white" />
-                        )}
-                        {showOffRosterOverlay && !hasBookingCoverage && (
-                          <div className="pointer-events-none absolute inset-0 z-10 rounded bg-gray-200" />
                         )}
                         {allowHoverOverlay && isHovered && (
                           <div
