@@ -54,6 +54,16 @@ const nextConfig = {
     }
     return config
   },
+  async rewrites() {
+    const apiBase =
+      (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '')
+    return [
+      {
+        source: '/api/:version(v[0-9]+)/:path*',
+        destination: `${apiBase}/:version/:path*`,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

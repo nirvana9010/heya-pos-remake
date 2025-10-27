@@ -138,15 +138,18 @@ export function MerchantProvider({ children, initialSubdomain }: MerchantProvide
         // Try to determine the correct API URL
         let apiUrl = process.env.NEXT_PUBLIC_API_URL;
         
-        // If no env variable or it's just the path, construct full URL
-        if (!apiUrl) {
-          // Use dynamic hostname detection for multi-host support
-          const protocol = window.location.protocol;
-          const hostname = window.location.hostname;
-          apiUrl = `${protocol}//${hostname}:3000/api`;
+        const shouldFallbackToOrigin =
+          !apiUrl ||
+          apiUrl === '/api' ||
+          apiUrl === 'api' ||
+          apiUrl.startsWith('/api') ||
+          /\/\/(localhost|127\.0\.0\.1)(:\d+)?\b/.test(apiUrl);
+        
+        if (shouldFallbackToOrigin) {
+          apiUrl = `${window.location.origin}/api`;
         } else if (!apiUrl.startsWith('http')) {
-          // If it's just a path like '/api', prepend the origin
-          apiUrl = `${window.location.origin}${apiUrl}`;
+          // If it's a relative path (e.g. '/api'), prepend the origin
+          apiUrl = `${window.location.origin}${apiUrl.startsWith('/') ? apiUrl : `/${apiUrl}`}`;
         }
         
         const fullUrl = `${apiUrl}/v1/public/merchant-info?subdomain=${merchantSubdomain}`;

@@ -81,6 +81,8 @@ export class BookingAvailabilityService {
     const merchantSettings = merchant.settings as any;
     const businessHours = merchantSettings.businessHours;
     const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0;
+    const showOnlyRosteredStaff =
+      merchantSettings?.showOnlyRosteredStaffDefault ?? true;
 
     if (!businessHours) {
       throw new Error("Business hours not configured");
@@ -281,7 +283,17 @@ export class BookingAvailabilityService {
         openTimeStr = staffSchedule.startTime;
         closeTimeStr = staffSchedule.endTime;
       } else if (!staffHasDefinedSchedule && dayIsOpen) {
-        // Fall back to business hours only when no roster is defined
+        if (showOnlyRosteredStaff) {
+          console.log("[AVAILABILITY] Skipping day with no roster defined", {
+            staffId,
+            date: overrideDateStr,
+            reason:
+              "showOnlyRosteredStaffDefault=true and no staff schedule exists",
+          });
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+        // Fall back to business hours only when merchant allows unrostered staff
         openTimeStr = dayHours.open;
         closeTimeStr = dayHours.close;
       } else {

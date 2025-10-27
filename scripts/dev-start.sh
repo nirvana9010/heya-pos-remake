@@ -4,6 +4,7 @@
 # This script ensures clean startup of all services
 
 set -e
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -169,12 +170,29 @@ done
 
 # Step 2: Ensure database exists
 echo -e "\n${YELLOW}Step 2: Checking database...${NC}"
-if "$SCRIPT_DIR/ensure-db.sh"; then
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_STATUS_LOG=$(mktemp -t heya_db_status.XXXXXX)
+DB_STATUS_SUMMARY="ready"
+if "$SCRIPT_DIR/ensure-db.sh" | tee "$DB_STATUS_LOG"; then
+    if grep -q "\[WARN] No service detected" "$DB_STATUS_LOG"; then
+        START_LINE=$(grep -F "[INFO] Executing start command:" "$DB_STATUS_LOG" | tail -1)
+        if [ -n "$START_LINE" ]; then
+            START_CMD=${START_LINE#*: }
+            DB_STATUS_SUMMARY="started via ${START_CMD}"
+        else
+            DB_STATUS_SUMMARY="started"
+        fi
+    elif grep -q "\[OK] Database already reachable" "$DB_STATUS_LOG"; then
+        DB_STATUS_SUMMARY="already running"
+    fi
     echo -e "${GREEN}✅ Database ready${NC}"
 else
     echo -e "${RED}❌ Cannot connect to database${NC}"
+    rm -f "$DB_STATUS_LOG"
     exit 1
 fi
+rm -f "$DB_STATUS_LOG"
 
 # Step 3: Start API
 echo -e "\n${YELLOW}Step 3: Starting API on port $API_PORT...${NC}"
@@ -212,7 +230,20 @@ cd ../..
 # Step 5: Start Booking App
 echo -e "\n${YELLOW}Step 5: Starting Booking App on port $BOOKING_PORT...${NC}"
 cd apps/booking-app
-NEXT_PUBLIC_API_URL=http://localhost:$API_PORT/api npm run dev > ../../logs/booking.log 2>&1 &
+BOOKING_API_URL=""
+if [ -n "${BOOKING_APP_NEXT_PUBLIC_API_URL:-}" ]; then
+    BOOKING_API_URL="$BOOKING_APP_NEXT_PUBLIC_API_URL"
+elif [ -n "${NEXT_PUBLIC_API_URL:-}" ]; then
+    BOOKING_API_URL="$NEXT_PUBLIC_API_URL"
+fi
+
+if [ -n "$BOOKING_API_URL" ]; then
+    echo "   Using NEXT_PUBLIC_API_URL=$BOOKING_API_URL"
+    NEXT_PUBLIC_API_URL="$BOOKING_API_URL" npm run dev > ../../logs/booking.log 2>&1 &
+else
+    echo "   Using implicit origin proxy for API calls"
+    npm run dev > ../../logs/booking.log 2>&1 &
+fi
 BOOKING_PID=$!
 cd ../..
 
@@ -230,6 +261,7 @@ echo "ADMIN_PID=$ADMIN_PID" >> .pids
 
 echo -e "\n${GREEN}🎉 All services started successfully!${NC}"
 echo -e "\nServices running at:"
+echo -e "  Database:         ${DB_HOST}:${DB_PORT} (${DB_STATUS_SUMMARY})"
 echo -e "  API:              http://localhost:$API_PORT/api"
 echo -e "  Merchant App:     http://localhost:$MERCHANT_PORT"
 echo -e "  Booking App:      http://localhost:$BOOKING_PORT"

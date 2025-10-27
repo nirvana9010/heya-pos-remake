@@ -127,9 +127,29 @@ class ApiClient {
 
 // Dynamic API URL that works with both localhost and external IPs
 const getApiBaseUrl = () => {
-  // Use explicit env var if set
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  const normalize = (value: string) => value.replace(/\/$/, '');
+  const envValue = process.env.NEXT_PUBLIC_API_URL;
+  
+  if (envValue) {
+    const normalized = normalize(envValue);
+    
+    if (typeof window !== 'undefined') {
+      const shouldFallbackToOrigin =
+        normalized === '/api' ||
+        normalized === 'api' ||
+        normalized.startsWith('/api') ||
+        /\/\/(localhost|127\.0\.0\.1)(:\d+)?\b/.test(normalized);
+      
+      if (shouldFallbackToOrigin) {
+        return `${window.location.origin}/api`;
+      }
+      
+      if (!normalized.startsWith('http')) {
+        return `${window.location.origin}${normalized.startsWith('/') ? normalized : `/${normalized}`}`;
+      }
+    }
+    
+    return normalized;
   }
   
   // For server-side rendering, use localhost
@@ -138,9 +158,7 @@ const getApiBaseUrl = () => {
   }
   
   // For client-side, use the same host as the current page
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:3000/api`;
+  return `${window.location.origin}/api`;
 };
 
 // Create the API client instance

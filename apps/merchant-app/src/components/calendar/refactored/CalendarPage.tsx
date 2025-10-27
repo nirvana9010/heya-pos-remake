@@ -1315,9 +1315,7 @@ function CalendarContent() {
         {/* Dev mode timestamp */}
         {process.env.NODE_ENV === "development" && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-xs font-mono border-b border-yellow-300">
-            Build Time: {__BUILD_TIME__} • Preferred flag hotfix | Current:{" "}
-            {new Date().toLocaleTimeString()} | BookingSlideOut default time
-            should round to next 15min
+            🚀 FRESH BUILD • Calendar loaded at {new Date().toLocaleTimeString()} • Auto-save toast update active
           </div>
         )}
         {/* Header */}

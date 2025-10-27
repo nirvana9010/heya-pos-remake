@@ -5,18 +5,18 @@ import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '
 
 // Dynamic API URL that works with both localhost and hosted environments
 export const resolveApiBaseUrl = () => {
-  // Use explicit env var if set
+  // For client-side, always use the current hostname (supports localhost + Tailscale)
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:3000/api`;
+  }
+
+  // For server-side rendering, use env var or fallback to Tailscale IP
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
   }
-  
-  // For server-side rendering, use localhost
-  if (typeof window === 'undefined') {
-    return 'http://100.107.58.75:3000/api';
-  }
-  
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:3000/api`;
+
+  return 'http://100.107.58.75:3000/api';
 };
 
 // Backwards compatibility alias

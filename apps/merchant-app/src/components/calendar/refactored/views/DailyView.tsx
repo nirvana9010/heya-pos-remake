@@ -63,6 +63,9 @@ function DroppableTimeSlot({
   staffId,
   className,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onMouseMove,
   children,
   hasBooking,
 }: {
@@ -72,6 +75,9 @@ function DroppableTimeSlot({
   staffId: string | null;
   className?: string;
   onClick?: () => void;
+  onMouseEnter?: (e: React.MouseEvent) => void;
+  onMouseLeave?: () => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
   children: React.ReactNode;
   hasBooking?: boolean;
 }) {
@@ -85,6 +91,9 @@ function DroppableTimeSlot({
       ref={setNodeRef}
       className={cn(className, isOver && 'bg-blue-50')}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseMove={onMouseMove}
     >
       {children}
     </div>
@@ -108,6 +117,7 @@ export function DailyView({
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+  const [hoveredSlot, setHoveredSlot] = React.useState<{ time: string; staffId: string | null; staffName: string; x: number; y: number } | null>(null);
   const { toast } = useToast();
   const { updateBookingTime } = useBookingOperations();
   const { checkTimeConflict } = useBookingConflicts();
@@ -909,6 +919,13 @@ export function DailyView({
                           })()
                         )}
                         onClick={() => onTimeSlotClick(state.currentDate, slot.time, null)}
+                        onMouseEnter={(e) => setHoveredSlot({ time: slot.time, staffId: null, staffName: 'Unassigned', x: e.clientX, y: e.clientY })}
+                        onMouseLeave={() => setHoveredSlot(null)}
+                        onMouseMove={(e) => {
+                          if (hoveredSlot?.time === slot.time && hoveredSlot?.staffId === null) {
+                            setHoveredSlot({ time: slot.time, staffId: null, staffName: 'Unassigned', x: e.clientX, y: e.clientY });
+                          }
+                        }}
                       >
                         {/* Only show bookings that start at this exact time slot */}
                         {(() => {
@@ -1229,6 +1246,13 @@ export function DailyView({
                           })()
                         )}
                         onClick={() => onTimeSlotClick(state.currentDate, slot.time, staff.id)}
+                        onMouseEnter={(e) => setHoveredSlot({ time: slot.time, staffId: staff.id, staffName: staff.name, x: e.clientX, y: e.clientY })}
+                        onMouseLeave={() => setHoveredSlot(null)}
+                        onMouseMove={(e) => {
+                          if (hoveredSlot?.time === slot.time && hoveredSlot?.staffId === staff.id) {
+                            setHoveredSlot({ time: slot.time, staffId: staff.id, staffName: staff.name, x: e.clientX, y: e.clientY });
+                          }
+                        }}
                       >
                         {/* Only show bookings that start at this exact time slot */}
                         {(() => {
@@ -1527,12 +1551,33 @@ export function DailyView({
       
       {/* Tooltip rendered at document level */}
       {hoveredBooking && (
-        <BookingTooltip 
-          booking={hoveredBooking} 
+        <BookingTooltip
+          booking={hoveredBooking}
           visible={true}
           x={tooltipPosition.x}
           y={tooltipPosition.y}
         />
+      )}
+
+      {/* Time slot hover indicator */}
+      {hoveredSlot && !hoveredBooking && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: `${hoveredSlot.x}px`,
+            top: `${hoveredSlot.y}px`,
+            transform: 'translate(12px, -50%)',
+          }}
+        >
+          <div className="bg-gray-900/95 text-white px-3 py-1.5 rounded-md shadow-xl border border-gray-700">
+            <div className="text-sm font-semibold">
+              {format(parseISO(`2000-01-01T${hoveredSlot.time}`), 'h:mm a')}
+            </div>
+            <div className="text-xs text-gray-300">
+              {hoveredSlot.staffName}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

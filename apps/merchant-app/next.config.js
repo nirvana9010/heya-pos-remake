@@ -36,9 +36,10 @@ const nextConfig = {
   // Experimental features for better performance
   experimental: {
     optimizeCss: true,
-    // Removed date-fns from optimizePackageImports to prevent webpack module loading errors
-    // See commit f8deabf for similar fix with @heya-pos/ui
-    optimizePackageImports: ['@heya-pos/ui'],
+    // Removed @heya-pos/ui from optimizePackageImports to prevent module duplication
+    // The toast system uses module-level state (listeners array) which breaks when
+    // optimizePackageImports creates multiple module instances
+    // optimizePackageImports: ['@heya-pos/ui'],
   },
   
   // Headers for better caching
