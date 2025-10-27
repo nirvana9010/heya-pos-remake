@@ -20,6 +20,7 @@ export interface CheckAvailabilityData {
   endDate: Date;
   timezone: string; // Required - must come from location settings
   duration?: number; // Optional: override service duration for multi-service bookings
+  requireRosterOnly?: boolean; // Optional: bypass business-hours fallback when true
 }
 
 /**
@@ -39,8 +40,15 @@ export class BookingAvailabilityService {
    * Get available time slots for a staff member and service
    */
   async getAvailableSlots(data: CheckAvailabilityData): Promise<TimeSlot[]> {
-    const { staffId, serviceId, merchantId, startDate, endDate, timezone } =
-      data;
+    const {
+      staffId,
+      serviceId,
+      merchantId,
+      startDate,
+      endDate,
+      timezone,
+      requireRosterOnly,
+    } = data;
 
     // Get service details including padding
     const service = await this.prisma.service.findFirst({
@@ -81,8 +89,9 @@ export class BookingAvailabilityService {
     const merchantSettings = merchant.settings as any;
     const businessHours = merchantSettings.businessHours;
     const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0;
-    const showOnlyRosteredStaff =
-      merchantSettings?.showOnlyRosteredStaffDefault ?? true;
+    const rosterOnly =
+      requireRosterOnly ??
+      (merchantSettings?.showOnlyRosteredStaffDefault ?? true);
 
     if (!businessHours) {
       throw new Error("Business hours not configured");
@@ -120,13 +129,24 @@ export class BookingAvailabilityService {
     });
     const staffHasDefinedSchedule = staffSchedules.length > 0;
 
+    // Helper to normalize dates to the merchant's timezone so overrides/holidays match display logic
+    const toDateKey = (date: Date) => {
+      if (!timezone) {
+        return date.toISOString().split("T")[0];
+      }
+      return date.toLocaleDateString("en-CA", { timeZone: timezone });
+    };
+
+    const startDateKey = toDateKey(startDate);
+    const endDateKey = toDateKey(endDate);
+
     // Get schedule overrides for the date range
     const scheduleOverrides = await this.prisma.scheduleOverride.findMany({
       where: {
         staffId: staffId,
         date: {
-          gte: startDate,
-          lte: endDate,
+          gte: new Date(startDateKey),
+          lte: new Date(endDateKey),
         },
       },
     });
@@ -138,8 +158,8 @@ export class BookingAvailabilityService {
           merchantId,
           isDayOff: true,
           date: {
-            gte: new Date(startDate.toISOString().split("T")[0]),
-            lte: new Date(endDate.toISOString().split("T")[0]),
+            gte: new Date(startDateKey),
+            lte: new Date(endDateKey),
           },
         },
       });
@@ -180,7 +200,7 @@ export class BookingAvailabilityService {
       { startTime: string | null; endTime: string | null }
     >();
     scheduleOverrides.forEach((override) => {
-      const overrideDateKey = override.date.toISOString().split("T")[0];
+      const overrideDateKey = toDateKey(override.date);
       overrideMap.set(overrideDateKey, {
         startTime: override.startTime,
         endTime: override.endTime,
@@ -189,7 +209,7 @@ export class BookingAvailabilityService {
 
     const holidayMap = new Map<string, { name: string }>();
     holidayEntries.forEach((holiday) => {
-      holidayMap.set(holiday.date.toISOString().split("T")[0], {
+      holidayMap.set(toDateKey(holiday.date), {
         name: holiday.name,
       });
     });
@@ -213,6 +233,16 @@ export class BookingAvailabilityService {
     });
 
     // For each day in the range
+    const dayNameToIndex: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
     let currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate
@@ -231,11 +261,11 @@ export class BookingAvailabilityService {
         dayHours.close !== "closed";
 
       // Get day number (0 = Sunday, 6 = Saturday)
-      const dayNumber = currentDate.getDay();
+      const dayNumber = dayNameToIndex[dayOfWeek] ?? currentDate.getDay();
       const staffSchedule = scheduleMap.get(dayNumber);
 
       // Check for schedule override first
-      const overrideDateStr = currentDate.toISOString().split("T")[0];
+      const overrideDateStr = toDateKey(currentDate);
       const scheduleOverride = overrideMap.get(overrideDateStr);
       const holiday = holidayMap.get(overrideDateStr);
 
@@ -283,12 +313,13 @@ export class BookingAvailabilityService {
         openTimeStr = staffSchedule.startTime;
         closeTimeStr = staffSchedule.endTime;
       } else if (!staffHasDefinedSchedule && dayIsOpen) {
-        if (showOnlyRosteredStaff) {
+        if (rosterOnly) {
           console.log("[AVAILABILITY] Skipping day with no roster defined", {
             staffId,
             date: overrideDateStr,
-            reason:
-              "showOnlyRosteredStaffDefault=true and no staff schedule exists",
+            reason: requireRosterOnly
+              ? "requireRosterOnly=true and no staff schedule exists"
+              : "showOnlyRosteredStaffDefault=true and no staff schedule exists",
           });
           currentDate.setDate(currentDate.getDate() + 1);
           continue;

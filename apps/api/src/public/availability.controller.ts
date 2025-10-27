@@ -77,6 +77,7 @@ export class AvailabilityController {
       startDate,
       endDate,
       timezone: query.timezone,
+      requireRosterOnly: true,
     });
 
     // Return only available slots for customer app

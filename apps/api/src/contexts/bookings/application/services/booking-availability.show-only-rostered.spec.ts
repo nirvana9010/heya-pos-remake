@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BookingAvailabilityService } from "./booking-availability.service";
 import { PrismaService } from "../../../../prisma/prisma.service";
 import { DeepMockProxy, mockDeep } from "jest-mock-extended";
+import { TimezoneUtils } from "../../../../utils/shared/timezone";
 
 describe("BookingAvailabilityService - Show Only Rostered Staff", () => {
   let service: BookingAvailabilityService;
@@ -110,5 +111,69 @@ describe("BookingAvailabilityService - Show Only Rostered Staff", () => {
 
     expect(slots.length).toBeGreaterThan(0);
     expect(slots.some((slot) => slot.available)).toBe(true);
+  });
+
+  it("forces roster-only behavior when requireRosterOnly is true", async () => {
+    prisma.merchant.findUnique.mockResolvedValue({
+      id: merchantId,
+      settings: {
+        ...baseSettings,
+        showOnlyRosteredStaffDefault: false,
+      },
+    } as any);
+
+    const slots = await service.getAvailableSlots({
+      merchantId,
+      staffId,
+      serviceId,
+      startDate: new Date(testDate),
+      endDate: new Date(testDate),
+      timezone,
+      requireRosterOnly: true,
+    });
+
+    expect(slots).toHaveLength(0);
+  });
+
+  it("respects day-off overrides using the merchant timezone boundary", async () => {
+    prisma.merchant.findUnique.mockResolvedValue({
+      id: merchantId,
+      settings: baseSettings,
+    } as any);
+
+    prisma.staffSchedule.findMany.mockResolvedValue([
+      {
+        staffId,
+        dayOfWeek: 0, // Sunday
+        startTime: "09:00",
+        endTime: "17:00",
+      },
+    ] as any);
+
+    prisma.scheduleOverride.findMany.mockResolvedValue([
+      {
+        staffId,
+        date: new Date("2030-01-06T00:00:00.000Z"), // Sunday in Australia/Sydney
+        startTime: null,
+        endTime: null,
+      },
+    ] as any);
+
+    const startDate = TimezoneUtils.startOfDayInTimezone(
+      "2030-01-06",
+      timezone,
+    );
+    const endDate = TimezoneUtils.endOfDayInTimezone("2030-01-06", timezone);
+
+    const slots = await service.getAvailableSlots({
+      merchantId,
+      staffId,
+      serviceId,
+      startDate,
+      endDate,
+      timezone,
+    });
+
+    expect(slots.some((slot) => slot.available)).toBe(false);
   });
 });

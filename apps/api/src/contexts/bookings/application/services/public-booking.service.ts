@@ -300,6 +300,7 @@ export class PublicBookingService {
               endDate: dayEnd,
               timezone: location.timezone,
               duration: totalDuration,
+              requireRosterOnly: true,
             });
 
             rosterSupportsSlot = rosterSlots.some(
@@ -580,6 +581,7 @@ export class PublicBookingService {
         timezone: location.timezone,
         // Pass the total duration for multi-service bookings
         duration: totalDuration,
+        requireRosterOnly: true,
       });
       
       console.log('[PUBLIC BOOKING SERVICE] Availability service returned:', {
@@ -663,6 +665,7 @@ export class PublicBookingService {
             endDate: endOfDay,
             timezone: location.timezone,
             duration: totalDuration,
+            requireRosterOnly: true,
           });
         } catch (error) {
           return [];
