@@ -54,6 +54,39 @@ interface BookingResizeState {
   date: string;
 }
 
+const hexToRgba = (hex: string, alpha: number): string => {
+  if (typeof hex !== 'string') {
+    return `rgba(15, 23, 42, ${alpha})`;
+  }
+
+  let normalized = hex.trim();
+  if (!normalized) {
+    return `rgba(15, 23, 42, ${alpha})`;
+  }
+
+  if (normalized.startsWith('#')) {
+    normalized = normalized.slice(1);
+  }
+
+  if (normalized.length === 3) {
+    normalized = normalized
+      .split('')
+      .map((char) => char + char)
+      .join('');
+  }
+
+  if (normalized.length !== 6) {
+    return `rgba(15, 23, 42, ${alpha})`;
+  }
+
+  const value = Number.parseInt(normalized, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 
 // Simple DroppableTimeSlot component for the refactored calendar
 function DroppableTimeSlot({
@@ -114,10 +147,18 @@ export function DailyView({
   const { loading: bookingContextLoading } = useBooking();
   const { timeSlots } = useTimeGrid();
   const serviceLookup = useMemo(() => createServiceLookup(state.services), [state.services]);
+  const slotDurationMinutes = state.timeInterval;
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
-  const [hoveredSlot, setHoveredSlot] = React.useState<{ time: string; staffId: string | null; staffName: string; x: number; y: number } | null>(null);
+  const [hoveredSlot, setHoveredSlot] = React.useState<{
+    time: string;
+    staffId: string | null;
+    staffName: string;
+    x: number;
+    y: number;
+    isRostered?: boolean;
+  } | null>(null);
   const { toast } = useToast();
   const { updateBookingTime } = useBookingOperations();
   const { checkTimeConflict } = useBookingConflicts();
@@ -338,7 +379,80 @@ export function DailyView({
   const visibleStaff = state.selectedStaffIds.length > 0
     ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
     : rosteredStaff;
-  
+
+  const rosteredIntervalsByStaff = useMemo(() => {
+    const map = new Map<string, Array<{ start: number; end: number }>>();
+
+    const toMinutes = (value: string | null | undefined): number | null => {
+      if (typeof value !== 'string') {
+        return null;
+      }
+
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const [hourPart = '0', minutePart = '0'] = trimmed.split(':');
+      const hours = Number.parseInt(hourPart, 10);
+      const minutes = Number.parseInt(minutePart, 10);
+
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return null;
+      }
+
+      const total = hours * 60 + minutes;
+      return Number.isFinite(total) ? total : null;
+    };
+
+    visibleStaff.forEach((staffMember) => {
+      const intervals: Array<{ start: number; end: number }> = [];
+      const overridesForToday =
+        staffMember.scheduleOverrides?.filter((override) => override.date === currentDateStr) ?? [];
+
+      if (overridesForToday.length > 0) {
+        overridesForToday.forEach((override) => {
+          const start = toMinutes(override.startTime);
+          const end = toMinutes(override.endTime);
+          if (start !== null && end !== null && end > start) {
+            intervals.push({ start, end });
+          }
+        });
+      } else if (Array.isArray(staffMember.schedules)) {
+        staffMember.schedules.forEach((schedule) => {
+          if (schedule.dayOfWeek !== currentDayOfWeek) {
+            return;
+          }
+          const start = toMinutes(schedule.startTime);
+          const end = toMinutes(schedule.endTime);
+          if (start !== null && end !== null && end > start) {
+            intervals.push({ start, end });
+          }
+        });
+      }
+
+      if (intervals.length > 0) {
+        intervals.sort((a, b) => a.start - b.start);
+      }
+
+      map.set(staffMember.id, intervals);
+    });
+
+    return map;
+  }, [visibleStaff, currentDateStr, currentDayOfWeek]);
+
+  const isStaffRosteredAtSlot = React.useCallback(
+    (staffId: string, slotStartMinutes: number, slotEndMinutes: number) => {
+      const intervals = rosteredIntervalsByStaff.get(staffId);
+      if (!intervals || intervals.length === 0) {
+        return false;
+      }
+
+      return intervals.some(({ start, end }) => slotStartMinutes >= start && slotEndMinutes <= end);
+    },
+    [rosteredIntervalsByStaff],
+  );
+
   // Calculate grid columns
   const gridColumns = useMemo(() => {
     const columnCount = state.showUnassignedColumn ? visibleStaff.length + 1 : visibleStaff.length;
@@ -972,7 +1086,8 @@ export function DailyView({
                             const initialHeight = Math.max(slotsSpanned * SLOT_PIXEL_HEIGHT - 4, 70);
                             const startOffsetMinutes = previewStartMinutes - bookingStartMinutes;
                             const cardTopOffset = 2 + (startOffsetMinutes / state.timeInterval) * SLOT_PIXEL_HEIGHT;
-                            const cardZIndex = isResizingThisBooking ? 60 : (hasOverlaps ? overlapIndex + 10 : 1);
+                            const baseZIndex = 40;
+                            const cardZIndex = isResizingThisBooking ? 90 : (hasOverlaps ? baseZIndex + overlapIndex : baseZIndex);
                             const previewStartTimeString = minutesToTimeString(previewStartMinutes);
                             const displayStartLabel = format(parseISO(`2000-01-01T${previewStartTimeString}`), 'h:mm a');
                             const displayDuration = previewDuration;
@@ -1215,9 +1330,28 @@ export function DailyView({
               {visibleStaff.map((staff, staffIndex) => (
                 <div key={staff.id}>
                   {timeSlots.map((slot, slotIndex) => {
-                    const slotBookings = bookingsByStaff.get(staff.id)?.filter(booking =>
-                      booking.time === slot.time
-                    ) || [];
+                    const allStaffBookings = bookingsByStaff.get(staff.id) || [];
+                    const slotBookings = allStaffBookings.filter((booking) => booking.time === slot.time);
+                    const hasStartingBookings = slotBookings.length > 0;
+
+                    const slotStartMinutes = slot.hour * 60 + slot.minute;
+                    const slotEndMinutes = Math.min(slotStartMinutes + slotDurationMinutes, 24 * 60);
+                    const isRostered = isStaffRosteredAtSlot(staff.id, slotStartMinutes, slotEndMinutes);
+                    const showOffRosterOverlay = !isRostered;
+                    const hasBookingCoverage = allStaffBookings.some((booking) => {
+                      const [bookingHour, bookingMin] = booking.time.split(':').map(Number);
+                      const bookingStart = bookingHour * 60 + bookingMin;
+                      const bookingEnd = bookingStart + booking.duration;
+                      return slotStartMinutes >= bookingStart && slotStartMinutes < bookingEnd;
+                    });
+                    const isHovered = hoveredSlot?.time === slot.time && hoveredSlot?.staffId === staff.id;
+                    const hoverOverlayColor = hexToRgba(staff.color ?? '#1f2937', 0.22);
+                    const allowHoverOverlay =
+                      !hasBookingCoverage &&
+                      slotBookings.length === 0;
+                    const hoverLabel = showOffRosterOverlay
+                      ? `${staff.name} (NOT ROSTERED)`
+                      : staff.name;
 
                     return (
                       <DroppableTimeSlot
@@ -1229,41 +1363,83 @@ export function DailyView({
                         className={cn(
                           "h-[40px] cursor-pointer relative transition-colors duration-100",
                           staffIndex < visibleStaff.length - 1 && "border-r border-gray-200",
-                          !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
-                            // Match the border styling from time column using shadows
+                            if (showOffRosterOverlay) {
+                              return "bg-gray-200";
+                            }
+                            if (!slot.isBusinessHours) {
+                              return "bg-gray-50";
+                            }
+                            return "bg-white";
+                          })(),
+                          !hasBookingCoverage && !showOffRosterOverlay && "hover:bg-gray-50",
+                          (() => {
+                            if (hasBookingCoverage || showOffRosterOverlay) {
+                              return "";
+                            }
                             if (state.timeInterval === 60) {
                               return slot.minute === 0 ? "shadow-[inset_0_1px_0_0_rgb(209,213,219)]" : "";
-                            } else if (state.timeInterval === 30) {
+                            }
+                            if (state.timeInterval === 30) {
                               if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
                               if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
                               return "";
-                            } else {
-                              if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
-                              if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
-                              return "shadow-[inset_0_1px_0_0_rgb(243,244,246)]";
                             }
+                            if (slot.minute === 0) return "shadow-[inset_0_1px_0_0_rgb(209,213,219)]";
+                            if (slot.minute === 30) return "shadow-[inset_0_1px_0_0_rgb(229,231,235)]";
+                            if (state.timeInterval === 15 && (slot.minute === 15 || slot.minute === 45)) {
+                              return "shadow-[inset_0_1px_0_0_rgb(226,232,240)]";
+                            }
+                            return "shadow-[inset_0_1px_0_0_rgb(243,244,246)]";
                           })()
                         )}
                         onClick={() => onTimeSlotClick(state.currentDate, slot.time, staff.id)}
-                        onMouseEnter={(e) => setHoveredSlot({ time: slot.time, staffId: staff.id, staffName: staff.name, x: e.clientX, y: e.clientY })}
+                        onMouseEnter={(e) =>
+                          setHoveredSlot({
+                            time: slot.time,
+                            staffId: staff.id,
+                            staffName: staff.name,
+                            x: e.clientX,
+                            y: e.clientY,
+                            isRostered,
+                          })
+                        }
                         onMouseLeave={() => setHoveredSlot(null)}
                         onMouseMove={(e) => {
                           if (hoveredSlot?.time === slot.time && hoveredSlot?.staffId === staff.id) {
-                            setHoveredSlot({ time: slot.time, staffId: staff.id, staffName: staff.name, x: e.clientX, y: e.clientY });
+                            setHoveredSlot({
+                              time: slot.time,
+                              staffId: staff.id,
+                              staffName: staff.name,
+                              x: e.clientX,
+                              y: e.clientY,
+                              isRostered,
+                            });
                           }
                         }}
                       >
+                        {hasBookingCoverage && (
+                          <div className="pointer-events-none absolute inset-0 z-10 rounded bg-white" />
+                        )}
+                        {showOffRosterOverlay && !hasBookingCoverage && (
+                          <div className="pointer-events-none absolute inset-0 z-10 rounded bg-gray-200" />
+                        )}
+                        {allowHoverOverlay && isHovered && (
+                          <div
+                            className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center gap-1 rounded text-center px-2"
+                            style={{ backgroundColor: hoverOverlayColor }}
+                          >
+                            <span className="text-xs font-semibold text-white/95">{slot.displayTime}</span>
+                            <span className="text-[10px] uppercase tracking-[0.18em] text-white/85 truncate w-full">
+                              {hoverLabel}
+                            </span>
+                          </div>
+                        )}
                         {/* Only show bookings that start at this exact time slot */}
                         {(() => {
-                          const startingBookings = slotBookings.filter(booking => booking.time === slot.time);
-                          
-                          if (startingBookings.length === 0) return null;
-                          
-                          // Get ALL bookings for this staff member to check for overlaps
-                          const allStaffBookings = bookingsByStaff.get(staff.id) || [];
-                          
-                          return startingBookings.map((booking) => {
+                          if (!hasStartingBookings) return null;
+
+                          return slotBookings.map((booking) => {
                             // Check for any bookings that overlap with this booking's time range
                             const [bookingHour, bookingMin] = booking.time.split(':').map(Number);
                             const bookingStart = bookingHour * 60 + bookingMin;
@@ -1299,7 +1475,8 @@ export function DailyView({
                             const initialHeight = Math.max(slotsSpanned * SLOT_PIXEL_HEIGHT - 4, 70);
                             const startOffsetMinutes = previewStartMinutes - bookingStartMinutes;
                             const cardTopOffset = 2 + (startOffsetMinutes / state.timeInterval) * SLOT_PIXEL_HEIGHT;
-                            const cardZIndex = isResizingThisBooking ? 60 : (hasOverlaps ? overlapIndex + 10 : 1);
+                            const baseZIndex = 40;
+                            const cardZIndex = isResizingThisBooking ? 90 : (hasOverlaps ? baseZIndex + overlapIndex : baseZIndex);
                             const previewStartTimeString = minutesToTimeString(previewStartMinutes);
                             const displayStartLabel = format(parseISO(`2000-01-01T${previewStartTimeString}`), 'h:mm a');
                             const displayDuration = previewDuration;
@@ -1560,25 +1737,7 @@ export function DailyView({
       )}
 
       {/* Time slot hover indicator */}
-      {hoveredSlot && !hoveredBooking && (
-        <div
-          className="fixed z-50 pointer-events-none"
-          style={{
-            left: `${hoveredSlot.x}px`,
-            top: `${hoveredSlot.y}px`,
-            transform: 'translate(12px, -50%)',
-          }}
-        >
-          <div className="bg-gray-900/95 text-white px-3 py-1.5 rounded-md shadow-xl border border-gray-700">
-            <div className="text-sm font-semibold">
-              {format(parseISO(`2000-01-01T${hoveredSlot.time}`), 'h:mm a')}
-            </div>
-            <div className="text-xs text-gray-300">
-              {hoveredSlot.staffName}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Hover tooltip removed in favor of inline hover overlay */}
     </div>
   );
 }
