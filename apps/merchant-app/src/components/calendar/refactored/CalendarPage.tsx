@@ -995,25 +995,95 @@ function CalendarContent() {
         // Transform the booking data for calendar display
         const startTime = new Date(bookingData.startTime);
 
-        // For multi-service bookings, we need to get the first service info for display
-        // The calendar currently shows single bookings, so we'll use the first service
-        let serviceId = bookingData.serviceId;
-        let serviceName = bookingData.serviceName;
-        let servicePrice = bookingData.totalPrice || 0;
-        let duration = bookingData.totalDuration || 30;
+        const hasServicesArray =
+          Array.isArray(bookingData.services) && bookingData.services.length > 0;
 
-        if (
-          bookingData.services &&
-          Array.isArray(bookingData.services) &&
-          bookingData.services.length > 0
-        ) {
-          // Multi-service booking - use first service for display
-          const firstService = bookingData.services[0];
-          serviceId = firstService.id || firstService.serviceId;
-          serviceName = firstService.name || serviceName;
-          duration = firstService.duration || duration;
-          servicePrice = firstService.price || servicePrice;
-        }
+        // Normalize services so multi-selection renders immediately without refresh
+        const normalizedServices = hasServicesArray
+          ? bookingData.services.map((service: any, index: number) => {
+              const rawServiceId =
+                service?.serviceId ??
+                service?.id ??
+                service?.service?.id ??
+                null;
+              const resolvedServiceId =
+                rawServiceId !== null && rawServiceId !== undefined
+                  ? String(rawServiceId)
+                  : undefined;
+
+              const resolvedName =
+                service?.name ??
+                service?.serviceName ??
+                service?.service?.name ??
+                bookingData.serviceName ??
+                `Service ${index + 1}`;
+
+              const parsedDuration =
+                typeof service?.duration === "number"
+                  ? service.duration
+                  : Number(service?.duration) || 0;
+
+              const parsedPrice =
+                typeof service?.price === "number"
+                  ? service.price
+                  : Number(service?.price) || 0;
+
+              return {
+                ...service,
+                id: service?.id ?? resolvedServiceId,
+                serviceId: resolvedServiceId,
+                name: resolvedName,
+                duration: parsedDuration,
+                price: parsedPrice,
+              };
+            })
+          : undefined;
+
+        const serviceNames =
+          normalizedServices
+            ?.map((service: any) => service.name)
+            .filter(Boolean) ?? [];
+
+        const totalDurationFromServices =
+          normalizedServices?.reduce(
+            (sum: number, service: any) => sum + (service.duration ?? 0),
+            0,
+          ) ?? 0;
+
+        const totalPriceFromServices =
+          normalizedServices?.reduce(
+            (sum: number, service: any) => sum + (service.price ?? 0),
+            0,
+          ) ?? 0;
+
+        const resolvedServiceId =
+          bookingData.serviceId ??
+          normalizedServices?.[0]?.serviceId ??
+          normalizedServices?.[0]?.id ??
+          null;
+
+        const serviceId =
+          resolvedServiceId !== null && resolvedServiceId !== undefined
+            ? String(resolvedServiceId)
+            : null;
+
+        const serviceName =
+          serviceNames.length > 1
+            ? serviceNames.join(" + ")
+            : serviceNames[0] ?? bookingData.serviceName ?? "Service";
+
+        const duration =
+          bookingData.totalDuration ??
+          (hasServicesArray ? totalDurationFromServices : undefined) ??
+          bookingData.duration ??
+          0;
+
+        const servicePrice =
+          bookingData.totalPrice ??
+          (hasServicesArray ? totalPriceFromServices : undefined) ??
+          bookingData.servicePrice ??
+          totalPriceFromServices ??
+          0;
 
         const customerSource =
           bookingData.customerSource ||
@@ -1043,6 +1113,7 @@ function CalendarContent() {
           serviceId: serviceId,
           serviceName: serviceName,
           servicePrice: servicePrice,
+          services: normalizedServices,
           staffId: bookingData.staffId ?? finalStaffId ?? null,
           staffName: bookingData.staffName || "Unassigned",
           notes: bookingData.notes || "",
