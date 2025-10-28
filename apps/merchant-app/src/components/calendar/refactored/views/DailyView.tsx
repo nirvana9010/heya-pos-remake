@@ -1018,6 +1018,7 @@ export function DailyView({
                         staffId={null}
                         className={cn(
                           "h-[40px] cursor-pointer relative border-r border-gray-200 transition-colors duration-100",
+                          "after:pointer-events-none after:absolute after:top-0 after:bottom-0 after:right-0 after:w-px after:bg-gray-200 after:z-[120]",
                           !slot.isBusinessHours ? "bg-gray-50/30" : "hover:bg-gray-50/30",
                           (() => {
                             // Match the border styling from time column using shadows
@@ -1365,6 +1366,7 @@ export function DailyView({
                         className={cn(
                           "h-[40px] cursor-pointer relative transition-colors duration-100",
                           staffIndex < visibleStaff.length - 1 && "border-r border-gray-200",
+                          "after:pointer-events-none after:absolute after:top-0 after:bottom-0 after:right-0 after:w-px after:bg-gray-200 after:z-[120]",
                           (() => {
                             if (showOffRosterOverlay) {
                               return "bg-gray-200";
