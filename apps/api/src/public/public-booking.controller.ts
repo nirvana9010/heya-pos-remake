@@ -219,9 +219,85 @@ export class PublicBookingController {
     });
 
     const targetDate = query.date ? new Date(query.date) : null;
-    let filteredStaff = staffMembers;
+    let filteredStaff = [...staffMembers];
 
-    if (targetDate && staffMembers.length > 0) {
+    if (targetDate && !Number.isNaN(targetDate.getTime())) {
+      const merchantWithLocation = await this.prisma.merchant.findUnique({
+        where: { id: merchant.id },
+        include: {
+          locations: {
+            where: { isActive: true },
+            take: 1,
+          },
+        },
+      });
+
+      const location = merchantWithLocation?.locations?.[0] || null;
+      const normalizedSettings =
+        normalizeMerchantSettings<MerchantSettings>(merchantWithLocation?.settings);
+      const businessHours =
+        normalizedSettings?.businessHours || location?.businessHours || null;
+      const timezone =
+        location?.timezone ||
+        normalizedSettings?.timezone ||
+        "UTC";
+
+      const dayStart = TimezoneUtils.startOfDayInTimezone(targetDate, timezone);
+      const dayEnd = TimezoneUtils.endOfDayInTimezone(targetDate, timezone);
+
+      const holiday = await this.prisma.merchantHoliday.findFirst({
+        where: {
+          merchantId: merchant.id,
+          isDayOff: true,
+          date: {
+            gte: dayStart,
+            lte: dayEnd,
+          },
+        },
+      });
+
+      let isClosedByBusinessHours = false;
+      if (businessHours) {
+        const dayName = TimezoneUtils.formatInTimezone(
+          targetDate,
+          timezone,
+          "EEEE",
+        ).toLowerCase();
+        const capitalizedDayName =
+          dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+        const dayConfig =
+          businessHours[dayName] ??
+          businessHours[capitalizedDayName] ??
+          businessHours[dayName.toUpperCase()];
+
+        if (!dayConfig) {
+          isClosedByBusinessHours = true;
+        } else {
+          const normalizeValue = (value?: string | null) =>
+            typeof value === "string" ? value.toLowerCase() : value ?? null;
+          const openValue = normalizeValue(
+            (dayConfig as any).open ?? (dayConfig as any).openTime,
+          );
+          const closeValue = normalizeValue(
+            (dayConfig as any).close ?? (dayConfig as any).closeTime,
+          );
+
+          isClosedByBusinessHours =
+            dayConfig.isOpen === false ||
+            !openValue ||
+            !closeValue ||
+            openValue === "closed" ||
+            closeValue === "closed";
+        }
+      }
+
+      if (holiday || isClosedByBusinessHours) {
+        filteredStaff = [];
+      }
+    }
+
+    if (targetDate && filteredStaff.length > 0) {
       const overrides = await this.prisma.scheduleOverride.findMany({
         where: {
           staffId: { in: staffMembers.map((member) => member.id) },

@@ -93,6 +93,13 @@ export interface MerchantInfo {
   timezone: string;
   currency: string;
   address: string;
+  businessHours?: Record<string, {
+    isOpen?: boolean;
+    open?: string | null;
+    close?: string | null;
+    openTime?: string | null;
+    closeTime?: string | null;
+  }>;
   phone: string;
   email: string;
   requireDeposit: boolean;

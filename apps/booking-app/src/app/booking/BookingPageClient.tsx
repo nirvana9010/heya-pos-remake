@@ -1246,6 +1246,47 @@ export default function BookingPageClient() {
     
     // Find next available slot
     const nextAvailable = availableSlots.find(slot => slot.available);
+    const isClosedByBusinessHours = React.useMemo(() => {
+      if (!selectedDate || !merchantInfo?.businessHours) {
+        return false;
+      }
+
+      const dayName = TimezoneUtils.formatInTimezone(
+        selectedDate,
+        merchantInfo.timezone,
+        'EEEE'
+      ).toLowerCase();
+
+      const businessHours = merchantInfo.businessHours;
+      const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+      const dayConfig =
+        businessHours[dayName] ??
+        businessHours[capitalizedDayName] ??
+        businessHours[dayName.toUpperCase()];
+
+      if (!dayConfig) {
+        return false;
+      }
+
+      const openValue = dayConfig.open ?? dayConfig.openTime;
+      const closeValue = dayConfig.close ?? dayConfig.closeTime;
+      const normalizedOpen = typeof openValue === 'string' ? openValue.toLowerCase() : openValue;
+      const normalizedClose = typeof closeValue === 'string' ? closeValue.toLowerCase() : closeValue;
+
+      if (dayConfig.isOpen === false) {
+        return true;
+      }
+
+      if (!normalizedOpen || !normalizedClose) {
+        return true;
+      }
+
+      return normalizedOpen === 'closed' || normalizedClose === 'closed';
+    }, [selectedDate, merchantInfo]);
+
+    const isShopClosed = Boolean(selectedDate) && !loadingSlots && (
+      isClosedByBusinessHours || (staff.length === 0 && allStaffRef.current.length > 0)
+    );
     
     // Calculate appointment end time
     const getEndTime = (startTime: string) => {
@@ -1387,7 +1428,16 @@ export default function BookingPageClient() {
                     </div>
                   </>
                 ) : (
-                  <p className="text-amber-600">No availability on this date - please try another</p>
+                  <p
+                    className={cn(
+                      "mb-3",
+                      isShopClosed ? "text-rose-600" : "text-amber-600"
+                    )}
+                  >
+                    {isShopClosed
+                      ? "No team members are rostered on this day."
+                      : "No availability on this date - please try another"}
+                  </p>
                 )}
               </div>
 
@@ -1505,10 +1555,14 @@ export default function BookingPageClient() {
                 >
                   <CalendarDays className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-lg text-muted-foreground mb-4">
-                    We&apos;re fully booked on {format(selectedDate, 'MMMM d')}
+                    {isShopClosed
+                      ? `We're closed on ${format(selectedDate!, 'MMMM d')}.`
+                      : `We're fully booked on ${format(selectedDate!, 'MMMM d')}.`}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Try selecting another date or use the &quot;Book Next Available&quot; option above
+                    {isShopClosed
+                      ? "Please choose another date when our team is back on."
+                      : "Try selecting another date to secure your appointment."}
                   </p>
                 </motion.div>
               )}
