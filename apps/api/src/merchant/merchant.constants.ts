@@ -15,6 +15,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   timeFormat: '12h',
   requireDeposit: false,
   depositPercentage: 0,
+  allowOnlineBookings: true,
   showUnassignedColumn: false, // Mirrors allowUnassignedBookings; kept in sync automatically
   allowUnassignedBookings: false, // Default to false - merchants must explicitly enable unassigned bookings
   autoConfirmBookings: true, // Default to true for backward compatibility

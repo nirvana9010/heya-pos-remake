@@ -44,6 +44,7 @@ export interface MerchantSettings {
   // Unassigned column settings
   showUnassignedColumn: boolean;
   // Booking behavior settings
+  allowOnlineBookings?: boolean;
   allowUnassignedBookings: boolean;
   autoConfirmBookings?: boolean;
   minimumBookingNotice?: number; // Minutes before start time required for bookings

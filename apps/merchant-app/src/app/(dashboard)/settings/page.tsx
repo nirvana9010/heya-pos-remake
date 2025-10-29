@@ -152,6 +152,9 @@ export default function SettingsPage() {
   const [allowCustomTipAmount, setAllowCustomTipAmount] = useState(
     merchantSettings.allowCustomTipAmount ?? true,
   );
+  const [allowOnlineBookings, setAllowOnlineBookings] = useState(
+    merchantSettings.allowOnlineBookings ?? true,
+  );
   const [allowUnassignedBookings, setAllowUnassignedBookings] = useState(
     merchantSettings.allowUnassignedBookings ?? true,
   );
@@ -554,6 +557,7 @@ export default function SettingsPage() {
         hydrate("enableTips", setEnableTips, response.enableTips ?? false);
         hydrate("defaultTipPercentages", setDefaultTipPercentages, response.defaultTipPercentages || [10, 15, 20]);
         hydrate("allowCustomTipAmount", setAllowCustomTipAmount, response.allowCustomTipAmount ?? true);
+        hydrate("allowOnlineBookings", setAllowOnlineBookings, response.allowOnlineBookings ?? true);
         hydrate("allowUnassignedBookings", setAllowUnassignedBookings, response.allowUnassignedBookings ?? true);
         hydrate("autoConfirmBookings", setAutoConfirmBookings, response.autoConfirmBookings ?? true);
         hydrate("calendarStartHour", setCalendarStartHour, response.calendarStartHour ?? 6);
@@ -776,6 +780,19 @@ export default function SettingsPage() {
 
   queueAutoSaveRef.current = queueAutoSave;
 
+  const handleAllowOnlineBookingsChange = useCallback(
+    (value: boolean) => {
+      setAllowOnlineBookings(value);
+      queueAutoSave(
+        {
+          allowOnlineBookings: value,
+        },
+        { force: true },
+      );
+    },
+    [queueAutoSave],
+  );
+
   const handleAllowUnassignedBookingsChange = useCallback(
     (value: boolean) => {
       setAllowUnassignedBookings(value);
@@ -825,6 +842,7 @@ export default function SettingsPage() {
       enableTips,
       defaultTipPercentages,
       allowCustomTipAmount,
+      allowOnlineBookings,
       allowUnassignedBookings,
       autoConfirmBookings,
       calendarStartHour,
@@ -869,6 +887,7 @@ export default function SettingsPage() {
       depositPercentage,
       enableTips,
       includeUnscheduledStaff,
+      allowOnlineBookings,
       minimumBookingNotice,
       newBookingNotification,
       newBookingNotificationEmail,
@@ -1994,7 +2013,10 @@ export default function SettingsPage() {
                       Customers can book appointments through your website
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch
+                    checked={allowOnlineBookings}
+                    onCheckedChange={handleAllowOnlineBookingsChange}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
