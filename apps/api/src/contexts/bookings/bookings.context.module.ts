@@ -17,6 +17,7 @@ import { BookingCreationService } from './application/services/booking-creation.
 import { BookingUpdateService } from './application/services/booking-update.service';
 import { BookingAvailabilityService } from './application/services/booking-availability.service';
 import { PublicBookingService } from './application/services/public-booking.service';
+import { UnassignedCapacityService } from './application/services/unassigned-capacity.service';
 import { QueryHandlers } from './application/queries/handlers';
 
 // Domain services would go here
@@ -47,6 +48,7 @@ import { QueryHandlers } from './application/queries/handlers';
     BookingUpdateService,
     BookingAvailabilityService,
     PublicBookingService,
+    UnassignedCapacityService,
     
     // Command Handlers
     CreateBookingHandler,
@@ -63,6 +65,7 @@ import { QueryHandlers } from './application/queries/handlers';
     BookingUpdateService,
     BookingAvailabilityService,
     PublicBookingService,
+    UnassignedCapacityService,
   ],
 })
 export class BookingsContextModule {}

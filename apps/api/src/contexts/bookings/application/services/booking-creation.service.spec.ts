@@ -10,6 +10,7 @@ import { Booking } from "../../domain/entities/booking.entity";
 import { TimeSlot } from "../../domain/value-objects/time-slot.vo";
 import { BookingStatusValue } from "../../domain/value-objects/booking-status.vo";
 import { OrdersService } from "../../../../payments/orders.service";
+import { UnassignedCapacityService } from "./unassigned-capacity.service";
 
 describe("BookingCreationService", () => {
   let service: BookingCreationService;
@@ -18,6 +19,7 @@ describe("BookingCreationService", () => {
   let outboxRepository: DeepMockProxy<OutboxEventRepository>;
   let eventEmitter: DeepMockProxy<EventEmitter2>;
   let ordersService: DeepMockProxy<OrdersService>;
+  let unassignedCapacityService: DeepMockProxy<UnassignedCapacityService>;
 
   const mockTransaction = {
     $queryRaw: jest.fn(),
@@ -59,6 +61,10 @@ describe("BookingCreationService", () => {
           provide: OrdersService,
           useValue: mockDeep<OrdersService>(),
         },
+        {
+          provide: UnassignedCapacityService,
+          useValue: mockDeep<UnassignedCapacityService>(),
+        },
       ],
     }).compile();
 
@@ -68,10 +74,19 @@ describe("BookingCreationService", () => {
     outboxRepository = module.get(OutboxEventRepository);
     eventEmitter = module.get(EventEmitter2);
     ordersService = module.get(OrdersService);
+    unassignedCapacityService = module.get(UnassignedCapacityService);
 
     // Setup transaction mock
     prisma.$transaction.mockImplementation(async (callback) => {
       return callback(mockTransaction as any);
+    });
+
+    unassignedCapacityService.evaluateSlot.mockResolvedValue({
+      hasCapacity: true,
+      rosteredStaffCount: 3,
+      assignedBookingsCount: 0,
+      unassignedBookingsCount: 0,
+      remainingCapacity: 3,
     });
   });
 
@@ -195,8 +210,8 @@ describe("BookingCreationService", () => {
         firstName: "John",
         lastName: "Doe",
       });
-      mockTransaction.staff.findMany.mockResolvedValue([]);
-      mockTransaction.scheduleOverride.findMany.mockResolvedValue([]);
+        mockTransaction.staff.findMany.mockResolvedValue([]);
+        mockTransaction.scheduleOverride.findMany.mockResolvedValue([]);
       mockTransaction.merchantHoliday.findFirst.mockResolvedValue(null);
       mockTransaction.$queryRaw.mockResolvedValue(undefined);
 
@@ -217,11 +232,11 @@ describe("BookingCreationService", () => {
 
       const startTime = createDateTime(11, 0); // 11:00 AM Monday
 
-      const result = await service.createBooking({
-        merchantId,
-        staffId,
-        customerId,
-        serviceId,
+        const result = await service.createBooking({
+          merchantId,
+          staffId,
+          customerId,
+          serviceId,
         startTime,
         source: "MERCHANT_APP",
         createdById,
@@ -561,28 +576,7 @@ describe("BookingCreationService", () => {
       it("allows unassigned booking when roster capacity is available", async () => {
         const startTime = createDateTime(11, 0);
 
-        mockTransaction.staff.findMany
-          .mockResolvedValueOnce([
-            {
-              id: "staff-a",
-              schedules: [{ startTime: "09:00", endTime: "17:00" }],
-            },
-            {
-              id: "staff-b",
-              schedules: [{ startTime: "09:00", endTime: "17:00" }],
-            },
-            {
-              id: "staff-c",
-              schedules: [{ startTime: "09:00", endTime: "17:00" }],
-            },
-          ])
-          .mockResolvedValueOnce([]);
-
-        mockTransaction.booking.count
-          .mockResolvedValueOnce(1) // Assigned bookings consuming capacity
-          .mockResolvedValueOnce(1); // Existing unassigned bookings
-
-        const result = await service.createBooking({
+        await service.createBooking({
           merchantId,
           customerId,
           startTime,
@@ -591,30 +585,25 @@ describe("BookingCreationService", () => {
           createdById,
         });
 
-        expect(result).toBeDefined();
-        expect(bookingRepository.save).toHaveBeenCalled();
-        expect(mockTransaction.booking.count).toHaveBeenCalledTimes(2);
+        expect(unassignedCapacityService.evaluateSlot).toHaveBeenCalledWith(
+          expect.objectContaining({
+            merchantId,
+            startTime,
+          }),
+        );
       });
 
       it("rejects unassigned booking when staff capacity is exhausted", async () => {
         const startTime = createDateTime(13, 0);
 
-        mockTransaction.staff.findMany
-          .mockResolvedValueOnce([
-            {
-              id: "staff-a",
-              schedules: [{ startTime: "09:00", endTime: "17:00" }],
-            },
-            {
-              id: "staff-b",
-              schedules: [{ startTime: "09:00", endTime: "17:00" }],
-            },
-          ])
-          .mockResolvedValueOnce([]);
-
-        mockTransaction.booking.count
-          .mockResolvedValueOnce(1) // Assigned bookings (one staff busy)
-          .mockResolvedValueOnce(1); // Unassigned bookings already at capacity
+        unassignedCapacityService.evaluateSlot.mockResolvedValueOnce({
+          hasCapacity: false,
+          rosteredStaffCount: 2,
+          assignedBookingsCount: 2,
+          unassignedBookingsCount: 0,
+          remainingCapacity: 0,
+          message: "No unassigned capacity remaining for this time slot.",
+        });
 
         await expect(
           service.createBooking({

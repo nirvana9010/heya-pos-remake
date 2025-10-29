@@ -12,6 +12,7 @@ import { OutboxEvent } from "../../../shared/outbox/domain/outbox-event.entity";
 import { BookingServiceData } from "../commands/create-booking.command";
 import { OrdersService } from "../../../../payments/orders.service";
 import { BookingMapper } from "../../infrastructure/persistence/booking.mapper";
+import { UnassignedCapacityService } from "./unassigned-capacity.service";
 
 interface CreateBookingData {
   staffId?: string; // Optional for multi-service bookings
@@ -48,6 +49,7 @@ export class BookingCreationService {
     private readonly outboxRepository: OutboxEventRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly ordersService: OrdersService,
+    private readonly unassignedCapacityService: UnassignedCapacityService,
   ) {}
 
   /**
@@ -140,17 +142,24 @@ export class BookingCreationService {
           serviceDetails.length > 0 &&
           serviceDetails.every((detail) => !detail.staffId);
 
-        if (
-          isUnassignedBooking &&
-          !data.isBlankBooking
-        ) {
-          await this.enforceUnassignedCapacity({
-            merchantId: data.merchantId,
-            locationId: data.locationId,
-            startTime: data.startTime,
-            endTime,
-            tx,
-          });
+        if (isUnassignedBooking && !data.isBlankBooking) {
+          const unassignedCapacity = await this.unassignedCapacityService.evaluateSlot(
+            {
+              merchantId: data.merchantId,
+              locationId: data.locationId,
+              startTime: data.startTime,
+              endTime,
+              lockMerchantRow: true,
+              tx,
+            },
+          );
+
+          if (!unassignedCapacity.hasCapacity) {
+            throw new ConflictException(
+              unassignedCapacity.message ||
+                "No unassigned capacity remaining for this time slot.",
+            );
+          }
         }
 
         // 3. Check staff schedules and business hours (unless merchant override or blank booking)
@@ -552,250 +561,6 @@ export class BookingCreationService {
     };
   }
 
-  private async enforceUnassignedCapacity(params: {
-    merchantId: string;
-    locationId?: string;
-    startTime: Date;
-    endTime: Date;
-    tx: Prisma.TransactionClient;
-  }): Promise<void> {
-    const { merchantId, startTime, endTime, tx } = params;
-
-    await tx.$queryRaw`
-      SELECT 1 FROM "Merchant"
-      WHERE "id" = ${merchantId}
-      FOR UPDATE
-    `;
-
-    const merchant = await tx.merchant.findUnique({
-      where: { id: merchantId },
-      select: { settings: true },
-    });
-
-    const settings = merchant?.settings as any;
-    const businessHours = settings?.businessHours;
-
-    if (!businessHours) {
-      this.logger.warn(
-        "[BookingCreationService] Skipping unassigned capacity check due to missing business hours",
-        { merchantId },
-      );
-      return;
-    }
-
-    const dayNames = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-
-    const dayOfWeek = startTime.getDay();
-    const dayName = dayNames[dayOfWeek];
-    const dayHours = businessHours[dayName];
-
-    const bookingDateKey = startTime.toISOString().split("T")[0];
-    const merchantHoliday = await tx.merchantHoliday.findFirst({
-      where: {
-        merchantId,
-        date: new Date(bookingDateKey),
-        isDayOff: true,
-      },
-    });
-
-    if (merchantHoliday) {
-      throw new ConflictException(
-        `Business is closed on this day (${merchantHoliday.name})`,
-      );
-    }
-
-    if (!dayHours?.isOpen) {
-      throw new ConflictException("Business is closed on this day");
-    }
-
-    const toMinutes = (time: string | null | undefined): number | null => {
-      if (!time || time === "closed") {
-        return null;
-      }
-      const [hourPart, minutePart] = time.split(":");
-      const hours = parseInt(hourPart ?? "0", 10);
-      const minutes = parseInt(minutePart ?? "0", 10);
-
-      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-        return null;
-      }
-
-      return hours * 60 + minutes;
-    };
-
-    const startMinutes =
-      startTime.getHours() * 60 + startTime.getMinutes();
-    const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
-
-    const staffMembers = await tx.staff.findMany({
-      where: {
-        merchantId,
-        status: "ACTIVE",
-        NOT: {
-          firstName: {
-            equals: "Unassigned",
-            mode: "insensitive",
-          },
-        },
-      },
-      select: {
-        id: true,
-        schedules: {
-          where: { dayOfWeek },
-          select: { startTime: true, endTime: true },
-        },
-      },
-    });
-
-    if (staffMembers.length === 0) {
-      throw new ConflictException(
-        "No staff members are scheduled for this time slot.",
-      );
-    }
-
-    const staffIds = staffMembers.map((staff) => staff.id);
-
-    const overrides = staffIds.length
-      ? await tx.scheduleOverride.findMany({
-          where: {
-            staffId: { in: staffIds },
-            date: new Date(bookingDateKey),
-          },
-        })
-      : [];
-
-    const overrideMap = new Map<
-      string,
-      { startTime: string | null; endTime: string | null }
-    >();
-
-    overrides.forEach((override) => {
-      const key = `${override.staffId}:${override.date
-        .toISOString()
-        .split("T")[0]}`;
-      overrideMap.set(key, {
-        startTime: override.startTime,
-        endTime: override.endTime,
-      });
-    });
-
-    const showOnlyRostered =
-      settings?.showOnlyRosteredStaffDefault ?? true;
-
-    let rosteredStaffCount = 0;
-
-    for (const staff of staffMembers) {
-      const overrideKey = `${staff.id}:${bookingDateKey}`;
-      const override = overrideMap.get(overrideKey);
-
-      let shiftStart: number | null = null;
-      let shiftEnd: number | null = null;
-
-      if (override) {
-        shiftStart = toMinutes(override.startTime);
-        shiftEnd = toMinutes(override.endTime);
-        if (shiftStart === null || shiftEnd === null) {
-          continue;
-        }
-      } else if (staff.schedules.length > 0) {
-        const schedule = staff.schedules[0];
-        shiftStart = toMinutes(schedule?.startTime);
-        shiftEnd = toMinutes(schedule?.endTime);
-        if (shiftStart === null || shiftEnd === null) {
-          continue;
-        }
-      } else if (!showOnlyRostered) {
-        shiftStart = toMinutes(dayHours.open);
-        shiftEnd = toMinutes(dayHours.close);
-        if (shiftStart === null || shiftEnd === null) {
-          continue;
-        }
-      } else {
-        continue;
-      }
-
-      if (shiftStart > startMinutes || shiftEnd < endMinutes) {
-        continue;
-      }
-
-      rosteredStaffCount += 1;
-    }
-
-    if (rosteredStaffCount === 0) {
-      throw new ConflictException(
-        "No staff members are available for this time slot.",
-      );
-    }
-
-    const overlapFilter = {
-      merchantId,
-      status: {
-        notIn: ["CANCELLED", "NO_SHOW", "DELETED"],
-      },
-      startTime: {
-        lt: endTime,
-      },
-      endTime: {
-        gt: startTime,
-      },
-    };
-
-    const assignedBookingsCount = await tx.booking.count({
-      where: {
-        ...overlapFilter,
-        providerId: { in: staffIds },
-      },
-    });
-
-    const unassignedStaff = await tx.staff.findMany({
-      where: {
-        merchantId,
-        firstName: {
-          equals: "Unassigned",
-          mode: "insensitive",
-        },
-      },
-      select: { id: true },
-    });
-
-    const unassignedStaffIds = unassignedStaff.map((staff) => staff.id);
-    const unassignedCondition =
-      unassignedStaffIds.length > 0
-        ? [
-            { providerId: null },
-            { providerId: { in: unassignedStaffIds } },
-          ]
-        : [{ providerId: null }];
-
-    const unassignedBookingsCount = await tx.booking.count({
-      where: {
-        ...overlapFilter,
-        OR: unassignedCondition,
-      },
-    });
-
-    const remainingCapacity = rosteredStaffCount - assignedBookingsCount;
-
-    if (remainingCapacity <= 0) {
-      throw new ConflictException(
-        "All staff members are already booked for this time.",
-      );
-    }
-
-    if (unassignedBookingsCount >= remainingCapacity) {
-      throw new ConflictException(
-        "No unassigned capacity remaining for this time slot.",
-      );
-    }
-  }
 
   /**
    * Validate that booking times fall within staff schedules

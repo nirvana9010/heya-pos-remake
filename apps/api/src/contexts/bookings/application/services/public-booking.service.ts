@@ -7,6 +7,7 @@ import { toNumber } from '../../../../utils/decimal';
 import { BookingServiceData } from '../commands/create-booking.command';
 import { normalizeMerchantSettings } from '../../../../utils/shared/merchant-settings';
 import { MerchantSettings } from '../../../../types/models/merchant';
+import { UnassignedCapacityService } from './unassigned-capacity.service';
 
 export interface PublicCreateBookingData {
   customerName: string;
@@ -35,6 +36,7 @@ export class PublicBookingService {
     private readonly prisma: PrismaService,
     private readonly bookingCreationService: BookingCreationService,
     private readonly bookingAvailabilityService: BookingAvailabilityService,
+    private readonly unassignedCapacityService: UnassignedCapacityService,
   ) {}
 
   async createPublicBooking(dto: PublicCreateBookingData, merchantId: string) {
@@ -709,6 +711,8 @@ export class PublicBookingService {
       });
     });
 
+    const allowUnassigned = settings?.allowUnassignedBookings ?? true;
+
     const slots = Array.from(slotAvailability.entries())
       .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
       .map(([time, info]) => ({
@@ -716,7 +720,45 @@ export class PublicBookingService {
         available: info.available,
       }));
 
-    return { slots };
+    if (!allowUnassigned) {
+      return { slots };
+    }
+
+    const adjustedSlots = await Promise.all(
+      slots.map(async (slot) => {
+        if (!slot.available) {
+          return slot;
+        }
+
+        const slotStart = TimezoneUtils.createDateInTimezone(
+          dto.date,
+          slot.time,
+          location.timezone,
+        );
+        const slotEnd = new Date(
+          slotStart.getTime() + totalDuration * 60 * 1000,
+        );
+
+        const capacity = await this.unassignedCapacityService.evaluateSlot({
+          merchantId: merchant.id,
+          locationId: location.id,
+          startTime: slotStart,
+          endTime: slotEnd,
+        });
+
+        if (!capacity.hasCapacity) {
+          return {
+            ...slot,
+            available: false,
+          };
+        }
+
+        return slot;
+      }),
+    );
+
+    return { slots: adjustedSlots };
+
   }
 }
 function formatAdvanceBookingWindow(hours: number): string {
