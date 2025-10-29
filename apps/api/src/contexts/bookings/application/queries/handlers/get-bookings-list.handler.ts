@@ -1,8 +1,8 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { GetBookingsListQuery } from '../get-bookings-list.query';
-import { BookingListItem } from '../../read-models/booking-list-item.model';
-import { PrismaService } from '../../../../../prisma/prisma.service';
-import { CacheService } from '../../../../../common/cache/cache.service';
+import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
+import { GetBookingsListQuery } from "../get-bookings-list.query";
+import { BookingListItem } from "../../read-models/booking-list-item.model";
+import { PrismaService } from "../../../../../prisma/prisma.service";
+import { CacheService } from "../../../../../common/cache/cache.service";
 
 interface BookingsListResult {
   items: BookingListItem[];
@@ -13,7 +13,9 @@ interface BookingsListResult {
 }
 
 @QueryHandler(GetBookingsListQuery)
-export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuery> {
+export class GetBookingsListHandler
+  implements IQueryHandler<GetBookingsListQuery>
+{
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
@@ -28,7 +30,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
     // Generate cache key
     const cacheKey = this.cacheService.generateKey(
       merchantId,
-      'bookings-list',
+      "bookings-list",
       JSON.stringify(filters),
       page,
       limit,
@@ -109,7 +111,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
             },
             orderBy: {
               service: {
-                displayOrder: 'asc',
+                displayOrder: "asc",
               },
             },
           },
@@ -122,7 +124,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         skip: offset,
         take: limit,
         orderBy: {
-          startTime: 'desc',
+          startTime: "desc",
         },
       }),
       this.prisma.booking.count({ where }),
@@ -132,7 +134,7 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
     const customerIds = Array.from(
       new Set(
         bookings
-          .map(booking => booking.customerId)
+          .map((booking) => booking.customerId)
           .filter((id): id is string => Boolean(id)),
       ),
     );
@@ -150,26 +152,48 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
         })
       : [];
 
-    const customerMap = new Map(customers.map(customer => [customer.id, customer]));
+    const customerMap = new Map(
+      customers.map((customer) => [customer.id, customer]),
+    );
 
     // Map to read model with proper multi-service support
-    const items: BookingListItem[] = bookings.map(booking => {
+    const items: BookingListItem[] = bookings.map((booking) => {
       const customer = booking.customerId
         ? customerMap.get(booking.customerId)
         : undefined;
-      const services = booking.services.map(s => ({
+      const services = booking.services.map((s) => ({
         id: s.service.id,
         name: s.service.name,
         duration: s.service.duration,
-        price: typeof s.service.price === 'object' && s.service.price.toNumber
-          ? s.service.price.toNumber()
-          : Number(s.service.price),
+        price:
+          typeof s.service.price === "object" && s.service.price.toNumber
+            ? s.service.price.toNumber()
+            : Number(s.service.price),
       }));
-      
-      const totalDuration = services.length > 0 
-        ? services.reduce((sum, s) => sum + s.duration, 0)
-        : 15; // Blank bookings have 15 minutes duration
-      
+
+      const durationFromServices =
+        services.length > 0
+          ? services.reduce((sum, s) => sum + s.duration, 0)
+          : 0;
+
+      const durationFromTimestamps =
+        booking.endTime && booking.startTime
+          ? Math.max(
+              0,
+              Math.floor(
+                (booking.endTime.getTime() - booking.startTime.getTime()) /
+                  60000,
+              ),
+            )
+          : 0;
+
+      const totalDuration =
+        durationFromTimestamps > 0
+          ? durationFromTimestamps
+          : durationFromServices > 0
+            ? durationFromServices
+            : 15; // Blank bookings have 15 minutes duration
+
       return {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
@@ -177,37 +201,41 @@ export class GetBookingsListHandler implements IQueryHandler<GetBookingsListQuer
           ? customer.lastName
             ? `${customer.firstName} ${customer.lastName}`
             : customer.firstName
-          : 'Unknown Customer',
+          : "Unknown Customer",
         customerPhone: customer?.phone || undefined,
         customerEmail: undefined, // Not included in list query for performance
         customerSource: customer?.source || null,
         staffId: booking.provider?.id || null,
-        staffName: booking.provider 
-          ? (booking.provider.lastName 
-              ? `${booking.provider.firstName} ${booking.provider.lastName}`
-              : booking.provider.firstName)
-          : 'Unassigned',
-        serviceName: services.length > 1 
-          ? services.map(s => s.name).join(' + ')
-          : services[0]?.name || 'Service not selected',
+        staffName: booking.provider
+          ? booking.provider.lastName
+            ? `${booking.provider.firstName} ${booking.provider.lastName}`
+            : booking.provider.firstName
+          : "Unassigned",
+        serviceName:
+          services.length > 1
+            ? services.map((s) => s.name).join(" + ")
+            : services[0]?.name || "Service not selected",
         services,
         startTime: booking.startTime,
         endTime: booking.endTime,
         status: booking.status,
         customerRequestedStaff: booking.customerRequestedStaff ?? false,
-        totalAmount: typeof booking.totalAmount === 'object' && booking.totalAmount.toNumber
-          ? booking.totalAmount.toNumber()
-          : Number(booking.totalAmount),
+        totalAmount:
+          typeof booking.totalAmount === "object" &&
+          booking.totalAmount.toNumber
+            ? booking.totalAmount.toNumber()
+            : Number(booking.totalAmount),
         totalDuration,
-        locationName: booking.location?.name || 'No Location',
+        locationName: booking.location?.name || "No Location",
         createdAt: booking.createdAt,
         source: booking.source || null,
         // Payment fields
-        paymentStatus: booking.paymentStatus || 'UNPAID',
-        isPaid: booking.paymentStatus === 'PAID',
-        paidAmount: typeof booking.paidAmount === 'object' && booking.paidAmount.toNumber
-          ? booking.paidAmount.toNumber()
-          : Number(booking.paidAmount || 0),
+        paymentStatus: booking.paymentStatus || "UNPAID",
+        isPaid: booking.paymentStatus === "PAID",
+        paidAmount:
+          typeof booking.paidAmount === "object" && booking.paidAmount.toNumber
+            ? booking.paidAmount.toNumber()
+            : Number(booking.paidAmount || 0),
         paymentMethod: booking.paymentMethod || undefined,
         paidAt: booking.paidAt || undefined,
         completedAt: booking.completedAt || undefined,

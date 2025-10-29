@@ -102,6 +102,13 @@ export function useCalendarData() {
       const transformedBookings = response.map((booking: any) => {
         // Extract date and time from startTime
         const startTime = new Date(booking.startTime);
+        const endTimeRaw = booking.endTime ? new Date(booking.endTime) : null;
+        const durationFromTimestamps = startTime instanceof Date
+          && !Number.isNaN(startTime.getTime())
+          && endTimeRaw instanceof Date
+          && !Number.isNaN(endTimeRaw.getTime())
+            ? Math.max(0, Math.round((endTimeRaw.getTime() - startTime.getTime()) / 60000))
+            : 0;
         const date = format(startTime, 'yyyy-MM-dd');
         const time = format(startTime, 'HH:mm');
 
@@ -115,13 +122,32 @@ export function useCalendarData() {
         const customerSource = booking.customerSource || booking.customer?.source || null;
         const sourceInfo = mapBookingSource(booking.source, customerSource);
 
+        const servicesDuration = Array.isArray(booking.services)
+          ? booking.services.reduce(
+              (sum: number, service: any) =>
+                sum + (typeof service.duration === 'number' ? service.duration : Number(service.duration) || 0),
+              0,
+            )
+          : 0;
+
+        const durationFallback = typeof booking.duration === 'number'
+          ? booking.duration
+          : typeof booking.duration === 'string'
+            ? Number.parseInt(booking.duration, 10)
+            : Number(booking.totalDuration) || servicesDuration || 60;
+
+        const normalizedDuration = durationFromTimestamps > 0
+          ? durationFromTimestamps
+          : durationFallback > 0
+            ? durationFallback
+            : 60;
 
         return {
           id: booking.id,
           bookingNumber: booking.bookingNumber, // Include the booking number
           date,
           time,
-          duration: booking.duration || booking.totalDuration || 60,
+          duration: normalizedDuration,
           // Ensure status is always lowercase for consistent filtering
           status: transformedStatus,
           
