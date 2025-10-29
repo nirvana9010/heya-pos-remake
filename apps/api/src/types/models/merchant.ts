@@ -24,7 +24,7 @@ export interface Merchant {
 export interface MerchantSettings {
   bookingAdvanceHours: number;
   cancellationHours: number;
-  loyaltyType: 'visit' | 'spend';
+  loyaltyType: "visit" | "spend";
   loyaltyRate: number;
   requirePinForRefunds: boolean;
   requirePinForCancellations: boolean;
@@ -33,13 +33,14 @@ export interface MerchantSettings {
   timezone: string;
   currency: string;
   dateFormat: string;
-  timeFormat: '12h' | '24h';
+  timeFormat: "12h" | "24h";
   // Payment settings
   requireDeposit: boolean;
   depositPercentage: number; // 1-100
   // Unassigned column settings
   showUnassignedColumn: boolean;
   // Booking behavior settings
+  allowOnlineBookings?: boolean;
   allowUnassignedBookings: boolean;
   autoConfirmBookings: boolean;
   minimumBookingNotice?: number; // Minutes before start time required for bookings
@@ -93,15 +94,15 @@ export interface BusinessDayHours {
 }
 
 export enum MerchantStatus {
-  ACTIVE = 'ACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  CANCELLED = 'CANCELLED'
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  CANCELLED = "CANCELLED",
 }
 
 export enum SubscriptionStatus {
-  TRIAL = 'TRIAL',
-  ACTIVE = 'ACTIVE',
-  CANCELLED = 'CANCELLED'
+  TRIAL = "TRIAL",
+  ACTIVE = "ACTIVE",
+  CANCELLED = "CANCELLED",
 }
 
 export interface MerchantAuth {
@@ -114,5 +115,5 @@ export interface MerchantAuth {
   updatedAt: Date;
 }
 
-import type { Package } from './package';
-import type { AustralianState, MerchantHoliday } from '@heya-pos/types';
+import type { Package } from "./package";
+import type { AustralianState, MerchantHoliday } from "@heya-pos/types";
