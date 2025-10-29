@@ -235,6 +235,12 @@ export default function SettingsPage() {
   const hasLoadedSettingsRef = useRef(false);
   const shouldSkipNextAutoSaveRef = useRef(true);
   const isUnmountedRef = useRef(false);
+  const queueAutoSaveRef = useRef<
+    (
+      updates: Partial<MerchantSettings>,
+      options?: { force?: boolean; skipDebounce?: boolean },
+    ) => void
+  >();
 
   const mergeSettingsIntoLocalCache = useCallback(
     (updates: Partial<MerchantSettings>) => {
@@ -492,6 +498,9 @@ export default function SettingsPage() {
 
   const loadMerchantSettings = useCallback(async () => {
     shouldSkipNextAutoSaveRef.current = true;
+    const pendingSnapshot = { ...pendingUpdatesRef.current };
+    const hadPendingChanges = Object.keys(pendingSnapshot).length > 0;
+
     try {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
@@ -590,13 +599,25 @@ export default function SettingsPage() {
         }
         lastSavedSettingsRef.current = response;
         mergeSettingsIntoLocalCache(response);
-        pendingUpdatesRef.current = {};
+
+        if (!hadPendingChanges) {
+          pendingUpdatesRef.current = {};
+        }
+
         await fetchServicesList();
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
     } finally {
       hasLoadedSettingsRef.current = true;
+
+      if (hadPendingChanges) {
+        pendingUpdatesRef.current = pendingSnapshot;
+        queueAutoSaveRef.current?.(pendingSnapshot, {
+          force: true,
+          skipDebounce: true,
+        });
+      }
     }
   }, [fetchServicesList, mergeSettingsIntoLocalCache]);
 
@@ -672,6 +693,7 @@ export default function SettingsPage() {
       updates: Partial<MerchantSettings>,
       options?: {
         force?: boolean;
+        skipDebounce?: boolean;
       },
     ) => {
       if (!hasLoadedSettingsRef.current && !options?.force) {
@@ -687,6 +709,12 @@ export default function SettingsPage() {
         clearTimeout(autoSaveTimerRef.current);
       }
 
+      if (options?.skipDebounce) {
+        autoSaveTimerRef.current = null;
+        void flushAutoSave();
+        return;
+      }
+
       autoSaveTimerRef.current = setTimeout(() => {
         autoSaveTimerRef.current = null;
         void flushAutoSave();
@@ -694,6 +722,8 @@ export default function SettingsPage() {
     },
     [flushAutoSave],
   );
+
+  queueAutoSaveRef.current = queueAutoSave;
 
   const handleAllowUnassignedBookingsChange = useCallback(
     (value: boolean) => {
