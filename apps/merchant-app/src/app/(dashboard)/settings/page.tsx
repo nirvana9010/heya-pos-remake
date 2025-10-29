@@ -515,7 +515,9 @@ export default function SettingsPage() {
           response.defaultTipPercentages || [10, 15, 20],
         );
         setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
-        setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
+        if (pendingUpdatesRef.current.allowUnassignedBookings === undefined) {
+          setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
+        }
         setAutoConfirmBookings(response.autoConfirmBookings ?? true);
         setCalendarStartHour(response.calendarStartHour ?? 6);
         setCalendarEndHour(response.calendarEndHour ?? 23);
@@ -666,8 +668,13 @@ export default function SettingsPage() {
   }, [loadMerchantSettings, persistSettings, toast]);
 
   const queueAutoSave = useCallback(
-    (updates: Partial<MerchantSettings>) => {
-      if (!hasLoadedSettingsRef.current) {
+    (
+      updates: Partial<MerchantSettings>,
+      options?: {
+        force?: boolean;
+      },
+    ) => {
+      if (!hasLoadedSettingsRef.current && !options?.force) {
         return;
       }
 
@@ -686,6 +693,19 @@ export default function SettingsPage() {
       }, AUTO_SAVE_DEBOUNCE_MS);
     },
     [flushAutoSave],
+  );
+
+  const handleAllowUnassignedBookingsChange = useCallback(
+    (value: boolean) => {
+      setAllowUnassignedBookings(value);
+      queueAutoSave(
+        {
+          allowUnassignedBookings: value,
+        },
+        { force: true },
+      );
+    },
+    [queueAutoSave, setAllowUnassignedBookings],
   );
 
   const toNumberOrUndefined = (value: string | number | undefined) => {
@@ -1927,7 +1947,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={allowUnassignedBookings}
-                    onCheckedChange={setAllowUnassignedBookings}
+                    onCheckedChange={handleAllowUnassignedBookingsChange}
                   />
                 </div>
 

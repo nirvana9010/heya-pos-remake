@@ -20,12 +20,19 @@ describe("BookingCreationService", () => {
   let ordersService: DeepMockProxy<OrdersService>;
 
   const mockTransaction = {
+    $queryRaw: jest.fn(),
     merchant: { findUnique: jest.fn() },
-    staff: { findUnique: jest.fn() },
+    staff: { findUnique: jest.fn(), findMany: jest.fn() },
     staffSchedule: { findFirst: jest.fn() },
     service: { findUnique: jest.fn() },
-    booking: { findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+    booking: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
     merchantHoliday: { findFirst: jest.fn() },
+    scheduleOverride: { findMany: jest.fn() },
   };
 
   beforeEach(async () => {
@@ -181,13 +188,17 @@ describe("BookingCreationService", () => {
         buildPrismaBooking(),
       );
       mockTransaction.booking.update.mockResolvedValue({});
+      mockTransaction.booking.count.mockResolvedValue(0);
 
       mockTransaction.staff.findUnique.mockResolvedValue({
         id: staffId,
         firstName: "John",
         lastName: "Doe",
       });
+      mockTransaction.staff.findMany.mockResolvedValue([]);
+      mockTransaction.scheduleOverride.findMany.mockResolvedValue([]);
       mockTransaction.merchantHoliday.findFirst.mockResolvedValue(null);
+      mockTransaction.$queryRaw.mockResolvedValue(undefined);
 
       bookingRepository.lockStaff.mockResolvedValue(undefined);
       bookingRepository.findConflictingBookings.mockResolvedValue([]);
@@ -544,6 +555,80 @@ describe("BookingCreationService", () => {
       );
       const confirmedEvents = eventTypes.filter((type) => type === "confirmed");
       expect(confirmedEvents.length).toBe(0);
+    });
+
+    describe("unassigned bookings capacity", () => {
+      it("allows unassigned booking when roster capacity is available", async () => {
+        const startTime = createDateTime(11, 0);
+
+        mockTransaction.staff.findMany
+          .mockResolvedValueOnce([
+            {
+              id: "staff-a",
+              schedules: [{ startTime: "09:00", endTime: "17:00" }],
+            },
+            {
+              id: "staff-b",
+              schedules: [{ startTime: "09:00", endTime: "17:00" }],
+            },
+            {
+              id: "staff-c",
+              schedules: [{ startTime: "09:00", endTime: "17:00" }],
+            },
+          ])
+          .mockResolvedValueOnce([]);
+
+        mockTransaction.booking.count
+          .mockResolvedValueOnce(1) // Assigned bookings consuming capacity
+          .mockResolvedValueOnce(1); // Existing unassigned bookings
+
+        const result = await service.createBooking({
+          merchantId,
+          customerId,
+          startTime,
+          services: [{ serviceId }],
+          source: "ONLINE",
+          createdById,
+        });
+
+        expect(result).toBeDefined();
+        expect(bookingRepository.save).toHaveBeenCalled();
+        expect(mockTransaction.booking.count).toHaveBeenCalledTimes(2);
+      });
+
+      it("rejects unassigned booking when staff capacity is exhausted", async () => {
+        const startTime = createDateTime(13, 0);
+
+        mockTransaction.staff.findMany
+          .mockResolvedValueOnce([
+            {
+              id: "staff-a",
+              schedules: [{ startTime: "09:00", endTime: "17:00" }],
+            },
+            {
+              id: "staff-b",
+              schedules: [{ startTime: "09:00", endTime: "17:00" }],
+            },
+          ])
+          .mockResolvedValueOnce([]);
+
+        mockTransaction.booking.count
+          .mockResolvedValueOnce(1) // Assigned bookings (one staff busy)
+          .mockResolvedValueOnce(1); // Unassigned bookings already at capacity
+
+        await expect(
+          service.createBooking({
+            merchantId,
+            customerId,
+            startTime,
+            services: [{ serviceId }],
+            source: "ONLINE",
+            createdById,
+          }),
+        ).rejects.toThrow("No unassigned capacity remaining for this time slot.");
+
+        expect(bookingRepository.save).not.toHaveBeenCalled();
+      });
     });
   });
 
