@@ -242,6 +242,32 @@ export default function SettingsPage() {
     ) => void
   >();
 
+  const hasOwnPending = (
+    snapshot: Partial<MerchantSettings>,
+    key: string,
+  ) => Object.prototype.hasOwnProperty.call(snapshot, key);
+
+  const deepEqual = (a: unknown, b: unknown): boolean => {
+    if (Object.is(a, b)) {
+      return true;
+    }
+
+    if (
+      typeof a === "object" &&
+      a !== null &&
+      typeof b === "object" &&
+      b !== null
+    ) {
+      try {
+        return JSON.stringify(a) === JSON.stringify(b);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    return false;
+  };
+
   const mergeSettingsIntoLocalCache = useCallback(
     (updates: Partial<MerchantSettings>) => {
       if (typeof window !== "undefined") {
@@ -501,157 +527,83 @@ export default function SettingsPage() {
     const pendingSnapshot = { ...pendingUpdatesRef.current };
     const hadPendingChanges = Object.keys(pendingSnapshot).length > 0;
     const shouldHydrate = (key: keyof MerchantSettings | string) =>
-      pendingSnapshot[key as keyof MerchantSettings] === undefined;
+      !hasOwnPending(pendingSnapshot, key as string);
 
     try {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
-        if (shouldHydrate("bookingAdvanceHours")) {
-          setBookingAdvanceHours(
-            response.bookingAdvanceHours?.toString() || "48",
-          );
+        const hydrate = (
+          key: keyof MerchantSettings | string,
+          setter: (value: any) => void,
+          value: any,
+        ) => {
+          if (shouldHydrate(key)) {
+            setter(value);
+          }
+        };
+
+        hydrate("bookingAdvanceHours", setBookingAdvanceHours, response.bookingAdvanceHours?.toString() || "48");
+        hydrate("cancellationHours", setCancellationHours, response.cancellationHours?.toString() || "24");
+        hydrate("minimumBookingNotice", setMinimumBookingNotice, response.minimumBookingNotice?.toString() || "0");
+        hydrate("requirePinForRefunds", setRequirePinForRefunds, response.requirePinForRefunds ?? true);
+        hydrate("requirePinForCancellations", setRequirePinForCancellations, response.requirePinForCancellations ?? true);
+        hydrate("requirePinForReports", setRequirePinForReports, response.requirePinForReports ?? true);
+        hydrate("requirePinForStaff", setRequirePinForStaff, response.requirePinForStaff ?? true);
+        hydrate("requireDeposit", setRequireDeposit, response.requireDeposit ?? false);
+        hydrate("depositPercentage", setDepositPercentage, response.depositPercentage?.toString() || "30");
+        hydrate("enableTips", setEnableTips, response.enableTips ?? false);
+        hydrate("defaultTipPercentages", setDefaultTipPercentages, response.defaultTipPercentages || [10, 15, 20]);
+        hydrate("allowCustomTipAmount", setAllowCustomTipAmount, response.allowCustomTipAmount ?? true);
+        hydrate("allowUnassignedBookings", setAllowUnassignedBookings, response.allowUnassignedBookings ?? true);
+        hydrate("autoConfirmBookings", setAutoConfirmBookings, response.autoConfirmBookings ?? true);
+        hydrate("calendarStartHour", setCalendarStartHour, response.calendarStartHour ?? 6);
+        hydrate("calendarEndHour", setCalendarEndHour, response.calendarEndHour ?? 23);
+        hydrate("showOnlyRosteredStaffDefault", setShowOnlyRosteredStaffDefault, response.showOnlyRosteredStaffDefault ?? true);
+        hydrate("includeUnscheduledStaff", setIncludeUnscheduledStaff, response.includeUnscheduledStaff ?? false);
+        hydrate("priceToDurationRatio", setPriceToDurationRatio, response.priceToDurationRatio?.toString() || "1.0");
+        hydrate("tyroEnabled", setTyroEnabled, response.tyroEnabled ?? false);
+        hydrate("tyroTerminalId", setTyroTerminalId, response.tyroTerminalId ?? "");
+        hydrate(
+          "tyroMerchantId",
+          setTyroMerchantId,
+          (response.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || "",
+        );
+        if (response.timezone) {
+          hydrate("timezone", setSelectedTimezone, response.timezone);
         }
-        if (shouldHydrate("cancellationHours")) {
-          setCancellationHours(
-            response.cancellationHours?.toString() || "24",
-          );
-        }
-        if (shouldHydrate("minimumBookingNotice")) {
-          setMinimumBookingNotice(
-            response.minimumBookingNotice?.toString() || "0",
-          );
-        }
-        if (shouldHydrate("requirePinForRefunds")) {
-          setRequirePinForRefunds(response.requirePinForRefunds ?? true);
-        }
-        if (shouldHydrate("requirePinForCancellations")) {
-          setRequirePinForCancellations(
-            response.requirePinForCancellations ?? true,
-          );
-        }
-        if (shouldHydrate("requirePinForReports")) {
-          setRequirePinForReports(response.requirePinForReports ?? true);
-        }
-        if (shouldHydrate("requirePinForStaff")) {
-          setRequirePinForStaff(response.requirePinForStaff ?? true);
-        }
-        if (shouldHydrate("requireDeposit")) {
-          setRequireDeposit(response.requireDeposit ?? false);
-        }
-        if (shouldHydrate("depositPercentage")) {
-          setDepositPercentage(response.depositPercentage?.toString() || "30");
-        }
-        if (shouldHydrate("enableTips")) {
-          setEnableTips(response.enableTips ?? false);
-        }
-        if (shouldHydrate("defaultTipPercentages")) {
-          setDefaultTipPercentages(
-            response.defaultTipPercentages || [10, 15, 20],
-          );
-        }
-        if (shouldHydrate("allowCustomTipAmount")) {
-          setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
-        }
-        if (shouldHydrate("allowUnassignedBookings")) {
-          setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
-        }
-        if (shouldHydrate("autoConfirmBookings")) {
-          setAutoConfirmBookings(response.autoConfirmBookings ?? true);
-        }
-        if (shouldHydrate("calendarStartHour")) {
-          setCalendarStartHour(response.calendarStartHour ?? 6);
-        }
-        if (shouldHydrate("calendarEndHour")) {
-          setCalendarEndHour(response.calendarEndHour ?? 23);
-        }
-        if (shouldHydrate("showOnlyRosteredStaffDefault")) {
-          setShowOnlyRosteredStaffDefault(
-            response.showOnlyRosteredStaffDefault ?? true,
-          );
-        }
-        if (shouldHydrate("includeUnscheduledStaff")) {
-          setIncludeUnscheduledStaff(response.includeUnscheduledStaff ?? false);
-        }
-        if (shouldHydrate("priceToDurationRatio")) {
-          setPriceToDurationRatio(
-            response.priceToDurationRatio?.toString() || "1.0",
-          );
-        }
-        if (shouldHydrate("tyroEnabled")) {
-          setTyroEnabled(response.tyroEnabled ?? false);
-        }
-        if (shouldHydrate("tyroTerminalId")) {
-          setTyroTerminalId(response.tyroTerminalId ?? "");
-        }
-        if (shouldHydrate("tyroMerchantId")) {
-          setTyroMerchantId(
-            (response.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || "",
-          );
-        }
-        // Set timezone from merchant settings
-        if (response.timezone && shouldHydrate("timezone")) {
-          setSelectedTimezone(response.timezone);
-        }
-        // Load notification settings
-        if (shouldHydrate("bookingConfirmationEmail")) {
-          setBookingConfirmationEmail(
-            response.bookingConfirmationEmail !== false,
-          );
-        }
-        if (shouldHydrate("bookingConfirmationSms")) {
-          setBookingConfirmationSms(
-            response.bookingConfirmationSms !== false,
-          );
-        }
-        if (shouldHydrate("appointmentReminder24hEmail")) {
-          setAppointmentReminder24hEmail(
-            response.appointmentReminder24hEmail !== false,
-          );
-        }
-        if (shouldHydrate("appointmentReminder24hSms")) {
-          setAppointmentReminder24hSms(
-            response.appointmentReminder24hSms !== false,
-          );
-        }
-        if (shouldHydrate("appointmentReminder2hEmail")) {
-          setAppointmentReminder2hEmail(
-            response.appointmentReminder2hEmail !== false,
-          );
-        }
-        if (shouldHydrate("appointmentReminder2hSms")) {
-          setAppointmentReminder2hSms(
-            response.appointmentReminder2hSms !== false,
-          );
-        }
-        if (shouldHydrate("newBookingNotification")) {
-          setNewBookingNotification(response.newBookingNotification !== false);
-        }
-        if (shouldHydrate("newBookingNotificationEmail")) {
-          setNewBookingNotificationEmail(
-            response.newBookingNotificationEmail !== false,
-          );
-        }
-        if (shouldHydrate("newBookingNotificationSms")) {
-          setNewBookingNotificationSms(
-            response.newBookingNotificationSms !== false,
-          );
-        }
-        if (shouldHydrate("cancellationNotification")) {
-          setCancellationNotification(
-            response.cancellationNotification !== false,
-          );
-        }
-        if (shouldHydrate("cancellationNotificationEmail")) {
-          setCancellationNotificationEmail(
-            response.cancellationNotificationEmail !== false,
-          );
-        }
-        if (shouldHydrate("cancellationNotificationSms")) {
-          setCancellationNotificationSms(
-            response.cancellationNotificationSms !== false,
-          );
-        }
-        // Load business hours from merchant settings
+        hydrate("bookingConfirmationEmail", setBookingConfirmationEmail, response.bookingConfirmationEmail !== false);
+        hydrate("bookingConfirmationSms", setBookingConfirmationSms, response.bookingConfirmationSms !== false);
+        hydrate("appointmentReminder24hEmail", setAppointmentReminder24hEmail, response.appointmentReminder24hEmail !== false);
+        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, response.appointmentReminder24hSms !== false);
+        hydrate("appointmentReminder2hEmail", setAppointmentReminder2hEmail, response.appointmentReminder2hEmail !== false);
+        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, response.appointmentReminder2hSms !== false);
+        hydrate("newBookingNotification", setNewBookingNotification, response.newBookingNotification !== false);
+        hydrate(
+          "newBookingNotificationEmail",
+          setNewBookingNotificationEmail,
+          response.newBookingNotificationEmail !== false,
+        );
+        hydrate(
+          "newBookingNotificationSms",
+          setNewBookingNotificationSms,
+          response.newBookingNotificationSms !== false,
+        );
+        hydrate(
+          "cancellationNotification",
+          setCancellationNotification,
+          response.cancellationNotification !== false,
+        );
+        hydrate(
+          "cancellationNotificationEmail",
+          setCancellationNotificationEmail,
+          response.cancellationNotificationEmail !== false,
+        );
+        hydrate(
+          "cancellationNotificationSms",
+          setCancellationNotificationSms,
+          response.cancellationNotificationSms !== false,
+        );
+
         if (response.businessHours && shouldHydrate("businessHours")) {
           const formattedHours: any = {};
           Object.entries(response.businessHours).forEach(
@@ -776,9 +728,32 @@ export default function SettingsPage() {
         return;
       }
 
+      const currentPending = pendingUpdatesRef.current;
+      const lastSaved = lastSavedSettingsRef.current ?? {};
+
+      const changes: Partial<MerchantSettings> = {};
+      for (const [key, value] of Object.entries(updates) as Array<[
+        keyof MerchantSettings,
+        MerchantSettings[keyof MerchantSettings],
+      ]>) {
+        if (hasOwnPending(currentPending, key as string)) {
+          changes[key] = value as any;
+          continue;
+        }
+
+        const previousValue = (lastSaved as any)[key];
+        if (!deepEqual(value, previousValue)) {
+          changes[key] = value as any;
+        }
+      }
+
+      if (Object.keys(changes).length === 0) {
+        return;
+      }
+
       pendingUpdatesRef.current = {
-        ...pendingUpdatesRef.current,
-        ...updates,
+        ...currentPending,
+        ...changes,
       };
 
       if (autoSaveTimerRef.current) {
