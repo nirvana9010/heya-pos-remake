@@ -789,6 +789,19 @@ export default function SettingsPage() {
     [queueAutoSave, setAllowUnassignedBookings],
   );
 
+  const handleAutoConfirmBookingsChange = useCallback(
+    (value: boolean) => {
+      setAutoConfirmBookings(value);
+      queueAutoSave(
+        {
+          autoConfirmBookings: value,
+        },
+        { force: true },
+      );
+    },
+    [queueAutoSave],
+  );
+
   const toNumberOrUndefined = (value: string | number | undefined) => {
     if (value === "" || value === undefined || value === null) {
       return undefined;
@@ -1992,7 +2005,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={autoConfirmBookings}
-                    onCheckedChange={setAutoConfirmBookings}
+                    onCheckedChange={handleAutoConfirmBookingsChange}
                   />
                 </div>
                 {/* Buffer Time setting hidden - not currently functional
