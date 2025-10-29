@@ -500,83 +500,159 @@ export default function SettingsPage() {
     shouldSkipNextAutoSaveRef.current = true;
     const pendingSnapshot = { ...pendingUpdatesRef.current };
     const hadPendingChanges = Object.keys(pendingSnapshot).length > 0;
+    const shouldHydrate = (key: keyof MerchantSettings | string) =>
+      pendingSnapshot[key as keyof MerchantSettings] === undefined;
 
     try {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
-        setBookingAdvanceHours(
-          response.bookingAdvanceHours?.toString() || "48",
-        );
-        setCancellationHours(response.cancellationHours?.toString() || "24");
-        setMinimumBookingNotice(
-          response.minimumBookingNotice?.toString() || "0",
-        );
-        setRequirePinForRefunds(response.requirePinForRefunds ?? true);
-        setRequirePinForCancellations(
-          response.requirePinForCancellations ?? true,
-        );
-        setRequirePinForReports(response.requirePinForReports ?? true);
-        setRequirePinForStaff(response.requirePinForStaff ?? true);
-        setRequireDeposit(response.requireDeposit ?? false);
-        setDepositPercentage(response.depositPercentage?.toString() || "30");
-        setEnableTips(response.enableTips ?? false);
-        setDefaultTipPercentages(
-          response.defaultTipPercentages || [10, 15, 20],
-        );
-        setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
-        if (pendingUpdatesRef.current.allowUnassignedBookings === undefined) {
+        if (shouldHydrate("bookingAdvanceHours")) {
+          setBookingAdvanceHours(
+            response.bookingAdvanceHours?.toString() || "48",
+          );
+        }
+        if (shouldHydrate("cancellationHours")) {
+          setCancellationHours(
+            response.cancellationHours?.toString() || "24",
+          );
+        }
+        if (shouldHydrate("minimumBookingNotice")) {
+          setMinimumBookingNotice(
+            response.minimumBookingNotice?.toString() || "0",
+          );
+        }
+        if (shouldHydrate("requirePinForRefunds")) {
+          setRequirePinForRefunds(response.requirePinForRefunds ?? true);
+        }
+        if (shouldHydrate("requirePinForCancellations")) {
+          setRequirePinForCancellations(
+            response.requirePinForCancellations ?? true,
+          );
+        }
+        if (shouldHydrate("requirePinForReports")) {
+          setRequirePinForReports(response.requirePinForReports ?? true);
+        }
+        if (shouldHydrate("requirePinForStaff")) {
+          setRequirePinForStaff(response.requirePinForStaff ?? true);
+        }
+        if (shouldHydrate("requireDeposit")) {
+          setRequireDeposit(response.requireDeposit ?? false);
+        }
+        if (shouldHydrate("depositPercentage")) {
+          setDepositPercentage(response.depositPercentage?.toString() || "30");
+        }
+        if (shouldHydrate("enableTips")) {
+          setEnableTips(response.enableTips ?? false);
+        }
+        if (shouldHydrate("defaultTipPercentages")) {
+          setDefaultTipPercentages(
+            response.defaultTipPercentages || [10, 15, 20],
+          );
+        }
+        if (shouldHydrate("allowCustomTipAmount")) {
+          setAllowCustomTipAmount(response.allowCustomTipAmount ?? true);
+        }
+        if (shouldHydrate("allowUnassignedBookings")) {
           setAllowUnassignedBookings(response.allowUnassignedBookings ?? true);
         }
-        setAutoConfirmBookings(response.autoConfirmBookings ?? true);
-        setCalendarStartHour(response.calendarStartHour ?? 6);
-        setCalendarEndHour(response.calendarEndHour ?? 23);
-        setShowOnlyRosteredStaffDefault(
-          response.showOnlyRosteredStaffDefault ?? true,
-        );
-        setIncludeUnscheduledStaff(response.includeUnscheduledStaff ?? false);
-        setPriceToDurationRatio(
-          response.priceToDurationRatio?.toString() || "1.0",
-        );
-        setTyroEnabled(response.tyroEnabled ?? false);
+        if (shouldHydrate("autoConfirmBookings")) {
+          setAutoConfirmBookings(response.autoConfirmBookings ?? true);
+        }
+        if (shouldHydrate("calendarStartHour")) {
+          setCalendarStartHour(response.calendarStartHour ?? 6);
+        }
+        if (shouldHydrate("calendarEndHour")) {
+          setCalendarEndHour(response.calendarEndHour ?? 23);
+        }
+        if (shouldHydrate("showOnlyRosteredStaffDefault")) {
+          setShowOnlyRosteredStaffDefault(
+            response.showOnlyRosteredStaffDefault ?? true,
+          );
+        }
+        if (shouldHydrate("includeUnscheduledStaff")) {
+          setIncludeUnscheduledStaff(response.includeUnscheduledStaff ?? false);
+        }
+        if (shouldHydrate("priceToDurationRatio")) {
+          setPriceToDurationRatio(
+            response.priceToDurationRatio?.toString() || "1.0",
+          );
+        }
+        if (shouldHydrate("tyroEnabled")) {
+          setTyroEnabled(response.tyroEnabled ?? false);
+        }
+        if (shouldHydrate("tyroTerminalId")) {
+          setTyroTerminalId(response.tyroTerminalId ?? "");
+        }
+        if (shouldHydrate("tyroMerchantId")) {
+          setTyroMerchantId(
+            (response.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || "",
+          );
+        }
         // Set timezone from merchant settings
-        if (response.timezone) {
+        if (response.timezone && shouldHydrate("timezone")) {
           setSelectedTimezone(response.timezone);
         }
         // Load notification settings
-        setBookingConfirmationEmail(
-          response.bookingConfirmationEmail !== false,
-        );
-        setBookingConfirmationSms(response.bookingConfirmationSms !== false);
-        setAppointmentReminder24hEmail(
-          response.appointmentReminder24hEmail !== false,
-        );
-        setAppointmentReminder24hSms(
-          response.appointmentReminder24hSms !== false,
-        );
-        setAppointmentReminder2hEmail(
-          response.appointmentReminder2hEmail !== false,
-        );
-        setAppointmentReminder2hSms(
-          response.appointmentReminder2hSms !== false,
-        );
-        setNewBookingNotification(response.newBookingNotification !== false);
-        setNewBookingNotificationEmail(
-          response.newBookingNotificationEmail !== false,
-        );
-        setNewBookingNotificationSms(
-          response.newBookingNotificationSms !== false,
-        );
-        setCancellationNotification(
-          response.cancellationNotification !== false,
-        );
-        setCancellationNotificationEmail(
-          response.cancellationNotificationEmail !== false,
-        );
-        setCancellationNotificationSms(
-          response.cancellationNotificationSms !== false,
-        );
+        if (shouldHydrate("bookingConfirmationEmail")) {
+          setBookingConfirmationEmail(
+            response.bookingConfirmationEmail !== false,
+          );
+        }
+        if (shouldHydrate("bookingConfirmationSms")) {
+          setBookingConfirmationSms(
+            response.bookingConfirmationSms !== false,
+          );
+        }
+        if (shouldHydrate("appointmentReminder24hEmail")) {
+          setAppointmentReminder24hEmail(
+            response.appointmentReminder24hEmail !== false,
+          );
+        }
+        if (shouldHydrate("appointmentReminder24hSms")) {
+          setAppointmentReminder24hSms(
+            response.appointmentReminder24hSms !== false,
+          );
+        }
+        if (shouldHydrate("appointmentReminder2hEmail")) {
+          setAppointmentReminder2hEmail(
+            response.appointmentReminder2hEmail !== false,
+          );
+        }
+        if (shouldHydrate("appointmentReminder2hSms")) {
+          setAppointmentReminder2hSms(
+            response.appointmentReminder2hSms !== false,
+          );
+        }
+        if (shouldHydrate("newBookingNotification")) {
+          setNewBookingNotification(response.newBookingNotification !== false);
+        }
+        if (shouldHydrate("newBookingNotificationEmail")) {
+          setNewBookingNotificationEmail(
+            response.newBookingNotificationEmail !== false,
+          );
+        }
+        if (shouldHydrate("newBookingNotificationSms")) {
+          setNewBookingNotificationSms(
+            response.newBookingNotificationSms !== false,
+          );
+        }
+        if (shouldHydrate("cancellationNotification")) {
+          setCancellationNotification(
+            response.cancellationNotification !== false,
+          );
+        }
+        if (shouldHydrate("cancellationNotificationEmail")) {
+          setCancellationNotificationEmail(
+            response.cancellationNotificationEmail !== false,
+          );
+        }
+        if (shouldHydrate("cancellationNotificationSms")) {
+          setCancellationNotificationSms(
+            response.cancellationNotificationSms !== false,
+          );
+        }
         // Load business hours from merchant settings
-        if (response.businessHours) {
+        if (response.businessHours && shouldHydrate("businessHours")) {
           const formattedHours: any = {};
           Object.entries(response.businessHours).forEach(
             ([day, hours]: [string, any]) => {
