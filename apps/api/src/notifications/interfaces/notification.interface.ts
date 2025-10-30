@@ -4,7 +4,7 @@ export interface NotificationRecipient {
   phone?: string;
   firstName?: string;
   lastName?: string;
-  preferredChannel?: 'email' | 'sms' | 'both';
+  preferredChannel?: "email" | "sms" | "both";
   emailNotifications?: boolean;
   smsNotifications?: boolean;
 }
@@ -19,6 +19,12 @@ export interface NotificationContext {
     staffName: string;
     duration: number;
     price: number;
+    services?: Array<{
+      name: string;
+      duration: number;
+      price: number;
+      staffName?: string;
+    }>;
     locationName: string;
     locationAddress?: string;
     locationPhone?: string;
@@ -39,7 +45,7 @@ export interface NotificationContext {
     emailSubject?: string;
     emailBody?: string;
     smsBody?: string;
-    programType: 'VISITS' | 'POINTS';
+    programType: "VISITS" | "POINTS";
     thresholdValue: number;
     currentValue: number;
     rewardType?: string | null;
@@ -49,21 +55,21 @@ export interface NotificationContext {
 }
 
 export enum NotificationType {
-  BOOKING_CONFIRMATION = 'booking_confirmation',
-  BOOKING_REMINDER_24H = 'booking_reminder_24h',
-  BOOKING_REMINDER_2H = 'booking_reminder_2h',
-  BOOKING_CANCELLED = 'booking_cancelled',
-  BOOKING_RESCHEDULED = 'booking_rescheduled',
-  BOOKING_NEW_STAFF = 'booking_new_staff',
-  BOOKING_CANCELLED_STAFF = 'booking_cancelled_staff',
-  LOYALTY_TOUCHPOINT_1 = 'loyalty_touchpoint_1',
-  LOYALTY_TOUCHPOINT_2 = 'loyalty_touchpoint_2',
-  LOYALTY_TOUCHPOINT_3 = 'loyalty_touchpoint_3',
+  BOOKING_CONFIRMATION = "booking_confirmation",
+  BOOKING_REMINDER_24H = "booking_reminder_24h",
+  BOOKING_REMINDER_2H = "booking_reminder_2h",
+  BOOKING_CANCELLED = "booking_cancelled",
+  BOOKING_RESCHEDULED = "booking_rescheduled",
+  BOOKING_NEW_STAFF = "booking_new_staff",
+  BOOKING_CANCELLED_STAFF = "booking_cancelled_staff",
+  LOYALTY_TOUCHPOINT_1 = "loyalty_touchpoint_1",
+  LOYALTY_TOUCHPOINT_2 = "loyalty_touchpoint_2",
+  LOYALTY_TOUCHPOINT_3 = "loyalty_touchpoint_3",
 }
 
 export interface NotificationResult {
   success: boolean;
   messageId?: string;
   error?: string;
-  channel: 'email' | 'sms';
+  channel: "email" | "sms";
 }
