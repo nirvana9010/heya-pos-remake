@@ -274,6 +274,73 @@ ${this.renderEmailFooter(merchant)}
 
     const subject = `Booking Confirmation - ${merchant.name}`;
 
+    const primaryDetailsHtml = `
+          <div style="background-color: #fff7cc; border: 1px solid #f0da9a; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <h3 style="margin: 0 0 12px 0; color: #7a5a00;">Appointment Overview</h3>
+            <div>
+              <p style="margin: 0 0 6px 0; font-weight: bold; color: #333;">Services Selected</p>
+              ${this.renderServiceListHtml(booking, {
+                includeDuration: false,
+                includeStaff: true,
+              }) || `<p style="margin: 0; color: #555;">No services recorded.</p>`}
+            </div>
+            <div style="margin-top: 16px;">
+              <p style="margin: 0; font-weight: bold; color: #333;">Date</p>
+              <p style="margin: 4px 0 0 0; color: #2f2f2f;">${formattedDate}</p>
+            </div>
+            <div style="margin-top: 12px;">
+              <p style="margin: 0; font-weight: bold; color: #333;">Time</p>
+              <p style="margin: 4px 0 0 0; color: #2f2f2f;">${booking.time}</p>
+            </div>
+          </div>
+    `;
+
+    const secondaryDetailsHtml = `
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Customer</strong></td>
+                  <td style="padding: 6px 0; color: #333;">
+                    ${booking.customerName || `${customer.firstName || ""} ${customer.lastName || ""}`.trim() || "Not provided"}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Contact</strong></td>
+                  <td style="padding: 6px 0; color: #333;">
+                    ${booking.customerPhone || customer.phone || customer.email || "Not provided"}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Total Duration</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${booking.duration ? `${booking.duration} minutes` : "Not specified"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Estimated Value</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${this.formatPrice(booking.price)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Staff</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${booking.staffName || "Not assigned"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Booking Number</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${booking.bookingNumber || "Not provided"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+    `;
+
+    const locationCalloutHtml = `
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Location:</strong><br>
+            ${booking.locationName}<br>
+            ${booking.locationAddress || ""}<br>
+            ${booking.locationPhone ? `Phone: ${booking.locationPhone}` : ""}</p>
+          </div>
+    `;
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
@@ -285,44 +352,9 @@ ${this.renderEmailFooter(merchant)}
           <p>Hi ${customer.firstName || "there"},</p>
           <p>Your booking has been confirmed. Here are the details:</p>
           
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <table style="width: 100%;">
-              <tr>
-                <td style="padding: 5px 0; vertical-align: top;"><strong>Services:</strong></td>
-                <td>${this.renderServiceListHtml(booking, {
-                  includeDuration: true,
-                  includeStaff: true,
-                })}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;"><strong>Date:</strong></td>
-                <td>${formattedDate}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;"><strong>Time:</strong></td>
-                <td>${booking.time}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;"><strong>Total Duration:</strong></td>
-                <td>${booking.duration} minutes</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;"><strong>Staff:</strong></td>
-                <td>${booking.staffName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;"><strong>Price:</strong></td>
-                <td>${this.formatPrice(booking.price)}</td>
-              </tr>
-            </table>
-          </div>
-          
-          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0;"><strong>Location:</strong><br>
-            ${booking.locationName}<br>
-            ${booking.locationAddress || ""}<br>
-            ${booking.locationPhone ? `Phone: ${booking.locationPhone}` : ""}</p>
-          </div>
+${primaryDetailsHtml}
+${secondaryDetailsHtml}
+${locationCalloutHtml}
           
           <p>If you need to reschedule or cancel, please contact us at least 24 hours in advance.</p>
           
@@ -342,16 +374,26 @@ Hi ${customer.firstName || "there"},
 
 Your booking has been confirmed. Here are the details:
 
+Appointment Overview
 Services:
 ${this.renderServiceListText(booking, {
-  includeDuration: true,
+  includeDuration: false,
   includeStaff: true,
 })}
 Date: ${formattedDate}
 Time: ${booking.time}
-Total Duration: ${booking.duration} minutes
-Staff: ${booking.staffName}
-Price: ${this.formatPrice(booking.price)}
+
+Additional Details
+Customer: ${
+  booking.customerName ||
+  `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
+  "Not provided"
+}
+Contact: ${booking.customerPhone || customer.phone || customer.email || "Not provided"}
+Total Duration: ${booking.duration ? `${booking.duration} minutes` : "Not specified"}
+Estimated Value: ${this.formatPrice(booking.price)}
+Staff: ${booking.staffName || "Not assigned"}
+Booking Number: ${booking.bookingNumber || "Not provided"}
 
 Location:
 ${booking.locationName}
@@ -711,8 +753,64 @@ ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ""}
     const formattedDate = format(booking.date, "EEEE, MMMM d, yyyy");
     const customerName = booking.customerName || "Not provided";
     const customerContact = booking.customerPhone || "Not provided";
+    const teamName = booking.staffName || "Not assigned";
 
     const subject = `New Booking Alert - ${booking.serviceName}`;
+
+    const primaryDetailsHtml = `
+          <div style="background-color: #fff7cc; border: 1px solid #f0da9a; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <h3 style="margin: 0 0 12px 0; color: #7a5a00;">Appointment Overview</h3>
+            <div>
+              <p style="margin: 0 0 6px 0; font-weight: bold; color: #333;">Services Selected</p>
+              ${this.renderServiceListHtml(booking, {
+                includeDuration: true,
+                includeStaff: true,
+                includePrice: true,
+              }) || `<p style="margin: 0; color: #555;">No services recorded.</p>`}
+            </div>
+            <div style="margin-top: 16px;">
+              <p style="margin: 0; font-weight: bold; color: #333;">Date</p>
+              <p style="margin: 4px 0 0 0; color: #2f2f2f;">${formattedDate}</p>
+            </div>
+            <div style="margin-top: 12px;">
+              <p style="margin: 0; font-weight: bold; color: #333;">Time</p>
+              <p style="margin: 4px 0 0 0; color: #2f2f2f;">${booking.time}</p>
+            </div>
+          </div>
+    `;
+
+    const secondaryDetailsHtml = `
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Customer</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${customerName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Contact Number</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${customerContact}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Team</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${teamName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Total Duration</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${booking.duration ? `${booking.duration} minutes` : "Not specified"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Estimated Value</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${this.formatPrice(booking.price)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #555;"><strong>Booking #</strong></td>
+                  <td style="padding: 6px 0; color: #333;">${booking.bookingNumber || "Not provided"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+    `;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -722,26 +820,10 @@ ${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ""}
         
         <div style="padding: 30px;">
           <h2 style="color: #333;">You have a new booking!</h2>
+          <p style="margin: 12px 0 0 0; color: #555;">Here are the key details at a glance:</p>
           
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="color: #10b981; margin: 0 0 15px 0;">Booking Details</h3>
-            <div style="margin: 5px 0;">
-              <p style="margin: 0 0 6px 0;"><strong>Services:</strong></p>
-              ${this.renderServiceListHtml(booking, {
-                includeDuration: true,
-                includeStaff: true,
-                includePrice: true,
-              })}
-            </div>
-            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
-            <p style="margin: 5px 0;"><strong>Time:</strong> ${booking.time}</p>
-            <p style="margin: 5px 0;"><strong>Team:</strong> ${booking.staffName}</p>
-            <p style="margin: 5px 0;"><strong>Total Duration:</strong> ${booking.duration} minutes</p>
-            <p style="margin: 5px 0;"><strong>Estimated Value:</strong> ${this.formatPrice(booking.price)}</p>
-            <p style="margin: 5px 0;"><strong>Booking #:</strong> ${booking.bookingNumber}</p>
-            <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
-            <p style="margin: 5px 0;"><strong>Contact Number:</strong> ${customerContact}</p>
-          </div>
+${primaryDetailsHtml}
+${secondaryDetailsHtml}
           
           <div style="margin-top: 30px; padding: 20px; background-color: #e0f2fe; border-radius: 5px;">
             <p style="margin: 0; text-align: center;">
@@ -757,6 +839,7 @@ New Booking Alert
 
 You have a new booking!
 
+Appointment Overview
 Services:
 ${this.renderServiceListText(booking, {
   includeDuration: true,
@@ -765,12 +848,14 @@ ${this.renderServiceListText(booking, {
 })}
 Date: ${formattedDate}
 Time: ${booking.time}
-Team: ${booking.staffName}
-Total Duration: ${booking.duration} minutes
-Estimated Value: ${this.formatPrice(booking.price)}
-Booking #: ${booking.bookingNumber}
+
+Additional Details
 Customer: ${customerName}
 Contact Number: ${customerContact}
+Team: ${teamName}
+Total Duration: ${booking.duration ? `${booking.duration} minutes` : "Not specified"}
+Estimated Value: ${this.formatPrice(booking.price)}
+Booking #: ${booking.bookingNumber || "Not provided"}
 
 View this booking in your calendar to see more details.
     `.trim();
