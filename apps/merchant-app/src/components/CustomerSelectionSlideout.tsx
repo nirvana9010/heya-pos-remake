@@ -28,11 +28,29 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [loyaltyStatus, setLoyaltyStatus] = useState<Record<string, any>>({});
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
   
   // New customer form state
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
+
+  // Handle opening/closing animations
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+    } else {
+      setIsVisible(false);
+      const timer = setTimeout(() => {
+        setShouldRender(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Reset form when closing
   useEffect(() => {
@@ -161,13 +179,15 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
     }
   };
 
+  if (!shouldRender) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div 
         className={cn(
           "fixed inset-0 bg-gray-900 transition-opacity z-50",
-          isOpen ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none"
+          isVisible ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none"
         )}
         onClick={onClose}
       />
@@ -175,7 +195,7 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
       {/* Slideout */}
       <div className={cn(
         "fixed inset-y-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
-        isOpen ? "translate-x-0" : "translate-x-full"
+        isVisible ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="relative w-screen max-w-md">
           <div className="flex h-full flex-col bg-white shadow-2xl">

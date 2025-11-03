@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, useRef } from "react";
+import { useState, useEffect, memo, useRef, useCallback } from "react";
 import { useNotifications } from '@/contexts/notifications-context';
 import { 
   X,
@@ -167,13 +167,28 @@ function BookingDetailsSlideOutComponent({
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
   const [isCustomerSlideoutOpen, setIsCustomerSlideoutOpen] = useState(false);
+
+  const openServiceSlideout = useCallback(() => {
+    setIsCustomerSlideoutOpen(false);
+    setIsServiceSlideoutOpen(true);
+  }, []);
+
+  const openCustomerSlideout = useCallback(() => {
+    setIsServiceSlideoutOpen(false);
+    setIsCustomerSlideoutOpen(true);
+  }, []);
+
+  const closeAllSlideouts = useCallback(() => {
+    setIsServiceSlideoutOpen(false);
+    setIsCustomerSlideoutOpen(false);
+  }, []);
   
-  // Ensure service slideout is closed when booking details slideout opens
+  // Ensure child slideouts are closed when booking details slideout opens
   useEffect(() => {
     if (isOpen) {
-      setIsServiceSlideoutOpen(false);
+      closeAllSlideouts();
     }
-  }, [isOpen]);
+  }, [isOpen, closeAllSlideouts]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -220,8 +235,8 @@ function BookingDetailsSlideOutComponent({
       return;
     }
     
-    // Ensure service slideout is closed when booking changes
-    setIsServiceSlideoutOpen(false);
+    // Ensure service/customer slideouts are closed when booking changes
+    closeAllSlideouts();
     
     // Initialize selected services from booking
     let bookingServices = [];
@@ -305,7 +320,7 @@ function BookingDetailsSlideOutComponent({
       lastInitializedServicesSignature.current = signature;
       setSelectedServices(initializedServices);
     }
-  }, [booking, services, isEditing]);
+  }, [booking, services, isEditing, closeAllSlideouts]);
 
 
   // Fetch associated order for the booking
@@ -814,7 +829,7 @@ function BookingDetailsSlideOutComponent({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsCustomerSlideoutOpen(true)}
+                    onClick={openCustomerSlideout}
                     className="ml-3 shrink-0"
                   >
                     <User className="mr-2 h-4 w-4" />
@@ -928,9 +943,7 @@ function BookingDetailsSlideOutComponent({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      setIsServiceSlideoutOpen(true);
-                    }}
+                    onClick={openServiceSlideout}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Add Service
