@@ -12,9 +12,10 @@ import { Textarea } from '@heya-pos/ui';
 import { useToast } from '@heya-pos/ui';
 import { cn } from '@heya-pos/ui';
 import { Skeleton } from '@heya-pos/ui';
-import { apiClient, CreateCustomerRequest } from '@/lib/api-client';
+import { apiClient, CreateCustomerRequest, UpdateCustomerRequest } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { prefetchManager } from '@/lib/prefetch';
+import { sanitizeNullableField, sanitizeOptionalField } from '@/lib/utils/form-utils';
 
 // Import UI components normally - they're already optimized
 import {
@@ -155,11 +156,6 @@ const getDisplayPhone = (customer: Customer) => {
   }
 
   return formatPhoneNumber(rawPhone);
-};
-
-const sanitizeOptionalField = (value: string) => {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 };
 
 export default function CustomersPageContent() {
@@ -656,23 +652,29 @@ export default function CustomersPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload: CreateCustomerRequest = {
-        firstName: formData.firstName.trim(),
-        lastName: sanitizeOptionalField(formData.lastName),
-        email: sanitizeOptionalField(formData.email),
-        phone: sanitizeOptionalField(formData.phone),
-        notes: sanitizeOptionalField(formData.notes),
-      };
-
       const targetPage = editingCustomer ? currentPage : 1;
 
       if (editingCustomer) {
+        const payload: UpdateCustomerRequest = {
+          firstName: formData.firstName.trim(),
+          lastName: sanitizeNullableField(formData.lastName),
+          email: sanitizeOptionalField(formData.email),
+          phone: sanitizeOptionalField(formData.phone),
+          notes: sanitizeOptionalField(formData.notes),
+        };
         await apiClient.updateCustomer(editingCustomer.id, payload);
         toast({
           title: "Success",
           description: "Customer updated successfully",
         });
       } else {
+        const payload: CreateCustomerRequest = {
+          firstName: formData.firstName.trim(),
+          lastName: sanitizeOptionalField(formData.lastName),
+          email: sanitizeOptionalField(formData.email),
+          phone: sanitizeOptionalField(formData.phone),
+          notes: sanitizeOptionalField(formData.notes),
+        };
         await apiClient.createCustomer(payload);
         toast({
           title: "Success",

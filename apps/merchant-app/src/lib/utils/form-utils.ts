@@ -53,3 +53,21 @@ export function safeLoyaltyFormData(customer: any): SafeLoyaltyFormData {
     loyaltyPoints: safeNumber(customer?.loyaltyPoints),
   };
 }
+
+/**
+ * Trims optional string inputs and returns undefined when empty.
+ * Use this when omitting a field should leave the existing value unchanged.
+ */
+export function sanitizeOptionalField(value?: string | null): string | undefined {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * Trims optional string inputs and returns null when empty.
+ * Use this when the caller needs to explicitly clear a persisted field.
+ */
+export function sanitizeNullableField(value?: string | null): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : null;
+}

@@ -26,7 +26,12 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { safeCustomerFormData, safeLoyaltyFormData } from '@/lib/utils/form-utils';
+import {
+  safeCustomerFormData,
+  safeLoyaltyFormData,
+  sanitizeNullableField,
+  sanitizeOptionalField,
+} from '@/lib/utils/form-utils';
 
 interface CustomerProps {
   id: string;
@@ -93,19 +98,20 @@ export function CustomerDetailsDialog({
   const handleSave = async () => {
     try {
       setLoading(true);
+      const trimmedFirstName = formData.firstName.trim();
+      const normalizedLastName = sanitizeNullableField(formData.lastName);
+      const sanitizedEmail = sanitizeOptionalField(formData.email);
+      const sanitizedPhone = sanitizeOptionalField(formData.phone);
+      const sanitizedNotes = sanitizeOptionalField(formData.notes);
       
-      // Prepare data for API - don't send empty lastName
+      // Prepare data for API, explicitly sending null when lastName is cleared
       const updateData: any = {
-        firstName: formData.firstName,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        notes: formData.notes || undefined,
+        firstName: trimmedFirstName,
+        lastName: normalizedLastName,
+        email: sanitizedEmail,
+        phone: sanitizedPhone,
+        notes: sanitizedNotes,
       };
-      
-      // Only include lastName if it has a value
-      if (formData.lastName && formData.lastName.trim()) {
-        updateData.lastName = formData.lastName;
-      }
       
       // Update customer basic info
       console.log('Updating customer with data:', updateData);
@@ -168,12 +174,12 @@ export function CustomerDetailsDialog({
       
       // Update the local customer object with new values for immediate UI update
       Object.assign(customer, {
-        firstName: formData.firstName,
-        lastName: formData.lastName || undefined,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        mobile: formData.phone || undefined,
-        notes: formData.notes || undefined,
+        firstName: trimmedFirstName,
+        lastName: normalizedLastName,
+        email: sanitizedEmail,
+        phone: sanitizedPhone,
+        mobile: sanitizedPhone,
+        notes: sanitizedNotes,
         loyaltyVisits: loyaltyData.loyaltyVisits,
         loyaltyPoints: loyaltyData.loyaltyPoints,
       });

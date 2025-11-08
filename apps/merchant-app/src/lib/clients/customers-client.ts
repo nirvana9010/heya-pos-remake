@@ -20,20 +20,20 @@ export interface Customer {
 
 export interface CreateCustomerRequest {
   firstName: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  mobile?: string;
-  notes?: string;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  notes?: string | null;
 }
 
 export interface UpdateCustomerRequest {
   firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  mobile?: string;
-  notes?: string;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  notes?: string | null;
 }
 
 export interface CustomerImportOptions {
