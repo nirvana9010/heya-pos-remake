@@ -3,8 +3,12 @@ import { Transform } from 'class-transformer';
 import { IsValidPhone } from '../../common/validation/decorators';
 
 const normalizeOptionalString = ({ value }: { value: unknown }) => {
-  if (value === null || value === undefined) {
+  if (value === undefined) {
     return undefined;
+  }
+
+  if (value === null) {
+    return null;
   }
 
   if (typeof value !== 'string') {
