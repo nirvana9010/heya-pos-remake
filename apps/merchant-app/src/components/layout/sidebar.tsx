@@ -52,11 +52,10 @@ interface SidebarProps {
   features: MerchantFeatures | null
 }
 
-export function Sidebar({ collapsed = false, onToggle = () => {}, features = null }: Partial<SidebarProps>) {
+export function Sidebar({ collapsed = false, onToggle = () => { }, features = null }: Partial<SidebarProps>) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [isNavigating, setIsNavigating] = useState(false)
 
   // Filter navigation based on features
   const filteredNavigation = useMemo(() => {
@@ -64,41 +63,34 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
       if (!features) return true; // Show all if no features loaded
       return features.enabledFeatures.includes(featureId);
     };
-    
+
     const mainNav = allNavigation
       .filter(item => !item.position || item.position !== 'bottom')
       .filter(item => !item.feature || hasFeature(item.feature))
-    
+
     const bottomNav = allNavigation
       .filter(item => item.position === 'bottom')
       .filter(item => !item.feature || hasFeature(item.feature))
-    
+
     return { mainNav, bottomNav }
   }, [features])
 
   const handleNavigation = (href: string) => {
-    // Show loading state immediately
-    setIsNavigating(true)
-    
+    // If we're already on the target page, do nothing to avoid unnecessary processing
+    if (pathname === href) return
+
     // Use React's concurrent features to keep UI responsive
     startTransition(() => {
       // Prefetch the route first
       router.prefetch(href)
-      
-      // Then navigate after a micro delay to allow UI to update
-      requestAnimationFrame(() => {
-        router.push(href)
-      })
+
+      // Navigate immediately within the transition
+      router.push(href)
     })
   }
 
-  // Clear navigation state when route changes
-  useEffect(() => {
-    setIsNavigating(false)
-  }, [pathname])
-
   return (
-    <div 
+    <div
       className={`sidebar ${collapsed ? 'collapsed' : ''}`}
       style={{
         position: 'fixed',
@@ -115,9 +107,9 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
         transition: 'width 0.3s ease-in-out'
       }}>
       {/* Logo Section */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
         marginBottom: '2rem',
         height: '60px'
@@ -133,7 +125,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
         {collapsed && (
           <Sparkles size={28} style={{ color: 'var(--color-primary)' }} />
         )}
-        
+
         <button
           onClick={() => onToggle(!collapsed)}
           className="btn btn-ghost btn-sm"
@@ -146,10 +138,10 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
       </div>
 
       {/* Navigation */}
-      <nav style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <nav style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
         gap: '0.25rem',
         opacity: 1
       }}>
@@ -161,8 +153,8 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
-                className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
-                disabled={isPending || isNavigating}
+                className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
+                disabled={isPending}
               >
                 <item.icon size={20} />
                 {!collapsed && (
@@ -174,16 +166,16 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
             )
           })}
         </div>
-        
+
         {/* Separator - only show if bottom nav has items */}
         {filteredNavigation.bottomNav.length > 0 && (
-          <div style={{ 
-            borderTop: '1px solid var(--color-border)', 
+          <div style={{
+            borderTop: '1px solid var(--color-border)',
             marginTop: '1rem',
             marginBottom: '1rem'
           }} />
         )}
-        
+
         {/* Bottom Navigation */}
         <div>
           {filteredNavigation.bottomNav.map((item, index) => {
@@ -192,8 +184,8 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
-                className={`nav-item ${isActive ? 'active' : ''} ${(isPending || isNavigating) ? 'opacity-50' : ''}`}
-                disabled={isPending || isNavigating}
+                className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
+                disabled={isPending}
               >
                 <item.icon size={20} />
                 {!collapsed && (
@@ -208,8 +200,8 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, features = nul
       </nav>
 
       {/* Logout Section */}
-      <div style={{ 
-        borderTop: '1px solid var(--color-border)', 
+      <div style={{
+        borderTop: '1px solid var(--color-border)',
         paddingTop: '1rem',
         marginTop: '1rem'
       }}>
