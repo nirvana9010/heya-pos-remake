@@ -5,7 +5,7 @@ const __BUILD_TIME__ = new Date().toLocaleString();
 const LOCAL_BOOKING_RETENTION_MS = 60000;
 // Checkbox removed - rostered staff filter now controlled by merchant settings only
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { CalendarProvider, useCalendar } from "./CalendarProvider";
 import { DailyView } from "./views/DailyView";
 import { WeeklyView } from "./views/WeeklyView";
@@ -89,10 +89,12 @@ import {
 } from "@/lib/constants/booking-constants";
 import { bookingEvents } from "@/lib/services/booking-events";
 import { mapBookingSource } from "@/lib/booking-source";
+import { formatMerchantDateTimeISO } from "@/lib/date-utils";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useBooking } from "@/contexts/booking-context";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { isBlocksEnabled as isBlocksEnabledUtil } from "./utils/blocks-enabled";
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -597,6 +599,12 @@ function CalendarContent() {
     time: string;
     staffId: string | null;
   } | null>(null);
+  const [isBlockMode, setIsBlockMode] = React.useState(false);
+  const [blockSelection, setBlockSelection] = React.useState<{
+    date: Date;
+    time: string;
+    staffId: string;
+  } | null>(null);
 
   // Development activity log
   const [activityLog, setActivityLog] = React.useState<
@@ -609,6 +617,10 @@ function CalendarContent() {
   >([]);
   const [isActivityLogMinimized, setIsActivityLogMinimized] =
     React.useState(false);
+  const enableBlocks = useMemo(
+    () => isBlocksEnabledUtil(merchant),
+    [merchant],
+  );
 
   const handlePersistStaffOrder = React.useCallback(
     async (orderedIds: string[]) => {
@@ -810,9 +822,138 @@ function CalendarContent() {
     [actions],
   );
 
+  const isSlotBlocked = useCallback(
+    (date: Date, time: string, staffId: string | null) => {
+      if (!staffId) return false;
+      const slotStart = new Date(
+        formatMerchantDateTimeISO(format(date, "yyyy-MM-dd"), time),
+      );
+      const slotEnd = new Date(slotStart.getTime() + state.timeInterval * 60000);
+      return state.blocks.some((block) => {
+        if (block.staffId !== staffId) return false;
+        const blockStart = new Date(block.startTime);
+        const blockEnd = new Date(block.endTime);
+        return blockStart < slotEnd && blockEnd > slotStart;
+      });
+    },
+    [state.blocks, state.timeInterval],
+  );
+
   // Handle time slot click
   const handleTimeSlotClick = useCallback(
     (date: Date, time: string, staffId: string | null) => {
+      if (isBlockMode) {
+        if (!staffId) {
+          toast({
+            title: "Select a staff column to block time",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!blockSelection) {
+          setBlockSelection({ date, time, staffId });
+          return;
+        }
+
+        if (blockSelection.staffId !== staffId) {
+          setBlockSelection({ date, time, staffId });
+          return;
+        }
+
+        // Prevent selecting the same slot twice (would create invalid block)
+        const startStr = format(blockSelection.date, "yyyy-MM-dd");
+        const endStr = format(date, "yyyy-MM-dd");
+        if (startStr === endStr && blockSelection.time === time) {
+          toast({
+            title: "Invalid selection",
+            description: "Please select a different time slot to complete the block.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const startDateTime =
+          startStr < endStr || (startStr === endStr && blockSelection.time <= time)
+            ? `${startStr}T${blockSelection.time}:00`
+            : `${format(date, "yyyy-MM-dd")}T${time}:00`;
+        const endDateTime =
+          startStr < endStr || (startStr === endStr && blockSelection.time <= time)
+            ? `${format(date, "yyyy-MM-dd")}T${time}:00`
+            : `${blockSelection.date.toISOString().split("T")[0]}T${blockSelection.time}:00`;
+
+        apiClient
+          .createStaffBlock(staffId, {
+            startTime: startDateTime,
+            endTime: endDateTime,
+          })
+          .then((res) => {
+            // Optimistically add block so the UI reflects the change immediately
+            const fallbackId =
+              typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : `temp-block-${Date.now()}`;
+            const blockPayload = (res as any)?.block || (res as any)?.data?.block;
+            const newBlock = {
+              id:
+                blockPayload?.id ||
+                (res as any)?.id ||
+                (res as any)?.data?.id ||
+                fallbackId,
+              staffId,
+              startTime:
+                blockPayload?.startTime ||
+                (res as any)?.startTime ||
+                (res as any)?.data?.startTime ||
+                startDateTime,
+              endTime:
+                blockPayload?.endTime ||
+                (res as any)?.endTime ||
+                (res as any)?.data?.endTime ||
+                endDateTime,
+              reason:
+                blockPayload?.reason ||
+                (res as any)?.reason ||
+                (res as any)?.data?.reason,
+              locationId:
+                blockPayload?.locationId ||
+                (res as any)?.locationId ||
+                (res as any)?.data?.locationId,
+            };
+            actions.addBlock(newBlock);
+
+            if (res?.warning) {
+              toast({
+                title: "Block created with warnings",
+                description: "Some existing bookings overlap this block.",
+              });
+            } else {
+              toast({ title: "Block created", description: "Time blocked." });
+            }
+            setBlockSelection(null);
+            // Refresh after a short delay to sync with server while keeping optimistic update visible
+            setTimeout(() => refresh(), 500);
+          })
+          .catch((error) => {
+            toast({
+              title: "Failed to create block",
+              description:
+                error?.response?.data?.message || "Please try again.",
+              variant: "destructive",
+            });
+            // Clear selection on error so user can try again
+            setBlockSelection(null);
+            // Refresh to recover from any state corruption
+            refresh();
+          });
+        return;
+      }
+
+      if (isSlotBlocked(date, time, staffId)) {
+        toast({
+          title: "Blocked",
+          description: "This time is blocked for the staff member.",
+        });
+        return;
+      }
       // Set booking slide out data before opening
       const slideOutData = {
         date,
@@ -822,7 +963,7 @@ function CalendarContent() {
       setBookingSlideOutData(slideOutData);
       actions.openBookingSlideOut();
     },
-    [actions],
+    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh],
   );
 
   // Memoize booking slide out callbacks to prevent infinite loops
@@ -1809,6 +1950,13 @@ function CalendarContent() {
                   onDragEnd={handleDragEndEvent}
                   activeBooking={activeBooking}
                   dragOverSlot={dragOverSlot}
+                  isBlockMode={isBlockMode}
+                  blockSelection={blockSelection}
+                  enableBlocks={enableBlocks}
+                  onBlockModeToggle={() => {
+                    setIsBlockMode((prev) => !prev);
+                    setBlockSelection(null);
+                  }}
                 />
               )}
               {currentView === "week" && (

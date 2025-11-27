@@ -11,7 +11,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles, Trash2, MinusCircle } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -33,6 +33,14 @@ interface DailyViewProps {
     startTime: Date;
     endTime: Date;
   } | null;
+  isBlockMode?: boolean;
+  blockSelection?: {
+    date: Date;
+    time: string;
+    staffId: string;
+  } | null;
+  enableBlocks?: boolean;
+  onBlockModeToggle?: () => void;
 }
 
 // Simple stacking for overlapping bookings - removed complex column layout
@@ -133,14 +141,18 @@ function DroppableTimeSlot({
   );
 }
 
-export function DailyView({ 
-  onBookingClick, 
-  onTimeSlotClick, 
+export function DailyView({
+  onBookingClick,
+  onTimeSlotClick,
   onDragStart,
   onDragOver,
   onDragEnd,
   activeBooking,
-  dragOverSlot 
+  dragOverSlot,
+  isBlockMode,
+  blockSelection,
+  enableBlocks,
+  onBlockModeToggle,
 }: DailyViewProps) {
   const { state, filteredBookings, actions } = useCalendar();
   const { merchant } = useAuth();
@@ -482,6 +494,32 @@ export function DailyView({
 
     return grouped;
   }, [todaysBookings, state.staff, state.showUnassignedColumn]);
+
+  // Group blocks by staff for the current date
+  const blocksByStaff = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+    const currentDateStr = format(toMerchantTime(state.currentDate), 'yyyy-MM-dd');
+
+    state.staff.forEach((staff) => {
+      grouped.set(staff.id, []);
+    });
+
+    state.blocks.forEach((block) => {
+      if (!block.staffId) return;
+      const start = toMerchantTime(block.startTime);
+      const startStr = format(start, 'yyyy-MM-dd');
+      const end = toMerchantTime(block.endTime);
+      const endStr = format(end, 'yyyy-MM-dd');
+      // Include blocks that overlap the current date
+      if (startStr <= currentDateStr && endStr >= currentDateStr) {
+        if (grouped.has(block.staffId)) {
+          grouped.get(block.staffId)!.push(block);
+        }
+      }
+    });
+
+    return grouped;
+  }, [state.blocks, state.staff, state.currentDate]);
   
   
   // Use calendar hours from state
@@ -802,7 +840,26 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-end border-b border-gray-200 bg-white px-3 py-2">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
+        {/* Left: Block Mode toggle */}
+        <div className="flex items-center gap-3">
+          {enableBlocks && onBlockModeToggle && (
+            <button
+              type="button"
+              onClick={onBlockModeToggle}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                isBlockMode
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              )}
+            >
+              <MinusCircle className="h-3.5 w-3.5" />
+              {isBlockMode ? 'Block Mode On' : 'Block Time'}
+            </button>
+          )}
+        </div>
+        {/* Right: Badge display toggle */}
         <div className="flex items-center gap-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Badge display</div>
           <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
@@ -1330,7 +1387,39 @@ export function DailyView({
               
               {/* Staff columns */}
               {visibleStaff.map((staff, staffIndex) => (
-                <div key={staff.id}>
+                <div key={staff.id} className="relative">
+                  {/* Block overlays */}
+                  {(() => {
+                    const staffBlocks = blocksByStaff.get(staff.id) || [];
+                    if (staffBlocks.length === 0) return null;
+                    const pixelsPerMinute = 40 / state.timeInterval;
+                    const dayStartMinutes = state.calendarStartHour * 60;
+                    const dayEndMinutes = state.calendarEndHour * 60;
+
+                    return staffBlocks.map((block) => {
+                      const blockStart = toMerchantTime(new Date(block.startTime));
+                      const blockEnd = toMerchantTime(new Date(block.endTime));
+                      const startMinutes = blockStart.getHours() * 60 + blockStart.getMinutes();
+                      const endMinutes = blockEnd.getHours() * 60 + blockEnd.getMinutes();
+                      const clampedStart = Math.max(startMinutes, dayStartMinutes);
+                      const clampedEnd = Math.min(endMinutes, dayEndMinutes);
+                      if (clampedEnd <= clampedStart) return null;
+                      const top = (clampedStart - dayStartMinutes) * pixelsPerMinute;
+                      const height = (clampedEnd - clampedStart) * pixelsPerMinute;
+                      return (
+                        <div
+                          key={`${block.id}-${staff.id}`}
+                          className="absolute inset-x-0 bg-slate-400/25 border border-slate-400/50 rounded pointer-events-none"
+                          style={{ top, height, zIndex: 5 }}
+                          title={block.reason || 'Blocked'}
+                        >
+                          <div className="text-[10px] px-2 py-1 text-slate-700 font-semibold">
+                            {block.reason || 'Blocked'}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                   {timeSlots.map((slot, slotIndex) => {
                     const allStaffBookings = bookingsByStaff.get(staff.id) || [];
                     const slotBookings = allStaffBookings.filter((booking) => booking.time === slot.time);
@@ -1350,7 +1439,8 @@ export function DailyView({
                     const hoverOverlayColor = hexToRgba(staff.color ?? '#1f2937', 0.22);
                     const allowHoverOverlay =
                       !hasBookingCoverage &&
-                      slotBookings.length === 0;
+                      slotBookings.length === 0 &&
+                      !isBlockMode;
                     const hoverLabel = showOffRosterOverlay
                       ? `${staff.name} (NOT ROSTERED)`
                       : staff.name;
@@ -1422,6 +1512,14 @@ export function DailyView({
                       >
                         {hasBookingCoverage && (
                           <div className="pointer-events-none absolute inset-0 z-10 rounded bg-white" />
+                        )}
+                        {/* Block selection highlight - shows which slot was selected as the start point */}
+                        {isBlockMode && blockSelection && blockSelection.staffId === staff.id && blockSelection.time === slot.time && isSameDay(blockSelection.date, state.currentDate) && (
+                          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center rounded ring-2 ring-inset ring-red-500 bg-red-500/20">
+                            <span className="text-[10px] font-semibold text-red-700 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
+                              START
+                            </span>
+                          </div>
                         )}
                         {allowHoverOverlay && isHovered && (
                           <div
