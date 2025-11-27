@@ -504,7 +504,7 @@ export function DailyView({
       grouped.set(staff.id, []);
     });
 
-    state.blocks.forEach((block) => {
+    (state.blocks || []).forEach((block) => {
       if (!block.staffId) return;
       const start = toMerchantTime(block.startTime);
       const startStr = format(start, 'yyyy-MM-dd');
