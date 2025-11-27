@@ -124,7 +124,9 @@ export class PublicBookingController {
       throw new BadRequestException("No active location found");
     }
 
-    const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
+    const settings = normalizeMerchantSettings<MerchantSettings>(
+      merchant.settings,
+    );
 
     return {
       id: merchant.id,
@@ -233,14 +235,13 @@ export class PublicBookingController {
       });
 
       const location = merchantWithLocation?.locations?.[0] || null;
-      const normalizedSettings =
-        normalizeMerchantSettings<MerchantSettings>(merchantWithLocation?.settings);
+      const normalizedSettings = normalizeMerchantSettings<MerchantSettings>(
+        merchantWithLocation?.settings,
+      );
       const businessHours =
         normalizedSettings?.businessHours || location?.businessHours || null;
       const timezone =
-        location?.timezone ||
-        normalizedSettings?.timezone ||
-        "UTC";
+        location?.timezone || normalizedSettings?.timezone || "UTC";
 
       const dayStart = TimezoneUtils.startOfDayInTimezone(targetDate, timezone);
       const dayEnd = TimezoneUtils.endOfDayInTimezone(targetDate, timezone);
@@ -258,11 +259,13 @@ export class PublicBookingController {
 
       let isClosedByBusinessHours = false;
       if (businessHours) {
-        const dayName = TimezoneUtils.formatInTimezone(
-          targetDate,
-          timezone,
-          "EEEE",
-        ).toLowerCase();
+        // Get weekday name in the merchant's timezone
+        const dayName = targetDate
+          .toLocaleDateString("en-US", {
+            weekday: "long",
+            timeZone: timezone,
+          })
+          .toLowerCase();
         const capitalizedDayName =
           dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
@@ -275,7 +278,7 @@ export class PublicBookingController {
           isClosedByBusinessHours = true;
         } else {
           const normalizeValue = (value?: string | null) =>
-            typeof value === "string" ? value.toLowerCase() : value ?? null;
+            typeof value === "string" ? value.toLowerCase() : (value ?? null);
           const openValue = normalizeValue(
             (dayConfig as any).open ?? (dayConfig as any).openTime,
           );

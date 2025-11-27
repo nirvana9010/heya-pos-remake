@@ -4,6 +4,8 @@ import { IBookingRepository } from "../../domain/repositories/booking.repository
 import { format, addMinutes } from "date-fns";
 import { TimezoneUtils } from "../../../../utils/shared/timezone";
 import { Prisma } from "@prisma/client";
+import { normalizeMerchantSettings } from "../../../../utils/shared/merchant-settings";
+import { MerchantSettings } from "../../../../types/models/merchant";
 
 export interface TimeSlot {
   startTime: Date;
@@ -21,6 +23,7 @@ export interface CheckAvailabilityData {
   timezone: string; // Required - must come from location settings
   duration?: number; // Optional: override service duration for multi-service bookings
   requireRosterOnly?: boolean; // Optional: bypass business-hours fallback when true
+  locationId?: string | null; // Optional: limit blocks by location
 }
 
 /**
@@ -48,6 +51,7 @@ export class BookingAvailabilityService {
       endDate,
       timezone,
       requireRosterOnly,
+      locationId,
     } = data;
 
     // Get service details including padding
@@ -86,12 +90,16 @@ export class BookingAvailabilityService {
       throw new Error("Merchant settings not found");
     }
 
-    const merchantSettings = merchant.settings as any;
+    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+      merchant.settings,
+    );
     const businessHours = merchantSettings.businessHours;
     const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0;
     const rosterOnly =
       requireRosterOnly ??
-      (merchantSettings?.showOnlyRosteredStaffDefault ?? true);
+      merchantSettings?.showOnlyRosteredStaffDefault ??
+      true;
+    const enableCalendarBlocks = merchantSettings?.enableCalendarBlocks ?? false;
 
     if (!businessHours) {
       throw new Error("Business hours not configured");
@@ -214,6 +222,24 @@ export class BookingAvailabilityService {
       });
     });
 
+    // Fetch ad-hoc calendar blocks for the staff member
+    const blocks = enableCalendarBlocks
+      ? await this.prisma.staffAvailabilityBlock.findMany({
+          where: {
+            merchantId,
+            staffId,
+            startTime: { lt: endDate },
+            endTime: { gt: startDate },
+            ...(locationId
+              ? {
+                  OR: [{ locationId }, { locationId: null }],
+                }
+              : {}),
+          },
+          orderBy: { startTime: "asc" },
+        })
+      : [];
+
     // Generate time slots based on location business hours
     const slots: TimeSlot[] = [];
     const slotDuration = 15; // 15-minute intervals
@@ -243,7 +269,7 @@ export class BookingAvailabilityService {
       saturday: 6,
     };
 
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate
         .toLocaleDateString("en-US", {
@@ -445,6 +471,8 @@ export class BookingAvailabilityService {
           effectiveStart,
           effectiveEnd,
           existingBookings,
+          blocks,
+          locationId,
         );
 
         // Check if slot meets minimum booking notice requirement
@@ -523,6 +551,8 @@ export class BookingAvailabilityService {
     slotStart: Date,
     slotEnd: Date,
     existingBookings: any[],
+    blocks: any[] = [],
+    locationId?: string | null,
   ): { hasConflict: boolean; reason?: string } {
     for (const booking of existingBookings) {
       // Check if the time ranges overlap: booking starts before slot ends AND ends after slot starts
@@ -530,6 +560,22 @@ export class BookingAvailabilityService {
         return {
           hasConflict: true,
           reason: `Conflicts with booking ${booking.bookingNumber}`,
+        };
+      }
+    }
+
+    for (const block of blocks) {
+      const locationMatches =
+        !block.locationId ||
+        !locationId ||
+        block.locationId === locationId;
+
+      if (!locationMatches) continue;
+
+      if (block.startTime < slotEnd && block.endTime > slotStart) {
+        return {
+          hasConflict: true,
+          reason: "Blocked time",
         };
       }
     }
