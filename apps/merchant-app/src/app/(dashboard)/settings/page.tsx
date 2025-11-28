@@ -170,7 +170,7 @@ export default function SettingsPage() {
   const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] =
     useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
   const [enableCalendarBlocks, setEnableCalendarBlocks] = useState(
-    merchantSettings.enableCalendarBlocks ?? false,
+    merchantSettings.enableCalendarBlocks ?? true,
   );
   const [includeUnscheduledStaff, setIncludeUnscheduledStaff] = useState(
     merchantSettings.includeUnscheduledStaff ?? false,
@@ -566,7 +566,7 @@ export default function SettingsPage() {
         hydrate("calendarStartHour", setCalendarStartHour, response.calendarStartHour ?? 6);
         hydrate("calendarEndHour", setCalendarEndHour, response.calendarEndHour ?? 23);
         hydrate("showOnlyRosteredStaffDefault", setShowOnlyRosteredStaffDefault, response.showOnlyRosteredStaffDefault ?? true);
-        hydrate("enableCalendarBlocks", setEnableCalendarBlocks, response.enableCalendarBlocks ?? false);
+        hydrate("enableCalendarBlocks", setEnableCalendarBlocks, response.enableCalendarBlocks ?? true);
         hydrate("includeUnscheduledStaff", setIncludeUnscheduledStaff, response.includeUnscheduledStaff ?? false);
         hydrate("priceToDurationRatio", setPriceToDurationRatio, response.priceToDurationRatio?.toString() || "1.0");
         hydrate("tyroEnabled", setTyroEnabled, response.tyroEnabled ?? false);
@@ -816,6 +816,19 @@ export default function SettingsPage() {
       queueAutoSave(
         {
           autoConfirmBookings: value,
+        },
+        { force: true },
+      );
+    },
+    [queueAutoSave],
+  );
+
+  const handleEnableCalendarBlocksChange = useCallback(
+    (value: boolean) => {
+      setEnableCalendarBlocks(value);
+      queueAutoSave(
+        {
+          enableCalendarBlocks: value,
         },
         { force: true },
       );
@@ -2189,7 +2202,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={enableCalendarBlocks}
-                  onCheckedChange={setEnableCalendarBlocks}
+                  onCheckedChange={handleEnableCalendarBlocksChange}
                 />
               </div>
                 </div>
