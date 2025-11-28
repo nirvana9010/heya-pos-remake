@@ -32,5 +32,6 @@ export const isBlocksEnabled = (merchant: any): boolean => {
       // ignore parse errors
     }
   }
-  return false;
+  // Default to true (enabled) when setting is not explicitly set
+  return true;
 };
