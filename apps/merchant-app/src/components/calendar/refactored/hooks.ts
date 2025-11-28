@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCalendar } from './CalendarProvider';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@heya-pos/ui';
+import { useAuth } from '@/lib/auth/auth-provider';
 import { formatName } from '@heya-pos/utils';
 import { toMerchantTime, formatInMerchantTime, formatMerchantDateTimeISO } from '@/lib/date-utils';
 import { 
   startOfDay, 
   endOfDay, 
   addMinutes, 
+  addDays,
   isBefore, 
   isAfter,
   parseISO,
@@ -20,6 +22,23 @@ import {
   mapApiServicesToRecords,
   mapApiCategoriesToRecords,
 } from '@/lib/normalizers/service';
+
+const isBlocksEnabled = (merchant: any): boolean => {
+  if (merchant?.settings && merchant.settings.enableCalendarBlocks !== undefined) {
+    return Boolean(merchant.settings.enableCalendarBlocks);
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = JSON.parse(localStorage.getItem('merchant') || '{}');
+      if (stored?.settings?.enableCalendarBlocks !== undefined) {
+        return Boolean(stored.settings.enableCalendarBlocks);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+};
 
 export const timeStringToMinutes = (time: string): number => {
   const [hours = '0', minutes = '0'] = time.split(':');
@@ -57,6 +76,7 @@ const extractErrorMessage = (error: unknown): string => {
 export function useCalendarData() {
   const { state, actions } = useCalendar();
   const { toast } = useToast();
+  const { merchant } = useAuth();
   
   // Fetch bookings for current date range
   const fetchBookings = useCallback(async () => {
@@ -199,6 +219,48 @@ export function useCalendarData() {
       actions.setLoading(false);
     }
   }, [state.dateRange, state.currentView, actions, toast]);
+  
+  // Fetch blocks for visible staff within current date range
+  const fetchBlocks = useCallback(async () => {
+    if (!isBlocksEnabled(merchant)) {
+      actions.setBlocks([]);
+      return;
+    }
+
+    const staffIds = state.staff.map((s) => s.id);
+    if (staffIds.length === 0) {
+      actions.setBlocks([]);
+      return;
+    }
+
+    const startDate = format(state.dateRange.start, 'yyyy-MM-dd');
+    // API expects endDate to be strictly after startDate, so use exclusive upper bound
+    const endDate = format(addDays(state.dateRange.end, 1), 'yyyy-MM-dd');
+
+    try {
+      const results = await Promise.all(
+        staffIds.map(async (staffId) => {
+          try {
+            const res = await apiClient.listStaffBlocks(staffId, {
+              startDate,
+              endDate,
+            });
+            const blocks = Array.isArray(res?.blocks) ? res.blocks : res?.data?.blocks || res;
+            return Array.isArray(blocks)
+              ? blocks.map((b: any) => ({ ...b, staffId }))
+              : [];
+          } catch (error) {
+            return [];
+          }
+        })
+      );
+
+      const flattened = results.flat();
+      actions.setBlocks(flattened);
+    } catch (error) {
+      // Ignore block fetch errors to avoid disrupting calendar
+    }
+  }, [merchant, state.staff, state.dateRange, actions]);
   
   // Keep a ref to the latest fetchBookings function
   const fetchBookingsRef = useRef(fetchBookings);
@@ -392,6 +454,11 @@ export function useCalendarData() {
     fetchBookings();
   }, [fetchBookings]);
   
+  // Fetch blocks when date range or staff changes
+  useEffect(() => {
+    fetchBlocks();
+  }, [fetchBlocks]);
+  
   // Listen for booking events from other tabs/windows
   useEffect(() => {
     const unsubscribe = bookingEvents.subscribe((event) => {
@@ -512,9 +579,10 @@ export function useCalendarData() {
       fetchBookings(),
       fetchServices(),
       fetchCustomers(),
+      fetchBlocks(),
     ]);
     actions.setRefreshing(false);
-  }, [fetchBookings, fetchServices, fetchCustomers, actions]);
+  }, [fetchBookings, fetchServices, fetchCustomers, fetchBlocks, actions]);
   
   return {
     refresh,

@@ -49,6 +49,7 @@ export interface MerchantSettings {
   calendarEndHour: number; // 0-23 (default: 23 for 11 PM)
   calendarStaffOrder?: string[]; // Ordered list of staff IDs for calendar columns
   showOnlyRosteredStaffDefault: boolean; // Default state for showing only rostered staff in calendar
+  enableCalendarBlocks?: boolean; // Feature flag for calendar block painting tool
   // Walk-in customer settings
   allowWalkInBookings: boolean;
   // Import settings

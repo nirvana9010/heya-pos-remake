@@ -153,6 +153,15 @@ export interface WorkingHours {
   };
 }
 
+export interface CalendarBlock {
+  id: string;
+  staffId: string;
+  startTime: string; // ISO
+  endTime: string;   // ISO
+  locationId?: string | null;
+  reason?: string | null;
+}
+
 // Calendar state
 export interface CalendarState {
   // View management
@@ -163,6 +172,7 @@ export interface CalendarState {
   
   // Data
   bookings: Booking[];
+  blocks: CalendarBlock[];
   staff: Staff[];
   services: Service[];
   customers: Customer[];
@@ -216,6 +226,9 @@ export type CalendarAction =
   | { type: 'ADD_BOOKING'; payload: Booking }
   | { type: 'REMOVE_BOOKING'; payload: string }
   | { type: 'REPLACE_BOOKING'; payload: { oldId: string; newBooking: Booking } }
+  | { type: 'SET_BLOCKS'; payload: CalendarBlock[] }
+  | { type: 'ADD_BLOCK'; payload: CalendarBlock }
+  | { type: 'REMOVE_BLOCK'; payload: string }
   | { type: 'SET_STAFF'; payload: Staff[] }
   | { type: 'SET_SERVICES'; payload: Service[] }
   | { type: 'SET_CUSTOMERS'; payload: Customer[] }
@@ -271,6 +284,9 @@ export interface CalendarActions {
   removeBooking: (id: string) => void;
   deleteBooking: (id: string) => void;
   replaceBooking: (oldId: string, newBooking: Booking) => void;
+  setBlocks: (blocks: CalendarBlock[]) => void;
+  addBlock: (block: CalendarBlock) => void;
+  removeBlock: (blockId: string) => void;
   setStaff: (staff: Staff[]) => void;
   setStaffOrder: (order: string[]) => void;
   setServices: (services: Service[]) => void;

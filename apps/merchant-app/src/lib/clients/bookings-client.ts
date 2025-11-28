@@ -403,6 +403,7 @@ export interface AvailabilityRequest {
   date: Date;
   serviceId: string;
   staffId?: string;
+  locationId?: string;
   services?: Array<{
     id: string;
     duration: number;
@@ -648,8 +649,31 @@ export class BookingsClient extends BaseApiClient {
       // If services array is provided, use the first service
       params.set('serviceId', request.services[0].id);
     }
+
+    if (request.locationId) {
+      params.set('locationId', request.locationId);
+    }
     
     return this.get(`/bookings/availability?${params.toString()}`, undefined, 'v2');
+  }
+
+  // Calendar block helpers
+  async createStaffBlock(
+    staffId: string,
+    data: { startTime: string; endTime: string; locationId?: string; reason?: string; suppressWarnings?: boolean },
+  ) {
+    return this.post(`/staff/${staffId}/blocks`, data, undefined, 'v2');
+  }
+
+  async listStaffBlocks(
+    staffId: string,
+    params: { startDate: string; endDate: string; locationId?: string },
+  ) {
+    return this.get(`/staff/${staffId}/blocks`, { params }, 'v2');
+  }
+
+  async deleteStaffBlock(blockId: string) {
+    return this.delete(`/staff/blocks/${blockId}`, undefined, 'v2');
   }
 
   // Helper method retained for backwards compatibility inside the client

@@ -188,6 +188,24 @@ export class ApiClient {
     return this.bookings.checkAvailability({ date, serviceId, staffId });
   }
 
+  async createStaffBlock(
+    staffId: string,
+    data: { startTime: string; endTime: string; locationId?: string; reason?: string; suppressWarnings?: boolean },
+  ) {
+    return this.bookings.createStaffBlock(staffId, data);
+  }
+
+  async listStaffBlocks(
+    staffId: string,
+    params: { startDate: string; endDate: string; locationId?: string },
+  ) {
+    return this.bookings.listStaffBlocks(staffId, params);
+  }
+
+  async deleteStaffBlock(blockId: string) {
+    return this.bookings.deleteStaffBlock(blockId);
+  }
+
   async getStaff() {
     return this.staff.getStaff();
   }

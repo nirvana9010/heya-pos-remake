@@ -159,6 +159,7 @@ const getInitialState = (merchantSettings?: any): CalendarState => {
 
     // Data
     bookings: [],
+    blocks: [],
     staff: [],
     services: [],
     customers: [],
@@ -307,6 +308,19 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
         error: null,
       };
     }
+    
+    case 'SET_BLOCKS':
+      return { ...state, blocks: action.payload };
+    case 'ADD_BLOCK':
+      return {
+        ...state,
+        blocks: [...state.blocks.filter((b) => b.id !== action.payload.id), action.payload],
+      };
+    case 'REMOVE_BLOCK':
+      return {
+        ...state,
+        blocks: state.blocks.filter((b) => b.id !== action.payload),
+      };
     
     case 'UPDATE_BOOKING':
       // If we're updating a booking, it's clearly not deleted
@@ -697,6 +711,9 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     removeBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
     deleteBooking: (id: string) => dispatch({ type: 'REMOVE_BOOKING', payload: id }),
     replaceBooking: (oldId: string, newBooking: Booking) => dispatch({ type: 'REPLACE_BOOKING', payload: { oldId, newBooking } }),
+    setBlocks: (blocks: CalendarBlock[]) => dispatch({ type: 'SET_BLOCKS', payload: blocks }),
+    addBlock: (block: CalendarBlock) => dispatch({ type: 'ADD_BLOCK', payload: block }),
+    removeBlock: (blockId: string) => dispatch({ type: 'REMOVE_BLOCK', payload: blockId }),
     setStaff: (staff: Staff[]) => dispatch({ type: 'SET_STAFF', payload: staff }),
     setStaffOrder: (order: string[]) => dispatch({ type: 'SET_STAFF_ORDER', payload: order }),
     setServices: (services: Service[]) => dispatch({ type: 'SET_SERVICES', payload: services }),
