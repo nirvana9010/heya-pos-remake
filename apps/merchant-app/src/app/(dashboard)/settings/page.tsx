@@ -169,6 +169,9 @@ export default function SettingsPage() {
   );
   const [showOnlyRosteredStaffDefault, setShowOnlyRosteredStaffDefault] =
     useState(merchantSettings.showOnlyRosteredStaffDefault ?? true);
+  const [enableCalendarBlocks, setEnableCalendarBlocks] = useState(
+    merchantSettings.enableCalendarBlocks ?? false,
+  );
   const [includeUnscheduledStaff, setIncludeUnscheduledStaff] = useState(
     merchantSettings.includeUnscheduledStaff ?? false,
   );
@@ -563,6 +566,7 @@ export default function SettingsPage() {
         hydrate("calendarStartHour", setCalendarStartHour, response.calendarStartHour ?? 6);
         hydrate("calendarEndHour", setCalendarEndHour, response.calendarEndHour ?? 23);
         hydrate("showOnlyRosteredStaffDefault", setShowOnlyRosteredStaffDefault, response.showOnlyRosteredStaffDefault ?? true);
+        hydrate("enableCalendarBlocks", setEnableCalendarBlocks, response.enableCalendarBlocks ?? false);
         hydrate("includeUnscheduledStaff", setIncludeUnscheduledStaff, response.includeUnscheduledStaff ?? false);
         hydrate("priceToDurationRatio", setPriceToDurationRatio, response.priceToDurationRatio?.toString() || "1.0");
         hydrate("tyroEnabled", setTyroEnabled, response.tyroEnabled ?? false);
@@ -848,6 +852,7 @@ export default function SettingsPage() {
       calendarStartHour,
       calendarEndHour,
       showOnlyRosteredStaffDefault,
+      enableCalendarBlocks,
       includeUnscheduledStaff,
       priceToDurationRatio: toNumberOrUndefined(priceToDurationRatio),
       tyroEnabled,
@@ -887,6 +892,7 @@ export default function SettingsPage() {
       depositPercentage,
       enableTips,
       includeUnscheduledStaff,
+      enableCalendarBlocks,
       allowOnlineBookings,
       minimumBookingNotice,
       newBookingNotification,
@@ -2164,13 +2170,28 @@ export default function SettingsPage() {
                             who don't have weekly schedules defined
                           </p>
                         </div>
-                        <Switch
-                          checked={includeUnscheduledStaff}
-                          onCheckedChange={setIncludeUnscheduledStaff}
-                        />
-                      </div>
-                    </>
-                  )}
+                    <Switch
+                      checked={includeUnscheduledStaff}
+                      onCheckedChange={setIncludeUnscheduledStaff}
+                    />
+                  </div>
+                </>
+              )}
+
+              <Separator className="my-4" />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable Calendar Blocks</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow staff break blocks to be painted on the calendar and enforced in availability
+                  </p>
+                </div>
+                <Switch
+                  checked={enableCalendarBlocks}
+                  onCheckedChange={setEnableCalendarBlocks}
+                />
+              </div>
                 </div>
               </div>
 
