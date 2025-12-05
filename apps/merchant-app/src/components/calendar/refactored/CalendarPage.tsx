@@ -896,7 +896,7 @@ function CalendarContent() {
               actions.addBlock(newBlock);
               toast({ title: "Block created", description: `${state.timeInterval}-minute block added.` });
               setBlockSelection(null);
-              setTimeout(() => refresh(), 500);
+              // No refresh needed - optimistic update already shows the block
             })
             .catch((error) => {
               toast({
@@ -976,8 +976,7 @@ function CalendarContent() {
               toast({ title: "Block created", description: "Time blocked." });
             }
             setBlockSelection(null);
-            // Refresh after a short delay to sync with server while keeping optimistic update visible
-            setTimeout(() => refresh(), 500);
+            // No refresh needed - optimistic update already shows the block
           })
           .catch((error) => {
             toast({
