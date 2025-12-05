@@ -858,6 +858,16 @@ export function DailyView({
               {isBlockMode ? 'Block Mode On' : 'Block Time'}
             </button>
           )}
+          {/* Block selection breadcrumb */}
+          {isBlockMode && blockSelection && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-xs">
+              <span className="font-medium text-amber-800">
+                Start: {blockSelection.time}
+              </span>
+              <span className="text-amber-600">→</span>
+              <span className="text-amber-700">Click end time (or same cell for quick block)</span>
+            </div>
+          )}
         </div>
         {/* Right: Badge display toggle */}
         <div className="flex items-center gap-3">

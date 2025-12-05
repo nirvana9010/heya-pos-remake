@@ -860,25 +860,72 @@ function CalendarContent() {
           return;
         }
 
-        // Prevent selecting the same slot twice (would create invalid block)
+        // Same slot clicked twice = create a single-cell block (quick block)
         const startStr = format(blockSelection.date, "yyyy-MM-dd");
         const endStr = format(date, "yyyy-MM-dd");
         if (startStr === endStr && blockSelection.time === time) {
-          toast({
-            title: "Invalid selection",
-            description: "Please select a different time slot to complete the block.",
-            variant: "destructive",
-          });
+          // Create a block for just this one cell (timeInterval minutes)
+          const [hours, minutes] = time.split(":").map(Number);
+          const endMinutes = hours * 60 + minutes + state.timeInterval;
+          const endHours = Math.floor(endMinutes / 60);
+          const endMins = endMinutes % 60;
+          const endTime = `${endHours.toString().padStart(2, "0")}:${endMins.toString().padStart(2, "0")}`;
+
+          const startDateTime = `${startStr}T${time}:00`;
+          const endDateTime = `${startStr}T${endTime}:00`;
+
+          apiClient
+            .createStaffBlock(staffId, {
+              startTime: startDateTime,
+              endTime: endDateTime,
+            })
+            .then((res) => {
+              const fallbackId =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID()
+                  : `temp-block-${Date.now()}`;
+              const blockPayload = (res as any)?.block || (res as any)?.data?.block;
+              const newBlock = {
+                id: blockPayload?.id || (res as any)?.id || (res as any)?.data?.id || fallbackId,
+                staffId,
+                startTime: blockPayload?.startTime || (res as any)?.startTime || (res as any)?.data?.startTime || startDateTime,
+                endTime: blockPayload?.endTime || (res as any)?.endTime || (res as any)?.data?.endTime || endDateTime,
+                reason: blockPayload?.reason || (res as any)?.reason || (res as any)?.data?.reason,
+                locationId: blockPayload?.locationId || (res as any)?.locationId || (res as any)?.data?.locationId,
+              };
+              actions.addBlock(newBlock);
+              toast({ title: "Block created", description: `${state.timeInterval}-minute block added.` });
+              setBlockSelection(null);
+              setTimeout(() => refresh(), 500);
+            })
+            .catch((error) => {
+              toast({
+                title: "Failed to create block",
+                description: error?.response?.data?.message || "Please try again.",
+                variant: "destructive",
+              });
+              setBlockSelection(null);
+              refresh();
+            });
           return;
         }
-        const startDateTime =
-          startStr < endStr || (startStr === endStr && blockSelection.time <= time)
-            ? `${startStr}T${blockSelection.time}:00`
-            : `${format(date, "yyyy-MM-dd")}T${time}:00`;
-        const endDateTime =
-          startStr < endStr || (startStr === endStr && blockSelection.time <= time)
-            ? `${format(date, "yyyy-MM-dd")}T${time}:00`
-            : `${blockSelection.date.toISOString().split("T")[0]}T${blockSelection.time}:00`;
+        // Calculate end time to include the clicked cell (add timeInterval)
+        const addInterval = (timeStr: string): string => {
+          const [h, m] = timeStr.split(":").map(Number);
+          const totalMins = h * 60 + m + state.timeInterval;
+          const newH = Math.floor(totalMins / 60);
+          const newM = totalMins % 60;
+          return `${newH.toString().padStart(2, "0")}:${newM.toString().padStart(2, "0")}`;
+        };
+
+        const isForward = startStr < endStr || (startStr === endStr && blockSelection.time <= time);
+        const startDateTime = isForward
+          ? `${startStr}T${blockSelection.time}:00`
+          : `${format(date, "yyyy-MM-dd")}T${time}:00`;
+        // End time includes the clicked cell, so add timeInterval to include it
+        const endDateTime = isForward
+          ? `${format(date, "yyyy-MM-dd")}T${addInterval(time)}:00`
+          : `${blockSelection.date.toISOString().split("T")[0]}T${addInterval(blockSelection.time)}:00`;
 
         apiClient
           .createStaffBlock(staffId, {
@@ -963,7 +1010,7 @@ function CalendarContent() {
       setBookingSlideOutData(slideOutData);
       actions.openBookingSlideOut();
     },
-    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh],
+    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh, state.timeInterval],
   );
 
   // Memoize booking slide out callbacks to prevent infinite loops
