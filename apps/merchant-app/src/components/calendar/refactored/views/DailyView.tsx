@@ -5,7 +5,7 @@ import { useCalendar } from '../CalendarProvider';
 import { useTimeGrid, useBookingOperations, useBookingConflicts, timeStringToMinutes, minutesToTimeString } from '../hooks';
 import { toMerchantTime } from '@/lib/date-utils';
 import { format, isSameDay, parseISO, isToday } from 'date-fns';
-import { cn, useToast } from '@heya-pos/ui';
+import { cn, useToast, Popover, PopoverContent, PopoverTrigger } from '@heya-pos/ui';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, pointerWithin, useSensors, useSensor, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
@@ -163,6 +163,8 @@ export function DailyView({
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredBookingId, setHoveredBookingId] = React.useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+  const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
+  const [isDeletingBlock, setIsDeletingBlock] = React.useState(false);
   const [hoveredSlot, setHoveredSlot] = React.useState<{
     time: string;
     staffId: string | null;
@@ -186,6 +188,25 @@ export function DailyView({
       return next;
     });
   }, []);
+
+  // Handle block deletion
+  const handleDeleteBlock = React.useCallback(async (blockId: string) => {
+    setIsDeletingBlock(true);
+    try {
+      await apiClient.deleteStaffBlock(blockId);
+      actions.removeBlock(blockId);
+      toast({ title: "Block removed", description: "Time block has been deleted." });
+      setSelectedBlockId(null);
+    } catch (error: any) {
+      toast({
+        title: "Failed to delete block",
+        description: error?.response?.data?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingBlock(false);
+    }
+  }, [actions, toast]);
 
   const onResizePointerMove = React.useCallback((event: PointerEvent) => {
     event.preventDefault();
@@ -1416,17 +1437,46 @@ export function DailyView({
                       if (clampedEnd <= clampedStart) return null;
                       const top = (clampedStart - dayStartMinutes) * pixelsPerMinute;
                       const height = (clampedEnd - clampedStart) * pixelsPerMinute;
+                      const blockTimeLabel = `${format(blockStart, 'h:mm a')} - ${format(blockEnd, 'h:mm a')}`;
                       return (
-                        <div
+                        <Popover
                           key={`${block.id}-${staff.id}`}
-                          className="absolute inset-x-0 bg-slate-400/25 border border-slate-400/50 rounded pointer-events-none"
-                          style={{ top, height, zIndex: 5 }}
-                          title={block.reason || 'Blocked'}
+                          open={selectedBlockId === block.id}
+                          onOpenChange={(open) => setSelectedBlockId(open ? block.id : null)}
                         >
-                          <div className="text-[10px] px-2 py-1 text-slate-700 font-semibold">
-                            {block.reason || 'Blocked'}
-                          </div>
-                        </div>
+                          <PopoverTrigger asChild>
+                            <div
+                              className="absolute inset-x-0 bg-slate-400/25 border border-slate-400/50 rounded cursor-pointer hover:bg-slate-400/35 transition-colors"
+                              style={{ top, height, zIndex: 5 }}
+                              title={block.reason || 'Blocked'}
+                            >
+                              <div className="text-[10px] px-2 py-1 text-slate-700 font-semibold">
+                                {block.reason || 'Blocked'}
+                              </div>
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-3" align="start" side="right">
+                            <div className="space-y-3">
+                              <div>
+                                <div className="font-medium text-sm">{block.reason || 'Time Block'}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">{blockTimeLabel}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBlock(block.id)}
+                                disabled={isDeletingBlock}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-md transition-colors"
+                              >
+                                {isDeletingBlock ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                                {isDeletingBlock ? 'Deleting...' : 'Delete Block'}
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       );
                     });
                   })()}
