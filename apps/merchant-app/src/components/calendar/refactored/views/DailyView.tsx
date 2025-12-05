@@ -1526,9 +1526,17 @@ export function DailyView({
                         {/* Block selection highlight - shows which slot was selected as the start point */}
                         {isBlockMode && blockSelection && blockSelection.staffId === staff.id && blockSelection.time === slot.time && isSameDay(blockSelection.date, state.currentDate) && (
                           <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center rounded ring-2 ring-inset ring-red-500 bg-red-500/20">
-                            <span className="text-[10px] font-semibold text-red-700 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
-                              START
-                            </span>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] font-semibold text-red-700 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
+                                START
+                              </span>
+                              {/* Floating hint below */}
+                              <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-nowrap z-50">
+                                <div className="bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg">
+                                  <span className="opacity-80">↓</span> Click end time
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
                         {allowHoverOverlay && isHovered && (
