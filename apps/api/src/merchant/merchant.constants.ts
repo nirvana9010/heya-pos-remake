@@ -1,18 +1,18 @@
-import { MerchantSettings } from '../types/models/merchant';
+import { MerchantSettings } from "../types/models/merchant";
 
 export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   bookingAdvanceHours: 168, // 7 days
   cancellationHours: 24,
-  loyaltyType: 'visit',
+  loyaltyType: "visit",
   loyaltyRate: 10, // 10 points per visit
   requirePinForRefunds: false, // Default to false - all PIN requirements OFF by default
   requirePinForCancellations: false, // Default to false - all PIN requirements OFF by default
   requirePinForReports: false, // Default to false - all PIN requirements OFF by default
   requirePinForStaff: false, // Default to false - all PIN requirements OFF by default
-  timezone: 'Australia/Sydney',
-  currency: 'AUD',
-  dateFormat: 'DD/MM/YYYY',
-  timeFormat: '12h',
+  timezone: "Australia/Sydney",
+  currency: "AUD",
+  dateFormat: "DD/MM/YYYY",
+  timeFormat: "12h",
   requireDeposit: false,
   depositPercentage: 0,
   allowOnlineBookings: true,
@@ -24,6 +24,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   showOnlyRosteredStaffDefault: true, // Default to showing only rostered staff
   allowWalkInBookings: true, // Default to true for flexibility
   priceToDurationRatio: 1.0, // $1 = 1 minute (default)
+  enableCalendarBlocks: true, // Feature-flag: staff break blocks on calendar (enabled by default)
   // Customer Notification settings
   // Confirmations, 24h, 2h (EMAIL = true, SMS = false)
   bookingConfirmationEmail: true,
@@ -32,7 +33,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   appointmentReminder24hSms: false,
   appointmentReminder2hEmail: true,
   appointmentReminder2hSms: false,
-  
+
   // Staff Notification settings
   // New, Cancellations (PANEL = false, EMAIL = true, SMS = false)
   newBookingNotification: false,
