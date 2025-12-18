@@ -105,11 +105,12 @@ export function CustomerDetailsDialog({
       const sanitizedNotes = sanitizeOptionalField(formData.notes);
       
       // Prepare data for API, explicitly sending null when lastName is cleared
+      // Use 'mobile' field since that's what the UI displays (mobile || phone)
       const updateData: any = {
         firstName: trimmedFirstName,
         lastName: normalizedLastName,
         email: sanitizedEmail,
-        phone: sanitizedPhone,
+        mobile: sanitizedPhone,
         notes: sanitizedNotes,
       };
       
