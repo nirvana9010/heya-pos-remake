@@ -15,6 +15,11 @@ This file contains important configuration information for Claude Code to help m
 1. **NEVER DELETE SCRIPTS** - Do not delete any scripts in the `/scripts` directory without explicit user permission
 2. **NEVER DELETE CONFIGURATION FILES** - Do not delete `.env`, `ecosystem.config.js`, or any config files without explicit permission
 3. **ASK BEFORE REMOVING** - Always ask for confirmation before deleting any existing files
+4. **NEVER MANUALLY DEPLOY TO FLY.IO** - Deployment is handled automatically by GitHub Actions. When changes need to be deployed:
+   - Simply push to GitHub: `git push origin main`
+   - The GitHub Action will automatically build and deploy to Fly.io
+   - Do NOT use `flyctl deploy` or any manual Fly.io deployment commands
+   - The only exception is updating secrets with `flyctl secrets set`
 
 ## Working Directory Context
 
@@ -201,6 +206,26 @@ DATABASE_URL=postgres://postgres:jTzPXDBfABYvzoA@heya-pos-db.flycast:5432/postgr
 
 ## Fly.io CLI Usage
 
+### ⚠️ DEPLOYMENT IS AUTOMATED - DO NOT MANUALLY DEPLOY
+
+**Deployment happens automatically via GitHub Actions when you push to main.**
+
+To deploy changes:
+```bash
+git push origin main  # This triggers automatic deployment
+```
+
+**NEVER run `flyctl deploy` manually** - it will fail or cause issues.
+
+### When to Use flyctl
+
+The Fly.io CLI should ONLY be used for:
+- Viewing logs
+- Checking status
+- Managing secrets
+- SSH access for debugging
+- Restarting the app
+
 **IMPORTANT**: The Fly.io CLI command is `flyctl`, NOT `fly`. When you see documentation that uses `fly`, it's just an alias that users can set up locally.
 
 In this environment, always use the full path:
@@ -208,7 +233,7 @@ In this environment, always use the full path:
 /home/lukas/.fly/bin/flyctl [command]
 ```
 
-Common Fly.io commands:
+Allowed Fly.io commands (non-deployment):
 ```bash
 # Check app status
 /home/lukas/.fly/bin/flyctl status -a heya-pos-api
@@ -216,7 +241,7 @@ Common Fly.io commands:
 # View logs
 /home/lukas/.fly/bin/flyctl logs -a heya-pos-api
 
-# Update secrets
+# Update secrets (this IS allowed)
 /home/lukas/.fly/bin/flyctl secrets set KEY=VALUE -a heya-pos-api
 
 # List secrets
