@@ -30,6 +30,7 @@ import { Trash2, RefreshCcw } from "lucide-react";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
 import type { MerchantHoliday, AustralianState } from "@heya-pos/types";
+import { DatePickerField } from "../DatePickerField";
 
 const STATE_OPTIONS: Array<{ value: AustralianState; label: string }> = [
   { value: "ACT", label: "Australian Capital Territory" },
@@ -344,11 +345,19 @@ export function HolidayManager({ initialState }: HolidayManagerProps) {
             </div>
             <div className="space-y-1">
               <Label htmlFor="custom-holiday-date">Date</Label>
-              <Input
+              <DatePickerField
                 id="custom-holiday-date"
-                type="date"
-                value={newHolidayDate}
-                onChange={(event) => setNewHolidayDate(event.target.value)}
+                value={newHolidayDate ? new Date(newHolidayDate) : null}
+                onChange={(selected) => {
+                  if (!selected) {
+                    setNewHolidayDate("");
+                    return;
+                  }
+                  const normalized = new Date(selected);
+                  normalized.setHours(0, 0, 0, 0);
+                  setNewHolidayDate(format(normalized, "yyyy-MM-dd"));
+                }}
+                placeholder="DD/MM/YYYY"
                 disabled={isCreating}
               />
             </div>

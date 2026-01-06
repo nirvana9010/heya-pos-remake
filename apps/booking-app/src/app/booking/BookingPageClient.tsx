@@ -577,7 +577,7 @@ export default function BookingPageClient() {
 
   const loadAvailableSlots = async () => {
     if (!selectedDate || selectedServices.length === 0) return;
-    
+
     try {
       setLoadingSlots(true);
       const slots = await bookingApi.checkAvailability({

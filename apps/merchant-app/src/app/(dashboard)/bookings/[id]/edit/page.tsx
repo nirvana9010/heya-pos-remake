@@ -8,13 +8,15 @@ import { Input } from '@heya-pos/ui';
 import { Label } from '@heya-pos/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
 import { Textarea } from '@heya-pos/ui';
-import { ArrowLeft, Calendar, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X } from 'lucide-react';
 import { type Booking, type Service, type Staff } from '@heya-pos/shared';
 import { apiClient } from '@/lib/api-client';
 import { toMerchantTime } from '@/lib/date-utils';
 import { zonedTimeToUtc } from 'date-fns-tz';
+import { format } from 'date-fns';
 import { ServiceSelectionSlideout } from '@/components/ServiceSelectionSlideout';
 import { FifteenMinuteTimeSelect } from '@/components/FifteenMinuteTimeSelect';
+import { DatePickerField } from '@/components/DatePickerField';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -391,17 +393,21 @@ export default function EditBookingPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <DatePickerField
+                    id="date"
+                    value={formData.date ? new Date(formData.date) : null}
+                    onChange={(selected) => {
+                      if (!selected) {
+                        return;
+                      }
+                      const normalized = new Date(selected);
+                      normalized.setHours(0, 0, 0, 0);
+                      setFormData({ ...formData, date: format(normalized, "yyyy-MM-dd") });
+                    }}
+                    placeholder="DD/MM/YYYY"
+                    disableClear
+                    className="mt-1"
+                  />
                 </div>
 
                 <div className="space-y-2">

@@ -37,6 +37,7 @@ import type { Customer } from "@/components/customers";
 import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { invalidateBookingsCache } from "@/lib/cache-config";
+import { DatePickerField } from "./DatePickerField";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -497,12 +498,19 @@ export function BookingSlideOut({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="date">Date</Label>
-                <Input
+                <DatePickerField
                   id="date"
-                  type="date"
-                  value={date ? format(date, "yyyy-MM-dd") : ""}
-                  onChange={(e) => setDate(new Date(e.target.value))}
+                  value={date}
+                  onChange={(selected) => {
+                    if (!selected) {
+                      return;
+                    }
+                    const normalized = new Date(selected);
+                    normalized.setHours(0, 0, 0, 0);
+                    setDate(normalized);
+                  }}
                   className="mt-1"
+                  disableClear
                 />
               </div>
               <div>
