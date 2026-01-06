@@ -57,6 +57,10 @@ export class SendGridEmailService {
           email: fromEmail,
           name: fromName,
         },
+        replyTo: {
+          email: context.merchant.email,
+          name: context.merchant.name,
+        },
         subject,
         text,
         html,

@@ -47,6 +47,7 @@ export class EmailService {
       const mailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
         to: context.customer.email,
+        replyTo: `"${context.merchant.name}" <${context.merchant.email}>`,
         subject,
         text,
         html,
