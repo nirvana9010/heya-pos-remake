@@ -169,10 +169,12 @@ export class ApiClient {
   }
 
   async updateBookingStatus(id: string, status: string) {
-    console.warn('updateBookingStatus is deprecated. Use specific status methods instead.');
-    
     // Map to specific V2 endpoints
     switch (status.toUpperCase()) {
+      case 'CONFIRMED':
+        // Use the generic update endpoint for confirming pending bookings
+        // This triggers the outbox event for sending confirmation emails
+        return this.bookings.updateBooking(id, { status: 'CONFIRMED' });
       case 'IN_PROGRESS':
         return this.bookings.startBooking(id);
       case 'COMPLETED':
