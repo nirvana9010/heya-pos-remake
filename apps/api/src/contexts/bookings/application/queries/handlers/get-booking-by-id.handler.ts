@@ -73,14 +73,16 @@ export class GetBookingByIdHandler
           : 0,
       },
 
-      staff: {
-        id: booking.provider.id,
-        name: booking.provider.lastName
-          ? `${booking.provider.firstName} ${booking.provider.lastName}`
-          : booking.provider.firstName,
-        email: booking.provider.email,
-        phone: booking.provider.phone,
-      },
+      staff: booking.provider
+        ? {
+            id: booking.provider.id,
+            name: booking.provider.lastName
+              ? `${booking.provider.firstName} ${booking.provider.lastName}`
+              : booking.provider.firstName,
+            email: booking.provider.email,
+            phone: booking.provider.phone,
+          }
+        : null,
 
       services: booking.services.map((bookingService: any) => ({
         id: bookingService.id, // BookingService record ID
@@ -99,7 +101,7 @@ export class GetBookingByIdHandler
           "toNumber" in bookingService.price
             ? bookingService.price.toNumber()
             : Number(bookingService.price),
-        staffId: bookingService.staffId || booking.provider.id,
+        staffId: bookingService.staffId || booking.provider?.id || null,
         staff: bookingService.staff
           ? {
               id: bookingService.staff.id,
@@ -111,9 +113,11 @@ export class GetBookingByIdHandler
           ? bookingService.staff.lastName
             ? `${bookingService.staff.firstName} ${bookingService.staff.lastName}`
             : bookingService.staff.firstName
-          : booking.provider.lastName
-            ? `${booking.provider.firstName} ${booking.provider.lastName}`
-            : booking.provider.firstName,
+          : booking.provider
+            ? booking.provider.lastName
+              ? `${booking.provider.firstName} ${booking.provider.lastName}`
+              : booking.provider.firstName
+            : "Unassigned",
       })),
 
       location: {

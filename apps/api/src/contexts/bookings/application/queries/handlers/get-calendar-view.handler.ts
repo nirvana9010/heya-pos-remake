@@ -134,11 +134,10 @@ export class GetCalendarViewHandler
         ),
         serviceName: service?.name || "Unknown Service",
         serviceColor: service?.categoryModel?.color || "#6B7280",
-        staffId: booking.provider.id,
-        staffName: formatName(
-          booking.provider.firstName,
-          booking.provider.lastName,
-        ),
+        staffId: booking.provider?.id || null,
+        staffName: booking.provider
+          ? formatName(booking.provider.firstName, booking.provider.lastName)
+          : "Unassigned",
         duration,
       };
     });
