@@ -1,6 +1,6 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
 
 @Injectable()
 export class RedisService {
@@ -32,7 +32,9 @@ export class RedisService {
   async set(key: string, value: any, ttl?: number): Promise<void> {
     try {
       await this.cacheManager.set(key, value, ttl);
-      this.logger.debug(`Cache SET for key: ${key} with TTL: ${ttl || 'default'}`);
+      this.logger.debug(
+        `Cache SET for key: ${key} with TTL: ${ttl || "default"}`,
+      );
     } catch (error) {
       this.logger.error(`Error setting cache key ${key}:`, error);
     }
@@ -56,17 +58,21 @@ export class RedisService {
   async delPattern(pattern: string): Promise<void> {
     try {
       // For Redis store, we can use keys command
-      // @ts-ignore - cache-manager API change 
+      // @ts-ignore - cache-manager API change
       const store = this.cacheManager.store as any;
       if (store.keys) {
         const keys = await store.keys(pattern);
         if (keys.length > 0) {
-          await Promise.all(keys.map(key => this.del(key)));
-          this.logger.debug(`Cache DEL pattern: ${pattern} (${keys.length} keys)`);
+          await Promise.all(keys.map((key) => this.del(key)));
+          this.logger.debug(
+            `Cache DEL pattern: ${pattern} (${keys.length} keys)`,
+          );
         }
       } else {
         // Fallback for in-memory cache - not pattern-based
-        this.logger.warn('Pattern deletion not supported in current cache store');
+        this.logger.warn(
+          "Pattern deletion not supported in current cache store",
+        );
       }
     } catch (error) {
       this.logger.error(`Error deleting cache pattern ${pattern}:`, error);
@@ -80,9 +86,9 @@ export class RedisService {
     try {
       // @ts-ignore - cache-manager API change
       await this.cacheManager.reset();
-      this.logger.debug('Cache RESET');
+      this.logger.debug("Cache RESET");
     } catch (error) {
-      this.logger.error('Error resetting cache:', error);
+      this.logger.error("Error resetting cache:", error);
     }
   }
 

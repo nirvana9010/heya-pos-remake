@@ -1,11 +1,11 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Reflector } from '@nestjs/core';
-import { SessionService } from '../session.service';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { Injectable, ExecutionContext } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { Reflector } from "@nestjs/core";
+import { SessionService } from "../session.service";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard("jwt") {
   constructor(
     private sessionService: SessionService,
     private reflector: Reflector,
@@ -27,7 +27,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     const request = context.switchToHttp().getRequest();
-    const token = request.headers.authorization?.replace('Bearer ', '');
+    const token = request.headers.authorization?.replace("Bearer ", "");
 
     if (token) {
       const session = this.sessionService.getSession(token);
@@ -37,7 +37,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
       // Extend session activity (keeping session alive during use)
       this.sessionService.extendSession(token);
-      
+
       // Attach session to request
       request.session = session;
     }

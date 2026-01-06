@@ -5,14 +5,14 @@ import {
   IsEnum,
   Min,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export enum PaymentMethod {
-  CASH = 'CASH',
-  CARD = 'CARD',
-  ONLINE = 'ONLINE',
-  BANK_TRANSFER = 'BANK_TRANSFER',
-  OTHER = 'OTHER',
+  CASH = "CASH",
+  CARD = "CARD",
+  ONLINE = "ONLINE",
+  BANK_TRANSFER = "BANK_TRANSFER",
+  OTHER = "OTHER",
 }
 
 export class MarkBookingPaidDto {

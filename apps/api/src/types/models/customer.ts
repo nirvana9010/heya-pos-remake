@@ -32,22 +32,22 @@ export interface Customer {
 }
 
 export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER'
+  MALE = "MALE",
+  FEMALE = "FEMALE",
+  OTHER = "OTHER",
 }
 
 export enum CustomerStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  BLOCKED = 'BLOCKED'
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  BLOCKED = "BLOCKED",
 }
 
 export enum CustomerSource {
-  WALK_IN = 'WALK_IN',
-  ONLINE = 'ONLINE',
-  REFERRAL = 'REFERRAL',
-  SOCIAL_MEDIA = 'SOCIAL_MEDIA',
-  MIGRATED = 'MIGRATED',
-  OTHER = 'OTHER'
+  WALK_IN = "WALK_IN",
+  ONLINE = "ONLINE",
+  REFERRAL = "REFERRAL",
+  SOCIAL_MEDIA = "SOCIAL_MEDIA",
+  MIGRATED = "MIGRATED",
+  OTHER = "OTHER",
 }

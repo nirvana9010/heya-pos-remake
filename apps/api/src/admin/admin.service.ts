@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
-import { DEFAULT_MERCHANT_SETTINGS } from '../merchant/merchant.constants';
+import { Injectable, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import * as bcrypt from "bcrypt";
+import { DEFAULT_MERCHANT_SETTINGS } from "../merchant/merchant.constants";
 
 interface CreateMerchantDto {
   name: string;
@@ -31,7 +31,9 @@ export class AdminService {
     });
 
     if (existingMerchant) {
-      throw new BadRequestException(`Merchant with subdomain "${dto.subdomain}" already exists`);
+      throw new BadRequestException(
+        `Merchant with subdomain "${dto.subdomain}" already exists`,
+      );
     }
 
     // Check if username already exists
@@ -40,7 +42,9 @@ export class AdminService {
     });
 
     if (existingAuth) {
-      throw new BadRequestException(`Username "${dto.username}" already exists`);
+      throw new BadRequestException(
+        `Username "${dto.username}" already exists`,
+      );
     }
 
     // Get package by ID or name
@@ -50,7 +54,7 @@ export class AdminService {
         where: { id: dto.packageId },
       });
     } else {
-      const packageName = dto.packageName || 'Starter';
+      const packageName = dto.packageName || "Starter";
       merchantPackage = await this.prisma.package.findUnique({
         where: { name: packageName },
       });
@@ -71,8 +75,10 @@ export class AdminService {
           subdomain: dto.subdomain,
           abn: dto.abn,
           packageId: merchantPackage.id,
-          subscriptionStatus: dto.skipTrial ? 'ACTIVE' : 'TRIAL',
-          trialEndsAt: dto.skipTrial ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          subscriptionStatus: dto.skipTrial ? "ACTIVE" : "TRIAL",
+          trialEndsAt: dto.skipTrial
+            ? null
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           settings: DEFAULT_MERCHANT_SETTINGS as any,
         },
       });
@@ -91,22 +97,22 @@ export class AdminService {
         data: {
           merchantId: merchant.id,
           name: `${dto.name} Main`,
-          address: dto.address || '123 Main Street',
-          suburb: dto.suburb || dto.city || 'Sydney',
-          city: dto.city || 'Sydney',
-          state: dto.state || 'NSW',
-          country: 'Australia',
-          postalCode: dto.postalCode || '2000',
+          address: dto.address || "123 Main Street",
+          suburb: dto.suburb || dto.city || "Sydney",
+          city: dto.city || "Sydney",
+          state: dto.state || "NSW",
+          country: "Australia",
+          postalCode: dto.postalCode || "2000",
           phone: dto.phone,
           email: dto.email,
-          timezone: 'Australia/Sydney',
+          timezone: "Australia/Sydney",
           businessHours: {
-            monday: { open: '09:00', close: '18:00' },
-            tuesday: { open: '09:00', close: '18:00' },
-            wednesday: { open: '09:00', close: '18:00' },
-            thursday: { open: '09:00', close: '18:00' },
-            friday: { open: '09:00', close: '18:00' },
-            saturday: { open: '10:00', close: '16:00' },
+            monday: { open: "09:00", close: "18:00" },
+            tuesday: { open: "09:00", close: "18:00" },
+            wednesday: { open: "09:00", close: "18:00" },
+            thursday: { open: "09:00", close: "18:00" },
+            friday: { open: "09:00", close: "18:00" },
+            saturday: { open: "10:00", close: "16:00" },
             sunday: { closed: true },
           },
           isActive: true,
@@ -155,14 +161,14 @@ export class AdminService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     // Transform to match frontend expectations
-    return merchants.map(merchant => ({
+    return merchants.map((merchant) => ({
       ...merchant,
-      isActive: merchant.status === 'ACTIVE',
+      isActive: merchant.status === "ACTIVE",
       subscription: {
         package: merchant.package,
         status: merchant.subscriptionStatus,
@@ -190,13 +196,13 @@ export class AdminService {
     });
 
     if (!merchant) {
-      throw new BadRequestException('Merchant not found');
+      throw new BadRequestException("Merchant not found");
     }
 
     // Transform to match frontend expectations
     return {
       ...merchant,
-      isActive: merchant.status === 'ACTIVE',
+      isActive: merchant.status === "ACTIVE",
       subscription: {
         package: merchant.package,
         status: merchant.subscriptionStatus,
@@ -205,15 +211,20 @@ export class AdminService {
     };
   }
 
-  async updateMerchant(id: string, dto: Partial<CreateMerchantDto & { 
-    isActive?: boolean;
-    subscriptionStatus?: string;
-    trialEndsAt?: Date | null;
-    skipTrial?: boolean;
-  }>) {
-    console.log('[AdminService] updateMerchant called with:', { id, dto });
+  async updateMerchant(
+    id: string,
+    dto: Partial<
+      CreateMerchantDto & {
+        isActive?: boolean;
+        subscriptionStatus?: string;
+        trialEndsAt?: Date | null;
+        skipTrial?: boolean;
+      }
+    >,
+  ) {
+    console.log("[AdminService] updateMerchant called with:", { id, dto });
     const updateData: any = {};
-    
+
     if (dto.name) updateData.name = dto.name;
     if (dto.email) updateData.email = dto.email;
     if (dto.phone) updateData.phone = dto.phone;
@@ -224,16 +235,16 @@ export class AdminService {
     if (dto.subscriptionStatus) {
       updateData.subscriptionStatus = dto.subscriptionStatus;
     }
-    
+
     // Handle trial end date updates
     if (dto.trialEndsAt !== undefined) {
       updateData.trialEndsAt = dto.trialEndsAt;
     }
-    
+
     // If skipTrial is true, set to ACTIVE status and clear trial end date
     if (dto.skipTrial) {
-      console.log('[AdminService] Removing trial for merchant:', id);
-      updateData.subscriptionStatus = 'ACTIVE';
+      console.log("[AdminService] Removing trial for merchant:", id);
+      updateData.subscriptionStatus = "ACTIVE";
       updateData.trialEndsAt = null;
     }
 
@@ -242,7 +253,7 @@ export class AdminService {
       // Check if subdomain is changing and if new subdomain already exists
       const currentMerchant = await this.prisma.merchant.findUnique({
         where: { id },
-        select: { subdomain: true }
+        select: { subdomain: true },
       });
 
       if (currentMerchant && currentMerchant.subdomain !== dto.subdomain) {
@@ -251,7 +262,9 @@ export class AdminService {
         });
 
         if (existingMerchant) {
-          throw new BadRequestException(`Subdomain "${dto.subdomain}" is already in use`);
+          throw new BadRequestException(
+            `Subdomain "${dto.subdomain}" is already in use`,
+          );
         }
       }
 
@@ -260,7 +273,7 @@ export class AdminService {
 
     // Update status if isActive is changed
     if (dto.isActive !== undefined) {
-      updateData.status = dto.isActive ? 'ACTIVE' : 'INACTIVE';
+      updateData.status = dto.isActive ? "ACTIVE" : "INACTIVE";
       delete updateData.isActive;
     }
 
@@ -271,13 +284,15 @@ export class AdminService {
       });
 
       if (!targetPackage) {
-        throw new BadRequestException(`Package with id "${dto.packageId}" not found`);
+        throw new BadRequestException(
+          `Package with id "${dto.packageId}" not found`,
+        );
       }
 
       updateData.packageId = dto.packageId;
     }
 
-    console.log('[AdminService] Updating merchant with data:', updateData);
+    console.log("[AdminService] Updating merchant with data:", updateData);
     const merchant = await this.prisma.merchant.update({
       where: { id },
       data: updateData,
@@ -285,16 +300,16 @@ export class AdminService {
         package: true,
       },
     });
-    console.log('[AdminService] Updated merchant:', { 
-      id: merchant.id, 
+    console.log("[AdminService] Updated merchant:", {
+      id: merchant.id,
       subscriptionStatus: merchant.subscriptionStatus,
-      trialEndsAt: merchant.trialEndsAt 
+      trialEndsAt: merchant.trialEndsAt,
     });
 
     // Transform to match frontend expectations
     return {
       ...merchant,
-      isActive: merchant.status === 'ACTIVE',
+      isActive: merchant.status === "ACTIVE",
       subscription: {
         package: merchant.package,
         status: merchant.subscriptionStatus,
@@ -308,7 +323,7 @@ export class AdminService {
     await this.prisma.merchant.update({
       where: { id },
       data: {
-        status: 'DELETED',
+        status: "DELETED",
       },
     });
 
@@ -317,7 +332,7 @@ export class AdminService {
 
   async checkSubdomainAvailability(subdomain: string): Promise<boolean> {
     if (!subdomain) return false;
-    
+
     const existing = await this.prisma.merchant.findUnique({
       where: { subdomain: subdomain.toLowerCase() },
     });
@@ -325,14 +340,13 @@ export class AdminService {
     return !existing;
   }
 
-
   async getPackages() {
     const packages = await this.prisma.package.findMany({
-      orderBy: { monthlyPrice: 'asc' },
+      orderBy: { monthlyPrice: "asc" },
     });
 
     // Add isActive field for compatibility
-    return packages.map(pkg => ({
+    return packages.map((pkg) => ({
       ...pkg,
       isActive: true,
       monthlyPrice: Number(pkg.monthlyPrice),

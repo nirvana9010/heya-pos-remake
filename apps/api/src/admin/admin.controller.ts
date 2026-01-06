@@ -11,11 +11,11 @@ import {
   Patch,
   Param,
   Delete,
-} from '@nestjs/common';
-import { AdminService } from './admin.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { JwtService } from '@nestjs/jwt';
+} from "@nestjs/common";
+import { AdminService } from "./admin.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
+import { JwtService } from "@nestjs/jwt";
 
 interface CreateMerchantDto {
   name: string;
@@ -53,7 +53,7 @@ interface AdminLoginDto {
   password: string;
 }
 
-@Controller('admin')
+@Controller("admin")
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -61,64 +61,67 @@ export class AdminController {
   ) {}
 
   // Admin login - temporary solution
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: AdminLoginDto) {
     // TODO: Replace with proper admin authentication system
     // Temporarily allowing admin/admin123 login
-    if (dto.username === 'admin' && dto.password === 'admin123') {
+    if (dto.username === "admin" && dto.password === "admin123") {
       const payload = {
-        id: 'admin-1',
-        username: 'admin',
-        email: 'admin@heya-pos.com',
-        role: 'SUPER_ADMIN',
+        id: "admin-1",
+        username: "admin",
+        email: "admin@heya-pos.com",
+        role: "SUPER_ADMIN",
       };
-      
+
       return {
         token: this.jwtService.sign(payload),
         user: payload,
       };
     }
-    
-    throw new UnauthorizedException('Invalid credentials');
+
+    throw new UnauthorizedException("Invalid credentials");
   }
 
   // For now, this is unprotected for testing
   // In production, this should require super-admin authentication
-  @Post('merchants')
+  @Post("merchants")
   @HttpCode(HttpStatus.CREATED)
   async createMerchant(@Body() dto: CreateMerchantDto) {
     return this.adminService.createMerchant(dto);
   }
 
-  @Get('merchants')
+  @Get("merchants")
   async listMerchants() {
     return this.adminService.listMerchants();
   }
 
-  @Get('merchants/:id')
-  async getMerchant(@Param('id') id: string) {
+  @Get("merchants/:id")
+  async getMerchant(@Param("id") id: string) {
     return this.adminService.getMerchant(id);
   }
 
-  @Patch('merchants/:id')
-  async updateMerchant(@Param('id') id: string, @Body() dto: UpdateMerchantDto) {
+  @Patch("merchants/:id")
+  async updateMerchant(
+    @Param("id") id: string,
+    @Body() dto: UpdateMerchantDto,
+  ) {
     return this.adminService.updateMerchant(id, dto);
   }
 
-  @Delete('merchants/:id')
-  async deleteMerchant(@Param('id') id: string) {
+  @Delete("merchants/:id")
+  async deleteMerchant(@Param("id") id: string) {
     return this.adminService.deleteMerchant(id);
   }
 
-  @Get('check-subdomain')
-  async checkSubdomain(@Query('subdomain') subdomain: string) {
-    const available = await this.adminService.checkSubdomainAvailability(subdomain);
+  @Get("check-subdomain")
+  async checkSubdomain(@Query("subdomain") subdomain: string) {
+    const available =
+      await this.adminService.checkSubdomainAvailability(subdomain);
     return { available };
   }
 
-
-  @Get('packages')
+  @Get("packages")
   async getPackages() {
     return this.adminService.getPackages();
   }

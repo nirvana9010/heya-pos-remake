@@ -1,16 +1,27 @@
-import { IsString, IsNumber, IsBoolean, IsOptional, IsEnum, IsArray, ValidateNested, IsNotEmpty, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsNotEmpty,
+  Min,
+  Max,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export enum DuplicateAction {
-  SKIP = 'skip',
-  UPDATE = 'update',
-  CREATE_NEW = 'create_new'
+  SKIP = "skip",
+  UPDATE = "update",
+  CREATE_NEW = "create_new",
 }
 
 export enum ImportAction {
-  ADD = 'add',
-  EDIT = 'edit',
-  DELETE = 'delete'
+  ADD = "add",
+  EDIT = "edit",
+  DELETE = "delete",
 }
 
 export class ServiceCsvRowDto {
@@ -93,7 +104,7 @@ export interface ImportPreviewRow {
   rowNumber: number;
   data: ServiceCsvRowDto;
   validation: ImportValidation;
-  action: 'create' | 'update' | 'skip' | 'delete';
+  action: "create" | "update" | "skip" | "delete";
   existingServiceId?: string;
 }
 
@@ -137,10 +148,10 @@ export interface ImportResult {
 
 // Legacy types for existing code
 export interface ServiceImportItem {
-  'Service Name': string;
-  'Category'?: string;
-  'Duration (min)': string | number;
-  'Price': string | number;
+  "Service Name": string;
+  Category?: string;
+  "Duration (min)": string | number;
+  Price: string | number;
   [key: string]: any;
 }
 

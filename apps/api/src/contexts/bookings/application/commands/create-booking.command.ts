@@ -22,11 +22,11 @@ export class CreateBookingCommand {
       isOverride?: boolean;
       overrideReason?: string;
       orderId?: string; // Pre-created order ID to link
-    }
+    },
   ) {
     // Validate that either serviceId or services is provided
     if (!data.serviceId && (!data.services || data.services.length === 0)) {
-      throw new Error('Either serviceId or services array must be provided');
+      throw new Error("Either serviceId or services array must be provided");
     }
   }
 }

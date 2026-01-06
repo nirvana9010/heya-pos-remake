@@ -1,10 +1,10 @@
-import type { LoyaltyTransaction, LoyaltyTransactionType } from '../models';
-import type { PaginationParams } from '../common';
+import type { LoyaltyTransaction, LoyaltyTransactionType } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface CreateLoyaltyProgramRequest {
   name: string;
   description?: string;
-  type: 'visit' | 'spend';
+  type: "visit" | "spend";
   pointsPerVisit?: number;
   pointsPerDollar?: number;
   rewardThreshold: number;
@@ -13,7 +13,8 @@ export interface CreateLoyaltyProgramRequest {
   terms?: string;
 }
 
-export interface UpdateLoyaltyProgramRequest extends Partial<CreateLoyaltyProgramRequest> {
+export interface UpdateLoyaltyProgramRequest
+  extends Partial<CreateLoyaltyProgramRequest> {
   isActive?: boolean;
 }
 

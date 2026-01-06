@@ -5,12 +5,12 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
-import { BusinessException } from '../exceptions/business-exception';
-import { ErrorCodes } from '../exceptions/error-codes';
-import { Prisma } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+} from "@nestjs/common";
+import { Request, Response } from "express";
+import { BusinessException } from "../exceptions/business-exception";
+import { ErrorCodes } from "../exceptions/error-codes";
+import { Prisma } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -23,10 +23,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Generate request ID for tracking
     const requestId = uuidv4();
-    
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let errorCode: string = ErrorCodes.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
+    let message = "Internal server error";
     let details: any = undefined;
 
     // Handle different exception types
@@ -38,10 +38,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
-      if (typeof exceptionResponse === 'string') {
+
+      if (typeof exceptionResponse === "string") {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === "object" &&
+        exceptionResponse !== null
+      ) {
         const response = exceptionResponse as any;
         message = response.message || message;
         errorCode = response.error || errorCode;
@@ -57,11 +60,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
       errorCode = ErrorCodes.VALIDATION_ERROR;
-      message = 'Database validation error';
+      message = "Database validation error";
       details = { error: exception.message };
     } else if (exception instanceof Error) {
       message = exception.message;
-      
+
       // Log unexpected errors
       this.logger.error(
         `Unhandled exception: ${exception.message}`,
@@ -74,7 +77,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           params: request.params,
           query: request.query,
           headers: request.headers,
-        }
+        },
       );
     }
 
@@ -90,7 +93,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     // In development, include additional debugging info
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       if (exception instanceof Error) {
         (errorResponse as any).stack = exception.stack;
       }
@@ -102,7 +105,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // Set response headers
-    response.setHeader('X-Request-Id', requestId);
+    response.setHeader("X-Request-Id", requestId);
     response.status(status).json(errorResponse);
   }
 
@@ -113,9 +116,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     details?: any;
   } {
     switch (error.code) {
-      case 'P2002':
+      case "P2002":
         // Unique constraint violation
-        const field = (error.meta?.target as string[])?.[0] || 'field';
+        const field = (error.meta?.target as string[])?.[0] || "field";
         return {
           status: HttpStatus.CONFLICT,
           errorCode: ErrorCodes.DUPLICATE_RESOURCE,
@@ -123,39 +126,39 @@ export class AllExceptionsFilter implements ExceptionFilter {
           details: { field, constraint: error.meta?.target },
         };
 
-      case 'P2003':
+      case "P2003":
         // Foreign key constraint violation
         return {
           status: HttpStatus.BAD_REQUEST,
           errorCode: ErrorCodes.INVALID_INPUT,
-          message: 'Invalid reference to related record',
+          message: "Invalid reference to related record",
           details: { field: error.meta?.field_name },
         };
 
-      case 'P2025':
+      case "P2025":
         // Record not found
         return {
           status: HttpStatus.NOT_FOUND,
           errorCode: ErrorCodes.RESOURCE_NOT_FOUND,
-          message: 'Record not found',
+          message: "Record not found",
           details: { cause: error.meta?.cause },
         };
 
-      case 'P2014':
+      case "P2014":
         // Relation violation
         return {
           status: HttpStatus.BAD_REQUEST,
           errorCode: ErrorCodes.INVALID_INPUT,
-          message: 'Invalid relation in query',
+          message: "Invalid relation in query",
           details: { relation: error.meta?.relation_name },
         };
 
-      case 'P2016':
+      case "P2016":
         // Query interpretation error
         return {
           status: HttpStatus.BAD_REQUEST,
           errorCode: ErrorCodes.INVALID_INPUT,
-          message: 'Invalid query parameters',
+          message: "Invalid query parameters",
           details: error.meta,
         };
 
@@ -163,7 +166,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
           errorCode: ErrorCodes.DATABASE_ERROR,
-          message: 'Database operation failed',
+          message: "Database operation failed",
           details: { code: error.code, meta: error.meta },
         };
     }

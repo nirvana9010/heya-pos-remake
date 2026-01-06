@@ -1,10 +1,28 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { TyroTransactionDto, TyroTransactionResult } from './dto/tyro-transaction.dto';
-import { IPaymentGateway, PaymentGatewayConfig, PaymentResult, RefundResult, PaymentMethod, PaymentStatus, RefundStatus } from '@heya-pos/types';
-import { Decimal } from '@prisma/client/runtime/library';
-import { toNumber, toDecimal, addDecimals, subtractDecimals, isGreaterThanOrEqual, isLessThanOrEqual } from '../utils/decimal';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../prisma/prisma.service";
+import {
+  TyroTransactionDto,
+  TyroTransactionResult,
+} from "./dto/tyro-transaction.dto";
+import {
+  IPaymentGateway,
+  PaymentGatewayConfig,
+  PaymentResult,
+  RefundResult,
+  PaymentMethod,
+  PaymentStatus,
+  RefundStatus,
+} from "@heya-pos/types";
+import { Decimal } from "@prisma/client/runtime/library";
+import {
+  toNumber,
+  toDecimal,
+  addDecimals,
+  subtractDecimals,
+  isGreaterThanOrEqual,
+  isLessThanOrEqual,
+} from "../utils/decimal";
 
 @Injectable()
 export class TyroPaymentService implements IPaymentGateway {
@@ -30,8 +48,10 @@ export class TyroPaymentService implements IPaymentGateway {
 
     try {
       // Determine payment status based on Tyro result
-      const status = this.getPaymentStatusFromTyroResult(tyroTransaction.result);
-      
+      const status = this.getPaymentStatusFromTyroResult(
+        tyroTransaction.result,
+      );
+
       // Create payment record
       const payment = await this.prisma.payment.create({
         data: {
@@ -40,7 +60,7 @@ export class TyroPaymentService implements IPaymentGateway {
           invoiceId,
           paymentMethod: PaymentMethod.CARD,
           amount: toDecimal(tyroTransaction.baseAmount / 100), // Convert from cents
-          currency: 'AUD',
+          currency: "AUD",
           status,
           reference: tyroTransaction.transactionReference,
           tyroTransactionId: tyroTransaction.transactionReference,
@@ -68,7 +88,9 @@ export class TyroPaymentService implements IPaymentGateway {
       this.logger.log(`Tyro payment processed successfully: ${payment.id}`);
       return payment;
     } catch (error) {
-      this.logger.error(`Failed to process Tyro payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to process Tyro payment: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       throw error;
     }
   }
@@ -92,15 +114,15 @@ export class TyroPaymentService implements IPaymentGateway {
       });
 
       if (!payment) {
-        throw new Error('Payment not found');
+        throw new Error("Payment not found");
       }
 
       if (payment.paymentMethod !== PaymentMethod.CARD) {
-        throw new Error('Payment is not a card payment');
+        throw new Error("Payment is not a card payment");
       }
 
       // Determine refund status
-      const status = tyroTransaction 
+      const status = tyroTransaction
         ? this.getRefundStatusFromTyroResult(tyroTransaction.result)
         : RefundStatus.PENDING;
 
@@ -124,8 +146,11 @@ export class TyroPaymentService implements IPaymentGateway {
             refundedAmount: {
               increment: amount,
             },
-            status: isLessThanOrEqual(payment.amount, addDecimals(payment.refundedAmount, amount))
-              ? PaymentStatus.REFUNDED 
+            status: isLessThanOrEqual(
+              payment.amount,
+              addDecimals(payment.refundedAmount, amount),
+            )
+              ? PaymentStatus.REFUNDED
               : PaymentStatus.PARTIALLY_REFUNDED,
           },
         });
@@ -137,7 +162,9 @@ export class TyroPaymentService implements IPaymentGateway {
       this.logger.log(`Tyro refund processed successfully: ${refund.id}`);
       return refund;
     } catch (error) {
-      this.logger.error(`Failed to process Tyro refund: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to process Tyro refund: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       throw error;
     }
   }
@@ -146,13 +173,15 @@ export class TyroPaymentService implements IPaymentGateway {
    * Pair terminal (placeholder for actual implementation)
    */
   async pairTerminal(merchantId: string, terminalId: string) {
-    this.logger.log(`Pairing Tyro terminal ${terminalId} for merchant ${merchantId}`);
-    
+    this.logger.log(
+      `Pairing Tyro terminal ${terminalId} for merchant ${merchantId}`,
+    );
+
     // In a real implementation, this would interact with Tyro's API
     // For now, we'll just return a success response
     return {
-      status: 'success',
-      message: 'Terminal paired successfully',
+      status: "success",
+      message: "Terminal paired successfully",
       merchantId,
       terminalId,
       pairedAt: new Date(),
@@ -162,7 +191,9 @@ export class TyroPaymentService implements IPaymentGateway {
   /**
    * Get payment status from Tyro transaction result
    */
-  private getPaymentStatusFromTyroResult(result: TyroTransactionResult): PaymentStatus {
+  private getPaymentStatusFromTyroResult(
+    result: TyroTransactionResult,
+  ): PaymentStatus {
     switch (result) {
       case TyroTransactionResult.APPROVED:
         return PaymentStatus.COMPLETED;
@@ -180,7 +211,9 @@ export class TyroPaymentService implements IPaymentGateway {
   /**
    * Get refund status from Tyro transaction result
    */
-  private getRefundStatusFromTyroResult(result: TyroTransactionResult): RefundStatus {
+  private getRefundStatusFromTyroResult(
+    result: TyroTransactionResult,
+  ): RefundStatus {
     switch (result) {
       case TyroTransactionResult.APPROVED:
       case TyroTransactionResult.REVERSED:
@@ -197,7 +230,10 @@ export class TyroPaymentService implements IPaymentGateway {
   /**
    * Update invoice payment status
    */
-  private async updateInvoicePaymentStatus(invoiceId: string, paidAmount: Decimal) {
+  private async updateInvoicePaymentStatus(
+    invoiceId: string,
+    paidAmount: Decimal,
+  ) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
@@ -205,13 +241,16 @@ export class TyroPaymentService implements IPaymentGateway {
     if (!invoice) return;
 
     const newPaidAmount = addDecimals(invoice.paidAmount, paidAmount);
-    const isPaidInFull = isGreaterThanOrEqual(newPaidAmount, invoice.totalAmount);
+    const isPaidInFull = isGreaterThanOrEqual(
+      newPaidAmount,
+      invoice.totalAmount,
+    );
 
     await this.prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         paidAmount: toDecimal(newPaidAmount),
-        status: isPaidInFull ? 'PAID' : 'PARTIALLY_PAID',
+        status: isPaidInFull ? "PAID" : "PARTIALLY_PAID",
         paidAt: isPaidInFull ? new Date() : invoice.paidAt,
       },
     });
@@ -220,7 +259,10 @@ export class TyroPaymentService implements IPaymentGateway {
   /**
    * Update invoice refund status
    */
-  private async updateInvoiceRefundStatus(invoiceId: string, refundAmount: number) {
+  private async updateInvoiceRefundStatus(
+    invoiceId: string,
+    refundAmount: number,
+  ) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -236,17 +278,26 @@ export class TyroPaymentService implements IPaymentGateway {
 
     // Calculate total refunded amount
     const totalRefunded = invoice.payments.reduce((total, payment) => {
-      return addDecimals(total, payment.refunds.reduce((sum, refund) => addDecimals(sum, toNumber(refund.amount)), 0));
+      return addDecimals(
+        total,
+        payment.refunds.reduce(
+          (sum, refund) => addDecimals(sum, toNumber(refund.amount)),
+          0,
+        ),
+      );
     }, 0);
 
     // Update invoice status based on refund amount
-    const isFullyRefunded = isGreaterThanOrEqual(totalRefunded, invoice.paidAmount);
-    
+    const isFullyRefunded = isGreaterThanOrEqual(
+      totalRefunded,
+      invoice.paidAmount,
+    );
+
     if (isFullyRefunded) {
       await this.prisma.invoice.update({
         where: { id: invoiceId },
         data: {
-          status: 'REFUNDED',
+          status: "REFUNDED",
         },
       });
     }
@@ -255,11 +306,14 @@ export class TyroPaymentService implements IPaymentGateway {
   // IPaymentGateway implementation
   async initialize(config: PaymentGatewayConfig): Promise<void> {
     this.config = config;
-    this.logger.log('Tyro payment gateway initialized');
+    this.logger.log("Tyro payment gateway initialized");
     // In a real implementation, this would initialize the Tyro SDK
   }
 
-  async createTerminalPayment(amount: number, orderId: string): Promise<string> {
+  async createTerminalPayment(
+    amount: number,
+    orderId: string,
+  ): Promise<string> {
     // In a real implementation, this would initiate a payment on the Tyro terminal
     // and return a reference ID that can be used to track the payment
     const referenceId = `TYRO_${Date.now()}_${orderId}`;
@@ -271,12 +325,12 @@ export class TyroPaymentService implements IPaymentGateway {
     // In a real implementation, this would query the Tyro API for payment status
     // For now, we'll simulate a successful payment
     this.logger.log(`Checking status for reference: ${referenceId}`);
-    
+
     // Simulate different results based on reference pattern
-    if (referenceId.includes('FAIL')) {
+    if (referenceId.includes("FAIL")) {
       return {
         success: false,
-        error: 'Payment declined by card issuer',
+        error: "Payment declined by card issuer",
         method: PaymentMethod.CARD,
         amount: 0,
       };
@@ -289,13 +343,17 @@ export class TyroPaymentService implements IPaymentGateway {
       amount: 100, // This would come from the actual transaction
       method: PaymentMethod.CARD,
       gatewayResponse: {
-        authorisationCode: 'AUTH123',
-        result: 'APPROVED',
+        authorisationCode: "AUTH123",
+        result: "APPROVED",
       },
     };
   }
 
-  async refundPayment(paymentId: string, amount: number, reason?: string): Promise<RefundResult> {
+  async refundPayment(
+    paymentId: string,
+    amount: number,
+    reason?: string,
+  ): Promise<RefundResult> {
     // In a real implementation, this would call Tyro's refund API
     this.logger.log(`Processing refund for payment ${paymentId}: $${amount}`);
 

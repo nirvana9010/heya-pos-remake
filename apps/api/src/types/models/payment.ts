@@ -34,25 +34,25 @@ export interface PaymentRefund {
 }
 
 export enum PaymentMethod {
-  CASH = 'CASH',
-  CARD = 'CARD',
-  BANK_TRANSFER = 'BANK_TRANSFER',
-  DIGITAL_WALLET = 'DIGITAL_WALLET',
-  OTHER = 'OTHER'
+  CASH = "CASH",
+  CARD = "CARD",
+  BANK_TRANSFER = "BANK_TRANSFER",
+  DIGITAL_WALLET = "DIGITAL_WALLET",
+  OTHER = "OTHER",
 }
 
 export enum PaymentStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
-  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED'
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+  PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
 }
 
 export enum RefundStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED'
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
-import type { Invoice } from './';
+import type { Invoice } from "./";

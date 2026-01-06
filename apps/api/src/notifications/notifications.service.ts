@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { EmailProviderFactory } from './email/email-provider.factory';
-import { SmsProviderFactory } from './sms/sms-provider.factory';
-import { NotificationContext, NotificationResult, NotificationType } from './interfaces/notification.interface';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { EmailProviderFactory } from "./email/email-provider.factory";
+import { SmsProviderFactory } from "./sms/sms-provider.factory";
+import {
+  NotificationContext,
+  NotificationResult,
+  NotificationType,
+} from "./interfaces/notification.interface";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class NotificationsService {
@@ -18,7 +22,8 @@ export class NotificationsService {
     type: NotificationType,
     context: NotificationContext,
   ): Promise<{ email?: NotificationResult; sms?: NotificationResult }> {
-    const results: { email?: NotificationResult; sms?: NotificationResult } = {};
+    const results: { email?: NotificationResult; sms?: NotificationResult } =
+      {};
 
     // Determine which channels to use based on customer preferences
     const channels = this.determineChannels(context);
@@ -32,9 +37,9 @@ export class NotificationsService {
         merchantId: context.merchant.id,
         bookingId: context.booking?.id,
         type,
-        channel: 'email',
+        channel: "email",
         recipient: context.customer.email,
-        status: results.email.success ? 'sent' : 'failed',
+        status: results.email.success ? "sent" : "failed",
         messageId: results.email.messageId,
         error: results.email.error,
       });
@@ -45,25 +50,25 @@ export class NotificationsService {
       try {
         const smsProvider = this.smsProviderFactory.getProvider();
         results.sms = await smsProvider.sendNotification(type, context);
-        
+
         // Log notification in database
         await this.logNotification({
           customerId: context.customer.id,
           merchantId: context.merchant.id,
           bookingId: context.booking?.id,
           type,
-          channel: 'sms',
+          channel: "sms",
           recipient: context.customer.phone,
-          status: results.sms.success ? 'sent' : 'failed',
+          status: results.sms.success ? "sent" : "failed",
           messageId: results.sms.messageId,
           error: results.sms.error,
         });
       } catch (error) {
-        this.logger.error('Failed to send SMS notification', error);
+        this.logger.error("Failed to send SMS notification", error);
         results.sms = {
           success: false,
           error: (error as Error).message,
-          channel: 'sms',
+          channel: "sms",
         };
       }
     }
@@ -78,11 +83,13 @@ export class NotificationsService {
     const providers = this.emailProviderFactory.getProviders();
 
     if (providers.length === 0) {
-      this.logger.warn('No email providers configured; skipping email notification');
+      this.logger.warn(
+        "No email providers configured; skipping email notification",
+      );
       return {
         success: false,
-        error: 'No email provider configured',
-        channel: 'email',
+        error: "No email provider configured",
+        channel: "email",
       };
     }
 
@@ -91,7 +98,7 @@ export class NotificationsService {
 
     for (const provider of providers) {
       attempt += 1;
-      const providerName = provider.constructor?.name ?? 'EmailProvider';
+      const providerName = provider.constructor?.name ?? "EmailProvider";
 
       try {
         this.logger.debug(`Attempting booking email via ${providerName}`);
@@ -100,13 +107,13 @@ export class NotificationsService {
         if (result.success) {
           if (attempt > 1) {
             this.logger.warn(
-              `Primary email provider failed; fallback ${providerName} succeeded for booking ${context.booking?.id ?? 'unknown'}`,
+              `Primary email provider failed; fallback ${providerName} succeeded for booking ${context.booking?.id ?? "unknown"}`,
             );
           }
           return result;
         }
 
-        lastError = result.error || 'Unknown error';
+        lastError = result.error || "Unknown error";
         this.logger.warn(
           `Email provider ${providerName} responded with failure: ${lastError}`,
         );
@@ -120,17 +127,20 @@ export class NotificationsService {
     }
 
     this.logger.error(
-      `All configured email providers failed to send booking confirmation. Last error: ${lastError ?? 'Unknown error'}`,
+      `All configured email providers failed to send booking confirmation. Last error: ${lastError ?? "Unknown error"}`,
     );
 
     return {
       success: false,
-      error: lastError || 'All email providers failed',
-      channel: 'email',
+      error: lastError || "All email providers failed",
+      channel: "email",
     };
   }
 
-  private determineChannels(context: NotificationContext): { email: boolean; sms: boolean } {
+  private determineChannels(context: NotificationContext): {
+    email: boolean;
+    sms: boolean;
+  } {
     const emailOptIn = context.customer.emailNotifications ?? true;
     const smsOptIn = context.customer.smsNotifications ?? true;
 
@@ -138,13 +148,13 @@ export class NotificationsService {
     let smsPreferred = true;
 
     switch (context.customer.preferredChannel) {
-      case 'email':
+      case "email":
         smsPreferred = false;
         break;
-      case 'sms':
+      case "sms":
         emailPreferred = false;
         break;
-      case 'both':
+      case "both":
       default:
         break;
     }
@@ -160,9 +170,9 @@ export class NotificationsService {
     merchantId: string;
     bookingId?: string;
     type: NotificationType;
-    channel: 'email' | 'sms';
+    channel: "email" | "sms";
     recipient: string;
-    status: 'sent' | 'failed';
+    status: "sent" | "failed";
     messageId?: string;
     error?: string;
   }): Promise<void> {
@@ -184,20 +194,23 @@ export class NotificationsService {
       });
     } catch (error) {
       // Don't throw - logging failure shouldn't break notification sending
-      this.logger.error('Failed to log notification', error);
+      this.logger.error("Failed to log notification", error);
     }
   }
 
-  async getNotificationHistory(filters: {
-    customerId?: string;
-    merchantId?: string;
-    bookingId?: string;
-    type?: NotificationType;
-    channel?: 'email' | 'sms';
-    status?: 'sent' | 'failed';
-    startDate?: Date;
-    endDate?: Date;
-  }, take = 100): Promise<any[]> {
+  async getNotificationHistory(
+    filters: {
+      customerId?: string;
+      merchantId?: string;
+      bookingId?: string;
+      type?: NotificationType;
+      channel?: "email" | "sms";
+      status?: "sent" | "failed";
+      startDate?: Date;
+      endDate?: Date;
+    },
+    take = 100,
+  ): Promise<any[]> {
     return this.prisma.notificationLog.findMany({
       where: {
         ...(filters.customerId && { customerId: filters.customerId }),
@@ -206,14 +219,15 @@ export class NotificationsService {
         ...(filters.type && { type: filters.type }),
         ...(filters.channel && { channel: filters.channel }),
         ...(filters.status && { status: filters.status }),
-        ...(filters.startDate && filters.endDate && {
-          sentAt: {
-            gte: filters.startDate,
-            lte: filters.endDate,
-          },
-        }),
+        ...(filters.startDate &&
+          filters.endDate && {
+            sentAt: {
+              gte: filters.startDate,
+              lte: filters.endDate,
+            },
+          }),
       },
-      orderBy: { sentAt: 'desc' },
+      orderBy: { sentAt: "desc" },
       include: {
         customer: {
           select: {
@@ -229,7 +243,7 @@ export class NotificationsService {
   async getCustomerNotificationPreferences(customerId: string): Promise<{
     email: boolean;
     sms: boolean;
-    preferredChannel?: 'email' | 'sms' | 'both';
+    preferredChannel?: "email" | "sms" | "both";
   }> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
@@ -242,13 +256,14 @@ export class NotificationsService {
 
     if (!customer) {
       // Default preferences if customer not found
-      return { email: true, sms: true, preferredChannel: 'both' };
+      return { email: true, sms: true, preferredChannel: "both" };
     }
 
     return {
       email: customer.emailNotifications ?? true,
       sms: customer.smsNotifications ?? true,
-      preferredChannel: customer.notificationPreference as 'email' | 'sms' | 'both' || 'both',
+      preferredChannel:
+        (customer.notificationPreference as "email" | "sms" | "both") || "both",
     };
   }
 
@@ -257,23 +272,29 @@ export class NotificationsService {
     preferences: {
       email?: boolean;
       sms?: boolean;
-      preferredChannel?: 'email' | 'sms' | 'both';
+      preferredChannel?: "email" | "sms" | "both";
     },
   ): Promise<void> {
     await this.prisma.customer.update({
       where: { id: customerId },
       data: {
-        ...(preferences.email !== undefined && { emailNotifications: preferences.email }),
-        ...(preferences.sms !== undefined && { smsNotifications: preferences.sms }),
-        ...(preferences.preferredChannel && { notificationPreference: preferences.preferredChannel }),
+        ...(preferences.email !== undefined && {
+          emailNotifications: preferences.email,
+        }),
+        ...(preferences.sms !== undefined && {
+          smsNotifications: preferences.sms,
+        }),
+        ...(preferences.preferredChannel && {
+          notificationPreference: preferences.preferredChannel,
+        }),
       },
     });
   }
 
   async sendLoyaltyReminder(params: {
     type: NotificationType;
-    merchant: NotificationContext['merchant'];
-    customer: NotificationContext['customer'] & {
+    merchant: NotificationContext["merchant"];
+    customer: NotificationContext["customer"] & {
       emailNotifications?: boolean;
       smsNotifications?: boolean;
     };
@@ -283,7 +304,7 @@ export class NotificationsService {
       smsBody?: string;
     };
     context: {
-      programType: 'VISITS' | 'POINTS';
+      programType: "VISITS" | "POINTS";
       thresholdValue: number;
       currentValue: number;
       rewardType?: string | null;
@@ -313,8 +334,10 @@ export class NotificationsService {
     const channels = this.determineChannels(notificationContext);
 
     const hasEmailContent =
-      (!!params.template.emailSubject && params.template.emailSubject.trim().length > 0) ||
-      (!!params.template.emailBody && params.template.emailBody.trim().length > 0);
+      (!!params.template.emailSubject &&
+        params.template.emailSubject.trim().length > 0) ||
+      (!!params.template.emailBody &&
+        params.template.emailBody.trim().length > 0);
 
     if (channels.email && params.customer.email && hasEmailContent) {
       const emailResult = await this.sendEmailWithFallback(
@@ -326,9 +349,9 @@ export class NotificationsService {
         customerId: params.customer.id,
         merchantId: params.merchant.id,
         type: params.type,
-        channel: 'email',
+        channel: "email",
         recipient: params.customer.email,
-        status: emailResult.success ? 'sent' : 'failed',
+        status: emailResult.success ? "sent" : "failed",
         messageId: emailResult.messageId,
         error: emailResult.error,
       });
@@ -337,7 +360,11 @@ export class NotificationsService {
     const hasSmsContent =
       !!params.template.smsBody && params.template.smsBody.trim().length > 0;
 
-    if (channels.sms && params.customer.phone && (hasSmsContent || hasEmailContent)) {
+    if (
+      channels.sms &&
+      params.customer.phone &&
+      (hasSmsContent || hasEmailContent)
+    ) {
       try {
         const smsProvider = this.smsProviderFactory.getProvider();
         const smsResult = await smsProvider.sendNotification(
@@ -349,21 +376,21 @@ export class NotificationsService {
           customerId: params.customer.id,
           merchantId: params.merchant.id,
           type: params.type,
-          channel: 'sms',
+          channel: "sms",
           recipient: params.customer.phone,
-          status: smsResult.success ? 'sent' : 'failed',
+          status: smsResult.success ? "sent" : "failed",
           messageId: smsResult.messageId,
           error: smsResult.error,
         });
       } catch (error) {
-        this.logger.error('Failed to send loyalty reminder SMS', error);
+        this.logger.error("Failed to send loyalty reminder SMS", error);
         await this.logNotification({
           customerId: params.customer.id,
           merchantId: params.merchant.id,
           type: params.type,
-          channel: 'sms',
+          channel: "sms",
           recipient: params.customer.phone,
-          status: 'failed',
+          status: "failed",
           error: (error as Error).message,
         });
       }

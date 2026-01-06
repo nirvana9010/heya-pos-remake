@@ -1,11 +1,11 @@
-import { IsString, IsNumber, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsEnum, IsOptional } from "class-validator";
 
 export enum TyroTransactionResult {
-  APPROVED = 'APPROVED',
-  DECLINED = 'DECLINED',
-  REVERSED = 'REVERSED',
-  CANCELLED = 'CANCELLED',
-  SYSTEM_ERROR = 'SYSTEM ERROR',
+  APPROVED = "APPROVED",
+  DECLINED = "DECLINED",
+  REVERSED = "REVERSED",
+  CANCELLED = "CANCELLED",
+  SYSTEM_ERROR = "SYSTEM ERROR",
 }
 
 export class TyroTransactionDto {

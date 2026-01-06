@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { OutboxEvent } from '../domain/outbox-event.entity';
-import { Prisma } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../../../prisma/prisma.service";
+import { OutboxEvent } from "../domain/outbox-event.entity";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class OutboxEventRepository {
@@ -9,15 +9,15 @@ export class OutboxEventRepository {
 
   async save(event: OutboxEvent, tx?: Prisma.TransactionClient): Promise<void> {
     const db = tx || this.prisma;
-    
-    if (event.eventType === 'confirmed') {
-      console.log('[OutboxEventRepository] Saving confirmed event', {
+
+    if (event.eventType === "confirmed") {
+      console.log("[OutboxEventRepository] Saving confirmed event", {
         eventId: event.id,
         aggregateId: event.aggregateId,
         merchantId: event.merchantId,
       });
     }
-    
+
     await db.outboxEvent.create({
       data: {
         id: event.id,
@@ -46,7 +46,7 @@ export class OutboxEventRepository {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
       take: limit,
       select: {
@@ -70,9 +70,9 @@ export class OutboxEventRepository {
     // Use updateMany with a WHERE clause that ensures we only update if not already processed
     // This prevents duplicate processing in case of race conditions
     const result = await this.prisma.outboxEvent.updateMany({
-      where: { 
+      where: {
         id: eventId,
-        processedAt: null // Only update if not already processed
+        processedAt: null, // Only update if not already processed
       },
       data: {
         processedAt: new Date(),

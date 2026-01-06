@@ -1,7 +1,12 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from './notifications.service';
-import { NotificationType } from './interfaces/notification.interface';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "./notifications.service";
+import { NotificationType } from "./interfaces/notification.interface";
 
 /**
  * Simple scheduler service that doesn't depend on @nestjs/schedule
@@ -20,11 +25,13 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Start the scheduler only if not disabled
-    if (process.env.DISABLE_SCHEDULED_JOBS !== 'true') {
+    if (process.env.DISABLE_SCHEDULED_JOBS !== "true") {
       this.startScheduler();
-      this.logger.log('Simple notification scheduler started');
+      this.logger.log("Simple notification scheduler started");
     } else {
-      this.logger.log('Scheduled notifications disabled via environment variable');
+      this.logger.log(
+        "Scheduled notifications disabled via environment variable",
+      );
     }
   }
 
@@ -39,32 +46,41 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
 
   private startScheduler() {
     // Process notifications every 5 minutes
-    this.schedulerInterval = setInterval(() => {
-      this.processScheduledNotifications().catch(error => {
-        this.logger.error('Failed to process scheduled notifications', error);
-      });
-    }, 5 * 60 * 1000); // 5 minutes
+    this.schedulerInterval = setInterval(
+      () => {
+        this.processScheduledNotifications().catch((error) => {
+          this.logger.error("Failed to process scheduled notifications", error);
+        });
+      },
+      5 * 60 * 1000,
+    ); // 5 minutes
 
     // Cleanup old notifications daily
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupOldNotifications().catch(error => {
-        this.logger.error('Failed to cleanup old notifications', error);
-      });
-    }, 24 * 60 * 60 * 1000); // 24 hours
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupOldNotifications().catch((error) => {
+          this.logger.error("Failed to cleanup old notifications", error);
+        });
+      },
+      24 * 60 * 60 * 1000,
+    ); // 24 hours
 
     // Run immediately on startup
-    this.processScheduledNotifications().catch(error => {
-      this.logger.error('Failed to process scheduled notifications on startup', error);
+    this.processScheduledNotifications().catch((error) => {
+      this.logger.error(
+        "Failed to process scheduled notifications on startup",
+        error,
+      );
     });
   }
 
   async processScheduledNotifications(): Promise<void> {
     try {
       const now = new Date();
-      
+
       const notifications = await this.prisma.scheduledNotification.findMany({
         where: {
-          status: 'pending',
+          status: "pending",
           scheduledFor: {
             lte: now,
           },
@@ -78,7 +94,7 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
                   locations: {
                     where: { isActive: true },
                     take: 1,
-                    orderBy: { createdAt: 'asc' },
+                    orderBy: { createdAt: "asc" },
                   },
                 },
               },
@@ -96,16 +112,18 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
         take: 50,
       });
 
-      this.logger.log(`Found ${notifications.length} scheduled notifications to process`);
+      this.logger.log(
+        `Found ${notifications.length} scheduled notifications to process`,
+      );
 
       for (const notification of notifications) {
         try {
-          if (notification.booking.status === 'CANCELLED') {
+          if (notification.booking.status === "CANCELLED") {
             await this.prisma.scheduledNotification.update({
               where: { id: notification.id },
               data: {
-                status: 'cancelled',
-                error: 'Booking was cancelled',
+                status: "cancelled",
+                error: "Booking was cancelled",
               },
             });
             continue;
@@ -113,27 +131,31 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
 
           const firstService = notification.booking.services[0];
           const customerName = notification.booking.customer
-            ? (notification.booking.customer.lastName
-                ? `${notification.booking.customer.firstName} ${notification.booking.customer.lastName}`.trim()
-                : notification.booking.customer.firstName || notification.booking.customer.email || 'Customer')
-            : 'Customer';
-          const customerPhone = notification.booking.customer?.phone || '';
+            ? notification.booking.customer.lastName
+              ? `${notification.booking.customer.firstName} ${notification.booking.customer.lastName}`.trim()
+              : notification.booking.customer.firstName ||
+                notification.booking.customer.email ||
+                "Customer"
+            : "Customer";
+          const customerPhone = notification.booking.customer?.phone || "";
           const context = {
             booking: {
               id: notification.booking.id,
               bookingNumber: notification.booking.bookingNumber,
               date: notification.booking.startTime,
-              time: notification.booking.startTime.toLocaleTimeString('en-AU', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+              time: notification.booking.startTime.toLocaleTimeString("en-AU", {
+                hour: "2-digit",
+                minute: "2-digit",
               }),
-              serviceName: firstService?.service?.name || 'Service',
-              staffName: firstService?.staff ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim() : 'Staff',
+              serviceName: firstService?.service?.name || "Service",
+              staffName: firstService?.staff
+                ? `${firstService.staff.firstName} ${firstService.staff.lastName}`.trim()
+                : "Staff",
               duration: firstService?.duration || 60,
               price: Number(notification.booking.totalAmount),
-              locationName: notification.booking.location?.name || '',
-              locationAddress: notification.booking.location?.address || '',
-              locationPhone: notification.booking.location?.phone || '',
+              locationName: notification.booking.location?.name || "",
+              locationAddress: notification.booking.location?.address || "",
+              locationPhone: notification.booking.location?.phone || "",
               customerName,
               customerPhone,
             },
@@ -144,14 +166,16 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
               phone: notification.booking.merchant.phone,
               website: notification.booking.merchant.website,
               // Include primary location full address if available
-              address: notification.booking.merchant.locations?.[0] ? 
-                [
-                  notification.booking.merchant.locations[0].address,
-                  notification.booking.merchant.locations[0].suburb,
-                  notification.booking.merchant.locations[0].state,
-                  notification.booking.merchant.locations[0].postalCode
-                ].filter(Boolean).join(', ') : 
-                '',
+              address: notification.booking.merchant.locations?.[0]
+                ? [
+                    notification.booking.merchant.locations[0].address,
+                    notification.booking.merchant.locations[0].suburb,
+                    notification.booking.merchant.locations[0].state,
+                    notification.booking.merchant.locations[0].postalCode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : "",
             },
             customer: {
               id: notification.booking.customer.id,
@@ -159,21 +183,29 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
               phone: notification.booking.customer.phone,
               firstName: notification.booking.customer.firstName,
               lastName: notification.booking.customer.lastName,
-              preferredChannel: notification.booking.customer.notificationPreference as 'email' | 'sms' | 'both',
+              preferredChannel: notification.booking.customer
+                .notificationPreference as "email" | "sms" | "both",
             },
           };
 
           // Check merchant settings for reminder preferences
-          const merchantSettings = notification.booking.merchant.settings as any;
+          const merchantSettings = notification.booking.merchant
+            .settings as any;
           let shouldSendEmail = true;
           let shouldSendSms = true;
 
           if (notification.type === NotificationType.BOOKING_REMINDER_24H) {
-            shouldSendEmail = merchantSettings?.appointmentReminder24hEmail !== false;
-            shouldSendSms = merchantSettings?.appointmentReminder24hSms !== false;
-          } else if (notification.type === NotificationType.BOOKING_REMINDER_2H) {
-            shouldSendEmail = merchantSettings?.appointmentReminder2hEmail !== false;
-            shouldSendSms = merchantSettings?.appointmentReminder2hSms !== false;
+            shouldSendEmail =
+              merchantSettings?.appointmentReminder24hEmail !== false;
+            shouldSendSms =
+              merchantSettings?.appointmentReminder24hSms !== false;
+          } else if (
+            notification.type === NotificationType.BOOKING_REMINDER_2H
+          ) {
+            shouldSendEmail =
+              merchantSettings?.appointmentReminder2hEmail !== false;
+            shouldSendSms =
+              merchantSettings?.appointmentReminder2hSms !== false;
           }
 
           if (!shouldSendEmail && !shouldSendSms) {
@@ -181,8 +213,8 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
             await this.prisma.scheduledNotification.update({
               where: { id: notification.id },
               data: {
-                status: 'cancelled',
-                error: 'Merchant has disabled this reminder type',
+                status: "cancelled",
+                error: "Merchant has disabled this reminder type",
               },
             });
             this.logger.log(
@@ -199,7 +231,7 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
               preferredChannel: this.determineMerchantPreferredChannel(
                 context.customer.preferredChannel,
                 shouldSendEmail,
-                shouldSendSms
+                shouldSendSms,
               ),
             },
           };
@@ -213,32 +245,32 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
           await this.prisma.scheduledNotification.update({
             where: { id: notification.id },
             data: {
-              status: success ? 'sent' : 'failed',
+              status: success ? "sent" : "failed",
               sentAt: success ? new Date() : null,
-              error: !success ? 'Failed to send via all channels' : null,
+              error: !success ? "Failed to send via all channels" : null,
             },
           });
 
           this.logger.log(
-            `Processed scheduled notification ${notification.id}: ${success ? 'sent' : 'failed'}`,
+            `Processed scheduled notification ${notification.id}: ${success ? "sent" : "failed"}`,
           );
         } catch (error) {
           this.logger.error(
             `Failed to process scheduled notification ${notification.id}`,
             error,
           );
-          
+
           await this.prisma.scheduledNotification.update({
             where: { id: notification.id },
             data: {
-              status: 'failed',
+              status: "failed",
               error: (error as Error).message,
             },
           });
         }
       }
     } catch (error) {
-      this.logger.error('Failed to process scheduled notifications', error);
+      this.logger.error("Failed to process scheduled notifications", error);
     }
   }
 
@@ -250,7 +282,7 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
       const result = await this.prisma.scheduledNotification.deleteMany({
         where: {
           status: {
-            in: ['sent', 'failed', 'cancelled'],
+            in: ["sent", "failed", "cancelled"],
           },
           updatedAt: {
             lt: thirtyDaysAgo,
@@ -260,26 +292,26 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`Cleaned up ${result.count} old scheduled notifications`);
     } catch (error) {
-      this.logger.error('Failed to cleanup old notifications', error);
+      this.logger.error("Failed to cleanup old notifications", error);
     }
   }
 
   private determineMerchantPreferredChannel(
-    customerPreference: 'email' | 'sms' | 'both',
+    customerPreference: "email" | "sms" | "both",
     emailEnabled: boolean,
     smsEnabled: boolean,
-  ): 'email' | 'sms' | 'both' {
+  ): "email" | "sms" | "both" {
     // If merchant has disabled both channels, return 'both' to skip sending
     if (!emailEnabled && !smsEnabled) {
-      return 'both'; // This will result in no notifications being sent
+      return "both"; // This will result in no notifications being sent
     }
 
     // If only one channel is enabled by merchant, use that
     if (emailEnabled && !smsEnabled) {
-      return 'email';
+      return "email";
     }
     if (!emailEnabled && smsEnabled) {
-      return 'sms';
+      return "sms";
     }
 
     // Both channels are enabled by merchant, respect customer preference

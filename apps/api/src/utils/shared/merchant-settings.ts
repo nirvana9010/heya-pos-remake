@@ -1,4 +1,4 @@
-import { MerchantSettings } from '../../types/models/merchant';
+import { MerchantSettings } from "../../types/models/merchant";
 
 type SettingsObject = Record<string, any>;
 
@@ -8,10 +8,10 @@ type SettingsObject = Record<string, any>;
  * raw JSON to miss overrides. This helper unwraps any nested `settings` layer while preserving
  * sibling properties and applies minimal defaults for downstream logic.
  */
-export function normalizeMerchantSettings<T extends SettingsObject = MerchantSettings>(
-  rawSettings: unknown,
-): T {
-  if (!rawSettings || typeof rawSettings !== 'object') {
+export function normalizeMerchantSettings<
+  T extends SettingsObject = MerchantSettings,
+>(rawSettings: unknown): T {
+  if (!rawSettings || typeof rawSettings !== "object") {
     return {} as T;
   }
 
@@ -19,14 +19,11 @@ export function normalizeMerchantSettings<T extends SettingsObject = MerchantSet
   let normalized: SettingsObject = { ...(rawSettings as SettingsObject) };
   const seen = new Set<SettingsObject>();
 
-  while (
-    normalized &&
-    typeof normalized === 'object'
-  ) {
+  while (normalized && typeof normalized === "object") {
     const nested = (normalized as SettingsObject).settings;
     if (
       !nested ||
-      typeof nested !== 'object' ||
+      typeof nested !== "object" ||
       seen.has(nested as SettingsObject)
     ) {
       break;
@@ -40,7 +37,7 @@ export function normalizeMerchantSettings<T extends SettingsObject = MerchantSet
 
   if (
     normalized &&
-    typeof normalized === 'object' &&
+    typeof normalized === "object" &&
     normalized.priceToDurationRatio === undefined
   ) {
     normalized.priceToDurationRatio = 1.0;

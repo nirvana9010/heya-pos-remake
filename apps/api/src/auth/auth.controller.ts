@@ -10,20 +10,20 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { PinAuthService } from './pin-auth.service';
-import { SessionService } from './session.service';
-import { MerchantLoginDto } from './dto/merchant-login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { VerifyPinDto } from './dto/verify-pin.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { AuthSession } from '../types';
-import { JwtService } from '@nestjs/jwt';
+} from "@nestjs/common";
+import { AuthService } from "./auth.service";
+import { PinAuthService } from "./pin-auth.service";
+import { SessionService } from "./session.service";
+import { MerchantLoginDto } from "./dto/merchant-login.dto";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { VerifyPinDto } from "./dto/verify-pin.dto";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { CurrentUser } from "./decorators/current-user.decorator";
+import { AuthSession } from "../types";
+import { JwtService } from "@nestjs/jwt";
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   constructor(
     private authService: AuthService,
@@ -32,80 +32,84 @@ export class AuthController {
     private jwtService: JwtService,
   ) {}
 
-  @Post('merchant/login')
+  @Post("merchant/login")
   @HttpCode(HttpStatus.OK)
   async merchantLogin(
     @Body() dto: MerchantLoginDto,
     @Req() req: any,
   ): Promise<AuthSession> {
     const session = await this.authService.merchantLogin(dto);
-    
+
     // Store session
     this.sessionService.createSession(session.token, session);
-    
+
     return session;
   }
 
-  @Post('refresh')
+  @Post("refresh")
   @HttpCode(HttpStatus.OK)
   async refreshToken(@Body() dto: RefreshTokenDto): Promise<AuthSession> {
     const session = await this.authService.refreshToken(dto.refreshToken);
-    
+
     // Store new session
     this.sessionService.createSession(session.token, session);
-    
+
     return session;
   }
 
-  @Post('logout')
+  @Post("logout")
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
-    @Headers('authorization') authHeader: string,
+    @Headers("authorization") authHeader: string,
     @CurrentUser() user: any,
     @Req() req: any,
   ): Promise<void> {
-    const token = authHeader?.replace('Bearer ', '');
-    
+    const token = authHeader?.replace("Bearer ", "");
+
     if (token) {
       this.sessionService.removeSession(token);
     }
 
     // Log the logout
     const ipAddress = req.ip || req.connection?.remoteAddress;
-    await this.authService['createAuditLog']({
+    await this.authService["createAuditLog"]({
       merchantId: user.merchantId,
       staffId: null,
-      action: 'merchant.logout',
-      entityType: 'merchant',
+      action: "merchant.logout",
+      entityType: "merchant",
       entityId: user.merchantId,
       details: { logoutAt: new Date().toISOString() },
       ipAddress,
     });
   }
 
-  @Get('me')
+  @Get("me")
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: any): Promise<any> {
     // All users are now merchant type
     return {
-      type: 'merchant',
+      type: "merchant",
       merchant: user.merchant,
-      permissions: ['*'],
+      permissions: ["*"],
     };
   }
 
-  @Post('merchant/change-password')
+  @Post("merchant/change-password")
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async changeMerchantPassword(
     @Body() dto: ChangePasswordDto,
     @CurrentUser() user: any,
   ): Promise<{ success: boolean }> {
-    return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
+    return this.authService.changePassword(
+      user.id,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 
-  @Post('verify-action')
+  @Post("verify-action")
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async verifyAction(
@@ -123,7 +127,7 @@ export class AuthController {
     };
   }> {
     const ipAddress = req.ip || req.connection?.remoteAddress;
-    
+
     // Verify PIN and log action
     return this.pinAuthService.verifyPinAndLogAction(
       dto,
@@ -132,21 +136,21 @@ export class AuthController {
     );
   }
 
-  @Get('session')
+  @Get("session")
   @UseGuards(JwtAuthGuard)
   async getSession(
-    @Headers('authorization') authHeader: string,
+    @Headers("authorization") authHeader: string,
   ): Promise<AuthSession | null> {
-    const token = authHeader?.replace('Bearer ', '');
-    
+    const token = authHeader?.replace("Bearer ", "");
+
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException("No token provided");
     }
 
     const session = this.sessionService.getSession(token);
-    
+
     if (!session) {
-      throw new UnauthorizedException('Session not found or expired');
+      throw new UnauthorizedException("Session not found or expired");
     }
 
     return session;
@@ -156,7 +160,7 @@ export class AuthController {
    * Health check endpoint for authentication module
    * Verifies that all auth dependencies are properly configured
    */
-  @Get('health')
+  @Get("health")
   async healthCheck(): Promise<{
     status: string;
     timestamp: Date;
@@ -178,22 +182,24 @@ export class AuthController {
     try {
       // Check if JWT module is configured
       const jwtConfigured = !!this.jwtService;
-      
+
       // Check if SessionService is injectable
       const sessionServiceConfigured = !!this.sessionService;
-      
+
       // Check if auth guard is properly registered
       const authGuardConfigured = !!JwtAuthGuard;
-      
+
       // Get active session count
       const sessions = this.sessionService.getActiveSessions();
       const sessionCount = sessions instanceof Map ? sessions.size : 0;
-      
+
       // Check JWT secret configuration
-      const jwtSecretConfigured = !!(process.env.JWT_SECRET || 'default-secret');
+      const jwtSecretConfigured = !!(
+        process.env.JWT_SECRET || "default-secret"
+      );
 
       return {
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date(),
         checks: {
           jwt: jwtConfigured,
@@ -207,12 +213,12 @@ export class AuthController {
         details: {
           jwtSecret: jwtSecretConfigured,
           sessionCount,
-          message: 'Authentication module is properly configured',
+          message: "Authentication module is properly configured",
         },
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         timestamp: new Date(),
         checks: {
           jwt: false,
@@ -226,7 +232,7 @@ export class AuthController {
         details: {
           jwtSecret: false,
           sessionCount: 0,
-          message: `Authentication module error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `Authentication module error: ${error instanceof Error ? error.message : "Unknown error"}`,
         },
       };
     }

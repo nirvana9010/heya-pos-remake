@@ -1,18 +1,20 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
-import { VerifyPinDto } from './dto/verify-pin.dto';
-import { PinAuthManager } from '../utils/shared/pin';
-import { AuditLog } from '@prisma/client';
-import { formatName } from '../utils/shared/format';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import * as bcrypt from "bcrypt";
+import { VerifyPinDto } from "./dto/verify-pin.dto";
+import { PinAuthManager } from "../utils/shared/pin";
+import { AuditLog } from "@prisma/client";
+import { formatName } from "../utils/shared/format";
 
 @Injectable()
 export class PinAuthService {
   private pinAuthManager: PinAuthManager;
 
-  constructor(
-    private prisma: PrismaService,
-  ) {
+  constructor(private prisma: PrismaService) {
     this.pinAuthManager = new PinAuthManager(3, 15); // 3 attempts, 15 min lockout
   }
 
@@ -46,12 +48,12 @@ export class PinAuthService {
       where: {
         id: staffId,
         merchantId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
     if (!staff) {
-      throw new UnauthorizedException('Staff member not found');
+      throw new UnauthorizedException("Staff member not found");
     }
 
     // Verify PIN
@@ -61,21 +63,22 @@ export class PinAuthService {
     if (!authenticatedStaff) {
       // Record failed attempt
       const tracker = this.pinAuthManager.recordAttempt(lockKey, false);
-      
+
       if (tracker.lockedUntil) {
         throw new ForbiddenException(
-          'Too many failed attempts. Account has been locked.',
+          "Too many failed attempts. Account has been locked.",
         );
       }
 
-      const remainingAttempts = this.pinAuthManager.getRemainingAttempts(lockKey);
-      
+      const remainingAttempts =
+        this.pinAuthManager.getRemainingAttempts(lockKey);
+
       // Log failed PIN verification
       await this.createAuditLog({
         merchantId,
         staffId: null,
         action: `pin.verify.failed`,
-        entityType: 'action',
+        entityType: "action",
         entityId: resourceId || action,
         details: { attemptedAction: action },
         ipAddress,
@@ -96,18 +99,21 @@ export class PinAuthService {
         merchantId,
         staffId: authenticatedStaff.id,
         action: `action.unauthorized`,
-        entityType: 'action',
+        entityType: "action",
         entityId: resourceId || action,
-        details: { 
+        details: {
           attemptedAction: action,
           staffAccessLevel: authenticatedStaff.accessLevel,
-          staffName: formatName(authenticatedStaff.firstName, authenticatedStaff.lastName)
+          staffName: formatName(
+            authenticatedStaff.firstName,
+            authenticatedStaff.lastName,
+          ),
         },
         ipAddress,
       });
 
       throw new ForbiddenException(
-        'You do not have permission to perform this action',
+        "You do not have permission to perform this action",
       );
     }
 
@@ -116,12 +122,12 @@ export class PinAuthService {
       merchantId,
       staffId: authenticatedStaff.id,
       action: `action.${action}`,
-      entityType: 'action',
+      entityType: "action",
       entityId: resourceId || action,
-      details: { 
+      details: {
         verifiedAction: action,
         staffName: `${authenticatedStaff.firstName} ${authenticatedStaff.lastName}`,
-        staffAccessLevel: authenticatedStaff.accessLevel
+        staffAccessLevel: authenticatedStaff.accessLevel,
       },
       ipAddress,
     });
@@ -142,22 +148,22 @@ export class PinAuthService {
     // Define which actions require which access levels
     const actionPermissions: Record<string, number> = {
       // Level 1 (Staff) actions
-      'view_customer_details': 1,
-      'process_payment': 1,
-      'create_booking': 1,
-      
+      view_customer_details: 1,
+      process_payment: 1,
+      create_booking: 1,
+
       // Level 2 (Manager) actions
-      'refund_payment': 2,
-      'cancel_booking': 2,
-      'view_reports': 2,
-      'edit_staff': 2,
-      'view_sensitive_customer_data': 2,
-      
+      refund_payment: 2,
+      cancel_booking: 2,
+      view_reports: 2,
+      edit_staff: 2,
+      view_sensitive_customer_data: 2,
+
       // Level 3 (Owner) actions
-      'delete_customer': 3,
-      'export_all_data': 3,
-      'modify_settings': 3,
-      'view_financial_reports': 3,
+      delete_customer: 3,
+      export_all_data: 3,
+      modify_settings: 3,
+      view_financial_reports: 3,
     };
 
     const requiredLevel = actionPermissions[action] || 3; // Default to owner if not defined
@@ -167,16 +173,18 @@ export class PinAuthService {
   private getRoleByAccessLevel(accessLevel: number): string {
     switch (accessLevel) {
       case 3:
-        return 'OWNER';
+        return "OWNER";
       case 2:
-        return 'MANAGER';
+        return "MANAGER";
       case 1:
       default:
-        return 'STAFF';
+        return "STAFF";
     }
   }
 
-  private async createAuditLog(data: Omit<AuditLog, 'id' | 'timestamp'>): Promise<void> {
+  private async createAuditLog(
+    data: Omit<AuditLog, "id" | "timestamp">,
+  ): Promise<void> {
     const { staffId, ...logData } = data;
     await this.prisma.auditLog.create({
       data: {

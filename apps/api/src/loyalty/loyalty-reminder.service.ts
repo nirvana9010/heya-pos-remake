@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/interfaces/notification.interface';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { NotificationType } from "../notifications/interfaces/notification.interface";
+import { Decimal } from "@prisma/client/runtime/library";
 
-type LoyaltyProgramType = 'VISITS' | 'POINTS';
+type LoyaltyProgramType = "VISITS" | "POINTS";
 
 interface AccrualParams {
   merchantId: string;
@@ -36,7 +36,7 @@ export class LoyaltyReminderService {
         merchantId,
         isEnabled: true,
       },
-      orderBy: { sequence: 'asc' },
+      orderBy: { sequence: "asc" },
     });
 
     if (touchpoints.length === 0) {
@@ -59,7 +59,7 @@ export class LoyaltyReminderService {
         where: {
           merchantId,
           customerId,
-          type: 'REDEEMED',
+          type: "REDEEMED",
         },
       }),
     ]);
@@ -119,7 +119,7 @@ export class LoyaltyReminderService {
       where: {
         merchantId,
         customerId,
-        type: 'REDEEMED',
+        type: "REDEEMED",
       },
     });
 
@@ -175,7 +175,14 @@ export class LoyaltyReminderService {
     currentValue: number;
     programType: LoyaltyProgramType;
   }): Promise<void> {
-    const { merchantId, customerId, touchpoint, sequence, currentValue, programType } = params;
+    const {
+      merchantId,
+      customerId,
+      touchpoint,
+      sequence,
+      currentValue,
+      programType,
+    } = params;
 
     const [merchant, customer, program] = await Promise.all([
       this.prisma.merchant.findUnique({
@@ -248,7 +255,7 @@ export class LoyaltyReminderService {
         phone: customer.phone ?? undefined,
         firstName: customer.firstName ?? undefined,
         lastName: customer.lastName ?? undefined,
-        preferredChannel: (customer.notificationPreference as any) ?? 'both',
+        preferredChannel: (customer.notificationPreference as any) ?? "both",
         emailNotifications: customer.emailNotifications,
         smsNotifications: customer.smsNotifications,
       },
@@ -263,7 +270,8 @@ export class LoyaltyReminderService {
         currentValue,
         rewardType: program?.visitRewardType ?? null,
         rewardValue:
-          program?.visitRewardValue !== undefined && program?.visitRewardValue !== null
+          program?.visitRewardValue !== undefined &&
+          program?.visitRewardValue !== null
             ? Number(program.visitRewardValue)
             : null,
         pointsValue:

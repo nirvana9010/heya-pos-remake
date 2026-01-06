@@ -1,5 +1,8 @@
 export class PinAuthManager {
-  private static attempts = new Map<string, { count: number; lastAttempt: Date }>();
+  private static attempts = new Map<
+    string,
+    { count: number; lastAttempt: Date }
+  >();
   private static readonly MAX_ATTEMPTS = 5;
   private static readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
@@ -8,7 +11,8 @@ export class PinAuthManager {
     if (!attemptInfo) return true;
 
     const now = new Date();
-    const timeSinceLastAttempt = now.getTime() - attemptInfo.lastAttempt.getTime();
+    const timeSinceLastAttempt =
+      now.getTime() - attemptInfo.lastAttempt.getTime();
 
     if (attemptInfo.count >= this.MAX_ATTEMPTS) {
       if (timeSinceLastAttempt < this.LOCKOUT_DURATION) {
@@ -27,7 +31,10 @@ export class PinAuthManager {
       return;
     }
 
-    const attemptInfo = this.attempts.get(identifier) || { count: 0, lastAttempt: new Date() };
+    const attemptInfo = this.attempts.get(identifier) || {
+      count: 0,
+      lastAttempt: new Date(),
+    };
     attemptInfo.count++;
     attemptInfo.lastAttempt = new Date();
     this.attempts.set(identifier, attemptInfo);

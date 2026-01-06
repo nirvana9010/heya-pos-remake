@@ -1,13 +1,13 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { BookingCreationService } from './booking-creation.service';
-import { BookingAvailabilityService } from './booking-availability.service';
-import { TimezoneUtils } from '../../../../utils/shared/timezone';
-import { toNumber } from '../../../../utils/decimal';
-import { BookingServiceData } from '../commands/create-booking.command';
-import { normalizeMerchantSettings } from '../../../../utils/shared/merchant-settings';
-import { MerchantSettings } from '../../../../types/models/merchant';
-import { UnassignedCapacityService } from './unassigned-capacity.service';
+import { Injectable, Inject, ConflictException } from "@nestjs/common";
+import { PrismaService } from "../../../../prisma/prisma.service";
+import { BookingCreationService } from "./booking-creation.service";
+import { BookingAvailabilityService } from "./booking-availability.service";
+import { TimezoneUtils } from "../../../../utils/shared/timezone";
+import { toNumber } from "../../../../utils/decimal";
+import { BookingServiceData } from "../commands/create-booking.command";
+import { normalizeMerchantSettings } from "../../../../utils/shared/merchant-settings";
+import { MerchantSettings } from "../../../../types/models/merchant";
+import { UnassignedCapacityService } from "./unassigned-capacity.service";
 
 export interface PublicCreateBookingData {
   customerName: string;
@@ -51,10 +51,9 @@ export class PublicBookingService {
       },
     });
 
-    if (!merchant || merchant.status !== 'ACTIVE') {
-      throw new Error('Merchant not found or not active');
+    if (!merchant || merchant.status !== "ACTIVE") {
+      throw new Error("Merchant not found or not active");
     }
-
 
     // Normalize input to support both single and multiple services
     const serviceRequests = dto.services || [
@@ -62,28 +61,38 @@ export class PublicBookingService {
     ];
 
     if (serviceRequests.length === 0) {
-      throw new Error('At least one service must be selected');
+      throw new Error("At least one service must be selected");
     }
 
     // Get all service details
     const services = await this.prisma.service.findMany({
       where: {
-        id: { in: serviceRequests.map(s => s.serviceId) },
+        id: { in: serviceRequests.map((s) => s.serviceId) },
         merchantId: merchant.id,
       },
     });
 
     if (services.length !== serviceRequests.length) {
-      throw new Error('One or more services not found');
+      throw new Error("One or more services not found");
     }
 
     // Calculate total duration and price
-    const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
-    const totalPrice = services.reduce((sum, service) => sum + toNumber(service.price), 0);
-    
+    const totalDuration = services.reduce(
+      (sum, service) => sum + service.duration,
+      0,
+    );
+    const totalPrice = services.reduce(
+      (sum, service) => sum + toNumber(service.price),
+      0,
+    );
+
     // Debug log
-    console.error('BOOKING CREATION - Service details:', {
-      services: services.map(s => ({ id: s.id, name: s.name, duration: s.duration })),
+    console.error("BOOKING CREATION - Service details:", {
+      services: services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        duration: s.duration,
+      })),
       totalDuration,
       requestedStartTime: `${dto.date} ${dto.startTime}`,
     });
@@ -97,11 +106,11 @@ export class PublicBookingService {
     });
 
     if (!location) {
-      throw new Error('No active location found');
+      throw new Error("No active location found");
     }
 
     if (!dto.customerEmail && !dto.customerPhone) {
-      throw new Error('Either customer email or phone is required');
+      throw new Error("Either customer email or phone is required");
     }
 
     const lookupConditions: Array<Record<string, string>> = [];
@@ -123,12 +132,12 @@ export class PublicBookingService {
       : null;
 
     if (!customer) {
-      const [firstName, ...lastNameParts] = dto.customerName.split(' ');
+      const [firstName, ...lastNameParts] = dto.customerName.split(" ");
       customer = await this.prisma.customer.create({
         data: {
           merchantId: merchant.id,
-          firstName: firstName || '',
-          lastName: lastNameParts.join(' ') || '',
+          firstName: firstName || "",
+          lastName: lastNameParts.join(" ") || "",
           ...(dto.customerEmail ? { email: dto.customerEmail } : {}),
           ...(dto.customerPhone
             ? { phone: dto.customerPhone, mobile: dto.customerPhone }
@@ -138,12 +147,12 @@ export class PublicBookingService {
     } else {
       // Update customer if they've provided new information
       const updateData: any = {};
-      
+
       // Update email if customer didn't have one before but now provided it
       if (dto.customerEmail && customer.email !== dto.customerEmail) {
         updateData.email = dto.customerEmail;
       }
-      
+
       // Update phone if customer didn't have one before but now provided it
       if (dto.customerPhone) {
         if (customer.phone !== dto.customerPhone) {
@@ -153,14 +162,17 @@ export class PublicBookingService {
           updateData.mobile = dto.customerPhone;
         }
       }
-      
+
       // Update name if it has changed
-      const [firstName, ...lastNameParts] = dto.customerName.split(' ');
-      if (firstName !== customer.firstName || lastNameParts.join(' ') !== customer.lastName) {
-        updateData.firstName = firstName || '';
-        updateData.lastName = lastNameParts.join(' ') || '';
+      const [firstName, ...lastNameParts] = dto.customerName.split(" ");
+      if (
+        firstName !== customer.firstName ||
+        lastNameParts.join(" ") !== customer.lastName
+      ) {
+        updateData.firstName = firstName || "";
+        updateData.lastName = lastNameParts.join(" ") || "";
       }
-      
+
       // Only update if there are changes
       if (Object.keys(updateData).length > 0) {
         customer = await this.prisma.customer.update({
@@ -174,90 +186,113 @@ export class PublicBookingService {
     const startTime = TimezoneUtils.createDateInTimezone(
       dto.date,
       dto.startTime,
-      location.timezone
+      location.timezone,
     );
-    
+
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + totalDuration);
-    
+
     // Validate that booking is not in the past
     const now = new Date();
     if (startTime < now) {
-      throw new Error('Cannot create bookings in the past. Please select a future date and time.');
+      throw new Error(
+        "Cannot create bookings in the past. Please select a future date and time.",
+      );
     }
-    
+
     // Validate booking advance hours with timezone consideration
-    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
+    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+      merchant.settings,
+    );
     const bookingAdvanceHours = merchantSettings?.bookingAdvanceHours || 168; // Default 7 days
     const minimumBookingNotice = merchantSettings?.minimumBookingNotice || 0; // Default no restriction (in minutes)
-    const merchantTimezone = merchant.locations?.[0]?.timezone || 'Australia/Sydney';
-    
+    const merchantTimezone =
+      merchant.locations?.[0]?.timezone || "Australia/Sydney";
+
     // Calculate the time difference in hours and minutes
     const timeDifferenceMs = startTime.getTime() - now.getTime();
     const hoursUntilBooking = timeDifferenceMs / (1000 * 60 * 60);
     const minutesUntilBooking = timeDifferenceMs / (1000 * 60);
-    
+
     // Check if booking is too far in advance
     if (hoursUntilBooking > bookingAdvanceHours) {
       throw new Error(
         `Bookings can only be made up to ${formatAdvanceBookingWindow(bookingAdvanceHours)} in advance`,
       );
     }
-    
+
     // Check minimum booking notice
-    if (minimumBookingNotice > 0 && minutesUntilBooking < minimumBookingNotice) {
+    if (
+      minimumBookingNotice > 0 &&
+      minutesUntilBooking < minimumBookingNotice
+    ) {
       let noticeText;
       if (minimumBookingNotice >= 1440) {
         // 24 hours or more
         const days = Math.floor(minimumBookingNotice / 1440);
-        noticeText = days === 1 ? '24 hours' : `${days} days`;
+        noticeText = days === 1 ? "24 hours" : `${days} days`;
       } else if (minimumBookingNotice >= 60) {
         // 1 hour or more
         const hours = Math.floor(minimumBookingNotice / 60);
-        noticeText = hours === 1 ? '1 hour' : `${hours} hours`;
+        noticeText = hours === 1 ? "1 hour" : `${hours} hours`;
       } else {
         // Less than 1 hour
         noticeText = `${minimumBookingNotice} minutes`;
       }
-      throw new Error(`Bookings must be made at least ${noticeText} in advance`);
+      throw new Error(
+        `Bookings must be made at least ${noticeText} in advance`,
+      );
     }
-    
+
     // Legacy check for very short advance booking limits (< 24 hours)
     // This is kept for backward compatibility
     if (bookingAdvanceHours < 24 && hoursUntilBooking < bookingAdvanceHours) {
-      throw new Error(`Bookings must be made at least ${bookingAdvanceHours} hours in advance`);
+      throw new Error(
+        `Bookings must be made at least ${bookingAdvanceHours} hours in advance`,
+      );
     }
-    
+
     // Check service-specific booking limits
     for (const service of serviceRequests) {
       const serviceDetails = await this.prisma.service.findUnique({
-        where: { id: service.serviceId }
+        where: { id: service.serviceId },
       });
-      
+
       if (serviceDetails?.maxAdvanceBooking) {
         const daysUntilBooking = hoursUntilBooking / 24;
         if (daysUntilBooking > serviceDetails.maxAdvanceBooking) {
-          throw new Error(`Service "${serviceDetails.name}" can only be booked up to ${serviceDetails.maxAdvanceBooking} days in advance`);
+          throw new Error(
+            `Service "${serviceDetails.name}" can only be booked up to ${serviceDetails.maxAdvanceBooking} days in advance`,
+          );
         }
       }
-      
+
       if (serviceDetails?.minAdvanceBooking) {
         if (hoursUntilBooking < serviceDetails.minAdvanceBooking) {
-          throw new Error(`Service "${serviceDetails.name}" requires at least ${serviceDetails.minAdvanceBooking} hours advance notice`);
+          throw new Error(
+            `Service "${serviceDetails.name}" requires at least ${serviceDetails.minAdvanceBooking} hours advance notice`,
+          );
         }
       }
     }
 
     // Check merchant settings for unassigned bookings
-    const allowUnassignedBookings = merchantSettings?.allowUnassignedBookings ?? true;
-    
+    const allowUnassignedBookings =
+      merchantSettings?.allowUnassignedBookings ?? true;
+
     // Use provided staff or leave unassigned (null) if not specified
     let staffId = dto.staffId || serviceRequests[0].staffId || null;
     const primaryServiceId = serviceRequests[0].serviceId;
 
-    const dayStart = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
-    const dayEnd = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
-    
+    const dayStart = TimezoneUtils.startOfDayInTimezone(
+      dto.date,
+      location.timezone,
+    );
+    const dayEnd = TimezoneUtils.endOfDayInTimezone(
+      dto.date,
+      location.timezone,
+    );
+
     // If no staff selected and merchant doesn't allow unassigned bookings,
     // we need to find an available staff member
     if (!staffId && !allowUnassignedBookings) {
@@ -265,15 +300,15 @@ export class PublicBookingService {
       const availableStaff = await this.prisma.staff.findMany({
         where: {
           merchantId: merchant.id,
-          status: 'ACTIVE',
+          status: "ACTIVE",
           NOT: {
-            firstName: 'Unassigned',
+            firstName: "Unassigned",
           },
         },
       });
 
       if (availableStaff.length === 0) {
-        throw new Error('No staff members available for this booking.');
+        throw new Error("No staff members available for this booking.");
       }
 
       // Find the first available staff member
@@ -283,7 +318,7 @@ export class PublicBookingService {
           where: {
             merchantId: merchant.id,
             providerId: staff.id,
-            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+            status: { notIn: ["CANCELLED", "NO_SHOW"] },
             AND: [
               { startTime: { lt: endTime } },
               { endTime: { gt: startTime } },
@@ -294,19 +329,22 @@ export class PublicBookingService {
         if (conflicts.length === 0) {
           let rosterSupportsSlot = false;
           try {
-            const rosterSlots = await this.bookingAvailabilityService.getAvailableSlots({
-              staffId: staff.id,
-              serviceId: primaryServiceId,
-              merchantId: merchant.id,
-              startDate: dayStart,
-              endDate: dayEnd,
-              timezone: location.timezone,
-              duration: totalDuration,
-              requireRosterOnly: true,
-            });
+            const rosterSlots =
+              await this.bookingAvailabilityService.getAvailableSlots({
+                staffId: staff.id,
+                serviceId: primaryServiceId,
+                merchantId: merchant.id,
+                startDate: dayStart,
+                endDate: dayEnd,
+                timezone: location.timezone,
+                duration: totalDuration,
+                requireRosterOnly: true,
+              });
 
             rosterSupportsSlot = rosterSlots.some(
-              (slot) => slot.available && slot.startTime.getTime() === startTime.getTime(),
+              (slot) =>
+                slot.available &&
+                slot.startTime.getTime() === startTime.getTime(),
             );
           } catch (error) {
             rosterSupportsSlot = false;
@@ -318,9 +356,11 @@ export class PublicBookingService {
 
           staffId = staff.id;
           foundAvailableStaff = true;
-          console.error('AUTO-ASSIGNED STAFF:', {
+          console.error("AUTO-ASSIGNED STAFF:", {
             staffId: staff.id,
-            staffName: staff.lastName ? `${staff.firstName} ${staff.lastName}` : staff.firstName,
+            staffName: staff.lastName
+              ? `${staff.firstName} ${staff.lastName}`
+              : staff.firstName,
             requestedTime: `${dto.date} ${dto.startTime}`,
             duration: totalDuration,
           });
@@ -329,23 +369,25 @@ export class PublicBookingService {
       }
 
       if (!foundAvailableStaff) {
-        throw new Error('This time slot is no longer available. All staff members are booked.');
+        throw new Error(
+          "This time slot is no longer available. All staff members are booked.",
+        );
       }
     }
-    
+
     // For the createdBy field (which is required), we need any active staff
     // This doesn't mean the booking is assigned to them - it's just for audit purposes
     const anyActiveStaff = await this.prisma.staff.findFirst({
       where: {
         merchantId: merchant.id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         // Exclude the unassigned user if it exists
         NOT: {
-          firstName: 'Unassigned',
+          firstName: "Unassigned",
         },
       },
       orderBy: {
-        createdAt: 'asc', // Use the oldest staff member (likely the owner)
+        createdAt: "asc", // Use the oldest staff member (likely the owner)
       },
     });
 
@@ -355,7 +397,7 @@ export class PublicBookingService {
         where: { merchantId: merchant.id },
         select: { id: true, firstName: true, status: true },
       });
-      throw new Error('No active staff available in the system');
+      throw new Error("No active staff available in the system");
     }
 
     // Store the creator ID to use in the transaction
@@ -368,49 +410,52 @@ export class PublicBookingService {
           where: {
             merchantId: merchant.id,
             providerId: staffId,
-            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-          OR: [
-            {
-              AND: [
-                { startTime: { lt: endTime } },
-                { endTime: { gt: startTime } },
-              ],
-            },
-          ],
-        },
-      });
-
-      if (conflicts.length > 0) {
-        console.error('BOOKING CONFLICT:', {
-          requestedSlot: {
-            start: startTime.toISOString(),
-            end: endTime.toISOString(),
-            duration: `${totalDuration} minutes`,
+            status: { notIn: ["CANCELLED", "NO_SHOW"] },
+            OR: [
+              {
+                AND: [
+                  { startTime: { lt: endTime } },
+                  { endTime: { gt: startTime } },
+                ],
+              },
+            ],
           },
-          conflictingBookings: conflicts.map(c => ({
-            id: c.id,
-            start: c.startTime.toISOString(),
-            end: c.endTime.toISOString(),
-            provider: c.providerId,
-          })),
         });
 
-        throw new ConflictException({
-          message: 'This time slot is no longer available. Please choose a different time.',
-          conflicts: conflicts.map(c => ({
-            id: c.id,
-            startTime: c.startTime,
-            endTime: c.endTime,
-            status: c.status,
-          })),
-        });
-      }
+        if (conflicts.length > 0) {
+          console.error("BOOKING CONFLICT:", {
+            requestedSlot: {
+              start: startTime.toISOString(),
+              end: endTime.toISOString(),
+              duration: `${totalDuration} minutes`,
+            },
+            conflictingBookings: conflicts.map((c) => ({
+              id: c.id,
+              start: c.startTime.toISOString(),
+              end: c.endTime.toISOString(),
+              provider: c.providerId,
+            })),
+          });
+
+          throw new ConflictException({
+            message:
+              "This time slot is no longer available. Please choose a different time.",
+            conflicts: conflicts.map((c) => ({
+              id: c.id,
+              startTime: c.startTime,
+              endTime: c.endTime,
+              status: c.status,
+            })),
+          });
+        }
       }
 
-      const bookingServices: BookingServiceData[] = serviceRequests.map(service => ({
-        serviceId: service.serviceId,
-        staffId: service.staffId || staffId || undefined,
-      }));
+      const bookingServices: BookingServiceData[] = serviceRequests.map(
+        (service) => ({
+          serviceId: service.serviceId,
+          staffId: service.staffId || staffId || undefined,
+        }),
+      );
 
       const createdBooking = await this.bookingCreationService.createBooking({
         merchantId: merchant.id,
@@ -419,9 +464,11 @@ export class PublicBookingService {
         services: bookingServices,
         staffId: staffId || undefined,
         startTime,
-        source: 'ONLINE',
+        source: "ONLINE",
         notes: dto.notes,
-        customerRequestedStaff: Boolean(dto.staffId || serviceRequests.some(sr => sr.staffId)),
+        customerRequestedStaff: Boolean(
+          dto.staffId || serviceRequests.some((sr) => sr.staffId),
+        ),
         createdById: staffId || creatorStaffId,
       });
 
@@ -441,25 +488,38 @@ export class PublicBookingService {
       });
 
       if (!completeBooking) {
-        throw new Error('Failed to fetch created booking');
+        throw new Error("Failed to fetch created booking");
       }
 
       // Get booking duration from services
-      const bookingDuration = completeBooking.services.reduce((sum, bs) => sum + bs.duration, 0);
-    
+      const bookingDuration = completeBooking.services.reduce(
+        (sum, bs) => sum + bs.duration,
+        0,
+      );
+
       // Convert the stored UTC times back to the location's timezone for display
-      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(completeBooking.startTime, location.timezone);
-      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(completeBooking.endTime, location.timezone);
-      
+      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(
+        completeBooking.startTime,
+        location.timezone,
+      );
+      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(
+        completeBooking.endTime,
+        location.timezone,
+      );
+
       return {
         id: completeBooking.id,
         bookingNumber: completeBooking.bookingNumber,
         customerName: dto.customerName,
         customerEmail: dto.customerEmail,
         customerPhone: dto.customerPhone,
-        serviceId: serviceRequests.length === 1 ? serviceRequests[0].serviceId : undefined,
-        serviceName: serviceRequests.length === 1 ? services[0].name : undefined,
-        services: completeBooking.services.map(bs => ({
+        serviceId:
+          serviceRequests.length === 1
+            ? serviceRequests[0].serviceId
+            : undefined,
+        serviceName:
+          serviceRequests.length === 1 ? services[0].name : undefined,
+        services: completeBooking.services.map((bs) => ({
           id: bs.service.id,
           name: bs.service.name,
           price: toNumber(bs.price),
@@ -467,14 +527,17 @@ export class PublicBookingService {
           staffId: bs.staffId,
         })),
         staffId: completeBooking.providerId,
-        staffName: completeBooking.provider 
-          ? (completeBooking.provider.lastName 
-              ? `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`
-              : completeBooking.provider.firstName)
-          : 'Unassigned',
-        date: startTimeDisplay.date.split('/')[2] + '-' + 
-              startTimeDisplay.date.split('/')[1].padStart(2, '0') + '-' + 
-              startTimeDisplay.date.split('/')[0].padStart(2, '0'), // Convert DD/MM/YYYY to YYYY-MM-DD
+        staffName: completeBooking.provider
+          ? completeBooking.provider.lastName
+            ? `${completeBooking.provider.firstName} ${completeBooking.provider.lastName}`
+            : completeBooking.provider.firstName
+          : "Unassigned",
+        date:
+          startTimeDisplay.date.split("/")[2] +
+          "-" +
+          startTimeDisplay.date.split("/")[1].padStart(2, "0") +
+          "-" +
+          startTimeDisplay.date.split("/")[0].padStart(2, "0"), // Convert DD/MM/YYYY to YYYY-MM-DD
         startTime: startTimeDisplay.time.substring(0, 5), // Remove seconds if present
         endTime: endTimeDisplay.time.substring(0, 5), // Remove seconds if present
         duration: bookingDuration,
@@ -486,10 +549,11 @@ export class PublicBookingService {
         updatedAt: completeBooking.updatedAt.toISOString(),
       };
     } catch (error: any) {
-      if (error.message && error.message.includes('conflicts')) {
+      if (error.message && error.message.includes("conflicts")) {
         // Return a more user-friendly error for booking conflicts
         throw new ConflictException({
-          message: 'This time slot is no longer available. Please choose a different time.',
+          message:
+            "This time slot is no longer available. Please choose a different time.",
           conflicts: error.message,
         });
       }
@@ -498,8 +562,13 @@ export class PublicBookingService {
   }
 
   async checkAvailability(
-    dto: { date: string; serviceId?: string; staffId?: string; services?: Array<{ serviceId: string; staffId?: string }> },
-    merchantId: string
+    dto: {
+      date: string;
+      serviceId?: string;
+      staffId?: string;
+      services?: Array<{ serviceId: string; staffId?: string }>;
+    },
+    merchantId: string,
   ) {
     // Verify merchant exists and is active
     const merchant = await this.prisma.merchant.findUnique({
@@ -512,8 +581,8 @@ export class PublicBookingService {
       },
     });
 
-    if (!merchant || merchant.status !== 'ACTIVE') {
-      throw new Error('Merchant not found or not active');
+    if (!merchant || merchant.status !== "ACTIVE") {
+      throw new Error("Merchant not found or not active");
     }
 
     // Normalize input to support both single and multiple services
@@ -522,28 +591,35 @@ export class PublicBookingService {
     ];
 
     if (serviceRequests.length === 0) {
-      throw new Error('At least one service must be selected');
+      throw new Error("At least one service must be selected");
     }
 
     // Get all service details
     const services = await this.prisma.service.findMany({
       where: {
-        id: { in: serviceRequests.map(s => s.serviceId) },
+        id: { in: serviceRequests.map((s) => s.serviceId) },
         merchantId: merchant.id,
       },
     });
 
     if (services.length !== serviceRequests.length) {
-      throw new Error('One or more services not found');
+      throw new Error("One or more services not found");
     }
 
     // Calculate total duration
-    const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
-    
-    console.log('[PUBLIC BOOKING SERVICE] Check availability:', {
+    const totalDuration = services.reduce(
+      (sum, service) => sum + service.duration,
+      0,
+    );
+
+    console.log("[PUBLIC BOOKING SERVICE] Check availability:", {
       date: dto.date,
       staffId: dto.staffId,
-      services: services.map(s => ({ id: s.id, name: s.name, duration: s.duration })),
+      services: services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        duration: s.duration,
+      })),
       totalDuration,
     });
 
@@ -556,24 +632,36 @@ export class PublicBookingService {
     });
 
     if (!location) {
-      throw new Error('No active location found');
+      throw new Error("No active location found");
     }
 
     // If staff ID is provided, use availability service to get slots
     if (dto.staffId) {
-      const startDate = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
-      const endDate = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
+      const startDate = TimezoneUtils.startOfDayInTimezone(
+        dto.date,
+        location.timezone,
+      );
+      const endDate = TimezoneUtils.endOfDayInTimezone(
+        dto.date,
+        location.timezone,
+      );
 
       // Use first service for the availability check but with total duration
       // This ensures we check for slots that can accommodate all selected services
-      console.log('[PUBLIC BOOKING SERVICE] Calling availability service with:', {
-        staffId: dto.staffId,
-        serviceId: serviceRequests[0].serviceId,
-        totalDuration,
-        timezone: location.timezone,
-        dateRange: { start: startDate.toISOString(), end: endDate.toISOString() },
-      });
-      
+      console.log(
+        "[PUBLIC BOOKING SERVICE] Calling availability service with:",
+        {
+          staffId: dto.staffId,
+          serviceId: serviceRequests[0].serviceId,
+          totalDuration,
+          timezone: location.timezone,
+          dateRange: {
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+          },
+        },
+      );
+
       const slots = await this.bookingAvailabilityService.getAvailableSlots({
         staffId: dto.staffId,
         serviceId: serviceRequests[0].serviceId,
@@ -581,32 +669,34 @@ export class PublicBookingService {
         startDate,
         endDate,
         timezone: location.timezone,
+        locationId: location.id,
         // Pass the total duration for multi-service bookings
         duration: totalDuration,
         requireRosterOnly: true,
       });
-      
-      console.log('[PUBLIC BOOKING SERVICE] Availability service returned:', {
+
+      console.log("[PUBLIC BOOKING SERVICE] Availability service returned:", {
         totalSlots: slots.length,
-        availableSlots: slots.filter(s => s.available).length,
-        lastAvailableSlot: slots.filter(s => s.available).slice(-1)[0]?.startTime,
+        availableSlots: slots.filter((s) => s.available).length,
+        lastAvailableSlot: slots.filter((s) => s.available).slice(-1)[0]
+          ?.startTime,
       });
 
       // Convert to simple time slots for public API
       return {
-        slots: slots.map(slot => {
-          let time = slot.startTime.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
+        slots: slots.map((slot) => {
+          let time = slot.startTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
             hour12: false,
             timeZone: location.timezone,
           });
-          
+
           // Fix the "24:xx" issue - convert to "00:xx"
-          if (time.startsWith('24:')) {
-            time = '00:' + time.substring(3);
+          if (time.startsWith("24:")) {
+            time = "00:" + time.substring(3);
           }
-          
+
           return {
             time,
             available: slot.available,
@@ -616,15 +706,21 @@ export class PublicBookingService {
     }
 
     // If no staff specified, check availability across all staff
-    const startOfDay = TimezoneUtils.startOfDayInTimezone(dto.date, location.timezone);
-    const endOfDay = TimezoneUtils.endOfDayInTimezone(dto.date, location.timezone);
+    const startOfDay = TimezoneUtils.startOfDayInTimezone(
+      dto.date,
+      location.timezone,
+    );
+    const endOfDay = TimezoneUtils.endOfDayInTimezone(
+      dto.date,
+      location.timezone,
+    );
 
     // Get all active staff members
     // TODO: Add filtering for staff who can provide this specific service
     const activeStaff = await this.prisma.staff.findMany({
       where: {
         merchantId: merchant.id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
@@ -632,22 +728,40 @@ export class PublicBookingService {
       return { slots: [] };
     }
 
-    const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
+    const settings = normalizeMerchantSettings<MerchantSettings>(
+      merchant.settings,
+    );
     const businessHours = settings?.businessHours || location.businessHours;
     const minimumBookingNotice = settings?.minimumBookingNotice || 0;
 
-    const dayName = new Date(`${dto.date}T12:00:00Z`).toLocaleDateString('en-US', {
-      weekday: 'long',
-      timeZone: location.timezone,
-    }).toLowerCase();
+    const dayName = new Date(`${dto.date}T12:00:00Z`)
+      .toLocaleDateString("en-US", {
+        weekday: "long",
+        timeZone: location.timezone,
+      })
+      .toLowerCase();
 
     const dayHours = businessHours?.[dayName];
-    if (!dayHours || dayHours.isOpen === false || !dayHours.open || !dayHours.close || dayHours.open === 'closed') {
+    if (
+      !dayHours ||
+      dayHours.isOpen === false ||
+      !dayHours.open ||
+      !dayHours.close ||
+      dayHours.open === "closed"
+    ) {
       return { slots: [] };
     }
 
-    const openTime = TimezoneUtils.createDateInTimezone(dto.date, dayHours.open, location.timezone);
-    const closeTime = TimezoneUtils.createDateInTimezone(dto.date, dayHours.close, location.timezone);
+    const openTime = TimezoneUtils.createDateInTimezone(
+      dto.date,
+      dayHours.open,
+      location.timezone,
+    );
+    const closeTime = TimezoneUtils.createDateInTimezone(
+      dto.date,
+      dayHours.close,
+      location.timezone,
+    );
 
     if (!(openTime < closeTime)) {
       return { slots: [] };
@@ -672,7 +786,7 @@ export class PublicBookingService {
         } catch (error) {
           return [];
         }
-      })
+      }),
     );
 
     staffSlotResults.forEach((staffSlots) => {
@@ -689,15 +803,16 @@ export class PublicBookingService {
         }
 
         if (minimumBookingNotice > 0) {
-          const minutesUntilSlot = (slotStart.getTime() - now.getTime()) / (1000 * 60);
+          const minutesUntilSlot =
+            (slotStart.getTime() - now.getTime()) / (1000 * 60);
           if (minutesUntilSlot < minimumBookingNotice) {
             return;
           }
         }
 
-        const time = slotStart.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
+        const time = slotStart.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: false,
           timeZone: location.timezone,
         });
@@ -758,12 +873,11 @@ export class PublicBookingService {
     );
 
     return { slots: adjustedSlots };
-
   }
 }
 function formatAdvanceBookingWindow(hours: number): string {
   if (!Number.isFinite(hours) || hours <= 0) {
-    return '0 hours';
+    return "0 hours";
   }
 
   const HOURS_IN_DAY = 24;
@@ -771,23 +885,23 @@ function formatAdvanceBookingWindow(hours: number): string {
   const HOURS_IN_MONTH = HOURS_IN_DAY * 30;
 
   const pluralize = (value: number, unit: string) =>
-    `${value} ${unit}${value === 1 ? '' : 's'}`;
+    `${value} ${unit}${value === 1 ? "" : "s"}`;
 
   if (hours >= HOURS_IN_MONTH && hours % HOURS_IN_MONTH === 0) {
     const months = hours / HOURS_IN_MONTH;
-    return pluralize(months, 'month');
+    return pluralize(months, "month");
   }
 
   if (hours >= HOURS_IN_WEEK && hours % HOURS_IN_WEEK === 0) {
     const weeks = hours / HOURS_IN_WEEK;
-    return pluralize(weeks, 'week');
+    return pluralize(weeks, "week");
   }
 
   if (hours >= HOURS_IN_DAY && hours % HOURS_IN_DAY === 0) {
     const days = hours / HOURS_IN_DAY;
-    return pluralize(days, 'day');
+    return pluralize(days, "day");
   }
 
   const roundedHours = Math.round(hours * 100) / 100;
-  return pluralize(roundedHours, 'hour');
+  return pluralize(roundedHours, "hour");
 }

@@ -143,16 +143,15 @@ export class BookingCreationService {
           serviceDetails.every((detail) => !detail.staffId);
 
         if (isUnassignedBooking && !data.isBlankBooking) {
-          const unassignedCapacity = await this.unassignedCapacityService.evaluateSlot(
-            {
+          const unassignedCapacity =
+            await this.unassignedCapacityService.evaluateSlot({
               merchantId: data.merchantId,
               locationId: data.locationId,
               startTime: data.startTime,
               endTime,
               lockMerchantRow: true,
               tx,
-            },
-          );
+            });
 
           if (!unassignedCapacity.hasCapacity) {
             throw new ConflictException(
@@ -173,6 +172,7 @@ export class BookingCreationService {
             data.startTime,
             data.merchantId,
             tx,
+            data.locationId,
           );
         }
 
@@ -561,7 +561,6 @@ export class BookingCreationService {
     };
   }
 
-
   /**
    * Validate that booking times fall within staff schedules
    */
@@ -570,6 +569,7 @@ export class BookingCreationService {
     startTime: Date,
     merchantId: string,
     tx: Prisma.TransactionClient,
+    locationId?: string,
   ): Promise<void> {
     // Get merchant business hours
     const merchant = await tx.merchant.findUnique({
@@ -577,7 +577,9 @@ export class BookingCreationService {
       select: { settings: true },
     });
 
-    const businessHours = (merchant?.settings as any)?.businessHours;
+    const merchantSettings = merchant?.settings as any;
+    const businessHours = merchantSettings?.businessHours;
+    const enableCalendarBlocks = merchantSettings?.enableCalendarBlocks ?? false;
     if (!businessHours) {
       throw new Error("Business hours not configured");
     }
@@ -679,6 +681,41 @@ export class BookingCreationService {
           throw new ConflictException(
             `Booking time must be within business hours (${dayHours.open} - ${dayHours.close})`,
           );
+        }
+
+        if (enableCalendarBlocks) {
+          const overlappingBlock = await tx.staffAvailabilityBlock.findFirst({
+            where: {
+              merchantId,
+              staffId,
+              startTime: { lt: serviceEndTime },
+              endTime: { gt: currentStartTime },
+              ...(locationId
+                ? { OR: [{ locationId }, { locationId: null }] }
+                : {}),
+            },
+          });
+
+          if (overlappingBlock) {
+            const staff = await tx.staff.findUnique({
+              where: { id: staffId },
+              select: { firstName: true, lastName: true },
+            });
+
+            const staffName = staff
+              ? `${staff.firstName}${staff.lastName ? " " + staff.lastName : ""}`
+              : `Staff ID: ${staffId}`;
+
+            throw new ConflictException({
+              message: `${staffName} is unavailable due to a blocked break`,
+              block: {
+                id: overlappingBlock.id,
+                startTime: overlappingBlock.startTime,
+                endTime: overlappingBlock.endTime,
+                locationId: overlappingBlock.locationId,
+              },
+            });
+          }
         }
       }
 

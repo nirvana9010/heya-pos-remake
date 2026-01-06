@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBookingCommand } from './create-booking.command';
-import { Booking } from '../../domain/entities/booking.entity';
-import { BookingCreationService } from '../services/booking-creation.service';
+import { Injectable } from "@nestjs/common";
+import { CreateBookingCommand } from "./create-booking.command";
+import { Booking } from "../../domain/entities/booking.entity";
+import { BookingCreationService } from "../services/booking-creation.service";
 
 @Injectable()
 export class CreateBookingHandler {

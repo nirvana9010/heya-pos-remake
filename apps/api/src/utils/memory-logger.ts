@@ -24,7 +24,7 @@ export class MemoryLogger {
     const heapTotalMB = Math.round(memory.heapTotal / 1024 / 1024);
     const rssMB = Math.round(memory.rss / 1024 / 1024);
     const externalMB = Math.round(memory.external / 1024 / 1024);
-    
+
     // Track operation counts with limit
     this.totalOperations++;
     const count = (this.operationCounts.get(context) || 0) + 1;
@@ -36,24 +36,30 @@ export class MemoryLogger {
       const sorted = Array.from(this.operationCounts.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, this.MAX_OPERATIONS / 2);
-      
+
       this.operationCounts.clear();
       sorted.forEach(([op, cnt]) => this.operationCounts.set(op, cnt));
-      
-      console.log(`[MEMORY] Pruned operation counts. Kept ${sorted.length} most frequent operations.`);
+
+      console.log(
+        `[MEMORY] Pruned operation counts. Kept ${sorted.length} most frequent operations.`,
+      );
     }
 
     // Log every 5 seconds or if heap usage is high
-    const shouldLog = (now - this.lastLogTime) > 5000 || heapUsedMB > 500;
+    const shouldLog = now - this.lastLogTime > 5000 || heapUsedMB > 500;
 
     if (shouldLog) {
-      console.log(`[MEMORY] ${new Date().toISOString()} - ${context} (${count} calls)`);
-      console.log(`  Heap: ${heapUsedMB}MB / ${heapTotalMB}MB | RSS: ${rssMB}MB | External: ${externalMB}MB`);
-      
+      console.log(
+        `[MEMORY] ${new Date().toISOString()} - ${context} (${count} calls)`,
+      );
+      console.log(
+        `  Heap: ${heapUsedMB}MB / ${heapTotalMB}MB | RSS: ${rssMB}MB | External: ${externalMB}MB`,
+      );
+
       if (details) {
         if (Array.isArray(details)) {
           console.log(`  Array size: ${details.length}`);
-        } else if (typeof details === 'object' && details !== null) {
+        } else if (typeof details === "object" && details !== null) {
           const keys = Object.keys(details);
           console.log(`  Object keys: ${keys.length}`);
           if (details.count !== undefined) {
@@ -66,8 +72,10 @@ export class MemoryLogger {
       const topOps = Array.from(this.operationCounts.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
-      
-      console.log(`  Top operations (total: ${this.totalOperations} calls, tracking ${this.operationCounts.size} unique):`);
+
+      console.log(
+        `  Top operations (total: ${this.totalOperations} calls, tracking ${this.operationCounts.size} unique):`,
+      );
       topOps.forEach(([op, count]) => {
         console.log(`    ${op}: ${count} calls`);
       });
@@ -77,7 +85,7 @@ export class MemoryLogger {
 
     // Force GC if available and heap is high
     if (global.gc && heapUsedMB > 1000) {
-      console.log('[MEMORY] Forcing garbage collection...');
+      console.log("[MEMORY] Forcing garbage collection...");
       global.gc();
     }
   }
@@ -90,7 +98,7 @@ export class MemoryLogger {
       if (Array.isArray(result)) {
         resultCount = result.length;
         resultSize = JSON.stringify(result).length;
-      } else if (result && typeof result === 'object') {
+      } else if (result && typeof result === "object") {
         resultCount = 1;
         // Safely stringify to avoid circular references or other issues
         resultSize = JSON.stringify(result).length;
@@ -103,12 +111,14 @@ export class MemoryLogger {
     this.logMemory(`DB:${operation}`, {
       count: resultCount,
       size: Math.round(resultSize / 1024),
-      query: query
+      query: query,
     });
 
     // Warn about large results
     if (resultCount > 1000 || resultSize > 1024 * 1024) {
-      console.warn(`[MEMORY WARNING] Large query result: ${operation} returned ${resultCount} items (${Math.round(resultSize / 1024)}KB)`);
+      console.warn(
+        `[MEMORY WARNING] Large query result: ${operation} returned ${resultCount} items (${Math.round(resultSize / 1024)}KB)`,
+      );
     }
   }
 

@@ -1,5 +1,11 @@
-import { IsOptional, IsString, IsBoolean, IsNumber, Min } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsNumber,
+  Min,
+} from "class-validator";
+import { Transform, Type } from "class-transformer";
 
 export class QueryServiceDto {
   @IsOptional()
@@ -7,7 +13,7 @@ export class QueryServiceDto {
   categoryId?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => value === "true" || value === true)
   @IsBoolean()
   isActive?: boolean;
 
@@ -53,9 +59,9 @@ export class QueryServiceDto {
 
   @IsOptional()
   @IsString()
-  sortBy?: string = 'displayOrder';
+  sortBy?: string = "displayOrder";
 
   @IsOptional()
   @IsString()
-  sortOrder?: 'asc' | 'desc' = 'asc';
+  sortOrder?: "asc" | "desc" = "asc";
 }

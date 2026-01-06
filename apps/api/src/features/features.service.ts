@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Merchant } from '@prisma/client';
-import { 
-  FEATURE_MODULES, 
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { Merchant } from "@prisma/client";
+import {
+  FEATURE_MODULES,
   validateFeatureDependencies,
-  canDisableFeature 
-} from './feature-modules';
+  canDisableFeature,
+} from "./feature-modules";
 
 interface MerchantWithPackage extends Merchant {
   package?: {
@@ -30,15 +30,21 @@ export class FeaturesService {
   /**
    * Check if a merchant object has access to a specific feature
    */
-  hasFeatureForMerchant(merchant: MerchantWithPackage, featureId: string): boolean {
+  hasFeatureForMerchant(
+    merchant: MerchantWithPackage,
+    featureId: string,
+  ): boolean {
     // Get features from package
     const packageFeatures = this.getPackageFeatures(merchant);
-    
+
     // Get disabled features from merchant settings
     const disabledFeatures = this.getDisabledFeatures(merchant);
 
     // Feature must be in package and not disabled
-    return packageFeatures.includes(featureId) && !disabledFeatures.includes(featureId);
+    return (
+      packageFeatures.includes(featureId) &&
+      !disabledFeatures.includes(featureId)
+    );
   }
 
   /**
@@ -58,7 +64,7 @@ export class FeaturesService {
     const packageFeatures = this.getPackageFeatures(merchant);
     const disabledFeatures = this.getDisabledFeatures(merchant);
 
-    return packageFeatures.filter(f => !disabledFeatures.includes(f));
+    return packageFeatures.filter((f) => !disabledFeatures.includes(f));
   }
 
   /**
@@ -74,12 +80,16 @@ export class FeaturesService {
   /**
    * Get feature configuration for a merchant object
    */
-  getFeatureConfigForMerchant(merchant: MerchantWithPackage, featureId: string): any {
+  getFeatureConfigForMerchant(
+    merchant: MerchantWithPackage,
+    featureId: string,
+  ): any {
     // Package-level config
     const packageConfig = merchant.package?.features?.config?.[featureId] || {};
-    
+
     // Merchant-level overrides
-    const merchantOverrides = (merchant.settings as any)?.featureOverrides?.config?.[featureId] || {};
+    const merchantOverrides =
+      (merchant.settings as any)?.featureOverrides?.config?.[featureId] || {};
 
     // Merge with merchant overrides taking precedence
     return { ...packageConfig, ...merchantOverrides };
@@ -89,12 +99,12 @@ export class FeaturesService {
    * Check if features can be enabled for a merchant
    */
   async canEnableFeatures(
-    merchantId: string, 
-    featuresToEnable: string[]
+    merchantId: string,
+    featuresToEnable: string[],
   ): Promise<{ valid: boolean; errors: string[] }> {
     const currentFeatures = await this.getEnabledFeatures(merchantId);
     const allFeatures = [...new Set([...currentFeatures, ...featuresToEnable])];
-    
+
     return validateFeatureDependencies(allFeatures);
   }
 
@@ -103,7 +113,7 @@ export class FeaturesService {
    */
   async canDisableFeatures(
     merchantId: string,
-    featuresToDisable: string[]
+    featuresToDisable: string[],
   ): Promise<{ canDisable: boolean; errors: string[] }> {
     const currentFeatures = await this.getEnabledFeatures(merchantId);
     const errors: string[] = [];
@@ -129,14 +139,14 @@ export class FeaturesService {
     overrides: {
       disabled?: string[];
       config?: Record<string, any>;
-    }
+    },
   ): Promise<void> {
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
     });
 
     if (!merchant) {
-      throw new Error('Merchant not found');
+      throw new Error("Merchant not found");
     }
 
     const currentSettings = (merchant.settings as any) || {};
@@ -162,7 +172,7 @@ export class FeaturesService {
     const existingService = await this.prisma.service.findFirst({
       where: {
         merchantId,
-        name: 'Check-In',
+        name: "Check-In",
       },
     });
 
@@ -174,11 +184,11 @@ export class FeaturesService {
     await this.prisma.service.create({
       data: {
         merchantId,
-        name: 'Check-In',
-        description: 'System service for check-ins',
+        name: "Check-In",
+        description: "System service for check-ins",
         duration: 0,
         price: 0,
-        currency: 'AUD',
+        currency: "AUD",
         isActive: true,
         metadata: {
           isSystem: true,
@@ -198,16 +208,16 @@ export class FeaturesService {
     const limits: Record<string, any> = {};
 
     // Map package limits to feature limits
-    if ('maxStaff' in merchant.package) {
+    if ("maxStaff" in merchant.package) {
       limits.staff = { max: merchant.package.maxStaff };
     }
-    if ('maxServices' in merchant.package) {
+    if ("maxServices" in merchant.package) {
       limits.services = { max: merchant.package.maxServices };
     }
-    if ('maxCustomers' in merchant.package) {
+    if ("maxCustomers" in merchant.package) {
       limits.customers = { max: merchant.package.maxCustomers };
     }
-    if ('maxLocations' in merchant.package) {
+    if ("maxLocations" in merchant.package) {
       limits.locations = { max: merchant.package.maxLocations };
     }
 
@@ -235,7 +245,7 @@ export class FeaturesService {
 
     const enabled = this.getEnabledFeaturesForMerchant(merchant);
     const all = Object.keys(FEATURE_MODULES);
-    const available = all.filter(f => !enabled.includes(f));
+    const available = all.filter((f) => !enabled.includes(f));
     const limits = await this.getFeatureLimits(merchantId);
 
     // Get config for all enabled features
@@ -256,7 +266,9 @@ export class FeaturesService {
   }
 
   // Helper methods (public for controller use)
-  async getMerchantWithPackage(merchantId: string): Promise<MerchantWithPackage | null> {
+  async getMerchantWithPackage(
+    merchantId: string,
+  ): Promise<MerchantWithPackage | null> {
     return this.prisma.merchant.findUnique({
       where: { id: merchantId },
       include: { package: true },
@@ -266,7 +278,7 @@ export class FeaturesService {
   getPackageFeatures(merchant: MerchantWithPackage): string[] {
     // Handle both old and new feature formats
     const features = merchant.package?.features;
-    
+
     if (Array.isArray(features)) {
       // Old format: ['feature1', 'feature2']
       // Map old features to new feature IDs
@@ -275,7 +287,7 @@ export class FeaturesService {
       // New format: { enabled: ['feature1', 'feature2'] }
       return features.enabled;
     }
-    
+
     // Default features based on package type
     return this.getDefaultFeaturesForPackage(merchant.packageId);
   }
@@ -286,27 +298,27 @@ export class FeaturesService {
 
   private mapLegacyFeatures(legacyFeatures: string[]): string[] {
     const featureMap: Record<string, string[]> = {
-      'basic_booking': ['customers', 'services', 'bookings'],
-      'advanced_booking': ['customers', 'services', 'bookings', 'staff'],
-      'customer_management': ['customers'],
-      'basic_reports': ['reports'],
-      'advanced_reports': ['reports'],
-      'loyalty_program': ['loyalty'],
-      'multi_location': ['locations'],
+      basic_booking: ["customers", "services", "bookings"],
+      advanced_booking: ["customers", "services", "bookings", "staff"],
+      customer_management: ["customers"],
+      basic_reports: ["reports"],
+      advanced_reports: ["reports"],
+      loyalty_program: ["loyalty"],
+      multi_location: ["locations"],
     };
 
     const mappedFeatures = new Set<string>();
-    
+
     for (const legacy of legacyFeatures) {
       const mapped = featureMap[legacy];
       if (mapped) {
-        mapped.forEach(f => mappedFeatures.add(f));
+        mapped.forEach((f) => mappedFeatures.add(f));
       }
     }
 
     // Always include payments if any booking feature exists
-    if (mappedFeatures.has('bookings')) {
-      mappedFeatures.add('payments');
+    if (mappedFeatures.has("bookings")) {
+      mappedFeatures.add("payments");
     }
 
     return Array.from(mappedFeatures);
@@ -315,9 +327,9 @@ export class FeaturesService {
   private getDefaultFeaturesForPackage(packageId: string): string[] {
     // Return default features based on known package IDs
     // This is a fallback for merchants without feature configuration
-    
+
     // You can map specific package IDs to feature sets here
     // For now, return a basic set
-    return ['customers', 'services', 'bookings', 'payments', 'reports'];
+    return ["customers", "services", "bookings", "payments", "reports"];
   }
 }

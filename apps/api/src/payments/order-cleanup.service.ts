@@ -1,6 +1,11 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { OrderState } from '@heya-pos/types';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { OrderState } from "@heya-pos/types";
 
 /**
  * Service to clean up abandoned draft orders
@@ -14,11 +19,11 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Start the cleanup scheduler
-    if (process.env.DISABLE_ORDER_CLEANUP !== 'true') {
+    if (process.env.DISABLE_ORDER_CLEANUP !== "true") {
       this.startCleanupScheduler();
-      this.logger.log('Draft order cleanup scheduler started');
+      this.logger.log("Draft order cleanup scheduler started");
     } else {
-      this.logger.log('Draft order cleanup disabled via environment variable');
+      this.logger.log("Draft order cleanup disabled via environment variable");
     }
   }
 
@@ -30,15 +35,18 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
 
   private startCleanupScheduler() {
     // Run cleanup every hour
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupDraftOrders().catch(error => {
-        this.logger.error('Failed to cleanup draft orders', error);
-      });
-    }, 60 * 60 * 1000); // 1 hour
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupDraftOrders().catch((error) => {
+          this.logger.error("Failed to cleanup draft orders", error);
+        });
+      },
+      60 * 60 * 1000,
+    ); // 1 hour
 
     // Run immediately on startup
-    this.cleanupDraftOrders().catch(error => {
-      this.logger.error('Failed to cleanup draft orders on startup', error);
+    this.cleanupDraftOrders().catch((error) => {
+      this.logger.error("Failed to cleanup draft orders on startup", error);
     });
   }
 
@@ -67,7 +75,9 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
         take: 100, // Process in batches
       });
 
-      this.logger.log(`Found ${abandonedOrders.length} abandoned draft orders to cleanup`);
+      this.logger.log(
+        `Found ${abandonedOrders.length} abandoned draft orders to cleanup`,
+      );
 
       for (const order of abandonedOrders) {
         try {
@@ -79,7 +89,9 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
             });
 
             if (booking && booking.startTime > new Date()) {
-              this.logger.log(`Skipping draft order ${order.orderNumber} - booking is in the future`);
+              this.logger.log(
+                `Skipping draft order ${order.orderNumber} - booking is in the future`,
+              );
               continue;
             }
           }
@@ -91,12 +103,14 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
               state: OrderState.CANCELLED,
               cancelledAt: new Date(),
               metadata: {
-                cancellationReason: 'Auto-cancelled: Abandoned draft order',
+                cancellationReason: "Auto-cancelled: Abandoned draft order",
               },
             },
           });
 
-          this.logger.log(`Cancelled abandoned draft order ${order.orderNumber}`);
+          this.logger.log(
+            `Cancelled abandoned draft order ${order.orderNumber}`,
+          );
         } catch (error) {
           this.logger.error(`Failed to cleanup order ${order.id}`, error);
         }
@@ -119,11 +133,13 @@ export class OrderCleanupService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (oldCancelledCount > 0) {
-        this.logger.log(`Found ${oldCancelledCount} old cancelled orders eligible for deletion`);
+        this.logger.log(
+          `Found ${oldCancelledCount} old cancelled orders eligible for deletion`,
+        );
         // For now, just log - we can enable hard deletion later if needed
       }
     } catch (error) {
-      this.logger.error('Failed to cleanup draft orders', error);
+      this.logger.error("Failed to cleanup draft orders", error);
     }
   }
 }

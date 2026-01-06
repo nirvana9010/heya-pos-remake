@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CacheService } from '../../common/cache/cache.service';
-import { Prisma } from '@prisma/client';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
+import { Prisma } from "@prisma/client";
 
 interface RevenueData {
   total: number;
@@ -27,10 +27,10 @@ export class QueryOptimizationService {
   ): Promise<RevenueData> {
     const cacheKey = this.cacheService.generateKey(
       merchantId,
-      'revenue',
+      "revenue",
       startDate.toISOString(),
       endDate.toISOString(),
-      locationId || 'all',
+      locationId || "all",
     );
 
     // Check cache first
@@ -40,8 +40,10 @@ export class QueryOptimizationService {
     }
 
     // Use raw SQL for optimized aggregation
-    const locationFilter = locationId ? Prisma.sql` AND o."locationId" = ${locationId}` : Prisma.sql``;
-    
+    const locationFilter = locationId
+      ? Prisma.sql` AND o."locationId" = ${locationId}`
+      : Prisma.sql``;
+
     const revenueQuery = await this.prisma.$queryRaw<any[]>`
       SELECT 
         COALESCE(SUM(op."amount"), 0) as total,
@@ -82,7 +84,7 @@ export class QueryOptimizationService {
       total += methodTotal;
       serviceRevenue = Math.max(serviceRevenue, Number(row.service_revenue));
       productRevenue = Math.max(productRevenue, Number(row.product_revenue));
-      
+
       if (row.paymentMethod) {
         byPaymentMethod[row.paymentMethod] = methodTotal;
       }
@@ -109,10 +111,10 @@ export class QueryOptimizationService {
   ) {
     const cacheKey = this.cacheService.generateKey(
       merchantId,
-      'booking-stats',
+      "booking-stats",
       startDate.toISOString(),
       endDate.toISOString(),
-      locationId || 'all',
+      locationId || "all",
     );
 
     const cached = await this.cacheService.get(cacheKey);
@@ -120,7 +122,9 @@ export class QueryOptimizationService {
       return cached;
     }
 
-    const locationFilter = locationId ? Prisma.sql` AND "locationId" = ${locationId}` : Prisma.sql``;
+    const locationFilter = locationId
+      ? Prisma.sql` AND "locationId" = ${locationId}`
+      : Prisma.sql``;
 
     const stats = await this.prisma.$queryRaw<any[]>`
       SELECT 
@@ -160,10 +164,10 @@ export class QueryOptimizationService {
   ) {
     const cacheKey = this.cacheService.generateKey(
       merchantId,
-      'staff-performance',
+      "staff-performance",
       startDate.toISOString(),
       endDate.toISOString(),
-      locationId || 'all',
+      locationId || "all",
     );
 
     const cached = await this.cacheService.get(cacheKey);
@@ -171,7 +175,9 @@ export class QueryOptimizationService {
       return cached;
     }
 
-    const locationFilter = locationId ? Prisma.sql` AND b."locationId" = ${locationId}` : Prisma.sql``;
+    const locationFilter = locationId
+      ? Prisma.sql` AND b."locationId" = ${locationId}`
+      : Prisma.sql``;
 
     const performance = await this.prisma.$queryRaw<any[]>`
       SELECT 
@@ -194,7 +200,7 @@ export class QueryOptimizationService {
       ORDER BY total_revenue DESC
     `;
 
-    const result = performance.map(row => ({
+    const result = performance.map((row) => ({
       id: row.id,
       name: `${row.firstName} ${row.lastName}`,
       totalBookings: Number(row.total_bookings),

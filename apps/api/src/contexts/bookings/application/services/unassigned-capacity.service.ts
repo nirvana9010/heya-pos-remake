@@ -103,7 +103,8 @@ export class UnassignedCapacityService {
     ];
     const dayOfWeek = startTime.getDay();
     const dayName = dayNames[dayOfWeek];
-    const dayHours = businessHours[dayName] ?? businessHours[dayName.toUpperCase()];
+    const dayHours =
+      businessHours[dayName] ?? businessHours[dayName.toUpperCase()];
 
     const bookingDateKey = startTime.toISOString().split("T")[0];
 
@@ -126,7 +127,13 @@ export class UnassignedCapacityService {
       };
     }
 
-    if (!dayHours || dayHours.isOpen === false || !dayHours.open || !dayHours.close || dayHours.open === "closed") {
+    if (
+      !dayHours ||
+      dayHours.isOpen === false ||
+      !dayHours.open ||
+      !dayHours.close ||
+      dayHours.open === "closed"
+    ) {
       return {
         hasCapacity: false,
         rosteredStaffCount: 0,
@@ -206,8 +213,7 @@ export class UnassignedCapacityService {
       });
     });
 
-    const showOnlyRostered =
-      settings?.showOnlyRosteredStaffDefault ?? true;
+    const showOnlyRostered = settings?.showOnlyRosteredStaffDefault ?? true;
 
     let rosteredStaffCount = 0;
 
@@ -232,7 +238,11 @@ export class UnassignedCapacityService {
         if (shiftStart === null || shiftEnd === null) {
           continue;
         }
-      } else if (!showOnlyRostered && businessOpenMinutes !== null && businessCloseMinutes !== null) {
+      } else if (
+        !showOnlyRostered &&
+        businessOpenMinutes !== null &&
+        businessCloseMinutes !== null
+      ) {
         shiftStart = businessOpenMinutes;
         shiftEnd = businessCloseMinutes;
       } else {
@@ -291,10 +301,7 @@ export class UnassignedCapacityService {
     const unassignedStaffIds = unassignedStaff.map((staff) => staff.id);
     const unassignedCondition: Prisma.BookingWhereInput[] =
       unassignedStaffIds.length > 0
-        ? [
-            { providerId: null },
-            { providerId: { in: unassignedStaffIds } },
-          ]
+        ? [{ providerId: null }, { providerId: { in: unassignedStaffIds } }]
         : [{ providerId: null }];
 
     const unassignedBookingsCount = await tx.booking.count({

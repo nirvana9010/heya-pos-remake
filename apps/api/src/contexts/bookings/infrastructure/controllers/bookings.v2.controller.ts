@@ -14,29 +14,37 @@ import {
   ParseUUIDPipe,
   UsePipes,
   BadRequestException,
-} from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
-import { CreateBookingHandler } from '../../application/commands/create-booking.handler';
-import { CreateBookingCommand } from '../../application/commands/create-booking.command';
-import { BookingUpdateService } from '../../application/services/booking-update.service';
-import { BookingAvailabilityService } from '../../application/services/booking-availability.service';
-import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
-import { GetBookingByIdQuery } from '../../application/queries/get-booking-by-id.query';
-import { GetBookingsListQuery } from '../../application/queries/get-bookings-list.query';
-import { GetCalendarViewQuery } from '../../application/queries/get-calendar-view.query';
-import { JwtAuthGuard } from '../../../../auth/guards/jwt-auth.guard';
-import { PinAuthGuard } from '../../../../auth/guards/pin-auth.guard';
-import { CurrentUser } from '../../../../auth/decorators/current-user.decorator';
-import { Permissions } from '../../../../auth/decorators/permissions.decorator';
-import { CustomValidationPipe } from '../../../../common/validation/validation.pipe';
-import { CreateBookingV2Dto } from '../dto/create-booking-v2.dto';
-import { UpdateBookingV2Dto } from '../dto/update-booking-v2.dto';
-import { QueryBookingsDto, CalendarViewDto } from '../dto/query-bookings.dto';
-import { PrismaService } from '../../../../prisma/prisma.service';
+} from "@nestjs/common";
+import { QueryBus } from "@nestjs/cqrs";
+import { CreateBookingHandler } from "../../application/commands/create-booking.handler";
+import { CreateBookingCommand } from "../../application/commands/create-booking.command";
+import { BookingUpdateService } from "../../application/services/booking-update.service";
+import { BookingAvailabilityService } from "../../application/services/booking-availability.service";
+import { IBookingRepository } from "../../domain/repositories/booking.repository.interface";
+import { GetBookingByIdQuery } from "../../application/queries/get-booking-by-id.query";
+import { GetBookingsListQuery } from "../../application/queries/get-bookings-list.query";
+import { GetCalendarViewQuery } from "../../application/queries/get-calendar-view.query";
+import { JwtAuthGuard } from "../../../../auth/guards/jwt-auth.guard";
+import { PinAuthGuard } from "../../../../auth/guards/pin-auth.guard";
+import { CurrentUser } from "../../../../auth/decorators/current-user.decorator";
+import { Permissions } from "../../../../auth/decorators/permissions.decorator";
+import { CustomValidationPipe } from "../../../../common/validation/validation.pipe";
+import { CreateBookingV2Dto } from "../dto/create-booking-v2.dto";
+import { UpdateBookingV2Dto } from "../dto/update-booking-v2.dto";
+import { QueryBookingsDto, CalendarViewDto } from "../dto/query-bookings.dto";
+import { PrismaService } from "../../../../prisma/prisma.service";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 
 @Controller({
-  path: 'bookings',
-  version: '2', // This marks it as v2
+  path: "bookings",
+  version: "2", // This marks it as v2
 })
 @UseGuards(JwtAuthGuard, PinAuthGuard)
 @UsePipes(new CustomValidationPipe())
@@ -46,24 +54,23 @@ export class BookingsV2Controller {
     private readonly createBookingHandler: CreateBookingHandler,
     private readonly bookingUpdateService: BookingUpdateService,
     private readonly bookingAvailabilityService: BookingAvailabilityService,
-    @Inject('IBookingRepository')
+    @Inject("IBookingRepository")
     private readonly bookingRepository: IBookingRepository,
     private readonly prisma: PrismaService,
   ) {}
 
   @Get()
-  @Permissions('booking.read')
-  async findAll(
-    @CurrentUser() user: any,
-    @Query() queryDto: QueryBookingsDto,
-  ) {
+  @Permissions("booking.read")
+  async findAll(@CurrentUser() user: any, @Query() queryDto: QueryBookingsDto) {
     const query = new GetBookingsListQuery({
       merchantId: user.merchantId,
       filters: {
         staffId: queryDto.staffId,
         customerId: queryDto.customerId,
         status: queryDto.status,
-        startDate: queryDto.startDate ? new Date(queryDto.startDate) : undefined,
+        startDate: queryDto.startDate
+          ? new Date(queryDto.startDate)
+          : undefined,
         endDate: queryDto.endDate ? new Date(queryDto.endDate) : undefined,
       },
       pagination: {
@@ -77,7 +84,7 @@ export class BookingsV2Controller {
     // Transform status to lowercase for all items
     const transformedItems = result.items.map((item: any) => {
       if (item && item.status) {
-        item.status = item.status.toLowerCase().replace(/_/g, '-');
+        item.status = item.status.toLowerCase().replace(/_/g, "-");
       }
       return item;
     });
@@ -93,8 +100,8 @@ export class BookingsV2Controller {
     };
   }
 
-  @Get('calendar')
-  @Permissions('booking.read')
+  @Get("calendar")
+  @Permissions("booking.read")
   async getCalendarView(
     @CurrentUser() user: any,
     @Query() queryDto: CalendarViewDto,
@@ -102,27 +109,74 @@ export class BookingsV2Controller {
     const query = new GetCalendarViewQuery({
       merchantId: user.merchantId,
       date: new Date(queryDto.startDate),
-      view: queryDto.view || 'week',
+      view: queryDto.view || "week",
       staffIds: queryDto.staffId ? [queryDto.staffId] : undefined,
       locationId: queryDto.locationId,
     });
 
     const slots = await this.queryBus.execute(query);
-    return { slots };
+
+    // Fetch blocks when the feature is enabled
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: user.merchantId },
+      select: { settings: true },
+    });
+    const enableCalendarBlocks =
+      (merchant?.settings as any)?.enableCalendarBlocks ?? false;
+
+    let blocks: any[] = [];
+    if (enableCalendarBlocks) {
+      const baseDate = new Date(queryDto.startDate);
+      let rangeStart: Date;
+      let rangeEnd: Date;
+
+      switch (queryDto.view) {
+        case "month":
+          rangeStart = startOfMonth(baseDate);
+          rangeEnd = endOfMonth(baseDate);
+          break;
+        case "day":
+          rangeStart = startOfDay(baseDate);
+          rangeEnd = endOfDay(baseDate);
+          break;
+        default:
+          rangeStart = startOfWeek(baseDate, { weekStartsOn: 1 });
+          rangeEnd = endOfWeek(baseDate, { weekStartsOn: 1 });
+          break;
+      }
+
+      blocks = await this.prisma.staffAvailabilityBlock.findMany({
+        where: {
+          merchantId: user.merchantId,
+          startTime: { lt: rangeEnd },
+          endTime: { gt: rangeStart },
+          ...(queryDto.staffId ? { staffId: queryDto.staffId } : {}),
+          ...(queryDto.locationId
+            ? { OR: [{ locationId: queryDto.locationId }, { locationId: null }] }
+            : {}),
+        },
+        orderBy: { startTime: "asc" },
+      });
+    }
+
+    return { slots, blocks };
   }
 
-  @Get('availability')
-  @Permissions('booking.read')
+  @Get("availability")
+  @Permissions("booking.read")
   async getAvailability(
     @CurrentUser() user: any,
-    @Query('staffId') staffId: string,
-    @Query('serviceId') serviceId: string,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('timezone') timezone?: string,
+    @Query("staffId") staffId: string,
+    @Query("serviceId") serviceId: string,
+    @Query("startDate") startDate: string,
+    @Query("endDate") endDate: string,
+    @Query("timezone") timezone?: string,
+    @Query("locationId") locationId?: string,
   ) {
     if (!staffId || !serviceId || !startDate || !endDate) {
-      throw new Error('Missing required parameters: staffId, serviceId, startDate, endDate');
+      throw new Error(
+        "Missing required parameters: staffId, serviceId, startDate, endDate",
+      );
     }
 
     const slots = await this.bookingAvailabilityService.getAvailableSlots({
@@ -132,15 +186,16 @@ export class BookingsV2Controller {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       timezone,
+      locationId,
     });
 
     return {
       staffId,
       serviceId,
-      timezone: timezone || 'Australia/Sydney',
+      timezone: timezone || "Australia/Sydney",
       availableSlots: slots
-        .filter(slot => slot.available)
-        .map(slot => ({
+        .filter((slot) => slot.available)
+        .map((slot) => ({
           startTime: slot.startTime,
           endTime: slot.endTime,
         })),
@@ -148,103 +203,123 @@ export class BookingsV2Controller {
     };
   }
 
-  @Get(':id')
-  @Permissions('booking.read')
-  async findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  @Get(":id")
+  @Permissions("booking.read")
+  async findOne(@CurrentUser() user: any, @Param("id") id: string) {
     const query = new GetBookingByIdQuery({
       bookingId: id,
       merchantId: user.merchantId,
     });
 
     const booking = await this.queryBus.execute(query);
-    
+
     // Transform status to lowercase for consistency
     if (booking && booking.status) {
-      booking.status = booking.status.toLowerCase().replace(/_/g, '-');
+      booking.status = booking.status.toLowerCase().replace(/_/g, "-");
     }
-    
+
     return booking;
   }
 
   @Post()
-  @Permissions('booking.create')
+  @Permissions("booking.create")
   async create(@CurrentUser() user: any, @Body() dto: CreateBookingV2Dto) {
-    console.log('[BookingsV2Controller] Received DTO:', JSON.stringify(dto, null, 2));
-    console.log('[BookingsV2Controller] Services array:', JSON.stringify(dto.services, null, 2));
-    
+    console.log(
+      "[BookingsV2Controller] Received DTO:",
+      JSON.stringify(dto, null, 2),
+    );
+    console.log(
+      "[BookingsV2Controller] Services array:",
+      JSON.stringify(dto.services, null, 2),
+    );
+
     // Handle walk-in customer - create or find actual walk-in customer for merchant
-    if (dto.customerId === 'WALK_IN') {
+    if (dto.customerId === "WALK_IN") {
       // Get merchant subdomain for proper email format
       const merchant = await this.prisma.merchant.findUnique({
         where: { id: user.merchantId },
-        select: { subdomain: true }
+        select: { subdomain: true },
       });
-      
+
       // Check if walk-in customer exists for this merchant
-      const walkInEmail = `walkin@${merchant?.subdomain || 'unknown'}.local`;
+      const walkInEmail = `walkin@${merchant?.subdomain || "unknown"}.local`;
       let walkInCustomer = await this.prisma.customer.findFirst({
         where: {
           merchantId: user.merchantId,
           email: walkInEmail,
         },
       });
-      
+
       if (!walkInCustomer) {
         // Create walk-in customer for this merchant
         walkInCustomer = await this.prisma.customer.create({
           data: {
             merchantId: user.merchantId,
-            firstName: 'Walk-in',
-            lastName: 'Customer',
+            firstName: "Walk-in",
+            lastName: "Customer",
             email: walkInEmail,
-            source: 'WALK_IN',
+            source: "WALK_IN",
           },
         });
       }
-      
+
       dto.customerId = walkInCustomer.id;
-      console.log('[BookingsV2Controller] Resolved walk-in customer to:', dto.customerId);
+      console.log(
+        "[BookingsV2Controller] Resolved walk-in customer to:",
+        dto.customerId,
+      );
     }
-    
+
     // Validate that at least one service has a staff ID
-    const hasStaffAssignment = dto.services.some(s => s.staffId) || dto.staffId;
+    const hasStaffAssignment =
+      dto.services.some((s) => s.staffId) || dto.staffId;
     if (!hasStaffAssignment) {
-      throw new Error('At least one service must have a staff assignment, or provide a top-level staff ID');
+      throw new Error(
+        "At least one service must have a staff assignment, or provide a top-level staff ID",
+      );
     }
-    
+
     // Determine createdById - use user's staffId if they have one (staff users),
     // otherwise use the booking's assigned staff (merchant users)
     let createdById: string;
     if (user.staffId) {
       // Staff user - use their ID
       createdById = user.staffId;
-      console.log('[BookingsV2Controller] Using staff user ID for createdById:', createdById);
+      console.log(
+        "[BookingsV2Controller] Using staff user ID for createdById:",
+        createdById,
+      );
     } else {
       // Merchant user - use the booking's assigned staff for audit purposes
       // This matches the pattern used in public-booking.service.ts
-      createdById = dto.staffId || dto.services.find(s => s.staffId)?.staffId;
-      console.log('[BookingsV2Controller] Merchant user detected, using booking staff for createdById:', createdById);
+      createdById = dto.staffId || dto.services.find((s) => s.staffId)?.staffId;
+      console.log(
+        "[BookingsV2Controller] Merchant user detected, using booking staff for createdById:",
+        createdById,
+      );
       if (!createdById) {
-        throw new Error('Unable to determine staff for booking creation');
+        throw new Error("Unable to determine staff for booking creation");
       }
     }
-    
+
     // Map services to include staff IDs
-    const servicesWithStaff = dto.services.map(service => ({
+    const servicesWithStaff = dto.services.map((service) => ({
       serviceId: service.serviceId,
       staffId: service.staffId || dto.staffId,
       price: service.price,
       duration: service.duration,
     }));
-    
+
     // LocationId is now optional in database, but we should try to provide one
     // Get from DTO first, then from merchant's first location
     const locationId = dto.locationId || user.merchant?.locations?.[0]?.id;
-    
+
     if (!locationId) {
-      console.log('[BookingsV2Controller] WARNING: No locationId found, will let database handle constraint');
+      console.log(
+        "[BookingsV2Controller] WARNING: No locationId found, will let database handle constraint",
+      );
     }
-    
+
     const command = new CreateBookingCommand({
       customerId: dto.customerId,
       staffId: dto.staffId, // Optional top-level staff ID
@@ -253,24 +328,28 @@ export class BookingsV2Controller {
       startTime: new Date(dto.startTime),
       merchantId: user.merchantId,
       notes: dto.notes,
-      source: dto.source || 'IN_PERSON',
+      source: dto.source || "IN_PERSON",
       createdById: createdById, // Use the determined createdById
-      customerRequestedStaff: dto.customerRequestedStaff ?? Boolean(dto.staffId || dto.services?.some(service => service.staffId)),
+      customerRequestedStaff:
+        dto.customerRequestedStaff ??
+        Boolean(
+          dto.staffId || dto.services?.some((service) => service.staffId),
+        ),
       isOverride: dto.isOverride,
       overrideReason: dto.overrideReason,
       orderId: dto.orderId, // Pass pre-created order ID if provided
     });
 
     const booking = await this.createBookingHandler.execute(command);
-    
+
     // Fetch the full booking details to return enriched data
     const query = new GetBookingByIdQuery({
       bookingId: booking.id,
       merchantId: user.merchantId,
     });
-    
+
     const enrichedBooking = await this.queryBus.execute(query);
-    
+
     // Return in the same format as the list endpoint
     return {
       id: enrichedBooking.id,
@@ -279,13 +358,16 @@ export class BookingsV2Controller {
       customerPhone: enrichedBooking.customer.phone,
       staffId: enrichedBooking.staff.id,
       staffName: enrichedBooking.staff.name,
-      serviceName: enrichedBooking.services.length > 1
-        ? enrichedBooking.services.map((s: any) => s.name).join(' + ')
-        : enrichedBooking.services[0]?.name || 'Unknown Service',
+      serviceName:
+        enrichedBooking.services.length > 1
+          ? enrichedBooking.services.map((s: any) => s.name).join(" + ")
+          : enrichedBooking.services[0]?.name || "Unknown Service",
       services: enrichedBooking.services,
       startTime: enrichedBooking.startTime,
       endTime: enrichedBooking.endTime,
-      status: enrichedBooking.status ? enrichedBooking.status.toLowerCase().replace(/_/g, '-') : 'confirmed',
+      status: enrichedBooking.status
+        ? enrichedBooking.status.toLowerCase().replace(/_/g, "-")
+        : "confirmed",
       totalAmount: enrichedBooking.totalAmount,
       totalDuration: enrichedBooking.totalDuration,
       locationName: enrichedBooking.location.name,
@@ -294,20 +376,24 @@ export class BookingsV2Controller {
     };
   }
 
-  @Patch(':id')
-  @Permissions('booking.update')
+  @Patch(":id")
+  @Permissions("booking.update")
   async update(
     @CurrentUser() user: any,
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() dto: UpdateBookingV2Dto,
   ) {
-    console.log('[V2 CONTROLLER] PATCH /bookings/' + id);
-    console.log('[V2 CONTROLLER] Received DTO:', JSON.stringify(dto, null, 2));
-    console.log('[V2 CONTROLLER] Services in DTO:', dto.services?.length || 0, 'services');
+    console.log("[V2 CONTROLLER] PATCH /bookings/" + id);
+    console.log("[V2 CONTROLLER] Received DTO:", JSON.stringify(dto, null, 2));
+    console.log(
+      "[V2 CONTROLLER] Services in DTO:",
+      dto.services?.length || 0,
+      "services",
+    );
     if (dto.services) {
-      console.log('[V2 CONTROLLER] Service details:', dto.services);
+      console.log("[V2 CONTROLLER] Service details:", dto.services);
     }
-    
+
     const updateData: any = {
       bookingId: id,
       merchantId: user.merchantId,
@@ -324,65 +410,80 @@ export class BookingsV2Controller {
     }
     if (dto.customerId) {
       updateData.customerId =
-        dto.customerId === 'WALK_IN'
+        dto.customerId === "WALK_IN"
           ? await this.resolveWalkInCustomer(user.merchantId)
           : dto.customerId;
     }
     if (dto.services && dto.services.length > 0) {
       // Pass full services array to update service
-      updateData.services = dto.services.map(s => ({
+      updateData.services = dto.services.map((s) => ({
         serviceId: s.serviceId,
         staffId: s.staffId,
         price: s.price,
-        duration: s.duration
+        duration: s.duration,
       }));
-      console.log('[V2 CONTROLLER] Mapped services for update:', updateData.services);
+      console.log(
+        "[V2 CONTROLLER] Mapped services for update:",
+        updateData.services,
+      );
     }
     if (dto.status) updateData.status = dto.status;
-    if (dto.cancellationReason) updateData.cancellationReason = dto.cancellationReason;
+    if (dto.cancellationReason)
+      updateData.cancellationReason = dto.cancellationReason;
 
-    console.log('[V2 CONTROLLER] Calling BookingUpdateService with:', JSON.stringify(updateData, null, 2));
+    console.log(
+      "[V2 CONTROLLER] Calling BookingUpdateService with:",
+      JSON.stringify(updateData, null, 2),
+    );
     const booking = await this.bookingUpdateService.updateBooking(updateData);
-    console.log('[V2 CONTROLLER] BookingUpdateService returned booking');
-    
+    console.log("[V2 CONTROLLER] BookingUpdateService returned booking");
+
     // For all updates, return the full booking with services
     const query = new GetBookingByIdQuery({
       bookingId: id,
       merchantId: user.merchantId,
     });
-    
+
     const enrichedBooking = await this.queryBus.execute(query);
-    
+
     // Transform status to lowercase for consistency
     if (enrichedBooking && enrichedBooking.status) {
-      enrichedBooking.status = enrichedBooking.status.toLowerCase().replace(/_/g, '-');
+      enrichedBooking.status = enrichedBooking.status
+        .toLowerCase()
+        .replace(/_/g, "-");
     }
-    
+
     return enrichedBooking;
   }
 
-  @Patch(':id/start')
-  @Permissions('booking.update')
+  @Patch(":id/start")
+  @Permissions("booking.update")
   @HttpCode(HttpStatus.OK)
-  async startBooking(@CurrentUser() user: any, @Param('id') id: string) {
-    const booking = await this.bookingUpdateService.startBooking(id, user.merchantId);
+  async startBooking(@CurrentUser() user: any, @Param("id") id: string) {
+    const booking = await this.bookingUpdateService.startBooking(
+      id,
+      user.merchantId,
+    );
     return this.toDto(booking);
   }
 
-  @Patch(':id/complete')
-  @Permissions('booking.update')
+  @Patch(":id/complete")
+  @Permissions("booking.update")
   @HttpCode(HttpStatus.OK)
-  async completeBooking(@CurrentUser() user: any, @Param('id') id: string) {
-    const booking = await this.bookingUpdateService.completeBooking(id, user.merchantId);
+  async completeBooking(@CurrentUser() user: any, @Param("id") id: string) {
+    const booking = await this.bookingUpdateService.completeBooking(
+      id,
+      user.merchantId,
+    );
     return this.toDto(booking);
   }
 
-  @Patch(':id/cancel')
-  @Permissions('booking.update')
+  @Patch(":id/cancel")
+  @Permissions("booking.update")
   @HttpCode(HttpStatus.OK)
   async cancelBooking(
     @CurrentUser() user: any,
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() body: { reason: string },
   ) {
     const booking = await this.bookingUpdateService.cancelBooking({
@@ -391,48 +492,56 @@ export class BookingsV2Controller {
       reason: body.reason,
       cancelledBy: user.id,
     });
-    
+
     return this.toDto(booking);
   }
 
-  @Delete(':id')
-  @Permissions('booking.delete')
+  @Delete(":id")
+  @Permissions("booking.delete")
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: any, @Param('id') id: string) {
+  async remove(@CurrentUser() user: any, @Param("id") id: string) {
     await this.bookingRepository.delete(id, user.merchantId);
   }
 
-  @Post(':id/mark-paid')
-  @Permissions('booking.update', 'payment.create')
+  @Post(":id/mark-paid")
+  @Permissions("booking.update", "payment.create")
   @HttpCode(HttpStatus.OK)
   async markAsPaid(
     @CurrentUser() user: any,
-    @Param('id') id: string,
-    @Body() body: { paymentMethod?: string; notes?: string; amount?: number; reference?: string },
+    @Param("id") id: string,
+    @Body()
+    body: {
+      paymentMethod?: string;
+      notes?: string;
+      amount?: number;
+      reference?: string;
+    },
   ) {
     const startTime = Date.now();
-    
+
     try {
       const serviceStart = Date.now();
       const updatedBooking = await this.bookingUpdateService.markBookingAsPaid(
         id,
         user.merchantId,
-        body.paymentMethod || 'CASH',
+        body.paymentMethod || "CASH",
         body.amount,
         body.reference,
       );
       console.log(`[PERF] Service call took: ${Date.now() - serviceStart}ms`);
-      
+
       const responseStart = Date.now();
       const response = {
         success: true,
-        message: 'Booking marked as paid successfully',
+        message: "Booking marked as paid successfully",
         booking: {
           id: updatedBooking.id,
           bookingNumber: updatedBooking.bookingNumber,
           paymentStatus: updatedBooking.paymentStatus,
           paidAmount: Number(updatedBooking.paidAmount),
-          balanceDue: Number(updatedBooking.totalAmount) - Number(updatedBooking.paidAmount),
+          balanceDue:
+            Number(updatedBooking.totalAmount) -
+            Number(updatedBooking.paidAmount),
           paymentMethod: updatedBooking.paymentMethod,
           paidAt: updatedBooking.paidAt,
           totalAmount: Number(updatedBooking.totalAmount),
@@ -440,42 +549,38 @@ export class BookingsV2Controller {
       };
       console.log(`[PERF] Response prep took: ${Date.now() - responseStart}ms`);
       console.log(`[PERF] Total controller time: ${Date.now() - startTime}ms`);
-      
+
       return response;
     } catch (error) {
       throw new BadRequestException(
-        `Failed to mark booking as paid: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to mark booking as paid: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }
-
 
   private async resolveWalkInCustomer(merchantId: string): Promise<string> {
     const walkInCustomer = await this.prisma.customer.findFirst({
       where: {
         merchantId: merchantId,
-        OR: [
-          { firstName: 'Walk-in' },
-          { firstName: 'Walk In' },
-        ],
+        OR: [{ firstName: "Walk-in" }, { firstName: "Walk In" }],
       },
     });
-    
+
     if (!walkInCustomer) {
       const newWalkIn = await this.prisma.customer.create({
         data: {
           merchantId: merchantId,
-          firstName: 'Walk-in',
-          lastName: 'Customer',
-          phone: '',
-          email: '',
+          firstName: "Walk-in",
+          lastName: "Customer",
+          phone: "",
+          email: "",
           tags: [],
-          source: 'WALK_IN',
+          source: "WALK_IN",
         },
       });
       return newWalkIn.id;
     }
-    
+
     return walkInCustomer.id;
   }
 
@@ -485,9 +590,9 @@ export class BookingsV2Controller {
    */
   private toDto(booking: any) {
     // Convert status to lowercase hyphenated format
-    const statusValue = booking.status?.value || booking.status || 'CONFIRMED';
-    const status = statusValue.toLowerCase().replace(/_/g, '-');
-    
+    const statusValue = booking.status?.value || booking.status || "CONFIRMED";
+    const status = statusValue.toLowerCase().replace(/_/g, "-");
+
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,

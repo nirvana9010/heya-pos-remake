@@ -6,7 +6,7 @@ export interface BookingDetail {
   id: string;
   bookingNumber: string;
   status: string;
-  
+
   // Customer info
   customer: {
     id: string;
@@ -15,7 +15,7 @@ export interface BookingDetail {
     phone: string;
     loyaltyPoints?: number;
   };
-  
+
   // Staff info
   staff: {
     id: string;
@@ -23,7 +23,7 @@ export interface BookingDetail {
     email: string;
     phone?: string;
   };
-  
+
   // Services info - support multiple services
   services: Array<{
     id: string;
@@ -34,7 +34,7 @@ export interface BookingDetail {
     staffId: string;
     staffName: string;
   }>;
-  
+
   // Location info
   location: {
     id: string;
@@ -42,7 +42,7 @@ export interface BookingDetail {
     address: string;
     phone: string;
   };
-  
+
   // Booking details
   startTime: Date;
   endTime: Date;
@@ -50,25 +50,25 @@ export interface BookingDetail {
   totalDuration: number;
   depositAmount: number;
   notes?: string;
-  
+
   // Override info
   isOverride: boolean;
   overrideReason?: string;
-  
+
   // Metadata
   source: string;
   createdAt: Date;
   updatedAt: Date;
   createdBy: string;
-  
+
   // Cancellation info
   cancelledAt?: Date;
   cancellationReason?: string;
   cancelledBy?: string;
-  
+
   // Completion info
   completedAt?: Date;
-  
+
   // Payment info
   paymentStatus: string;
   paidAmount: number;

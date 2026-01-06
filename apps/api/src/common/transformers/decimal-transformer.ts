@@ -1,5 +1,5 @@
-import { Transform, TransformFnParams } from 'class-transformer';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Transform, TransformFnParams } from "class-transformer";
+import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Transform string or number to Decimal for Prisma input
@@ -7,17 +7,17 @@ import { Decimal } from '@prisma/client/runtime/library';
 export function ToDecimal() {
   return Transform(({ value }: TransformFnParams) => {
     if (value === null || value === undefined) return value;
-    
+
     if (value instanceof Decimal) return value;
-    
-    if (typeof value === 'string' || typeof value === 'number') {
+
+    if (typeof value === "string" || typeof value === "number") {
       try {
         return new Decimal(value);
       } catch {
         return new Decimal(0);
       }
     }
-    
+
     return new Decimal(0);
   });
 }
@@ -28,16 +28,16 @@ export function ToDecimal() {
 export function FromDecimal() {
   return Transform(({ value }: TransformFnParams) => {
     if (value === null || value === undefined) return value;
-    
+
     if (value instanceof Decimal) {
       return value.toNumber();
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       const num = parseFloat(value);
       return isNaN(num) ? 0 : num;
     }
-    
+
     return value;
   });
 }
@@ -48,19 +48,19 @@ export function FromDecimal() {
 export function MoneyTransform() {
   return Transform(({ value }: TransformFnParams) => {
     if (value === null || value === undefined) return value;
-    
+
     let num: number;
-    
+
     if (value instanceof Decimal) {
       num = value.toNumber();
-    } else if (typeof value === 'string') {
+    } else if (typeof value === "string") {
       num = parseFloat(value);
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       num = value;
     } else {
       return 0;
     }
-    
+
     // Round to 2 decimal places
     return Math.round(num * 100) / 100;
   });
@@ -72,19 +72,19 @@ export function MoneyTransform() {
 export function PercentageTransform() {
   return Transform(({ value }: TransformFnParams) => {
     if (value === null || value === undefined) return value;
-    
+
     let num: number;
-    
+
     if (value instanceof Decimal) {
       num = value.toNumber();
-    } else if (typeof value === 'string') {
+    } else if (typeof value === "string") {
       num = parseFloat(value);
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       num = value;
     } else {
       return 0;
     }
-    
+
     // Round to 4 decimal places
     return Math.round(num * 10000) / 10000;
   });
@@ -115,11 +115,11 @@ export class DecimalUtils {
   static divide(a: Decimal | number, b: Decimal | number): Decimal {
     const decA = a instanceof Decimal ? a : new Decimal(a);
     const decB = b instanceof Decimal ? b : new Decimal(b);
-    
+
     if (decB.isZero()) {
-      throw new Error('Division by zero');
+      throw new Error("Division by zero");
     }
-    
+
     return decA.div(decB);
   }
 

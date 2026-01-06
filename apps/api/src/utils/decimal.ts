@@ -1,8 +1,8 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Utility functions for working with Prisma Decimal types in PostgreSQL
- * 
+ *
  * IMPORTANT: For financial calculations, we preserve precision by:
  * 1. Keeping calculations in Decimal type as long as possible
  * 2. Only converting to number for display or when absolutely necessary
@@ -15,23 +15,27 @@ import { Decimal } from '@prisma/client/runtime/library';
  */
 export function toNumber(value: Decimal | number | null | undefined): number {
   if (value === null || value === undefined) return 0;
-  if (typeof value === 'number') return value;
+  if (typeof value === "number") return value;
   return value.toNumber();
 }
 
 /**
  * Convert value to string to preserve precision in API responses
  */
-export function toDecimalString(value: Decimal | number | null | undefined): string {
-  if (value === null || value === undefined) return '0';
-  if (typeof value === 'number') return value.toString();
+export function toDecimalString(
+  value: Decimal | number | null | undefined,
+): string {
+  if (value === null || value === undefined) return "0";
+  if (typeof value === "number") return value.toString();
   return value.toString();
 }
 
 /**
  * Convert to Decimal type for precise calculations
  */
-export function toDecimal(value: number | string | Decimal | null | undefined): Decimal {
+export function toDecimal(
+  value: number | string | Decimal | null | undefined,
+): Decimal {
   if (value === null || value === undefined) return new Decimal(0);
   if (value instanceof Decimal) return value;
   return new Decimal(value);
@@ -50,7 +54,10 @@ export function addDecimals(a: Decimal | number, b: Decimal | number): number {
 /**
  * Add two decimal values preserving precision
  */
-export function addDecimalsPrecise(a: Decimal | number, b: Decimal | number): Decimal {
+export function addDecimalsPrecise(
+  a: Decimal | number,
+  b: Decimal | number,
+): Decimal {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.add(decimalB);
@@ -60,7 +67,10 @@ export function addDecimalsPrecise(a: Decimal | number, b: Decimal | number): De
  * Subtract decimal values with precision
  * Returns number for backward compatibility, but consider using subtractDecimalsPrecise
  */
-export function subtractDecimals(a: Decimal | number, b: Decimal | number): number {
+export function subtractDecimals(
+  a: Decimal | number,
+  b: Decimal | number,
+): number {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.sub(decimalB).toNumber();
@@ -69,7 +79,10 @@ export function subtractDecimals(a: Decimal | number, b: Decimal | number): numb
 /**
  * Subtract decimal values preserving precision
  */
-export function subtractDecimalsPrecise(a: Decimal | number, b: Decimal | number): Decimal {
+export function subtractDecimalsPrecise(
+  a: Decimal | number,
+  b: Decimal | number,
+): Decimal {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.sub(decimalB);
@@ -79,7 +92,10 @@ export function subtractDecimalsPrecise(a: Decimal | number, b: Decimal | number
  * Multiply decimal values with precision
  * Returns number for backward compatibility, but consider using multiplyDecimalsPrecise
  */
-export function multiplyDecimals(a: Decimal | number, b: Decimal | number): number {
+export function multiplyDecimals(
+  a: Decimal | number,
+  b: Decimal | number,
+): number {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.mul(decimalB).toNumber();
@@ -88,7 +104,10 @@ export function multiplyDecimals(a: Decimal | number, b: Decimal | number): numb
 /**
  * Multiply decimal values preserving precision
  */
-export function multiplyDecimalsPrecise(a: Decimal | number, b: Decimal | number): Decimal {
+export function multiplyDecimalsPrecise(
+  a: Decimal | number,
+  b: Decimal | number,
+): Decimal {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.mul(decimalB);
@@ -98,7 +117,10 @@ export function multiplyDecimalsPrecise(a: Decimal | number, b: Decimal | number
  * Divide decimal values with precision
  * Returns number for backward compatibility, but consider using divideDecimalsPrecise
  */
-export function divideDecimals(a: Decimal | number, b: Decimal | number): number {
+export function divideDecimals(
+  a: Decimal | number,
+  b: Decimal | number,
+): number {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   if (decimalB.isZero()) return 0;
@@ -108,7 +130,10 @@ export function divideDecimals(a: Decimal | number, b: Decimal | number): number
 /**
  * Divide decimal values preserving precision
  */
-export function divideDecimalsPrecise(a: Decimal | number, b: Decimal | number): Decimal {
+export function divideDecimalsPrecise(
+  a: Decimal | number,
+  b: Decimal | number,
+): Decimal {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   if (decimalB.isZero()) return new Decimal(0);
@@ -119,7 +144,10 @@ export function divideDecimalsPrecise(a: Decimal | number, b: Decimal | number):
  * Compare decimal values
  * Returns: negative if a < b, 0 if equal, positive if a > b
  */
-export function compareDecimals(a: Decimal | number, b: Decimal | number): number {
+export function compareDecimals(
+  a: Decimal | number,
+  b: Decimal | number,
+): number {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.comparedTo(decimalB);
@@ -128,7 +156,10 @@ export function compareDecimals(a: Decimal | number, b: Decimal | number): numbe
 /**
  * Check if a > b
  */
-export function isGreaterThan(a: Decimal | number, b: Decimal | number): boolean {
+export function isGreaterThan(
+  a: Decimal | number,
+  b: Decimal | number,
+): boolean {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.greaterThan(decimalB);
@@ -137,7 +168,10 @@ export function isGreaterThan(a: Decimal | number, b: Decimal | number): boolean
 /**
  * Check if a >= b
  */
-export function isGreaterThanOrEqual(a: Decimal | number, b: Decimal | number): boolean {
+export function isGreaterThanOrEqual(
+  a: Decimal | number,
+  b: Decimal | number,
+): boolean {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.greaterThanOrEqualTo(decimalB);
@@ -155,7 +189,10 @@ export function isLessThan(a: Decimal | number, b: Decimal | number): boolean {
 /**
  * Check if a <= b
  */
-export function isLessThanOrEqual(a: Decimal | number, b: Decimal | number): boolean {
+export function isLessThanOrEqual(
+  a: Decimal | number,
+  b: Decimal | number,
+): boolean {
   const decimalA = toDecimal(a);
   const decimalB = toDecimal(b);
   return decimalA.lessThanOrEqualTo(decimalB);
@@ -174,21 +211,31 @@ export function isEqual(a: Decimal | number, b: Decimal | number): boolean {
  * Sum array of decimal values
  * Returns number for backward compatibility, but consider using sumDecimalsPrecise
  */
-export function sumDecimals(values: (Decimal | number | null | undefined)[]): number {
+export function sumDecimals(
+  values: (Decimal | number | null | undefined)[],
+): number {
   return values.reduce<number>((sum, val) => sum + toNumber(val), 0);
 }
 
 /**
  * Sum array of decimal values preserving precision
  */
-export function sumDecimalsPrecise(values: (Decimal | number | null | undefined)[]): Decimal {
-  return values.reduce<Decimal>((sum, val) => sum.add(toDecimal(val)), new Decimal(0));
+export function sumDecimalsPrecise(
+  values: (Decimal | number | null | undefined)[],
+): Decimal {
+  return values.reduce<Decimal>(
+    (sum, val) => sum.add(toDecimal(val)),
+    new Decimal(0),
+  );
 }
 
 /**
  * Round decimal to specified number of decimal places
  */
-export function roundDecimal(value: Decimal | number, decimalPlaces: number = 2): Decimal {
+export function roundDecimal(
+  value: Decimal | number,
+  decimalPlaces: number = 2,
+): Decimal {
   const decimal = toDecimal(value);
   return decimal.toDecimalPlaces(decimalPlaces);
 }
@@ -196,10 +243,13 @@ export function roundDecimal(value: Decimal | number, decimalPlaces: number = 2)
 /**
  * Format decimal as currency string
  */
-export function formatCurrency(value: Decimal | number, currency: string = 'AUD'): string {
+export function formatCurrency(
+  value: Decimal | number,
+  currency: string = "AUD",
+): string {
   const num = toNumber(value);
-  return new Intl.NumberFormat('en-AU', {
-    style: 'currency',
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
     currency: currency,
   }).format(num);
 }

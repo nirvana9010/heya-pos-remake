@@ -1,10 +1,22 @@
-import { IsEmail, IsString, IsNumber, IsOptional, IsEnum, MinLength, MaxLength, Min, Max, IsArray, Matches } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { StaffRole } from '../../types';
+import {
+  IsEmail,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  MinLength,
+  MaxLength,
+  Min,
+  Max,
+  IsArray,
+  Matches,
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { StaffRole } from "../../types";
 
 export class CreateStaffDto {
   @IsOptional()
-  @Transform(({ value }) => value === '' ? null : value)
+  @Transform(({ value }) => (value === "" ? null : value))
   @IsEmail()
   email?: string;
 
@@ -14,14 +26,14 @@ export class CreateStaffDto {
   firstName: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' ? null : value)
+  @Transform(({ value }) => (value === "" ? null : value))
   @IsString()
   @MinLength(1)
   @MaxLength(100)
   lastName?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' ? null : value)
+  @Transform(({ value }) => (value === "" ? null : value))
   @IsString()
   phone?: string;
 
@@ -48,7 +60,7 @@ export class CreateStaffDto {
   @IsOptional()
   @IsString()
   @Matches(/^(#[0-9A-Fa-f]{6}|auto)$/, {
-    message: 'calendarColor must be a valid hex color code or "auto"'
+    message: 'calendarColor must be a valid hex color code or "auto"',
   })
   calendarColor?: string;
 
@@ -58,6 +70,6 @@ export class CreateStaffDto {
   locationIds?: string[];
 
   @IsOptional()
-  @IsEnum(['ACTIVE', 'INACTIVE'])
-  status?: 'ACTIVE' | 'INACTIVE';
+  @IsEnum(["ACTIVE", "INACTIVE"])
+  status?: "ACTIVE" | "INACTIVE";
 }

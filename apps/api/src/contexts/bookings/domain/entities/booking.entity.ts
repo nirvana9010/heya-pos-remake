@@ -1,7 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
-import { TimeSlot } from '../value-objects/time-slot.vo';
-import { BookingStatus, BookingStatusValue } from '../value-objects/booking-status.vo';
-import { PaymentStatus, PaymentStatusEnum } from '../value-objects/payment-status.vo';
+import { BadRequestException } from "@nestjs/common";
+import { TimeSlot } from "../value-objects/time-slot.vo";
+import {
+  BookingStatus,
+  BookingStatusValue,
+} from "../value-objects/booking-status.vo";
+import {
+  PaymentStatus,
+  PaymentStatusEnum,
+} from "../value-objects/payment-status.vo";
 
 export interface BookingProps {
   id: string;
@@ -73,7 +79,7 @@ export class Booking {
 
   constructor(props: BookingProps) {
     this.validateProps(props);
-    
+
     this._id = props.id;
     this._bookingNumber = props.bookingNumber;
     this._status = new BookingStatus(props.status);
@@ -97,7 +103,9 @@ export class Booking {
     this._cancellationReason = props.cancellationReason;
     this._completedAt = props.completedAt;
     // Payment properties
-    this._paymentStatus = props.paymentStatus ? new PaymentStatus(props.paymentStatus) : PaymentStatus.unpaid();
+    this._paymentStatus = props.paymentStatus
+      ? new PaymentStatus(props.paymentStatus)
+      : PaymentStatus.unpaid();
     this._paidAmount = props.paidAmount || 0;
     this._paymentMethod = props.paymentMethod;
     this._paymentReference = props.paymentReference;
@@ -106,19 +114,19 @@ export class Booking {
 
   private validateProps(props: BookingProps): void {
     if (!props.id || !props.bookingNumber) {
-      throw new BadRequestException('Booking ID and number are required');
+      throw new BadRequestException("Booking ID and number are required");
     }
 
     if (!props.customerId) {
-      throw new BadRequestException('Customer is required');
+      throw new BadRequestException("Customer is required");
     }
 
     if (props.totalAmount < 0) {
-      throw new BadRequestException('Total amount cannot be negative');
+      throw new BadRequestException("Total amount cannot be negative");
     }
 
     if (props.depositAmount < 0 || props.depositAmount > props.totalAmount) {
-      throw new BadRequestException('Invalid deposit amount');
+      throw new BadRequestException("Invalid deposit amount");
     }
   }
 
@@ -126,15 +134,15 @@ export class Booking {
   start(): void {
     if (!this._status.canTransitionTo(BookingStatus.IN_PROGRESS)) {
       throw new BadRequestException(
-        `Cannot start booking in ${this._status.toString()} status`
+        `Cannot start booking in ${this._status.toString()} status`,
       );
     }
 
     this._status = BookingStatus.IN_PROGRESS;
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingStarted',
+      type: "BookingStarted",
       bookingId: this._id,
       occurredAt: new Date(),
     });
@@ -143,16 +151,16 @@ export class Booking {
   complete(): void {
     if (!this._status.canTransitionTo(BookingStatus.COMPLETED)) {
       throw new BadRequestException(
-        `Cannot complete booking in ${this._status.toString()} status`
+        `Cannot complete booking in ${this._status.toString()} status`,
       );
     }
 
     this._status = BookingStatus.COMPLETED;
     this._completedAt = new Date();
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingCompleted',
+      type: "BookingCompleted",
       bookingId: this._id,
       occurredAt: new Date(),
     });
@@ -161,7 +169,7 @@ export class Booking {
   cancel(reason: string, cancelledBy: string): void {
     if (!this._status.canTransitionTo(BookingStatus.CANCELLED)) {
       throw new BadRequestException(
-        `Cannot cancel booking in ${this._status.toString()} status`
+        `Cannot cancel booking in ${this._status.toString()} status`,
       );
     }
 
@@ -169,9 +177,9 @@ export class Booking {
     this._cancellationReason = reason;
     this._cancelledAt = new Date();
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingCancelled',
+      type: "BookingCancelled",
       bookingId: this._id,
       reason,
       cancelledBy,
@@ -182,15 +190,15 @@ export class Booking {
   markAsNoShow(): void {
     if (!this._status.canTransitionTo(BookingStatus.NO_SHOW)) {
       throw new BadRequestException(
-        `Cannot mark booking as no-show in ${this._status.toString()} status`
+        `Cannot mark booking as no-show in ${this._status.toString()} status`,
       );
     }
 
     this._status = BookingStatus.NO_SHOW;
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingMarkedAsNoShow',
+      type: "BookingMarkedAsNoShow",
       bookingId: this._id,
       occurredAt: new Date(),
     });
@@ -199,16 +207,16 @@ export class Booking {
   reschedule(newTimeSlot: TimeSlot): void {
     if (this._status.isTerminal()) {
       throw new BadRequestException(
-        `Cannot reschedule booking in ${this._status.toString()} status`
+        `Cannot reschedule booking in ${this._status.toString()} status`,
       );
     }
 
     const oldTimeSlot = this._timeSlot;
     this._timeSlot = newTimeSlot;
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingRescheduled',
+      type: "BookingRescheduled",
       bookingId: this._id,
       oldTimeSlot: {
         start: oldTimeSlot.start.toISOString(),
@@ -224,18 +232,18 @@ export class Booking {
 
   changeCustomer(newCustomerId: string): void {
     if (!newCustomerId) {
-      throw new BadRequestException('Customer is required');
+      throw new BadRequestException("Customer is required");
     }
 
     if (this._status.isTerminal()) {
       throw new BadRequestException(
-        `Cannot change customer for booking in ${this._status.toString()} status`
+        `Cannot change customer for booking in ${this._status.toString()} status`,
       );
     }
 
     if (!this._paymentStatus.isUnpaid()) {
       throw new BadRequestException(
-        `Cannot change customer once payment has been recorded (status: ${this._paymentStatus.toString()})`
+        `Cannot change customer once payment has been recorded (status: ${this._paymentStatus.toString()})`,
       );
     }
 
@@ -248,7 +256,7 @@ export class Booking {
     this._updatedAt = new Date();
 
     this.addDomainEvent({
-      type: 'BookingCustomerChanged',
+      type: "BookingCustomerChanged",
       bookingId: this._id,
       previousCustomerId,
       newCustomerId,
@@ -260,12 +268,12 @@ export class Booking {
   markAsPaid(amount: number, method: string, reference?: string): void {
     if (!this._paymentStatus.canBePaid()) {
       throw new BadRequestException(
-        `Cannot mark booking as paid in ${this._paymentStatus.toString()} status`
+        `Cannot mark booking as paid in ${this._paymentStatus.toString()} status`,
       );
     }
 
     if (amount <= 0) {
-      throw new BadRequestException('Payment amount must be greater than zero');
+      throw new BadRequestException("Payment amount must be greater than zero");
     }
 
     if (amount >= this._totalAmount) {
@@ -280,9 +288,9 @@ export class Booking {
     this._paymentReference = reference;
     this._paidAt = new Date();
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingPaymentRecorded',
+      type: "BookingPaymentRecorded",
       bookingId: this._id,
       amount,
       method,
@@ -292,19 +300,23 @@ export class Booking {
     });
   }
 
-  recordPartialPayment(amount: number, method: string, reference?: string): void {
+  recordPartialPayment(
+    amount: number,
+    method: string,
+    reference?: string,
+  ): void {
     if (!this._paymentStatus.canBePaid()) {
       throw new BadRequestException(
-        `Cannot record payment for booking in ${this._paymentStatus.toString()} status`
+        `Cannot record payment for booking in ${this._paymentStatus.toString()} status`,
       );
     }
 
     if (amount <= 0) {
-      throw new BadRequestException('Payment amount must be greater than zero');
+      throw new BadRequestException("Payment amount must be greater than zero");
     }
 
     const newPaidAmount = this._paidAmount + amount;
-    
+
     if (newPaidAmount >= this._totalAmount) {
       this._paymentStatus = PaymentStatus.paid();
       this._paidAmount = this._totalAmount;
@@ -317,9 +329,9 @@ export class Booking {
     this._paymentReference = reference;
     this._paidAt = new Date();
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingPartialPaymentRecorded',
+      type: "BookingPartialPaymentRecorded",
       bookingId: this._id,
       amount,
       totalPaid: this._paidAmount,
@@ -333,16 +345,16 @@ export class Booking {
   refundPayment(amount: number, reason: string): void {
     if (!this._paymentStatus.canBeRefunded()) {
       throw new BadRequestException(
-        `Cannot refund booking in ${this._paymentStatus.toString()} status`
+        `Cannot refund booking in ${this._paymentStatus.toString()} status`,
       );
     }
 
     if (amount <= 0 || amount > this._paidAmount) {
-      throw new BadRequestException('Invalid refund amount');
+      throw new BadRequestException("Invalid refund amount");
     }
 
     const remainingAmount = this._paidAmount - amount;
-    
+
     if (remainingAmount === 0) {
       this._paymentStatus = PaymentStatus.refunded();
       this._paidAmount = 0;
@@ -352,9 +364,9 @@ export class Booking {
     }
 
     this._updatedAt = new Date();
-    
+
     this.addDomainEvent({
-      type: 'BookingPaymentRefunded',
+      type: "BookingPaymentRefunded",
       bookingId: this._id,
       refundAmount: amount,
       remainingPaid: this._paidAmount,
@@ -373,34 +385,92 @@ export class Booking {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get bookingNumber(): string { return this._bookingNumber; }
-  get status(): BookingStatus { return this._status; }
-  get timeSlot(): TimeSlot { return this._timeSlot; }
-  get customerId(): string { return this._customerId; }
-  get staffId(): string | undefined { return this._staffId; }
-  get serviceId(): string | undefined { return this._serviceId; }
-  get locationId(): string | undefined { return this._locationId; }
-  get merchantId(): string { return this._merchantId; }
-  get notes(): string | undefined { return this._notes; }
-  get totalAmount(): number { return this._totalAmount; }
-  get depositAmount(): number { return this._depositAmount; }
-  get isOverride(): boolean { return this._isOverride; }
-  get overrideReason(): string | undefined { return this._overrideReason; }
-  get source(): string { return this._source; }
-  get customerRequestedStaff(): boolean { return this._customerRequestedStaff; }
-  get createdById(): string { return this._createdById; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get cancelledAt(): Date | undefined { return this._cancelledAt; }
-  get completedAt(): Date | undefined { return this._completedAt; }
-  get cancellationReason(): string | undefined { return this._cancellationReason; }
-  get domainEvents(): any[] { return [...this._domainEvents]; }
+  get id(): string {
+    return this._id;
+  }
+  get bookingNumber(): string {
+    return this._bookingNumber;
+  }
+  get status(): BookingStatus {
+    return this._status;
+  }
+  get timeSlot(): TimeSlot {
+    return this._timeSlot;
+  }
+  get customerId(): string {
+    return this._customerId;
+  }
+  get staffId(): string | undefined {
+    return this._staffId;
+  }
+  get serviceId(): string | undefined {
+    return this._serviceId;
+  }
+  get locationId(): string | undefined {
+    return this._locationId;
+  }
+  get merchantId(): string {
+    return this._merchantId;
+  }
+  get notes(): string | undefined {
+    return this._notes;
+  }
+  get totalAmount(): number {
+    return this._totalAmount;
+  }
+  get depositAmount(): number {
+    return this._depositAmount;
+  }
+  get isOverride(): boolean {
+    return this._isOverride;
+  }
+  get overrideReason(): string | undefined {
+    return this._overrideReason;
+  }
+  get source(): string {
+    return this._source;
+  }
+  get customerRequestedStaff(): boolean {
+    return this._customerRequestedStaff;
+  }
+  get createdById(): string {
+    return this._createdById;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+  get cancelledAt(): Date | undefined {
+    return this._cancelledAt;
+  }
+  get completedAt(): Date | undefined {
+    return this._completedAt;
+  }
+  get cancellationReason(): string | undefined {
+    return this._cancellationReason;
+  }
+  get domainEvents(): any[] {
+    return [...this._domainEvents];
+  }
   // Payment getters
-  get paymentStatus(): PaymentStatus { return this._paymentStatus; }
-  get paidAmount(): number { return this._paidAmount; }
-  get paymentMethod(): string | undefined { return this._paymentMethod; }
-  get paymentReference(): string | undefined { return this._paymentReference; }
-  get paidAt(): Date | undefined { return this._paidAt; }
-  get balanceDue(): number { return this._totalAmount - this._paidAmount; }
+  get paymentStatus(): PaymentStatus {
+    return this._paymentStatus;
+  }
+  get paidAmount(): number {
+    return this._paidAmount;
+  }
+  get paymentMethod(): string | undefined {
+    return this._paymentMethod;
+  }
+  get paymentReference(): string | undefined {
+    return this._paymentReference;
+  }
+  get paidAt(): Date | undefined {
+    return this._paidAt;
+  }
+  get balanceDue(): number {
+    return this._totalAmount - this._paidAmount;
+  }
 }

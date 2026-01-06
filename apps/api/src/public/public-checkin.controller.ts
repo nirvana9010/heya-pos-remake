@@ -9,18 +9,24 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-} from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { TimezoneUtils } from '../utils/shared/timezone';
-import { toNumber } from '../utils/decimal';
-import { formatName } from '../utils/shared/format';
-import { IsString, IsOptional, IsNotEmpty, IsEmail, MaxLength } from 'class-validator';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { MerchantNotificationsService } from '../notifications/merchant-notifications.service';
-import { FeaturesService } from '../features/features.service';
-import { BookingCreationService } from '../contexts/bookings/application/services/booking-creation.service';
-import { LoyaltyService } from '../loyalty/loyalty.service';
+} from "@nestjs/common";
+import { Public } from "../auth/decorators/public.decorator";
+import { PrismaService } from "../prisma/prisma.service";
+import { TimezoneUtils } from "../utils/shared/timezone";
+import { toNumber } from "../utils/decimal";
+import { formatName } from "../utils/shared/format";
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  IsEmail,
+  MaxLength,
+} from "class-validator";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { MerchantNotificationsService } from "../notifications/merchant-notifications.service";
+import { FeaturesService } from "../features/features.service";
+import { BookingCreationService } from "../contexts/bookings/application/services/booking-creation.service";
+import { LoyaltyService } from "../loyalty/loyalty.service";
 
 class CheckInDto {
   @IsString()
@@ -54,7 +60,7 @@ class CheckInDto {
   // referralSource?: string;
 }
 
-@Controller('public')
+@Controller("public")
 @Public()
 export class PublicCheckInController {
   constructor(
@@ -72,15 +78,15 @@ export class PublicCheckInController {
     headerSubdomain?: string,
   ) {
     const merchantSubdomain = subdomain || headerSubdomain;
-    
+
     if (!merchantSubdomain) {
-      throw new BadRequestException('Merchant subdomain is required');
+      throw new BadRequestException("Merchant subdomain is required");
     }
 
     const merchant = await this.prisma.merchant.findUnique({
-      where: { 
+      where: {
         subdomain: merchantSubdomain,
-        status: 'ACTIVE'
+        status: "ACTIVE",
       },
     });
 
@@ -92,26 +98,26 @@ export class PublicCheckInController {
   }
 
   // Check in endpoint
-  @Post('checkin')
+  @Post("checkin")
   @HttpCode(HttpStatus.OK)
   async checkIn(
     @Body() dto: CheckInDto,
-    @Query('subdomain') subdomain?: string,
-    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+    @Query("subdomain") subdomain?: string,
+    @Headers("x-merchant-subdomain") headerSubdomain?: string,
   ) {
-    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+    const merchant = await this.getMerchantBySubdomain(
+      subdomain,
+      headerSubdomain,
+    );
 
     // Clean phone number
-    const cleanedPhone = dto.phone.replace(/\D/g, '');
+    const cleanedPhone = dto.phone.replace(/\D/g, "");
 
     // Try to find existing customer
     let customer = await this.prisma.customer.findFirst({
       where: {
         merchantId: merchant.id,
-        OR: [
-          { phone: cleanedPhone },
-          { mobile: cleanedPhone },
-        ],
+        OR: [{ phone: cleanedPhone }, { mobile: cleanedPhone }],
       },
     });
 
@@ -144,7 +150,7 @@ export class PublicCheckInController {
           // allergies: dto.allergies,
           // specialRequirements: dto.specialRequirements,
           // referralSource: dto.referralSource,
-          source: 'WALK_IN',
+          source: "WALK_IN",
           // lastCheckInAt: new Date(),
         },
       });
@@ -153,15 +159,21 @@ export class PublicCheckInController {
     }
 
     // Check if merchant has check_in_only feature
-    const hasCheckInOnly = await this.featuresService.hasFeature(merchant.id, 'check_in_only');
-    
+    const hasCheckInOnly = await this.featuresService.hasFeature(
+      merchant.id,
+      "check_in_only",
+    );
+
     if (hasCheckInOnly) {
       // For check-in only merchants, create a completed booking
       await this.createCheckInBooking(merchant.id, customer.id);
     }
 
     // Get today's bookings for this customer
-    const todayBookings = await this.getTodaysBookings(customer.id, merchant.id);
+    const todayBookings = await this.getTodaysBookings(
+      customer.id,
+      merchant.id,
+    );
 
     // Create blank booking for walk-ins (customers with no existing bookings today)
     let blankBookingCreated = false;
@@ -169,9 +181,11 @@ export class PublicCheckInController {
       try {
         await this.createBlankBooking(merchant.id, customer.id);
         blankBookingCreated = true;
-        console.log(`[CHECK-IN] Created blank booking for walk-in customer: ${customer.id}`);
+        console.log(
+          `[CHECK-IN] Created blank booking for walk-in customer: ${customer.id}`,
+        );
       } catch (error) {
-        console.error('[CHECK-IN] Failed to create blank booking:', error);
+        console.error("[CHECK-IN] Failed to create blank booking:", error);
         // Don't fail the check-in if blank booking creation fails
       }
     }
@@ -192,12 +206,13 @@ export class PublicCheckInController {
         // allergies: customer.allergies,
         // specialRequirements: customer.specialRequirements,
       },
-      bookings: blankBookingCreated ? await this.getTodaysBookings(customer.id, merchant.id) : todayBookings,
+      bookings: blankBookingCreated
+        ? await this.getTodaysBookings(customer.id, merchant.id)
+        : todayBookings,
       loyalty: loyaltyInfo,
       blankBookingCreated,
     };
   }
-
 
   private async getTodaysBookings(customerId: string, merchantId: string) {
     // Get merchant's timezone from first location
@@ -208,7 +223,7 @@ export class PublicCheckInController {
       },
     });
 
-    const timezone = location?.timezone || 'Australia/Sydney';
+    const timezone = location?.timezone || "Australia/Sydney";
 
     // Get today's date range in merchant timezone
     const startOfDay = TimezoneUtils.startOfDayInTimezone(new Date(), timezone);
@@ -223,7 +238,7 @@ export class PublicCheckInController {
           lte: endOfDay,
         },
         status: {
-          notIn: ['CANCELLED', 'NO_SHOW'],
+          notIn: ["CANCELLED", "NO_SHOW"],
         },
       },
       include: {
@@ -244,21 +259,27 @@ export class PublicCheckInController {
         },
       },
       orderBy: {
-        startTime: 'asc',
+        startTime: "asc",
       },
     });
 
-    return bookings.map(booking => {
-      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.startTime, timezone);
-      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(booking.endTime, timezone);
-      
+    return bookings.map((booking) => {
+      const startTimeDisplay = TimezoneUtils.toTimezoneDisplay(
+        booking.startTime,
+        timezone,
+      );
+      const endTimeDisplay = TimezoneUtils.toTimezoneDisplay(
+        booking.endTime,
+        timezone,
+      );
+
       return {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
-        serviceName: booking.services[0]?.service?.name || 'Service',
-        staffName: booking.provider 
+        serviceName: booking.services[0]?.service?.name || "Service",
+        staffName: booking.provider
           ? formatName(booking.provider.firstName, booking.provider.lastName)
-          : 'Unassigned',
+          : "Unassigned",
         startTime: startTimeDisplay.time.substring(0, 5), // HH:MM format
         endTime: endTimeDisplay.time.substring(0, 5),
         status: booking.status,
@@ -266,14 +287,17 @@ export class PublicCheckInController {
     });
   }
 
-  @Post('bookings/:bookingId/checkin')
+  @Post("bookings/:bookingId/checkin")
   @HttpCode(HttpStatus.OK)
   async checkInBooking(
-    @Param('bookingId') bookingId: string,
-    @Query('subdomain') subdomain?: string,
-    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+    @Param("bookingId") bookingId: string,
+    @Query("subdomain") subdomain?: string,
+    @Headers("x-merchant-subdomain") headerSubdomain?: string,
   ) {
-    const merchant = await this.getMerchantBySubdomain(subdomain, headerSubdomain);
+    const merchant = await this.getMerchantBySubdomain(
+      subdomain,
+      headerSubdomain,
+    );
 
     // Find and update the booking
     const booking = await this.prisma.booking.findFirst({
@@ -284,14 +308,14 @@ export class PublicCheckInController {
     });
 
     if (!booking) {
-      throw new BadRequestException('Booking not found');
+      throw new BadRequestException("Booking not found");
     }
 
     // Update booking status to IN_PROGRESS
     const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
-        status: 'IN_PROGRESS',
+        status: "IN_PROGRESS",
         updatedAt: new Date(),
       },
       include: {
@@ -308,22 +332,30 @@ export class PublicCheckInController {
     console.log(`[CHECK-IN] Booking ${bookingId} marked as IN_PROGRESS`);
 
     // Emit event for real-time updates
-    this.eventEmitter.emit('booking.updated', {
+    this.eventEmitter.emit("booking.updated", {
       bookingId: updatedBooking.id,
       merchantId: updatedBooking.merchantId,
       status: updatedBooking.status,
-      source: 'CHECK_IN',
+      source: "CHECK_IN",
     });
 
     // Create notification for merchant using the service
-    const serviceName = updatedBooking.services[0]?.service?.name || 'Service';
-    const customerName = formatName(updatedBooking.customer.firstName, updatedBooking.customer.lastName);
-    const staffName = updatedBooking.provider ? formatName(updatedBooking.provider.firstName, updatedBooking.provider.lastName) : undefined;
-    
+    const serviceName = updatedBooking.services[0]?.service?.name || "Service";
+    const customerName = formatName(
+      updatedBooking.customer.firstName,
+      updatedBooking.customer.lastName,
+    );
+    const staffName = updatedBooking.provider
+      ? formatName(
+          updatedBooking.provider.firstName,
+          updatedBooking.provider.lastName,
+        )
+      : undefined;
+
     // Use the service method to create a booking_modified notification
     await this.notificationsService.createBookingNotification(
       updatedBooking.merchantId,
-      'booking_modified',
+      "booking_modified",
       {
         id: updatedBooking.id,
         customerName,
@@ -331,9 +363,8 @@ export class PublicCheckInController {
         startTime: updatedBooking.startTime,
         staffName,
       },
-      'checked in for their appointment'
+      "checked in for their appointment",
     );
-    
 
     return {
       success: true,
@@ -348,13 +379,13 @@ export class PublicCheckInController {
     try {
       // Get or create check-in service
       const checkInService = await this.getOrCreateCheckInService(merchantId);
-      
+
       console.log(`[CHECK-IN] Using service:`, {
         id: checkInService.id,
         name: checkInService.name,
-        duration: checkInService.duration
+        duration: checkInService.duration,
       });
-      
+
       // Get merchant's first location
       const location = await this.prisma.location.findFirst({
         where: {
@@ -364,7 +395,10 @@ export class PublicCheckInController {
       });
 
       const startTime = new Date();
-      console.log(`[CHECK-IN] Creating booking with startTime:`, startTime.toISOString());
+      console.log(
+        `[CHECK-IN] Creating booking with startTime:`,
+        startTime.toISOString(),
+      );
 
       // Create a completed booking
       const booking = await this.bookingCreationService.createBooking({
@@ -373,7 +407,7 @@ export class PublicCheckInController {
         locationId: location?.id,
         serviceId: checkInService.id,
         startTime: startTime,
-        source: 'CHECK_IN',
+        source: "CHECK_IN",
         createdById: customerId, // Self check-in
       });
 
@@ -381,7 +415,7 @@ export class PublicCheckInController {
       await this.prisma.booking.update({
         where: { id: booking.id },
         data: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           completedAt: new Date(),
           checkedInAt: new Date(),
         },
@@ -395,11 +429,11 @@ export class PublicCheckInController {
         customerId: customerId,
         startTime: booking.timeSlot.start,
         endTime: booking.timeSlot.end,
-        status: 'COMPLETED',
-        serviceDuration: checkInService.duration
+        status: "COMPLETED",
+        serviceDuration: checkInService.duration,
       });
     } catch (error) {
-      console.error('[CHECK-IN] Error creating check-in booking:', error);
+      console.error("[CHECK-IN] Error creating check-in booking:", error);
       // Don't throw - allow check-in to succeed even if booking creation fails
     }
   }
@@ -409,7 +443,7 @@ export class PublicCheckInController {
     let service = await this.prisma.service.findFirst({
       where: {
         merchantId,
-        name: 'Check-In',
+        name: "Check-In",
       },
     });
 
@@ -418,11 +452,11 @@ export class PublicCheckInController {
       service = await this.prisma.service.create({
         data: {
           merchantId,
-          name: 'Check-In',
-          description: 'System service for check-ins',
+          name: "Check-In",
+          description: "System service for check-ins",
           duration: 1, // 1 minute duration so booking has a proper time slot
           price: 0,
-          currency: 'AUD',
+          currency: "AUD",
           isActive: true,
           metadata: {
             isSystem: true,
@@ -430,14 +464,18 @@ export class PublicCheckInController {
           },
         },
       });
-      console.log(`[CHECK-IN] Created check-in service for merchant ${merchantId}`);
+      console.log(
+        `[CHECK-IN] Created check-in service for merchant ${merchantId}`,
+      );
     } else if (service.duration === 0) {
       // Fix existing service with 0 duration
       service = await this.prisma.service.update({
         where: { id: service.id },
         data: { duration: 1 },
       });
-      console.log(`[CHECK-IN] Updated check-in service duration from 0 to 1 for merchant ${merchantId}`);
+      console.log(
+        `[CHECK-IN] Updated check-in service duration from 0 to 1 for merchant ${merchantId}`,
+      );
     }
 
     return service;
@@ -457,7 +495,7 @@ export class PublicCheckInController {
       const firstStaff = await this.prisma.staff.findFirst({
         where: {
           merchantId,
-          status: 'ACTIVE',
+          status: "ACTIVE",
         },
         select: {
           id: true,
@@ -467,15 +505,18 @@ export class PublicCheckInController {
       });
 
       if (!firstStaff) {
-        throw new Error('No active staff members found for merchant');
+        throw new Error("No active staff members found for merchant");
       }
 
       // Get merchant timezone for proper time rounding
-      const timezone = location?.timezone || 'Australia/Sydney';
-      
+      const timezone = location?.timezone || "Australia/Sydney";
+
       // Round current time up to nearest 5 minutes in merchant timezone
       const now = new Date();
-      const roundedStartTime = TimezoneUtils.roundUpToNearest5MinutesInTimezone(now, timezone);
+      const roundedStartTime = TimezoneUtils.roundUpToNearest5MinutesInTimezone(
+        now,
+        timezone,
+      );
 
       console.log(`[CHECK-IN] Creating blank booking:`, {
         merchantId,
@@ -485,7 +526,7 @@ export class PublicCheckInController {
         createdByStaff: `${firstStaff.firstName} ${firstStaff.lastName}`,
         timezone,
         originalTime: now.toISOString(),
-        roundedTime: roundedStartTime.toISOString()
+        roundedTime: roundedStartTime.toISOString(),
       });
 
       // Create blank booking via booking creation service
@@ -494,10 +535,11 @@ export class PublicCheckInController {
         customerId,
         locationId: location?.id,
         startTime: roundedStartTime,
-        source: 'WALK_IN',
+        source: "WALK_IN",
         createdById: firstStaff.id, // Use first staff member
         isBlankBooking: true, // This enables blank booking creation
-        notes: 'Walk-in customer (blank booking) - Please add services and staff',
+        notes:
+          "Walk-in customer (blank booking) - Please add services and staff",
       });
 
       console.log(`[CHECK-IN] Successfully created blank booking:`, {
@@ -506,12 +548,12 @@ export class PublicCheckInController {
         customerId: customerId,
         startTime: booking.timeSlot.start,
         endTime: booking.timeSlot.end,
-        status: booking.status.value
+        status: booking.status.value,
       });
 
       return booking;
     } catch (error) {
-      console.error('[CHECK-IN] Error creating blank booking:', error);
+      console.error("[CHECK-IN] Error creating blank booking:", error);
       throw error;
     }
   }
@@ -537,11 +579,20 @@ export class PublicCheckInController {
       type: program.type,
       points: toNumber(customer?.loyaltyPoints || 0),
       visits: customer?.loyaltyVisits || 0,
-      pointsToNextReward: program.type === 'POINTS' ? toNumber(program.rewardThreshold) - toNumber(customer?.loyaltyPoints || 0) : null,
-      visitsToNextReward: program.type === 'VISITS' ? program.visitsRequired - (customer?.loyaltyVisits || 0) : null,
-      canRedeem: program.type === 'POINTS' 
-        ? toNumber(customer?.loyaltyPoints || 0) >= toNumber(program.rewardThreshold)
-        : (customer?.loyaltyVisits || 0) >= (program.visitsRequired || 0),
+      pointsToNextReward:
+        program.type === "POINTS"
+          ? toNumber(program.rewardThreshold) -
+            toNumber(customer?.loyaltyPoints || 0)
+          : null,
+      visitsToNextReward:
+        program.type === "VISITS"
+          ? program.visitsRequired - (customer?.loyaltyVisits || 0)
+          : null,
+      canRedeem:
+        program.type === "POINTS"
+          ? toNumber(customer?.loyaltyPoints || 0) >=
+            toNumber(program.rewardThreshold)
+          : (customer?.loyaltyVisits || 0) >= (program.visitsRequired || 0),
     };
   }
 }

@@ -1,12 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { SmsService } from './sms.service';
-import { TwilioSmsService } from './twilio-sms.service';
-import { SmsTemplateService } from '../templates/sms-template.service';
-import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { SmsService } from "./sms.service";
+import { TwilioSmsService } from "./twilio-sms.service";
+import { SmsTemplateService } from "../templates/sms-template.service";
+import {
+  NotificationContext,
+  NotificationResult,
+  NotificationType,
+} from "../interfaces/notification.interface";
 
 export interface SmsProvider {
-  sendNotification(type: NotificationType, context: NotificationContext): Promise<NotificationResult>;
+  sendNotification(
+    type: NotificationType,
+    context: NotificationContext,
+  ): Promise<NotificationResult>;
 }
 
 @Injectable()
@@ -21,11 +28,11 @@ export class SmsProviderFactory {
 
   getProvider(): SmsProvider {
     // Choose provider based on configuration
-    if (this.configService.get('TWILIO_ACCOUNT_SID')) {
-      this.logger.log('Using Twilio as SMS provider');
+    if (this.configService.get("TWILIO_ACCOUNT_SID")) {
+      this.logger.log("Using Twilio as SMS provider");
       return this.twilioService;
     } else {
-      this.logger.log('Using Mock SMS provider');
+      this.logger.log("Using Mock SMS provider");
       return this.smsService;
     }
   }

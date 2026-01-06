@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsArray,
   ValidateNested,
@@ -9,7 +9,7 @@ import {
   IsOptional,
   IsBoolean,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 class LoyaltyReminderTouchpointDto {
   @IsInt()

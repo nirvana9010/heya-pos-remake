@@ -26,15 +26,15 @@ export interface StaffLocation {
 }
 
 export enum StaffStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED'
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  SUSPENDED = "SUSPENDED",
 }
 
 export enum StaffRole {
-  EMPLOYEE = 'EMPLOYEE',
-  MANAGER = 'MANAGER',
-  OWNER = 'OWNER'
+  EMPLOYEE = "EMPLOYEE",
+  MANAGER = "MANAGER",
+  OWNER = "OWNER",
 }
 
 export interface StaffPermission {

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 
 /**
  * TimeSlot Value Object
@@ -16,20 +16,21 @@ export class TimeSlot {
 
   private validateTimeSlot(start: Date, end: Date): void {
     if (!start || !end) {
-      throw new BadRequestException('Start and end times are required');
+      throw new BadRequestException("Start and end times are required");
     }
 
     if (start >= end) {
-      throw new BadRequestException('Start time must be before end time');
+      throw new BadRequestException("Start time must be before end time");
     }
 
     const duration = this.calculateDuration(start, end);
     if (duration < 15) {
-      throw new BadRequestException('Time slot must be at least 15 minutes');
+      throw new BadRequestException("Time slot must be at least 15 minutes");
     }
 
-    if (duration > 480) { // 8 hours
-      throw new BadRequestException('Time slot cannot exceed 8 hours');
+    if (duration > 480) {
+      // 8 hours
+      throw new BadRequestException("Time slot cannot exceed 8 hours");
     }
   }
 
@@ -58,8 +59,10 @@ export class TimeSlot {
   }
 
   equals(other: TimeSlot): boolean {
-    return this._start.getTime() === other._start.getTime() &&
-           this._end.getTime() === other._end.getTime();
+    return (
+      this._start.getTime() === other._start.getTime() &&
+      this._end.getTime() === other._end.getTime()
+    );
   }
 
   toString(): string {

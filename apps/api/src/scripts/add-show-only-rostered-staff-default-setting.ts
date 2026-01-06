@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,22 +12,22 @@ async function addShowOnlyRosteredStaffDefaultSetting() {
         settings: true,
       },
     });
-    
+
     // Update each merchant
     for (const merchant of merchants) {
       const currentSettings = merchant.settings as any;
-      
+
       // Skip if already has the setting
       if (currentSettings.showOnlyRosteredStaffDefault !== undefined) {
         continue;
       }
-      
+
       // Add the new setting (default: true - show only rostered staff)
       const updatedSettings = {
         ...currentSettings,
         showOnlyRosteredStaffDefault: true,
       };
-      
+
       await prisma.merchant.update({
         where: { id: merchant.id },
         data: { settings: updatedSettings },

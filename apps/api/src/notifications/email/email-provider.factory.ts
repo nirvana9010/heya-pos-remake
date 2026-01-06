@@ -1,11 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EmailService } from './email.service';
-import { SendGridEmailService } from './sendgrid-email.service';
-import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { EmailService } from "./email.service";
+import { SendGridEmailService } from "./sendgrid-email.service";
+import {
+  NotificationContext,
+  NotificationResult,
+  NotificationType,
+} from "../interfaces/notification.interface";
 
 export interface EmailProvider {
-  sendNotification(type: NotificationType, context: NotificationContext): Promise<NotificationResult>;
+  sendNotification(
+    type: NotificationType,
+    context: NotificationContext,
+  ): Promise<NotificationResult>;
   verifyConnection(): Promise<boolean>;
 }
 
@@ -21,19 +28,21 @@ export class EmailProviderFactory {
 
   getProviders(): EmailProvider[] {
     const providers: EmailProvider[] = [];
-    const sendGridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
+    const sendGridApiKey = this.configService.get<string>("SENDGRID_API_KEY");
     if (sendGridApiKey) {
       providers.push(this.sendGridService);
     }
 
-    const emailUser = this.configService.get<string>('EMAIL_USER');
-    const emailPass = this.configService.get<string>('EMAIL_PASS');
+    const emailUser = this.configService.get<string>("EMAIL_USER");
+    const emailPass = this.configService.get<string>("EMAIL_PASS");
     if (emailUser && emailPass) {
       providers.push(this.emailService);
     }
 
     if (providers.length === 0) {
-      this.logger.warn('No configured email providers found; booking emails will be skipped');
+      this.logger.warn(
+        "No configured email providers found; booking emails will be skipped",
+      );
     }
 
     return providers;

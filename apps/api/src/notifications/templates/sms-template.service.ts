@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { NotificationContext, NotificationType } from '../interfaces/notification.interface';
-import { format } from 'date-fns';
+import { Injectable } from "@nestjs/common";
+import {
+  NotificationContext,
+  NotificationType,
+} from "../interfaces/notification.interface";
+import { format } from "date-fns";
 
 @Injectable()
 export class SmsTemplateService {
@@ -20,90 +23,104 @@ export class SmsTemplateService {
       case NotificationType.BOOKING_RESCHEDULED:
         return this.renderBookingRescheduled(context);
       case NotificationType.BOOKING_NEW_STAFF:
-      return this.renderStaffNewBooking(context);
-    case NotificationType.BOOKING_CANCELLED_STAFF:
-      return this.renderStaffCancellation(context);
-    case NotificationType.LOYALTY_TOUCHPOINT_1:
-    case NotificationType.LOYALTY_TOUCHPOINT_2:
-    case NotificationType.LOYALTY_TOUCHPOINT_3:
-      return this.renderLoyaltyReminder(context);
-    default:
-      throw new Error(`SMS template not found for type: ${type}`);
+        return this.renderStaffNewBooking(context);
+      case NotificationType.BOOKING_CANCELLED_STAFF:
+        return this.renderStaffCancellation(context);
+      case NotificationType.LOYALTY_TOUCHPOINT_1:
+      case NotificationType.LOYALTY_TOUCHPOINT_2:
+      case NotificationType.LOYALTY_TOUCHPOINT_3:
+        return this.renderLoyaltyReminder(context);
+      default:
+        throw new Error(`SMS template not found for type: ${type}`);
     }
   }
 
   private renderBookingConfirmation(context: NotificationContext): string {
     const { booking, merchant } = context;
-    const date = format(booking.date, 'EEE d/M');
-    
+    const date = format(booking.date, "EEE d/M");
+
     // Keep under 160 characters
-    return `${merchant.name}: Booking confirmed for ${date} at ${booking.time}. ` +
-           `Service: ${booking.serviceName} with ${booking.staffName}. ` +
-           `Ref: ${booking.bookingNumber}`;
+    return (
+      `${merchant.name}: Booking confirmed for ${date} at ${booking.time}. ` +
+      `Service: ${booking.serviceName} with ${booking.staffName}. ` +
+      `Ref: ${booking.bookingNumber}`
+    );
   }
 
   private renderBookingReminder24h(context: NotificationContext): string {
     const { booking, merchant } = context;
-    const date = format(booking.date, 'EEE d/M');
-    
-    return `${merchant.name}: Reminder - Your appointment is tomorrow ${date} at ${booking.time}. ` +
-           `${booking.serviceName} with ${booking.staffName}. See you soon!`;
+    const date = format(booking.date, "EEE d/M");
+
+    return (
+      `${merchant.name}: Reminder - Your appointment is tomorrow ${date} at ${booking.time}. ` +
+      `${booking.serviceName} with ${booking.staffName}. See you soon!`
+    );
   }
 
   private renderBookingReminder2h(context: NotificationContext): string {
     const { booking, merchant } = context;
-    
-    return `${merchant.name}: Your appointment is in 2 hours at ${booking.time}. ` +
-           `${booking.serviceName} with ${booking.staffName}. See you soon!`;
+
+    return (
+      `${merchant.name}: Your appointment is in 2 hours at ${booking.time}. ` +
+      `${booking.serviceName} with ${booking.staffName}. See you soon!`
+    );
   }
 
   private renderBookingCancelled(context: NotificationContext): string {
     const { booking, merchant } = context;
-    const date = format(booking.date, 'EEE d/M');
-    
-    return `${merchant.name}: Your booking on ${date} at ${booking.time} has been cancelled. ` +
-           `Ref: ${booking.bookingNumber}. Call us to rebook.`;
+    const date = format(booking.date, "EEE d/M");
+
+    return (
+      `${merchant.name}: Your booking on ${date} at ${booking.time} has been cancelled. ` +
+      `Ref: ${booking.bookingNumber}. Call us to rebook.`
+    );
   }
 
   private renderBookingRescheduled(context: NotificationContext): string {
     const { booking, merchant, originalDate, originalTime } = context as any;
-    const newDate = format(booking.date, 'EEE d/M');
-    
-    return `${merchant.name}: Your booking has been rescheduled to ${newDate} at ${booking.time}. ` +
-           `Ref: ${booking.bookingNumber}`;
+    const newDate = format(booking.date, "EEE d/M");
+
+    return (
+      `${merchant.name}: Your booking has been rescheduled to ${newDate} at ${booking.time}. ` +
+      `Ref: ${booking.bookingNumber}`
+    );
   }
 
   private renderStaffNewBooking(context: NotificationContext): string {
     const { booking } = context;
-    const date = format(booking.date, 'EEE d/M');
-    
-    return `NEW BOOKING: ${booking.serviceName} on ${date} at ${booking.time} ` +
-           `with ${booking.staffName}. Check your calendar for details.`;
+    const date = format(booking.date, "EEE d/M");
+
+    return (
+      `NEW BOOKING: ${booking.serviceName} on ${date} at ${booking.time} ` +
+      `with ${booking.staffName}. Check your calendar for details.`
+    );
   }
 
   private renderStaffCancellation(context: NotificationContext): string {
     const { booking } = context;
-    const date = format(booking.date, 'EEE d/M');
-    
-    return `CANCELLED: ${booking.serviceName} on ${date} at ${booking.time} ` +
-           `with ${booking.staffName}. Time slot now available.`;
+    const date = format(booking.date, "EEE d/M");
+
+    return (
+      `CANCELLED: ${booking.serviceName} on ${date} at ${booking.time} ` +
+      `with ${booking.staffName}. Time slot now available.`
+    );
   }
 
   private renderLoyaltyReminder(context: NotificationContext): string {
     const { loyaltyReminder, merchant, customer } = context;
 
     if (!loyaltyReminder) {
-      throw new Error('Loyalty reminder context missing');
+      throw new Error("Loyalty reminder context missing");
     }
 
     if (loyaltyReminder.smsBody && loyaltyReminder.smsBody.trim().length > 0) {
       return loyaltyReminder.smsBody.trim();
     }
 
-    if (loyaltyReminder.programType === 'VISITS') {
-      return `${merchant.name}: Hi ${customer.firstName || 'there'}, you've reached ${
+    if (loyaltyReminder.programType === "VISITS") {
+      return `${merchant.name}: Hi ${customer.firstName || "there"}, you've reached ${
         loyaltyReminder.currentValue
-      } visit${loyaltyReminder.currentValue === 1 ? '' : 's'}! Drop in soon to enjoy your reward.`;
+      } visit${loyaltyReminder.currentValue === 1 ? "" : "s"}! Drop in soon to enjoy your reward.`;
     }
 
     return `${merchant.name}: You now have ${loyaltyReminder.currentValue} points. Redeem them on your next visit!`;

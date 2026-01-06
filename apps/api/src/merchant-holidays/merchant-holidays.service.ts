@@ -3,16 +3,16 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { Prisma, HolidaySource, MerchantHoliday } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { normalizeMerchantSettings } from '../utils/shared/merchant-settings';
-import type { MerchantSettings } from '../types/models/merchant';
-import type { AustralianState } from '@heya-pos/types';
+} from "@nestjs/common";
+import { Prisma, HolidaySource, MerchantHoliday } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { normalizeMerchantSettings } from "../utils/shared/merchant-settings";
+import type { MerchantSettings } from "../types/models/merchant";
+import type { AustralianState } from "@heya-pos/types";
 import {
   getAustralianStateHolidays,
   StateHolidayDefinition,
-} from '@heya-pos/utils';
+} from "@heya-pos/utils";
 
 export interface MerchantHolidayResponse {
   holidays: MerchantHoliday[];
@@ -31,13 +31,15 @@ export class MerchantHolidaysService {
     });
 
     if (!merchant) {
-      throw new NotFoundException('Merchant not found');
+      throw new NotFoundException("Merchant not found");
     }
 
-    const settings = normalizeMerchantSettings<MerchantSettings>(merchant.settings);
+    const settings = normalizeMerchantSettings<MerchantSettings>(
+      merchant.settings,
+    );
     const holidays = await this.prisma.merchantHoliday.findMany({
       where: { merchantId },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
 
     const currentYear = new Date().getFullYear();
@@ -60,7 +62,7 @@ export class MerchantHolidaysService {
     try {
       definitions = getAustralianStateHolidays(state, targetYear);
     } catch (error: any) {
-      throw new BadRequestException(error?.message || 'Invalid state provided');
+      throw new BadRequestException(error?.message || "Invalid state provided");
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -70,11 +72,12 @@ export class MerchantHolidaysService {
       });
 
       if (!merchant) {
-        throw new NotFoundException('Merchant not found');
+        throw new NotFoundException("Merchant not found");
       }
 
-      const normalizedSettings =
-        normalizeMerchantSettings<MerchantSettings>(merchant.settings);
+      const normalizedSettings = normalizeMerchantSettings<MerchantSettings>(
+        merchant.settings,
+      );
       const updatedSettings = {
         ...normalizedSettings,
         holidayState: state,
@@ -86,7 +89,7 @@ export class MerchantHolidaysService {
 
       const existingByDate = new Map(
         existing.map((holiday) => [
-          holiday.date.toISOString().split('T')[0],
+          holiday.date.toISOString().split("T")[0],
           holiday,
         ]),
       );
@@ -94,7 +97,7 @@ export class MerchantHolidaysService {
       const definitionDates = new Set<string>();
 
       for (const definition of definitions) {
-        const dateKey = definition.date.toISOString().split('T')[0];
+        const dateKey = definition.date.toISOString().split("T")[0];
         definitionDates.add(dateKey);
         const current = existingByDate.get(dateKey);
 
@@ -127,7 +130,7 @@ export class MerchantHolidaysService {
         (holiday) =>
           holiday.source === HolidaySource.STATE &&
           holiday.state !== null &&
-          !definitionDates.has(holiday.date.toISOString().split('T')[0]),
+          !definitionDates.has(holiday.date.toISOString().split("T")[0]),
       );
 
       if (obsoleteStateHolidays.length > 0) {
@@ -150,7 +153,7 @@ export class MerchantHolidaysService {
 
       const refreshed = await tx.merchantHoliday.findMany({
         where: { merchantId },
-        orderBy: { date: 'asc' },
+        orderBy: { date: "asc" },
       });
 
       return {
@@ -170,7 +173,7 @@ export class MerchantHolidaysService {
     const normalizedName = name.trim();
 
     if (!normalizedName) {
-      throw new BadRequestException('Holiday name is required');
+      throw new BadRequestException("Holiday name is required");
     }
 
     const existing = await this.prisma.merchantHoliday.findFirst({
@@ -182,7 +185,7 @@ export class MerchantHolidaysService {
 
     if (existing) {
       throw new ConflictException(
-        'A holiday already exists on this date. Remove the existing one first.',
+        "A holiday already exists on this date. Remove the existing one first.",
       );
     }
 
@@ -211,34 +214,30 @@ export class MerchantHolidaysService {
     });
 
     if (!holiday || holiday.merchantId !== merchantId) {
-      throw new NotFoundException('Holiday not found');
+      throw new NotFoundException("Holiday not found");
     }
 
     const data: Prisma.MerchantHolidayUpdateInput = {};
 
-    if (typeof updates.isDayOff === 'boolean') {
+    if (typeof updates.isDayOff === "boolean") {
       data.isDayOff = updates.isDayOff;
     }
 
     if (updates.name !== undefined) {
       if (holiday.source !== HolidaySource.CUSTOM) {
-        throw new BadRequestException(
-          'Only custom holidays can be renamed.',
-        );
+        throw new BadRequestException("Only custom holidays can be renamed.");
       }
 
       const trimmed = updates.name.trim();
       if (!trimmed) {
-        throw new BadRequestException('Holiday name cannot be empty');
+        throw new BadRequestException("Holiday name cannot be empty");
       }
       data.name = trimmed;
     }
 
     if (updates.date) {
       if (holiday.source !== HolidaySource.CUSTOM) {
-        throw new BadRequestException(
-          'Only custom holidays can change date.',
-        );
+        throw new BadRequestException("Only custom holidays can change date.");
       }
 
       const newDate = this.toDateOnly(updates.date);
@@ -253,7 +252,7 @@ export class MerchantHolidaysService {
 
         if (existing) {
           throw new ConflictException(
-            'Another holiday already exists on that date.',
+            "Another holiday already exists on that date.",
           );
         }
         data.date = newDate;
@@ -276,7 +275,7 @@ export class MerchantHolidaysService {
     });
 
     if (!holiday || holiday.merchantId !== merchantId) {
-      throw new NotFoundException('Holiday not found');
+      throw new NotFoundException("Holiday not found");
     }
 
     await this.prisma.merchantHoliday.delete({
@@ -292,16 +291,18 @@ export class MerchantHolidaysService {
     } else {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
         throw new BadRequestException(
-          'Date must be in ISO format (YYYY-MM-DD)',
+          "Date must be in ISO format (YYYY-MM-DD)",
         );
       }
       date = new Date(`${input}T00:00:00.000Z`);
     }
 
     if (Number.isNaN(date.getTime())) {
-      throw new BadRequestException('Invalid date value');
+      throw new BadRequestException("Invalid date value");
     }
 
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
   }
 }

@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { IBookingRepository } from '../../domain/repositories/booking.repository.interface';
-import { Booking } from '../../domain/entities/booking.entity';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { BookingMapper } from './booking.mapper';
-import { Prisma } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { IBookingRepository } from "../../domain/repositories/booking.repository.interface";
+import { Booking } from "../../domain/entities/booking.entity";
+import { PrismaService } from "../../../../prisma/prisma.service";
+import { BookingMapper } from "./booking.mapper";
+import { Prisma } from "@prisma/client";
 
 /**
  * PrismaBookingRepository
@@ -12,9 +12,7 @@ import { Prisma } from '@prisma/client';
  */
 @Injectable()
 export class PrismaBookingRepository implements IBookingRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string, merchantId: string): Promise<Booking | null> {
     const prismaBooking = await this.prisma.booking.findFirst({
@@ -95,7 +93,7 @@ export class PrismaBookingRepository implements IBookingRepository {
         skip: criteria.offset || 0,
         take: criteria.limit || 20,
         orderBy: {
-          startTime: 'desc',
+          startTime: "desc",
         },
       }),
       this.prisma.booking.count({ where }),
@@ -113,7 +111,7 @@ export class PrismaBookingRepository implements IBookingRepository {
   async lockStaff(
     staffId: string,
     merchantId: string,
-    tx: Prisma.TransactionClient
+    tx: Prisma.TransactionClient,
   ): Promise<void> {
     await tx.$queryRaw`
       SELECT 1 FROM "Staff" 
@@ -129,7 +127,7 @@ export class PrismaBookingRepository implements IBookingRepository {
   async save(
     booking: Booking,
     tx: Prisma.TransactionClient,
-    services?: any[]
+    services?: any[],
   ): Promise<Booking> {
     // Convert domain entity to persistence model
     const persistenceData = BookingMapper.toPersistence(booking);
@@ -162,7 +160,7 @@ export class PrismaBookingRepository implements IBookingRepository {
     if (services && services.length > 0) {
       // Create multiple booking services
       await tx.bookingService.createMany({
-        data: services.map(service => ({
+        data: services.map((service) => ({
           bookingId: createdBooking.id,
           serviceId: service.id,
           staffId: service.staffId || booking.staffId,
@@ -179,7 +177,9 @@ export class PrismaBookingRepository implements IBookingRepository {
           staffId: booking.staffId,
           price: booking.totalAmount,
           duration: Math.floor(
-            (booking.timeSlot.end.getTime() - booking.timeSlot.start.getTime()) / 60000
+            (booking.timeSlot.end.getTime() -
+              booking.timeSlot.start.getTime()) /
+              60000,
           ),
         },
       });
@@ -203,7 +203,7 @@ export class PrismaBookingRepository implements IBookingRepository {
     });
 
     if (!bookingWithRelations) {
-      throw new Error('Failed to fetch created booking');
+      throw new Error("Failed to fetch created booking");
     }
 
     return BookingMapper.toDomain(bookingWithRelations);
@@ -211,7 +211,7 @@ export class PrismaBookingRepository implements IBookingRepository {
 
   async update(
     booking: Booking,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<Booking> {
     const db = tx || this.prisma;
     const updateData = BookingMapper.toPersistenceUpdate(booking);
@@ -246,10 +246,10 @@ export class PrismaBookingRepository implements IBookingRepository {
         merchantId,
       },
       data: {
-        status: 'DELETED',
+        status: "DELETED",
         deletedAt: new Date(),
         cancelledAt: new Date(),
-        cancellationReason: 'Moved to recycle bin',
+        cancellationReason: "Moved to recycle bin",
       },
     });
   }
@@ -259,14 +259,14 @@ export class PrismaBookingRepository implements IBookingRepository {
     startTime: Date,
     endTime: Date,
     merchantId: string,
-    excludeBookingId?: string
+    excludeBookingId?: string,
   ): Promise<boolean> {
     const conflicts = await this.findConflictingBookings(
       staffId,
       startTime,
       endTime,
       merchantId,
-      excludeBookingId
+      excludeBookingId,
     );
 
     return conflicts.length === 0;
@@ -278,13 +278,13 @@ export class PrismaBookingRepository implements IBookingRepository {
     endTime: Date,
     merchantId: string,
     excludeBookingId?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<Booking[]> {
     const where: any = {
       merchantId,
       providerId: staffId,
       status: {
-        notIn: ['CANCELLED', 'NO_SHOW', 'DELETED'],
+        notIn: ["CANCELLED", "NO_SHOW", "DELETED"],
       },
       OR: [
         {

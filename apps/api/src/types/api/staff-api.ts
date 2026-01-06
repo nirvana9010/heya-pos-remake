@@ -1,5 +1,5 @@
-import type { Staff, StaffRole, StaffStatus } from '../models';
-import type { PaginationParams } from '../common';
+import type { Staff, StaffRole, StaffStatus } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface CreateStaffRequest {
   email: string;
@@ -14,7 +14,8 @@ export interface CreateStaffRequest {
   locationIds: string[];
 }
 
-export interface UpdateStaffRequest extends Partial<Omit<CreateStaffRequest, 'email' | 'pin'>> {
+export interface UpdateStaffRequest
+  extends Partial<Omit<CreateStaffRequest, "email" | "pin">> {
   status?: StaffStatus;
   newPin?: string;
 }

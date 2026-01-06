@@ -1,27 +1,27 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from '../../app.module';
-import { TestSeederService } from '../services/test-seeder.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ConfigModule } from '@nestjs/config';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppModule } from "../../app.module";
+import { TestSeederService } from "../services/test-seeder.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { ConfigModule } from "@nestjs/config";
+import * as dotenv from "dotenv";
+import * as path from "path";
 
 // Load test environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../../.env.test') });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env.test") });
 
 /**
  * Sets up the test database with seed data
  * Can be run directly: npm run test:db:setup
  */
 async function setupTestDatabase() {
-  console.log('🚀 Setting up test database...');
+  console.log("🚀 Setting up test database...");
   console.log(`📁 Database URL: ${process.env.DATABASE_URL}`);
 
   // Create a testing module with minimal dependencies
   const module: TestingModule = await Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({
-        envFilePath: '.env.test',
+        envFilePath: ".env.test",
         isGlobal: true,
       }),
     ],
@@ -34,10 +34,10 @@ async function setupTestDatabase() {
   try {
     // Connect to database
     await prismaService.$connect();
-    console.log('✅ Connected to test database');
+    console.log("✅ Connected to test database");
 
     // Run migrations
-    console.log('🔄 Running database migrations...');
+    console.log("🔄 Running database migrations...");
     await prismaService.$executeRawUnsafe(`
       -- This would normally be handled by Prisma migrate
       -- For SQLite test database, we'll ensure tables exist
@@ -51,7 +51,7 @@ async function setupTestDatabase() {
       includeDemoData: true,
     });
 
-    console.log('\n📊 Seeding Summary:');
+    console.log("\n📊 Seeding Summary:");
     console.log(`  - Merchants: ${result.summary.merchantsCreated}`);
     console.log(`  - Staff: ${result.summary.totalStaff}`);
     console.log(`  - Services: ${result.summary.totalServices}`);
@@ -60,14 +60,17 @@ async function setupTestDatabase() {
     // Create test scenarios
     await seederService.createTestScenarios();
 
-    console.log('\n✅ Test database setup completed successfully!');
-    console.log('\n🔑 Test Credentials:');
-    console.log(`  - Merchant Username: ${process.env.TEST_MERCHANT_USERNAME || 'TEST_MERCHANT'}`);
-    console.log(`  - Merchant Password: ${process.env.TEST_MERCHANT_PASSWORD || 'test123'}`);
-    console.log(`  - Staff PIN: ${process.env.TEST_STAFF_PIN || '1234'}`);
-
+    console.log("\n✅ Test database setup completed successfully!");
+    console.log("\n🔑 Test Credentials:");
+    console.log(
+      `  - Merchant Username: ${process.env.TEST_MERCHANT_USERNAME || "TEST_MERCHANT"}`,
+    );
+    console.log(
+      `  - Merchant Password: ${process.env.TEST_MERCHANT_PASSWORD || "test123"}`,
+    );
+    console.log(`  - Staff PIN: ${process.env.TEST_STAFF_PIN || "1234"}`);
   } catch (error) {
-    console.error('❌ Error setting up test database:', error);
+    console.error("❌ Error setting up test database:", error);
     throw error;
   } finally {
     await prismaService.$disconnect();

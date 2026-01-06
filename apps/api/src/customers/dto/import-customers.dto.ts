@@ -1,9 +1,15 @@
-import { IsArray, IsBoolean, IsEnum, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export enum CustomerDuplicateAction {
-  SKIP = 'skip',
-  UPDATE = 'update',
+  SKIP = "skip",
+  UPDATE = "update",
 }
 
 export class CustomerImportOptionsDto {
@@ -51,7 +57,7 @@ export interface CustomerImportPreviewRow {
   original: Record<string, any>;
   data?: CustomerImportData;
   validation: CustomerImportValidation;
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
   existingCustomerId?: string;
 }
 

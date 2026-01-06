@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Adding notification settings to all merchants...');
+  console.log("Adding notification settings to all merchants...");
 
   try {
     // Get all merchants
@@ -19,20 +19,26 @@ async function main() {
 
     // Update each merchant with default notification settings
     for (const merchant of merchants) {
-      const currentSettings = merchant.settings as any || {};
-      
+      const currentSettings = (merchant.settings as any) || {};
+
       // Add notification settings with defaults (all enabled)
       const updatedSettings = {
         ...currentSettings,
         // Default all notification settings to true if not already set
-        bookingConfirmationEmail: currentSettings.bookingConfirmationEmail ?? true,
+        bookingConfirmationEmail:
+          currentSettings.bookingConfirmationEmail ?? true,
         bookingConfirmationSms: currentSettings.bookingConfirmationSms ?? true,
-        appointmentReminder24hEmail: currentSettings.appointmentReminder24hEmail ?? true,
-        appointmentReminder24hSms: currentSettings.appointmentReminder24hSms ?? true,
-        appointmentReminder2hEmail: currentSettings.appointmentReminder2hEmail ?? true,
-        appointmentReminder2hSms: currentSettings.appointmentReminder2hSms ?? true,
+        appointmentReminder24hEmail:
+          currentSettings.appointmentReminder24hEmail ?? true,
+        appointmentReminder24hSms:
+          currentSettings.appointmentReminder24hSms ?? true,
+        appointmentReminder2hEmail:
+          currentSettings.appointmentReminder2hEmail ?? true,
+        appointmentReminder2hSms:
+          currentSettings.appointmentReminder2hSms ?? true,
         newBookingNotification: currentSettings.newBookingNotification ?? true,
-        cancellationNotification: currentSettings.cancellationNotification ?? true,
+        cancellationNotification:
+          currentSettings.cancellationNotification ?? true,
       };
 
       await prisma.merchant.update({
@@ -45,9 +51,9 @@ async function main() {
       console.log(`✓ Updated ${merchant.name} with notification settings`);
     }
 
-    console.log('✅ All merchants updated with notification settings');
+    console.log("✅ All merchants updated with notification settings");
   } catch (error) {
-    console.error('Error adding notification settings:', error);
+    console.error("Error adding notification settings:", error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -55,6 +61,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Unexpected error:', error);
+  console.error("Unexpected error:", error);
   process.exit(1);
 });

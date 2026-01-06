@@ -12,8 +12,8 @@ import {
   ArrayMinSize,
   MaxLength,
   Matches,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class BookingServiceDto {
   @IsUUID()
@@ -38,9 +38,12 @@ export class BookingServiceDto {
 export class CreateBookingV2Dto {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^(WALK_IN|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i, {
-    message: 'customerId must be either "WALK_IN" or a valid UUID',
-  })
+  @Matches(
+    /^(WALK_IN|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+    {
+      message: 'customerId must be either "WALK_IN" or a valid UUID',
+    },
+  )
   customerId: string;
 
   @IsOptional()

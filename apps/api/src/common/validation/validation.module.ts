@@ -1,6 +1,6 @@
-import { Module, Global } from '@nestjs/common';
-import { BusinessValidationService } from './business-validation.service';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { Module, Global } from "@nestjs/common";
+import { BusinessValidationService } from "./business-validation.service";
+import { PrismaModule } from "../../prisma/prisma.module";
 
 @Global()
 @Module({

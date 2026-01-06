@@ -4,9 +4,9 @@ import {
   ArgumentMetadata,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { validate } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
+} from "@nestjs/common";
+import { validate } from "class-validator";
+import { plainToInstance } from "class-transformer";
 
 @Injectable()
 export class CustomValidationPipe implements PipeTransform<any> {
@@ -31,10 +31,10 @@ export class CustomValidationPipe implements PipeTransform<any> {
     if (errors.length > 0) {
       const formattedErrors = this.formatErrors(errors);
       this.logger.warn(`Validation failed: ${JSON.stringify(formattedErrors)}`);
-      
+
       throw new BadRequestException({
         statusCode: 400,
-        message: 'Validation failed',
+        message: "Validation failed",
         errors: formattedErrors,
       });
     }
@@ -53,12 +53,12 @@ export class CustomValidationPipe implements PipeTransform<any> {
     errors.forEach((error) => {
       const property = error.property;
       const constraints = error.constraints || {};
-      
+
       if (!formatted[property]) {
         formatted[property] = [];
       }
 
-      formatted[property].push(...Object.values(constraints) as string[]);
+      formatted[property].push(...(Object.values(constraints) as string[]));
 
       // Handle nested validation errors
       if (error.children && error.children.length > 0) {

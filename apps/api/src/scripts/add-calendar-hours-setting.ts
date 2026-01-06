@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,24 +12,26 @@ async function addCalendarHoursSetting() {
         settings: true,
       },
     });
-    
+
     // Update each merchant
     for (const merchant of merchants) {
       const currentSettings = merchant.settings as any;
-      
+
       // Skip if already has the settings
-      if (currentSettings.calendarStartHour !== undefined && 
-          currentSettings.calendarEndHour !== undefined) {
+      if (
+        currentSettings.calendarStartHour !== undefined &&
+        currentSettings.calendarEndHour !== undefined
+      ) {
         continue;
       }
-      
+
       // Add the new settings (defaults: 6 AM - 11 PM)
       const updatedSettings = {
         ...currentSettings,
         calendarStartHour: currentSettings.calendarStartHour ?? 6,
         calendarEndHour: currentSettings.calendarEndHour ?? 23,
       };
-      
+
       await prisma.merchant.update({
         where: { id: merchant.id },
         data: { settings: updatedSettings },

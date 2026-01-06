@@ -1,6 +1,15 @@
-import { IsString, IsBoolean, IsOptional, IsArray, ValidateNested, IsEnum, IsNumber, IsNotEmpty } from 'class-validator';
-import { Type } from 'class-transformer';
-import { OrderModifierType } from '@heya-pos/types';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+  IsNumber,
+  IsNotEmpty,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { OrderModifierType } from "@heya-pos/types";
 
 class OrderItemDto {
   @IsString()

@@ -3,142 +3,142 @@ export interface FeatureModule {
   name: string;
   description: string;
   icon?: string;
-  category: 'core' | 'operations' | 'analytics' | 'engagement';
+  category: "core" | "operations" | "analytics" | "engagement";
   dependencies: string[];
   optionalDependencies?: string[];
   routes: string[];
   permissions?: string[];
   settings?: {
     key: string;
-    type: 'boolean' | 'number' | 'string';
+    type: "boolean" | "number" | "string";
     default: any;
   }[];
 }
 
 export const FEATURE_MODULES: Record<string, FeatureModule> = {
   customers: {
-    id: 'customers',
-    name: 'Customer Management',
-    description: 'Manage customer profiles and information',
-    category: 'core',
+    id: "customers",
+    name: "Customer Management",
+    description: "Manage customer profiles and information",
+    category: "core",
     dependencies: [],
-    routes: ['/customers'],
+    routes: ["/customers"],
   },
 
   staff: {
-    id: 'staff',
-    name: 'Staff Management',
-    description: 'Manage staff members and permissions',
-    category: 'core',
+    id: "staff",
+    name: "Staff Management",
+    description: "Manage staff members and permissions",
+    category: "core",
     dependencies: [],
-    routes: ['/staff'],
+    routes: ["/staff"],
   },
 
   services: {
-    id: 'services',
-    name: 'Service Catalog',
-    description: 'Manage services and pricing',
-    category: 'core',
+    id: "services",
+    name: "Service Catalog",
+    description: "Manage services and pricing",
+    category: "core",
     dependencies: [],
-    routes: ['/services'],
+    routes: ["/services"],
   },
 
   bookings: {
-    id: 'bookings',
-    name: 'Booking System',
-    description: 'Full booking and appointment management',
-    category: 'operations',
-    dependencies: ['customers', 'services'],
-    optionalDependencies: ['staff'],
-    routes: ['/bookings', '/calendar'],
+    id: "bookings",
+    name: "Booking System",
+    description: "Full booking and appointment management",
+    category: "operations",
+    dependencies: ["customers", "services"],
+    optionalDependencies: ["staff"],
+    routes: ["/bookings", "/calendar"],
   },
 
   check_in_only: {
-    id: 'check_in_only',
-    name: 'Check-In Kiosk',
-    description: 'Simple check-in for loyalty tracking',
-    category: 'operations',
-    dependencies: ['customers'],
-    routes: ['/check-in'],
+    id: "check_in_only",
+    name: "Check-In Kiosk",
+    description: "Simple check-in for loyalty tracking",
+    category: "operations",
+    dependencies: ["customers"],
+    routes: ["/check-in"],
     settings: [
       {
-        key: 'auto_complete_checkins',
-        type: 'boolean',
+        key: "auto_complete_checkins",
+        type: "boolean",
         default: true,
       },
       {
-        key: 'show_loyalty_on_checkin',
-        type: 'boolean',
+        key: "show_loyalty_on_checkin",
+        type: "boolean",
         default: true,
       },
     ],
   },
 
   payments: {
-    id: 'payments',
-    name: 'Payment Processing',
-    description: 'Process payments and manage transactions',
-    category: 'operations',
-    dependencies: ['customers'],
-    optionalDependencies: ['bookings', 'services'],
-    routes: ['/payments'],
+    id: "payments",
+    name: "Payment Processing",
+    description: "Process payments and manage transactions",
+    category: "operations",
+    dependencies: ["customers"],
+    optionalDependencies: ["bookings", "services"],
+    routes: ["/payments"],
   },
 
   roster: {
-    id: 'roster',
-    name: 'Staff Roster',
-    description: 'Manage staff schedules',
-    category: 'operations',
-    dependencies: ['staff'],
-    routes: ['/roster'],
+    id: "roster",
+    name: "Staff Roster",
+    description: "Manage staff schedules",
+    category: "operations",
+    dependencies: ["staff"],
+    routes: ["/roster"],
   },
 
   loyalty: {
-    id: 'loyalty',
-    name: 'Loyalty Program',
-    description: 'Customer loyalty and rewards',
-    category: 'engagement',
-    dependencies: ['customers'],
-    optionalDependencies: ['payments', 'bookings'],
-    routes: ['/loyalty'],
+    id: "loyalty",
+    name: "Loyalty Program",
+    description: "Customer loyalty and rewards",
+    category: "engagement",
+    dependencies: ["customers"],
+    optionalDependencies: ["payments", "bookings"],
+    routes: ["/loyalty"],
   },
 
   reports: {
-    id: 'reports',
-    name: 'Analytics & Reports',
-    description: 'Business insights and reporting',
-    category: 'analytics',
-    dependencies: ['customers'],
-    optionalDependencies: ['bookings', 'payments', 'services', 'staff'],
-    routes: ['/reports'],
+    id: "reports",
+    name: "Analytics & Reports",
+    description: "Business insights and reporting",
+    category: "analytics",
+    dependencies: ["customers"],
+    optionalDependencies: ["bookings", "payments", "services", "staff"],
+    routes: ["/reports"],
   },
 
   notifications: {
-    id: 'notifications',
-    name: 'Notifications',
-    description: 'SMS and email notifications',
-    category: 'engagement',
-    dependencies: ['customers'],
-    optionalDependencies: ['bookings'],
-    routes: ['/notifications'],
+    id: "notifications",
+    name: "Notifications",
+    description: "SMS and email notifications",
+    category: "engagement",
+    dependencies: ["customers"],
+    optionalDependencies: ["bookings"],
+    routes: ["/notifications"],
   },
 };
 
 // Package templates with feature configurations
 export const PACKAGE_TEMPLATES = {
   check_in_lite: {
-    name: 'Check-In Lite',
-    description: 'Simple check-in and loyalty tracking',
+    name: "Check-In Lite",
+    description: "Simple check-in and loyalty tracking",
     monthlyPrice: 19,
     features: {
-      enabled: ['customers', 'loyalty', 'check_in_only', 'reports'],
+      enabled: ["customers", "loyalty", "check_in_only", "reports"],
       config: {
         check_in_only: {
           auto_complete_checkins: true,
           show_loyalty_on_checkin: true,
         },
         reports: {
-          sections: ['customers', 'loyalty', 'checkins'],
+          sections: ["customers", "loyalty", "checkins"],
         },
       },
     },
@@ -151,11 +151,11 @@ export const PACKAGE_TEMPLATES = {
   },
 
   starter: {
-    name: 'Starter',
-    description: 'Essential booking and payment features',
+    name: "Starter",
+    description: "Essential booking and payment features",
     monthlyPrice: 49,
     features: {
-      enabled: ['customers', 'services', 'bookings', 'payments', 'reports'],
+      enabled: ["customers", "services", "bookings", "payments", "reports"],
       config: {},
     },
     limits: {
@@ -167,20 +167,20 @@ export const PACKAGE_TEMPLATES = {
   },
 
   professional: {
-    name: 'Professional',
-    description: 'Full-featured salon management',
+    name: "Professional",
+    description: "Full-featured salon management",
     monthlyPrice: 99,
     features: {
       enabled: [
-        'customers',
-        'staff',
-        'services',
-        'bookings',
-        'payments',
-        'roster',
-        'loyalty',
-        'reports',
-        'notifications',
+        "customers",
+        "staff",
+        "services",
+        "bookings",
+        "payments",
+        "roster",
+        "loyalty",
+        "reports",
+        "notifications",
       ],
       config: {},
     },
@@ -193,8 +193,8 @@ export const PACKAGE_TEMPLATES = {
   },
 
   enterprise: {
-    name: 'Enterprise',
-    description: 'Unlimited features for growing businesses',
+    name: "Enterprise",
+    description: "Unlimited features for growing businesses",
     monthlyPrice: 199,
     features: {
       enabled: Object.keys(FEATURE_MODULES), // All features
@@ -254,7 +254,7 @@ export function getDependentFeatures(featureId: string): string[] {
 // Check if a feature can be safely disabled
 export function canDisableFeature(
   featureId: string,
-  enabledFeatures: string[]
+  enabledFeatures: string[],
 ): { canDisable: boolean; reason?: string } {
   const enabledSet = new Set(enabledFeatures);
   const dependents = getDependentFeatures(featureId);

@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { TestDataFactory } from '../factories/test-data.factory';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { TestDataFactory } from "../factories/test-data.factory";
+import { ConfigService } from "@nestjs/config";
 
 export interface TestSeedOptions {
   cleanFirst?: boolean;
@@ -30,7 +30,7 @@ export class TestSeederService {
       includeDemoData = true,
     } = options;
 
-    console.log('🌱 Starting test database seeding...');
+    console.log("🌱 Starting test database seeding...");
 
     try {
       // Clean database if requested
@@ -44,18 +44,18 @@ export class TestSeederService {
       // Create test merchants
       const merchants = [];
       for (let i = 0; i < merchantCount; i++) {
-        const merchantName = i === 0 
-          ? 'Test Merchant' 
-          : `Test Merchant ${i + 1}`;
-        
-        const username = i === 0
-          ? this.configService.get('TEST_MERCHANT_USERNAME', 'TEST_MERCHANT')
-          : `TEST_MERCHANT_${i + 1}`;
+        const merchantName =
+          i === 0 ? "Test Merchant" : `Test Merchant ${i + 1}`;
+
+        const username =
+          i === 0
+            ? this.configService.get("TEST_MERCHANT_USERNAME", "TEST_MERCHANT")
+            : `TEST_MERCHANT_${i + 1}`;
 
         const merchant = await this.testDataFactory.create({
           merchantName,
           username,
-          password: this.configService.get('TEST_MERCHANT_PASSWORD', 'test123'),
+          password: this.configService.get("TEST_MERCHANT_PASSWORD", "test123"),
           staffCount: 3,
           serviceCount: 5,
           customerCount: 10,
@@ -64,39 +64,47 @@ export class TestSeederService {
         });
 
         merchants.push(merchant);
-        console.log(`✅ Created merchant: ${merchantName} (username: ${username})`);
+        console.log(
+          `✅ Created merchant: ${merchantName} (username: ${username})`,
+        );
       }
 
       // Create demo booking data if requested
       if (includeDemoData && merchants.length > 0) {
         const primaryMerchant = merchants[0];
-        
+
         // Create some bookings for today and upcoming days
         await this.testDataFactory.createBookings({
           merchantId: primaryMerchant.merchant.id,
           locationId: primaryMerchant.location.id,
-          staffIds: primaryMerchant.staff.map(s => s.id),
-          serviceIds: primaryMerchant.services.map(s => s.id),
-          customerIds: primaryMerchant.customers.map(c => c.id),
+          staffIds: primaryMerchant.staff.map((s) => s.id),
+          serviceIds: primaryMerchant.services.map((s) => s.id),
+          customerIds: primaryMerchant.customers.map((c) => c.id),
           count: 10,
         });
 
-        console.log('✅ Created demo bookings');
+        console.log("✅ Created demo bookings");
       }
 
-      console.log('🎉 Test database seeding completed successfully!');
-      
+      console.log("🎉 Test database seeding completed successfully!");
+
       return {
         merchants,
         summary: {
           merchantsCreated: merchants.length,
           totalStaff: merchants.reduce((sum, m) => sum + m.staff.length, 0),
-          totalServices: merchants.reduce((sum, m) => sum + m.services.length, 0),
-          totalCustomers: merchants.reduce((sum, m) => sum + m.customers.length, 0),
+          totalServices: merchants.reduce(
+            (sum, m) => sum + m.services.length,
+            0,
+          ),
+          totalCustomers: merchants.reduce(
+            (sum, m) => sum + m.customers.length,
+            0,
+          ),
         },
       };
     } catch (error) {
-      console.error('❌ Error seeding test database:', error);
+      console.error("❌ Error seeding test database:", error);
       throw error;
     }
   }
@@ -105,32 +113,32 @@ export class TestSeederService {
    * Cleans the entire test database
    */
   async cleanDatabase() {
-    console.log('🧹 Cleaning test database...');
+    console.log("🧹 Cleaning test database...");
 
     const tables = [
-      'TipAllocation',
-      'OrderPayment',
-      'OrderItem',
-      'OrderModifier',
-      'Order',
-      'PaymentSplit',
-      'Payment',
-      'BookingService',
-      'Booking',
-      'LoyaltyTransaction',
-      'LoyaltyMember',
-      'LoyaltyProgram',
-      'StaffService',
-      'StaffLocation',
-      'Staff',
-      'Customer',
-      'Service',
-      'ServiceCategory',
-      'Location',
-      'MerchantSettings',
-      'MerchantAuth',
-      'Merchant',
-      'Package',
+      "TipAllocation",
+      "OrderPayment",
+      "OrderItem",
+      "OrderModifier",
+      "Order",
+      "PaymentSplit",
+      "Payment",
+      "BookingService",
+      "Booking",
+      "LoyaltyTransaction",
+      "LoyaltyMember",
+      "LoyaltyProgram",
+      "StaffService",
+      "StaffLocation",
+      "Staff",
+      "Customer",
+      "Service",
+      "ServiceCategory",
+      "Location",
+      "MerchantSettings",
+      "MerchantAuth",
+      "Merchant",
+      "Package",
     ];
 
     // Use PostgreSQL TRUNCATE with CASCADE for cleanup
@@ -138,18 +146,22 @@ export class TestSeederService {
       // PostgreSQL-compatible cleanup with CASCADE to handle foreign keys
       for (const table of tables) {
         try {
-          await this.prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE`);
+          await this.prisma.$executeRawUnsafe(
+            `TRUNCATE TABLE "${table}" CASCADE`,
+          );
           console.log(`  ✓ Cleaned table: ${table}`);
         } catch (error) {
           // Table might not exist or might be empty, ignore
-          console.log(`  ⚠️  Skipped table: ${table} (${error instanceof Error ? error.message : 'Unknown error'})`);
+          console.log(
+            `  ⚠️  Skipped table: ${table} (${error instanceof Error ? error.message : "Unknown error"})`,
+          );
         }
       }
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      console.error("Error during cleanup:", error);
     }
 
-    console.log('✅ Database cleaned');
+    console.log("✅ Database cleaned");
   }
 
   /**
@@ -157,13 +169,13 @@ export class TestSeederService {
    */
   private async ensureDefaultPackage() {
     const existingPackage = await this.prisma.package.findFirst({
-      where: { name: 'Test Package' },
+      where: { name: "Test Package" },
     });
 
     if (!existingPackage) {
       await this.prisma.package.create({
         data: {
-          name: 'Test Package',
+          name: "Test Package",
           monthlyPrice: 0,
           trialDays: 30,
           maxLocations: 10,
@@ -185,13 +197,13 @@ export class TestSeederService {
    * Creates specific test scenarios for integration testing
    */
   async createTestScenarios() {
-    console.log('🎬 Creating test scenarios...');
+    console.log("🎬 Creating test scenarios...");
 
     // Scenario 1: Double booking test
     const doubleBookingMerchant = await this.testDataFactory.create({
-      merchantName: 'Double Booking Test Merchant',
-      username: 'DOUBLE_BOOKING_TEST',
-      password: 'test123',
+      merchantName: "Double Booking Test Merchant",
+      username: "DOUBLE_BOOKING_TEST",
+      password: "test123",
       staffCount: 1,
       serviceCount: 1,
       customerCount: 2,
@@ -213,13 +225,13 @@ export class TestSeederService {
       count: 1,
     });
 
-    console.log('✅ Created double booking test scenario');
+    console.log("✅ Created double booking test scenario");
 
     // Scenario 2: Availability test
     const availabilityMerchant = await this.testDataFactory.create({
-      merchantName: 'Availability Test Merchant',
-      username: 'AVAILABILITY_TEST',
-      password: 'test123',
+      merchantName: "Availability Test Merchant",
+      username: "AVAILABILITY_TEST",
+      password: "test123",
       staffCount: 2,
       serviceCount: 3,
       customerCount: 5,
@@ -227,7 +239,7 @@ export class TestSeederService {
       cleanupAfter: false,
     });
 
-    console.log('✅ Created availability test scenario');
+    console.log("✅ Created availability test scenario");
 
     return {
       doubleBookingMerchant,

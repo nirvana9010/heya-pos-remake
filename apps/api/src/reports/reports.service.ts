@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 import {
   startOfDay,
   endOfDay,
@@ -12,11 +12,11 @@ import {
   subDays,
   subWeeks,
   subMonths,
-} from 'date-fns';
-import { toNumber, subtractDecimals, divideDecimals } from '../utils/decimal';
-import { ReportOverview } from './dto/report-overview.dto';
-import { TimezoneService } from '../common/services/timezone.service';
-import { DateTime } from 'luxon';
+} from "date-fns";
+import { toNumber, subtractDecimals, divideDecimals } from "../utils/decimal";
+import { ReportOverview } from "./dto/report-overview.dto";
+import { TimezoneService } from "../common/services/timezone.service";
+import { DateTime } from "luxon";
 
 @Injectable()
 export class ReportsService {
@@ -29,102 +29,105 @@ export class ReportsService {
     // Get merchant timezone
     const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    
+
     // Use timezone-aware date calculations
     const todayStart = this.timezoneService.getStartOfDay(now, timezone);
     const todayEnd = this.timezoneService.getEndOfDay(now, timezone);
-    
+
     // Use luxon for timezone-aware week/month/year calculations
     const dt = DateTime.now().setZone(timezone);
-    const weekStart = dt.startOf('week').toJSDate();
-    const weekEnd = dt.endOf('week').toJSDate();
-    const monthStart = dt.startOf('month').toJSDate();
-    const monthEnd = dt.endOf('month').toJSDate();
-    const yearStart = dt.startOf('year').toJSDate();
-    const yearEnd = dt.endOf('year').toJSDate();
+    const weekStart = dt.startOf("week").toJSDate();
+    const weekEnd = dt.endOf("week").toJSDate();
+    const monthStart = dt.startOf("month").toJSDate();
+    const monthEnd = dt.endOf("month").toJSDate();
+    const yearStart = dt.startOf("year").toJSDate();
+    const yearEnd = dt.endOf("year").toJSDate();
 
     // Previous periods for comparison
     const lastWeekDt = dt.minus({ weeks: 1 });
-    const lastWeekStart = lastWeekDt.startOf('week').toJSDate();
-    const lastWeekEnd = lastWeekDt.endOf('week').toJSDate();
+    const lastWeekStart = lastWeekDt.startOf("week").toJSDate();
+    const lastWeekEnd = lastWeekDt.endOf("week").toJSDate();
     const lastMonthDt = dt.minus({ months: 1 });
-    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
-    const lastMonthEnd = lastMonthDt.endOf('month').toJSDate();
+    const lastMonthStart = lastMonthDt.startOf("month").toJSDate();
+    const lastMonthEnd = lastMonthDt.endOf("month").toJSDate();
 
     // Updated to use OrderPayment instead of Payment
     const baseWhere: any = {
       order: {
         merchantId,
         ...(locationId && { locationId }),
-        state: { in: ['PAID', 'COMPLETE'] },
+        state: { in: ["PAID", "COMPLETE"] },
       },
-      status: 'COMPLETED',
+      status: "COMPLETED",
     };
 
     // Get revenue for different periods
-    const [daily, weekly, monthly, yearly, lastWeekRevenue, lastMonthRevenue] = await Promise.all([
-      // Today
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: todayStart, lte: todayEnd },
-        },
-        _sum: { amount: true },
-      }),
-      // This week
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: weekStart, lte: weekEnd },
-        },
-        _sum: { amount: true },
-      }),
-      // This month
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: monthStart, lte: monthEnd },
-        },
-        _sum: { amount: true },
-      }),
-      // This year
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: yearStart, lte: yearEnd },
-        },
-        _sum: { amount: true },
-      }),
-      // Last week (for comparison)
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: lastWeekStart, lte: lastWeekEnd },
-        },
-        _sum: { amount: true },
-      }),
-      // Last month (for comparison)
-      this.prisma.orderPayment.aggregate({
-        where: {
-          ...baseWhere,
-          processedAt: { gte: lastMonthStart, lte: lastMonthEnd },
-        },
-        _sum: { amount: true },
-      }),
-    ]);
+    const [daily, weekly, monthly, yearly, lastWeekRevenue, lastMonthRevenue] =
+      await Promise.all([
+        // Today
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: todayStart, lte: todayEnd },
+          },
+          _sum: { amount: true },
+        }),
+        // This week
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: weekStart, lte: weekEnd },
+          },
+          _sum: { amount: true },
+        }),
+        // This month
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: monthStart, lte: monthEnd },
+          },
+          _sum: { amount: true },
+        }),
+        // This year
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: yearStart, lte: yearEnd },
+          },
+          _sum: { amount: true },
+        }),
+        // Last week (for comparison)
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: lastWeekStart, lte: lastWeekEnd },
+          },
+          _sum: { amount: true },
+        }),
+        // Last month (for comparison)
+        this.prisma.orderPayment.aggregate({
+          where: {
+            ...baseWhere,
+            processedAt: { gte: lastMonthStart, lte: lastMonthEnd },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
 
     // Calculate growth percentages
     const weeklyAmount = toNumber(weekly._sum.amount);
     const lastWeekAmount = toNumber(lastWeekRevenue._sum.amount);
     const monthlyAmount = toNumber(monthly._sum.amount);
     const lastMonthAmount = toNumber(lastMonthRevenue._sum.amount);
-    
-    const weeklyGrowth = lastWeekAmount > 0
-      ? ((weeklyAmount - lastWeekAmount) / lastWeekAmount) * 100
-      : 0;
-    const monthlyGrowth = lastMonthAmount > 0
-      ? ((monthlyAmount - lastMonthAmount) / lastMonthAmount) * 100
-      : 0;
+
+    const weeklyGrowth =
+      lastWeekAmount > 0
+        ? ((weeklyAmount - lastWeekAmount) / lastWeekAmount) * 100
+        : 0;
+    const monthlyGrowth =
+      lastMonthAmount > 0
+        ? ((monthlyAmount - lastMonthAmount) / lastMonthAmount) * 100
+        : 0;
 
     return {
       revenue: {
@@ -144,19 +147,19 @@ export class ReportsService {
     // Get merchant timezone
     const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    
+
     // Use timezone-aware date calculations
     const todayStart = this.timezoneService.getStartOfDay(now, timezone);
     const todayEnd = this.timezoneService.getEndOfDay(now, timezone);
-    
+
     // Use luxon for timezone-aware week/month/year calculations
     const dt = DateTime.now().setZone(timezone);
-    const weekStart = dt.startOf('week').toJSDate();
-    const weekEnd = dt.endOf('week').toJSDate();
-    const monthStart = dt.startOf('month').toJSDate();
-    const monthEnd = dt.endOf('month').toJSDate();
-    const yearStart = dt.startOf('year').toJSDate();
-    const yearEnd = dt.endOf('year').toJSDate();
+    const weekStart = dt.startOf("week").toJSDate();
+    const weekEnd = dt.endOf("week").toJSDate();
+    const monthStart = dt.startOf("month").toJSDate();
+    const monthEnd = dt.endOf("month").toJSDate();
+    const yearStart = dt.startOf("year").toJSDate();
+    const yearEnd = dt.endOf("year").toJSDate();
 
     const baseWhere = {
       merchantId,
@@ -164,7 +167,15 @@ export class ReportsService {
     };
 
     // Get bookings for different time periods (based on startTime for actual appointments)
-    const [daily, weekly, monthly, yearly, dailyCompleted, weeklyCompleted, monthlyCompleted] = await Promise.all([
+    const [
+      daily,
+      weekly,
+      monthly,
+      yearly,
+      dailyCompleted,
+      weeklyCompleted,
+      monthlyCompleted,
+    ] = await Promise.all([
       // Today's bookings
       this.prisma.booking.count({
         where: {
@@ -197,7 +208,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: 'COMPLETED',
+          status: "COMPLETED",
           startTime: { gte: todayStart, lte: todayEnd },
         },
       }),
@@ -205,7 +216,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: 'COMPLETED',
+          status: "COMPLETED",
           startTime: { gte: weekStart, lte: weekEnd },
         },
       }),
@@ -213,7 +224,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: 'COMPLETED',
+          status: "COMPLETED",
           startTime: { gte: monthStart, lte: monthEnd },
         },
       }),
@@ -225,7 +236,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: 'CANCELLED',
+          status: "CANCELLED",
           startTime: { gte: monthStart, lte: monthEnd },
         },
       }),
@@ -233,7 +244,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: 'NO_SHOW',
+          status: "NO_SHOW",
           startTime: { gte: monthStart, lte: monthEnd },
         },
       }),
@@ -241,7 +252,7 @@ export class ReportsService {
       this.prisma.booking.count({
         where: {
           ...baseWhere,
-          status: { in: ['PENDING', 'CONFIRMED'] },
+          status: { in: ["PENDING", "CONFIRMED"] },
           startTime: { gte: now },
         },
       }),
@@ -275,17 +286,17 @@ export class ReportsService {
   async getCustomerStats(merchantId: string) {
     const timezone = await this.getMerchantTimezone(merchantId);
     const dt = DateTime.now().setZone(timezone);
-    
-    const monthStart = dt.startOf('month').toJSDate();
-    const monthEnd = dt.endOf('month').toJSDate();
+
+    const monthStart = dt.startOf("month").toJSDate();
+    const monthEnd = dt.endOf("month").toJSDate();
     const lastMonthDt = dt.minus({ months: 1 });
-    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
-    const lastMonthEnd = lastMonthDt.endOf('month').toJSDate();
+    const lastMonthStart = lastMonthDt.startOf("month").toJSDate();
+    const lastMonthEnd = lastMonthDt.endOf("month").toJSDate();
 
     const [total, newThisMonth, newLastMonth, withLoyalty] = await Promise.all([
       // Total customers
       this.prisma.customer.count({
-        where: { merchantId, status: 'ACTIVE' },
+        where: { merchantId, status: "ACTIVE" },
       }),
       // New this month
       this.prisma.customer.count({
@@ -305,7 +316,7 @@ export class ReportsService {
       this.prisma.customer.count({
         where: {
           merchantId,
-          loyaltyCards: { some: { status: 'ACTIVE' } },
+          loyaltyCards: { some: { status: "ACTIVE" } },
         },
       }),
     ]);
@@ -316,13 +327,16 @@ export class ReportsService {
         merchantId,
         bookings: {
           some: {
-            status: 'COMPLETED',
+            status: "COMPLETED",
           },
         },
       },
     });
 
-    const growth = newLastMonth > 0 ? ((newThisMonth - newLastMonth) / newLastMonth) * 100 : 0;
+    const growth =
+      newLastMonth > 0
+        ? ((newThisMonth - newLastMonth) / newLastMonth) * 100
+        : 0;
 
     return {
       customers: {
@@ -338,15 +352,15 @@ export class ReportsService {
   async getTopServices(merchantId: string, limit = 10) {
     const timezone = await this.getMerchantTimezone(merchantId);
     const dt = DateTime.now().setZone(timezone);
-    const monthStart = dt.startOf('month').toJSDate();
-    const monthEnd = dt.endOf('month').toJSDate();
+    const monthStart = dt.startOf("month").toJSDate();
+    const monthEnd = dt.endOf("month").toJSDate();
 
     const topServices = await this.prisma.bookingService.groupBy({
-      by: ['serviceId'],
+      by: ["serviceId"],
       where: {
         booking: {
           merchantId,
-          status: 'COMPLETED',
+          status: "COMPLETED",
           completedAt: { gte: monthStart, lte: monthEnd },
         },
       },
@@ -356,7 +370,7 @@ export class ReportsService {
       },
       orderBy: {
         _count: {
-          serviceId: 'desc',
+          serviceId: "desc",
         },
       },
       take: limit,
@@ -374,12 +388,12 @@ export class ReportsService {
         acc[s.id] = s.name;
         return acc;
       },
-      {} as Record<string, string>
+      {} as Record<string, string>,
     );
 
     return topServices.map((item) => ({
       serviceId: item.serviceId,
-      name: serviceMap[item.serviceId] || 'Unknown Service',
+      name: serviceMap[item.serviceId] || "Unknown Service",
       bookings: item._count,
       revenue: toNumber(item._sum.price),
     }));
@@ -388,14 +402,14 @@ export class ReportsService {
   async getStaffPerformance(merchantId: string, limit = 10) {
     const timezone = await this.getMerchantTimezone(merchantId);
     const dt = DateTime.now().setZone(timezone);
-    const monthStart = dt.startOf('month').toJSDate();
-    const monthEnd = dt.endOf('month').toJSDate();
+    const monthStart = dt.startOf("month").toJSDate();
+    const monthEnd = dt.endOf("month").toJSDate();
 
     const staffPerformance = await this.prisma.booking.groupBy({
-      by: ['providerId'],
+      by: ["providerId"],
       where: {
         merchantId,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         completedAt: { gte: monthStart, lte: monthEnd },
       },
       _count: true,
@@ -404,7 +418,7 @@ export class ReportsService {
       },
       orderBy: {
         _sum: {
-          totalAmount: 'desc',
+          totalAmount: "desc",
         },
       },
       take: limit,
@@ -422,7 +436,7 @@ export class ReportsService {
         acc[s.id] = s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName;
         return acc;
       },
-      {} as Record<string, string>
+      {} as Record<string, string>,
     );
 
     // Calculate utilization (simplified - would need working hours in production)
@@ -430,25 +444,31 @@ export class ReportsService {
 
     return staffPerformance.map((item) => ({
       staffId: item.providerId,
-      name: staffMap[item.providerId] || 'Unknown Staff',
+      name: staffMap[item.providerId] || "Unknown Staff",
       bookings: item._count,
       revenue: toNumber(item._sum.totalAmount),
-      utilization: Math.min(100, Math.round(((item._count * 1.5) / hoursInMonth) * 100)), // Assuming 1.5 hours per booking average
+      utilization: Math.min(
+        100,
+        Math.round(((item._count * 1.5) / hoursInMonth) * 100),
+      ), // Assuming 1.5 hours per booking average
     }));
   }
 
   async getDailyRevenue(merchantId: string, days = 30) {
     const timezone = await this.getMerchantTimezone(merchantId);
     const endDate = this.timezoneService.getEndOfDay(new Date(), timezone);
-    const startDate = this.timezoneService.getStartOfDay(subDays(new Date(), days - 1), timezone);
+    const startDate = this.timezoneService.getStartOfDay(
+      subDays(new Date(), days - 1),
+      timezone,
+    );
 
     const payments = await this.prisma.orderPayment.findMany({
       where: {
         order: {
           merchantId,
-          state: { in: ['PAID', 'COMPLETE'] },
+          state: { in: ["PAID", "COMPLETE"] },
         },
-        status: 'COMPLETED',
+        status: "COMPLETED",
         processedAt: {
           gte: startDate,
           lte: endDate,
@@ -459,7 +479,7 @@ export class ReportsService {
         processedAt: true,
       },
       orderBy: {
-        processedAt: 'asc',
+        processedAt: "asc",
       },
     });
 
@@ -469,17 +489,18 @@ export class ReportsService {
     payments.forEach((payment) => {
       // Get the date in merchant timezone as YYYY-MM-DD string
       const dt = DateTime.fromJSDate(payment.processedAt!).setZone(timezone);
-      const dayKey = dt.toFormat('yyyy-MM-dd');
-      revenueByDay[dayKey] = (revenueByDay[dayKey] || 0) + toNumber(payment.amount);
+      const dayKey = dt.toFormat("yyyy-MM-dd");
+      revenueByDay[dayKey] =
+        (revenueByDay[dayKey] || 0) + toNumber(payment.amount);
     });
 
     // Fill in missing days with 0
     const result = [];
     const nowInTimezone = DateTime.now().setZone(timezone);
-    
+
     for (let i = 0; i < days; i++) {
       const date = nowInTimezone.minus({ days: days - 1 - i });
-      const dayKey = date.toFormat('yyyy-MM-dd');
+      const dayKey = date.toFormat("yyyy-MM-dd");
       result.push({
         date: dayKey, // Return as YYYY-MM-DD format, not ISO with time
         revenue: revenueByDay[dayKey] || 0,
@@ -489,22 +510,28 @@ export class ReportsService {
     return result;
   }
 
-  async getCleanReportOverview(merchantId: string, locationId?: string): Promise<ReportOverview> {
+  async getCleanReportOverview(
+    merchantId: string,
+    locationId?: string,
+  ): Promise<ReportOverview> {
     // Get merchant timezone first
     const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const now = new Date();
-    
+
     // Use timezone-aware date calculations
     const todayStart = this.timezoneService.getStartOfDay(now, timezone);
-    const yesterdayStart = this.timezoneService.getStartOfDay(subDays(now, 1), timezone);
-    
+    const yesterdayStart = this.timezoneService.getStartOfDay(
+      subDays(now, 1),
+      timezone,
+    );
+
     const dt = DateTime.now().setZone(timezone);
-    const weekStart = dt.startOf('week').toJSDate();
+    const weekStart = dt.startOf("week").toJSDate();
     const lastWeekDt = dt.minus({ weeks: 1 });
-    const lastWeekStart = lastWeekDt.startOf('week').toJSDate();
-    const monthStart = dt.startOf('month').toJSDate();
+    const lastWeekStart = lastWeekDt.startOf("week").toJSDate();
+    const monthStart = dt.startOf("month").toJSDate();
     const lastMonthDt = dt.minus({ months: 1 });
-    const lastMonthStart = lastMonthDt.startOf('month').toJSDate();
+    const lastMonthStart = lastMonthDt.startOf("month").toJSDate();
 
     // Get all data in parallel
     const [
@@ -514,7 +541,7 @@ export class ReportsService {
       topServices,
       staffPerformance,
       revenueTrend,
-      bookingTrend
+      bookingTrend,
     ] = await Promise.all([
       this.getRevenueStats(merchantId, locationId),
       this.getBookingStats(merchantId, locationId),
@@ -530,7 +557,7 @@ export class ReportsService {
       this.prisma.orderPayment.aggregate({
         where: {
           order: { merchantId, ...(locationId && { locationId }) },
-          status: 'COMPLETED',
+          status: "COMPLETED",
           processedAt: { gte: todayStart },
         },
         _sum: { amount: true },
@@ -538,7 +565,7 @@ export class ReportsService {
       this.prisma.orderPayment.aggregate({
         where: {
           order: { merchantId, ...(locationId && { locationId }) },
-          status: 'COMPLETED',
+          status: "COMPLETED",
           processedAt: { gte: yesterdayStart, lt: todayStart },
         },
         _sum: { amount: true },
@@ -547,9 +574,10 @@ export class ReportsService {
 
     const todayAmount = toNumber(todayRevenue._sum.amount);
     const yesterdayAmount = toNumber(yesterdayRevenue._sum.amount);
-    const dailyGrowth = yesterdayAmount > 0 
-      ? ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100 
-      : 0;
+    const dailyGrowth =
+      yesterdayAmount > 0
+        ? ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100
+        : 0;
 
     // Calculate booking growth
     const [currentBookings, lastMonthBookings] = await Promise.all([
@@ -569,9 +597,10 @@ export class ReportsService {
       }),
     ]);
 
-    const bookingGrowthRate = lastMonthBookings > 0
-      ? ((currentBookings - lastMonthBookings) / lastMonthBookings) * 100
-      : 0;
+    const bookingGrowthRate =
+      lastMonthBookings > 0
+        ? ((currentBookings - lastMonthBookings) / lastMonthBookings) * 100
+        : 0;
 
     // Calculate average booking value (for current month)
     const monthlyRevenue = revenueData.revenue.monthly;
@@ -586,7 +615,7 @@ export class ReportsService {
     // Get business hours for the location
     let businessHours = null;
     let activeStaffCount = 0;
-    
+
     try {
       // Get the location to fetch business hours
       const location = await this.prisma.location.findFirst({
@@ -599,32 +628,35 @@ export class ReportsService {
           businessHours: true,
         },
       });
-      
+
       if (location?.businessHours) {
         businessHours = location.businessHours;
       }
-      
+
       // Get count of active staff working today
       activeStaffCount = await this.prisma.staff.count({
         where: {
           merchantId,
-          status: 'ACTIVE',
+          status: "ACTIVE",
         },
       });
     } catch (error: any) {
-      console.log('Could not fetch business hours or staff count:', error.message);
+      console.log(
+        "Could not fetch business hours or staff count:",
+        error.message,
+      );
     }
 
     // Calculate average service duration from actual bookings (if available)
     let avgServiceDuration = 60; // Default to 60 minutes
-    
+
     try {
       const avgDuration = await this.prisma.bookingService.aggregate({
         where: {
           booking: {
             merchantId,
             ...(locationId && { locationId }),
-            status: 'COMPLETED',
+            status: "COMPLETED",
             completedAt: { gte: monthStart },
           },
         },
@@ -632,12 +664,15 @@ export class ReportsService {
           duration: true,
         },
       });
-      
+
       if (avgDuration._avg.duration) {
         avgServiceDuration = Math.round(avgDuration._avg.duration);
       }
     } catch (error: any) {
-      console.log('Could not calculate average service duration:', error.message);
+      console.log(
+        "Could not calculate average service duration:",
+        error.message,
+      );
     }
 
     // Return clean, flat structure
@@ -658,7 +693,7 @@ export class ReportsService {
       customerGrowth: customerData.growth,
       topServices,
       staffPerformance,
-      revenueTrend: revenueTrend.map(item => ({
+      revenueTrend: revenueTrend.map((item) => ({
         date: item.date,
         value: item.revenue,
       })),
@@ -674,8 +709,11 @@ export class ReportsService {
   async getBookingTrend(merchantId: string, days = 30) {
     const timezone = await this.getMerchantTimezone(merchantId);
     const nowInTimezone = DateTime.now().setZone(timezone);
-    const endDate = nowInTimezone.endOf('day').toJSDate();
-    const startDate = nowInTimezone.minus({ days: days - 1 }).startOf('day').toJSDate();
+    const endDate = nowInTimezone.endOf("day").toJSDate();
+    const startDate = nowInTimezone
+      .minus({ days: days - 1 })
+      .startOf("day")
+      .toJSDate();
 
     const bookings = await this.prisma.booking.findMany({
       where: {
@@ -689,7 +727,7 @@ export class ReportsService {
         createdAt: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
 
@@ -699,7 +737,7 @@ export class ReportsService {
     bookings.forEach((booking) => {
       // Get the date in merchant timezone as YYYY-MM-DD string
       const dt = DateTime.fromJSDate(booking.createdAt).setZone(timezone);
-      const dayKey = dt.toFormat('yyyy-MM-dd');
+      const dayKey = dt.toFormat("yyyy-MM-dd");
       bookingsByDay[dayKey] = (bookingsByDay[dayKey] || 0) + 1;
     });
 
@@ -707,7 +745,7 @@ export class ReportsService {
     const result = [];
     for (let i = 0; i < days; i++) {
       const date = nowInTimezone.minus({ days: days - 1 - i });
-      const dayKey = date.toFormat('yyyy-MM-dd');
+      const dayKey = date.toFormat("yyyy-MM-dd");
       result.push({
         date: dayKey, // Return as YYYY-MM-DD format, not ISO with time
         value: bookingsByDay[dayKey] || 0,
@@ -720,7 +758,10 @@ export class ReportsService {
   /**
    * Get the merchant's timezone from their primary location
    */
-  private async getMerchantTimezone(merchantId: string, locationId?: string): Promise<string> {
+  private async getMerchantTimezone(
+    merchantId: string,
+    locationId?: string,
+  ): Promise<string> {
     if (locationId) {
       const location = await this.prisma.location.findFirst({
         where: { id: locationId, merchantId },
@@ -733,9 +774,9 @@ export class ReportsService {
     const primaryLocation = await this.prisma.location.findFirst({
       where: { merchantId, isActive: true },
       select: { timezone: true },
-      orderBy: { createdAt: 'asc' }, // Get the first created location as primary
+      orderBy: { createdAt: "asc" }, // Get the first created location as primary
     });
 
-    return primaryLocation?.timezone || 'Australia/Sydney'; // Default fallback
+    return primaryLocation?.timezone || "Australia/Sydney"; // Default fallback
   }
 }

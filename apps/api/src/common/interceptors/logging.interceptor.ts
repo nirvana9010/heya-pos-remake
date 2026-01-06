@@ -4,26 +4,26 @@ import {
   ExecutionContext,
   CallHandler,
   Logger,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { v4 as uuidv4 } from 'uuid';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { tap } from "rxjs/operators";
+import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger('HTTP');
+  private readonly logger = new Logger("HTTP");
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
-    
+
     // Generate or get request ID
-    const requestId = request.headers['x-request-id'] || uuidv4();
+    const requestId = request.headers["x-request-id"] || uuidv4();
     request.requestId = requestId;
-    response.setHeader('X-Request-Id', requestId);
+    response.setHeader("X-Request-Id", requestId);
 
     const { method, url, body, query, params } = request;
-    const userAgent = request.get('user-agent') || '';
+    const userAgent = request.get("user-agent") || "";
     const ip = request.ip || request.connection.remoteAddress;
     const user = request.user;
 
@@ -48,7 +48,7 @@ export class LoggingInterceptor implements NestInterceptor {
       tap({
         next: (data) => {
           const duration = Date.now() - now;
-          
+
           // Log response
           this.logger.log({
             message: `Outgoing Response`,
@@ -69,13 +69,13 @@ export class LoggingInterceptor implements NestInterceptor {
               method,
               url,
               duration: `${duration}ms`,
-              threshold: '1000ms',
+              threshold: "1000ms",
             });
           }
         },
         error: (error) => {
           const duration = Date.now() - now;
-          
+
           // Log error response
           this.logger.error({
             message: `Error Response`,
@@ -98,23 +98,23 @@ export class LoggingInterceptor implements NestInterceptor {
     if (!body) return body;
 
     const sensitiveFields = [
-      'password',
-      'passwordHash',
-      'pin',
-      'token',
-      'refreshToken',
-      'creditCard',
-      'cvv',
-      'ssn',
-      'apiKey',
-      'secret',
+      "password",
+      "passwordHash",
+      "pin",
+      "token",
+      "refreshToken",
+      "creditCard",
+      "cvv",
+      "ssn",
+      "apiKey",
+      "secret",
     ];
 
     const sanitized = { ...body };
 
     sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
-        sanitized[field] = '[REDACTED]';
+        sanitized[field] = "[REDACTED]";
       }
     });
 

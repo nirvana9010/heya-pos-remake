@@ -1,5 +1,5 @@
-import type { Customer, CustomerStatus, CustomerSource } from '../models';
-import type { PaginationParams } from '../common';
+import type { Customer, CustomerStatus, CustomerSource } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface CreateCustomerRequest {
   firstName: string;

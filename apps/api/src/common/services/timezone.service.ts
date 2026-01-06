@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { DateTime } from 'luxon';
+import { Injectable } from "@nestjs/common";
+import { DateTime } from "luxon";
 
 @Injectable()
 export class TimezoneService {
-  private readonly DEFAULT_TIMEZONE = 'Australia/Sydney';
+  private readonly DEFAULT_TIMEZONE = "Australia/Sydney";
 
   /**
    * Convert a UTC date to the merchant's timezone
@@ -18,8 +18,8 @@ export class TimezoneService {
    */
   toUTC(date: Date | string, timezone?: string): Date {
     const tz = timezone || this.DEFAULT_TIMEZONE;
-    
-    if (typeof date === 'string') {
+
+    if (typeof date === "string") {
       // If it's just a date string without time info
       if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return DateTime.fromISO(date, { zone: tz }).toUTC().toJSDate();
@@ -27,7 +27,7 @@ export class TimezoneService {
       // If it's a full ISO string, assume it has timezone info
       return DateTime.fromISO(date).toUTC().toJSDate();
     }
-    
+
     return DateTime.fromJSDate(date, { zone: tz }).toUTC().toJSDate();
   }
 
@@ -38,7 +38,7 @@ export class TimezoneService {
     const tz = timezone || this.DEFAULT_TIMEZONE;
     return DateTime.fromJSDate(new Date(date))
       .setZone(tz)
-      .startOf('day')
+      .startOf("day")
       .toUTC()
       .toJSDate();
   }
@@ -50,7 +50,7 @@ export class TimezoneService {
     const tz = timezone || this.DEFAULT_TIMEZONE;
     return DateTime.fromJSDate(new Date(date))
       .setZone(tz)
-      .endOf('day')
+      .endOf("day")
       .toUTC()
       .toJSDate();
   }
@@ -60,9 +60,7 @@ export class TimezoneService {
    */
   formatDate(date: Date | string, format: string, timezone?: string): string {
     const tz = timezone || this.DEFAULT_TIMEZONE;
-    return DateTime.fromJSDate(new Date(date))
-      .setZone(tz)
-      .toFormat(format);
+    return DateTime.fromJSDate(new Date(date)).setZone(tz).toFormat(format);
   }
 
   /**
@@ -82,8 +80,8 @@ export class TimezoneService {
       return null;
     }
 
-    const [openHour, openMinute] = dayHours.openTime.split(':').map(Number);
-    const [closeHour, closeMinute] = dayHours.closeTime.split(':').map(Number);
+    const [openHour, openMinute] = dayHours.openTime.split(":").map(Number);
+    const [closeHour, closeMinute] = dayHours.closeTime.split(":").map(Number);
 
     const openTime = dateTime
       .set({ hour: openHour, minute: openMinute, second: 0, millisecond: 0 })
@@ -110,7 +108,9 @@ export class TimezoneService {
     if (!hours) return false;
 
     const time = date.getTime();
-    return time >= hours.openTime.getTime() && time <= hours.closeTime.getTime();
+    return (
+      time >= hours.openTime.getTime() && time <= hours.closeTime.getTime()
+    );
   }
 
   /**
@@ -130,9 +130,14 @@ export class TimezoneService {
       const dayHours = businessHours[dayOfWeek];
 
       if (dayHours && dayHours.isOpen) {
-        const [openHour, openMinute] = dayHours.openTime.split(':').map(Number);
+        const [openHour, openMinute] = dayHours.openTime.split(":").map(Number);
         return currentDate
-          .set({ hour: openHour, minute: openMinute, second: 0, millisecond: 0 })
+          .set({
+            hour: openHour,
+            minute: openMinute,
+            second: 0,
+            millisecond: 0,
+          })
           .toUTC()
           .toJSDate();
       }

@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   uptime: number;
   version: string;
 }
 
 export interface DatabaseHealth {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   responseTime: number;
   connectionHealth: any;
 }
@@ -36,10 +36,10 @@ export class HealthService {
 
   async getHealth(): Promise<HealthStatus> {
     return {
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
-      version: process.env.npm_package_version || '0.0.1',
+      version: process.env.npm_package_version || "0.0.1",
     };
   }
 
@@ -52,17 +52,17 @@ export class HealthService {
       const connectionHealth = this.prisma.getConnectionHealth();
 
       return {
-        status: connectionHealth.isHealthy ? 'healthy' : 'unhealthy',
+        status: connectionHealth.isHealthy ? "healthy" : "unhealthy",
         responseTime,
         connectionHealth,
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         responseTime: -1,
         connectionHealth: {
           isHealthy: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         },
       };
     }
@@ -84,15 +84,15 @@ export class HealthService {
 
     const performance = {
       cpuUsage: process.cpuUsage(),
-      loadAverage: require('os').loadavg(),
+      loadAverage: require("os").loadavg(),
     };
 
     // Determine overall health status
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    if (database.status === 'unhealthy') {
-      overallStatus = 'unhealthy';
+    let overallStatus: "healthy" | "degraded" | "unhealthy" = "healthy";
+    if (database.status === "unhealthy") {
+      overallStatus = "unhealthy";
     } else if (database.responseTime > 1000) {
-      overallStatus = 'degraded';
+      overallStatus = "degraded";
     }
 
     return {

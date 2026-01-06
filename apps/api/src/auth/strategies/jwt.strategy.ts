@@ -1,14 +1,14 @@
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { PassportStrategy } from "@nestjs/passport";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 export interface JwtPayload {
   sub: string;
   merchantId: string;
   staffId?: string;
   locationId?: string;
-  type: 'merchant' | 'staff';
+  type: "merchant" | "staff";
 }
 
 @Injectable()
@@ -17,12 +17,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'default-secret',
+      secretOrKey: process.env.JWT_SECRET || "default-secret",
     });
   }
 
   async validate(payload: JwtPayload) {
-    if (payload.type === 'merchant') {
+    if (payload.type === "merchant") {
       const merchantAuth = await this.prisma.merchantAuth.findUnique({
         where: { id: payload.sub },
         include: {
@@ -36,17 +36,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       });
 
-      if (!merchantAuth || merchantAuth.merchant.status !== 'ACTIVE') {
-        throw new UnauthorizedException('Invalid token');
+      if (!merchantAuth || merchantAuth.merchant.status !== "ACTIVE") {
+        throw new UnauthorizedException("Invalid token");
       }
 
       return {
         id: merchantAuth.id,
         merchantId: merchantAuth.merchant.id,
-        type: 'merchant',
+        type: "merchant",
         merchant: merchantAuth.merchant,
       };
-    } else if (payload.type === 'staff') {
+    } else if (payload.type === "staff") {
       const staff = await this.prisma.staff.findUnique({
         where: { id: payload.staffId },
         include: {
@@ -55,8 +55,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       });
 
-      if (!staff || staff.status !== 'ACTIVE') {
-        throw new UnauthorizedException('Invalid token');
+      if (!staff || staff.status !== "ACTIVE") {
+        throw new UnauthorizedException("Invalid token");
       }
 
       return {
@@ -64,12 +64,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         merchantId: staff.merchantId,
         staffId: staff.id,
         locationId: payload.locationId,
-        type: 'staff',
+        type: "staff",
         staff,
         merchant: staff.merchant,
       };
     }
 
-    throw new UnauthorizedException('Invalid token type');
+    throw new UnauthorizedException("Invalid token type");
   }
 }

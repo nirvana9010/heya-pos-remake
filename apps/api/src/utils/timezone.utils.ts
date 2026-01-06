@@ -9,7 +9,7 @@ export class TimezoneUtils {
   }
 
   static convertToTimezone(date: Date, timezone: string): Date {
-    const dateString = date.toLocaleString('en-US', { timeZone: timezone });
+    const dateString = date.toLocaleString("en-US", { timeZone: timezone });
     return new Date(dateString);
   }
 }

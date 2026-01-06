@@ -19,7 +19,7 @@ export interface BookingListItem {
   customerPhone?: string;
   customerEmail?: string;
   customerSource?: string | null;
-  staffId: string;  // Added for calendar display
+  staffId: string; // Added for calendar display
   staffName: string;
   serviceName: string; // Deprecated - kept for backward compatibility
   services: BookingServiceSummary[]; // Array of services for multi-service bookings

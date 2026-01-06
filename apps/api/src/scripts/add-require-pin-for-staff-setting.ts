@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function addRequirePinForStaffSetting() {
-  console.log('Starting migration to add requirePinForStaff setting...');
+  console.log("Starting migration to add requirePinForStaff setting...");
 
   try {
     // Get all merchants
@@ -22,10 +22,12 @@ async function addRequirePinForStaffSetting() {
 
     for (const merchant of merchants) {
       const settings = merchant.settings as any;
-      
+
       // Check if requirePinForStaff already exists
       if (settings.requirePinForStaff !== undefined) {
-        console.log(`Merchant ${merchant.name} already has requirePinForStaff setting, skipping...`);
+        console.log(
+          `Merchant ${merchant.name} already has requirePinForStaff setting, skipping...`,
+        );
         skipped++;
         continue;
       }
@@ -44,7 +46,9 @@ async function addRequirePinForStaffSetting() {
         },
       });
 
-      console.log(`Updated merchant ${merchant.name} with requirePinForStaff setting`);
+      console.log(
+        `Updated merchant ${merchant.name} with requirePinForStaff setting`,
+      );
       updated++;
     }
 
@@ -52,7 +56,7 @@ async function addRequirePinForStaffSetting() {
     console.log(`Updated: ${updated} merchants`);
     console.log(`Skipped: ${skipped} merchants`);
   } catch (error) {
-    console.error('Error during migration:', error);
+    console.error("Error during migration:", error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -62,10 +66,10 @@ async function addRequirePinForStaffSetting() {
 // Run the migration
 addRequirePinForStaffSetting()
   .then(() => {
-    console.log('Migration script completed');
+    console.log("Migration script completed");
     process.exit(0);
   })
   .catch((error) => {
-    console.error('Migration script failed:', error);
+    console.error("Migration script failed:", error);
     process.exit(1);
   });

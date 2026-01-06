@@ -1,4 +1,4 @@
-import { Booking } from '../entities/booking.entity';
+import { Booking } from "../entities/booking.entity";
 
 /**
  * Domain Repository Interface for Bookings
@@ -39,7 +39,6 @@ export interface IBookingRepository {
     total: number;
   }>;
 
-
   /**
    * Update a booking
    */
@@ -58,7 +57,7 @@ export interface IBookingRepository {
     startTime: Date,
     endTime: Date,
     merchantId: string,
-    excludeBookingId?: string
+    excludeBookingId?: string,
   ): Promise<boolean>;
 
   /**
@@ -70,6 +69,6 @@ export interface IBookingRepository {
     endTime: Date,
     merchantId: string,
     excludeBookingId?: string,
-    tx?: any
+    tx?: any,
   ): Promise<Booking[]>;
 }

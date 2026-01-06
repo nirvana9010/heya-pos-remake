@@ -1,5 +1,5 @@
-import { Module, Global } from '@nestjs/common';
-import { TimezoneService } from './timezone.service';
+import { Module, Global } from "@nestjs/common";
+import { TimezoneService } from "./timezone.service";
 
 @Global()
 @Module({

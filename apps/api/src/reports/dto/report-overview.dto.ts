@@ -60,28 +60,28 @@ export interface ReportOverview {
   // Revenue metrics
   revenue: RevenueMetrics;
   revenueGrowth: GrowthMetrics;
-  
+
   // Booking metrics
   bookings: BookingMetrics;
   bookingGrowth: GrowthMetrics;
-  
-  // Customer metrics  
+
+  // Customer metrics
   customers: CustomerMetrics;
   customerGrowth: number;
-  
+
   // Performance data
   topServices: ServicePerformance[];
   staffPerformance: StaffPerformance[];
-  
+
   // Trend data
   revenueTrend: TrendData[];
   bookingTrend: TrendData[];
-  
+
   // Calculated metrics
   avgBookingValue: number;
   avgServiceDuration: number;
   customerRetentionRate: number;
-  
+
   // Additional data for fill rate calculation
   businessHours?: any; // JSON object with business hours
   activeStaffCount?: number; // Number of active staff

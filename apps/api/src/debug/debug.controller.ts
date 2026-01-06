@@ -1,9 +1,9 @@
-import { Controller, Get, Post } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
-import * as process from 'process';
+import { Controller, Get, Post } from "@nestjs/common";
+import { Public } from "../auth/decorators/public.decorator";
+import * as process from "process";
 // import * as heapdump from 'heapdump';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from "path";
+import * as fs from "fs";
 
 interface MemoryUsage {
   timestamp: Date;
@@ -14,12 +14,12 @@ interface MemoryUsage {
   arrayBuffers?: number;
 }
 
-@Controller('debug')
+@Controller("debug")
 export class DebugController {
   private memorySnapshots: MemoryUsage[] = [];
   private readonly maxSnapshots = 100;
 
-  @Get('memory')
+  @Get("memory")
   @Public()
   getMemoryUsage() {
     const memUsage = process.memoryUsage();
@@ -41,24 +41,27 @@ export class DebugController {
       current: {
         ...usage,
         memoryUsageMB: {
-          rss: (memUsage.rss / 1024 / 1024).toFixed(2) + ' MB',
-          heapTotal: (memUsage.heapTotal / 1024 / 1024).toFixed(2) + ' MB',
-          heapUsed: (memUsage.heapUsed / 1024 / 1024).toFixed(2) + ' MB',
-          external: (memUsage.external / 1024 / 1024).toFixed(2) + ' MB',
-          arrayBuffers: (memUsage.arrayBuffers / 1024 / 1024).toFixed(2) + ' MB',
+          rss: (memUsage.rss / 1024 / 1024).toFixed(2) + " MB",
+          heapTotal: (memUsage.heapTotal / 1024 / 1024).toFixed(2) + " MB",
+          heapUsed: (memUsage.heapUsed / 1024 / 1024).toFixed(2) + " MB",
+          external: (memUsage.external / 1024 / 1024).toFixed(2) + " MB",
+          arrayBuffers:
+            (memUsage.arrayBuffers / 1024 / 1024).toFixed(2) + " MB",
         },
-        percentHeapUsed: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2) + '%',
+        percentHeapUsed:
+          ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2) + "%",
       },
       history: {
         count: this.memorySnapshots.length,
         oldest: this.memorySnapshots[0]?.timestamp,
-        latest: this.memorySnapshots[this.memorySnapshots.length - 1]?.timestamp,
+        latest:
+          this.memorySnapshots[this.memorySnapshots.length - 1]?.timestamp,
       },
       trends: this.calculateMemoryTrends(),
     };
   }
 
-  @Get('memory/history')
+  @Get("memory/history")
   @Public()
   getMemoryHistory() {
     return {
@@ -72,12 +75,12 @@ export class DebugController {
     };
   }
 
-  @Post('memory/heapdump')
+  @Post("memory/heapdump")
   @Public()
   async createHeapDump() {
     return {
-      error: 'Heapdump functionality is disabled in production builds',
-      note: 'This feature requires the heapdump package which is not included in production'
+      error: "Heapdump functionality is disabled in production builds",
+      note: "This feature requires the heapdump package which is not included in production",
     };
     // const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     // const filename = `heapdump-${timestamp}.heapsnapshot`;
@@ -102,7 +105,7 @@ export class DebugController {
     // });
   }
 
-  @Get('memory/gc')
+  @Get("memory/gc")
   @Public()
   forceGarbageCollection() {
     if (global.gc) {
@@ -127,22 +130,24 @@ export class DebugController {
     } else {
       return {
         success: false,
-        error: 'Garbage collection not exposed. Run with --expose-gc flag.',
+        error: "Garbage collection not exposed. Run with --expose-gc flag.",
       };
     }
   }
 
   private calculateMemoryTrends() {
     if (this.memorySnapshots.length < 2) {
-      return { status: 'insufficient_data' };
+      return { status: "insufficient_data" };
     }
 
     const recent = this.memorySnapshots.slice(-10);
     const oldest = recent[0];
     const newest = recent[recent.length - 1];
 
-    const heapGrowth = newest.memoryUsage.heapUsed - oldest.memoryUsage.heapUsed;
-    const timeElapsed = (newest.timestamp.getTime() - oldest.timestamp.getTime()) / 1000;
+    const heapGrowth =
+      newest.memoryUsage.heapUsed - oldest.memoryUsage.heapUsed;
+    const timeElapsed =
+      (newest.timestamp.getTime() - oldest.timestamp.getTime()) / 1000;
     const growthRate = heapGrowth / timeElapsed;
 
     return {
@@ -151,8 +156,8 @@ export class DebugController {
       heapGrowthMB: (heapGrowth / 1024 / 1024).toFixed(2),
       growthRateMBPerSecond: (growthRate / 1024 / 1024).toFixed(4),
       growthRateMBPerMinute: ((growthRate * 60) / 1024 / 1024).toFixed(2),
-      trend: heapGrowth > 0 ? 'increasing' : 'stable',
-      warning: growthRate > 1024 * 1024 ? 'HIGH_GROWTH_RATE' : null,
+      trend: heapGrowth > 0 ? "increasing" : "stable",
+      warning: growthRate > 1024 * 1024 ? "HIGH_GROWTH_RATE" : null,
     };
   }
 }

@@ -1,11 +1,18 @@
-import { IsOptional, IsString, IsNumber, Min, IsEnum, IsDateString } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  IsEnum,
+  IsDateString,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export enum CustomerSortBy {
-  NAME = 'name',
-  EMAIL = 'email',
-  CREATED_AT = 'createdAt',
-  TOTAL_SPENT = 'totalSpent'
+  NAME = "name",
+  EMAIL = "email",
+  CREATED_AT = "createdAt",
+  TOTAL_SPENT = "totalSpent",
 }
 
 export class SearchCustomersDto {
@@ -37,7 +44,6 @@ export class SearchCustomersDto {
   @IsDateString()
   createdBefore?: string;
 
-
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -50,14 +56,13 @@ export class SearchCustomersDto {
   @Min(0)
   maxTotalSpent?: number;
 
-
   @IsOptional()
   @IsEnum(CustomerSortBy)
   sortBy?: CustomerSortBy = CustomerSortBy.CREATED_AT;
 
   @IsOptional()
-  @IsEnum(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  @IsEnum(["asc", "desc"])
+  sortOrder?: "asc" | "desc" = "desc";
 
   @IsOptional()
   @Type(() => Number)

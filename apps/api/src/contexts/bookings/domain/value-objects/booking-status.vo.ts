@@ -3,13 +3,13 @@
  * Represents the possible states of a booking
  */
 export enum BookingStatusValue {
-  DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  NO_SHOW = 'NO_SHOW'
+  DRAFT = "DRAFT",
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
 export class BookingStatus {
@@ -36,23 +36,23 @@ export class BookingStatus {
       [BookingStatusValue.DRAFT]: [
         BookingStatusValue.PENDING,
         BookingStatusValue.CONFIRMED,
-        BookingStatusValue.CANCELLED
+        BookingStatusValue.CANCELLED,
       ],
       [BookingStatusValue.PENDING]: [
         BookingStatusValue.CONFIRMED,
-        BookingStatusValue.COMPLETED,  // Allow direct completion when paid
+        BookingStatusValue.COMPLETED, // Allow direct completion when paid
         BookingStatusValue.CANCELLED,
-        BookingStatusValue.NO_SHOW
+        BookingStatusValue.NO_SHOW,
       ],
       [BookingStatusValue.CONFIRMED]: [
         BookingStatusValue.IN_PROGRESS,
-        BookingStatusValue.COMPLETED,  // Allow direct completion when paid
+        BookingStatusValue.COMPLETED, // Allow direct completion when paid
         BookingStatusValue.CANCELLED,
-        BookingStatusValue.NO_SHOW
+        BookingStatusValue.NO_SHOW,
       ],
       [BookingStatusValue.IN_PROGRESS]: [
         BookingStatusValue.COMPLETED,
-        BookingStatusValue.CANCELLED
+        BookingStatusValue.CANCELLED,
       ],
       [BookingStatusValue.COMPLETED]: [], // Terminal state
       [BookingStatusValue.CANCELLED]: [], // Terminal state
@@ -66,7 +66,7 @@ export class BookingStatus {
     return [
       BookingStatusValue.COMPLETED,
       BookingStatusValue.CANCELLED,
-      BookingStatusValue.NO_SHOW
+      BookingStatusValue.NO_SHOW,
     ].includes(this._value);
   }
 

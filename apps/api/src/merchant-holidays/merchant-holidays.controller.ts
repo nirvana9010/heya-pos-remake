@@ -8,19 +8,19 @@ import {
   Post,
   Put,
   UseGuards,
-} from '@nestjs/common';
-import { MerchantHolidaysService } from './merchant-holidays.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CreateMerchantHolidayDto } from './dto/create-merchant-holiday.dto';
-import { UpdateMerchantHolidayDto } from './dto/update-merchant-holiday.dto';
-import { SetStateHolidaysDto } from './dto/set-state-holidays.dto';
-import type { MerchantHolidayResponse } from './merchant-holidays.service';
-import type { AustralianState } from '@heya-pos/types';
+} from "@nestjs/common";
+import { MerchantHolidaysService } from "./merchant-holidays.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { CreateMerchantHolidayDto } from "./dto/create-merchant-holiday.dto";
+import { UpdateMerchantHolidayDto } from "./dto/update-merchant-holiday.dto";
+import { SetStateHolidaysDto } from "./dto/set-state-holidays.dto";
+import type { MerchantHolidayResponse } from "./merchant-holidays.service";
+import type { AustralianState } from "@heya-pos/types";
 
 @Controller({
-  path: 'merchant/holidays',
-  version: '1',
+  path: "merchant/holidays",
+  version: "1",
 })
 @UseGuards(JwtAuthGuard)
 export class MerchantHolidaysController {
@@ -31,7 +31,7 @@ export class MerchantHolidaysController {
     return this.holidaysService.getHolidays(user.merchantId);
   }
 
-  @Put('state')
+  @Put("state")
   async syncState(
     @CurrentUser() user: any,
     @Body() body: SetStateHolidaysDto,
@@ -56,19 +56,19 @@ export class MerchantHolidaysController {
     );
   }
 
-  @Patch(':id')
+  @Patch(":id")
   async updateHoliday(
     @CurrentUser() user: any,
-    @Param('id') holidayId: string,
+    @Param("id") holidayId: string,
     @Body() dto: UpdateMerchantHolidayDto,
   ) {
     return this.holidaysService.updateHoliday(user.merchantId, holidayId, dto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   async removeHoliday(
     @CurrentUser() user: any,
-    @Param('id') holidayId: string,
+    @Param("id") holidayId: string,
   ) {
     await this.holidaysService.deleteHoliday(user.merchantId, holidayId);
     return { success: true };

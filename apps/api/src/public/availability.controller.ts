@@ -1,9 +1,15 @@
-import { Controller, Get, Query, BadRequestException, Headers } from '@nestjs/common';
-import { BookingAvailabilityService } from '../contexts/bookings/application/services/booking-availability.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { Public } from '../auth/decorators/public.decorator';
-import { IsUUID, IsDateString, IsOptional, IsString } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import {
+  Controller,
+  Get,
+  Query,
+  BadRequestException,
+  Headers,
+} from "@nestjs/common";
+import { BookingAvailabilityService } from "../contexts/bookings/application/services/booking-availability.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { Public } from "../auth/decorators/public.decorator";
+import { IsUUID, IsDateString, IsOptional, IsString } from "class-validator";
+import { Transform, Type } from "class-transformer";
 
 export class GetAvailabilityDto {
   @IsUUID()
@@ -21,9 +27,13 @@ export class GetAvailabilityDto {
   @IsOptional()
   @IsString()
   timezone?: string;
+
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
-@Controller('public/availability')
+@Controller("public/availability")
 @Public()
 export class AvailabilityController {
   constructor(
@@ -34,35 +44,37 @@ export class AvailabilityController {
   @Get()
   async getAvailability(
     @Query() query: GetAvailabilityDto,
-    @Headers('x-merchant-subdomain') headerSubdomain?: string,
+    @Headers("x-merchant-subdomain") headerSubdomain?: string,
   ) {
     const startDate = new Date(query.startDate);
     const endDate = new Date(query.endDate);
-    
+
     // Validate date range
     if (startDate >= endDate) {
-      throw new BadRequestException('Start date must be before end date');
+      throw new BadRequestException("Start date must be before end date");
     }
 
     // Limit date range to prevent abuse
     const maxDays = 90;
     const daysDiff = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
     );
-    
+
     if (daysDiff > maxDays) {
       throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
     }
 
     // Get merchant by subdomain from header
     if (!headerSubdomain) {
-      throw new BadRequestException('Merchant subdomain is required in x-merchant-subdomain header');
+      throw new BadRequestException(
+        "Merchant subdomain is required in x-merchant-subdomain header",
+      );
     }
 
     const merchant = await this.prisma.merchant.findUnique({
-      where: { 
+      where: {
         subdomain: headerSubdomain,
-        status: 'ACTIVE'
+        status: "ACTIVE",
       },
     });
 
@@ -77,6 +89,7 @@ export class AvailabilityController {
       startDate,
       endDate,
       timezone: query.timezone,
+      locationId: query.locationId,
       requireRosterOnly: true,
     });
 
@@ -84,10 +97,10 @@ export class AvailabilityController {
     return {
       staffId: query.staffId,
       serviceId: query.serviceId,
-      timezone: query.timezone || 'Australia/Sydney',
+      timezone: query.timezone || "Australia/Sydney",
       availableSlots: slots
-        .filter(slot => slot.available)
-        .map(slot => ({
+        .filter((slot) => slot.available)
+        .map((slot) => ({
           startTime: slot.startTime,
           endTime: slot.endTime,
         })),

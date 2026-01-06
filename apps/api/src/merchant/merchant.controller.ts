@@ -1,14 +1,7 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
-import { MerchantService } from './merchant.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { MerchantSettings } from '../types/models/merchant';
+import { Controller, Get, Put, Body, UseGuards, Request } from "@nestjs/common";
+import { MerchantService } from "./merchant.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { MerchantSettings } from "../types/models/merchant";
 
 interface UpdateMerchantProfileDto {
   name?: string;
@@ -29,17 +22,17 @@ interface UpdateLocationDto {
   email?: string;
 }
 
-@Controller('merchant')
+@Controller("merchant")
 @UseGuards(JwtAuthGuard)
 export class MerchantController {
   constructor(private readonly merchantService: MerchantService) {}
 
-  @Get('settings')
+  @Get("settings")
   async getSettings(@Request() req) {
     return this.merchantService.getMerchantSettings(req.user.merchantId);
   }
 
-  @Put('settings')
+  @Put("settings")
   async updateSettings(
     @Request() req,
     @Body() settings: Partial<MerchantSettings>,
@@ -50,12 +43,12 @@ export class MerchantController {
     );
   }
 
-  @Get('profile')
+  @Get("profile")
   async getMerchantProfile(@Request() req) {
     return this.merchantService.getMerchantById(req.user.merchantId);
   }
 
-  @Put('profile')
+  @Put("profile")
   async updateProfile(
     @Request() req,
     @Body() profileData: UpdateMerchantProfileDto,
@@ -66,18 +59,20 @@ export class MerchantController {
     );
   }
 
-  @Get('settings/debug')
+  @Get("settings/debug")
   async debugSettings(@Request() req) {
-    const merchant = await this.merchantService.debugGetMerchantSettings(req.user.merchantId);
+    const merchant = await this.merchantService.debugGetMerchantSettings(
+      req.user.merchantId,
+    );
     return merchant;
   }
 
-  @Get('settings/raw')
+  @Get("settings/raw")
   async getRawSettings(@Request() req) {
     return this.merchantService.getRawMerchantSettings(req.user.merchantId);
   }
 
-  @Put('location/:locationId')
+  @Put("location/:locationId")
   async updateLocation(
     @Request() req,
     @Body() locationData: UpdateLocationDto,

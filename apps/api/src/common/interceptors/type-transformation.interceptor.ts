@@ -4,19 +4,17 @@ import {
   ExecutionContext,
   CallHandler,
   Logger,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { Decimal } from '@prisma/client/runtime/library';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
+import { Decimal } from "@prisma/client/runtime/library";
 
 @Injectable()
 export class TypeTransformationInterceptor implements NestInterceptor {
   private readonly logger = new Logger(TypeTransformationInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(
-      map((data) => this.transformResponse(data)),
-    );
+    return next.handle().pipe(map((data) => this.transformResponse(data)));
   }
 
   private transformResponse(data: any): any {
@@ -36,7 +34,7 @@ export class TypeTransformationInterceptor implements NestInterceptor {
       return data.map((item) => this.transformResponse(item));
     }
 
-    if (typeof data === 'object') {
+    if (typeof data === "object") {
       const transformed: any = {};
 
       for (const [key, value] of Object.entries(data)) {
@@ -60,104 +58,112 @@ export class TypeTransformationInterceptor implements NestInterceptor {
 
   private isMoneyField(fieldName: string): boolean {
     const moneyFields = [
-      'price',
-      'amount',
-      'totalAmount',
-      'subtotal',
-      'taxAmount',
-      'discountAmount',
-      'paidAmount',
-      'balanceDue',
-      'depositAmount',
-      'totalSpent',
-      'monthlyPrice',
-      'unitPrice',
-      'tipAmount',
-      'refundedAmount',
+      "price",
+      "amount",
+      "totalAmount",
+      "subtotal",
+      "taxAmount",
+      "discountAmount",
+      "paidAmount",
+      "balanceDue",
+      "depositAmount",
+      "totalSpent",
+      "monthlyPrice",
+      "unitPrice",
+      "tipAmount",
+      "refundedAmount",
     ];
-    return moneyFields.includes(fieldName) || fieldName.endsWith('Price') || fieldName.endsWith('Amount');
+    return (
+      moneyFields.includes(fieldName) ||
+      fieldName.endsWith("Price") ||
+      fieldName.endsWith("Amount")
+    );
   }
 
   private isDateField(fieldName: string): boolean {
     const dateFields = [
-      'createdAt',
-      'updatedAt',
-      'startTime',
-      'endTime',
-      'dueDate',
-      'dateOfBirth',
-      'hireDate',
-      'lastLogin',
-      'lastLoginAt',
-      'confirmedAt',
-      'checkedInAt',
-      'completedAt',
-      'cancelledAt',
-      'processedAt',
-      'refundedAt',
-      'sentAt',
-      'paidAt',
-      'voidedAt',
-      'lockedAt',
-      'failedAt',
-      'expiresAt',
-      'joinedAt',
-      'lastActivityAt',
-      'subscriptionEnds',
-      'trialEndsAt',
+      "createdAt",
+      "updatedAt",
+      "startTime",
+      "endTime",
+      "dueDate",
+      "dateOfBirth",
+      "hireDate",
+      "lastLogin",
+      "lastLoginAt",
+      "confirmedAt",
+      "checkedInAt",
+      "completedAt",
+      "cancelledAt",
+      "processedAt",
+      "refundedAt",
+      "sentAt",
+      "paidAt",
+      "voidedAt",
+      "lockedAt",
+      "failedAt",
+      "expiresAt",
+      "joinedAt",
+      "lastActivityAt",
+      "subscriptionEnds",
+      "trialEndsAt",
     ];
-    return dateFields.includes(fieldName) || fieldName.endsWith('At') || fieldName.endsWith('Date');
+    return (
+      dateFields.includes(fieldName) ||
+      fieldName.endsWith("At") ||
+      fieldName.endsWith("Date")
+    );
   }
 
   private isDecimalField(fieldName: string): boolean {
     const decimalFields = [
-      'quantity',
-      'taxRate',
-      'loyaltyPoints',
-      'points',
-      'lifetimePoints',
-      'visitsDelta',
-      'balance',
-      'percentage',
-      'multiplier',
-      'pointsPerVisit',
-      'pointsPerDollar',
-      'pointsPerCurrency',
-      'rewardThreshold',
-      'rewardValue',
-      'pointsValue',
-      'requiredPoints',
+      "quantity",
+      "taxRate",
+      "loyaltyPoints",
+      "points",
+      "lifetimePoints",
+      "visitsDelta",
+      "balance",
+      "percentage",
+      "multiplier",
+      "pointsPerVisit",
+      "pointsPerDollar",
+      "pointsPerCurrency",
+      "rewardThreshold",
+      "rewardValue",
+      "pointsValue",
+      "requiredPoints",
     ];
     return decimalFields.includes(fieldName);
   }
 
   private transformMoney(value: any): number {
     if (value === null || value === undefined) return value;
-    
+
     if (value instanceof Decimal) {
       return value.toNumber();
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       const parsed = parseFloat(value);
       return isNaN(parsed) ? 0 : Math.round(parsed * 100) / 100;
     }
-    
-    if (typeof value === 'number') {
+
+    if (typeof value === "number") {
       return Math.round(value * 100) / 100;
     }
-    
+
     return value;
   }
 
   private transformDate(value: any): string | null {
     if (value === null || value === undefined) return value;
-    
+
     if (value instanceof Date) {
       return value.toISOString();
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       try {
         const date = new Date(value);
         return isNaN(date.getTime()) ? value : date.toISOString();
@@ -165,22 +171,22 @@ export class TypeTransformationInterceptor implements NestInterceptor {
         return value;
       }
     }
-    
+
     return value;
   }
 
   private transformDecimal(value: any): number {
     if (value === null || value === undefined) return value;
-    
+
     if (value instanceof Decimal) {
       return value.toNumber();
     }
-    
-    if (typeof value === 'string') {
+
+    if (typeof value === "string") {
       const parsed = parseFloat(value);
       return isNaN(parsed) ? 0 : parsed;
     }
-    
+
     return value;
   }
 }

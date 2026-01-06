@@ -6,9 +6,9 @@ import {
   IsNumber,
   Min,
   Max,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
-import { BookingStatus } from './update-booking-v2.dto';
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { BookingStatus } from "./update-booking-v2.dto";
 
 export class QueryBookingsDto {
   @IsOptional()
@@ -65,6 +65,6 @@ export class CalendarViewDto {
   locationId?: string;
 
   @IsOptional()
-  @IsEnum(['day', 'week', 'month'])
-  view?: 'day' | 'week' | 'month' = 'week';
+  @IsEnum(["day", "week", "month"])
+  view?: "day" | "week" | "month" = "week";
 }

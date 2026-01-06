@@ -66,24 +66,24 @@ export interface LoyaltyTransaction {
 }
 
 export enum LoyaltyType {
-  POINTS = 'POINTS',
-  CASHBACK = 'CASHBACK',
-  TIERED = 'TIERED',
-  VISIT = 'VISIT',
-  SPEND = 'SPEND'
+  POINTS = "POINTS",
+  CASHBACK = "CASHBACK",
+  TIERED = "TIERED",
+  VISIT = "VISIT",
+  SPEND = "SPEND",
 }
 
 export enum LoyaltyCardStatus {
-  ACTIVE = 'ACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  EXPIRED = 'EXPIRED'
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  EXPIRED = "EXPIRED",
 }
 
 export enum LoyaltyTransactionType {
-  EARNED = 'EARNED',
-  REDEEMED = 'REDEEMED',
-  EXPIRED = 'EXPIRED',
-  ADJUSTED = 'ADJUSTED'
+  EARNED = "EARNED",
+  REDEEMED = "REDEEMED",
+  EXPIRED = "EXPIRED",
+  ADJUSTED = "ADJUSTED",
 }
 
-import type { Customer } from './';
+import type { Customer } from "./";

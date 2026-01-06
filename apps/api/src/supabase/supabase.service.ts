@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 @Injectable()
 export class SupabaseService {
@@ -12,12 +12,17 @@ export class SupabaseService {
   private readonly jwtSecret: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.supabaseUrl = this.configService.get<string>('SUPABASE_URL') || '';
-    this.supabaseServiceKey = this.configService.get<string>('SUPABASE_SERVICE_KEY');
-    this.supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+    this.supabaseUrl = this.configService.get<string>("SUPABASE_URL") || "";
+    this.supabaseServiceKey = this.configService.get<string>(
+      "SUPABASE_SERVICE_KEY",
+    );
+    this.supabaseAnonKey = this.configService.get<string>("SUPABASE_ANON_KEY");
     // For Supabase JWT, we need to use the Supabase JWT secret which is derived from the service key
     // In production, you should get this from Supabase dashboard
-    this.jwtSecret = this.configService.get<string>('SUPABASE_JWT_SECRET') || this.configService.get<string>('JWT_SECRET') || '';
+    this.jwtSecret =
+      this.configService.get<string>("SUPABASE_JWT_SECRET") ||
+      this.configService.get<string>("JWT_SECRET") ||
+      "";
 
     if (this.supabaseUrl && this.supabaseServiceKey) {
       this.supabase = createClient(this.supabaseUrl, this.supabaseServiceKey, {
@@ -26,9 +31,11 @@ export class SupabaseService {
           persistSession: false,
         },
       });
-      this.logger.log('Supabase client initialized');
+      this.logger.log("Supabase client initialized");
     } else {
-      this.logger.warn('Supabase configuration missing. Realtime features will be disabled.');
+      this.logger.warn(
+        "Supabase configuration missing. Realtime features will be disabled.",
+      );
     }
   }
 
@@ -36,19 +43,26 @@ export class SupabaseService {
    * For Supabase Realtime, we need to return the anon key
    * The service role key should only be used server-side
    */
-  async generateRealtimeToken(merchantId: string, userId: string): Promise<string | null> {
+  async generateRealtimeToken(
+    merchantId: string,
+    userId: string,
+  ): Promise<string | null> {
     if (!this.supabaseAnonKey) {
-      this.logger.error('Cannot generate realtime token: SUPABASE_ANON_KEY not configured');
+      this.logger.error(
+        "Cannot generate realtime token: SUPABASE_ANON_KEY not configured",
+      );
       return null;
     }
 
     try {
       // Return the anon key for client-side usage
       // This is safe because RLS policies protect the data
-      this.logger.log(`Providing anon key for merchant: ${merchantId}, user: ${userId}`);
+      this.logger.log(
+        `Providing anon key for merchant: ${merchantId}, user: ${userId}`,
+      );
       return this.supabaseAnonKey;
     } catch (error) {
-      this.logger.error('Failed to generate realtime token:', error);
+      this.logger.error("Failed to generate realtime token:", error);
       return null;
     }
   }
@@ -81,6 +95,6 @@ export class SupabaseService {
   getSupabaseAnonKey(): string | null {
     // For now, return null since we don't have the anon key configured
     // In production, this should return the SUPABASE_ANON_KEY
-    return this.configService.get<string>('SUPABASE_ANON_KEY') || null;
+    return this.configService.get<string>("SUPABASE_ANON_KEY") || null;
   }
 }

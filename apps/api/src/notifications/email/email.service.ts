@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import { NotificationContext, NotificationResult, NotificationType } from '../interfaces/notification.interface';
-import { EmailTemplateService } from '../templates/email-template.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as nodemailer from "nodemailer";
+import {
+  NotificationContext,
+  NotificationResult,
+  NotificationType,
+} from "../interfaces/notification.interface";
+import { EmailTemplateService } from "../templates/email-template.service";
 
 @Injectable()
 export class EmailService {
@@ -16,12 +20,12 @@ export class EmailService {
     // For MVP, using SMTP configuration
     // In production, use SendGrid/SES/Mailgun
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get('EMAIL_HOST', 'smtp.gmail.com'),
-      port: this.configService.get('EMAIL_PORT', 587),
+      host: this.configService.get("EMAIL_HOST", "smtp.gmail.com"),
+      port: this.configService.get("EMAIL_PORT", 587),
       secure: false, // true for 465, false for other ports
       auth: {
-        user: this.configService.get('EMAIL_USER'),
-        pass: this.configService.get('EMAIL_PASS'),
+        user: this.configService.get("EMAIL_USER"),
+        pass: this.configService.get("EMAIL_PASS"),
       },
     });
   }
@@ -31,9 +35,13 @@ export class EmailService {
     context: NotificationContext,
   ): Promise<NotificationResult> {
     try {
-      const { subject, html, text } = await this.templateService.renderEmailTemplate(type, context);
-      
-      const fromEmail = this.configService.get('EMAIL_FROM', 'noreply@heyapos.com');
+      const { subject, html, text } =
+        await this.templateService.renderEmailTemplate(type, context);
+
+      const fromEmail = this.configService.get(
+        "EMAIL_FROM",
+        "noreply@heyapos.com",
+      );
       const fromName = context.merchant.name;
 
       const mailOptions = {
@@ -50,14 +58,14 @@ export class EmailService {
       return {
         success: true,
         messageId: info.messageId,
-        channel: 'email',
+        channel: "email",
       };
     } catch (error) {
-      this.logger.error('Failed to send email', error);
+      this.logger.error("Failed to send email", error);
       return {
         success: false,
         error: (error as Error).message,
-        channel: 'email',
+        channel: "email",
       };
     }
   }
@@ -65,10 +73,10 @@ export class EmailService {
   async verifyConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      this.logger.log('Email server connection verified');
+      this.logger.log("Email server connection verified");
       return true;
     } catch (error) {
-      this.logger.error('Email server connection failed', error);
+      this.logger.error("Email server connection failed", error);
       return false;
     }
   }

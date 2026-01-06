@@ -1,11 +1,11 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 
 export interface CurrentUser {
   id: string;
   merchantId: string;
   staffId?: string;
   locationId?: string;
-  type: 'merchant' | 'staff';
+  type: "merchant" | "staff";
   merchant?: any;
   staff?: any;
 }

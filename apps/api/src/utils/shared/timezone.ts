@@ -1,4 +1,4 @@
-import { parseISO, format, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, format, startOfDay, endOfDay } from "date-fns";
 
 export class TimezoneUtils {
   /**
@@ -7,43 +7,47 @@ export class TimezoneUtils {
    * @param timeStr - Time string in HH:mm format
    * @param timezone - Timezone identifier (e.g., 'Australia/Sydney')
    */
-  static createDateInTimezone(dateStr: string, timeStr: string, timezone: string): Date {
+  static createDateInTimezone(
+    dateStr: string,
+    timeStr: string,
+    timezone: string,
+  ): Date {
     // Create a date string with time
     const dateTimeStr = `${dateStr}T${timeStr}:00`;
-    
+
     // Create a date assuming the input is in the local timezone
     // Since we're on a server, we need to interpret this correctly
     const localDate = new Date(dateTimeStr);
-    
+
     // Use Intl.DateTimeFormat to format the date in the target timezone
     // This will help us understand what this date/time means in the target timezone
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: false,
     });
-    
+
     // Get the parts of the date in the target timezone
     const parts = formatter.formatToParts(localDate);
-    const tzYear = parts.find(p => p.type === 'year')?.value;
-    const tzMonth = parts.find(p => p.type === 'month')?.value;
-    const tzDay = parts.find(p => p.type === 'day')?.value;
-    const tzHour = parts.find(p => p.type === 'hour')?.value;
-    const tzMinute = parts.find(p => p.type === 'minute')?.value;
-    
+    const tzYear = parts.find((p) => p.type === "year")?.value;
+    const tzMonth = parts.find((p) => p.type === "month")?.value;
+    const tzDay = parts.find((p) => p.type === "day")?.value;
+    const tzHour = parts.find((p) => p.type === "hour")?.value;
+    const tzMinute = parts.find((p) => p.type === "minute")?.value;
+
     // If the formatted date/time matches our input, the date is correct
     const formattedDate = `${tzYear}-${tzMonth}-${tzDay}`;
     const formattedTime = `${tzHour}:${tzMinute}`;
-    
+
     if (formattedDate === dateStr && formattedTime === timeStr) {
       // The date is already correct for the timezone
       return localDate;
     }
-    
+
     // Otherwise, we need to find the correct UTC time
     // This is a more complex case that shouldn't happen with our usage
     // For now, just return the local date as-is
@@ -55,84 +59,93 @@ export class TimezoneUtils {
    */
   private static getTimezoneOffset(date: Date, timezone: string): number {
     // Get the offset by comparing local time to UTC
-    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
-    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+    const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzDate = new Date(
+      date.toLocaleString("en-US", { timeZone: timezone }),
+    );
     return (tzDate.getTime() - utcDate.getTime()) / 60000;
   }
 
   /**
    * Format a UTC date in a specific timezone
    */
-  static formatInTimezone(date: Date | string, timezone: string, formatStr?: string): string {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    
+  static formatInTimezone(
+    date: Date | string,
+    timezone: string,
+    formatStr?: string,
+  ): string {
+    const dateObj = typeof date === "string" ? parseISO(date) : date;
+
     // Use Intl.DateTimeFormat for formatting
     const options: Intl.DateTimeFormatOptions = {
       timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     };
-    
-    if (formatStr === 'date') {
-      return dateObj.toLocaleDateString('en-AU', { timeZone: timezone });
-    } else if (formatStr === 'time') {
-      return dateObj.toLocaleTimeString('en-AU', { 
-        timeZone: timezone, 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
+
+    if (formatStr === "date") {
+      return dateObj.toLocaleDateString("en-AU", { timeZone: timezone });
+    } else if (formatStr === "time") {
+      return dateObj.toLocaleTimeString("en-AU", {
+        timeZone: timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
       });
-    } else if (formatStr === 'datetime') {
-      return dateObj.toLocaleString('en-AU', { timeZone: timezone });
+    } else if (formatStr === "datetime") {
+      return dateObj.toLocaleString("en-AU", { timeZone: timezone });
     }
-    
-    return dateObj.toLocaleString('en-AU', options);
+
+    return dateObj.toLocaleString("en-AU", options);
   }
 
   /**
    * Get the start of day in a specific timezone (returns UTC)
    */
   static startOfDayInTimezone(date: Date | string, timezone: string): Date {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    
+    const dateObj = typeof date === "string" ? parseISO(date) : date;
+
     // Format the date in the target timezone to get YYYY-MM-DD
-    const dateStr = dateObj.toLocaleDateString('en-CA', { timeZone: timezone });
-    
+    const dateStr = dateObj.toLocaleDateString("en-CA", { timeZone: timezone });
+
     // Create start of day in that timezone
-    return this.createDateInTimezone(dateStr, '00:00', timezone);
+    return this.createDateInTimezone(dateStr, "00:00", timezone);
   }
 
   /**
    * Get the end of day in a specific timezone (returns UTC)
    */
   static endOfDayInTimezone(date: Date | string, timezone: string): Date {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    
+    const dateObj = typeof date === "string" ? parseISO(date) : date;
+
     // Format the date in the target timezone to get YYYY-MM-DD
-    const dateStr = dateObj.toLocaleDateString('en-CA', { timeZone: timezone });
-    
+    const dateStr = dateObj.toLocaleDateString("en-CA", { timeZone: timezone });
+
     // Create end of day in that timezone
-    return this.createDateInTimezone(dateStr, '23:59', timezone);
+    return this.createDateInTimezone(dateStr, "23:59", timezone);
   }
 
   /**
    * Convert a date to display in a specific timezone (for UI display)
    */
-  static toTimezoneDisplay(date: Date | string, timezone: string): {
+  static toTimezoneDisplay(
+    date: Date | string,
+    timezone: string,
+  ): {
     date: string;
     time: string;
     datetime: string;
   } {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    
+    const dateObj = typeof date === "string" ? parseISO(date) : date;
+
     return {
-      date: this.formatInTimezone(dateObj, timezone, 'date'),
-      time: this.formatInTimezone(dateObj, timezone, 'time'),
-      datetime: this.formatInTimezone(dateObj, timezone, 'datetime')
+      date: this.formatInTimezone(dateObj, timezone, "date"),
+      time: this.formatInTimezone(dateObj, timezone, "time"),
+      datetime: this.formatInTimezone(dateObj, timezone, "datetime"),
     };
   }
 
@@ -141,13 +154,13 @@ export class TimezoneUtils {
    */
   static getAustralianTimezones() {
     return [
-      { value: 'Australia/Sydney', label: 'Sydney (AEDT/AEST)' },
-      { value: 'Australia/Melbourne', label: 'Melbourne (AEDT/AEST)' },
-      { value: 'Australia/Brisbane', label: 'Brisbane (AEST)' },
-      { value: 'Australia/Perth', label: 'Perth (AWST)' },
-      { value: 'Australia/Adelaide', label: 'Adelaide (ACDT/ACST)' },
-      { value: 'Australia/Hobart', label: 'Hobart (AEDT/AEST)' },
-      { value: 'Australia/Darwin', label: 'Darwin (ACST)' },
+      { value: "Australia/Sydney", label: "Sydney (AEDT/AEST)" },
+      { value: "Australia/Melbourne", label: "Melbourne (AEDT/AEST)" },
+      { value: "Australia/Brisbane", label: "Brisbane (AEST)" },
+      { value: "Australia/Perth", label: "Perth (AWST)" },
+      { value: "Australia/Adelaide", label: "Adelaide (ACDT/ACST)" },
+      { value: "Australia/Hobart", label: "Hobart (AEDT/AEST)" },
+      { value: "Australia/Darwin", label: "Darwin (ACST)" },
     ];
   }
 
@@ -156,28 +169,26 @@ export class TimezoneUtils {
    */
   static getAllTimezones() {
     return {
-      'Australia': [
-        { value: 'Australia/Sydney', label: 'Sydney (AEDT/AEST)' },
-        { value: 'Australia/Melbourne', label: 'Melbourne (AEDT/AEST)' },
-        { value: 'Australia/Brisbane', label: 'Brisbane (AEST)' },
-        { value: 'Australia/Perth', label: 'Perth (AWST)' },
-        { value: 'Australia/Adelaide', label: 'Adelaide (ACDT/ACST)' },
-        { value: 'Australia/Hobart', label: 'Hobart (AEDT/AEST)' },
-        { value: 'Australia/Darwin', label: 'Darwin (ACST)' },
+      Australia: [
+        { value: "Australia/Sydney", label: "Sydney (AEDT/AEST)" },
+        { value: "Australia/Melbourne", label: "Melbourne (AEDT/AEST)" },
+        { value: "Australia/Brisbane", label: "Brisbane (AEST)" },
+        { value: "Australia/Perth", label: "Perth (AWST)" },
+        { value: "Australia/Adelaide", label: "Adelaide (ACDT/ACST)" },
+        { value: "Australia/Hobart", label: "Hobart (AEDT/AEST)" },
+        { value: "Australia/Darwin", label: "Darwin (ACST)" },
       ],
-      'New Zealand': [
-        { value: 'Pacific/Auckland', label: 'Auckland (NZDT/NZST)' },
-        { value: 'Pacific/Chatham', label: 'Chatham Islands' },
+      "New Zealand": [
+        { value: "Pacific/Auckland", label: "Auckland (NZDT/NZST)" },
+        { value: "Pacific/Chatham", label: "Chatham Islands" },
       ],
-      'Asia': [
-        { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-        { value: 'Asia/Hong_Kong', label: 'Hong Kong (HKT)' },
-        { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-        { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+      Asia: [
+        { value: "Asia/Singapore", label: "Singapore (SGT)" },
+        { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
+        { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+        { value: "Asia/Shanghai", label: "Shanghai (CST)" },
       ],
-      'Other': [
-        { value: 'UTC', label: 'UTC' },
-      ]
+      Other: [{ value: "UTC", label: "UTC" }],
     };
   }
 
@@ -186,7 +197,7 @@ export class TimezoneUtils {
    */
   static isValidTimezone(timezone: string): boolean {
     try {
-      new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      new Intl.DateTimeFormat("en-US", { timeZone: timezone });
       return true;
     } catch {
       return false;
@@ -200,7 +211,7 @@ export class TimezoneUtils {
     const minutes = date.getMinutes();
     const roundedMinutes = Math.ceil(minutes / 5) * 5;
     const rounded = new Date(date);
-    
+
     if (roundedMinutes >= 60) {
       // If we rounded past 60 minutes, add an hour and reset minutes
       rounded.setHours(rounded.getHours() + 1);
@@ -208,23 +219,26 @@ export class TimezoneUtils {
     } else {
       rounded.setMinutes(roundedMinutes, 0, 0);
     }
-    
+
     return rounded;
   }
 
   /**
    * Round a date up to the nearest 5-minute increment in a specific timezone
    */
-  static roundUpToNearest5MinutesInTimezone(date: Date, timezone: string): Date {
+  static roundUpToNearest5MinutesInTimezone(
+    date: Date,
+    timezone: string,
+  ): Date {
     // Convert to the target timezone to get correct local time
     const timeInTz = this.toTimezoneDisplay(date, timezone);
-    
+
     // Extract the date and time parts correctly
     // timeInTz.date is in DD/MM/YYYY format
     // timeInTz.time is in HH:MM format (24-hour)
-    const [day, month, year] = timeInTz.date.split('/').map(n => parseInt(n));
-    const [hour, minute] = timeInTz.time.split(':').map(n => parseInt(n));
-    
+    const [day, month, year] = timeInTz.date.split("/").map((n) => parseInt(n));
+    const [hour, minute] = timeInTz.time.split(":").map((n) => parseInt(n));
+
     // Calculate rounded minutes
     const roundedMinutes = Math.ceil(minute / 5) * 5;
     let finalHour = hour;
@@ -232,12 +246,12 @@ export class TimezoneUtils {
     let finalDay = day;
     let finalMonth = month;
     let finalYear = year;
-    
+
     // Handle minute overflow
     if (roundedMinutes >= 60) {
       finalMinutes = 0;
       finalHour = hour + 1;
-      
+
       // Handle hour overflow
       if (finalHour >= 24) {
         finalHour = 0;
@@ -249,11 +263,11 @@ export class TimezoneUtils {
         finalYear = tempDate.getFullYear();
       }
     }
-    
+
     // Format the rounded date and time
-    const roundedDateStr = `${finalYear}-${finalMonth.toString().padStart(2, '0')}-${finalDay.toString().padStart(2, '0')}`;
-    const roundedTimeStr = `${finalHour.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
-    
+    const roundedDateStr = `${finalYear}-${finalMonth.toString().padStart(2, "0")}-${finalDay.toString().padStart(2, "0")}`;
+    const roundedTimeStr = `${finalHour.toString().padStart(2, "0")}:${finalMinutes.toString().padStart(2, "0")}`;
+
     // Create the date in the target timezone and convert to UTC
     return this.createDateInTimezone(roundedDateStr, roundedTimeStr, timezone);
   }

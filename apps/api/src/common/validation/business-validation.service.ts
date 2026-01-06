@@ -1,5 +1,9 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 interface BookingValidationParams {
   merchantId: string;
@@ -31,12 +35,12 @@ export class BusinessValidationService {
       where: {
         id: params.customerId,
         merchantId: params.merchantId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
     if (!customer) {
-      errors.push('Customer not found or inactive');
+      errors.push("Customer not found or inactive");
     }
 
     // Validate staff exists and is at location
@@ -44,7 +48,7 @@ export class BusinessValidationService {
       where: {
         id: params.staffId,
         merchantId: params.merchantId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       include: {
         locations: {
@@ -56,9 +60,9 @@ export class BusinessValidationService {
     });
 
     if (!staff) {
-      errors.push('Staff member not found or inactive');
+      errors.push("Staff member not found or inactive");
     } else if (staff.locations.length === 0) {
-      errors.push('Staff member is not assigned to this location');
+      errors.push("Staff member is not assigned to this location");
     }
 
     // Validate services exist
@@ -71,7 +75,7 @@ export class BusinessValidationService {
     });
 
     if (services.length !== params.serviceIds.length) {
-      errors.push('One or more services not found or inactive');
+      errors.push("One or more services not found or inactive");
     }
 
     // Check for booking conflicts
@@ -79,8 +83,10 @@ export class BusinessValidationService {
       where: {
         merchantId: params.merchantId,
         providerId: params.staffId,
-        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        id: params.excludeBookingId ? { not: params.excludeBookingId } : undefined,
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        id: params.excludeBookingId
+          ? { not: params.excludeBookingId }
+          : undefined,
         OR: [
           {
             AND: [
@@ -105,7 +111,7 @@ export class BusinessValidationService {
     });
 
     if (conflictingBookings.length > 0) {
-      errors.push('Time slot conflicts with existing booking');
+      errors.push("Time slot conflicts with existing booking");
     }
 
     // Check business hours
@@ -118,22 +124,25 @@ export class BusinessValidationService {
     });
 
     if (!location) {
-      errors.push('Location not found or inactive');
+      errors.push("Location not found or inactive");
     } else {
       // Validate against business hours
       const dayOfWeek = params.startTime.getDay();
       const businessHours = location.businessHours as any;
-      
+
       if (businessHours && businessHours[dayOfWeek]) {
         const dayHours = businessHours[dayOfWeek];
         if (!dayHours.isOpen) {
-          errors.push('Business is closed on this day');
+          errors.push("Business is closed on this day");
         } else {
           const startTimeStr = params.startTime.toTimeString().slice(0, 5);
           const endTimeStr = params.endTime.toTimeString().slice(0, 5);
-          
-          if (startTimeStr < dayHours.openTime || endTimeStr > dayHours.closeTime) {
-            errors.push('Booking time is outside business hours');
+
+          if (
+            startTimeStr < dayHours.openTime ||
+            endTimeStr > dayHours.closeTime
+          ) {
+            errors.push("Booking time is outside business hours");
           }
         }
       }
@@ -141,13 +150,15 @@ export class BusinessValidationService {
 
     if (errors.length > 0) {
       throw new BadRequestException({
-        message: 'Booking validation failed',
+        message: "Booking validation failed",
         errors,
       });
     }
   }
 
-  async validateCustomerUniqueness(params: CustomerValidationParams): Promise<void> {
+  async validateCustomerUniqueness(
+    params: CustomerValidationParams,
+  ): Promise<void> {
     const errors: string[] = [];
 
     if (params.email) {
@@ -155,12 +166,14 @@ export class BusinessValidationService {
         where: {
           merchantId: params.merchantId,
           email: params.email,
-          id: params.excludeCustomerId ? { not: params.excludeCustomerId } : undefined,
+          id: params.excludeCustomerId
+            ? { not: params.excludeCustomerId }
+            : undefined,
         },
       });
 
       if (existingEmail) {
-        errors.push('Customer with this email already exists');
+        errors.push("Customer with this email already exists");
       }
     }
 
@@ -169,18 +182,20 @@ export class BusinessValidationService {
         where: {
           merchantId: params.merchantId,
           mobile: params.mobile,
-          id: params.excludeCustomerId ? { not: params.excludeCustomerId } : undefined,
+          id: params.excludeCustomerId
+            ? { not: params.excludeCustomerId }
+            : undefined,
         },
       });
 
       if (existingMobile) {
-        errors.push('Customer with this mobile number already exists');
+        errors.push("Customer with this mobile number already exists");
       }
     }
 
     if (errors.length > 0) {
       throw new ConflictException({
-        message: 'Customer validation failed',
+        message: "Customer validation failed",
         errors,
       });
     }
@@ -200,18 +215,18 @@ export class BusinessValidationService {
     });
 
     if (services.length !== serviceIds.length) {
-      const foundIds = services.map(s => s.id);
-      const missingIds = serviceIds.filter(id => !foundIds.includes(id));
-      
+      const foundIds = services.map((s) => s.id);
+      const missingIds = serviceIds.filter((id) => !foundIds.includes(id));
+
       throw new BadRequestException({
-        message: 'Service validation failed',
-        errors: [`Services not found: ${missingIds.join(', ')}`],
+        message: "Service validation failed",
+        errors: [`Services not found: ${missingIds.join(", ")}`],
       });
     }
 
     // Check if services require specific staff qualifications
     for (const service of services) {
-      if (service.category === 'SPECIALIST') {
+      if (service.category === "SPECIALIST") {
         // Additional validation for specialist services
         // This could check staff certifications, etc.
       }
@@ -227,13 +242,13 @@ export class BusinessValidationService {
       where: { id: orderId },
       include: {
         payments: {
-          where: { status: 'COMPLETED' },
+          where: { status: "COMPLETED" },
         },
       },
     });
 
     if (!order) {
-      throw new BadRequestException('Order not found');
+      throw new BadRequestException("Order not found");
     }
 
     const totalPaid = order.payments.reduce(
@@ -245,15 +260,17 @@ export class BusinessValidationService {
 
     if (paymentAmount > remainingBalance && !allowOverpayment) {
       throw new BadRequestException({
-        message: 'Payment validation failed',
-        errors: [`Payment amount exceeds remaining balance of $${remainingBalance}`],
+        message: "Payment validation failed",
+        errors: [
+          `Payment amount exceeds remaining balance of $${remainingBalance}`,
+        ],
       });
     }
 
     if (paymentAmount <= 0) {
       throw new BadRequestException({
-        message: 'Payment validation failed',
-        errors: ['Payment amount must be greater than zero'],
+        message: "Payment validation failed",
+        errors: ["Payment amount must be greater than zero"],
       });
     }
   }

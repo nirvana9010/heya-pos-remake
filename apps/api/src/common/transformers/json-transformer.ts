@@ -1,11 +1,11 @@
-import { Transform, TransformFnParams } from 'class-transformer';
+import { Transform, TransformFnParams } from "class-transformer";
 
 /**
  * Transform JSON string to object
  */
 export function JsonTransform() {
   return Transform(({ value }: TransformFnParams) => {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       try {
         return JSON.parse(value);
       } catch {
@@ -29,10 +29,12 @@ export interface BusinessHours {
 
 export function BusinessHoursTransform() {
   return Transform(({ value }: TransformFnParams) => {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       try {
         const parsed = JSON.parse(value);
-        return validateBusinessHours(parsed) ? parsed : getDefaultBusinessHours();
+        return validateBusinessHours(parsed)
+          ? parsed
+          : getDefaultBusinessHours();
       } catch {
         return getDefaultBusinessHours();
       }
@@ -42,22 +44,26 @@ export function BusinessHoursTransform() {
 }
 
 function validateBusinessHours(hours: any): hours is BusinessHours {
-  if (!hours || typeof hours !== 'object') return false;
-  
+  if (!hours || typeof hours !== "object") return false;
+
   for (const day of Object.keys(hours)) {
     const dayNum = parseInt(day);
     if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) return false;
-    
+
     const dayHours = hours[day];
-    if (typeof dayHours !== 'object') return false;
-    if (typeof dayHours.isOpen !== 'boolean') return false;
-    
+    if (typeof dayHours !== "object") return false;
+    if (typeof dayHours.isOpen !== "boolean") return false;
+
     if (dayHours.isOpen) {
       if (!dayHours.openTime || !dayHours.closeTime) return false;
-      if (!isValidTimeFormat(dayHours.openTime) || !isValidTimeFormat(dayHours.closeTime)) return false;
+      if (
+        !isValidTimeFormat(dayHours.openTime) ||
+        !isValidTimeFormat(dayHours.closeTime)
+      )
+        return false;
     }
   }
-  
+
   return true;
 }
 
@@ -68,11 +74,11 @@ function isValidTimeFormat(time: string): boolean {
 function getDefaultBusinessHours(): BusinessHours {
   return {
     0: { isOpen: false }, // Sunday
-    1: { isOpen: true, openTime: '09:00', closeTime: '17:00' }, // Monday
-    2: { isOpen: true, openTime: '09:00', closeTime: '17:00' }, // Tuesday
-    3: { isOpen: true, openTime: '09:00', closeTime: '17:00' }, // Wednesday
-    4: { isOpen: true, openTime: '09:00', closeTime: '17:00' }, // Thursday
-    5: { isOpen: true, openTime: '09:00', closeTime: '17:00' }, // Friday
+    1: { isOpen: true, openTime: "09:00", closeTime: "17:00" }, // Monday
+    2: { isOpen: true, openTime: "09:00", closeTime: "17:00" }, // Tuesday
+    3: { isOpen: true, openTime: "09:00", closeTime: "17:00" }, // Wednesday
+    4: { isOpen: true, openTime: "09:00", closeTime: "17:00" }, // Thursday
+    5: { isOpen: true, openTime: "09:00", closeTime: "17:00" }, // Friday
     6: { isOpen: false }, // Saturday
   };
 }
@@ -103,7 +109,7 @@ export interface MerchantSettings {
 
 export function SettingsTransform() {
   return Transform(({ value }: TransformFnParams) => {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       try {
         return JSON.parse(value);
       } catch {
@@ -130,7 +136,7 @@ function getDefaultSettings(): MerchantSettings {
       reminderAdvanceTime: 24,
     },
     display: {
-      primaryColor: '#000000',
+      primaryColor: "#000000",
     },
   };
 }

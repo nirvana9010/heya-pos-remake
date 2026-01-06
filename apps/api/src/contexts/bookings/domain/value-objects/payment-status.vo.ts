@@ -1,8 +1,8 @@
 export enum PaymentStatusEnum {
-  UNPAID = 'UNPAID',
-  PARTIAL = 'PARTIAL',
-  PAID = 'PAID',
-  REFUNDED = 'REFUNDED',
+  UNPAID = "UNPAID",
+  PARTIAL = "PARTIAL",
+  PAID = "PAID",
+  REFUNDED = "REFUNDED",
 }
 
 export class PaymentStatus {
@@ -64,14 +64,22 @@ export class PaymentStatus {
   }
 
   canBePaid(): boolean {
-    return this._value === PaymentStatusEnum.UNPAID || this._value === PaymentStatusEnum.PARTIAL;
+    return (
+      this._value === PaymentStatusEnum.UNPAID ||
+      this._value === PaymentStatusEnum.PARTIAL
+    );
   }
 
   canBeRefunded(): boolean {
-    return this._value === PaymentStatusEnum.PAID || this._value === PaymentStatusEnum.PARTIAL;
+    return (
+      this._value === PaymentStatusEnum.PAID ||
+      this._value === PaymentStatusEnum.PARTIAL
+    );
   }
 
   private isValidStatus(value: string): boolean {
-    return Object.values(PaymentStatusEnum).includes(value as PaymentStatusEnum);
+    return Object.values(PaymentStatusEnum).includes(
+      value as PaymentStatusEnum,
+    );
   }
 }

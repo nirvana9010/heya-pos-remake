@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 interface CacheEntry {
   data: any;
@@ -19,7 +19,7 @@ export class CacheService {
 
   async get<T>(key: string): Promise<T | null> {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
@@ -35,13 +35,15 @@ export class CacheService {
 
   async set<T>(key: string, data: T, ttl?: number): Promise<void> {
     const expiresAt = Date.now() + (ttl || this.defaultTTL);
-    
+
     this.cache.set(key, {
       data,
       expiresAt,
     });
 
-    this.logger.debug(`Cached data for key: ${key}, expires at: ${new Date(expiresAt).toISOString()}`);
+    this.logger.debug(
+      `Cached data for key: ${key}, expires at: ${new Date(expiresAt).toISOString()}`,
+    );
   }
 
   async delete(key: string): Promise<void> {
@@ -59,13 +61,15 @@ export class CacheService {
       }
     }
 
-    keysToDelete.forEach(key => this.cache.delete(key));
-    this.logger.debug(`Deleted ${keysToDelete.length} cache entries matching pattern: ${pattern}`);
+    keysToDelete.forEach((key) => this.cache.delete(key));
+    this.logger.debug(
+      `Deleted ${keysToDelete.length} cache entries matching pattern: ${pattern}`,
+    );
   }
 
   async clear(): Promise<void> {
     this.cache.clear();
-    this.logger.debug('Cleared all cache entries');
+    this.logger.debug("Cleared all cache entries");
   }
 
   private clearExpiredEntries(): void {
@@ -87,9 +91,9 @@ export class CacheService {
   // Generate cache key with merchant context
   generateKey(merchantId: string, prefix: string, ...parts: any[]): string {
     const cleanParts = parts
-      .filter(part => part !== undefined && part !== null)
-      .map(part => String(part));
-    
-    return `${merchantId}:${prefix}:${cleanParts.join(':')}`;
+      .filter((part) => part !== undefined && part !== null)
+      .map((part) => String(part));
+
+    return `${merchantId}:${prefix}:${cleanParts.join(":")}`;
   }
 }

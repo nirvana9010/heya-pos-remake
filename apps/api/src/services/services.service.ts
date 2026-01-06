@@ -1,19 +1,32 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateServiceDto } from './dto/create-service.dto';
-import { UpdateServiceDto } from './dto/update-service.dto';
-import { QueryServiceDto } from './dto/query-service.dto';
-import { ImportOptionsDto, ImportPreviewRow, ImportPreviewDto, ImportResult, DuplicateAction, ImportServicesDto, ServiceImportItem, ImportAction } from './dto/import-services.dto';
-import { CreateServiceCategoryDto } from './dto/create-category.dto';
-import { UpdateServiceCategoryDto } from './dto/update-category.dto';
-import { Service, ServiceCategory, Prisma } from '@prisma/client';
-import { PaginatedResponse } from '../types';
-import { CsvParserService } from './csv-parser.service';
-import { MerchantService } from '../merchant/merchant.service';
-import { DuplicateResourceException } from '../common/exceptions/business-exception';
-import { normalizeMerchantSettings } from '../utils/shared/merchant-settings';
-import { MerchantSettings } from '../types/models/merchant';
-import { DEFAULT_MERCHANT_SETTINGS } from '../merchant/merchant.constants';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateServiceDto } from "./dto/create-service.dto";
+import { UpdateServiceDto } from "./dto/update-service.dto";
+import { QueryServiceDto } from "./dto/query-service.dto";
+import {
+  ImportOptionsDto,
+  ImportPreviewRow,
+  ImportPreviewDto,
+  ImportResult,
+  DuplicateAction,
+  ImportServicesDto,
+  ServiceImportItem,
+  ImportAction,
+} from "./dto/import-services.dto";
+import { CreateServiceCategoryDto } from "./dto/create-category.dto";
+import { UpdateServiceCategoryDto } from "./dto/update-category.dto";
+import { Service, ServiceCategory, Prisma } from "@prisma/client";
+import { PaginatedResponse } from "../types";
+import { CsvParserService } from "./csv-parser.service";
+import { MerchantService } from "../merchant/merchant.service";
+import { DuplicateResourceException } from "../common/exceptions/business-exception";
+import { normalizeMerchantSettings } from "../utils/shared/merchant-settings";
+import { MerchantSettings } from "../types/models/merchant";
+import { DEFAULT_MERCHANT_SETTINGS } from "../merchant/merchant.constants";
 
 // Extended Service type with categoryName
 type ServiceWithCategoryName = Service & {
@@ -37,38 +50,41 @@ export class ServicesService {
   private async generateServiceId(merchantId: string): Promise<string> {
     // Get count of services for this merchant to create sequential IDs
     const serviceCount = await this.prisma.service.count({
-      where: { merchantId }
+      where: { merchantId },
     });
-    
+
     // Generate ID in format "SVC-XXXXX" where X is a padded number
     let attempts = 0;
     while (attempts < 10) {
       const idNumber = serviceCount + attempts + 1;
-      const candidateId = `SVC-${idNumber.toString().padStart(5, '0')}`;
-      
+      const candidateId = `SVC-${idNumber.toString().padStart(5, "0")}`;
+
       // Check if this ID already exists (in case of race conditions or imported IDs)
       const existing = await this.prisma.service.findFirst({
         where: {
           merchantId,
           metadata: {
-            path: ['importId'],
+            path: ["importId"],
             equals: candidateId,
           },
         },
       });
-      
+
       if (!existing) {
         return candidateId;
       }
-      
+
       attempts++;
     }
-    
+
     // Fallback to timestamp-based ID if sequential fails
     return `SVC-${Date.now()}`;
   }
 
-  async create(merchantId: string, dto: CreateServiceDto): Promise<ServiceWithCategoryName> {
+  async create(
+    merchantId: string,
+    dto: CreateServiceDto,
+  ): Promise<ServiceWithCategoryName> {
     // Check if service with same name already exists
     const existing = await this.prisma.service.findFirst({
       where: {
@@ -78,7 +94,7 @@ export class ServicesService {
     });
 
     if (existing) {
-      throw new DuplicateResourceException('Service', 'name', dto.name);
+      throw new DuplicateResourceException("Service", "name", dto.name);
     }
 
     const merchantRecord = await this.prisma.merchant.findUnique({
@@ -92,10 +108,7 @@ export class ServicesService {
     const bookingAdvanceHours =
       merchantSettings?.bookingAdvanceHours ??
       DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
-    const merchantMaxDays = Math.max(
-      1,
-      Math.ceil(bookingAdvanceHours / 24),
-    );
+    const merchantMaxDays = Math.max(1, Math.ceil(bookingAdvanceHours / 24));
     const merchantMinNoticeMinutes =
       merchantSettings?.minimumBookingNotice ?? 0;
     const defaultMinNoticeHours =
@@ -143,10 +156,13 @@ export class ServicesService {
     // If category name is provided instead of ID, find or create category
     let categoryId = dto.categoryId;
     // Handle empty string as null/undefined
-    if (!categoryId || categoryId.trim() === '') {
+    if (!categoryId || categoryId.trim() === "") {
       categoryId = undefined;
       if (dto.category) {
-        const category = await this.findOrCreateCategory(merchantId, dto.category);
+        const category = await this.findOrCreateCategory(
+          merchantId,
+          dto.category,
+        );
         categoryId = category.id;
       }
     }
@@ -158,7 +174,7 @@ export class ServicesService {
       importId: serviceId,
       createdManually: true,
       advanceBooking: {
-        mode: usesCustomAdvance ? 'custom' : 'merchant_default',
+        mode: usesCustomAdvance ? "custom" : "merchant_default",
         lastUpdatedAt: new Date().toISOString(),
         lastRequestId: null,
         defaultsSnapshot: {
@@ -167,7 +183,7 @@ export class ServicesService {
         },
       },
     };
-    
+
     try {
       const service = await this.prisma.service.create({
         data: {
@@ -178,7 +194,7 @@ export class ServicesService {
           category: dto.category,
           duration: dto.duration,
           price: dto.price,
-          currency: dto.currency || 'AUD',
+          currency: dto.currency || "AUD",
           taxRate: dto.taxRate ?? 0.0, // Prices are GST-inclusive
           isActive: dto.isActive ?? true,
           requiresDeposit: dto.requiresDeposit ?? false,
@@ -200,9 +216,9 @@ export class ServicesService {
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error.code === "P2002"
       ) {
-        throw new DuplicateResourceException('Service', 'name', dto.name);
+        throw new DuplicateResourceException("Service", "name", dto.name);
       }
 
       throw error;
@@ -223,8 +239,8 @@ export class ServicesService {
       maxDuration,
       page = 1,
       limit = 20,
-      sortBy = 'displayOrder',
-      sortOrder = 'asc',
+      sortBy = "displayOrder",
+      sortOrder = "asc",
     } = query;
 
     // Build where clause for Prisma query
@@ -241,13 +257,16 @@ export class ServicesService {
     // Add search conditions if provided
     if (searchTerm && searchTerm.trim()) {
       where.OR = [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
-        { description: { contains: searchTerm, mode: 'insensitive' } },
-        { category: { contains: searchTerm, mode: 'insensitive' } },
-        { categoryModel: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { description: { contains: searchTerm, mode: "insensitive" } },
+        { category: { contains: searchTerm, mode: "insensitive" } },
+        {
+          categoryModel: {
+            name: { contains: searchTerm, mode: "insensitive" },
+          },
+        },
       ];
     }
-
 
     const skip = (page - 1) * limit;
 
@@ -265,7 +284,7 @@ export class ServicesService {
     ]);
 
     // Add categoryName to each service and transform Decimal fields to numbers
-    const servicesWithCategoryName = services.map(service => ({
+    const servicesWithCategoryName = services.map((service) => ({
       ...this.prisma.transformResult(service),
       categoryName: service.categoryModel?.name || service.category || null,
     }));
@@ -281,7 +300,10 @@ export class ServicesService {
     };
   }
 
-  async findOne(id: string, merchantId: string): Promise<ServiceWithCategoryName> {
+  async findOne(
+    id: string,
+    merchantId: string,
+  ): Promise<ServiceWithCategoryName> {
     const service = await this.prisma.service.findFirst({
       where: { id, merchantId },
       include: {
@@ -290,7 +312,7 @@ export class ServicesService {
     });
 
     if (!service) {
-      throw new NotFoundException('Service not found');
+      throw new NotFoundException("Service not found");
     }
 
     return {
@@ -313,7 +335,7 @@ export class ServicesService {
       });
 
       if (!service) {
-        throw new NotFoundException('Service not found');
+        throw new NotFoundException("Service not found");
       }
 
       if (dto.name && dto.name !== service.name) {
@@ -326,7 +348,7 @@ export class ServicesService {
         });
 
         if (existing) {
-          throw new DuplicateResourceException('Service', 'name', dto.name);
+          throw new DuplicateResourceException("Service", "name", dto.name);
         }
       }
 
@@ -334,7 +356,10 @@ export class ServicesService {
       let nextCategory = service.category;
 
       if (dto.categoryId !== undefined) {
-        if (typeof dto.categoryId === 'string' && dto.categoryId.trim() === '') {
+        if (
+          typeof dto.categoryId === "string" &&
+          dto.categoryId.trim() === ""
+        ) {
           nextCategoryId = null;
         } else {
           nextCategoryId = dto.categoryId as string | null;
@@ -343,8 +368,8 @@ export class ServicesService {
 
       if (
         dto.category &&
-        dto.category.trim() !== '' &&
-        (!dto.categoryId || dto.categoryId.trim?.() === '')
+        dto.category.trim() !== "" &&
+        (!dto.categoryId || dto.categoryId.trim?.() === "")
       ) {
         const existingCategory = await tx.serviceCategory.findFirst({
           where: {
@@ -382,10 +407,7 @@ export class ServicesService {
       const bookingAdvanceHours =
         merchantSettings?.bookingAdvanceHours ??
         DEFAULT_MERCHANT_SETTINGS.bookingAdvanceHours;
-      const merchantMaxDays = Math.max(
-        1,
-        Math.ceil(bookingAdvanceHours / 24),
-      );
+      const merchantMaxDays = Math.max(1, Math.ceil(bookingAdvanceHours / 24));
       const merchantMinNoticeMinutes =
         merchantSettings?.minimumBookingNotice ?? 0;
       const defaultMinNoticeHours =
@@ -394,12 +416,15 @@ export class ServicesService {
           : 0;
 
       const existingMetadata =
-        service.metadata && typeof service.metadata === 'object' && !Array.isArray(service.metadata)
+        service.metadata &&
+        typeof service.metadata === "object" &&
+        !Array.isArray(service.metadata)
           ? { ...(service.metadata as Record<string, any>) }
           : {};
 
       const existingAdvanceMeta =
-        existingMetadata.advanceBooking && typeof existingMetadata.advanceBooking === 'object'
+        existingMetadata.advanceBooking &&
+        typeof existingMetadata.advanceBooking === "object"
           ? { ...(existingMetadata.advanceBooking as Record<string, any>) }
           : {};
 
@@ -409,18 +434,17 @@ export class ServicesService {
       ) {
         return {
           ...service,
-          categoryName:
-            service.categoryModel?.name || service.category || null,
+          categoryName: service.categoryModel?.name || service.category || null,
         };
       }
 
-      const advanceMode: 'merchant_default' | 'custom' =
+      const advanceMode: "merchant_default" | "custom" =
         dto.advanceBookingMode ??
         (dto.maxAdvanceBooking !== undefined ||
         dto.minAdvanceBooking !== undefined
-          ? 'custom'
-          : (existingAdvanceMeta.mode as 'merchant_default' | 'custom') ??
-            'merchant_default');
+          ? "custom"
+          : ((existingAdvanceMeta.mode as "merchant_default" | "custom") ??
+            "merchant_default"));
 
       let nextMaxAdvance =
         dto.maxAdvanceBooking !== undefined
@@ -431,7 +455,7 @@ export class ServicesService {
           ? Math.trunc(dto.minAdvanceBooking)
           : service.minAdvanceBooking;
 
-      if (advanceMode === 'merchant_default') {
+      if (advanceMode === "merchant_default") {
         nextMaxAdvance = merchantMaxDays;
         nextMinAdvance = Math.max(defaultMinNoticeHours, nextMinAdvance);
       }
@@ -471,19 +495,17 @@ export class ServicesService {
       const updateData: Prisma.ServiceUpdateInput = {
         ...otherUpdates,
         categoryId:
-          nextCategoryId !== undefined
-            ? nextCategoryId
-            : service.categoryId,
+          nextCategoryId !== undefined ? nextCategoryId : service.categoryId,
         category:
           dtoCategory !== undefined
             ? dtoCategory
-            : nextCategory ?? service.category,
+            : (nextCategory ?? service.category),
         maxAdvanceBooking: nextMaxAdvance,
         minAdvanceBooking: nextMinAdvance,
       };
 
       const nextMetadata =
-        incomingMetadata && typeof incomingMetadata === 'object'
+        incomingMetadata && typeof incomingMetadata === "object"
           ? { ...(incomingMetadata as Record<string, any>) }
           : { ...existingMetadata };
 
@@ -519,11 +541,11 @@ export class ServicesService {
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
+          error.code === "P2002"
         ) {
           throw new DuplicateResourceException(
-            'Service',
-            'name',
+            "Service",
+            "name",
             dto.name ?? service.name,
           );
         }
@@ -569,7 +591,11 @@ export class ServicesService {
     });
 
     if (existing) {
-      throw new DuplicateResourceException('Service Category', 'name', dto.name);
+      throw new DuplicateResourceException(
+        "Service Category",
+        "name",
+        dto.name,
+      );
     }
 
     try {
@@ -587,9 +613,13 @@ export class ServicesService {
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error.code === "P2002"
       ) {
-        throw new DuplicateResourceException('Service Category', 'name', dto.name);
+        throw new DuplicateResourceException(
+          "Service Category",
+          "name",
+          dto.name,
+        );
       }
 
       throw error;
@@ -599,7 +629,7 @@ export class ServicesService {
   async findAllCategories(merchantId: string): Promise<ServiceCategory[]> {
     return this.prisma.serviceCategory.findMany({
       where: { merchantId },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
         _count: {
           select: { services: true },
@@ -618,7 +648,7 @@ export class ServicesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException("Category not found");
     }
 
     if (dto.name && dto.name !== category.name) {
@@ -631,7 +661,11 @@ export class ServicesService {
       });
 
       if (existing) {
-        throw new DuplicateResourceException('Service Category', 'name', dto.name);
+        throw new DuplicateResourceException(
+          "Service Category",
+          "name",
+          dto.name,
+        );
       }
     }
 
@@ -643,9 +677,13 @@ export class ServicesService {
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error.code === "P2002"
       ) {
-        throw new DuplicateResourceException('Service Category', 'name', dto.name ?? category.name);
+        throw new DuplicateResourceException(
+          "Service Category",
+          "name",
+          dto.name ?? category.name,
+        );
       }
 
       throw error;
@@ -658,7 +696,7 @@ export class ServicesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException("Category not found");
     }
 
     // Check if category has services
@@ -668,7 +706,7 @@ export class ServicesService {
 
     if (serviceCount > 0) {
       throw new BadRequestException(
-        'Cannot delete category with existing services. Please reassign or delete services first.',
+        "Cannot delete category with existing services. Please reassign or delete services first.",
       );
     }
 
@@ -697,7 +735,9 @@ export class ServicesService {
 
     // Process categories first if needed
     if (dto.createCategories) {
-      const uniqueCategories = [...new Set(dto.services.map(s => s.Category))];
+      const uniqueCategories = [
+        ...new Set(dto.services.map((s) => s.Category)),
+      ];
       for (const categoryName of uniqueCategories) {
         if (categoryName) {
           await this.findOrCreateCategory(merchantId, categoryName as string);
@@ -712,7 +752,7 @@ export class ServicesService {
 
       try {
         const serviceData = await this.parseServiceImport(merchantId, item);
-        
+
         // Check if service exists
         const existing = await this.prisma.service.findFirst({
           where: {
@@ -741,7 +781,8 @@ export class ServicesService {
           results.imported++;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         results.errors.push({
           row,
           error: errorMessage,
@@ -751,7 +792,6 @@ export class ServicesService {
 
     return results;
   }
-
 
   // ============= HELPER METHODS =============
 
@@ -785,33 +825,36 @@ export class ServicesService {
     item: ServiceImportItem,
   ): Promise<any> {
     // Validate required fields
-    if (!item['Service Name']) {
-      throw new Error('Service name is required');
+    if (!item["Service Name"]) {
+      throw new Error("Service name is required");
     }
 
-    const price = parseFloat(String(item['Price']));
+    const price = parseFloat(String(item["Price"]));
     if (isNaN(price) || price < 0) {
-      throw new Error('Invalid price');
+      throw new Error("Invalid price");
     }
 
-    const duration = parseInt(String(item['Duration (min)']));
+    const duration = parseInt(String(item["Duration (min)"]));
     if (isNaN(duration) || duration < 0) {
-      throw new Error('Invalid duration');
+      throw new Error("Invalid duration");
     }
 
     // Find category if specified
     let categoryId: string | undefined;
-    if (item['Category']) {
-      const category = await this.findOrCreateCategory(merchantId, item['Category']);
+    if (item["Category"]) {
+      const category = await this.findOrCreateCategory(
+        merchantId,
+        item["Category"],
+      );
       categoryId = category.id;
     }
 
     return {
-      name: item['Service Name'],
+      name: item["Service Name"],
       price,
       duration,
-      category: item['Category'] || undefined,
-      currency: 'AUD',
+      category: item["Category"] || undefined,
+      currency: "AUD",
       taxRate: 0.1, // 10% GST
       isActive: true,
       requiresDeposit: false,
@@ -829,7 +872,7 @@ export class ServicesService {
     updates: { id: string; displayOrder: number }[],
   ): Promise<void> {
     // Verify all services belong to merchant
-    const serviceIds = updates.map(u => u.id);
+    const serviceIds = updates.map((u) => u.id);
     const services = await this.prisma.service.findMany({
       where: {
         id: { in: serviceIds },
@@ -839,12 +882,12 @@ export class ServicesService {
     });
 
     if (services.length !== serviceIds.length) {
-      throw new BadRequestException('One or more services not found');
+      throw new BadRequestException("One or more services not found");
     }
 
     // Update display order for each service
     await Promise.all(
-      updates.map(update =>
+      updates.map((update) =>
         this.prisma.service.update({
           where: { id: update.id },
           data: { displayOrder: update.displayOrder },
@@ -873,16 +916,17 @@ export class ServicesService {
     merchantId: string,
     file: Buffer,
     options: ImportOptionsDto,
-    columnMappings?: Record<string, string>
+    columnMappings?: Record<string, string>,
   ): Promise<ImportPreviewDto> {
     // Get merchant settings for price-to-duration ratio
-    const merchantSettings = await this.merchantService.getMerchantSettings(merchantId);
-    
+    const merchantSettings =
+      await this.merchantService.getMerchantSettings(merchantId);
+
     // Parse CSV file with optional column mappings
     const rawRows = await this.csvParser.parseCsvFile(file, columnMappings);
-    
+
     if (rawRows.length === 0) {
-      throw new BadRequestException('CSV file is empty');
+      throw new BadRequestException("CSV file is empty");
     }
 
     const rows: ImportPreviewRow[] = [];
@@ -901,17 +945,21 @@ export class ServicesService {
     for (let i = 0; i < rawRows.length; i++) {
       const rowNumber = i + 2; // Account for header row
       const rawRow = rawRows[i];
-      
+
       // Validate row
-      const validation = this.csvParser.validateRow(rawRow, rowNumber, merchantSettings);
-      
+      const validation = this.csvParser.validateRow(
+        rawRow,
+        rowNumber,
+        merchantSettings,
+      );
+
       // Transform row
       const data = this.csvParser.transformRow(rawRow, merchantSettings);
-      
+
       // Check for existing service
-      let action: 'create' | 'update' | 'skip' | 'delete' = 'create';
+      let action: "create" | "update" | "skip" | "delete" = "create";
       let existingServiceId: string | undefined;
-      
+
       if (validation.isValid) {
         // First try to find by import ID if provided
         let existing = null;
@@ -920,13 +968,13 @@ export class ServicesService {
             where: {
               merchantId,
               metadata: {
-                path: ['importId'],
+                path: ["importId"],
                 equals: data.id,
               },
             },
           });
         }
-        
+
         // If not found by ID, fall back to name matching
         if (!existing) {
           existing = await this.prisma.service.findFirst({
@@ -947,45 +995,53 @@ export class ServicesService {
                 // Apply duplicate action strategy
                 switch (options.duplicateAction) {
                   case DuplicateAction.UPDATE:
-                    action = 'update';
+                    action = "update";
                     summary.toUpdate++;
-                    validation.warnings.push('Service exists - will update based on duplicate action setting');
+                    validation.warnings.push(
+                      "Service exists - will update based on duplicate action setting",
+                    );
                     break;
                   case DuplicateAction.SKIP:
-                    action = 'skip';
+                    action = "skip";
                     summary.toSkip++;
-                    validation.warnings.push('Service exists - will skip based on duplicate action setting');
+                    validation.warnings.push(
+                      "Service exists - will skip based on duplicate action setting",
+                    );
                     break;
                   case DuplicateAction.CREATE_NEW:
-                    action = 'create';
+                    action = "create";
                     summary.toCreate++;
-                    validation.warnings.push('Service exists - will create with modified name');
+                    validation.warnings.push(
+                      "Service exists - will create with modified name",
+                    );
                     break;
                 }
               } else {
-                action = 'create';
+                action = "create";
                 summary.toCreate++;
               }
               break;
             case ImportAction.EDIT:
               if (existing) {
-                action = 'update';
+                action = "update";
                 existingServiceId = existing.id;
                 summary.toUpdate++;
               } else {
-                validation.errors.push('Cannot edit - service does not exist');
-                action = 'skip';
+                validation.errors.push("Cannot edit - service does not exist");
+                action = "skip";
                 summary.toSkip++;
               }
               break;
             case ImportAction.DELETE:
               if (existing) {
-                action = 'delete';
+                action = "delete";
                 existingServiceId = existing.id;
                 summary.toDelete++;
               } else {
-                validation.warnings.push('Cannot delete - service does not exist');
-                action = 'skip';
+                validation.warnings.push(
+                  "Cannot delete - service does not exist",
+                );
+                action = "skip";
                 summary.toSkip++;
               }
               break;
@@ -995,21 +1051,21 @@ export class ServicesService {
           if (existing) {
             summary.duplicates++;
             existingServiceId = existing.id;
-            
+
             switch (options.duplicateAction) {
               case DuplicateAction.UPDATE:
-                action = 'update';
+                action = "update";
                 summary.toUpdate++;
                 break;
               case DuplicateAction.SKIP:
-                action = 'skip';
+                action = "skip";
                 summary.toSkip++;
                 break;
               case DuplicateAction.CREATE_NEW:
                 // Will append number to name during import
-                action = 'create';
+                action = "create";
                 summary.toCreate++;
-                validation.warnings.push('Will create with modified name');
+                validation.warnings.push("Will create with modified name");
                 break;
             }
           } else {
@@ -1020,7 +1076,7 @@ export class ServicesService {
       } else {
         summary.invalid++;
         if (options.skipInvalidRows) {
-          action = 'skip';
+          action = "skip";
           summary.toSkip++;
         }
       }
@@ -1040,11 +1096,12 @@ export class ServicesService {
   async executeImport(
     merchantId: string,
     rows: ImportPreviewRow[],
-    options: ImportOptionsDto
+    options: ImportOptionsDto,
   ): Promise<ImportResult> {
     // Get merchant settings for price-to-duration ratio
-    const merchantSettings = await this.merchantService.getMerchantSettings(merchantId);
-    
+    const merchantSettings =
+      await this.merchantService.getMerchantSettings(merchantId);
+
     const result: ImportResult = {
       success: true,
       imported: 0,
@@ -1056,310 +1113,372 @@ export class ServicesService {
     };
 
     // Use transaction for data integrity with extended timeout
-    await this.prisma.$transaction(async (tx) => {
-      // Track services created in this transaction to avoid duplicate checks against them
-      const createdServiceNames = new Set<string>();
-      const createdServiceIds = new Set<string>(); // Track import IDs too
-      const renamedServices = new Map<string, string>(); // Track original name -> new name mappings
-      
-      // Counter for generating sequential IDs within this import
-      let importIdCounter = await tx.service.count({ where: { merchantId } });
-      
-      // Pre-fetch all existing services for this merchant to reduce queries
-      const existingServices = await tx.service.findMany({
-        where: { merchantId },
-        select: {
-          id: true,
-          name: true,
-          metadata: true,
-          category: true,
-          categoryModel: {
-            select: {
-              name: true,
+    await this.prisma.$transaction(
+      async (tx) => {
+        // Track services created in this transaction to avoid duplicate checks against them
+        const createdServiceNames = new Set<string>();
+        const createdServiceIds = new Set<string>(); // Track import IDs too
+        const renamedServices = new Map<string, string>(); // Track original name -> new name mappings
+
+        // Counter for generating sequential IDs within this import
+        let importIdCounter = await tx.service.count({ where: { merchantId } });
+
+        // Pre-fetch all existing services for this merchant to reduce queries
+        const existingServices = await tx.service.findMany({
+          where: { merchantId },
+          select: {
+            id: true,
+            name: true,
+            metadata: true,
+            category: true,
+            categoryModel: {
+              select: {
+                name: true,
+              },
             },
           },
-        },
-      });
-      
-      // Create lookup maps for faster checking
-      const existingServicesByName = new Map(existingServices.map(s => [s.name, s]));
-      const existingServicesByImportId = new Map(
-        existingServices
-          .filter(s => s.metadata && typeof s.metadata === 'object' && 'importId' in s.metadata)
-          .map(s => [(s.metadata as any).importId, s])
-      );
-      
-      for (const row of rows) {
-        if (row.action === 'skip' || !row.validation.isValid) {
-          result.skipped++;
-          continue;
-        }
+        });
 
-        try {
-          const { data } = row;
-          
-          // Handle delete action
-          if (row.action === 'delete' && row.existingServiceId) {
-            // Check if service is used in any bookings
-            const bookingCount = await tx.bookingService.count({
-              where: { serviceId: row.existingServiceId },
-            });
+        // Create lookup maps for faster checking
+        const existingServicesByName = new Map(
+          existingServices.map((s) => [s.name, s]),
+        );
+        const existingServicesByImportId = new Map(
+          existingServices
+            .filter(
+              (s) =>
+                s.metadata &&
+                typeof s.metadata === "object" &&
+                "importId" in s.metadata,
+            )
+            .map((s) => [(s.metadata as any).importId, s]),
+        );
 
-            if (bookingCount > 0) {
-              // Soft delete by deactivating
-              await tx.service.update({
-                where: { id: row.existingServiceId },
-                data: { isActive: false },
-              });
-            } else {
-              // Hard delete if not used
-              await tx.service.delete({
-                where: { id: row.existingServiceId },
-              });
-            }
-            result.deleted++;
+        for (const row of rows) {
+          if (row.action === "skip" || !row.validation.isValid) {
+            result.skipped++;
             continue;
           }
-          
-          // Parse duration to minutes
-          let duration: number;
-          if (data.duration) {
-            duration = this.csvParser.parseDuration(data.duration);
-          } else if (data.price > 0 && merchantSettings?.priceToDurationRatio) {
-            // Calculate duration from price if not provided
-            duration = this.csvParser.calculateDurationFromPrice(data.price, merchantSettings.priceToDurationRatio);
-          } else {
-            // This shouldn't happen if validation is working correctly
-            throw new Error('Duration is required');
-          }
-          
-          // Find or create category if specified
-          let categoryId: string | undefined;
-          if (data.category && options.createCategories) {
-            // Check if category exists
-            let category = await tx.serviceCategory.findFirst({
-              where: {
-                merchantId,
-                name: data.category,
-              },
-            });
 
-            if (!category) {
-              // Create new category
-              const categoryCount = await tx.serviceCategory.count({
-                where: { merchantId },
+          try {
+            const { data } = row;
+
+            // Handle delete action
+            if (row.action === "delete" && row.existingServiceId) {
+              // Check if service is used in any bookings
+              const bookingCount = await tx.bookingService.count({
+                where: { serviceId: row.existingServiceId },
               });
 
-              // Use a simple color selection
-              const AVAILABLE_COLORS = [
-                '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
-                '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
-              ];
-              const colorIndex = categoryCount % AVAILABLE_COLORS.length;
-
-              category = await tx.serviceCategory.create({
-                data: {
-                  merchantId,
-                  name: data.category,
-                  color: AVAILABLE_COLORS[colorIndex],
-                  sortOrder: categoryCount,
-                  isActive: true,
-                },
-              });
-            }
-            
-            categoryId = category.id;
-          }
-
-          // Prepare service data using merchant settings for global values
-          const serviceData: any = {
-            name: data.name,
-            description: data.description,
-            duration,
-            price: data.price,
-            currency: merchantSettings.currency || 'AUD',
-            taxRate: data.tax_rate ?? 0.1, // Use CSV value if present, else default GST
-            isActive: data.active ?? true,
-            requiresDeposit: data.deposit_required ?? merchantSettings.requireDeposit ?? false,
-            depositAmount: data.deposit_amount ?? (merchantSettings.requireDeposit && merchantSettings.depositPercentage 
-              ? (data.price * merchantSettings.depositPercentage / 100) 
-              : undefined),
-            maxAdvanceBooking: data.max_advance_days ?? (merchantSettings.bookingAdvanceHours 
-              ? Math.ceil(merchantSettings.bookingAdvanceHours / 24) 
-              : 90),
-            minAdvanceBooking: data.min_advance_hours ?? 0,
-            displayOrder: 0,
-            merchantId,
-            categoryId,
-          };
-          
-          // Store import ID in metadata if provided, or generate one
-          let importId: string;
-          if (data.id) {
-            importId = data.id;
-            serviceData.metadata = { importId, importedAt: new Date() };
-          } else {
-            // Generate an ID for imported services without one
-            let candidateId: string;
-            let idExists = true;
-            while (idExists) {
-              importIdCounter++;
-              candidateId = `SVC-${importIdCounter.toString().padStart(5, '0')}`;
-              
-              // Check if this ID already exists using pre-fetched data
-              idExists = existingServicesByImportId.has(candidateId) || createdServiceIds.has(candidateId);
-            }
-            importId = candidateId!;
-            serviceData.metadata = { importId, importedAt: new Date(), autoGenerated: true };
-          }
-
-          if (row.action === 'update' && row.existingServiceId) {
-            // Update existing service
-            await tx.service.update({
-              where: { id: row.existingServiceId },
-              data: serviceData,
-            });
-            result.updated++;
-          } else if (row.action === 'create') {
-            // Handle duplicate names if creating new
-            let finalName = serviceData.name;
-            
-            // Check if we already created this service in this transaction
-            const isDuplicateInTransaction = createdServiceNames.has(serviceData.name) || 
-              (data.id && createdServiceIds.has(data.id));
-            
-            if (isDuplicateInTransaction) {
-              if (options.duplicateAction === DuplicateAction.CREATE_NEW) {
-                // For duplicates within the same import, append category name
-                const categoryName = data.category || 'Uncategorized';
-                finalName = `${serviceData.name} (${categoryName})`;
-                
-                // Check if this name already exists using pre-fetched data
-                let nameExists = createdServiceNames.has(finalName) || 
-                  existingServicesByName.has(finalName);
-                  
-                // If it still exists, append a number
-                if (nameExists) {
-                  let counter = 2;
-                  while (nameExists) {
-                    finalName = `${serviceData.name} (${categoryName} ${counter})`;
-                    nameExists = createdServiceNames.has(finalName) || 
-                      existingServicesByName.has(finalName);
-                    counter++;
-                  }
-                }
-              } else {
-                // Skip this duplicate within the same import
-                result.skipped++;
-                result.errors.push({
-                  row: row.rowNumber,
-                  error: `Duplicate service name "${serviceData.name}" found in import file`,
+              if (bookingCount > 0) {
+                // Soft delete by deactivating
+                await tx.service.update({
+                  where: { id: row.existingServiceId },
+                  data: { isActive: false },
                 });
-                continue;
+              } else {
+                // Hard delete if not used
+                await tx.service.delete({
+                  where: { id: row.existingServiceId },
+                });
               }
+              result.deleted++;
+              continue;
+            }
+
+            // Parse duration to minutes
+            let duration: number;
+            if (data.duration) {
+              duration = this.csvParser.parseDuration(data.duration);
+            } else if (
+              data.price > 0 &&
+              merchantSettings?.priceToDurationRatio
+            ) {
+              // Calculate duration from price if not provided
+              duration = this.csvParser.calculateDurationFromPrice(
+                data.price,
+                merchantSettings.priceToDurationRatio,
+              );
             } else {
-              // Check for existing service in database
-              const existingService = await tx.service.findFirst({
+              // This shouldn't happen if validation is working correctly
+              throw new Error("Duration is required");
+            }
+
+            // Find or create category if specified
+            let categoryId: string | undefined;
+            if (data.category && options.createCategories) {
+              // Check if category exists
+              let category = await tx.serviceCategory.findFirst({
                 where: {
                   merchantId,
-                  name: serviceData.name,
+                  name: data.category,
                 },
               });
-              
-              // If service exists and we're set to create new, find a unique name
-              if (existingService && options.duplicateAction === DuplicateAction.CREATE_NEW) {
-                // Get the existing service's category name from pre-fetched data
-                const existingWithCategory = existingServicesByName.get(serviceData.name);
-                
-                const existingCategoryName = existingWithCategory?.categoryModel?.name || existingWithCategory?.category || 'Uncategorized';
-                const newCategoryName = data.category || 'Uncategorized';
-                
-                // If both services have different categories, append category names
-                if (existingCategoryName !== newCategoryName) {
-                  // Update the existing service name to include its category
-                  const existingNewName = `${serviceData.name} (${existingCategoryName})`;
-                  
-                  // Check if the renamed existing service name would conflict
-                  const existingRenameConflict = existingServicesByName.has(existingNewName) && 
-                    existingServicesByName.get(existingNewName)?.id !== existingService.id;
-                  
-                  if (!existingRenameConflict && !createdServiceNames.has(existingNewName)) {
-                    await tx.service.update({
-                      where: { id: existingService.id },
-                      data: { name: existingNewName }
-                    });
-                    renamedServices.set(serviceData.name, existingNewName);
-                    // Update our lookup map - move the entry to the new name
-                    if (existingWithCategory) {
-                      existingServicesByName.delete(serviceData.name);
-                      existingServicesByName.set(existingNewName, existingWithCategory);
-                    }
-                  }
-                  
-                  // Set the new service name with its category
-                  finalName = `${serviceData.name} (${newCategoryName})`;
-                  
-                  // Check if this name already exists
-                  let nameExists = createdServiceNames.has(finalName) || 
+
+              if (!category) {
+                // Create new category
+                const categoryCount = await tx.serviceCategory.count({
+                  where: { merchantId },
+                });
+
+                // Use a simple color selection
+                const AVAILABLE_COLORS = [
+                  "#8B5CF6",
+                  "#EC4899",
+                  "#EF4444",
+                  "#F59E0B",
+                  "#10B981",
+                  "#3B82F6",
+                  "#14B8A6",
+                  "#84CC16",
+                  "#06B6D4",
+                  "#F97316",
+                ];
+                const colorIndex = categoryCount % AVAILABLE_COLORS.length;
+
+                category = await tx.serviceCategory.create({
+                  data: {
+                    merchantId,
+                    name: data.category,
+                    color: AVAILABLE_COLORS[colorIndex],
+                    sortOrder: categoryCount,
+                    isActive: true,
+                  },
+                });
+              }
+
+              categoryId = category.id;
+            }
+
+            // Prepare service data using merchant settings for global values
+            const serviceData: any = {
+              name: data.name,
+              description: data.description,
+              duration,
+              price: data.price,
+              currency: merchantSettings.currency || "AUD",
+              taxRate: data.tax_rate ?? 0.1, // Use CSV value if present, else default GST
+              isActive: data.active ?? true,
+              requiresDeposit:
+                data.deposit_required ??
+                merchantSettings.requireDeposit ??
+                false,
+              depositAmount:
+                data.deposit_amount ??
+                (merchantSettings.requireDeposit &&
+                merchantSettings.depositPercentage
+                  ? (data.price * merchantSettings.depositPercentage) / 100
+                  : undefined),
+              maxAdvanceBooking:
+                data.max_advance_days ??
+                (merchantSettings.bookingAdvanceHours
+                  ? Math.ceil(merchantSettings.bookingAdvanceHours / 24)
+                  : 90),
+              minAdvanceBooking: data.min_advance_hours ?? 0,
+              displayOrder: 0,
+              merchantId,
+              categoryId,
+            };
+
+            // Store import ID in metadata if provided, or generate one
+            let importId: string;
+            if (data.id) {
+              importId = data.id;
+              serviceData.metadata = { importId, importedAt: new Date() };
+            } else {
+              // Generate an ID for imported services without one
+              let candidateId: string;
+              let idExists = true;
+              while (idExists) {
+                importIdCounter++;
+                candidateId = `SVC-${importIdCounter.toString().padStart(5, "0")}`;
+
+                // Check if this ID already exists using pre-fetched data
+                idExists =
+                  existingServicesByImportId.has(candidateId) ||
+                  createdServiceIds.has(candidateId);
+              }
+              importId = candidateId!;
+              serviceData.metadata = {
+                importId,
+                importedAt: new Date(),
+                autoGenerated: true,
+              };
+            }
+
+            if (row.action === "update" && row.existingServiceId) {
+              // Update existing service
+              await tx.service.update({
+                where: { id: row.existingServiceId },
+                data: serviceData,
+              });
+              result.updated++;
+            } else if (row.action === "create") {
+              // Handle duplicate names if creating new
+              let finalName = serviceData.name;
+
+              // Check if we already created this service in this transaction
+              const isDuplicateInTransaction =
+                createdServiceNames.has(serviceData.name) ||
+                (data.id && createdServiceIds.has(data.id));
+
+              if (isDuplicateInTransaction) {
+                if (options.duplicateAction === DuplicateAction.CREATE_NEW) {
+                  // For duplicates within the same import, append category name
+                  const categoryName = data.category || "Uncategorized";
+                  finalName = `${serviceData.name} (${categoryName})`;
+
+                  // Check if this name already exists using pre-fetched data
+                  let nameExists =
+                    createdServiceNames.has(finalName) ||
                     existingServicesByName.has(finalName);
-                    
+
                   // If it still exists, append a number
                   if (nameExists) {
                     let counter = 2;
                     while (nameExists) {
-                      finalName = `${serviceData.name} (${newCategoryName} ${counter})`;
-                      nameExists = createdServiceNames.has(finalName) || 
+                      finalName = `${serviceData.name} (${categoryName} ${counter})`;
+                      nameExists =
+                        createdServiceNames.has(finalName) ||
                         existingServicesByName.has(finalName);
                       counter++;
                     }
                   }
                 } else {
-                  // Same category, fall back to number suffix
-                  let counter = 2;
-                  let nameExists = true;
-                  while (nameExists) {
-                    finalName = `${serviceData.name} (${counter})`;
-                    nameExists = createdServiceNames.has(finalName) || 
-                      existingServicesByName.has(finalName);
-                    counter++;
-                  }
+                  // Skip this duplicate within the same import
+                  result.skipped++;
+                  result.errors.push({
+                    row: row.rowNumber,
+                    error: `Duplicate service name "${serviceData.name}" found in import file`,
+                  });
+                  continue;
                 }
-              } else if (existingService) {
-                // Service exists but we're not set to create new - this shouldn't happen
-                // as it should have been caught in preview, but handle it gracefully
-                throw new Error(`Service "${serviceData.name}" already exists for this merchant`);
-              }
-            }
+              } else {
+                // Check for existing service in database
+                const existingService = await tx.service.findFirst({
+                  where: {
+                    merchantId,
+                    name: serviceData.name,
+                  },
+                });
 
-            // Create new service
-            await tx.service.create({
-              data: {
-                ...serviceData,
-                name: finalName,
-              },
+                // If service exists and we're set to create new, find a unique name
+                if (
+                  existingService &&
+                  options.duplicateAction === DuplicateAction.CREATE_NEW
+                ) {
+                  // Get the existing service's category name from pre-fetched data
+                  const existingWithCategory = existingServicesByName.get(
+                    serviceData.name,
+                  );
+
+                  const existingCategoryName =
+                    existingWithCategory?.categoryModel?.name ||
+                    existingWithCategory?.category ||
+                    "Uncategorized";
+                  const newCategoryName = data.category || "Uncategorized";
+
+                  // If both services have different categories, append category names
+                  if (existingCategoryName !== newCategoryName) {
+                    // Update the existing service name to include its category
+                    const existingNewName = `${serviceData.name} (${existingCategoryName})`;
+
+                    // Check if the renamed existing service name would conflict
+                    const existingRenameConflict =
+                      existingServicesByName.has(existingNewName) &&
+                      existingServicesByName.get(existingNewName)?.id !==
+                        existingService.id;
+
+                    if (
+                      !existingRenameConflict &&
+                      !createdServiceNames.has(existingNewName)
+                    ) {
+                      await tx.service.update({
+                        where: { id: existingService.id },
+                        data: { name: existingNewName },
+                      });
+                      renamedServices.set(serviceData.name, existingNewName);
+                      // Update our lookup map - move the entry to the new name
+                      if (existingWithCategory) {
+                        existingServicesByName.delete(serviceData.name);
+                        existingServicesByName.set(
+                          existingNewName,
+                          existingWithCategory,
+                        );
+                      }
+                    }
+
+                    // Set the new service name with its category
+                    finalName = `${serviceData.name} (${newCategoryName})`;
+
+                    // Check if this name already exists
+                    let nameExists =
+                      createdServiceNames.has(finalName) ||
+                      existingServicesByName.has(finalName);
+
+                    // If it still exists, append a number
+                    if (nameExists) {
+                      let counter = 2;
+                      while (nameExists) {
+                        finalName = `${serviceData.name} (${newCategoryName} ${counter})`;
+                        nameExists =
+                          createdServiceNames.has(finalName) ||
+                          existingServicesByName.has(finalName);
+                        counter++;
+                      }
+                    }
+                  } else {
+                    // Same category, fall back to number suffix
+                    let counter = 2;
+                    let nameExists = true;
+                    while (nameExists) {
+                      finalName = `${serviceData.name} (${counter})`;
+                      nameExists =
+                        createdServiceNames.has(finalName) ||
+                        existingServicesByName.has(finalName);
+                      counter++;
+                    }
+                  }
+                } else if (existingService) {
+                  // Service exists but we're not set to create new - this shouldn't happen
+                  // as it should have been caught in preview, but handle it gracefully
+                  throw new Error(
+                    `Service "${serviceData.name}" already exists for this merchant`,
+                  );
+                }
+              }
+
+              // Create new service
+              await tx.service.create({
+                data: {
+                  ...serviceData,
+                  name: finalName,
+                },
+              });
+              createdServiceNames.add(finalName);
+              // Track the import ID (whether provided or generated)
+              createdServiceIds.add(importId);
+              result.imported++;
+            }
+          } catch (error) {
+            result.failed++;
+            result.errors.push({
+              row: row.rowNumber,
+              error: error instanceof Error ? error.message : "Unknown error",
             });
-            createdServiceNames.add(finalName);
-            // Track the import ID (whether provided or generated)
-            createdServiceIds.add(importId);
-            result.imported++;
-          }
-        } catch (error) {
-          result.failed++;
-          result.errors.push({
-            row: row.rowNumber,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          
-          // If not skipping invalid rows, throw to rollback transaction
-          if (!options.skipInvalidRows) {
-            throw error;
+
+            // If not skipping invalid rows, throw to rollback transaction
+            if (!options.skipInvalidRows) {
+              throw error;
+            }
           }
         }
-      }
-    }, {
-      maxWait: 5000, // Max time to wait for a transaction slot
-      timeout: 30000, // Transaction timeout: 30 seconds for large imports
-    });
+      },
+      {
+        maxWait: 5000, // Max time to wait for a transaction slot
+        timeout: 30000, // Transaction timeout: 30 seconds for large imports
+      },
+    );
 
     result.success = result.failed === 0 || options.skipInvalidRows;
     return result;
@@ -1369,12 +1488,20 @@ export class ServicesService {
   private async findOrCreateCategoryOLD(
     tx: Prisma.TransactionClient,
     merchantId: string,
-    categoryName: string
+    categoryName: string,
   ): Promise<ServiceCategory> {
     // Predefined colors from the UI
     const AVAILABLE_COLORS = [
-      '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
-      '#3B82F6', '#14B8A6', '#84CC16', '#06B6D4', '#F97316'
+      "#8B5CF6",
+      "#EC4899",
+      "#EF4444",
+      "#F59E0B",
+      "#10B981",
+      "#3B82F6",
+      "#14B8A6",
+      "#84CC16",
+      "#06B6D4",
+      "#F97316",
     ];
 
     // Check if category exists
@@ -1397,93 +1524,103 @@ export class ServicesService {
 
     const usedColors = new Set(
       existingCategories
-        .map(cat => cat.color)
-        .filter(color => color && AVAILABLE_COLORS.includes(color))
+        .map((cat) => cat.color)
+        .filter((color) => color && AVAILABLE_COLORS.includes(color)),
     );
 
     // Find unused colors
-    const unusedColors = AVAILABLE_COLORS.filter(color => !usedColors.has(color));
-    
+    const unusedColors = AVAILABLE_COLORS.filter(
+      (color) => !usedColors.has(color),
+    );
+
     let selectedColor: string;
-    
+
     if (unusedColors.length > 0) {
       // Randomly select from unused colors
-      selectedColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
+      selectedColor =
+        unusedColors[Math.floor(Math.random() * unusedColors.length)];
     } else {
       // Fallback: If all colors are used, generate a color based on category name hash
       // This ensures the same category name always gets the same color
-      const hash = categoryName.split('').reduce((acc, char) => {
+      const hash = categoryName.split("").reduce((acc, char) => {
         return char.charCodeAt(0) + ((acc << 5) - acc);
       }, 0);
-      
+
       // Use the hash to pick a color and slightly modify it
-      const baseColor = AVAILABLE_COLORS[Math.abs(hash) % AVAILABLE_COLORS.length];
-      
+      const baseColor =
+        AVAILABLE_COLORS[Math.abs(hash) % AVAILABLE_COLORS.length];
+
       // Create a slight variation by adjusting the lightness
       // Convert hex to HSL, adjust lightness, convert back
       const hexToHSL = (hex: string) => {
         const r = parseInt(hex.slice(1, 3), 16) / 255;
         const g = parseInt(hex.slice(3, 5), 16) / 255;
         const b = parseInt(hex.slice(5, 7), 16) / 255;
-        
+
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         const l = (max + min) / 2;
         let h = 0;
         let s = 0;
-        
+
         if (max !== min) {
           const d = max - min;
           s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
           switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-            case g: h = ((b - r) / d + 2) / 6; break;
-            case b: h = ((r - g) / d + 4) / 6; break;
+            case r:
+              h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+              break;
+            case g:
+              h = ((b - r) / d + 2) / 6;
+              break;
+            case b:
+              h = ((r - g) / d + 4) / 6;
+              break;
           }
         }
-        
+
         return { h: h * 360, s: s * 100, l: l * 100 };
       };
-      
+
       const hslToHex = (h: number, s: number, l: number) => {
         h = h / 360;
         s = s / 100;
         l = l / 100;
-        
+
         let r, g, b;
-        
+
         if (s === 0) {
           r = g = b = l;
         } else {
           const hue2rgb = (p: number, q: number, t: number) => {
             if (t < 0) t += 1;
             if (t > 1) t -= 1;
-            if (t < 1/6) return p + (q - p) * 6 * t;
-            if (t < 1/2) return q;
-            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
             return p;
           };
-          
+
           const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
           const p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1/3);
+          r = hue2rgb(p, q, h + 1 / 3);
           g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1/3);
+          b = hue2rgb(p, q, h - 1 / 3);
         }
-        
+
         const toHex = (x: number) => {
           const hex = Math.round(x * 255).toString(16);
-          return hex.length === 1 ? '0' + hex : hex;
+          return hex.length === 1 ? "0" + hex : hex;
         };
-        
+
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
       };
-      
+
       const hsl = hexToHSL(baseColor);
       // Adjust lightness based on hash to create variation
       const adjustedLightness = hsl.l + ((hash % 20) - 10);
       const boundedLightness = Math.max(30, Math.min(70, adjustedLightness));
-      
+
       selectedColor = hslToHex(hsl.h, hsl.s, boundedLightness);
     }
 

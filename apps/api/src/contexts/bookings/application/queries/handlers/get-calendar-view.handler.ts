@@ -1,19 +1,21 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { GetCalendarViewQuery } from '../get-calendar-view.query';
-import { CalendarSlot } from '../../read-models/calendar-slot.model';
-import { PrismaService } from '../../../../../prisma/prisma.service';
-import { 
-  startOfDay, 
-  endOfDay, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth 
-} from 'date-fns';
-import { formatName } from '../../../../../utils/shared/format';
+import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
+import { GetCalendarViewQuery } from "../get-calendar-view.query";
+import { CalendarSlot } from "../../read-models/calendar-slot.model";
+import { PrismaService } from "../../../../../prisma/prisma.service";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
+import { formatName } from "../../../../../utils/shared/format";
 
 @QueryHandler(GetCalendarViewQuery)
-export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuery> {
+export class GetCalendarViewHandler
+  implements IQueryHandler<GetCalendarViewQuery>
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetCalendarViewQuery): Promise<CalendarSlot[]> {
@@ -24,11 +26,11 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
     let endDate: Date;
 
     switch (view) {
-      case 'week':
+      case "week":
         startDate = startOfWeek(date, { weekStartsOn: 1 }); // Monday start
         endDate = endOfWeek(date, { weekStartsOn: 1 });
         break;
-      case 'month':
+      case "month":
         startDate = startOfMonth(date);
         endDate = endOfMonth(date);
         break;
@@ -46,7 +48,7 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
         lte: endDate,
       },
       status: {
-        notIn: ['CANCELLED', 'NO_SHOW'],
+        notIn: ["CANCELLED", "NO_SHOW"],
       },
     };
 
@@ -103,15 +105,15 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
         },
       },
       orderBy: {
-        startTime: 'asc',
+        startTime: "asc",
       },
     });
 
     // Map to calendar slots
-    return bookings.map(booking => {
+    return bookings.map((booking) => {
       const service = booking.services[0]?.service;
       const duration = Math.floor(
-        (booking.endTime.getTime() - booking.startTime.getTime()) / 60000
+        (booking.endTime.getTime() - booking.startTime.getTime()) / 60000,
       );
 
       return {
@@ -121,15 +123,22 @@ export class GetCalendarViewHandler implements IQueryHandler<GetCalendarViewQuer
         endTime: booking.endTime,
         status: booking.status,
         paymentStatus: booking.paymentStatus,
-        paidAmount: typeof booking.paidAmount === 'object' && booking.paidAmount.toNumber
-          ? booking.paidAmount.toNumber()
-          : Number(booking.paidAmount || 0),
+        paidAmount:
+          typeof booking.paidAmount === "object" && booking.paidAmount.toNumber
+            ? booking.paidAmount.toNumber()
+            : Number(booking.paidAmount || 0),
         completedAt: booking.completedAt,
-        customerName: formatName(booking.customer.firstName, booking.customer.lastName),
-        serviceName: service?.name || 'Unknown Service',
-        serviceColor: service?.categoryModel?.color || '#6B7280',
+        customerName: formatName(
+          booking.customer.firstName,
+          booking.customer.lastName,
+        ),
+        serviceName: service?.name || "Unknown Service",
+        serviceColor: service?.categoryModel?.color || "#6B7280",
         staffId: booking.provider.id,
-        staffName: formatName(booking.provider.firstName, booking.provider.lastName),
+        staffName: formatName(
+          booking.provider.firstName,
+          booking.provider.lastName,
+        ),
         duration,
       };
     });

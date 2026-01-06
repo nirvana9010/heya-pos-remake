@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from "@nestjs/common";
 
 export interface QueryMetrics {
   model: string;
@@ -55,7 +55,7 @@ export class QueryMonitorService {
 
   getStats(since?: Date): QueryStats {
     const relevantQueries = since
-      ? this.queries.filter(q => q.timestamp > since)
+      ? this.queries.filter((q) => q.timestamp > since)
       : this.queries;
 
     if (relevantQueries.length === 0) {
@@ -69,18 +69,29 @@ export class QueryMonitorService {
       };
     }
 
-    const totalDuration = relevantQueries.reduce((sum, q) => sum + q.duration, 0);
-    const slowQueries = relevantQueries.filter(q => q.duration > this.slowQueryThreshold);
-    
-    const queriesByModel = relevantQueries.reduce((acc, q) => {
-      acc[q.model] = (acc[q.model] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const totalDuration = relevantQueries.reduce(
+      (sum, q) => sum + q.duration,
+      0,
+    );
+    const slowQueries = relevantQueries.filter(
+      (q) => q.duration > this.slowQueryThreshold,
+    );
 
-    const queriesByAction = relevantQueries.reduce((acc, q) => {
-      acc[q.action] = (acc[q.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const queriesByModel = relevantQueries.reduce(
+      (acc, q) => {
+        acc[q.model] = (acc[q.model] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    const queriesByAction = relevantQueries.reduce(
+      (acc, q) => {
+        acc[q.action] = (acc[q.action] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const slowestQueries = [...relevantQueries]
       .sort((a, b) => b.duration - a.duration)
@@ -98,12 +109,12 @@ export class QueryMonitorService {
 
   clearStats() {
     this.queries.length = 0;
-    this.logger.log('Query statistics cleared');
+    this.logger.log("Query statistics cleared");
   }
 
   getRecentSlowQueries(limit = 20): QueryMetrics[] {
     return this.queries
-      .filter(q => q.duration > this.slowQueryThreshold)
+      .filter((q) => q.duration > this.slowQueryThreshold)
       .slice(-limit);
   }
 }
