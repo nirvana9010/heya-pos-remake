@@ -15,7 +15,7 @@
     "@heya-pos/utils": "*",
     "date-fns": "^2.30.0",
     "framer-motion": "^12.16.0",
-    "next": "15.3.2",
+    "next": "15.5.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
