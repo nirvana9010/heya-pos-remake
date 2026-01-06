@@ -36,9 +36,16 @@ export class EmailTemplateService {
       footerLines.push(`<p>Website: ${merchant.website}</p>`);
     }
 
+    // Add reply instruction
+    const replyNote = merchant.email
+      ? `<p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;"><strong>To reply, please contact ${merchant.name} directly at <a href="mailto:${merchant.email}">${merchant.email}</a></strong></p>
+         <p style="color: #999; font-size: 11px;">This is an automated message from HeyaPOS. Please do not reply to this email.</p>`
+      : `<p style="margin-top: 15px; color: #999; font-size: 11px;">This is an automated message. Please do not reply to this email.</p>`;
+
     return `
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
         ${footerLines.join("\n")}
+        ${replyNote}
       </div>
     `;
   }
@@ -48,6 +55,35 @@ export class EmailTemplateService {
       return "$0.00";
     }
     return `$${value.toFixed(2)}`;
+  }
+
+  private renderTextFooter(merchant: any): string {
+    const lines = [
+      "",
+      "Best regards,",
+      merchant.name,
+      "",
+    ];
+
+    if (merchant.phone) {
+      lines.push(`Phone: ${merchant.phone}`);
+    }
+    if (merchant.email) {
+      lines.push(`Email: ${merchant.email}`);
+    }
+    if (merchant.website) {
+      lines.push(`Website: ${merchant.website}`);
+    }
+
+    // Add reply instruction
+    lines.push("");
+    lines.push("---");
+    if (merchant.email) {
+      lines.push(`To reply, please contact ${merchant.name} directly at ${merchant.email}`);
+    }
+    lines.push("This is an automated message from HeyaPOS. Please do not reply to this email.");
+
+    return lines.join("\n");
   }
 
   private renderServiceListHtml(
@@ -403,12 +439,7 @@ ${booking.locationPhone ? `Phone: ${booking.locationPhone}` : ""}
 If you need to reschedule or cancel, please contact us at least 24 hours in advance.
 
 We look forward to seeing you!
-
-Best regards,
-${merchant.name}
-
-Booking Reference: ${booking.bookingNumber}
-${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ""}
+${this.renderTextFooter(merchant)}
     `.trim();
 
     return { subject, html, text };
@@ -478,12 +509,7 @@ Please arrive 5-10 minutes early to complete any necessary forms.
 Need to reschedule? Please let us know as soon as possible.
 
 See you tomorrow!
-
-Best regards,
-${merchant.name}
-
-Booking Reference: ${booking.bookingNumber}
-${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ""}
+${this.renderTextFooter(merchant)}
     `.trim();
 
     return { subject, html, text };
@@ -567,12 +593,7 @@ Please remember:
 - Call us if you're running late
 
 Looking forward to seeing you soon!
-
-Best regards,
-${merchant.name}
-
-Booking Reference: ${booking.bookingNumber}
-${merchant.phone ? `Need to reschedule? Call us at ${merchant.phone}` : ""}
+${this.renderTextFooter(merchant)}
     `.trim();
 
     return { subject, html, text };
@@ -642,13 +663,7 @@ Reference: ${booking.bookingNumber}
 If you'd like to reschedule, please contact us or book online.
 
 We hope to see you again soon!
-
-Best regards,
-${merchant.name}
-
-${merchant.phone ? `Phone: ${merchant.phone}` : ""}
-${merchant.email ? `Email: ${merchant.email}` : ""}
-${merchant.website ? `Website: ${merchant.website}` : ""}
+${this.renderTextFooter(merchant)}
     `.trim();
 
     return { subject, html, text };
@@ -737,12 +752,7 @@ Please update your calendar with the new date and time.
 If this new time doesn't work for you, please contact us as soon as possible.
 
 We apologize for any inconvenience and look forward to seeing you at your rescheduled appointment!
-
-Best regards,
-${merchant.name}
-
-Booking Reference: ${booking.bookingNumber}
-${merchant.phone ? `Questions? Call us at ${merchant.phone}` : ""}
+${this.renderTextFooter(merchant)}
     `.trim();
 
     return { subject, html, text };
