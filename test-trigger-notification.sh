@@ -19,7 +19,7 @@ fi
 echo "✅ WebSocket connected"
 
 # Get database connection from API env
-cd /home/lukas/projects/heya-pos-remake/apps/api
+cd /home/nirvana9010/projects/heya-pos-remake/apps/api
 DATABASE_URL=$(grep DATABASE_URL .env | cut -d'=' -f2- | tr -d '"')
 
 echo ""

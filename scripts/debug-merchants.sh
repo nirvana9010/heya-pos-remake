@@ -40,13 +40,13 @@ fi
 echo ""
 echo "5. Checking database directly via Fly SSH:"
 echo "----------------------------"
-/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db execute --stdin" <<'EOF'
+/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db execute --stdin" <<'EOF'
 SELECT COUNT(*) as merchant_count FROM "Merchant";
 EOF
 
 echo ""
 echo "6. List all merchant names from database:"
 echo "----------------------------"
-/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db execute --stdin" <<'EOF'
+/home/nirvana9010/.fly/bin/flyctl ssh console -a heya-pos-api -C "cd app && npx prisma db execute --stdin" <<'EOF'
 SELECT name FROM "Merchant" ORDER BY "createdAt" DESC;
 EOF

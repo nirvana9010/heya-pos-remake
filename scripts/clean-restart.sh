@@ -14,7 +14,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-PROJECT_ROOT="/home/lukas/projects/heya-pos-remake"
+PROJECT_ROOT="/home/nirvana9010/projects/heya-pos-remake"
 cd $PROJECT_ROOT
 
 echo -e "${YELLOW}Step 1: Stopping all PM2 processes...${NC}"

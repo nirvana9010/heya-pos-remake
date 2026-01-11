@@ -4,7 +4,7 @@ echo "🧪 Testing Luxe Beauty & Wellness Merchant API"
 echo "=============================================="
 
 # Get merchant ID
-MERCHANT_ID=$(cd /home/lukas/projects/heya-pos-remake/apps/api && npx ts-node -e "
+MERCHANT_ID=$(cd /home/nirvana9010/projects/heya-pos-remake/apps/api && npx ts-node -e "
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 prisma.merchant.findFirst({ where: { subdomain: 'luxebeauty' } })

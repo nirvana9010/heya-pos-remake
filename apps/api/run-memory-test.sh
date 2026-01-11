@@ -10,7 +10,7 @@ sleep 2
 
 # Build the API
 echo "🔨 Building API..."
-cd /home/lukas/projects/heya-pos-remake/apps/api
+cd /home/nirvana9010/projects/heya-pos-remake/apps/api
 npm run build
 
 # Create heap snapshot directory
@@ -42,7 +42,7 @@ echo "  - Heap snapshots will be saved to: ./heap-snapshots/"
 echo "  - Memory logs are being written to: memory-test.log"
 echo ""
 echo "🧪 To test for memory leaks:"
-echo "  1. In another terminal, run: cd /home/lukas/projects/heya-pos-remake/apps/api"
+echo "  1. In another terminal, run: cd /home/nirvana9010/projects/heya-pos-remake/apps/api"
 echo "  2. Then run: NODE_OPTIONS='--expose-gc' ts-node test-memory-leak.ts"
 echo ""
 echo "📈 To analyze heap snapshots:"
