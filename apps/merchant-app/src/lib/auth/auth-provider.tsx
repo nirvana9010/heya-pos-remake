@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import { apiClient } from '../api-client';
 import type { LoginResponse } from '../clients/auth-client';
 
+export type UserType = 'merchant' | 'merchant_user' | 'staff';
+
 export interface User {
   id: string;
   username: string;
@@ -11,6 +13,10 @@ export interface User {
   firstName?: string;
   lastName?: string;
   email?: string;
+  type?: UserType;
+  permissions?: string[];
+  merchantUserId?: string;
+  staffId?: string;
 }
 
 export interface Location {
@@ -618,19 +624,94 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
+/**
+ * Check if a user has a specific permission.
+ * Supports wildcard and hierarchical permission matching.
+ */
+function hasPermission(permissions: string[] | undefined, required: string): boolean {
+  if (!permissions || permissions.length === 0) {
+    return false;
+  }
+
+  // Wildcard grants all permissions
+  if (permissions.includes('*')) {
+    return true;
+  }
+
+  // Exact match
+  if (permissions.includes(required)) {
+    return true;
+  }
+
+  // Check for wildcard matches (e.g., "bookings.*" matches "bookings.view")
+  const [category, action] = required.split('.');
+  if (action) {
+    if (permissions.includes(`${category}.*`)) {
+      return true;
+    }
+    // Parent permission grants child (e.g., "bookings" grants "bookings.view")
+    if (permissions.includes(category)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Hook for checking if user has specific permissions
 export function usePermissions() {
   const { user } = useAuth();
-  
+
+  // Get permissions from user object, defaulting to empty array
+  const permissions = user?.permissions || [];
+
+  // Check if user is owner (type=merchant or has wildcard permission)
+  const isOwner = user?.type === 'merchant' || permissions.includes('*');
+
+  // Helper to check a specific permission
+  const can = (permission: string): boolean => {
+    if (!user) return false;
+    // Owners have all permissions
+    if (isOwner) return true;
+    return hasPermission(permissions, permission);
+  };
+
   return {
-    canManageStaff: user?.role === 'admin' || user?.role === 'manager',
-    canManageServices: user?.role === 'admin' || user?.role === 'manager',
-    canViewReports: user?.role === 'admin' || user?.role === 'manager',
-    canProcessPayments: true, // All authenticated users can process payments
-    canManageBookings: true, // All authenticated users can manage bookings
-    isAdmin: user?.role === 'admin',
-    isManager: user?.role === 'manager',
-    isStaff: user?.role === 'staff',
+    // Permission check function - use this for granular checks
+    can,
+    hasPermission: can,
+
+    // Common permission checks for backward compatibility
+    canManageStaff: can('staff.view') || can('staff.create') || can('staff.update'),
+    canManageServices: can('services.view') || can('services.create') || can('services.update'),
+    canViewReports: can('reports.view'),
+    canExportReports: can('reports.export'),
+    canProcessPayments: can('payments.process'),
+    canRefundPayments: can('payments.refund'),
+    canManageBookings: can('bookings.create') || can('bookings.update'),
+    canCancelBookings: can('bookings.cancel'),
+    canDeleteBookings: can('bookings.delete'),
+    canManageCustomers: can('customers.create') || can('customers.update'),
+    canDeleteCustomers: can('customers.delete'),
+    canExportCustomers: can('customers.export'),
+    canUpdateSettings: can('settings.update'),
+    canAccessBilling: can('settings.billing'),
+
+    // Role-based checks
+    isOwner,
+    isAdmin: user?.role === 'Admin' || user?.role === 'admin' || isOwner,
+    isManager: user?.role === 'Manager' || user?.role === 'manager',
+    isStaff: user?.role === 'Staff' || user?.role === 'staff',
+    isReceptionist: user?.role === 'Receptionist',
+    isViewOnly: user?.role === 'View Only',
+
+    // User type checks
+    isMerchantOwner: user?.type === 'merchant',
+    isMerchantUser: user?.type === 'merchant_user',
+    isPinStaff: user?.type === 'staff',
+
+    // Raw permissions for custom checks
+    permissions,
   };
 }
 

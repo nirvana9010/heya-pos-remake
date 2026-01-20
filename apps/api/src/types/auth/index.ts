@@ -1,7 +1,10 @@
+export type AuthUserType = 'merchant' | 'merchant_user' | 'staff';
+
 export interface AuthUser {
   id: string;
   merchantId: string;
   staffId?: string;
+  merchantUserId?: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -9,6 +12,17 @@ export interface AuthUser {
   permissions: string[];
   locationId?: string;
   locations: string[];
+  type?: AuthUserType;
+}
+
+export interface MerchantUserPayload {
+  sub: string; // MerchantUser.id
+  merchantId: string;
+  merchantUserId: string;
+  type: 'merchant_user';
+  roleId: string;
+  permissions: string[];
+  locationIds: string[];
 }
 
 export interface AuthSession {

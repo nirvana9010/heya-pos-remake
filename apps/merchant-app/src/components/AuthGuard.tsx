@@ -63,16 +63,23 @@ export function AuthGuard({ children }: AuthGuardProps) {
         setShowRedirectMessage(true);
         // Set global flag to prevent API calls and other redirects
         (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
-        
+
+        // Validate pathname before using it in redirect - don't save invalid paths
+        const isValidPath = pathname &&
+          pathname.startsWith('/') &&
+          !pathname.includes('undefined') &&
+          !pathname.includes('null');
+        const redirectPath = isValidPath ? pathname : '/';
+
         // Add a small delay to prevent race conditions
         redirectTimeoutRef.current = setTimeout(() => {
           console.log('[AuthGuard] Executing redirect to login');
           try {
-            router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+            router.replace(`/login?from=${encodeURIComponent(redirectPath)}`);
           } catch (error) {
             console.error('[AuthGuard] Failed to redirect:', error);
             // Fallback: use window.location for redirect
-            window.location.href = `/login?from=${encodeURIComponent(pathname)}`;
+            window.location.href = `/login?from=${encodeURIComponent(redirectPath)}`;
           }
         }, 100);
         

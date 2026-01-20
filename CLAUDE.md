@@ -49,8 +49,13 @@ When referencing files:
 
 ### Common Test Account Credentials
 **ALWAYS provide the EMAIL for login, not the username!**
-- Hamilton Beauty Spa: `admin@hamiltonbeauty.com` / `demo123`
-- Zen Wellness: `lukas.tn90@gmail.com` / `demo456`
+
+**Default Test Account (use this for testing):**
+- Hamilton Beauty Spa (Owner): `admin@hamiltonbeauty.com` / `demo123`
+- Hamilton Beauty Spa (Manager - team member): `manager@hamiltonbeauty.com` / `manager123`
+
+**Other Test Accounts:**
+- Zen Wellness: `lukas.tn90@gmail.com` / `demo456` (may not exist in fresh DB)
 
 ### Authentication Response Format
 **CRITICAL**: The login response returns `token`, NOT `accessToken`!

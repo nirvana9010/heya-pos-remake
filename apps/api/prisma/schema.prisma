@@ -49,6 +49,8 @@ model Merchant {
   loyaltyPrograms    LoyaltyProgram?
   package            Package           @relation(fields: [packageId], references: [id])
   merchantAuth       MerchantAuth?
+  merchantUsers      MerchantUser[]
+  merchantRoles      MerchantRole[]
   merchantNotifications MerchantNotification[]
   notificationLogs   NotificationLog[]
   merchantHolidays   MerchantHoliday[]
@@ -78,6 +80,64 @@ model MerchantAuth {
   @@index([username])
 }
 
+model MerchantUser {
+  id            String    @id @default(uuid())
+  merchantId    String
+  email         String
+  passwordHash  String
+  firstName     String
+  lastName      String?
+  roleId        String
+  status        String    @default("ACTIVE")  // ACTIVE, INACTIVE, SUSPENDED
+  lastLoginAt   DateTime?
+  invitedAt     DateTime?
+  inviteToken   String?   @unique
+  inviteExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  role          MerchantRole   @relation(fields: [roleId], references: [id])
+  locations     MerchantUserLocation[]
+
+  @@unique([merchantId, email])
+  @@index([merchantId])
+  @@index([email])
+  @@index([status])
+  @@index([inviteToken])
+}
+
+model MerchantRole {
+  id          String   @id @default(uuid())
+  merchantId  String?  // NULL = system role (available to all merchants)
+  name        String
+  permissions String[] // Array of permission strings
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  merchant    Merchant?      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  users       MerchantUser[]
+
+  @@unique([merchantId, name])
+  @@index([merchantId])
+  @@index([isSystem])
+}
+
+model MerchantUserLocation {
+  id         String       @id @default(uuid())
+  userId     String
+  locationId String
+
+  user       MerchantUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location   Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, locationId])
+  @@index([userId])
+  @@index([locationId])
+}
+
 model Location {
   id            String          @id @default(uuid())
   merchantId    String
@@ -101,6 +161,7 @@ model Location {
   orders        Order[]
   payments      Payment[]
   staff         StaffLocation[]
+  merchantUsers MerchantUserLocation[]
   availabilityBlocks StaffAvailabilityBlock[]
 
   @@unique([merchantId, name])

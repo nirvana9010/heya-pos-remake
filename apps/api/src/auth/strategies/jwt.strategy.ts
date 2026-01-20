@@ -7,8 +7,11 @@ export interface JwtPayload {
   sub: string;
   merchantId: string;
   staffId?: string;
+  merchantUserId?: string;
   locationId?: string;
-  type: "merchant" | "staff";
+  type: "merchant" | "merchant_user" | "staff";
+  permissions?: string[];
+  locationIds?: string[];
 }
 
 @Injectable()
@@ -45,6 +48,52 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         merchantId: merchantAuth.merchant.id,
         type: "merchant",
         merchant: merchantAuth.merchant,
+      };
+    } else if (payload.type === "merchant_user") {
+      const merchantUser = await this.prisma.merchantUser.findUnique({
+        where: { id: payload.sub },
+        include: {
+          role: true,
+          locations: {
+            include: {
+              location: true,
+            },
+          },
+          merchant: {
+            include: {
+              locations: {
+                where: { isActive: true },
+              },
+              package: true,
+            },
+          },
+        },
+      });
+
+      if (!merchantUser || merchantUser.status !== "ACTIVE") {
+        throw new UnauthorizedException("Invalid token");
+      }
+
+      if (merchantUser.merchant.status !== "ACTIVE") {
+        throw new UnauthorizedException("Merchant account is not active");
+      }
+
+      // Get permissions from role
+      const permissions = merchantUser.role.permissions;
+
+      // Get location IDs the user has access to
+      const locationIds = merchantUser.locations.map((ul) => ul.location.id);
+
+      return {
+        id: merchantUser.id,
+        merchantId: merchantUser.merchantId,
+        merchantUserId: merchantUser.id,
+        type: "merchant_user",
+        merchantUser,
+        merchant: merchantUser.merchant,
+        role: merchantUser.role,
+        permissions,
+        locationIds,
       };
     } else if (payload.type === "staff") {
       const staff = await this.prisma.staff.findUnique({

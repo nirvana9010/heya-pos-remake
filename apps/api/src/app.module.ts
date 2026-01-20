@@ -19,6 +19,7 @@ import { HealthModule } from "./health/health.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { FeaturesModule } from "./features/features.module";
 import { MerchantHolidaysModule } from "./merchant-holidays/merchant-holidays.module";
+import { MerchantUsersModule } from "./merchant-users/merchant-users.module";
 
 // Common modules
 import { CacheModule } from "./common/cache/cache.module";
@@ -65,6 +66,7 @@ import { OutboxModule } from "./contexts/shared/outbox/outbox.module";
     PublicModule,
     MerchantModule,
     MerchantHolidaysModule,
+    MerchantUsersModule,
     FeaturesModule,
     AdminModule,
     ReportsModule,

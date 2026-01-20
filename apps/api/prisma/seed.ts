@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedSystemRoles } from './seed-system-roles';
 
 const prisma = new PrismaClient();
 
@@ -20,13 +21,19 @@ async function main() {
     prisma.service.deleteMany(),
     prisma.serviceCategory.deleteMany(),
     prisma.customer.deleteMany(),
+    prisma.merchantUserLocation.deleteMany(),
+    prisma.merchantUser.deleteMany(),
     prisma.staffLocation.deleteMany(),
     prisma.staff.deleteMany(),
     prisma.location.deleteMany(),
     prisma.merchantAuth.deleteMany(),
+    prisma.merchantRole.deleteMany(),
     prisma.merchant.deleteMany(),
     prisma.package.deleteMany(),
   ]);
+
+  // Seed system roles first (they have merchantId = null)
+  await seedSystemRoles();
 
   // Create packages
   const starterPackage = await prisma.package.create({

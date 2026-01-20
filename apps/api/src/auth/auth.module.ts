@@ -1,4 +1,4 @@
-import { Module, Global } from "@nestjs/common";
+import { Module, Global, forwardRef } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { AuthService } from "./auth.service";
@@ -9,6 +9,7 @@ import { PinAuthService } from "./pin-auth.service";
 import { SessionService } from "./session.service";
 import { PrismaModule } from "../prisma/prisma.module";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { MerchantUsersModule } from "../merchant-users/merchant-users.module";
 
 /**
  * AuthModule Configuration
@@ -43,6 +44,7 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
       secret: process.env.JWT_SECRET || "default-secret",
       signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || "365d" },
     }),
+    forwardRef(() => MerchantUsersModule),
   ],
   controllers: [AuthController],
   providers: [

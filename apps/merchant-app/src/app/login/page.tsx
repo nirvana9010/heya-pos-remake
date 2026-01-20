@@ -35,7 +35,14 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       const from = searchParams.get('from');
-      if (from) {
+      // Validate the 'from' path - must start with '/' and not be '/undefined' or other invalid paths
+      const isValidRedirect = from &&
+        from.startsWith('/') &&
+        !from.startsWith('/undefined') &&
+        !from.startsWith('/null') &&
+        from !== '/login'; // Don't redirect back to login
+
+      if (isValidRedirect) {
         router.push(from);
       } else {
         // Let middleware handle the default redirect based on package type
@@ -216,9 +223,32 @@ export default function LoginPage() {
                   }}
                   disabled={isSubmitting}
                 >
-                  💅 Quick Login as Hamilton Beauty
+                  💅 Quick Login as Hamilton Beauty (Owner)
                 </Button>
-                
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFormData({
+                      email: 'manager@hamiltonbeauty.com',
+                      password: 'manager123'
+                    });
+                    // Auto submit after a short delay
+                    setTimeout(() => {
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(submitEvent);
+                      }
+                    }, 100);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  💅 Quick Login as Hamilton Beauty (Manager)
+                </Button>
+
                 <Button
                   type="button"
                   variant="outline"
