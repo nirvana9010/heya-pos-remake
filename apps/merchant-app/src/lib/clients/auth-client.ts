@@ -35,7 +35,12 @@ export class AuthClient extends BaseApiClient {
         role: response.user.role,
         firstName: response.user.firstName,
         lastName: response.user.lastName,
-        email: response.user.email
+        email: response.user.email,
+        // Include type, permissions, and locations for RBAC
+        type: response.user.type,
+        permissions: response.user.permissions,
+        locations: response.user.locations,
+        merchantUserId: response.user.merchantUserId, // For merchant_user type
       },
       merchant: response.merchant || {
         id: response.merchantId,

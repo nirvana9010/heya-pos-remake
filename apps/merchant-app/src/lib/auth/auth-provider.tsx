@@ -337,6 +337,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const payload = JSON.parse(atob(response.access_token.split('.')[1]));
         const expiresAt = new Date(payload.exp * 1000);
 
+        // Log user type and permissions for debugging
+        console.log('[Auth] Login successful:', {
+          userType: response.user.type,
+          permissions: response.user.permissions,
+          isOwner: response.user.type === 'merchant' || response.user.permissions?.includes('*'),
+          email: response.user.email,
+        });
+
         setAuthState(prev => ({
           ...prev,
           user: response.user,
