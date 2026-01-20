@@ -20,22 +20,23 @@ import {
   Bell,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
+import { usePermissions } from '@/lib/auth/auth-provider'
 
 const allNavigation = [
   // Main navigation
-  { name: 'Calendar', href: '/calendar', icon: Calendar, feature: 'bookings' },
-  { name: 'Bookings', href: '/bookings', icon: Calendar, feature: 'bookings' },
-  { name: 'Check-Ins', href: '/check-ins', icon: Calendar, feature: 'check_in_only' }, // Show for Check-In Lite
-  { name: 'Customers', href: '/customers', icon: Users, feature: 'customers' },
-  { name: 'Staff', href: '/staff', icon: Users, feature: 'staff' },
-  { name: 'Roster', href: '/roster', icon: Calendar, feature: 'roster' },
-  { name: 'Services', href: '/services', icon: Package, feature: 'services' },
-  { name: 'Payments', href: '/payments', icon: DollarSign, feature: 'payments' },
+  { name: 'Calendar', href: '/calendar', icon: Calendar, feature: 'bookings', permission: 'booking.read' },
+  { name: 'Bookings', href: '/bookings', icon: Calendar, feature: 'bookings', permission: 'booking.read' },
+  { name: 'Check-Ins', href: '/check-ins', icon: Calendar, feature: 'check_in_only', permission: 'booking.read' },
+  { name: 'Customers', href: '/customers', icon: Users, feature: 'customers', permission: 'customers.read' },
+  { name: 'Staff', href: '/staff', icon: Users, feature: 'staff', permission: 'staff.view' },
+  { name: 'Roster', href: '/roster', icon: Calendar, feature: 'roster', permission: 'staff.view' },
+  { name: 'Services', href: '/services', icon: Package, feature: 'services', permission: 'service.view' },
+  { name: 'Payments', href: '/payments', icon: DollarSign, feature: 'payments', permission: 'payment.view' },
   // Bottom navigation
-  { name: 'Loyalty', href: '/loyalty', icon: Gift, feature: 'loyalty', position: 'bottom' },
-  { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports', position: 'bottom' },
-  { name: 'Notifications', href: '/notifications', icon: Bell, feature: 'notifications', position: 'bottom' },
-  { name: 'Settings', href: '/settings', icon: Settings, feature: null, position: 'bottom' }, // Always visible
+  { name: 'Loyalty', href: '/loyalty', icon: Gift, feature: 'loyalty', position: 'bottom', permission: 'customers.read' },
+  { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports', position: 'bottom', permission: 'reports.view' },
+  { name: 'Notifications', href: '/notifications', icon: Bell, feature: 'notifications', position: 'bottom', permission: null },
+  { name: 'Settings', href: '/settings', icon: Settings, feature: null, position: 'bottom', permission: 'settings.view' },
 ]
 
 interface MerchantFeatures {
@@ -56,24 +57,32 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { can } = usePermissions()
 
-  // Filter navigation based on features
+  // Filter navigation based on features AND permissions
   const filteredNavigation = useMemo(() => {
     const hasFeature = (featureId: string): boolean => {
       if (!features) return true; // Show all if no features loaded
       return features.enabledFeatures.includes(featureId);
     };
 
+    const hasPermission = (permission: string | null): boolean => {
+      if (permission === null) return true; // null = always visible
+      return can(permission);
+    };
+
     const mainNav = allNavigation
       .filter(item => !item.position || item.position !== 'bottom')
       .filter(item => !item.feature || hasFeature(item.feature))
+      .filter(item => hasPermission(item.permission))
 
     const bottomNav = allNavigation
       .filter(item => item.position === 'bottom')
       .filter(item => !item.feature || hasFeature(item.feature))
+      .filter(item => hasPermission(item.permission))
 
     return { mainNav, bottomNav }
-  }, [features])
+  }, [features, can])
 
   const handleNavigation = (href: string) => {
     // If we're already on the target page, do nothing to avoid unnecessary processing
