@@ -60,7 +60,8 @@ import { ImportPreviewDialog } from "@/components/services/import-preview-dialog
 import { ColumnMappingDialog } from "@/components/services/column-mapping-dialog";
 import { CustomerColumnMappingDialog } from "@/components/customers/customer-column-mapping-dialog";
 import { CustomerImportPreviewDialog } from "@/components/customers/customer-import-preview-dialog";
-import { useAuth } from "@/lib/auth/auth-provider";
+import { useAuth, usePermissions } from "@/lib/auth/auth-provider";
+import { useFeatures } from "@/lib/features/feature-service";
 import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
 import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
 import { HolidayManager } from "@/components/settings/HolidayManager";
@@ -77,6 +78,8 @@ export default function SettingsPage() {
   const { merchant } = useAuth();
   const { clearPairing, isPaired } = useTyro();
   const queryClient = useQueryClient();
+  const { features, modules, loading: featuresLoading } = useFeatures();
+  const { permissions, isOwner } = usePermissions();
   // Initialize with merchant settings if available to prevent flicker
   const merchantSettings = merchant?.settings || {};
 
@@ -1520,12 +1523,13 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
           <TabsTrigger value="business">Business</TabsTrigger>
           <TabsTrigger value="booking">Booking</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-6">
@@ -2979,6 +2983,122 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription & Features
+              </CardTitle>
+              <CardDescription>
+                View your current package and available features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {featuresLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner className="h-8 w-8" />
+                </div>
+              ) : (
+                <>
+                  {/* Package Info */}
+                  <div className="p-4 rounded-lg border bg-primary/5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {features?.packageName || "Standard"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Current subscription package
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-sm">
+                        Active
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Features List */}
+                  <div>
+                    <h4 className="font-medium mb-4">Package Features</h4>
+                    <div className="grid gap-3">
+                      {modules?.map((module) => {
+                        // Handle both API response formats (enabled/enabledFeatures)
+                        const enabledList = (features as any)?.enabled || (features as any)?.enabledFeatures || [];
+                        const disabledList = (features as any)?.disabled || (features as any)?.disabledFeatures || [];
+                        const isEnabled = enabledList.includes(module.id);
+                        const isDisabled = disabledList.includes(module.id);
+                        const inPackage = features?.packageFeatures?.includes(module.id);
+
+                        return (
+                          <div
+                            key={module.id}
+                            className={`flex items-center justify-between p-3 rounded-lg border ${
+                              isEnabled && !isDisabled
+                                ? "bg-green-50 border-green-200"
+                                : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{module.name}</span>
+                                {inPackage && (
+                                  <Badge variant="outline" className="text-xs">
+                                    In Package
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {module.description}
+                              </p>
+                            </div>
+                            <div className="ml-4">
+                              {isEnabled && !isDisabled ? (
+                                <Badge className="bg-green-600">Enabled</Badge>
+                              ) : isDisabled ? (
+                                <Badge variant="destructive">Disabled</Badge>
+                              ) : (
+                                <Badge variant="secondary">Not Available</Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* User Permissions (for debugging) */}
+                  <Separator />
+                  <div>
+                    <h4 className="font-medium mb-4">Your Permissions</h4>
+                    <div className="p-4 rounded-lg border bg-muted/50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="h-4 w-4" />
+                        <span className="font-medium">
+                          {isOwner ? "Owner (Full Access)" : "Team Member"}
+                        </span>
+                      </div>
+                      {isOwner ? (
+                        <p className="text-sm text-muted-foreground">
+                          You have full access to all features and settings.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {permissions?.map((perm) => (
+                            <Badge key={perm} variant="outline" className="text-xs">
+                              {perm}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

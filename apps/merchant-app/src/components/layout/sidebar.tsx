@@ -20,7 +20,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { Button } from '@heya-pos/ui'
-import { usePermissions } from '@/lib/auth/auth-provider'
+import { usePermissions, useAuth } from '@/lib/auth/auth-provider'
 
 const allNavigation = [
   // Main navigation
@@ -57,6 +57,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { user } = useAuth()
   const { can } = usePermissions()
 
   // Filter navigation based on features AND permissions
@@ -68,6 +69,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
 
     const hasPermission = (permission: string | null): boolean => {
       if (permission === null) return true; // null = always visible
+      if (!user) return true; // Show all if user not loaded yet
       return can(permission);
     };
 
@@ -82,7 +84,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
       .filter(item => hasPermission(item.permission))
 
     return { mainNav, bottomNav }
-  }, [features, can])
+  }, [features, can, user])
 
   const handleNavigation = (href: string) => {
     // If we're already on the target page, do nothing to avoid unnecessary processing

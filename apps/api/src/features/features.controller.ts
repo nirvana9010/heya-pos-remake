@@ -36,7 +36,7 @@ export class FeaturesController {
     const merchant =
       await this.featuresService.getMerchantWithPackage(merchantId);
     const packageFeatures = this.featuresService.getPackageFeatures(merchant);
-    const packageName = merchant?.packageId || "standard";
+    const packageName = merchant?.package?.name || "Standard";
 
     const response = {
       enabledFeatures: summary.enabled,

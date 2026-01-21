@@ -9,8 +9,10 @@ import {
 
 interface MerchantWithPackage extends Merchant {
   package?: {
+    id: string;
+    name: string;
     features?: any;
-  };
+  } | null;
 }
 
 @Injectable()
