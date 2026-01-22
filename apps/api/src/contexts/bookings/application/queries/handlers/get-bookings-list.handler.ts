@@ -57,6 +57,11 @@ export class GetBookingsListHandler
 
     if (filters.status) {
       where.status = filters.status;
+    } else {
+      // By default, exclude DELETED bookings from all queries
+      // DELETED bookings are soft-deleted and should only be visible
+      // if explicitly requested (e.g., in a recycle bin view)
+      where.status = { not: "DELETED" };
     }
 
     if (filters.startDate || filters.endDate) {

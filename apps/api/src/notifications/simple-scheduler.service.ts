@@ -118,12 +118,16 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
 
       for (const notification of notifications) {
         try {
-          if (notification.booking.status === "CANCELLED") {
+          // Skip notifications for cancelled or deleted bookings
+          if (
+            notification.booking.status === "CANCELLED" ||
+            notification.booking.status === "DELETED"
+          ) {
             await this.prisma.scheduledNotification.update({
               where: { id: notification.id },
               data: {
                 status: "cancelled",
-                error: "Booking was cancelled",
+                error: `Booking was ${notification.booking.status.toLowerCase()}`,
               },
             });
             continue;

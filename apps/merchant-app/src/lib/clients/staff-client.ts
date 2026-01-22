@@ -152,4 +152,26 @@ export class StaffClient extends BaseApiClient {
       );
     }
   }
+
+  /**
+   * Create default schedules for a staff member based on business hours
+   */
+  async createDefaultSchedule(staffId: string): Promise<any> {
+    const result = await this.post(
+      `/staff/${staffId}/schedule/default`,
+      {},
+      undefined,
+      "v1",
+    );
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("roster-schedule-updated", {
+          detail: { staffId },
+        }),
+      );
+    }
+
+    return result;
+  }
 }

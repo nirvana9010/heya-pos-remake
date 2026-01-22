@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCalendar } from '../CalendarProvider';
 import { useTimeGrid, useBookingOperations, useBookingConflicts, timeStringToMinutes, minutesToTimeString } from '../hooks';
 import { toMerchantTime } from '@/lib/date-utils';
@@ -11,7 +12,7 @@ import { DraggableBooking } from '@/components/calendar/DraggableBooking';
 import { CalendarDragOverlay } from '@/components/calendar/DragOverlay';
 import { useDroppable } from '@dnd-kit/core';
 import type { Booking, Staff } from '../types';
-import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles, Trash2, MinusCircle } from 'lucide-react';
+import { Users, Check, X, AlertTriangle, Heart, Hourglass, Loader2, Sparkles, Trash2, MinusCircle, Clock, Settings } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 import { BookingTooltip } from '../BookingTooltipSimple';
 import { useAuth } from '@/lib/auth/auth-provider';
@@ -178,6 +179,38 @@ export function DailyView({
   const { checkTimeConflict } = useBookingConflicts();
   const resizeStateRef = React.useRef<BookingResizeState | null>(null);
   const [resizeState, setResizeState] = React.useState<BookingResizeState | null>(null);
+  const router = useRouter();
+
+  // State for staff schedule setup overlay
+  const [settingUpStaffId, setSettingUpStaffId] = useState<string | null>(null);
+
+  // Handler to create default schedules from business hours
+  const handleUseBusinessHours = useCallback(async (staffId: string) => {
+    setSettingUpStaffId(staffId);
+    try {
+      await apiClient.staff.createDefaultSchedule(staffId);
+      toast({
+        title: "Schedule created",
+        description: "Staff schedule has been set to match business hours. Refreshing...",
+      });
+      // Reload the page to get fresh data with new schedules
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error: any) {
+      toast({
+        title: "Failed to create schedule",
+        description: error?.message || "Please try again or set up manually.",
+        variant: "destructive",
+      });
+      setSettingUpStaffId(null);
+    }
+  }, [toast]);
+
+  // Handler to navigate to roster page
+  const handleSetStaffRoster = useCallback((staffId: string) => {
+    router.push(`/roster?staffId=${staffId}`);
+  }, [router]);
 
   const updateResizeState = React.useCallback((updater: React.SetStateAction<BookingResizeState | null>) => {
     setResizeState(prev => {
@@ -1417,8 +1450,71 @@ export function DailyView({
               )}
               
               {/* Staff columns */}
-              {visibleStaff.map((staff, staffIndex) => (
+              {visibleStaff.map((staff, staffIndex) => {
+                // Check if staff has no schedules at all
+                // Only show overlay when:
+                // 1. Staff has no schedules (empty array, not undefined)
+                // 2. Not currently loading data
+                // 3. schedules property is an array (was populated from API, not missing due to error)
+                const hasNoSchedules = Array.isArray(staff.schedules) && staff.schedules.length === 0;
+                const isSettingUp = settingUpStaffId === staff.id;
+
+                return (
                 <div key={staff.id} className="relative">
+                  {/* No schedule overlay - shown when staff has no schedules configured */}
+                  {hasNoSchedules && !state.isLoading && (
+                    <div
+                      className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100/95 backdrop-blur-sm"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <div className="flex flex-col items-center gap-4 p-6 max-w-[200px] text-center">
+                        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                          <Clock className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm mb-1">No Schedule Set</h4>
+                          <p className="text-xs text-gray-500">
+                            {staff.name} doesn't have working hours configured
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                          <button
+                            onClick={() => handleUseBusinessHours(staff.id)}
+                            disabled={isSettingUp}
+                            className={cn(
+                              "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                              "bg-primary text-white hover:bg-primary/90",
+                              isSettingUp && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            {isSettingUp ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Setting up...
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-4 h-4" />
+                                Use Business Hours
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleSetStaffRoster(staff.id)}
+                            disabled={isSettingUp}
+                            className={cn(
+                              "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                              "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50",
+                              isSettingUp && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Settings className="w-4 h-4" />
+                            Set Custom Roster
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {/* Block overlays */}
                   {(() => {
                     const staffBlocks = blocksByStaff.get(staff.id) || [];
@@ -1878,10 +1974,11 @@ export function DailyView({
                     );
                   })}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-          
+
           {/* Drag Overlay */}
           <CalendarDragOverlay 
             activeBooking={activeBooking} 

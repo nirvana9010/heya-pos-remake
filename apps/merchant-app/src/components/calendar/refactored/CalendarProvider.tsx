@@ -283,9 +283,13 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
 
       const mergedBookings = [...normalizedIncoming, ...preservedLocalBookings];
 
-      // Filter out recently deleted bookings and apply recent status updates
+      // Filter out recently deleted bookings, permanently deleted bookings, and apply recent status updates
+      // Note: We filter out 'deleted' status at the data layer to ensure they NEVER appear,
+      // regardless of status filter settings. The API should also exclude them, but this
+      // provides defense-in-depth.
       const filteredBookings = mergedBookings
         .filter(booking => !recentlyDeletedBookings.has(booking.id))
+        .filter(booking => booking.status !== 'deleted')
         .map(booking => {
           const recentUpdate = recentStatusUpdates.get(booking.id);
           const preferredOverride = recentPreferredStaffSelections.get(booking.id);

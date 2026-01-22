@@ -301,7 +301,7 @@ export class FeaturesService {
   private mapLegacyFeatures(legacyFeatures: string[]): string[] {
     const featureMap: Record<string, string[]> = {
       basic_booking: ["customers", "services", "bookings"],
-      advanced_booking: ["customers", "services", "bookings", "staff"],
+      advanced_booking: ["customers", "services", "bookings", "staff", "roster"],
       customer_management: ["customers"],
       basic_reports: ["reports"],
       advanced_reports: ["reports"],
@@ -321,6 +321,11 @@ export class FeaturesService {
     // Always include payments if any booking feature exists
     if (mappedFeatures.has("bookings")) {
       mappedFeatures.add("payments");
+    }
+
+    // Always include roster if staff feature exists
+    if (mappedFeatures.has("staff")) {
+      mappedFeatures.add("roster");
     }
 
     return Array.from(mappedFeatures);

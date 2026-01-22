@@ -25,6 +25,9 @@ export type BookingStatus =
   | 'deleted'
   | 'optimistic';
 
+// Statuses that can be filtered on the calendar
+// Note: 'deleted' is intentionally excluded - deleted bookings should never appear on the calendar
+// They are filtered out at the data layer in CalendarProvider
 export const ALL_CALENDAR_STATUSES: BookingStatus[] = [
   'pending',
   'scheduled',
@@ -33,13 +36,10 @@ export const ALL_CALENDAR_STATUSES: BookingStatus[] = [
   'completed',
   'cancelled',
   'no-show',
-  'deleted',
   'optimistic',
 ];
 
-export const DEFAULT_CALENDAR_STATUS_FILTERS: BookingStatus[] = ALL_CALENDAR_STATUSES.filter(
-  (status) => status !== 'deleted',
-);
+export const DEFAULT_CALENDAR_STATUS_FILTERS: BookingStatus[] = ALL_CALENDAR_STATUSES;
 
 // Core data models
 export interface Booking {

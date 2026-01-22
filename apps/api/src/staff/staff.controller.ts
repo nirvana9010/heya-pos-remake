@@ -85,6 +85,21 @@ export class StaffController {
     return this.staffService.updateSchedule(user.merchantId, id, schedule);
   }
 
+  @Post(":id/schedule/default")
+  async createDefaultSchedule(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+  ) {
+    // First delete any existing schedules for this staff member
+    await this.staffService.updateSchedule(user.merchantId, id, {
+      schedules: [],
+    });
+    // Then create default schedules from business hours
+    await this.staffService.createDefaultSchedules(id, user.merchantId);
+    // Return the new schedule
+    return this.staffService.getSchedule(user.merchantId, id);
+  }
+
   @Get(":id/overrides")
   getScheduleOverrides(
     @CurrentUser() user: any,

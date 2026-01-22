@@ -142,32 +142,26 @@ export class StaffService {
   }
 
   /**
-   * Create default schedules for a staff member based on merchant business hours
+   * Create default schedules for a staff member based on location business hours
+   * Public so it can be called from the controller for existing staff
    */
-  private async createDefaultSchedules(staffId: string, merchantId: string) {
+  async createDefaultSchedules(staffId: string, merchantId: string) {
     try {
-      // Get merchant settings
-      const merchant = await this.prisma.merchant.findUnique({
-        where: { id: merchantId },
-        select: { settings: true },
+      // Get the primary location's business hours
+      const location = await this.prisma.location.findFirst({
+        where: { merchantId, isActive: true },
+        orderBy: { createdAt: "asc" },
+        select: { businessHours: true },
       });
 
-      if (!merchant?.settings) {
-        console.warn(
-          `No merchant settings found for ${merchantId}, skipping schedule creation`,
-        );
-        return;
-      }
-
-      const settings = merchant.settings as any;
-      const businessHours = settings.businessHours;
-
-      if (!businessHours) {
+      if (!location?.businessHours) {
         console.warn(
           `No business hours configured for merchant ${merchantId}, skipping schedule creation`,
         );
         return;
       }
+
+      const businessHours = location.businessHours as any;
 
       // Create schedules based on business hours
       const scheduleData = [];
@@ -187,13 +181,21 @@ export class StaffService {
           businessHours[dayName] ||
           businessHours[dayName.charAt(0).toUpperCase() + dayName.slice(1)];
 
-        if (dayHours && dayHours.isOpen) {
-          scheduleData.push({
-            staffId: staffId,
-            dayOfWeek: dayOfWeek,
-            startTime: dayHours.open,
-            endTime: dayHours.close,
-          });
+        // Check if day has hours configured (open/close or start/end)
+        // If isOpen is explicitly false, skip. Otherwise, if hours exist, create schedule.
+        if (dayHours) {
+          const isOpen = dayHours.isOpen !== false; // Default to true if not specified
+          const startTime = dayHours.open || dayHours.start;
+          const endTime = dayHours.close || dayHours.end;
+
+          if (isOpen && startTime && endTime) {
+            scheduleData.push({
+              staffId: staffId,
+              dayOfWeek: dayOfWeek,
+              startTime: startTime,
+              endTime: endTime,
+            });
+          }
         }
       }
 

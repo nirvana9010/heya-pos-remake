@@ -64,6 +64,9 @@ export class PrismaBookingRepository implements IBookingRepository {
 
     if (criteria.status) {
       where.status = criteria.status;
+    } else {
+      // By default, exclude DELETED bookings from queries
+      where.status = { not: "DELETED" };
     }
 
     if (criteria.startDate || criteria.endDate) {
@@ -239,18 +242,33 @@ export class PrismaBookingRepository implements IBookingRepository {
   }
 
   async delete(id: string, merchantId: string): Promise<void> {
-    // Soft delete - move to recycle bin
-    await this.prisma.booking.update({
-      where: {
-        id,
-        merchantId,
-      },
-      data: {
-        status: "DELETED",
-        deletedAt: new Date(),
-        cancelledAt: new Date(),
-        cancellationReason: "Moved to recycle bin",
-      },
+    // Use a transaction to soft delete the booking and cancel any pending notifications
+    await this.prisma.$transaction(async (tx) => {
+      // Soft delete - move to recycle bin
+      await tx.booking.update({
+        where: {
+          id,
+          merchantId,
+        },
+        data: {
+          status: "DELETED",
+          deletedAt: new Date(),
+          cancelledAt: new Date(),
+          cancellationReason: "Moved to recycle bin",
+        },
+      });
+
+      // Cancel any pending scheduled notifications for this booking
+      await tx.scheduledNotification.updateMany({
+        where: {
+          bookingId: id,
+          status: "pending",
+        },
+        data: {
+          status: "cancelled",
+          error: "Booking was deleted",
+        },
+      });
     });
   }
 

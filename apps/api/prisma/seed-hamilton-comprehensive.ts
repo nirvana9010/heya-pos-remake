@@ -1,7 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+
+// Helper to convert Decimal to number
+const toNumber = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'object' && val.toNumber) return val.toNumber();
+  return Number(val) || 0;
+};
 
 async function main() {
   console.log('🌱 Starting comprehensive Hamilton Beauty Spa data seeding...');
@@ -257,7 +265,7 @@ async function main() {
           bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          totalAmount: selectedServices.reduce((sum, s) => sum + s.price, 0),
+          totalAmount: selectedServices.reduce((sum, s) => sum + toNumber(s.price), 0),
           status,
           source: 'ONLINE',
           notes: status === 'CANCELLED' ? 'Customer cancelled due to schedule conflict' : 
@@ -271,7 +279,7 @@ async function main() {
         data: selectedServices.map(service => ({
           bookingId: booking.id,
           serviceId: service.id,
-          price: service.price,
+          price: toNumber(service.price),
           duration: service.duration,
           staffId: selectedStaff.id,
         })),
@@ -279,8 +287,8 @@ async function main() {
 
       // Create invoice and payment for completed bookings
       if (status === 'COMPLETED') {
-        const totalAmount = selectedServices.reduce((sum, s) => sum + s.price, 0);
-        
+        const totalAmount = selectedServices.reduce((sum, s) => sum + toNumber(s.price), 0);
+
         const invoice = await prisma.invoice.create({
           data: {
             merchantId: merchant.id,
@@ -299,9 +307,9 @@ async function main() {
               create: selectedServices.map(service => ({
                 description: service.name,
                 quantity: 1,
-                unitPrice: service.price,
-                taxAmount: service.price * 0.1,
-                total: service.price * 1.1,
+                unitPrice: toNumber(service.price),
+                taxAmount: toNumber(service.price) * 0.1,
+                total: toNumber(service.price) * 1.1,
               })),
             },
           },
@@ -354,7 +362,7 @@ async function main() {
           bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          totalAmount: selectedServices[0].price,
+          totalAmount: toNumber(selectedServices[0].price),
           status,
           source: 'WALK_IN',
         },
@@ -364,7 +372,7 @@ async function main() {
         data: {
           bookingId: booking.id,
           serviceId: selectedServices[0].id,
-          price: selectedServices[0].price,
+          price: toNumber(selectedServices[0].price),
           duration: selectedServices[0].duration,
           staffId: selectedStaff.id,
         },
@@ -392,7 +400,7 @@ async function main() {
           bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          totalAmount: selectedServices.reduce((sum, s) => sum + s.price, 0),
+          totalAmount: selectedServices.reduce((sum, s) => sum + toNumber(s.price), 0),
           status: 'CONFIRMED',
           source: 'PHONE',
           reminderSent: Math.random() > 0.5,
@@ -403,7 +411,7 @@ async function main() {
         data: selectedServices.map(service => ({
           bookingId: booking.id,
           serviceId: service.id,
-          price: service.price,
+          price: toNumber(service.price),
           duration: service.duration,
           staffId: selectedStaff.id,
         })),
@@ -438,7 +446,7 @@ async function main() {
           bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          totalAmount: selectedServices.reduce((sum, s) => sum + s.price, 0),
+          totalAmount: selectedServices.reduce((sum, s) => sum + toNumber(s.price), 0),
           status,
           source: ['ONLINE', 'PHONE', 'WALK_IN'][Math.floor(Math.random() * 3)] as any,
           notes: i === 1 ? 'Tomorrow\'s appointment' : 
@@ -452,7 +460,7 @@ async function main() {
         data: selectedServices.map(service => ({
           bookingId: booking.id,
           serviceId: service.id,
-          price: service.price,
+          price: toNumber(service.price),
           duration: service.duration,
           staffId: selectedStaff.id,
         })),
@@ -482,7 +490,7 @@ async function main() {
           bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          totalAmount: selectedService.price,
+          totalAmount: toNumber(selectedService.price),
           status: week === 0 ? 'CONFIRMED' : 'PENDING',
           source: 'PHONE',
           notes: `Weekly ${selectedService.name} - Week ${week + 1}`,
@@ -493,7 +501,7 @@ async function main() {
         data: {
           bookingId: booking.id,
           serviceId: selectedService.id,
-          price: selectedService.price,
+          price: toNumber(selectedService.price),
           duration: selectedService.duration,
           staffId: selectedStaff.id,
         },
@@ -528,7 +536,7 @@ async function main() {
         bookingNumber: `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        totalAmount: selectedServices.reduce((sum, s) => sum + s.price, 0),
+        totalAmount: selectedServices.reduce((sum, s) => sum + toNumber(s.price), 0),
         status: 'CONFIRMED',
         source: 'PHONE',
         notes: `Bridal party - ${i === 0 ? 'Bride' : `Bridesmaid ${i}`}`,
@@ -539,7 +547,7 @@ async function main() {
       data: selectedServices.map(service => ({
         bookingId: booking.id,
         serviceId: service.id,
-        price: service.price,
+        price: toNumber(service.price),
         duration: service.duration,
         staffId: selectedStaff.id,
       })),
@@ -570,7 +578,7 @@ async function main() {
         });
 
         // Add some transaction history
-        const currentBalance = card.points;
+        const currentBalance = toNumber(card.points);
         await prisma.loyaltyTransaction.createMany({
           data: [
             {
@@ -627,7 +635,7 @@ async function main() {
         await prisma.paymentRefund.create({
           data: {
             paymentId: payment.id,
-            amount: payment.amount * 0.5, // 50% refund
+            amount: toNumber(payment.amount) * 0.5, // 50% refund
             reason: 'Cancellation within policy period',
             status: 'COMPLETED',
             processedAt: new Date(),
