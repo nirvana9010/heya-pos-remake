@@ -674,12 +674,13 @@ export function usePermissions() {
   const permissions = user?.permissions || [];
 
   // Check if user is owner (type=merchant or has wildcard permission)
-  const isOwner = user?.type === 'merchant' || permissions.includes('*');
+  // Also treat users with no type as owners (backward compatibility for old tokens)
+  const isOwner = user?.type === 'merchant' || user?.type === undefined || permissions.includes('*');
 
   // Helper to check a specific permission
   const can = (permission: string): boolean => {
     if (!user) return false;
-    // Owners have all permissions
+    // Owners (or users with old tokens without type) have all permissions
     if (isOwner) return true;
     return hasPermission(permissions, permission);
   };
