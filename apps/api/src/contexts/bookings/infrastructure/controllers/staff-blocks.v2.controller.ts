@@ -64,7 +64,8 @@ export class StaffBlocksV2Controller {
 
   private ensureBlocksEnabled(settings: any) {
     const normalized = normalizeMerchantSettings<MerchantSettings>(settings);
-    const enabled = normalized?.enableCalendarBlocks ?? false;
+    // Default to true - block feature is non-intrusive and enabled by default
+    const enabled = normalized?.enableCalendarBlocks ?? true;
     if (!enabled) {
       throw new BadRequestException("Calendar blocks feature is disabled for this merchant");
     }

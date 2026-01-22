@@ -32,7 +32,6 @@ export const isBlocksEnabled = (merchant: any): boolean => {
       // ignore parse errors
     }
   }
-  // Default to false when setting is not explicitly set
-  // This matches the backend which also defaults to false
-  return false;
+  // Default to true - block feature is non-intrusive and enabled by default
+  return true;
 };
