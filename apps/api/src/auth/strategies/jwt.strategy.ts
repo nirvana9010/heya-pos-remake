@@ -25,7 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    if (payload.type === "merchant") {
+    // Treat undefined type as merchant (backward compat for old tokens)
+    if (payload.type === "merchant" || payload.type === undefined) {
       const merchantAuth = await this.prisma.merchantAuth.findUnique({
         where: { id: payload.sub },
         include: {

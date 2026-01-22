@@ -301,7 +301,10 @@ export class AuthService {
     console.log(`[AUTH] MerchantUser login for ${merchantUser.email}:`, {
       merchantName: merchant.name,
       role: merchantUser.role.name,
-      permissions: permissions.length > 5 ? `${permissions.length} permissions` : permissions,
+      permissions:
+        permissions.length > 5
+          ? `${permissions.length} permissions`
+          : permissions,
       locationIds,
     });
 
@@ -348,7 +351,8 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
 
-      if (payload.type === "merchant") {
+      // Treat undefined type as merchant (backward compat for old tokens)
+      if (payload.type === "merchant" || payload.type === undefined) {
         return this.refreshMerchantToken(payload);
       } else if (payload.type === "merchant_user") {
         return this.refreshMerchantUserToken(payload);

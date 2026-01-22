@@ -29,7 +29,8 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Merchant owners have all permissions
-    if (user.type === "merchant") {
+    // Also treat undefined type as merchant (backward compat for old tokens)
+    if (user.type === "merchant" || user.type === undefined) {
       return true;
     }
 
