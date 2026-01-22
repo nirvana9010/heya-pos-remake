@@ -37,8 +37,8 @@ const isBlocksEnabled = (merchant: any): boolean => {
       // ignore
     }
   }
-  // Default to true to match settings UI default
-  return true;
+  // Default to false - block feature requires explicit enablement
+  return false;
 };
 
 export const timeStringToMinutes = (time: string): number => {
