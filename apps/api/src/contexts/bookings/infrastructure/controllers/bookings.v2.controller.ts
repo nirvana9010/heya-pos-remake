@@ -33,6 +33,7 @@ import { CreateBookingV2Dto } from "../dto/create-booking-v2.dto";
 import { UpdateBookingV2Dto } from "../dto/update-booking-v2.dto";
 import { QueryBookingsDto, CalendarViewDto } from "../dto/query-bookings.dto";
 import { PrismaService } from "../../../../prisma/prisma.service";
+import { CacheService } from "../../../../common/cache/cache.service";
 import {
   startOfDay,
   endOfDay,
@@ -57,6 +58,7 @@ export class BookingsV2Controller {
     @Inject("IBookingRepository")
     private readonly bookingRepository: IBookingRepository,
     private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
   ) {}
 
   @Get()
@@ -152,7 +154,9 @@ export class BookingsV2Controller {
           endTime: { gt: rangeStart },
           ...(queryDto.staffId ? { staffId: queryDto.staffId } : {}),
           ...(queryDto.locationId
-            ? { OR: [{ locationId: queryDto.locationId }, { locationId: null }] }
+            ? {
+                OR: [{ locationId: queryDto.locationId }, { locationId: null }],
+              }
             : {}),
         },
         orderBy: { startTime: "asc" },
@@ -341,6 +345,14 @@ export class BookingsV2Controller {
     });
 
     const booking = await this.createBookingHandler.execute(command);
+
+    // Invalidate cache for this merchant's bookings list and calendar view
+    // This ensures the new booking appears immediately on refresh
+    await this.cacheService.deletePattern(`${user.merchantId}:bookings-list:.*`);
+    await this.cacheService.deletePattern(`${user.merchantId}:calendar-view:.*`);
+    console.log(
+      `[BookingsV2Controller] Cache invalidated for merchant ${user.merchantId} after booking creation`,
+    );
 
     // Fetch the full booking details to return enriched data
     const query = new GetBookingByIdQuery({
