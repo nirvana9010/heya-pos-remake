@@ -1,0 +1,418 @@
+"use client";
+
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Badge,
+  Spinner,
+} from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import { Plus, Edit, Trash2, Users, Shield } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+import { useAuth, usePermissions } from "@/lib/auth/auth-provider";
+import type {
+  MerchantUser,
+  MerchantRole,
+} from "@/lib/clients/merchant-users-client";
+import { InviteTeamMemberDialog } from "./InviteTeamMemberDialog";
+import { EditTeamMemberDialog } from "./EditTeamMemberDialog";
+
+interface TeamTabContentProps {
+  merchant: {
+    id: string;
+    name: string;
+    locations?: Array<{ id: string; name: string; isActive: boolean }>;
+  } | null;
+}
+
+export function TeamTabContent({ merchant }: TeamTabContentProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { can, isOwner } = usePermissions();
+
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState<MerchantUser | null>(null);
+
+  // Fetch team members
+  const {
+    data: members = [],
+    isLoading: membersLoading,
+    error: membersError,
+  } = useQuery({
+    queryKey: ["merchantUsers"],
+    queryFn: () => apiClient.merchantUsers.getMerchantUsers(),
+    staleTime: 30_000,
+  });
+
+  // Fetch roles
+  const { data: roles = [], isLoading: rolesLoading } = useQuery({
+    queryKey: ["merchantRoles"],
+    queryFn: () => apiClient.merchantUsers.getMerchantRoles(),
+    staleTime: 60_000,
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiClient.merchantUsers.deleteMerchantUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["merchantUsers"] });
+      toast({
+        title: "Team member removed",
+        description: "The team member has been removed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      const errorCode = error?.response?.data?.error;
+      let message = error?.response?.data?.message || "Failed to remove team member";
+
+      if (errorCode === "LAST_OWNER_DELETE") {
+        message = "Cannot delete the last owner. Assign another owner first.";
+      }
+
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Owner detection helpers
+  const ownerRole = useMemo(() => {
+    return roles.find(
+      (role) => role.isSystem && role.permissions.includes("*")
+    );
+  }, [roles]);
+
+  const activeOwnerCount = useMemo(() => {
+    if (!ownerRole) return 0;
+    return members.filter(
+      (m) => m.roleId === ownerRole.id && m.status === "ACTIVE"
+    ).length;
+  }, [members, ownerRole]);
+
+  const isLastOwner = useCallback(
+    (member: MerchantUser) => {
+      if (!ownerRole) return false;
+      return member.roleId === ownerRole.id && activeOwnerCount === 1;
+    },
+    [ownerRole, activeOwnerCount]
+  );
+
+  const isSelf = useCallback(
+    (member: MerchantUser) => {
+      // Check by merchantUserId if available, otherwise by email
+      if (user?.merchantUserId) {
+        return member.id === user.merchantUserId;
+      }
+      return member.email === user?.email;
+    },
+    [user]
+  );
+
+  const handleDelete = useCallback(
+    (member: MerchantUser) => {
+      if (isSelf(member)) {
+        toast({
+          title: "Cannot delete yourself",
+          description: "You cannot remove your own account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (isLastOwner(member)) {
+        toast({
+          title: "Cannot delete last owner",
+          description: "Assign another owner before deleting this one.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (
+        window.confirm(
+          `Are you sure you want to remove ${member.firstName} ${member.lastName || ""}?`
+        )
+      ) {
+        deleteMutation.mutate(member.id);
+      }
+    },
+    [isSelf, isLastOwner, deleteMutation, toast]
+  );
+
+  const handleInviteSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["merchantUsers"] });
+    setShowInviteDialog(false);
+  }, [queryClient]);
+
+  const handleEditSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["merchantUsers"] });
+    setEditingMember(null);
+  }, [queryClient]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return <Badge variant="default">Active</Badge>;
+      case "INACTIVE":
+        return <Badge variant="secondary">Pending</Badge>;
+      case "SUSPENDED":
+        return <Badge variant="destructive">Suspended</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getLocationDisplay = (member: MerchantUser) => {
+    if (!member.locations || member.locations.length === 0) {
+      return <span className="text-muted-foreground">All locations</span>;
+    }
+    const locationNames = member.locations.map((l) => l.location.name);
+    if (locationNames.length <= 2) {
+      return locationNames.join(", ");
+    }
+    return `${locationNames.slice(0, 2).join(", ")} +${locationNames.length - 2} more`;
+  };
+
+  const locations = useMemo(() => {
+    return merchant?.locations?.filter((l) => l.isActive) || [];
+  }, [merchant?.locations]);
+
+  if (membersLoading || rolesLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Spinner className="h-8 w-8" />
+      </div>
+    );
+  }
+
+  if (membersError) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-destructive">Failed to load team members</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["merchantUsers"] })
+            }
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Team Members Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Team Members
+              </CardTitle>
+              <CardDescription>
+                Manage who can access your business account
+              </CardDescription>
+            </div>
+            {can("staff.create") && (
+              <Button onClick={() => setShowInviteDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Invite Member
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {members.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No team members yet</p>
+              {can("staff.create") && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setShowInviteDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Invite your first team member
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Locations</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {member.firstName} {member.lastName || ""}
+                        {isSelf(member) && (
+                          <Badge variant="outline" className="ml-2">
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          member.role?.permissions?.includes("*")
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {member.role?.name || "Unknown"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{getLocationDisplay(member)}</TableCell>
+                    <TableCell>{getStatusBadge(member.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {can("staff.update") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingMember(member)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {can("staff.delete") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(member)}
+                            disabled={
+                              isSelf(member) ||
+                              isLastOwner(member) ||
+                              deleteMutation.isPending
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Roles Overview Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Roles Overview
+          </CardTitle>
+          <CardDescription>
+            System roles that define team member permissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {roles.map((role) => (
+              <div
+                key={role.id}
+                className="p-4 border rounded-lg bg-muted/30 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">{role.name}</h4>
+                  {role.isSystem && (
+                    <Badge variant="outline" className="text-xs">
+                      System
+                    </Badge>
+                  )}
+                </div>
+                {role.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {role.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-1 pt-2">
+                  {role.permissions.includes("*") ? (
+                    <Badge variant="secondary" className="text-xs">
+                      Full Access
+                    </Badge>
+                  ) : (
+                    role.permissions.slice(0, 3).map((perm) => (
+                      <Badge
+                        key={perm}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {perm}
+                      </Badge>
+                    ))
+                  )}
+                  {!role.permissions.includes("*") &&
+                    role.permissions.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{role.permissions.length - 3} more
+                      </Badge>
+                    )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <InviteTeamMemberDialog
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
+        roles={roles}
+        locations={locations}
+        onSuccess={handleInviteSuccess}
+      />
+
+      {editingMember && (
+        <EditTeamMemberDialog
+          open={!!editingMember}
+          onOpenChange={(open) => !open && setEditingMember(null)}
+          member={editingMember}
+          roles={roles}
+          locations={locations}
+          isSelf={isSelf(editingMember)}
+          isLastOwner={isLastOwner(editingMember)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+    </div>
+  );
+}

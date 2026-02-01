@@ -1,0 +1,112 @@
+import { BaseApiClient } from "./base-client";
+
+export type MerchantUserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
+export interface MerchantUserLocation {
+  locationId: string;
+  location: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface MerchantRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+  isSystem: boolean;
+  merchantId: string | null;
+}
+
+export interface MerchantUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string | null;
+  roleId: string;
+  status: MerchantUserStatus;
+  role: MerchantRole;
+  locations: MerchantUserLocation[];
+  invitedAt?: string;
+  inviteExpiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InviteMerchantUserRequest {
+  email: string;
+  firstName: string;
+  lastName?: string;
+  roleId: string;
+  locationIds?: string[];
+}
+
+export interface InviteMerchantUserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string | null;
+  inviteToken?: string;
+  inviteExpiresAt: string;
+  merchantName: string;
+}
+
+export interface UpdateMerchantUserRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  roleId?: string;
+  status?: MerchantUserStatus;
+  locationIds?: string[];
+}
+
+export class MerchantUsersClient extends BaseApiClient {
+  /**
+   * Get all merchant users for the current merchant
+   */
+  async getMerchantUsers(status?: MerchantUserStatus): Promise<MerchantUser[]> {
+    const params = status ? { status } : undefined;
+    return this.get("/merchant-users", { params }, "v1");
+  }
+
+  /**
+   * Get a single merchant user by ID
+   */
+  async getMerchantUser(id: string): Promise<MerchantUser> {
+    return this.get(`/merchant-users/${id}`, undefined, "v1");
+  }
+
+  /**
+   * Get all available roles for the merchant
+   */
+  async getMerchantRoles(): Promise<MerchantRole[]> {
+    return this.get("/merchant-users/roles", undefined, "v1");
+  }
+
+  /**
+   * Invite a new team member
+   */
+  async inviteMerchantUser(
+    data: InviteMerchantUserRequest
+  ): Promise<InviteMerchantUserResponse> {
+    return this.post("/merchant-users/invite", data, undefined, "v1");
+  }
+
+  /**
+   * Update a merchant user
+   */
+  async updateMerchantUser(
+    id: string,
+    data: UpdateMerchantUserRequest
+  ): Promise<MerchantUser> {
+    return this.patch(`/merchant-users/${id}`, data, undefined, "v1");
+  }
+
+  /**
+   * Delete a merchant user
+   */
+  async deleteMerchantUser(id: string): Promise<{ success: boolean }> {
+    return this.delete(`/merchant-users/${id}`, undefined, "v1");
+  }
+}

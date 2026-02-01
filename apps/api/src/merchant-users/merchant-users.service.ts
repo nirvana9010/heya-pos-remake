@@ -3,15 +3,15 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 import {
   CreateMerchantUserDto,
   UpdateMerchantUserDto,
   InviteMerchantUserDto,
-} from './dto';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+} from "./dto";
+import * as bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 
 @Injectable()
 export class MerchantUsersService {
@@ -29,7 +29,7 @@ export class MerchantUsersService {
     });
 
     if (existingUser) {
-      throw new ConflictException('A user with this email already exists');
+      throw new ConflictException("A user with this email already exists");
     }
 
     // Verify role exists and is accessible to this merchant
@@ -87,7 +87,7 @@ export class MerchantUsersService {
     });
 
     if (existingUser) {
-      throw new ConflictException('A user with this email already exists');
+      throw new ConflictException("A user with this email already exists");
     }
 
     // Verify role exists and is accessible to this merchant
@@ -99,7 +99,7 @@ export class MerchantUsersService {
     }
 
     // Generate invite token
-    const inviteToken = randomBytes(32).toString('hex');
+    const inviteToken = randomBytes(32).toString("hex");
     const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     // Create user with pending status
@@ -107,11 +107,11 @@ export class MerchantUsersService {
       data: {
         merchantId,
         email: dto.email.toLowerCase(),
-        passwordHash: '', // Will be set when user accepts invite
+        passwordHash: "", // Will be set when user accepts invite
         firstName: dto.firstName,
         lastName: dto.lastName,
         roleId: dto.roleId,
-        status: 'INACTIVE', // Will be set to ACTIVE when invite is accepted
+        status: "INACTIVE", // Will be set to ACTIVE when invite is accepted
         invitedAt: new Date(),
         inviteToken,
         inviteExpiresAt,
@@ -163,15 +163,15 @@ export class MerchantUsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Invalid or expired invite token');
+      throw new NotFoundException("Invalid or expired invite token");
     }
 
     if (user.inviteExpiresAt && user.inviteExpiresAt < new Date()) {
-      throw new BadRequestException('Invite has expired');
+      throw new BadRequestException("Invite has expired");
     }
 
-    if (user.status === 'ACTIVE') {
-      throw new BadRequestException('Invite has already been accepted');
+    if (user.status === "ACTIVE") {
+      throw new BadRequestException("Invite has already been accepted");
     }
 
     // Hash password and activate user
@@ -181,7 +181,7 @@ export class MerchantUsersService {
       where: { id: user.id },
       data: {
         passwordHash,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         inviteToken: null,
         inviteExpiresAt: null,
       },
@@ -219,7 +219,7 @@ export class MerchantUsersService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
@@ -244,7 +244,7 @@ export class MerchantUsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     const { passwordHash, inviteToken, ...userWithoutPassword } = user;
@@ -285,7 +285,43 @@ export class MerchantUsersService {
     });
 
     if (!existingUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
+    }
+
+    // Check last-owner protection
+    const ownerRole = await this.getOwnerRole();
+    if (ownerRole && existingUser.roleId === ownerRole.id) {
+      // User is currently an owner
+      const isBeingDemoted = dto.roleId && dto.roleId !== ownerRole.id;
+      const isBeingDeactivated =
+        dto.status &&
+        dto.status !== "ACTIVE" &&
+        existingUser.status === "ACTIVE";
+
+      if (isBeingDemoted || isBeingDeactivated) {
+        // Check if there are other active owners
+        const otherActiveOwners = await this.prisma.merchantUser.count({
+          where: {
+            merchantId,
+            roleId: ownerRole.id,
+            status: "ACTIVE",
+            id: { not: id },
+          },
+        });
+
+        if (otherActiveOwners === 0) {
+          const errorType = isBeingDemoted
+            ? "LAST_OWNER_ROLE_CHANGE"
+            : "LAST_OWNER_STATUS_CHANGE";
+          throw new BadRequestException({
+            statusCode: 400,
+            error: errorType,
+            message: isBeingDemoted
+              ? "Cannot change role of the last owner. Assign another owner first."
+              : "Cannot deactivate the last owner. Assign another owner first.",
+          });
+        }
+      }
     }
 
     // Check for email uniqueness if changing email
@@ -300,7 +336,7 @@ export class MerchantUsersService {
       });
 
       if (emailExists) {
-        throw new ConflictException('A user with this email already exists');
+        throw new ConflictException("A user with this email already exists");
       }
     }
 
@@ -372,7 +408,8 @@ export class MerchantUsersService {
         },
       });
 
-      const { passwordHash, inviteToken, ...userWithoutPassword } = updatedUser!;
+      const { passwordHash, inviteToken, ...userWithoutPassword } =
+        updatedUser!;
       return userWithoutPassword;
     }
 
@@ -387,7 +424,29 @@ export class MerchantUsersService {
     });
 
     if (!existingUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
+    }
+
+    // Check last-owner protection
+    const ownerRole = await this.getOwnerRole();
+    if (ownerRole && existingUser.roleId === ownerRole.id) {
+      // Check if there are other active owners
+      const otherActiveOwners = await this.prisma.merchantUser.count({
+        where: {
+          merchantId,
+          roleId: ownerRole.id,
+          status: "ACTIVE",
+          id: { not: id },
+        },
+      });
+
+      if (otherActiveOwners === 0) {
+        throw new BadRequestException({
+          statusCode: 400,
+          error: "LAST_OWNER_DELETE",
+          message: "Cannot delete the last owner. Assign another owner first.",
+        });
+      }
     }
 
     await this.prisma.merchantUser.delete({
@@ -404,7 +463,7 @@ export class MerchantUsersService {
       where: {
         OR: [{ merchantId: null }, { merchantId }],
       },
-      orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
+      orderBy: [{ isSystem: "desc" }, { name: "asc" }],
     });
   }
 
@@ -423,7 +482,7 @@ export class MerchantUsersService {
     });
 
     if (existingRole) {
-      throw new ConflictException('A role with this name already exists');
+      throw new ConflictException("A role with this name already exists");
     }
 
     return this.prisma.merchantRole.create({
@@ -450,11 +509,11 @@ export class MerchantUsersService {
     });
 
     if (!role) {
-      throw new NotFoundException('Role not found or cannot be modified');
+      throw new NotFoundException("Role not found or cannot be modified");
     }
 
     if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be modified');
+      throw new BadRequestException("System roles cannot be modified");
     }
 
     return this.prisma.merchantRole.update({
@@ -472,11 +531,11 @@ export class MerchantUsersService {
     });
 
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException("Role not found");
     }
 
     if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be deleted');
+      throw new BadRequestException("System roles cannot be deleted");
     }
 
     // Check if any users are using this role
@@ -486,7 +545,7 @@ export class MerchantUsersService {
 
     if (usersWithRole > 0) {
       throw new BadRequestException(
-        'Cannot delete role that is assigned to users',
+        "Cannot delete role that is assigned to users",
       );
     }
 
@@ -498,6 +557,13 @@ export class MerchantUsersService {
   }
 
   // Helper methods
+  private async getOwnerRole() {
+    return this.prisma.merchantRole.findFirst({
+      where: { merchantId: null, isSystem: true, permissions: { has: "*" } },
+      select: { id: true },
+    });
+  }
+
   private async validateRole(merchantId: string, roleId: string) {
     const role = await this.prisma.merchantRole.findFirst({
       where: {
@@ -507,7 +573,7 @@ export class MerchantUsersService {
     });
 
     if (!role) {
-      throw new BadRequestException('Invalid role');
+      throw new BadRequestException("Invalid role");
     }
 
     return role;
@@ -522,7 +588,7 @@ export class MerchantUsersService {
     });
 
     if (locations.length !== locationIds.length) {
-      throw new BadRequestException('One or more locations are invalid');
+      throw new BadRequestException("One or more locations are invalid");
     }
 
     return locations;

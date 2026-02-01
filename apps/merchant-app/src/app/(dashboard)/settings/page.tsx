@@ -65,6 +65,7 @@ import { useFeatures } from "@/lib/features/feature-service";
 import { TyroPairingDialog } from "@/components/tyro/TyroPairingDialog";
 import { TyroStatusIndicator } from "@/components/tyro/TyroStatusIndicator";
 import { HolidayManager } from "@/components/settings/HolidayManager";
+import { TeamTabContent } from "@/components/settings/TeamTabContent";
 import { useTyro } from "@/hooks/useTyro";
 import type { CustomerImportPreview } from "@/lib/clients/customers-client";
 import { customerKeys } from "@/lib/query/hooks/use-customers";
@@ -79,7 +80,7 @@ export default function SettingsPage() {
   const { clearPairing, isPaired } = useTyro();
   const queryClient = useQueryClient();
   const { features, modules, loading: featuresLoading } = useFeatures();
-  const { permissions, isOwner } = usePermissions();
+  const { permissions, isOwner, can } = usePermissions();
   // Initialize with merchant settings if available to prevent flicker
   const merchantSettings = merchant?.settings || {};
 
@@ -1523,11 +1524,12 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="business" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7">
           <TabsTrigger value="business">Business</TabsTrigger>
           <TabsTrigger value="booking">Booking</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {can("staff.view") && <TabsTrigger value="team">Team</TabsTrigger>}
           <TabsTrigger value="import">Import</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
@@ -2984,6 +2986,12 @@ export default function SettingsPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {can("staff.view") && (
+          <TabsContent value="team" className="space-y-6">
+            <TeamTabContent merchant={merchant} />
+          </TabsContent>
+        )}
 
         <TabsContent value="subscription" className="space-y-6">
           <Card>
