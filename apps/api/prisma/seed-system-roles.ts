@@ -85,6 +85,8 @@ const SYSTEM_ROLES = [
       'payment.process',
       // Reports (view only)
       'reports.view',
+      // Settings (view only)
+      'settings.view',
     ],
     isSystem: true,
   },
