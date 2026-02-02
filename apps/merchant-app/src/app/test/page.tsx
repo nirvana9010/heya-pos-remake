@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@heya-pos/ui';
 import { Button } from '@heya-pos/ui';
-import { Palette, Database, CreditCard, ShieldCheck, Zap, Calendar, Users, Settings, ArrowRight, FlaskConical } from 'lucide-react';
+import { Palette, Database, CreditCard, ShieldCheck, Zap, Calendar, Users, Settings, ArrowRight, FlaskConical, Printer } from 'lucide-react';
 
 export default function TestPage() {
   const router = useRouter();
@@ -55,6 +55,14 @@ export default function TestPage() {
       path: '/test-ui',
       icon: FlaskConical,
       category: 'UI/UX',
+      status: 'active'
+    },
+    {
+      title: 'Printer Test',
+      description: 'Test thermal printer and cash drawer via Android print server',
+      path: '/test/print-test',
+      icon: Printer,
+      category: 'Hardware',
       status: 'active'
     }
   ];
