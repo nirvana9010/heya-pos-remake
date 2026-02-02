@@ -19,20 +19,82 @@ import {
   Spinner,
 } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
-import { Plus, Edit, Trash2, Users, Shield } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Shield, Crown } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth, usePermissions } from "@/lib/auth/auth-provider";
 import type {
   MerchantUser,
   MerchantRole,
 } from "@/lib/clients/merchant-users-client";
-import { InviteTeamMemberDialog } from "./InviteTeamMemberDialog";
+import { AddTeamMemberDialog } from "./AddTeamMemberDialog";
 import { EditTeamMemberDialog } from "./EditTeamMemberDialog";
+
+// Human-readable permission labels grouped by category
+const PERMISSION_LABELS: Record<string, { label: string; category: string }> = {
+  // Bookings
+  "booking.read": { label: "View Bookings", category: "Bookings" },
+  "booking.create": { label: "Create Bookings", category: "Bookings" },
+  "booking.update": { label: "Edit Bookings", category: "Bookings" },
+  "booking.cancel": { label: "Cancel Bookings", category: "Bookings" },
+  "booking.delete": { label: "Delete Bookings", category: "Bookings" },
+  // Customers
+  "customers.read": { label: "View Customers", category: "Customers" },
+  "customers.create": { label: "Add Customers", category: "Customers" },
+  "customers.update": { label: "Edit Customers", category: "Customers" },
+  "customers.delete": { label: "Delete Customers", category: "Customers" },
+  "customers.export": { label: "Export Customers", category: "Customers" },
+  "customers.import": { label: "Import Customers", category: "Customers" },
+  // Services
+  "service.view": { label: "View Services", category: "Services" },
+  "service.create": { label: "Add Services", category: "Services" },
+  "service.update": { label: "Edit Services", category: "Services" },
+  "service.delete": { label: "Delete Services", category: "Services" },
+  // Staff
+  "staff.view": { label: "View Staff", category: "Staff" },
+  "staff.create": { label: "Add Staff", category: "Staff" },
+  "staff.update": { label: "Edit Staff", category: "Staff" },
+  "staff.delete": { label: "Delete Staff", category: "Staff" },
+  // Payments
+  "payment.view": { label: "View Payments", category: "Payments" },
+  "payment.create": { label: "Create Payments", category: "Payments" },
+  "payment.process": { label: "Process Payments", category: "Payments" },
+  "payment.refund": { label: "Process Refunds", category: "Payments" },
+  // Reports
+  "reports.view": { label: "View Reports", category: "Reports" },
+  "reports.export": { label: "Export Reports", category: "Reports" },
+  // Settings
+  "settings.view": { label: "View Settings", category: "Settings" },
+  "settings.update": { label: "Edit Settings", category: "Settings" },
+  "settings.billing": { label: "Manage Billing", category: "Settings" },
+};
+
+// Group permissions by category for display
+function groupPermissionsByCategory(permissions: string[]): Record<string, string[]> {
+  const grouped: Record<string, string[]> = {};
+
+  for (const perm of permissions) {
+    const info = PERMISSION_LABELS[perm];
+    if (info) {
+      if (!grouped[info.category]) {
+        grouped[info.category] = [];
+      }
+      grouped[info.category].push(info.label);
+    }
+  }
+
+  return grouped;
+}
+
+// Get human-readable label for a permission
+function getPermissionLabel(permission: string): string {
+  return PERMISSION_LABELS[permission]?.label || permission;
+}
 
 interface TeamTabContentProps {
   merchant: {
     id: string;
     name: string;
+    email?: string;
     locations?: Array<{ id: string; name: string; isActive: boolean }>;
   } | null;
 }
@@ -41,7 +103,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { can, isOwner } = usePermissions();
+  const { can, isOwner: isCurrentUserOwner, isMerchantOwner } = usePermissions();
 
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<MerchantUser | null>(null);
@@ -63,6 +125,36 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
     queryFn: () => apiClient.merchantUsers.getMerchantRoles(),
     staleTime: 60_000,
   });
+
+  // Create a combined list that includes the merchant owner
+  const allMembers = useMemo(() => {
+    const ownerRole = roles.find(
+      (role) => role.isSystem && role.permissions.includes("*")
+    );
+
+    // Always create a virtual "owner" entry for the merchant/business account
+    // This represents the primary business login (MerchantAuth), not a MerchantUser
+    const ownerEntry: MerchantUser | null = merchant ? {
+      id: "merchant-owner",
+      merchantId: merchant.id,
+      email: merchant.email || "",
+      firstName: merchant.name,
+      lastName: "",
+      status: "ACTIVE" as const,
+      roleId: ownerRole?.id || "",
+      role: ownerRole || { id: "", name: "Owner", permissions: ["*"], isSystem: true, description: "Full access", merchantId: null },
+      locations: [],
+      createdAt: "",
+      updatedAt: "",
+    } : null;
+
+    // Always prepend owner entry at top
+    if (ownerEntry) {
+      return [ownerEntry, ...members];
+    }
+
+    return members;
+  }, [members, roles, merchant]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -114,17 +206,34 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
 
   const isSelf = useCallback(
     (member: MerchantUser) => {
+      // Virtual owner entry
+      if (member.id === "merchant-owner") {
+        return isMerchantOwner;
+      }
       // Check by merchantUserId if available, otherwise by email
       if (user?.merchantUserId) {
         return member.id === user.merchantUserId;
       }
       return member.email === user?.email;
     },
-    [user]
+    [user, isMerchantOwner]
   );
+
+  const isVirtualOwner = useCallback((member: MerchantUser) => {
+    return member.id === "merchant-owner";
+  }, []);
 
   const handleDelete = useCallback(
     (member: MerchantUser) => {
+      if (isVirtualOwner(member)) {
+        toast({
+          title: "Cannot delete owner",
+          description: "The business owner account cannot be deleted.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (isSelf(member)) {
         toast({
           title: "Cannot delete yourself",
@@ -151,7 +260,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
         deleteMutation.mutate(member.id);
       }
     },
-    [isSelf, isLastOwner, deleteMutation, toast]
+    [isSelf, isLastOwner, isVirtualOwner, deleteMutation, toast]
   );
 
   const handleInviteSuccess = useCallback(() => {
@@ -237,13 +346,13 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
             {can("staff.create") && (
               <Button onClick={() => setShowInviteDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Invite Member
+                Add Team Member
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
+          {allMembers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No team members yet</p>
@@ -254,7 +363,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                   onClick={() => setShowInviteDialog(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Invite your first team member
+                  Add your first team member
                 </Button>
               )}
             </div>
@@ -271,10 +380,13 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {members.map((member) => (
+                {allMembers.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell>
-                      <div className="font-medium">
+                      <div className="font-medium flex items-center gap-2">
+                        {isVirtualOwner(member) && (
+                          <Crown className="h-4 w-4 text-yellow-500" />
+                        )}
                         {member.firstName} {member.lastName || ""}
                         {isSelf(member) && (
                           <Badge variant="outline" className="ml-2">
@@ -292,14 +404,14 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                             : "secondary"
                         }
                       >
-                        {member.role?.name || "Unknown"}
+                        {member.role?.name || "Owner"}
                       </Badge>
                     </TableCell>
                     <TableCell>{getLocationDisplay(member)}</TableCell>
                     <TableCell>{getStatusBadge(member.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {can("staff.update") && (
+                        {!isVirtualOwner(member) && can("staff.update") && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -308,7 +420,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
-                        {can("staff.delete") && (
+                        {!isVirtualOwner(member) && can("staff.delete") && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -321,6 +433,11 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        )}
+                        {isVirtualOwner(member) && (
+                          <span className="text-xs text-muted-foreground">
+                            Primary account
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -345,55 +462,64 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {roles.map((role) => (
-              <div
-                key={role.id}
-                className="p-4 border rounded-lg bg-muted/30 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">{role.name}</h4>
-                  {role.isSystem && (
-                    <Badge variant="outline" className="text-xs">
-                      System
-                    </Badge>
-                  )}
-                </div>
-                {role.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {role.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-1 pt-2">
-                  {role.permissions.includes("*") ? (
-                    <Badge variant="secondary" className="text-xs">
-                      Full Access
-                    </Badge>
-                  ) : (
-                    role.permissions.slice(0, 3).map((perm) => (
-                      <Badge
-                        key={perm}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {perm}
-                      </Badge>
-                    ))
-                  )}
-                  {!role.permissions.includes("*") &&
-                    role.permissions.length > 3 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{role.permissions.length - 3} more
+            {roles.map((role) => {
+              const groupedPermissions = role.permissions.includes("*")
+                ? null
+                : groupPermissionsByCategory(role.permissions);
+
+              return (
+                <div
+                  key={role.id}
+                  className="p-4 border rounded-lg bg-muted/30 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">{role.name}</h4>
+                    {role.isSystem && (
+                      <Badge variant="outline" className="text-xs">
+                        System
                       </Badge>
                     )}
+                  </div>
+                  {role.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {role.description}
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    {role.permissions.includes("*") ? (
+                      <Badge variant="default" className="text-xs">
+                        Full Access
+                      </Badge>
+                    ) : groupedPermissions ? (
+                      Object.entries(groupedPermissions).map(([category, perms]) => (
+                        <div key={category}>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {category}:
+                          </span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {perms.map((perm) => (
+                              <Badge
+                                key={perm}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {perm}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
       {/* Dialogs */}
-      <InviteTeamMemberDialog
+      <AddTeamMemberDialog
         open={showInviteDialog}
         onOpenChange={setShowInviteDialog}
         roles={roles}
@@ -401,7 +527,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
         onSuccess={handleInviteSuccess}
       />
 
-      {editingMember && (
+      {editingMember && !isVirtualOwner(editingMember) && (
         <EditTeamMemberDialog
           open={!!editingMember}
           onOpenChange={(open) => !open && setEditingMember(null)}

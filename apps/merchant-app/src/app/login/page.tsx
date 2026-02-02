@@ -255,6 +255,29 @@ export default function LoginPage() {
                   className="w-full"
                   onClick={() => {
                     setFormData({
+                      email: 'staff@hamiltonbeauty.com',
+                      password: 'staff123'
+                    });
+                    // Auto submit after a short delay
+                    setTimeout(() => {
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(submitEvent);
+                      }
+                    }, 100);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  💅 Quick Login as Hamilton Beauty (Staff)
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFormData({
                       email: 'lukas.tn90@gmail.com',
                       password: 'demo456'
                     });

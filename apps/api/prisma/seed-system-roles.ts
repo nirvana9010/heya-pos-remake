@@ -5,10 +5,12 @@ const prisma = new PrismaClient();
 /**
  * System roles that are available to all merchants.
  * These roles have merchantId = null, making them global.
+ *
+ * Simplified for nail salon use case: Owner, Manager, Staff
  */
 /**
  * Permission naming conventions (must match controller decorators):
- * - booking.* (singular) - booking.read, booking.create, booking.update, booking.delete
+ * - booking.* (singular) - booking.read, booking.create, booking.update, booking.cancel, booking.delete
  * - customers.* (plural) - customers.read, customers.create, customers.update, customers.delete, customers.export, customers.import
  * - service.* (singular) - service.view, service.create, service.update, service.delete
  * - staff.* - staff.view, staff.create, staff.update, staff.delete
@@ -24,53 +26,14 @@ const SYSTEM_ROLES = [
     isSystem: true,
   },
   {
-    name: 'Admin',
-    description: 'Full access except billing settings',
-    permissions: [
-      // Bookings (singular)
-      'booking.read',
-      'booking.create',
-      'booking.update',
-      'booking.delete',
-      // Customers (plural, uses 'read' not 'view')
-      'customers.read',
-      'customers.create',
-      'customers.update',
-      'customers.delete',
-      'customers.export',
-      'customers.import',
-      // Staff
-      'staff.view',
-      'staff.create',
-      'staff.update',
-      'staff.delete',
-      // Services (singular)
-      'service.view',
-      'service.create',
-      'service.update',
-      'service.delete',
-      // Payments
-      'payment.view',
-      'payment.create',
-      'payment.process',
-      'payment.refund',
-      // Reports
-      'reports.view',
-      'reports.export',
-      // Settings (excluding billing)
-      'settings.view',
-      'settings.update',
-    ],
-    isSystem: true,
-  },
-  {
     name: 'Manager',
-    description: 'Manage daily operations, bookings, customers, and view reports',
+    description: 'Manage daily operations, bookings, customers, payments, and view reports',
     permissions: [
       // Bookings
       'booking.read',
       'booking.create',
       'booking.update',
+      'booking.cancel',
       // Customers
       'customers.read',
       'customers.create',
@@ -79,10 +42,11 @@ const SYSTEM_ROLES = [
       'staff.view',
       // Services (view only)
       'service.view',
-      // Payments
+      // Payments (including refunds)
       'payment.view',
       'payment.create',
       'payment.process',
+      'payment.refund',
       // Reports (view only)
       'reports.view',
       // Settings (view only)
@@ -91,40 +55,30 @@ const SYSTEM_ROLES = [
     isSystem: true,
   },
   {
-    name: 'Receptionist',
-    description: 'Handle bookings, view customers, and process payments',
+    name: 'Staff',
+    description: 'Handle bookings, customers, and process payments',
     permissions: [
-      // Bookings
+      // Bookings (including cancel)
       'booking.read',
       'booking.create',
       'booking.update',
+      'booking.cancel',
       // Customers
       'customers.read',
       'customers.create',
       // Services (view only)
       'service.view',
-      // Payments
+      // Payments (no refunds)
       'payment.view',
       'payment.create',
       'payment.process',
     ],
     isSystem: true,
   },
-  {
-    name: 'View Only',
-    description: 'Read-only access to all data',
-    permissions: [
-      'booking.read',
-      'customers.read',
-      'staff.view',
-      'service.view',
-      'payment.view',
-      'reports.view',
-      'settings.view',
-    ],
-    isSystem: true,
-  },
 ];
+
+// Roles to deprecate (will be hidden from UI by setting isSystem=false)
+const DEPRECATED_ROLES = ['Admin', 'Receptionist', 'View Only'];
 
 async function seedSystemRoles() {
   console.log('🔑 Seeding system roles...');
@@ -164,7 +118,36 @@ async function seedSystemRoles() {
     }
   }
 
-  console.log('✅ System roles seeded successfully');
+  // Deprecate old roles by setting isSystem=false (hides from UI)
+  console.log('\n🧹 Deprecating unused roles...');
+  for (const roleName of DEPRECATED_ROLES) {
+    const role = await prisma.merchantRole.findFirst({
+      where: {
+        merchantId: null,
+        name: roleName,
+        isSystem: true,
+      },
+    });
+
+    if (role) {
+      // Check if any users are assigned to this role
+      const userCount = await prisma.merchantUser.count({
+        where: { roleId: role.id },
+      });
+
+      if (userCount > 0) {
+        console.log(`  ⚠ ${roleName} role has ${userCount} user(s) - keeping active`);
+      } else {
+        await prisma.merchantRole.update({
+          where: { id: role.id },
+          data: { isSystem: false },
+        });
+        console.log(`  ✓ ${roleName} role deprecated (isSystem=false)`);
+      }
+    }
+  }
+
+  console.log('\n✅ System roles seeded successfully');
 }
 
 async function main() {

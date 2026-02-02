@@ -22,12 +22,10 @@ import {
 } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
-import type {
-  MerchantRole,
-  InviteMerchantUserRequest,
-} from "@/lib/clients/merchant-users-client";
+import type { MerchantRole } from "@/lib/clients/merchant-users-client";
+import { Eye, EyeOff } from "lucide-react";
 
-interface InviteTeamMemberDialogProps {
+interface AddTeamMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   roles: MerchantRole[];
@@ -35,23 +33,23 @@ interface InviteTeamMemberDialogProps {
   onSuccess: () => void;
 }
 
-export function InviteTeamMemberDialog({
+export function AddTeamMemberDialog({
   open,
   onOpenChange,
   roles,
   locations,
   onSuccess,
-}: InviteTeamMemberDialogProps) {
+}: AddTeamMemberDialogProps) {
   const { toast } = useToast();
 
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [roleId, setRoleId] = useState("");
-  const [locationAccess, setLocationAccess] = useState<"all" | "specific">(
-    "all"
-  );
+  const [locationAccess, setLocationAccess] = useState<"all" | "specific">("all");
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
   // Reset form when dialog opens/closes
@@ -60,6 +58,8 @@ export function InviteTeamMemberDialog({
       setFirstName("");
       setLastName("");
       setEmail("");
+      setPassword("");
+      setShowPassword(false);
       setRoleId("");
       setLocationAccess("all");
       setSelectedLocations([]);
@@ -69,28 +69,33 @@ export function InviteTeamMemberDialog({
   // Set default role when roles are loaded
   useEffect(() => {
     if (roles.length > 0 && !roleId) {
-      // Default to first non-owner role, or first role if all are owners
-      const defaultRole =
-        roles.find((r) => !r.permissions.includes("*")) || roles[0];
+      // Default to Staff role, or first non-owner role
+      const staffRole = roles.find((r) => r.name === "Staff");
+      const defaultRole = staffRole || roles.find((r) => !r.permissions.includes("*")) || roles[0];
       if (defaultRole) {
         setRoleId(defaultRole.id);
       }
     }
   }, [roles, roleId]);
 
-  const inviteMutation = useMutation({
-    mutationFn: (data: InviteMerchantUserRequest) =>
-      apiClient.merchantUsers.inviteMerchantUser(data),
+  const createMutation = useMutation({
+    mutationFn: (data: {
+      firstName: string;
+      lastName?: string;
+      email: string;
+      password: string;
+      roleId: string;
+      locationIds?: string[];
+    }) => apiClient.merchantUsers.createMerchantUser(data),
     onSuccess: (result) => {
       toast({
-        title: "Invitation sent",
-        description: `An invitation has been sent to ${result.email}`,
+        title: "Team member added",
+        description: `${result.firstName} can now log in with their email and password.`,
       });
       onSuccess();
     },
     onError: (error: any) => {
-      const message =
-        error?.response?.data?.message || "Failed to send invitation";
+      const message = error?.response?.data?.message || "Failed to create team member";
       toast({
         title: "Error",
         description: message,
@@ -121,6 +126,15 @@ export function InviteTeamMemberDialog({
       return;
     }
 
+    if (!password || password.length < 8) {
+      toast({
+        title: "Password required",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!roleId) {
       toast({
         title: "Role required",
@@ -139,16 +153,14 @@ export function InviteTeamMemberDialog({
       return;
     }
 
-    const data: InviteMerchantUserRequest = {
+    createMutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim() || undefined,
       email: email.trim().toLowerCase(),
+      password,
       roleId,
-      // Only send locationIds if specific locations are selected
       locationIds: locationAccess === "specific" ? selectedLocations : undefined,
-    };
-
-    inviteMutation.mutate(data);
+    });
   };
 
   const toggleLocation = (locationId: string) => {
@@ -164,10 +176,10 @@ export function InviteTeamMemberDialog({
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Invite Team Member</DialogTitle>
+            <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
-              Send an invitation to a new team member. They will receive an
-              email with instructions to set up their account.
+              Create a login for a new staff member. They can use this email and
+              password to log in on any device.
             </DialogDescription>
           </DialogHeader>
 
@@ -181,7 +193,7 @@ export function InviteTeamMemberDialog({
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Jane"
-                  disabled={inviteMutation.isPending}
+                  disabled={createMutation.isPending}
                 />
               </div>
               <div className="space-y-2">
@@ -191,7 +203,7 @@ export function InviteTeamMemberDialog({
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Smith"
-                  disabled={inviteMutation.isPending}
+                  disabled={createMutation.isPending}
                 />
               </div>
             </div>
@@ -205,8 +217,31 @@ export function InviteTeamMemberDialog({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jane@example.com"
-                disabled={inviteMutation.isPending}
+                disabled={createMutation.isPending}
               />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 characters"
+                  disabled={createMutation.isPending}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {/* Role */}
@@ -215,12 +250,12 @@ export function InviteTeamMemberDialog({
               <Select
                 value={roleId}
                 onValueChange={setRoleId}
-                disabled={inviteMutation.isPending}
+                disabled={createMutation.isPending}
               >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="item-aligned">
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {role.name}
@@ -242,7 +277,7 @@ export function InviteTeamMemberDialog({
                       name="locationAccess"
                       checked={locationAccess === "all"}
                       onChange={() => setLocationAccess("all")}
-                      disabled={inviteMutation.isPending}
+                      disabled={createMutation.isPending}
                       className="h-4 w-4"
                     />
                     <span>All locations</span>
@@ -253,7 +288,7 @@ export function InviteTeamMemberDialog({
                       name="locationAccess"
                       checked={locationAccess === "specific"}
                       onChange={() => setLocationAccess("specific")}
-                      disabled={inviteMutation.isPending}
+                      disabled={createMutation.isPending}
                       className="h-4 w-4"
                     />
                     <span>Specific locations</span>
@@ -270,7 +305,7 @@ export function InviteTeamMemberDialog({
                         <Checkbox
                           checked={selectedLocations.includes(location.id)}
                           onCheckedChange={() => toggleLocation(location.id)}
-                          disabled={inviteMutation.isPending}
+                          disabled={createMutation.isPending}
                         />
                         <span>{location.name}</span>
                       </label>
@@ -286,18 +321,18 @@ export function InviteTeamMemberDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={inviteMutation.isPending}
+              disabled={createMutation.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={inviteMutation.isPending}>
-              {inviteMutation.isPending ? (
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
                 <>
                   <Spinner className="h-4 w-4 mr-2" />
-                  Sending...
+                  Creating...
                 </>
               ) : (
-                "Send Invitation"
+                "Add Team Member"
               )}
             </Button>
           </DialogFooter>

@@ -278,7 +278,7 @@ export function EditTeamMemberDialog({
                 <SelectTrigger id="edit-role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="item-aligned">
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {role.name}
@@ -307,7 +307,7 @@ export function EditTeamMemberDialog({
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="item-aligned">
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="INACTIVE">Inactive</SelectItem>
                   <SelectItem value="SUSPENDED">Suspended</SelectItem>

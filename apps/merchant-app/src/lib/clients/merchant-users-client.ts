@@ -52,6 +52,15 @@ export interface InviteMerchantUserResponse {
   merchantName: string;
 }
 
+export interface CreateMerchantUserRequest {
+  email: string;
+  firstName: string;
+  lastName?: string;
+  password: string;
+  roleId: string;
+  locationIds?: string[];
+}
+
 export interface UpdateMerchantUserRequest {
   email?: string;
   firstName?: string;
@@ -85,12 +94,21 @@ export class MerchantUsersClient extends BaseApiClient {
   }
 
   /**
-   * Invite a new team member
+   * Invite a new team member (legacy - prefer createMerchantUser)
    */
   async inviteMerchantUser(
     data: InviteMerchantUserRequest
   ): Promise<InviteMerchantUserResponse> {
     return this.post("/merchant-users/invite", data, undefined, "v1");
+  }
+
+  /**
+   * Create a new team member with email and password
+   */
+  async createMerchantUser(
+    data: CreateMerchantUserRequest
+  ): Promise<MerchantUser> {
+    return this.post("/merchant-users", data, undefined, "v1");
   }
 
   /**
