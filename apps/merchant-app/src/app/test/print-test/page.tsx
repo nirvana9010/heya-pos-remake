@@ -9,56 +9,67 @@ import { Printer, DollarSign, Receipt, CheckCircle2, XCircle, Loader2 } from 'lu
 
 const PRINT_SERVER_URL = 'http://127.0.0.1:9100';
 
+// Helper to create a print line
+function line(text: string, align: 'left' | 'center' | 'right' = 'left', bold = false) {
+  return { text, align, bold };
+}
+
+// Helper to create a separator line
+function separator() {
+  return line('--------------------------------', 'center');
+}
+
 // Sample receipt payload for thermal printer
 function createSampleReceipt() {
   const now = new Date();
+  const date = now.toLocaleDateString('en-AU');
+  const time = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  const txnId = `TXN${Date.now().toString().slice(-8)}`;
+
   return {
-    // Header
-    storeName: 'Heya Beauty Salon',
-    storeAddress: '123 Main Street, Sydney NSW 2000',
-    storePhone: '(02) 9876 5432',
-
-    // Transaction details
-    transactionId: `TXN${Date.now().toString().slice(-8)}`,
-    date: now.toLocaleDateString('en-AU'),
-    time: now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }),
-
-    // Customer info (optional)
-    customerName: 'Jane Smith',
-    customerPhone: '0412 345 678',
-
-    // Line items
-    items: [
-      { name: 'Hair Cut & Style', qty: 1, price: 85.00 },
-      { name: 'Hair Colour - Full', qty: 1, price: 150.00 },
-      { name: 'Deep Conditioning Treatment', qty: 1, price: 45.00 },
+    lines: [
+      line('HEYA BEAUTY SALON', 'center', true),
+      line('123 Main Street', 'center'),
+      line('Sydney NSW 2000', 'center'),
+      line('(02) 9876 5432', 'center'),
+      separator(),
+      line(`Date: ${date}  Time: ${time}`, 'left'),
+      line(`Transaction: ${txnId}`, 'left'),
+      line('Customer: Jane Smith', 'left'),
+      separator(),
+      line('Hair Cut & Style', 'left'),
+      line('  1 x $85.00', 'right'),
+      line('Hair Colour - Full', 'left'),
+      line('  1 x $150.00', 'right'),
+      line('Deep Conditioning', 'left'),
+      line('  1 x $45.00', 'right'),
+      separator(),
+      line('Subtotal:          $280.00', 'right'),
+      line('GST (10%):          $28.00', 'right'),
+      separator(),
+      line('TOTAL:             $280.00', 'right', true),
+      line('Paid by Card:      $280.00', 'right'),
+      separator(),
+      line('Thank you for visiting!', 'center'),
+      line('book.heyapos.com/heya-beauty', 'center'),
+      line('', 'left'),
     ],
-
-    // Totals
-    subtotal: 280.00,
-    gst: 28.00,
-    discount: 0,
-    total: 280.00,
-
-    // Payment
-    paymentMethod: 'Card',
-    amountPaid: 280.00,
-    change: 0,
-
-    // Footer
-    footerMessage: 'Thank you for visiting Heya Beauty!',
-    bookingUrl: 'book.heyapos.com/heya-beauty',
+    cut: true,
   };
 }
 
 // Simple receipt for quick testing
 function createMinimalReceipt() {
   return {
-    storeName: 'Test Print',
-    date: new Date().toISOString(),
-    items: [{ name: 'Test Item', qty: 1, price: 10.00 }],
-    total: 10.00,
-    message: 'Printer connection successful!',
+    lines: [
+      line('TEST PRINT', 'center', true),
+      separator(),
+      line(new Date().toLocaleString('en-AU'), 'center'),
+      separator(),
+      line('Printer connected!', 'center'),
+      line('', 'left'),
+    ],
+    cut: true,
   };
 }
 
@@ -70,7 +81,22 @@ async function printReceipt(receipt: object) {
   });
 
   const text = await res.text();
+  console.log('Print response:', res.status, text);
   if (!res.ok) throw new Error(text);
+
+  // Check if response indicates failure
+  try {
+    const json = JSON.parse(text);
+    if (json.ok === false) {
+      throw new Error(json.error || json.message || 'Print failed');
+    }
+  } catch (e) {
+    // If not JSON, just return the text
+    if (e instanceof SyntaxError) {
+      return text;
+    }
+    throw e;
+  }
   return text;
 }
 
