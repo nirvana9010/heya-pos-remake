@@ -267,6 +267,10 @@ export class CustomersService {
       stringConditions.push(Prisma.sql`"firstName" ILIKE ${likeValue}`);
       stringConditions.push(Prisma.sql`"lastName" ILIKE ${likeValue}`);
       stringConditions.push(Prisma.sql`"email" ILIKE ${likeValue}`);
+      // Search concatenated full name (firstName + lastName) to handle multi-word queries
+      stringConditions.push(
+        Prisma.sql`CONCAT("firstName", ' ', COALESCE("lastName", '')) ILIKE ${likeValue}`,
+      );
     }
 
     const phonePatterns = this.buildPhoneSearchPatterns(digitQuery);
