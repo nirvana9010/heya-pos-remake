@@ -40,6 +40,7 @@ import { BookingActions } from "./BookingActions";
 import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
+import { usePermissions } from "@/lib/auth/auth-provider";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
@@ -47,6 +48,50 @@ import { getBookingSourcePresentation } from '@/components/calendar/refactored/b
 import type { BookingSourceCategory } from '@/lib/booking-source';
 import type { Customer } from '@/components/customers';
 import { WALK_IN_CUSTOMER_ID } from '@/lib/constants/customer';
+
+// Format phone number for display - converts +61 to Australian local format
+const formatPhoneNumber = (value: string | undefined | null): string => {
+  if (!value) {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, '');
+
+  if (!digits) {
+    return trimmed;
+  }
+
+  let normalized = digits;
+
+  // Convert +61 format to local format
+  if (digits.startsWith('61') && digits.length >= 9) {
+    const withoutCountryCode = digits.slice(2);
+    normalized = withoutCountryCode.startsWith('0')
+      ? withoutCountryCode
+      : `0${withoutCountryCode}`;
+  }
+
+  // Format mobile numbers (04xx xxx xxx)
+  if (normalized.length === 10 && normalized.startsWith('04')) {
+    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+  }
+
+  // Format landline numbers (0x xxxx xxxx)
+  if (normalized.length === 10 && /^0[2378]/.test(normalized)) {
+    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3');
+  }
+
+  // Keep +61 format but add spacing
+  if (trimmed.startsWith('+61')) {
+    const localPortion = trimmed.slice(3).replace(/\s+/g, '');
+    if (localPortion.length >= 3) {
+      return `+61 ${localPortion}`;
+    }
+  }
+
+  return trimmed;
+};
 
 interface BookingService {
   id: string;
@@ -112,18 +157,19 @@ function BookingDetailsSlideOutComponent({
   onStatusChange,
   onPaymentStatusChange
 }: BookingDetailsSlideOutProps) {
+  const { can } = usePermissions();
   // Track booking prop changes
   useEffect(() => {
     if (booking) {
       const servicesCount = booking.services?.length || 0;
       const hasMultiServiceName = booking.serviceName?.includes(' + ');
-      
+
       if (servicesCount === 1 && hasMultiServiceName) {
         // Potential prop mismatch: Multi-service name but only one service
       }
     }
   }, [booking]);
-  
+
   const { toast } = useToast();
   const { refreshNotifications } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
@@ -818,7 +864,7 @@ function BookingDetailsSlideOutComponent({
                     <p className="text-sm font-medium text-gray-900">{editedCustomer.name}</p>
                     {(editedCustomer.phone || editedCustomer.email) && (
                       <div className="mt-1 space-y-1 text-xs text-gray-500">
-                        {editedCustomer.phone && <p>{editedCustomer.phone}</p>}
+                        {editedCustomer.phone && <p>{formatPhoneNumber(editedCustomer.phone)}</p>}
                         {editedCustomer.email && <p>{editedCustomer.email}</p>}
                       </div>
                     )}
@@ -1057,12 +1103,14 @@ function BookingDetailsSlideOutComponent({
                     <User className="h-4 w-4 text-gray-400" />
                     <span>{booking.customerName}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <a href={`tel:${booking.customerPhone}`} className="text-blue-600 hover:underline">
-                      {booking.customerPhone}
-                    </a>
-                  </div>
+                  {booking.customerPhone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <a href={`tel:${booking.customerPhone}`} className="text-blue-600 hover:underline">
+                        {formatPhoneNumber(booking.customerPhone)}
+                      </a>
+                    </div>
+                  )}
                   {booking.customerEmail && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-gray-400" />
@@ -1070,6 +1118,9 @@ function BookingDetailsSlideOutComponent({
                         {booking.customerEmail}
                       </a>
                     </div>
+                  )}
+                  {!booking.customerPhone && !booking.customerEmail && (
+                    <p className="text-sm italic text-gray-400">No contact details on file</p>
                   )}
                 </div>
               </div>
@@ -1225,39 +1276,43 @@ function BookingDetailsSlideOutComponent({
             </div>
           ) : (
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  // Auto-remove "Service not selected" when editing blank booking
-                  // Auto-remove "Service not selected" or blank service when editing
-                  if (selectedServices.length === 1) {
-                    const service = selectedServices[0];
-                    const isBlankService = 
-                      (service.name === 'Service not selected' || 
-                       service.name === 'Service' || 
-                       !service.name) && 
-                      (Number(service.price || 0) === 0 && 
-                       Number(service.basePrice || 0) === 0 && 
-                       Number(service.adjustedPrice || 0) === 0);
-                    
-                    if (isBlankService) {
-                      setSelectedServices([]);
+              {can('booking.update') && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Auto-remove "Service not selected" when editing blank booking
+                    // Auto-remove "Service not selected" or blank service when editing
+                    if (selectedServices.length === 1) {
+                      const service = selectedServices[0];
+                      const isBlankService =
+                        (service.name === 'Service not selected' ||
+                         service.name === 'Service' ||
+                         !service.name) &&
+                        (Number(service.price || 0) === 0 &&
+                         Number(service.basePrice || 0) === 0 &&
+                         Number(service.adjustedPrice || 0) === 0);
+
+                      if (isBlankService) {
+                        setSelectedServices([]);
+                      }
                     }
-                  }
-                  setIsEditing(true);
-                }}
-                className="flex-1"
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleDelete}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                    setIsEditing(true);
+                  }}
+                  className="flex-1"
+                >
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {can('booking.delete') && (
+                <Button
+                  variant="outline"
+                  onClick={handleDelete}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           )}
         </div>

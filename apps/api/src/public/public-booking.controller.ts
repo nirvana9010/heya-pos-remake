@@ -581,7 +581,7 @@ export class PublicBookingController {
         booking.customer.lastName,
       ),
       customerEmail: booking.customer.email,
-      customerPhone: booking.customer.phone,
+      customerPhone: booking.customer.mobile || booking.customer.phone,
       serviceId: service?.id,
       serviceName: service?.name,
       staffId: booking.providerId,

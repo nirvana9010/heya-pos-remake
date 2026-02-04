@@ -64,7 +64,7 @@ export class GetBookingByIdHandler
           ? `${booking.customer.firstName} ${booking.customer.lastName}`
           : booking.customer.firstName,
         email: booking.customer.email,
-        phone: booking.customer.phone,
+        phone: booking.customer.mobile || booking.customer.phone,
         loyaltyPoints: booking.customer.loyaltyPoints
           ? typeof booking.customer.loyaltyPoints === "object" &&
             "toNumber" in booking.customer.loyaltyPoints

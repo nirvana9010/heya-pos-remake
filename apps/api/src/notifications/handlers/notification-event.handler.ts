@@ -91,7 +91,7 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.phone || "";
+      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -331,7 +331,7 @@ export class NotificationEventHandler {
     const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false;
 
     if (booking.status === "CONFIRMED" && (shouldSendEmail || shouldSendSms)) {
-      const customerPhone = booking.customer?.phone || "";
+      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -455,7 +455,7 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.phone || "";
+      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -706,7 +706,7 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.phone || "";
+      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -912,7 +912,7 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.phone || "";
+      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
 
       const merchantSettings = booking.merchant.settings as any;
 
@@ -1140,7 +1140,7 @@ export class NotificationEventHandler {
     }[];
   } {
     const normalizedServices =
-      services?.map(service => {
+      services?.map((service) => {
         const name = service?.service?.name?.trim() || "Service";
         const rawDuration =
           typeof service?.duration === "number"
@@ -1168,7 +1168,7 @@ export class NotificationEventHandler {
       }) ?? [];
 
     const filteredServices = normalizedServices.filter(
-      svc => svc.name && svc.name.trim().length > 0,
+      (svc) => svc.name && svc.name.trim().length > 0,
     );
 
     if (filteredServices.length === 0) {
@@ -1180,7 +1180,7 @@ export class NotificationEventHandler {
       };
     }
 
-    const combinedName = filteredServices.map(svc => svc.name).join(" + ");
+    const combinedName = filteredServices.map((svc) => svc.name).join(" + ");
     const totalDurationRaw = filteredServices.reduce(
       (sum, svc) => sum + (svc.duration || 0),
       0,
@@ -1193,7 +1193,7 @@ export class NotificationEventHandler {
           : 60;
 
     const staffNames = filteredServices
-      .map(svc => svc.staffName)
+      .map((svc) => svc.staffName)
       .filter((name): name is string => !!name && name.trim().length > 0);
 
     const uniqueStaffNames = Array.from(new Set(staffNames));
@@ -1208,7 +1208,7 @@ export class NotificationEventHandler {
       combinedName,
       staffName,
       totalDuration,
-      services: filteredServices.map(svc => ({
+      services: filteredServices.map((svc) => ({
         name: svc.name,
         duration: svc.duration,
         price: svc.price,

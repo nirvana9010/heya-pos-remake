@@ -152,6 +152,7 @@ export class GetBookingsListHandler
             firstName: true,
             lastName: true,
             phone: true,
+            mobile: true,
             source: true,
           },
         })
@@ -207,7 +208,7 @@ export class GetBookingsListHandler
             ? `${customer.firstName} ${customer.lastName}`
             : customer.firstName
           : "Unknown Customer",
-        customerPhone: customer?.phone || undefined,
+        customerPhone: customer?.mobile || customer?.phone || undefined,
         customerEmail: undefined, // Not included in list query for performance
         customerSource: customer?.source || null,
         staffId: booking.provider?.id || null,

@@ -141,7 +141,7 @@ export class SimpleSchedulerService implements OnModuleInit, OnModuleDestroy {
                 notification.booking.customer.email ||
                 "Customer"
             : "Customer";
-          const customerPhone = notification.booking.customer?.phone || "";
+          const customerPhone = notification.booking.customer?.mobile || notification.booking.customer?.phone || "";
           const context = {
             booking: {
               id: notification.booking.id,
