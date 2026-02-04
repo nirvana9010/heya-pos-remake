@@ -27,6 +27,7 @@ import CategoryDialog from '@/components/CategoryDialog';
 import { ColumnDef } from "@tanstack/react-table";
 import { debounce } from "lodash";
 import { apiClient } from '@/lib/api-client';
+import { usePermissions } from '@/lib/auth/auth-provider';
 import { 
   useServicesData, 
   useCreateService, 
@@ -54,7 +55,13 @@ interface ServiceRow extends ServiceRecord {
 export default function ServicesPageContent() {
   const { toast } = useToast();
   const router = useRouter();
+  const { can } = usePermissions();
   const searchParams = useSearchParams();
+
+  // Pre-compute permission checks to avoid stale closures in memoized structures
+  const canCreateService = can('service.create');
+  const canUpdateService = can('service.update');
+  const canDeleteService = can('service.delete');
   
   // Initialize state from URL parameters
   const [currentPage, setCurrentPage] = useState(() => {
@@ -389,16 +396,23 @@ export default function ServicesPageContent() {
         
         return (
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                setEditingCell({ id: service.id, field: 'duration' });
-                setEditValue(service.duration.toString());
-              }}
-              className="flex items-center gap-1 text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
-            >
-              <Clock className="h-4 w-4 text-gray-400" />
-              {formatDuration(service.duration)}
-            </button>
+            {canUpdateService ? (
+              <button
+                onClick={() => {
+                  setEditingCell({ id: service.id, field: 'duration' });
+                  setEditValue(service.duration.toString());
+                }}
+                className="flex items-center gap-1 text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
+              >
+                <Clock className="h-4 w-4 text-gray-400" />
+                {formatDuration(service.duration)}
+              </button>
+            ) : (
+              <span className="flex items-center gap-1 text-gray-700 px-2 py-1">
+                <Clock className="h-4 w-4 text-gray-400" />
+                {formatDuration(service.duration)}
+              </span>
+            )}
             {inlineSuccess === service.id && (
               <FadeIn>
                 <SuccessCheck className="h-4 w-4" />
@@ -455,7 +469,7 @@ export default function ServicesPageContent() {
           );
         }
         
-        return (
+        return canUpdateService ? (
           <button
             onClick={() => {
               setEditingCell({ id: service.id, field: 'price' });
@@ -465,6 +479,10 @@ export default function ServicesPageContent() {
           >
             ${service.price.toFixed(2)}
           </button>
+        ) : (
+          <span className="block w-full text-right font-medium text-gray-900 px-2 py-1">
+            ${service.price.toFixed(2)}
+          </span>
         );
       },
     },
@@ -512,29 +530,37 @@ export default function ServicesPageContent() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => openEditDialog(service)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDuplicateService(service)}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => {
-                  // Close any other dialogs first
-                  setIsAddDialogOpen(false);
-                  setEditingService(null);
-                  
-                  setDeletingServiceId(service.id);
-                  setIsDeleteDialogOpen(true);
-                }}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+              {canUpdateService && (
+                <DropdownMenuItem onClick={() => openEditDialog(service)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {canCreateService && (
+                <DropdownMenuItem onClick={() => handleDuplicateService(service)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </DropdownMenuItem>
+              )}
+              {(canUpdateService || canCreateService) && canDeleteService && (
+                <DropdownMenuSeparator />
+              )}
+              {canDeleteService && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    // Close any other dialogs first
+                    setIsAddDialogOpen(false);
+                    setEditingService(null);
+
+                    setDeletingServiceId(service.id);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                  className="text-red-600"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -823,31 +849,35 @@ export default function ServicesPageContent() {
                       {categoryServiceCount}
                     </Badge>
                   </button>
-                  {hoveredCategory === category.id && (
+                  {hoveredCategory === category.id && (canUpdateService || canDeleteService) && (
                     <div className="flex items-center gap-1 pr-3 animate-in slide-in-from-right-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingCategory(category);
-                          setIsCategoryDialogOpen(true);
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCategory(category.id, categoryServiceCount);
-                        }}
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {canUpdateService && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCategory(category);
+                            setIsCategoryDialogOpen(true);
+                          }}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {canDeleteService && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category.id, categoryServiceCount);
+                          }}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -856,19 +886,21 @@ export default function ServicesPageContent() {
           </div>
           
           {/* Add Category Button */}
-          <div className="p-3 border-t">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setEditingCategory(null);
-                setIsCategoryDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
-            </Button>
-          </div>
+          {canCreateService && (
+            <div className="p-3 border-t">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setEditingCategory(null);
+                  setIsCategoryDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -921,16 +953,18 @@ export default function ServicesPageContent() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button 
-                onClick={() => {
-                  resetForm();
-                  setIsAddDialogOpen(true);
-                }} 
-                className="bg-teal-600 hover:bg-teal-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Service
-              </Button>
+              {canCreateService && (
+                <Button
+                  onClick={() => {
+                    resetForm();
+                    setIsAddDialogOpen(true);
+                  }}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Service
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -954,21 +988,23 @@ export default function ServicesPageContent() {
                   : `Add services to the ${categories.find(c => c.id === selectedCategoryFilter)?.name} category.`}
               </p>
               <div className="flex gap-3 justify-center">
-                <Button 
-                  onClick={() => {
-                    resetForm();
-                    if (selectedCategoryFilter !== "all") {
-                      setFormData(prev => ({ ...prev, categoryId: selectedCategoryFilter }));
-                    }
-                    setIsAddDialogOpen(true);
-                  }}
-                  className="bg-teal-600 hover:bg-teal-700"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {selectedCategoryFilter === "all" ? "Add Your First Service" : "Add Service Here"}
-                </Button>
+                {canCreateService && (
+                  <Button
+                    onClick={() => {
+                      resetForm();
+                      if (selectedCategoryFilter !== "all") {
+                        setFormData(prev => ({ ...prev, categoryId: selectedCategoryFilter }));
+                      }
+                      setIsAddDialogOpen(true);
+                    }}
+                    className="bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {selectedCategoryFilter === "all" ? "Add Your First Service" : "Add Service Here"}
+                  </Button>
+                )}
                 {selectedCategoryFilter !== "all" && (
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => setSelectedCategoryFilter("all")}
                   >
@@ -1022,7 +1058,7 @@ export default function ServicesPageContent() {
               showPagination={false} // Disable DataTable's internal pagination - we're using server-side pagination
               pageSize={9999} // Set a high page size to show all data passed to it
               headerActions={
-                selectedServices.length > 0 ? (
+                selectedServices.length > 0 && canDeleteService ? (
                   <>
                     <span className="flex items-center text-sm text-gray-600">
                       {selectedServices.length} selected
@@ -1297,7 +1333,7 @@ export default function ServicesPageContent() {
           <div className="sticky bottom-0 bg-white border-t px-8 py-4 -mx-8 -mb-8">
             <div className="flex items-center justify-between">
               <div>
-                {editingService && (
+                {editingService && canDeleteService && (
                   <button
                     type="button"
                     onClick={() => {

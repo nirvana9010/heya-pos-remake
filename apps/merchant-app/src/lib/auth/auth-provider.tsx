@@ -674,16 +674,14 @@ export function usePermissions() {
   const permissions = user?.permissions || [];
 
   // Check if user is owner (type=merchant or has wildcard permission)
-  // Also treat users with no type as owners (backward compatibility for old tokens)
-  const isOwner = user?.type === 'merchant' || user?.type === undefined || permissions.includes('*');
+  const isOwner = user?.type === 'merchant' || permissions.includes('*');
 
   // Helper to check a specific permission
-  const can = (permission: string): boolean => {
+  const can = useCallback((permission: string): boolean => {
     if (!user) return false;
-    // Owners (or users with old tokens without type) have all permissions
     if (isOwner) return true;
     return hasPermission(permissions, permission);
-  };
+  }, [user, isOwner, permissions]);
 
   return {
     // Permission check function - use this for granular checks
@@ -706,13 +704,10 @@ export function usePermissions() {
     canUpdateSettings: can('settings.update'),
     canAccessBilling: can('settings.billing'),
 
-    // Role-based checks
+    // Role-based checks (Owner, Manager, Staff)
     isOwner,
-    isAdmin: user?.role === 'Admin' || user?.role === 'admin' || isOwner,
     isManager: user?.role === 'Manager' || user?.role === 'manager',
     isStaff: user?.role === 'Staff' || user?.role === 'staff',
-    isReceptionist: user?.role === 'Receptionist',
-    isViewOnly: user?.role === 'View Only',
 
     // User type checks
     isMerchantOwner: user?.type === 'merchant',

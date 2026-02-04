@@ -1,755 +1,159 @@
 # Claude Code Configuration Guide
 
-This file contains important configuration information for Claude Code to help maintain and troubleshoot this project effectively.
-
 ## Collaboration Guidelines
-- **Challenge and question**: Don't immediately agree or proceed with requests that seem suboptimal, unclear, or potentially problematic
-- **Push back constructively**: If a proposed approach has issues, suggest better alternatives with clear reasoning
-- **Think critically**: Consider edge cases, performance implications, maintainability, and best practices before implementing
-- **Seek clarification**: Ask follow-up questions when requirements are ambiguous or could be interpreted multiple ways
-- **Propose improvements**: Suggest better patterns, more robust solutions, or cleaner implementations when appropriate
-- **Be a thoughtful collaborator**: Act as a good teammate who helps improve the overall quality and direction of the project
+- **Challenge and question**: Don't immediately agree with suboptimal requests - suggest better alternatives
+- **Push back constructively**: If a proposed approach has issues, explain why with clear reasoning
+- **Think critically**: Consider edge cases, performance, maintainability before implementing
+- **Seek clarification**: Ask follow-up questions when requirements are ambiguous
+- **Be a thoughtful collaborator**: Help improve overall quality and direction
 
 ## CRITICAL RULES - DO NOT VIOLATE
 
-1. **NEVER DELETE SCRIPTS** - Do not delete any scripts in the `/scripts` directory without explicit user permission
-2. **NEVER DELETE CONFIGURATION FILES** - Do not delete `.env`, `ecosystem.config.js`, or any config files without explicit permission
-3. **ASK BEFORE REMOVING** - Always ask for confirmation before deleting any existing files
-4. **NEVER MANUALLY DEPLOY TO FLY.IO** - Deployment is handled automatically by GitHub Actions. When changes need to be deployed:
-   - Simply push to GitHub: `git push origin main`
-   - The GitHub Action will automatically build and deploy to Fly.io
-   - Do NOT use `flyctl deploy` or any manual Fly.io deployment commands
-   - The only exception is updating secrets with `flyctl secrets set`
-
-## Working Directory Context
-
-**IMPORTANT**: The current working directory shown in the environment is often `/home/lukas/projects/heya-pos-remake/apps/api` but the PROJECT ROOT is `/home/lukas/projects/heya-pos-remake/`. 
-
-When referencing files:
-- Scripts are at: `/home/lukas/projects/heya-pos-remake/scripts/`
-- NOT at: `./scripts/` (this would look in apps/api/scripts/)
-- Always use absolute paths or navigate to the correct directory first
-
-## API Endpoints Quick Reference
-
-### Base URL and Versioning
-- **Base URL**: `http://localhost:3000/api`
-- **Default version**: v1 (implicit)
-- **Format**: `/api/v{version}/{endpoint}` or `/api/{endpoint}` for v1
-
-### Authentication Endpoints (ALL use v1)
-- **Login**: `POST /api/v1/auth/merchant/login`
-  - Body: `{"email": "user@example.com", "password": "password"}`
-  - **IMPORTANT**: Users log in with their merchant EMAIL address, NOT the username stored in MerchantAuth table
-  - The auth system accepts EITHER email OR username, but users typically use email
-  - Example: Zen Wellness logs in with `lukas.tn90@gmail.com`, not "ZENWELLNESS"
-- **Refresh**: `POST /api/v1/auth/refresh`
-- **Logout**: `POST /api/v1/auth/logout`
-- **Current User**: `GET /api/v1/auth/me`
-
-### Common Test Account Credentials
-**ALWAYS provide the EMAIL for login, not the username!**
-
-**Default Test Account (use this for testing):**
-- Hamilton Beauty Spa (Owner): `admin@hamiltonbeauty.com` / `demo123`
-- Hamilton Beauty Spa (Manager - team member): `manager@hamiltonbeauty.com` / `manager123`
-
-**Other Test Accounts:**
-- Zen Wellness: `lukas.tn90@gmail.com` / `demo456` (may not exist in fresh DB)
-
-### Authentication Response Format
-**CRITICAL**: The login response returns `token`, NOT `accessToken`!
-```javascript
-// ❌ WRONG - This will fail every time
-const { accessToken } = loginResponse.data;
-
-// ✅ CORRECT - The response field is called 'token'
-const { token } = loginResponse.data;
-```
-The login response structure:
-```json
-{
-  "user": {...},
-  "merchantId": "...",
-  "token": "eyJhbGci...",  // <-- It's 'token', NOT 'accessToken'!
-  "refreshToken": "...",
-  "expiresAt": "...",
-  "merchant": {...}
-}
-```
-
-### Common V1 Endpoints (default)
-- Services: `/api/v1/services`
-- Staff: `/api/v1/staff`
-- Customers: `/api/v1/customers`
-- Payments: `/api/v1/payments`
-- Orders: `/api/v1/orders`
-- Public Check-in: `/api/v1/public/checkin?subdomain={merchant-subdomain}`
-  - **IMPORTANT**: Always include the v1 prefix for public endpoints!
-  - Subdomain must match exactly (e.g., "zen-wellness" not "zen")
-
-### V2 Endpoints (must specify version)
-- Bookings: `/api/v2/bookings` (uses CQRS pattern)
-
-### Public Endpoints (no version)
-- `/api/public/services`
-- `/api/public/availability`
-
-### Blank Booking (Walk-in) Support
-The system supports creating "blank bookings" for walk-in customers:
-- Created via `/api/v1/public/checkin` when customer has no existing bookings
-- Blank bookings have no service selected initially (serviceId is null)
-- Duration is set to 15 minutes for blank bookings
-- Service name displays as "Service not selected" in UI
-- When editing a blank booking, the system auto-removes the placeholder service
-- If user clicks "Start" on a blank booking, it opens edit mode first
-
-### Booking Numbers
-The system uses **6-character airline-style booking references**:
-- Format: `ABC123` (3 letters + 3 numbers, excluding confusing characters like I, O)
-- Generated by `BookingCreationService.generateBookingNumber()` method
-- **Previous Format**: Long timestamp-based numbers (18+ characters) - discontinued
-- **Compatibility**: All systems handle booking numbers as opaque strings, so length changes don't break functionality
-- **Database**: `bookingNumber String @unique` in Prisma schema (no length constraints)
-
-## Important Lessons Learned
-
-### Always Verify Before Assuming
-**Issue**: When encountering "Supabase not configured" errors, assumed environment variables were missing without checking first.
-
-**Lesson**: ALWAYS check actual system state before making assumptions:
-- If error says "not configured", first verify: `grep SUPABASE .env`
-- Look at the actual error line and trace the data flow
-- Don't add "missing configuration" fallbacks without confirming configuration is actually missing
-
-**What happened**: The real issue was `apiClient.post()` returns data directly, not `{data: ...}`, causing `response.data` to be undefined. The env vars were present all along.
-
-## React Development Best Practices
-
-### Infinite Loop Prevention
-1. **Always check useEffect dependencies** - Unstable references (arrays, objects, functions) in dependency arrays cause infinite loops
-2. **Default parameters create new references** - Never use `= []` or `= {}` in component parameters
-3. **Compare working vs broken components** - When debugging, always check how similar working components handle the same pattern
-4. **Use stable references** - Memoize arrays/objects with useMemo, callbacks with useCallback
-
-### Debugging React Issues
-- Add console.logs in useEffects to track what's firing
-- Check the dependency arrays first when seeing "Maximum update depth exceeded"
-- Look for components creating new objects/arrays on every render
-- Verify all props are being passed correctly - missing props can cause default values to trigger bugs
-
-### State Management
-- Use functional setState `setState(prev => ...)` to avoid dependencies in callbacks
-- Prefer disabled state over conditional rendering for form inputs
-- Always validate that state updates are actually needed before setting
-
-## Database Configuration
-
-### Connection URLs - BEST PRACTICES
-
-**Using Fly.io PostgreSQL** - Database is co-located with the API:
-
-For local development (with proxy):
-```
-DATABASE_URL=postgres://postgres:jTzPXDBfABYvzoA@localhost:5432/postgres
-```
-
-For production (internal Fly.io connection):
-```
-DATABASE_URL=postgres://postgres:jTzPXDBfABYvzoA@heya-pos-db.flycast:5432/postgres?sslmode=disable
-```
-
-### Critical Configuration Points
-
-1. **Shrink Prisma's appetite** - Add to your `.env` file:
-   ```
-   PRISMA_CLIENT_ENGINE_TYPE=binary   # keeps pool at 1
-   ```
-
-2. **One and only one env source** - In `ecosystem.config.js`:
-   ```javascript
-   env_file: '.env',   // in ecosystem.config.js
-   ```
-   Remove duplicate DATABASE_URL lines from everywhere else.
-
-3. **Clean restarts** - Always use:
-   ```bash
-   pm2 delete api && pm2 start ecosystem.config.js --only api
-   ```
-   This fully kills abandoned workers before spawning new ones.
-
-### Important Notes
-
-- **For local development**: Use `flyctl proxy 5432 -a heya-pos-db` and connect via localhost
-- **For production**: Use internal Fly.io connection `heya-pos-db.flycast`
-- Use `sslmode=disable` for internal Fly.io connections (they're already secure)
-- Database and API are co-located in Sydney region for optimal performance
-
-### Common Issues and Solutions
-
-1. **"Can't reach database server" error**
-   - For local: Ensure `flyctl proxy 5432 -a heya-pos-db` is running
-   - For production: Check that DATABASE_URL uses `heya-pos-db.flycast`
-   - **IMPORTANT: Check if PM2 is loading environment variables correctly!** (see PM2 section below)
-
-2. **Connection errors**
-   - Local: Make sure Fly.io proxy is running
-   - Production: Verify the app is deployed to Fly.io (not elsewhere)
-
-3. **Slow queries**
-   - Check pm2 logs for slow query warnings
-   - Consider adding indexes for frequently queried columns
-   - Current known issue: OutboxEvent queries need optimization
-
-4. **PM2 Not Loading Environment Variables**
-   - **This is a common cause of database connection failures!**
-   - PM2's `env_file` option doesn't always work reliably
-   - The API may fail with "Can't reach database server" even when the database is accessible
-   - **Solution**: We use a wrapper script `/scripts/start-api-with-env.sh` that explicitly loads the `.env` file before starting the API
-   - If you see database connection errors, first verify the API works when run directly with `cd apps/api && npm run start:dev`
-   - If it works directly but not with PM2, the environment variables aren't being loaded
-
-## Fly.io CLI Usage
-
-### ⚠️ DEPLOYMENT IS AUTOMATED - DO NOT MANUALLY DEPLOY
-
-**Deployment happens automatically via GitHub Actions when you push to main.**
-
-To deploy changes:
-```bash
-git push origin main  # This triggers automatic deployment
-```
-
-**NEVER run `flyctl deploy` manually** - it will fail or cause issues.
-
-### When to Use flyctl
-
-The Fly.io CLI should ONLY be used for:
-- Viewing logs
-- Checking status
-- Managing secrets
-- SSH access for debugging
-- Restarting the app
-
-**IMPORTANT**: The Fly.io CLI command is `flyctl`, NOT `fly`. When you see documentation that uses `fly`, it's just an alias that users can set up locally.
-
-In this environment, always use the full path:
-```bash
-/home/lukas/.fly/bin/flyctl [command]
-```
-
-Allowed Fly.io commands (non-deployment):
-```bash
-# Check app status
-/home/lukas/.fly/bin/flyctl status -a heya-pos-api
-
-# View logs
-/home/lukas/.fly/bin/flyctl logs -a heya-pos-api
-
-# Update secrets (this IS allowed)
-/home/lukas/.fly/bin/flyctl secrets set KEY=VALUE -a heya-pos-api
-
-# List secrets
-/home/lukas/.fly/bin/flyctl secrets list -a heya-pos-api
-
-# Restart app
-/home/lukas/.fly/bin/flyctl apps restart heya-pos-api
-
-# SSH into container
-/home/lukas/.fly/bin/flyctl ssh console -a heya-pos-api
-```
-
-## Known Issues to Avoid
-
-### "crypto is not defined" Error in Production
-**IMPORTANT**: Never use `require('crypto')` in Next.js webpack configuration or any client-side code. This will cause a "crypto is not defined" error in production builds. Instead, use a simple hash function for generating unique identifiers in webpack configs.
-
-## Testing Guidelines
-
-When making test scripts, always follow claude-testing-guidelines:
-- Use proper error handling in scripts
-- Always get fresh auth tokens for API tests
-- Use real, valid IDs from the database, not made-up UUIDs
-- Test with data that actually exists in the system
-- Include both positive and negative test cases
-- Show before/after states to verify changes
-- Use simple, readable output formatting
-- Verify actual database state when testing CRUD operations
-
-## Commands to Run
-
-When making code changes, always run these commands before committing:
-
-```bash
-# Lint checking (run from project root)
-npm run lint
-
-# Type checking
-npm run typecheck
-
-# Format code
-npm run format
-
-# Note: The API app was missing ESLint config. A basic .eslintrc.js has been added.
-# Frontend apps (merchant-app, booking-app) have ESLint configured.
-
-# If commands are not found, ask the user for the correct commands
-```
-
-### Command Execution Best Practices
-
-**Before executing terminal commands**:
-- Trigger the command line syntax check for that command to avoid failed commands
-- Verify the command exists and is properly formatted
-
-**If a command is not found**:
-1. First check the PATH to see if the command is installed but not in PATH
-2. Then attempt to install it with the appropriate package manager command
-3. If the installation fails due to permissions, ask the user to install it manually
-
-### Important: Commands to Avoid
-
-**NEVER use heredoc syntax (cat > file << 'EOF') in Bash commands** - This can cause system crashes. Instead:
-- Use the Write tool to create files
-- Use echo commands with proper escaping for simple content
-- Use multiple echo commands with >> for multi-line content
-
-## Git Commit and Push Policy
-
-### Automatic Commits
-- **You ARE allowed to automatically commit changes after significant work is completed**
-- Use descriptive commit messages that clearly explain what was changed and why
-- Always include the Claude Code footer in commit messages
-
-### Push Restrictions
-- **NEVER automatically push commits to remote repositories**
-- Always wait for explicit user permission before pushing
-- If push fails due to authentication, help the user set up proper authentication (SSH keys recommended)
+1. **NEVER DELETE SCRIPTS** - Do not delete any scripts in `/scripts` without explicit permission
+2. **NEVER DELETE CONFIGURATION FILES** - Do not delete `.env`, `ecosystem.config.js`, or config files without permission
+3. **ASK BEFORE REMOVING** - Always ask for confirmation before deleting existing files
+4. **NEVER MANUALLY DEPLOY TO FLY.IO** - Deployment is automatic via GitHub Actions
+   - Deploy with: `git push origin main`
+   - Do NOT use `flyctl deploy` manually
+   - Exception: updating secrets with `flyctl secrets set` is allowed
 
 ## Project Structure
 
-- `/apps/api` - NestJS backend API (connects to database)
-- `/apps/merchant-app` - Next.js merchant dashboard
-- `/apps/booking-app` - Next.js customer booking interface
-- `/apps/admin-dashboard` - Next.js admin interface
+| App | Port | Description |
+|-----|------|-------------|
+| `/apps/api` | 3000 | NestJS backend (only service that connects to DB) |
+| `/apps/merchant-app` | 3002 | Next.js merchant dashboard |
+| `/apps/booking-app` | 3001 | Next.js customer booking interface |
+| `/apps/admin-dashboard` | 3003 | Next.js admin interface |
 
-Only the API service connects to the database. Frontend apps communicate through the API.
+## API Quick Reference
 
-## Performance Considerations
+**Base URL**: `http://localhost:3000/api` | **Default version**: v1
 
-### Known Slow Queries
+### Key Endpoints
+- **Login**: `POST /api/v1/auth/merchant/login` - Body: `{"email": "...", "password": "..."}`
+- **Services**: `/api/v1/services`
+- **Staff**: `/api/v1/staff`
+- **Customers**: `/api/v1/customers`
+- **Bookings**: `/api/v2/bookings` (v2 uses CQRS pattern)
 
-1. **OutboxEvent.findMany** - Queries filtering on `processedAt IS NULL AND retryCount < X`
-   - Consider adding composite index: `@@index([processedAt, retryCount])`
-   - Monitor with: `pm2 logs api | grep "Slow/Heavy query"`
+### Test Credentials
+| Account | Email | Password |
+|---------|-------|----------|
+| Hamilton Beauty (Owner) | `admin@hamiltonbeauty.com` | `demo123` |
+| Hamilton Beauty (Manager) | `manager@hamiltonbeauty.com` | `manager123` |
 
-## Environment Files
-
-- `.env` - Main environment file (not tracked in git)
-- `.env.example` - Template for environment variables
-- `.env.postgresql` - PostgreSQL-specific configuration reference
-- `.env.development` - Development-specific overrides
-
-## Real-time Notifications
-
-The application uses **WebSockets with Socket.IO** for real-time notifications.
-
-### Current Implementation
-- **WebSocket Server**: NestJS backend with Socket.IO gateway (`/src/notifications/notifications.gateway.ts`)
-- **Frontend Integration**: React hooks (`useWebSocket`) for real-time event handling
-- **Event Types**: booking_created, booking_updated, booking_deleted, payment_created, etc.
-- **Authentication**: JWT token-based WebSocket authentication
-- **Fallback**: Automatic fallback to polling if WebSocket connection fails
-
-### Architecture
-- **Server**: Socket.IO gateway handles WebSocket connections and broadcasts events
-- **Client**: Custom React hooks manage WebSocket connections with automatic reconnection
-- **Events**: Real-time updates for bookings, payments, and customer changes
-- **Performance**: Instant UI updates without polling delays
-
-### Configuration
-WebSocket connections are established automatically when users authenticate. Debug logging can be enabled:
+### Auth Response Format
+**CRITICAL**: Login returns `token`, NOT `accessToken`:
 ```javascript
-localStorage.setItem('ws_debug', 'true'); // Enable WebSocket debug logs
+const { token } = loginResponse.data;  // Correct
+const { accessToken } = loginResponse.data;  // WRONG - undefined
 ```
 
-## Monitoring
+### Booking Numbers
+Format: `ABC123` (6-char airline-style, 3 letters + 3 numbers)
 
-Use PM2 for process management and monitoring:
+## Database & Environment
+
+**Local dev uses Docker**:
 ```bash
-pm2 status          # Check all processes
-pm2 logs api --nostream --lines 20  # View recent API logs (use --nostream to avoid hanging)
-pm2 restart api --update-env  # Restart with new env vars
+docker start heya-pos-db heya-pos-redis    # Start local database and Redis
 ```
 
-**Important**: Always use `--nostream` flag when reading PM2 logs to get immediate output instead of waiting/tailing.
+**Production uses Fly.io PostgreSQL** (`heya-pos-db.flycast` internally)
 
-### API Log Access Issues and Solutions
-
-**Common Problem**: When trying to check API logs with complex grep/filtering commands, often returns empty results or the command fails silently.
-
-**Root Causes**:
-1. Complex grep patterns with pipes often fail in PM2 logs output
-2. PM2 logs command without `--nostream` will hang waiting for new logs
-3. Escaping issues when combining PM2 with grep/awk/sed
-4. Logs may be split between stdout and stderr streams
-
-**SOLUTION - Best Practices for Accessing API Logs**:
-
+**Key config**:
 ```bash
-# ✅ GOOD - Simple and reliable
-pm2 logs api --nostream --lines 100
-
-# ✅ GOOD - Get logs then filter separately
-pm2 logs api --nostream --lines 200 > /tmp/api.log
-grep "pattern" /tmp/api.log
-
-# ❌ BAD - Complex piping often fails
-pm2 logs api --nostream | grep -E "complex|pattern" | awk '{print $2}'
-
-# ✅ BETTER - If you must filter, keep it simple
-pm2 logs api --nostream --lines 100 | grep "BookingUpdate"
+PRISMA_CLIENT_ENGINE_TYPE=binary  # Keeps connection pool at 1
 ```
 
-**Reliable Log Access Pattern**:
-1. **Always use `--nostream`** to avoid hanging
-2. **Request more lines than needed** (e.g., 100-200) to ensure you capture relevant logs
-3. **Use simple grep patterns** or save to file first for complex filtering
-4. **Check both error and output logs** if needed:
-   ```bash
-   pm2 logs api --nostream --lines 50 --err  # Error logs only
-   pm2 logs api --nostream --lines 50 --out  # Output logs only
-   ```
+**If "Can't reach database" error**:
+1. Check if Fly.io proxy is running (local)
+2. Check if PM2 is loading env vars - use wrapper script `/scripts/start-api-with-env.sh`
+3. Test directly: `cd apps/api && npm run start:dev`
 
-**When Logs Appear Empty**:
-- The API might be logging to a different level (info vs debug)
-- Logs might be in the error stream instead of output stream
-- The pattern might not match due to formatting
-- The API might not be running or might be crashed
+## Process Management
 
-**Quick Debug Commands**:
+**Starting the dev server**: Always use PM2 to start all services together:
 ```bash
-# Check if API is actually running
-pm2 status
-
-# Get last 50 lines without any filtering
-pm2 logs api --nostream --lines 50
-
-# Check error logs specifically
-pm2 logs api --nostream --lines 30 --err
-
-# If all else fails, check the log files directly
-tail -50 ~/.pm2/logs/api-out.log
-tail -50 ~/.pm2/logs/api-error.log
+pm2 start ecosystem.config.js                 # Start all services (API + all frontends)
 ```
 
-### Why Logs Are Constantly Spammed (Even While Idle)
+**Port conflicts / zombie processes**: Run `./scripts/clean-restart.sh`
 
-**Problem**: The API logs are constantly filled with repetitive messages even when the system appears idle, making it difficult to find relevant log entries.
-
-**Root Causes - Multiple Background Processes Running**:
-
-1. **OutboxPublisherService** (`/apps/api/src/contexts/shared/outbox/application/outbox-publisher.service.ts`)
-   - Polls every **5 seconds** for unprocessed outbox events
-   - Queries: `OutboxEvent.findMany WHERE processedAt IS NULL AND retryCount < X`
-   - Creates "Slow query" warnings because the query is inefficient (missing index)
-   - Generates 720+ database queries per hour even when idle
-
-2. **Frontend Notifications Polling** (`/apps/merchant-app/src/lib/query/hooks/use-notifications.ts`)
-   - **NOTE**: This may be redundant now with WebSocket implementation
-   - Polls `/api/v1/merchant/notifications?take=50` every **10 seconds** as fallback
-   - Each merchant app tab creates its own polling cycle
-   - Consider reducing frequency or disabling when WebSocket is connected
-
-3. **Memory Monitor Service** (`/apps/api/src/debug/memory-monitor.service.ts`)
-   - Logs memory stats every **30 seconds** in development mode
-   - Includes heap usage, RSS, growth metrics, and database call counts
-   - Adds noise to logs with memory statistics
-
-4. **Database Query Logging**
-   - Prisma query logging is enabled (`prisma:query` logs)
-   - Every database query is logged in full SQL format
-   - Amplifies the noise from polling services
-
-**Impact**:
-- Logs grow rapidly (hundreds of entries per minute)
-- Difficult to find actual errors or important events
-- Performance warnings obscure real issues
-- Database under constant load from polling queries
-
-**Solutions**:
-
-1. **Immediate Fix - Reduce Polling Frequencies**:
-   ```javascript
-   // OutboxPublisherService: Change from 5s to 30s
-   }, 30000); // Was 5000
-   
-   // Frontend notifications: Change from 10s to 60s
-   const pollingInterval = 60 * 1000; // Was 10 * 1000
-   
-   // Disable background polling
-   refetchIntervalInBackground: false, // Was true
-   ```
-
-2. **Add Index for OutboxEvent Query**:
-   ```sql
-   CREATE INDEX idx_outbox_unprocessed 
-   ON "OutboxEvent" ("processedAt", "retryCount") 
-   WHERE "processedAt" IS NULL;
-   ```
-
-3. **Disable Verbose Logging in Development**:
-   - Remove `prisma:query` logging
-   - Disable memory monitor in development
-   - Use log levels appropriately (debug vs info vs warn)
-
-4. **Long-term Solution**:
-   - **DONE**: WebSocket implementation is now active for real-time updates
-   - **TODO**: Reduce or disable polling when WebSocket is connected
-   - **TODO**: Use database LISTEN/NOTIFY for outbox events
-   - **TODO**: Implement exponential backoff for retries
-
-### PM2 Configuration
-
-**IMPORTANT**: Use the `env_file` option in `ecosystem.config.js` and ensure it's the ONLY source of environment variables:
-
-```javascript
-{
-  name: 'api',
-  script: './scripts/start-api-with-env.sh',  // Wrapper script that loads .env
-  env_file: '.env',  // This should be the ONLY env source
-  watch: false,
-  env: { 
-    PORT: 3000,
-    NODE_ENV: 'development'
-  }
-}
-```
-
-**Clean Restart Command**: To avoid connection pool issues with abandoned workers:
+**PM2 commands**:
 ```bash
-pm2 delete api && pm2 start ecosystem.config.js --only api
+pm2 status                                    # Check processes
+pm2 logs api --nostream --lines 50            # View logs (always use --nostream)
+pm2 delete api && pm2 start ecosystem.config.js --only api  # Clean restart
 ```
 
-This is necessary because PM2's built-in `env_file` option doesn't reliably load `.env` files in all environments, hence the wrapper script approach.
+## Git Policy
 
-## Process Management & Clean Restart
+- **Commits**: Allowed automatically after significant work
+- **Push**: NEVER push automatically - always wait for explicit permission
+- **Fly.io**: Never run `flyctl deploy` - push to GitHub triggers auto-deploy
 
-### Handling Port Conflicts and Zombie Processes
-
-**Common Issue**: The merchant app and other services frequently fail to start due to port conflicts and zombie processes. This happens "literally every other day" and requires a clean restart of all services.
-
-**Solution**: Use the `/scripts/clean-restart.sh` script that comprehensively cleans up all processes:
+## Commands Before Committing
 
 ```bash
-# Run the clean restart script
-./scripts/clean-restart.sh
+npm run lint       # Lint checking
+npm run typecheck  # Type checking
+npm run format     # Format code
 ```
 
-### What the Clean Restart Script Does
+**Never use heredoc syntax** (`cat > file << 'EOF'`) - use Write tool instead.
 
-1. **Stops PM2 processes** - Cleanly stops and deletes all PM2 managed processes
-2. **Kills Node.js processes** - Force kills any remaining Next.js/Nest.js processes
-3. **Clears ports explicitly** - Ensures ports 3000-3003 are free
-4. **Clears PM2 logs** - Optionally flushes PM2 logs
-5. **Ensures database is available** - Runs `ensure-db.sh` to start PostgreSQL (Docker or Fly.io proxy)
-6. **Starts services** - Starts API first, waits for it to be ready, then starts frontend apps
-7. **Status check** - Shows running processes and port status
+## React Best Practices
 
-### Manual Clean Restart Steps (if script fails)
+### Infinite Loop Prevention
+- Never use `= []` or `= {}` as default parameters (creates new references each render)
+- Memoize arrays/objects with `useMemo`, callbacks with `useCallback`
+- Use functional setState: `setState(prev => ...)` to avoid dependencies
 
-```bash
-# 1. Stop all PM2 processes
-pm2 stop all
-pm2 delete all
-
-# 2. Kill all Node.js processes
-pkill -9 -f "next"
-pkill -9 -f "nest"
-pkill -9 -f "node.*3000"
-pkill -9 -f "node.*3001"
-pkill -9 -f "node.*3002"
-pkill -9 -f "node.*3003"
-
-# 3. Clear specific ports
-lsof -ti:3000 | xargs kill -9
-lsof -ti:3001 | xargs kill -9
-lsof -ti:3002 | xargs kill -9
-lsof -ti:3003 | xargs kill -9
-
-# 4. Ensure database is running
-./scripts/ensure-db.sh
-
-# 5. Start services (from their respective directories)
-cd apps/api && npm run start:dev &
-cd apps/merchant-app && npm run dev:direct &
-cd apps/booking-app && npm run dev &  # optional
-```
-
-### Port Assignments
-
-- **3000**: API (NestJS backend)
-- **3001**: Booking App (Next.js customer interface)
-- **3002**: Merchant App (Next.js merchant dashboard)
-- **3003**: Admin Dashboard (Next.js admin interface)
-
-### When to Use Clean Restart
-
-- When you see "port already in use" errors
-- When PM2 shows processes as "errored" or in restart loops
-- When the merchant app won't boot
-- After system crashes or unexpected shutdowns
-- When processes become unresponsive
-
-**Note**: The clean restart script is essential for development workflow as PM2 and Node.js processes can leave zombie processes that block ports.
-
-## UI State Management Best Practices
-
-### Optimistic Updates for Better UX
-
-When dealing with operations where the outcome is predictable (like deletes, status toggles, etc.), update the local state immediately rather than waiting for API responses and cache invalidation.
-
-**Example: Staff Deletion Fix**
+### Optimistic Updates
+For predictable operations (deletes, toggles), update local state immediately:
 ```typescript
-// ❌ Old approach - relies on cache invalidation
 await apiClient.deleteStaff(id);
-memoryCache.clear();
-loadStaff(); // Refetch from API
-
-// ✅ Better approach - immediate local state update
-await apiClient.deleteStaff(id);
-setStaff(prevStaff => prevStaff.filter(s => s.id !== id));
+setStaff(prev => prev.filter(s => s.id !== id));  // Instant UI update
 ```
 
-**Benefits:**
-- Instant UI feedback (no loading states)
-- Simpler code (no complex cache management)
-- Better user experience (feels more responsive)
-- Reduces unnecessary API calls
+## Common Gotchas
 
-**When to use this pattern:**
-- Delete operations
-- Status toggles (active/inactive)
-- Reordering items
-- Any operation where you know the expected outcome
-
-**When NOT to use:**
-- Creating new items (need server-generated IDs)
-- Complex updates that might fail validation
-- Operations that affect multiple related entities
-
-**General Pattern:**
+### Prisma Decimals
+Prisma returns Decimal objects - convert to numbers at API boundaries:
 ```typescript
-// 1. Optimistically update UI
-setItems(current => /* update logic */);
-
-// 2. Call API (can be async)
-try {
-  await apiClient.updateItem(id, data);
-} catch (error) {
-  // 3. Revert on failure
-  setItems(previousState);
-  toast.error("Failed to update");
-}
+unitPrice: typeof price === 'object' && price.toNumber
+  ? price.toNumber()
+  : Number(price || 0)
 ```
 
-### Staff Deletion Behavior
+### crypto Error in Next.js
+Never use `require('crypto')` in webpack config or client code - causes "crypto is not defined" in production.
 
-**Important**: Permanent deletion of staff members (hard delete) now works even if they have bookings:
+## Real-time Updates
 
-- Inactive staff CAN be permanently deleted regardless of booking history
-- When a staff member with bookings is deleted:
-  - The staff record is permanently removed
-  - All their bookings are preserved but set to `providerId: null` (unassigned)
-  - This maintains booking history while removing the staff reference
-- The system shows a warning about unassigned bookings before deletion
+Uses **WebSockets with Socket.IO** for notifications:
+- Server: `/src/notifications/notifications.gateway.ts`
+- Client: `useWebSocket` hook with automatic reconnection
+- Events: booking_created, booking_updated, payment_created, etc.
+- Debug: `localStorage.setItem('ws_debug', 'true')`
 
-## TypeScript/API Contract Mismatches - Prevention Guide
+## Testing Guidelines
 
-### Common Issues That Cause "Invalid argument" Errors
+- Use proper error handling
+- Get fresh auth tokens for API tests
+- Use real IDs from database, not made-up UUIDs
+- Include positive and negative test cases
+- Show before/after states to verify changes
 
-#### 1. Prisma Decimal Objects vs Numbers
-**Problem**: Prisma returns Decimal objects, but frontend expects plain numbers.
+## Project Context (for Codex)
 
-**Example Error**: `[DecimalError] Invalid argument: undefined`
+Heyapos is a browser-based POS for salons and spas. Laravel backend, React frontend.
+Single developer, ~20 paying customers.
 
-**Solution**: Always convert Decimal objects to numbers:
-```typescript
-// ❌ Wrong
-unitPrice: service.price
-
-// ✅ Correct
-unitPrice: typeof service.price === 'object' && service.price.toNumber 
-  ? service.price.toNumber() 
-  : Number(service.price || 0)
-```
-
-#### 2. Missing Required Fields
-**Problem**: API expects fields that frontend doesn't send.
-
-**Example**: Order items need `discount` and `taxRate` even if they default to 0.
-
-**Solution**: Always check the API service implementation, not just TypeScript interfaces:
-```typescript
-// Check what the Prisma create expects:
-// apps/api/src/payments/orders.service.ts
-new Decimal(item.discount || 0)  // This means discount is required!
-```
-
-#### 3. Frontend/Backend Type Mismatches
-**Problem**: TypeScript interfaces don't match actual API expectations.
-
-**Debug Steps**:
-1. Check API logs for the actual payload being sent
-2. Compare with what the service method expects
-3. Look for field name differences (e.g., `price` vs `unitPrice`)
-
-#### 4. User Context Issues
-**Problem**: JWT payload structure doesn't match controller expectations.
-
-**Example**: `user.locations[0]` vs `user.merchant.locations[0]`
-
-**Solution**: Check the JWT strategy to understand the user object structure:
-```typescript
-// apps/api/src/auth/strategies/jwt.strategy.ts shows actual structure
-```
-
-### Debugging Checklist for API Errors
-
-1. **Check the exact error line in API logs**
-   ```bash
-   pm2 logs api --nostream --lines 100 | grep -B 20 "Error"
-   ```
-
-2. **Verify the payload structure**
-   - What's being sent (check browser Network tab)
-   - What the API expects (check service method parameters)
-   - What Prisma expects (check schema and service implementation)
-
-3. **Look for data transformations**
-   - Decimal conversions
-   - Default values
-   - Required vs optional fields
-
-4. **Compare with working similar features**
-   - How does BookingSlideOut create orders?
-   - What's different in the data flow?
-
-### Best Practices to Avoid These Issues
-
-1. **Use shared type definitions** between frontend and backend
-2. **Transform Prisma types at API boundaries** (Decimals → numbers)
-3. **Add explicit validation** with clear error messages
-4. **Test the complete data flow** when copying patterns
-5. **Document field requirements** in interfaces
-
-### When Copying Features (e.g., BookingSlideOut → QuickSaleSlideOut)
-
-**ALWAYS verify**:
-- Exact API endpoints used
-- Data transformations at each layer
-- Field naming conventions
-- Required vs optional fields
-- How Prisma Decimal fields are handled
-
-**Never assume** similar UI means identical API contracts!
+Priorities:
+- Ship working features fast, don't over-engineer for scale we don't have
+- Handle errors that would break core functionality or corrupt data
+- Skip: elaborate validation messages, unlikely edge cases (<1% of users), comprehensive logging
+- Security: Proper auth, payment handling, input sanitization are non-negotiable
