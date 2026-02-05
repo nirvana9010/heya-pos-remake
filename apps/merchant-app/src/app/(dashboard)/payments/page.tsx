@@ -535,7 +535,10 @@ export default function PaymentsPage() {
                 className="h-8 w-8"
                 onClick={() => {
                   setSelectedPayment(payment);
-                  setIsPinDialogOpen(true);
+                  setRefundAmount(payment.amount?.toString() || '');
+                  setRefundReason('customer-request');
+                  setRefundNotes('');
+                  setIsRefundDialogOpen(true);
                 }}
               >
                 <RotateCcw className="h-4 w-4" />
@@ -563,7 +566,10 @@ export default function PaymentsPage() {
                       className="text-red-600"
                       onClick={() => {
                         setSelectedPayment(payment);
-                        setIsPinDialogOpen(true);
+                        setRefundAmount(payment.amount?.toString() || '');
+                        setRefundReason('customer-request');
+                        setRefundNotes('');
+                        setIsRefundDialogOpen(true);
                       }}
                     >
                       <RotateCcw className="mr-2 h-4 w-4" />
@@ -855,7 +861,7 @@ export default function PaymentsPage() {
           <Button
             variant="destructive"
             onClick={handleProcessRefund}
-            disabled={isLoading || !verifiedStaff || !refundAmount || parseFloat(refundAmount) <= 0}
+            disabled={isLoading || !refundAmount || parseFloat(refundAmount) <= 0}
           >
             {isLoading ? (
               <>
