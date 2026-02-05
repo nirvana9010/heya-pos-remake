@@ -237,6 +237,7 @@ export function PaymentDialog({
                     tyroTransactionId: response.transactionReference,
                     tyroAuthorisationCode: response.authorisationCode,
                     tyroTerminalId: merchant?.settings?.tyroTerminalId,
+                    tyroSurchargeAmount: response.surchargeAmount,
                   }
                 };
                 
