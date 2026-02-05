@@ -33,7 +33,9 @@ import { Separator } from "@heya-pos/ui";
 import { PinVerificationDialog } from "@heya-pos/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@heya-pos/ui";
-import { useAuth } from "@/lib/auth/auth-provider";
+import { useAuth, usePermissions } from "@/lib/auth/auth-provider";
+import { useTyro } from "@/hooks/useTyro";
+import { TyroTransactionResult } from "@/types/tyro";
 
 interface Payment {
   id: string;
@@ -240,8 +242,13 @@ export default function PaymentsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState<any>(null);
+  const [refundAmount, setRefundAmount] = useState<string>('');
+  const [refundReason, setRefundReason] = useState<string>('customer-request');
+  const [refundNotes, setRefundNotes] = useState<string>('');
   const { toast } = useToast();
   const { merchant } = useAuth();
+  const { can } = usePermissions();
+  const { refund: tyroRefund, isAvailable: isTyroAvailable, isPaired: isTyroPaired } = useTyro();
   
   
   // Fetch real payments data
@@ -521,7 +528,7 @@ export default function PaymentsPage() {
         
         return (
           <div className="flex items-center justify-end gap-2">
-            {payment.status === "completed" && (
+            {payment.status === "completed" && can('payment.delete') && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -549,10 +556,10 @@ export default function PaymentsPage() {
                   <FileText className="mr-2 h-4 w-4" />
                   View Invoice
                 </DropdownMenuItem>
-                {payment.status === "completed" && (
+                {payment.status === "completed" && can('payment.delete') && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="text-red-600"
                       onClick={() => {
                         setSelectedPayment(payment);
@@ -606,9 +613,164 @@ export default function PaymentsPage() {
     });
   }, [payments, searchQuery, statusFilter, methodFilter, dateRange]);
 
+  // Process refund handler
+  const handleProcessRefund = async () => {
+    if (!selectedPayment) return;
+
+    const amount = parseFloat(refundAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid refund amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (amount > selectedPayment.amount) {
+      toast({
+        title: "Invalid Amount",
+        description: "Refund amount cannot exceed the original payment amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reasonLabel = {
+      'customer-request': 'Customer Request',
+      'service-issue': 'Service Issue',
+      'duplicate-payment': 'Duplicate Payment',
+      'other': 'Other'
+    }[refundReason] || refundReason;
+
+    const fullReason = refundNotes
+      ? `${reasonLabel}: ${refundNotes}`
+      : reasonLabel;
+
+    setIsLoading(true);
+
+    try {
+      // For Tyro card payments, process refund through the terminal first
+      if (selectedPayment.method === 'card-tyro') {
+        // Check if Tyro is available
+        if (!isTyroAvailable()) {
+          toast({
+            title: "Tyro Not Available",
+            description: "Tyro SDK is not loaded. Please refresh the page and try again.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (!isTyroPaired()) {
+          toast({
+            title: "Terminal Not Paired",
+            description: "Please pair your Tyro terminal in Settings first.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Close dialog to avoid z-index conflicts with Tyro UI
+        setIsRefundDialogOpen(false);
+
+        // Process Tyro refund
+        tyroRefund(amount, {
+          transactionCompleteCallback: async (response) => {
+            if (response.result === TyroTransactionResult.APPROVED) {
+              // Tyro refund successful, now record in API
+              try {
+                await apiClient.refundPayment({
+                  paymentId: selectedPayment.id,
+                  amount: amount,
+                  reason: fullReason,
+                });
+
+                toast({
+                  title: "Refund Processed",
+                  description: `Refund of ${formatCurrency(amount)} processed successfully`,
+                });
+
+                // Refresh payments list
+                refetch();
+              } catch (apiError: any) {
+                // Tyro refund succeeded but API recording failed
+                console.error('Failed to record refund in API:', apiError);
+                toast({
+                  title: "Refund Processed - Recording Failed",
+                  description: `Refund of ${formatCurrency(amount)} was processed on the terminal but failed to record. Please contact support.`,
+                  variant: "destructive",
+                });
+              }
+            } else {
+              // Refund failed or was cancelled
+              setIsRefundDialogOpen(true); // Reopen dialog
+
+              const errorMessage = response.result === TyroTransactionResult.CANCELLED
+                ? 'Refund was cancelled'
+                : response.result === TyroTransactionResult.DECLINED
+                ? 'Refund was declined'
+                : 'Refund failed';
+
+              toast({
+                title: "Refund Failed",
+                description: errorMessage,
+                variant: "destructive",
+              });
+            }
+
+            setIsLoading(false);
+            setVerifiedStaff(null);
+          },
+          receiptCallback: (receipt) => {
+            console.log('Refund receipt received:', receipt);
+          }
+        });
+
+        return; // Exit early for Tyro refunds
+      }
+
+      // For cash payments, just record the refund in the API
+      await apiClient.refundPayment({
+        paymentId: selectedPayment.id,
+        amount: amount,
+        reason: fullReason,
+      });
+
+      toast({
+        title: "Refund Processed",
+        description: `Refund of ${formatCurrency(amount)} recorded successfully`,
+      });
+
+      setIsRefundDialogOpen(false);
+      setVerifiedStaff(null);
+
+      // Refresh payments list
+      refetch();
+    } catch (error: any) {
+      console.error('Refund error:', error);
+      toast({
+        title: "Refund Failed",
+        description: error?.response?.data?.message || error?.message || "Unable to process refund. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Enhanced refund dialog
   const RefundDialog = () => (
-    <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
+    <Dialog open={isRefundDialogOpen} onOpenChange={(open) => {
+      if (!isLoading) {
+        setIsRefundDialogOpen(open);
+        if (!open) {
+          setVerifiedStaff(null);
+        }
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Process Refund</DialogTitle>
@@ -626,6 +788,12 @@ export default function PaymentsPage() {
               <span className="text-sm text-muted-foreground">Original Amount</span>
               <span className="text-2xl font-bold">${selectedPayment?.amount.toFixed(2)}</span>
             </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-muted-foreground">Payment Method</span>
+              <span className="font-medium">
+                {selectedPayment?.method === 'card-tyro' ? 'Card (Tyro)' : 'Cash'}
+              </span>
+            </div>
           </div>
           <Separator />
           <div className="grid gap-3">
@@ -636,7 +804,8 @@ export default function PaymentsPage() {
                 <Input
                   id="refund-amount"
                   type="number"
-                  defaultValue={selectedPayment?.amount}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
                   max={selectedPayment?.amount}
                   step="0.01"
                   className="pl-9"
@@ -645,7 +814,7 @@ export default function PaymentsPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="refund-reason">Reason for Refund</Label>
-              <Select defaultValue="customer-request">
+              <Select value={refundReason} onValueChange={setRefundReason}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -661,55 +830,32 @@ export default function PaymentsPage() {
               <Label htmlFor="refund-notes">Additional Notes</Label>
               <Input
                 id="refund-notes"
+                value={refundNotes}
+                onChange={(e) => setRefundNotes(e.target.value)}
                 placeholder="Optional notes about this refund..."
               />
             </div>
           </div>
-          <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-yellow-800">Manager Authorization Required</p>
-              <p className="text-yellow-700 mt-1">
-                This action requires PIN authorization from a manager or owner.
-              </p>
+          {selectedPayment?.method === 'card-tyro' && (
+            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-800">Tyro Terminal Refund</p>
+                <p className="text-blue-700 mt-1">
+                  This refund will be processed through your Tyro terminal.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsRefundDialogOpen(false)}>
+          <Button variant="outline" onClick={() => setIsRefundDialogOpen(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={async () => {
-              setIsLoading(true);
-              try {
-                // Process the refund with verified staff info
-                
-                // TODO: Call actual refund API endpoint here
-                // await apiClient.processRefund(selectedPayment.id, refundAmount, verifiedStaff.id);
-                
-                // Simulate success
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                toast({
-                  title: "Refund Processed",
-                  description: `Refund of ${formatCurrency(selectedPayment?.amount || 0)} processed successfully`,
-                });
-                
-                setIsRefundDialogOpen(false);
-                setVerifiedStaff(null);
-              } catch (error) {
-                toast({
-                  title: "Refund Failed",
-                  description: "Unable to process refund. Please try again.",
-                  variant: "destructive",
-                });
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            disabled={isLoading || !verifiedStaff}
+          <Button
+            variant="destructive"
+            onClick={handleProcessRefund}
+            disabled={isLoading || !verifiedStaff || !refundAmount || parseFloat(refundAmount) <= 0}
           >
             {isLoading ? (
               <>
@@ -1247,6 +1393,10 @@ export default function PaymentsPage() {
         onSuccess={(staff) => {
           setVerifiedStaff(staff);
           setIsPinDialogOpen(false);
+          // Reset refund form state
+          setRefundAmount(selectedPayment?.amount?.toString() || '');
+          setRefundReason('customer-request');
+          setRefundNotes('');
           setIsRefundDialogOpen(true);
         }}
         onCancel={() => {
