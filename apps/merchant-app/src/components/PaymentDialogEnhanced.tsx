@@ -51,12 +51,12 @@ export function PaymentDialogEnhanced({
     setLoyaltyDiscount(discount);
   }, []);
 
-  // Update order when existingOrder prop changes
+  // Update order when existingOrder prop changes or dialog opens
   useEffect(() => {
-    if (existingOrder) {
+    if (open && existingOrder) {
       setOrder(existingOrder);
     }
-  }, [existingOrder]);
+  }, [existingOrder, open]);
 
   const createOrderFromServices = useCallback(async () => {
     setIsCreatingOrder(true);
