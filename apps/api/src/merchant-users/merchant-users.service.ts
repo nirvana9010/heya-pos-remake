@@ -458,10 +458,13 @@ export class MerchantUsersService {
 
   // Role management
   async findAllRoles(merchantId: string) {
-    // Get both system roles (merchantId is null) and merchant-specific roles
+    // Get active system roles (merchantId is null, isSystem=true) and merchant-specific roles
     return this.prisma.merchantRole.findMany({
       where: {
-        OR: [{ merchantId: null }, { merchantId }],
+        OR: [
+          { merchantId: null, isSystem: true }, // Only active system roles
+          { merchantId }, // Merchant-specific roles
+        ],
       },
       orderBy: [{ isSystem: "desc" }, { name: "asc" }],
     });
