@@ -99,7 +99,8 @@ export class BookingAvailabilityService {
       requireRosterOnly ??
       merchantSettings?.showOnlyRosteredStaffDefault ??
       true;
-    const enableCalendarBlocks = merchantSettings?.enableCalendarBlocks ?? false;
+    const enableCalendarBlocks =
+      merchantSettings?.enableCalendarBlocks ?? false;
 
     if (!businessHours) {
       throw new Error("Business hours not configured");
@@ -566,9 +567,7 @@ export class BookingAvailabilityService {
 
     for (const block of blocks) {
       const locationMatches =
-        !block.locationId ||
-        !locationId ||
-        block.locationId === locationId;
+        !block.locationId || !locationId || block.locationId === locationId;
 
       if (!locationMatches) continue;
 

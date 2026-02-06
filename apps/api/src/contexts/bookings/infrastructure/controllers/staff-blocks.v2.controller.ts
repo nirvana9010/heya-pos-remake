@@ -9,7 +9,13 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { IsISO8601, IsOptional, IsString, IsUUID, Length } from "class-validator";
+import {
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+} from "class-validator";
 import { JwtAuthGuard } from "../../../../auth/guards/jwt-auth.guard";
 import { PinAuthGuard } from "../../../../auth/guards/pin-auth.guard";
 import { CurrentUser } from "../../../../auth/decorators/current-user.decorator";
@@ -67,7 +73,9 @@ export class StaffBlocksV2Controller {
     // Default to true - block feature is non-intrusive and enabled by default
     const enabled = normalized?.enableCalendarBlocks ?? true;
     if (!enabled) {
-      throw new BadRequestException("Calendar blocks feature is disabled for this merchant");
+      throw new BadRequestException(
+        "Calendar blocks feature is disabled for this merchant",
+      );
     }
   }
 
@@ -84,24 +92,38 @@ export class StaffBlocksV2Controller {
     this.ensureBlocksEnabled(merchant?.settings);
 
     // Get merchant timezone from settings
-    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(merchant?.settings);
+    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+      merchant?.settings,
+    );
     const timezone = merchantSettings?.timezone || "Australia/Sydney";
 
     // Parse the incoming datetime strings (in merchant timezone)
     // Expected format: "2025-11-27T14:00:00" or "2025-11-27T14:00"
-    const startMatch = dto.startTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    const startMatch = dto.startTime.match(
+      /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/,
+    );
     const endMatch = dto.endTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
 
     if (!startMatch || !endMatch) {
-      throw new BadRequestException("Invalid datetime format. Expected YYYY-MM-DDTHH:mm");
+      throw new BadRequestException(
+        "Invalid datetime format. Expected YYYY-MM-DDTHH:mm",
+      );
     }
 
     const [, startDate, startTimeStr] = startMatch;
     const [, endDate, endTimeStr] = endMatch;
 
     // Convert from merchant timezone to UTC using TimezoneUtils
-    const startTime = TimezoneUtils.createDateInTimezone(startDate, startTimeStr, timezone);
-    const endTime = TimezoneUtils.createDateInTimezone(endDate, endTimeStr, timezone);
+    const startTime = TimezoneUtils.createDateInTimezone(
+      startDate,
+      startTimeStr,
+      timezone,
+    );
+    const endTime = TimezoneUtils.createDateInTimezone(
+      endDate,
+      endTimeStr,
+      timezone,
+    );
 
     const result = await this.blocksService.createBlock({
       merchantId: user.merchantId,
@@ -130,7 +152,9 @@ export class StaffBlocksV2Controller {
     this.ensureBlocksEnabled(merchant?.settings);
 
     // Get merchant timezone from settings
-    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(merchant?.settings);
+    const merchantSettings = normalizeMerchantSettings<MerchantSettings>(
+      merchant?.settings,
+    );
     const timezone = merchantSettings?.timezone || "Australia/Sydney";
 
     // Parse date strings (expected format: "2025-11-27" or "2025-11-27T00:00:00")
@@ -138,8 +162,16 @@ export class StaffBlocksV2Controller {
     const endDateStr = query.endDate.split("T")[0];
 
     // Convert to start and end of day in merchant timezone
-    const startDate = TimezoneUtils.createDateInTimezone(startDateStr, "00:00", timezone);
-    const endDate = TimezoneUtils.createDateInTimezone(endDateStr, "23:59", timezone);
+    const startDate = TimezoneUtils.createDateInTimezone(
+      startDateStr,
+      "00:00",
+      timezone,
+    );
+    const endDate = TimezoneUtils.createDateInTimezone(
+      endDateStr,
+      "23:59",
+      timezone,
+    );
 
     if (startDate >= endDate) {
       throw new BadRequestException("startDate must be before endDate");

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../../prisma/prisma.service";
 
 export interface CreateBlockParams {
@@ -58,7 +62,10 @@ export class StaffAvailabilityBlockService {
 
       const mergedEnd = overlapping.length
         ? new Date(
-            Math.max(endTime.getTime(), ...overlapping.map((b) => b.endTime.getTime())),
+            Math.max(
+              endTime.getTime(),
+              ...overlapping.map((b) => b.endTime.getTime()),
+            ),
           )
         : endTime;
 

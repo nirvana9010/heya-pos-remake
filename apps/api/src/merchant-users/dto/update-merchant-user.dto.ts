@@ -6,7 +6,7 @@ import {
   MinLength,
   IsUUID,
   IsIn,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdateMerchantUserDto {
   @IsEmail()
@@ -30,12 +30,12 @@ export class UpdateMerchantUserDto {
   @IsOptional()
   roleId?: string;
 
-  @IsIn(['ACTIVE', 'INACTIVE', 'SUSPENDED'])
+  @IsIn(["ACTIVE", "INACTIVE", "SUSPENDED"])
   @IsOptional()
   status?: string;
 
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID("4", { each: true })
   @IsOptional()
   locationIds?: string[];
 }

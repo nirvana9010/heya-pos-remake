@@ -579,7 +579,8 @@ export class BookingCreationService {
 
     const merchantSettings = merchant?.settings as any;
     const businessHours = merchantSettings?.businessHours;
-    const enableCalendarBlocks = merchantSettings?.enableCalendarBlocks ?? false;
+    const enableCalendarBlocks =
+      merchantSettings?.enableCalendarBlocks ?? false;
     if (!businessHours) {
       throw new Error("Business hours not configured");
     }

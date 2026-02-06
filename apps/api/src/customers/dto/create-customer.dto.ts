@@ -1,6 +1,18 @@
-import { IsString, IsEmail, IsOptional, IsDateString, IsEnum, IsNotEmpty, Matches, IsBoolean, IsArray, MaxLength, MinLength } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { IsValidPhone } from '../../common/validation/decorators';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  Matches,
+  IsBoolean,
+  IsArray,
+  MaxLength,
+  MinLength,
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { IsValidPhone } from "../../common/validation/decorators";
 
 const normalizeOptionalString = ({ value }: { value: unknown }) => {
   if (value === undefined) {
@@ -11,28 +23,27 @@ const normalizeOptionalString = ({ value }: { value: unknown }) => {
     return null;
   }
 
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     return value;
   }
 
   const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
+  return trimmed === "" ? undefined : trimmed;
 };
 
 export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER'
+  MALE = "MALE",
+  FEMALE = "FEMALE",
+  OTHER = "OTHER",
 }
 
-
 export enum CustomerSource {
-  WALK_IN = 'WALK_IN',
-  ONLINE = 'ONLINE',
-  REFERRAL = 'REFERRAL',
-  SOCIAL_MEDIA = 'SOCIAL_MEDIA',
-  MIGRATED = 'MIGRATED',
-  OTHER = 'OTHER'
+  WALK_IN = "WALK_IN",
+  ONLINE = "ONLINE",
+  REFERRAL = "REFERRAL",
+  SOCIAL_MEDIA = "SOCIAL_MEDIA",
+  MIGRATED = "MIGRATED",
+  OTHER = "OTHER",
 }
 
 export class CreateCustomerDto {

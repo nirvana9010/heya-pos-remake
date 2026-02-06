@@ -58,12 +58,7 @@ export class EmailTemplateService {
   }
 
   private renderTextFooter(merchant: any): string {
-    const lines = [
-      "",
-      "Best regards,",
-      merchant.name,
-      "",
-    ];
+    const lines = ["", "Best regards,", merchant.name, ""];
 
     if (merchant.phone) {
       lines.push(`Phone: ${merchant.phone}`);
@@ -79,9 +74,13 @@ export class EmailTemplateService {
     lines.push("");
     lines.push("---");
     if (merchant.email) {
-      lines.push(`To reply, please contact ${merchant.name} directly at ${merchant.email}`);
+      lines.push(
+        `To reply, please contact ${merchant.name} directly at ${merchant.email}`,
+      );
     }
-    lines.push("This is an automated message from HeyaPOS. Please do not reply to this email.");
+    lines.push(
+      "This is an automated message from HeyaPOS. Please do not reply to this email.",
+    );
 
     return lines.join("\n");
   }
@@ -121,7 +120,7 @@ export class EmailTemplateService {
     }
 
     const items = services
-      .map(service => {
+      .map((service) => {
         const details: string[] = [];
 
         if (
@@ -194,7 +193,7 @@ export class EmailTemplateService {
     }
 
     return services
-      .map(service => {
+      .map((service) => {
         const details: string[] = [];
 
         if (
@@ -315,10 +314,13 @@ ${this.renderEmailFooter(merchant)}
             <h3 style="margin: 0 0 12px 0; color: #7a5a00;">Appointment Overview</h3>
             <div>
               <p style="margin: 0 0 6px 0; font-weight: bold; color: #333;">Services Selected</p>
-              ${this.renderServiceListHtml(booking, {
-                includeDuration: false,
-                includeStaff: true,
-              }) || `<p style="margin: 0; color: #555;">No services recorded.</p>`}
+              ${
+                this.renderServiceListHtml(booking, {
+                  includeDuration: false,
+                  includeStaff: true,
+                }) ||
+                `<p style="margin: 0; color: #555;">No services recorded.</p>`
+              }
             </div>
             <div style="margin-top: 16px;">
               <p style="margin: 0; font-weight: bold; color: #333;">Date</p>
@@ -421,10 +423,10 @@ Time: ${booking.time}
 
 Additional Details
 Customer: ${
-  booking.customerName ||
-  `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
-  "Not provided"
-}
+      booking.customerName ||
+      `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
+      "Not provided"
+    }
 Contact: ${booking.customerPhone || customer.phone || customer.email || "Not provided"}
 Total Duration: ${booking.duration ? `${booking.duration} minutes` : "Not specified"}
 Estimated Value: ${this.formatPrice(booking.price)}
@@ -772,11 +774,14 @@ ${this.renderTextFooter(merchant)}
             <h3 style="margin: 0 0 12px 0; color: #7a5a00;">Appointment Overview</h3>
             <div>
               <p style="margin: 0 0 6px 0; font-weight: bold; color: #333;">Services Selected</p>
-              ${this.renderServiceListHtml(booking, {
-                includeDuration: true,
-                includeStaff: true,
-                includePrice: true,
-              }) || `<p style="margin: 0; color: #555;">No services recorded.</p>`}
+              ${
+                this.renderServiceListHtml(booking, {
+                  includeDuration: true,
+                  includeStaff: true,
+                  includePrice: true,
+                }) ||
+                `<p style="margin: 0; color: #555;">No services recorded.</p>`
+              }
             </div>
             <div style="margin-top: 16px;">
               <p style="margin: 0; font-weight: bold; color: #333;">Date</p>

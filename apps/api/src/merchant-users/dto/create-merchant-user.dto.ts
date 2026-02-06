@@ -5,7 +5,7 @@ import {
   IsArray,
   MinLength,
   IsUUID,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateMerchantUserDto {
   @IsEmail()
@@ -26,7 +26,7 @@ export class CreateMerchantUserDto {
   roleId: string;
 
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID("4", { each: true })
   @IsOptional()
   locationIds?: string[];
 }

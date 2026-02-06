@@ -4,7 +4,7 @@ import {
   IsOptional,
   IsArray,
   IsUUID,
-} from 'class-validator';
+} from "class-validator";
 
 export class InviteMerchantUserDto {
   @IsEmail()
@@ -21,7 +21,7 @@ export class InviteMerchantUserDto {
   roleId: string;
 
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID("4", { each: true })
   @IsOptional()
   locationIds?: string[];
 }

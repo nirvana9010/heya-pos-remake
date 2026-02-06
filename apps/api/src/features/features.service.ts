@@ -301,7 +301,13 @@ export class FeaturesService {
   private mapLegacyFeatures(legacyFeatures: string[]): string[] {
     const featureMap: Record<string, string[]> = {
       basic_booking: ["customers", "services", "bookings"],
-      advanced_booking: ["customers", "services", "bookings", "staff", "roster"],
+      advanced_booking: [
+        "customers",
+        "services",
+        "bookings",
+        "staff",
+        "roster",
+      ],
       customer_management: ["customers"],
       basic_reports: ["reports"],
       advanced_reports: ["reports"],
