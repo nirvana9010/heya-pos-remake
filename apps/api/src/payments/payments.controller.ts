@@ -6,10 +6,11 @@ import {
   Param,
   Query,
   UseGuards,
-  Request,
+  Req,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
+import { Request as ExpressRequest } from "express";
 import { PaymentsService } from "./payments.service";
 import { OrdersService } from "./orders.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -42,6 +43,8 @@ import { PaymentInitDto, PaymentInitResponseDto } from "./dto/payment-init.dto";
 import { PrepareOrderDto } from "./dto/prepare-order.dto";
 import { PaymentGatewayService } from "./payment-gateway.service";
 import { RedisService } from "../common/redis/redis.service";
+import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS } from "../types/models/audit";
 
 // @ApiTags('payments')
 @Controller("payments")
@@ -54,6 +57,7 @@ export class PaymentsController {
     private readonly prisma: PrismaService,
     private readonly paymentGatewayService: PaymentGatewayService,
     private readonly redisService: RedisService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -89,9 +93,37 @@ export class PaymentsController {
   async processPayment(
     @Body() dto: ProcessPaymentDto,
     @CurrentUser() user: any,
+    @Req() req: ExpressRequest,
   ) {
     const staffId = await this.resolveStaffId(user);
-    return this.paymentsService.processPayment(dto, user.merchantId, staffId);
+    const result = await this.paymentsService.processPayment(
+      dto,
+      user.merchantId,
+      staffId,
+    );
+    void (async () => {
+      const order = await this.prisma.order.findUnique({
+        where: { id: dto.orderId },
+        select: { customer: { select: { firstName: true, lastName: true } } },
+      });
+      const customerName = order?.customer
+        ? `${order.customer.firstName} ${order.customer.lastName || ""}`.trim()
+        : undefined;
+      return this.auditService.log({
+        merchantId: user.merchantId,
+        staffId: this.extractStaffHint(req, user),
+        action: AUDIT_ACTIONS.PAYMENT_PROCESS,
+        entityType: "order",
+        entityId: dto.orderId,
+        details: {
+          method: dto.method,
+          amount: dto.amount,
+          customerName,
+        },
+        ipAddress: req.ip,
+      });
+    })();
+    return result;
   }
 
   @Post("split")
@@ -261,8 +293,28 @@ export class PaymentsController {
     @Param("orderId") orderId: string,
     @Body() dto: OrderModifierDto,
     @CurrentUser() user: any,
+    @Req() req: ExpressRequest,
   ) {
-    return this.ordersService.addOrderModifier(orderId, user.merchantId, dto);
+    const result = await this.ordersService.addOrderModifier(
+      orderId,
+      user.merchantId,
+      dto,
+    );
+    void this.auditService.log({
+      merchantId: user.merchantId,
+      staffId: this.extractStaffHint(req, user),
+      action: AUDIT_ACTIONS.ORDER_MODIFIER_ADD,
+      entityType: "order",
+      entityId: orderId,
+      details: {
+        type: dto.type,
+        value: dto.value,
+        calculation: dto.calculation,
+        description: dto.description,
+      },
+      ipAddress: req.ip,
+    });
+    return result;
   }
 
   @Post("orders/:orderId/state")
@@ -498,5 +550,11 @@ export class PaymentsController {
     @CurrentUser() user: any,
   ): Promise<PaymentInitResponseDto> {
     return this.ordersService.prepareOrderForPayment(dto, user);
+  }
+
+  private extractStaffHint(req: ExpressRequest, user: any): string | undefined {
+    const header = req.headers["x-active-staff-id"];
+    const staffId = Array.isArray(header) ? header[0] : header;
+    return staffId || user.staffId;
   }
 }

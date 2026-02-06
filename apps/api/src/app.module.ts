@@ -33,6 +33,9 @@ import { RedisModule } from "./common/redis/redis.module";
 import { BookingsContextModule } from "./contexts/bookings/bookings.context.module";
 import { OutboxModule } from "./contexts/shared/outbox/outbox.module";
 
+// Audit
+import { AuditModule } from "./audit/audit.module";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -54,6 +57,7 @@ import { OutboxModule } from "./contexts/shared/outbox/outbox.module";
     CommonServicesModule, // Global common services
     MonitoringModule, // Global monitoring
     SupabaseModule, // Global Supabase module for realtime
+    AuditModule,
     PrismaModule,
     AuthModule,
     ServicesModule,

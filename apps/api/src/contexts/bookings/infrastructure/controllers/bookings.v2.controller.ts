@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
   HttpStatus,
   HttpCode,
   Inject,
@@ -15,6 +16,7 @@ import {
   UsePipes,
   BadRequestException,
 } from "@nestjs/common";
+import { Request } from "express";
 import { QueryBus } from "@nestjs/cqrs";
 import { CreateBookingHandler } from "../../application/commands/create-booking.handler";
 import { CreateBookingCommand } from "../../application/commands/create-booking.command";
@@ -34,6 +36,8 @@ import { UpdateBookingV2Dto } from "../dto/update-booking-v2.dto";
 import { QueryBookingsDto, CalendarViewDto } from "../dto/query-bookings.dto";
 import { PrismaService } from "../../../../prisma/prisma.service";
 import { CacheService } from "../../../../common/cache/cache.service";
+import { AuditService } from "../../../../audit/audit.service";
+import { AUDIT_ACTIONS } from "../../../../types/models/audit";
 import {
   startOfDay,
   endOfDay,
@@ -59,6 +63,7 @@ export class BookingsV2Controller {
     private readonly bookingRepository: IBookingRepository,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
+    private readonly auditService: AuditService,
   ) {}
 
   @Get()
@@ -348,8 +353,12 @@ export class BookingsV2Controller {
 
     // Invalidate cache for this merchant's bookings list and calendar view
     // This ensures the new booking appears immediately on refresh
-    await this.cacheService.deletePattern(`${user.merchantId}:bookings-list:.*`);
-    await this.cacheService.deletePattern(`${user.merchantId}:calendar-view:.*`);
+    await this.cacheService.deletePattern(
+      `${user.merchantId}:bookings-list:.*`,
+    );
+    await this.cacheService.deletePattern(
+      `${user.merchantId}:calendar-view:.*`,
+    );
     console.log(
       `[BookingsV2Controller] Cache invalidated for merchant ${user.merchantId} after booking creation`,
     );
@@ -394,6 +403,7 @@ export class BookingsV2Controller {
     @CurrentUser() user: any,
     @Param("id") id: string,
     @Body() dto: UpdateBookingV2Dto,
+    @Req() req: Request,
   ) {
     console.log("[V2 CONTROLLER] PATCH /bookings/" + id);
     console.log("[V2 CONTROLLER] Received DTO:", JSON.stringify(dto, null, 2));
@@ -465,6 +475,22 @@ export class BookingsV2Controller {
         .replace(/_/g, "-");
     }
 
+    if (dto.startTime) {
+      void this.auditService.log({
+        merchantId: user.merchantId,
+        staffId: this.extractStaffHint(req, user),
+        action: AUDIT_ACTIONS.BOOKING_UPDATE,
+        entityType: "booking",
+        entityId: id,
+        details: {
+          rescheduled: true,
+          newStartTime: dto.startTime,
+          newEndTime: dto.endTime,
+        },
+        ipAddress: req.ip,
+      });
+    }
+
     return enrichedBooking;
   }
 
@@ -497,12 +523,26 @@ export class BookingsV2Controller {
     @CurrentUser() user: any,
     @Param("id") id: string,
     @Body() body: { reason: string },
+    @Req() req: Request,
   ) {
     const booking = await this.bookingUpdateService.cancelBooking({
       bookingId: id,
       merchantId: user.merchantId,
       reason: body.reason,
       cancelledBy: user.id,
+    });
+
+    void this.auditService.log({
+      merchantId: user.merchantId,
+      staffId: this.extractStaffHint(req, user),
+      action: AUDIT_ACTIONS.BOOKING_CANCEL,
+      entityType: "booking",
+      entityId: id,
+      details: {
+        reason: body.reason,
+        cancelledBy: this.getUserDisplayName(user),
+      },
+      ipAddress: req.ip,
     });
 
     return this.toDto(booking);
@@ -568,6 +608,22 @@ export class BookingsV2Controller {
         `Failed to mark booking as paid: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  private getUserDisplayName(user: any): string {
+    if (user.type === "merchant_user" && user.merchantUser) {
+      return `${user.merchantUser.firstName} ${user.merchantUser.lastName || ""}`.trim();
+    }
+    if (user.type === "staff" && user.staff) {
+      return `${user.staff.firstName} ${user.staff.lastName || ""}`.trim();
+    }
+    return user.merchant?.name || "Owner";
+  }
+
+  private extractStaffHint(req: Request, user: any): string | undefined {
+    const header = req.headers["x-active-staff-id"];
+    const staffId = Array.isArray(header) ? header[0] : header;
+    return staffId || user.staffId;
   }
 
   private async resolveWalkInCustomer(merchantId: string): Promise<string> {

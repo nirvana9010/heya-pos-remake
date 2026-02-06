@@ -22,6 +22,9 @@ export const AUDIT_ACTIONS = {
   PAYMENT_PROCESS: "payment.process",
   PAYMENT_REFUND: "payment.refund",
 
+  // Order actions
+  ORDER_MODIFIER_ADD: "order.modifier.add",
+
   // Customer actions
   CUSTOMER_CREATE: "customer.create",
   CUSTOMER_UPDATE: "customer.update",

@@ -8,13 +8,14 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
   UseInterceptors,
   UploadedFile,
   Res,
   HttpStatus,
   BadRequestException,
 } from "@nestjs/common";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CustomersService } from "./customers.service";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
@@ -30,11 +31,16 @@ import {
   CustomerExecuteImportDto,
   CustomerImportOptionsDto,
 } from "./dto/import-customers.dto";
+import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS } from "../types/models/audit";
 
 @Controller("customers")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CustomersController {
-  constructor(private readonly customersService: CustomersService) {}
+  constructor(
+    private readonly customersService: CustomersService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post()
   @UseGuards(PinAuthGuard)
@@ -196,8 +202,38 @@ export class CustomersController {
   @Delete(":id")
   @UseGuards(PinAuthGuard)
   @Permissions("customers.delete")
-  remove(@CurrentUser() user: any, @Param("id") id: string) {
-    return this.customersService.remove(user.merchantId, id);
+  async remove(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Req() req: Request,
+  ) {
+    const result = await this.customersService.remove(user.merchantId, id);
+    void this.auditService.log({
+      merchantId: user.merchantId,
+      staffId: this.extractStaffHint(req, user),
+      action: AUDIT_ACTIONS.CUSTOMER_DELETE,
+      entityType: "customer",
+      entityId: id,
+      details: { deletedBy: this.getUserDisplayName(user) },
+      ipAddress: req.ip,
+    });
+    return result;
+  }
+
+  private getUserDisplayName(user: any): string {
+    if (user.type === "merchant_user" && user.merchantUser) {
+      return `${user.merchantUser.firstName} ${user.merchantUser.lastName || ""}`.trim();
+    }
+    if (user.type === "staff" && user.staff) {
+      return `${user.staff.firstName} ${user.staff.lastName || ""}`.trim();
+    }
+    return user.merchant?.name || "Owner";
+  }
+
+  private extractStaffHint(req: Request, user: any): string | undefined {
+    const header = req.headers["x-active-staff-id"];
+    const staffId = Array.isArray(header) ? header[0] : header;
+    return staffId || user.staffId;
   }
 
   private validateImportFile(file?: Express.Multer.File) {
