@@ -127,4 +127,36 @@ export class MerchantUsersClient extends BaseApiClient {
   async deleteMerchantUser(id: string): Promise<{ success: boolean }> {
     return this.delete(`/merchant-users/${id}`, undefined, "v1");
   }
+
+  /**
+   * Create a new role
+   */
+  async createRole(data: {
+    name: string;
+    description?: string;
+    permissions: string[];
+  }): Promise<MerchantRole> {
+    return this.post("/merchant-users/roles", data, undefined, "v1");
+  }
+
+  /**
+   * Update a role
+   */
+  async updateRole(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      permissions?: string[];
+    }
+  ): Promise<MerchantRole> {
+    return this.patch(`/merchant-users/roles/${id}`, data, undefined, "v1");
+  }
+
+  /**
+   * Delete a role
+   */
+  async deleteRole(id: string): Promise<{ success: boolean }> {
+    return this.delete(`/merchant-users/roles/${id}`, undefined, "v1");
+  }
 }

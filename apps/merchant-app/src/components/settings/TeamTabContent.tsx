@@ -28,6 +28,7 @@ import type {
 } from "@/lib/clients/merchant-users-client";
 import { AddTeamMemberDialog } from "./AddTeamMemberDialog";
 import { EditTeamMemberDialog } from "./EditTeamMemberDialog";
+import { EditRoleDialog } from "./EditRoleDialog";
 
 // Human-readable permission labels grouped by category
 const PERMISSION_LABELS: Record<string, { label: string; category: string }> = {
@@ -107,6 +108,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
 
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<MerchantUser | null>(null);
+  const [editingRole, setEditingRole] = useState<MerchantRole | null>(null);
 
   // Fetch team members
   const {
@@ -452,13 +454,17 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
       {/* Roles Overview Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Roles Overview
-          </CardTitle>
-          <CardDescription>
-            System roles that define team member permissions
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Roles & Permissions
+              </CardTitle>
+              <CardDescription>
+                Customize what each role can access
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -474,11 +480,23 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">{role.name}</h4>
-                    {role.isSystem && (
-                      <Badge variant="outline" className="text-xs">
-                        System
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {role.isSystem && (
+                        <Badge variant="outline" className="text-xs">
+                          System
+                        </Badge>
+                      )}
+                      {can("settings.update") && !role.permissions.includes("*") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingRole(role)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {role.description && (
                     <p className="text-sm text-muted-foreground">
@@ -539,6 +557,16 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
           onSuccess={handleEditSuccess}
         />
       )}
+
+      <EditRoleDialog
+        open={!!editingRole}
+        onOpenChange={(open) => !open && setEditingRole(null)}
+        role={editingRole}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["merchantRoles"] });
+          setEditingRole(null);
+        }}
+      />
     </div>
   );
 }
