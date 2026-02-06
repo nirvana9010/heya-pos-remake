@@ -131,6 +131,14 @@ unitPrice: typeof price === 'object' && price.toNumber
 ### crypto Error in Next.js
 Never use `require('crypto')` in webpack config or client code - causes "crypto is not defined" in production.
 
+### Settings Page Toggles Won't Save
+When adding a new boolean toggle to the settings page, you MUST call `queueAutoSave()` directly — do NOT just call the state setter. The `setState → useMemo → useEffect` chain is unreliable for toggles. Follow the pattern used by `handleAllowOnlineBookingsChange`:
+```typescript
+setMyNewSetting(value);
+queueAutoSave({ myNewSetting: value }, { force: true });
+```
+Also ensure the field name is recognized by `isBooleanField()` in `src/lib/db-transforms.ts` (matches prefixes `is*`, `has*`, `allow*`, `require*`, `enable*`, `disable*`, or suffix `*Enabled`), otherwise `null` from the API won't be coerced to `false`.
+
 ## Real-time Updates
 
 Uses **WebSockets with Socket.IO** for notifications:
