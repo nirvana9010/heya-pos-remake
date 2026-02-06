@@ -175,14 +175,15 @@ function isBooleanField(fieldName: string): boolean {
     return false;
   }
   
-  return booleanFields.some(field => 
+  return booleanFields.some(field =>
     fieldLower === field.toLowerCase() ||
     fieldLower.startsWith('is') ||
     fieldLower.startsWith('has') ||
     fieldLower.startsWith('allow') ||
     fieldLower.startsWith('require') ||
     fieldLower.startsWith('enable') ||
-    fieldLower.startsWith('disable')
+    fieldLower.startsWith('disable') ||
+    fieldLower.endsWith('enabled')
   );
 }
 

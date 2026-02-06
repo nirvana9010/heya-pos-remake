@@ -2501,11 +2501,19 @@ export default function SettingsPage() {
                             return;
                           }
                           setStaffPinLockEnabled(true);
+                          queueAutoSave(
+                            { staffPinLockEnabled: true },
+                            { force: true },
+                          );
                         } catch {
                           setStaffPinLockError("Failed to check staff PIN status. Please try again.");
                         }
                       } else {
                         setStaffPinLockEnabled(false);
+                        queueAutoSave(
+                          { staffPinLockEnabled: false },
+                          { force: true },
+                        );
                       }
                     }}
                   />
