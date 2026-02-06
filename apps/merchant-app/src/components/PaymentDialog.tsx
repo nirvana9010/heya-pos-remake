@@ -573,10 +573,11 @@ export function PaymentDialog({
       }
 
     } catch (error: any) {
-      console.error('Payment processing error:', error);
-      
+      console.error('Payment processing error:', error?.message || error?.response?.data?.message || error);
+
       // Check if this is a state transition error
-      const errorMessage = error.response?.data?.message || error.message;
+      // Handle both ApiError objects (message at top level) and Axios errors (response.data.message)
+      const errorMessage = error?.message || error?.response?.data?.message || 'Payment failed';
       const isStateError = errorMessage.includes('not ready for payment') || 
                           errorMessage.includes('Invalid state transition');
       

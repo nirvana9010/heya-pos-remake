@@ -56,6 +56,33 @@ export class PaymentsController {
     private readonly redisService: RedisService,
   ) {}
 
+  /**
+   * Resolve a valid Staff ID from the current user.
+   * Staff users already have a staffId; merchant owners and merchant_users
+   * fall back to the first active staff member for the merchant.
+   */
+  private async resolveStaffId(user: any): Promise<string> {
+    if (user.type === "staff" && user.staffId) {
+      return user.staffId;
+    }
+
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        merchantId: user.merchantId,
+        status: "ACTIVE",
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!staff) {
+      throw new BadRequestException(
+        "No active staff found to process payment",
+      );
+    }
+
+    return staff.id;
+  }
+
   @Post("process")
   @HttpCode(HttpStatus.OK)
   // @ApiOperation({ summary: 'Process a payment for an order' })
@@ -63,28 +90,7 @@ export class PaymentsController {
     @Body() dto: ProcessPaymentDto,
     @CurrentUser() user: any,
   ) {
-    // For merchant users, we need to find a staff member to process the payment
-    let staffId = user.id;
-
-    if (user.type === "merchant" || user.role === "MERCHANT") {
-      // Get any active staff member for this merchant
-      const staff = await this.prisma.staff.findFirst({
-        where: {
-          merchantId: user.merchantId,
-          status: "ACTIVE",
-        },
-        orderBy: { createdAt: "asc" },
-      });
-
-      if (!staff) {
-        throw new BadRequestException(
-          "No active staff found to process payment",
-        );
-      }
-
-      staffId = staff.id;
-    }
-
+    const staffId = await this.resolveStaffId(user);
     return this.paymentsService.processPayment(dto, user.merchantId, staffId);
   }
 
@@ -95,10 +101,11 @@ export class PaymentsController {
     @Body() dto: SplitPaymentDto,
     @CurrentUser() user: any,
   ) {
+    const staffId = await this.resolveStaffId(user);
     return this.paymentsService.processSplitPayment(
       dto,
       user.merchantId,
-      user.id,
+      staffId,
     );
   }
 
@@ -281,7 +288,7 @@ export class PaymentsController {
     @CurrentUser() user: any,
   ) {
     // For merchant users, staffId will be null and the service will find an appropriate staff
-    const staffId = user.type === "staff" ? user.id : null;
+    const staffId = user.type === "staff" && user.staffId ? user.staffId : null;
 
     return this.ordersService.createOrderFromBooking(
       bookingId,
