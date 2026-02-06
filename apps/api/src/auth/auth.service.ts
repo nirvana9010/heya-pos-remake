@@ -107,21 +107,30 @@ export class AuthService {
   }
 
   async merchantLogin(dto: MerchantLoginDto): Promise<AuthSession> {
-    // First, try to validate as owner (MerchantAuth)
+    console.log(`[AUTH DEBUG] merchantLogin called with email: ${dto.email}`);
+
+    // IMPORTANT: Try MerchantUser (team member) auth FIRST
+    // This prevents team members from accidentally authenticating as owner
+    // if the Merchant.email was changed to match their email
+    const merchantUserResult = await this.tryMerchantUserLogin(
+      dto.email,
+      dto.password,
+    );
+    if (merchantUserResult) {
+      console.log(`[AUTH DEBUG] MerchantUser auth SUCCEEDED for: ${dto.email}`);
+      return merchantUserResult;
+    }
+
+    console.log(`[AUTH DEBUG] MerchantUser auth failed for: ${dto.email}, trying owner...`);
+
+    // If MerchantUser auth fails, try owner (MerchantAuth)
     try {
       const merchantAuth = await this.validateMerchant(dto.email, dto.password);
+      console.log(`[AUTH DEBUG] Owner auth SUCCEEDED for: ${dto.email}`);
       return this.createMerchantSession(merchantAuth);
     } catch (ownerError) {
-      // If owner auth fails, try MerchantUser login
-      const merchantUserResult = await this.tryMerchantUserLogin(
-        dto.email,
-        dto.password,
-      );
-      if (merchantUserResult) {
-        return merchantUserResult;
-      }
-      // Re-throw the original error if both fail
-      throw ownerError;
+      console.log(`[AUTH DEBUG] Both auth methods failed for: ${dto.email}`);
+      throw new UnauthorizedException("Invalid email or password");
     }
   }
 
