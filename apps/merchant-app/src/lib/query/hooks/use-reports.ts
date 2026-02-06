@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api-client';
-import type { ReportData, DashboardStats } from '../../clients/reports-client';
+import type { ReportData, DashboardStats, ActivityLogParams } from '../../clients/reports-client';
 
 // Query keys for reports
 export const reportKeys = {
@@ -13,6 +13,7 @@ export const reportKeys = {
   topServices: (limit?: number) => [...reportKeys.all, 'topServices', { limit }] as const,
   staffPerformance: (limit?: number) => [...reportKeys.all, 'staffPerformance', { limit }] as const,
   revenueTrend: (days?: number) => [...reportKeys.all, 'revenueTrend', { days }] as const,
+  activityLog: (params?: ActivityLogParams) => [...reportKeys.all, 'activityLog', params] as const,
 };
 
 /**
@@ -109,6 +110,18 @@ export function useRevenueTrend(days: number = 30) {
     queryKey: reportKeys.revenueTrend(days),
     queryFn: () => apiClient.reports.getRevenueTrend(days),
     staleTime: 15 * 60 * 1000, // 15 minutes for trend data
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Hook to fetch activity log data with pagination and filters
+ */
+export function useActivityLog(params?: ActivityLogParams) {
+  return useQuery({
+    queryKey: reportKeys.activityLog(params),
+    queryFn: () => apiClient.reports.getActivityLog(params),
+    staleTime: 60 * 1000, // 1 minute for activity log
     refetchOnWindowFocus: false,
   });
 }

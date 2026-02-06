@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw, LayoutDashboard } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Calendar, Download, TrendingUp, TrendingDown, Users, DollarSign, Clock, BarChart3, Activity, ShoppingBag, FileText, ArrowRight, ArrowUp, ArrowDown, AlertCircle, RefreshCw, LayoutDashboard, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { Skeleton } from "@heya-pos/ui";
-import { useReportOverview } from "@/lib/query/hooks";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@heya-pos/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { useReportOverview, useActivityLog } from "@/lib/query/hooks";
+import { usePermissions } from "@/lib/auth/auth-provider";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
 import {
   LineChart,
   Line,
@@ -30,11 +36,10 @@ import { format, subMonths } from "date-fns";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { TrendBadge } from "@/components/TrendBadge";
 import { calculateTrend, calculateCurrencyTrend, calculateCountTrend } from "@heya-pos/utils";
-import { PinProtected } from "@/components/PinProtected";
 import { ExecutiveDashboard } from "./executive-dashboard";
 
 // Import the type from the client
-import type { ReportData } from '@/lib/clients/reports-client';
+import type { ReportData, ActivityLogEntry } from '@/lib/clients/reports-client';
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -91,10 +96,264 @@ const Sparkline = ({ data, color = "#3b82f6" }: { data: number[]; color?: string
   </ResponsiveContainer>
 );
 
+// Action label mapping for activity log
+const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  "staff.unlock": { label: "Staff Unlock", variant: "default" },
+  "staff.lock": { label: "Staff Lock", variant: "secondary" },
+  "action.refund_payment": { label: "Refund Payment", variant: "secondary" },
+  "action.unauthorized": { label: "Unauthorized Attempt", variant: "destructive" },
+  "pin.verify.failed": { label: "Failed PIN", variant: "destructive" },
+  "pin.verify.success": { label: "PIN Verified", variant: "default" },
+  "staff.session.start": { label: "Session Start", variant: "default" },
+  "staff.session.end": { label: "Session End", variant: "secondary" },
+};
+
+function getActionLabel(action: string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  // Format unknown actions: "some.action.name" → "Some Action Name"
+  const label = action
+    .split(".")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  return { label, variant: "outline" };
+}
+
+function formatDetails(details: Record<string, any>): string {
+  if (!details || typeof details !== "object") return "";
+  // Show a brief summary of key details
+  const entries = Object.entries(details);
+  if (entries.length === 0) return "";
+  return entries
+    .slice(0, 3)
+    .map(([key, value]) => {
+      const formattedKey = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+      const formattedValue = typeof value === "object" ? JSON.stringify(value) : String(value);
+      return `${formattedKey}: ${formattedValue}`;
+    })
+    .join(", ");
+}
+
+function ActivityLogTab() {
+  const [page, setPage] = useState(1);
+  const [staffFilter, setStaffFilter] = useState<string>("");
+  const [actionFilter, setActionFilter] = useState<string>("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const { toast } = useToast();
+
+  const params = useMemo(() => ({
+    page,
+    limit: 25,
+    ...(staffFilter && { staffId: staffFilter }),
+    ...(actionFilter && { action: actionFilter }),
+    ...(startDate && { startDate }),
+    ...(endDate && { endDate }),
+  }), [page, staffFilter, actionFilter, startDate, endDate]);
+
+  const { data: activityData, isLoading, error } = useActivityLog(params);
+
+  // Fetch staff list for filter dropdown
+  const { data: staffList } = useQuery({
+    queryKey: ["staff", "list"],
+    queryFn: () => apiClient.staff.getStaff(),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = useCallback((setter: (v: string) => void) => {
+    return (value: string) => {
+      setter(value === "__all__" ? "" : value);
+      setPage(1);
+    };
+  }, []);
+
+  const handleExportCSV = useCallback(() => {
+    if (!activityData?.data?.length) {
+      toast({ title: "No data", description: "No activity log entries to export", variant: "destructive" });
+      return;
+    }
+    const rows = activityData.data.map((entry) => ({
+      Timestamp: format(new Date(entry.timestamp), "yyyy-MM-dd HH:mm:ss"),
+      Staff: `${entry.staffFirstName} ${entry.staffLastName}`,
+      Action: getActionLabel(entry.action).label,
+      "Entity Type": entry.entityType,
+      "Entity ID": entry.entityId,
+      Details: formatDetails(entry.details),
+      "IP Address": entry.ipAddress || "",
+    }));
+    exportToCSV(rows, `activity-log-${format(new Date(), "yyyy-MM-dd")}`);
+  }, [activityData, toast]);
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Staff</label>
+              <Select value={staffFilter || "__all__"} onValueChange={handleFilterChange(setStaffFilter)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Staff</SelectItem>
+                  {(staffList || []).map((s: any) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.firstName} {s.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Action</label>
+              <Select value={actionFilter || "__all__"} onValueChange={handleFilterChange(setActionFilter)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Actions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Actions</SelectItem>
+                  {Object.entries(ACTION_LABELS).map(([key, { label }]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Unable to Load Activity Log</h3>
+              <p className="text-muted-foreground">
+                {(error as any)?.message || "An error occurred while loading the activity log."}
+              </p>
+            </div>
+          ) : !activityData?.data?.length ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Activity className="h-12 w-12 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">No activity found</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Activity will appear here as actions are logged
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date/Time</TableHead>
+                  <TableHead>Staff</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead className="hidden md:table-cell">Details</TableHead>
+                  <TableHead className="hidden lg:table-cell">IP Address</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activityData.data.map((entry) => {
+                  const { label, variant } = getActionLabel(entry.action);
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {format(new Date(entry.timestamp), "dd MMM yyyy")}
+                        <br />
+                        <span className="text-muted-foreground text-xs">
+                          {format(new Date(entry.timestamp), "h:mm a")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {entry.staffFirstName} {entry.staffLastName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={variant}>{label}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-[300px] truncate">
+                        {formatDetails(entry.details)}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                        {entry.ipAddress || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+
+        {/* Pagination */}
+        {activityData && activityData.meta.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <p className="text-sm text-muted-foreground">
+              Page {activityData.meta.page} of {activityData.meta.totalPages} ({activityData.meta.total} entries)
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= activityData.meta.totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("monthly");
   const [viewMode, setViewMode] = useState<"executive" | "classic">("executive");
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
+  const { isOwner, isManager } = usePermissions();
+  const canViewActivityLog = isOwner || isManager;
 
   // Use React Query for data fetching - backend returns all time ranges at once
   const { 
@@ -609,19 +868,29 @@ export default function ReportsPage() {
   };
 
   return (
-    <PinProtected feature="reports" title="Reports Access Required" description="Enter your PIN to view business reports">
+    <>
       {viewMode === "executive" ? (
         <>
           <ExecutiveDashboard />
-          <div className="container max-w-7xl mx-auto px-6 pb-6">
-            <Button 
-              variant="outline" 
+          <div className="container max-w-7xl mx-auto px-6 pb-6 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
               onClick={() => setViewMode("classic")}
               className="w-full sm:w-auto"
             >
               <BarChart3 className="mr-2 h-4 w-4" />
               Switch to Classic View
             </Button>
+            {canViewActivityLog && (
+              <Button
+                variant="outline"
+                onClick={() => { setViewMode("classic"); setActiveTab("activity-log"); }}
+                className="w-full sm:w-auto"
+              >
+                <Activity className="mr-2 h-4 w-4" />
+                Activity Log
+              </Button>
+            )}
           </div>
         </>
       ) : (
@@ -636,8 +905,8 @@ export default function ReportsPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setViewMode("executive")}
                 >
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -650,67 +919,90 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
-        
-          {/* Prominent Date Range Selector */}
-          <Card className="border-dashed">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Reporting Period:</span>
-              </div>
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">
+
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="overview">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Overview
+              </TabsTrigger>
+              {canViewActivityLog && (
+                <TabsTrigger value="activity-log">
+                  <Activity className="mr-2 h-4 w-4" />
+                  Activity Log
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="overview">
+              {/* Prominent Date Range Selector */}
+              <Card className="border-dashed">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
-                      <span>Today</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date().toLocaleDateString()}
-                      </span>
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm font-medium">Reporting Period:</span>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="weekly">
-                    <div className="flex items-center gap-2">
-                      <span>This Week</span>
-                      <span className="text-xs text-muted-foreground">Last 7 days</span>
+                    <Select value={timeRange} onValueChange={setTimeRange}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">
+                          <div className="flex items-center gap-2">
+                            <span>Today</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date().toLocaleDateString()}
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="weekly">
+                          <div className="flex items-center gap-2">
+                            <span>This Week</span>
+                            <span className="text-xs text-muted-foreground">Last 7 days</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="monthly">
+                          <div className="flex items-center gap-2">
+                            <span>This Month</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date().toLocaleDateString('en-US', { month: 'long' })}
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="yearly">
+                          <div className="flex items-center gap-2">
+                            <span>This Year</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date().getFullYear()}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Compare to:</span>
+                      <Badge variant="secondary">Previous {timeRange.slice(0, -2)}</Badge>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="monthly">
-                    <div className="flex items-center gap-2">
-                      <span>This Month</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date().toLocaleDateString('en-US', { month: 'long' })}
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="yearly">
-                    <div className="flex items-center gap-2">
-                      <span>This Year</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date().getFullYear()}
-                      </span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Compare to:</span>
-                <Badge variant="secondary">Previous {timeRange.slice(0, -2)}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <ErrorBoundary>
-          <div className="mt-6">
-            <OverviewTab />
-          </div>
-        </ErrorBoundary>
-      </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <ErrorBoundary>
+                <div className="mt-6">
+                  <OverviewTab />
+                </div>
+              </ErrorBoundary>
+            </TabsContent>
+
+            {canViewActivityLog && (
+              <TabsContent value="activity-log">
+                <ActivityLogTab />
+              </TabsContent>
+            )}
+          </Tabs>
+        </div>
       )}
-    </PinProtected>
+    </>
   );
 }

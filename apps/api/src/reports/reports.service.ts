@@ -755,6 +755,78 @@ export class ReportsService {
     return result;
   }
 
+  async getActivityLog(
+    merchantId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      staffId?: string;
+      action?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+  ) {
+    const page = params.page || 1;
+    const limit = Math.min(params.limit || 25, 100);
+    const skip = (page - 1) * limit;
+
+    const where: any = { merchantId };
+
+    if (params.staffId) {
+      where.staffId = params.staffId;
+    }
+    if (params.action) {
+      where.action = params.action;
+    }
+    if (params.startDate || params.endDate) {
+      where.timestamp = {};
+      if (params.startDate) {
+        where.timestamp.gte = new Date(params.startDate);
+      }
+      if (params.endDate) {
+        // End of day for endDate
+        const end = new Date(params.endDate);
+        end.setHours(23, 59, 59, 999);
+        where.timestamp.lte = end;
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        orderBy: { timestamp: "desc" },
+        skip,
+        take: limit,
+        include: {
+          staff: {
+            select: { firstName: true, lastName: true },
+          },
+        },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      data: data.map((entry) => ({
+        id: entry.id,
+        action: entry.action,
+        staffFirstName: entry.staff.firstName,
+        staffLastName: entry.staff.lastName,
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        details: entry.details,
+        ipAddress: entry.ipAddress,
+        timestamp: entry.timestamp.toISOString(),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   /**
    * Get the merchant's timezone from their primary location
    */

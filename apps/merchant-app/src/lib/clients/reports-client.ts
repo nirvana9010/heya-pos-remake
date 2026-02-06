@@ -91,6 +91,37 @@ export interface DashboardStats {
   customerGrowth: number;
 }
 
+export interface ActivityLogEntry {
+  id: string;
+  action: string;
+  staffFirstName: string;
+  staffLastName: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, any>;
+  ipAddress: string | null;
+  timestamp: string;
+}
+
+export interface ActivityLogResponse {
+  data: ActivityLogEntry[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface ActivityLogParams {
+  page?: number;
+  limit?: number;
+  staffId?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export class ReportsClient extends BaseApiClient {
   async getReportOverview(locationId?: string): Promise<ReportData> {
     const params = locationId ? { locationId } : undefined;
@@ -121,6 +152,10 @@ export class ReportsClient extends BaseApiClient {
 
   async getRevenueTrend(days = 30) {
     return this.get('/reports/revenue-trend', { params: { days } }, 'v1');
+  }
+
+  async getActivityLog(params?: ActivityLogParams): Promise<ActivityLogResponse> {
+    return this.get('/reports/activity-log', { params }, 'v1');
   }
 
   async getDashboardStats(): Promise<DashboardStats> {

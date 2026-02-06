@@ -6,6 +6,7 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  ForbiddenException,
 } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -64,6 +65,36 @@ export class ReportsController {
   ) {
     const merchantId = req.user.merchantId;
     return this.reportsService.getDailyRevenue(merchantId, days);
+  }
+
+  @Get("activity-log")
+  async getActivityLog(
+    @Request() req: any,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(25), ParseIntPipe) limit: number,
+    @Query("staffId") staffId?: string,
+    @Query("action") action?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    // Only owners and managers can view activity log
+    const user = req.user;
+    const isOwner =
+      user.type === "merchant" || (user.permissions || []).includes("*");
+    const isManager =
+      user.role === "Manager" || user.role === "manager";
+    if (!isOwner && !isManager) {
+      throw new ForbiddenException("Only owners and managers can view the activity log");
+    }
+
+    return this.reportsService.getActivityLog(user.merchantId, {
+      page,
+      limit,
+      staffId,
+      action,
+      startDate,
+      endDate,
+    });
   }
 
   @Get("overview")

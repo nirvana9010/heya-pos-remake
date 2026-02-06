@@ -112,7 +112,7 @@ async function bootstrap() {
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Merchant-Subdomain"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Merchant-Subdomain", "x-active-staff-id"],
   });
 
   // Set global prefix
