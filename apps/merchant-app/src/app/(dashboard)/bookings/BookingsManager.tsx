@@ -61,11 +61,13 @@ import { BookingActions } from '@/components/BookingActions';
 import { PaymentStatusBadge } from '@/components/PaymentStatusBadge';
 import { displayFormats, toMerchantTime } from '@/lib/date-utils';
 import { invalidateBookingsCache } from '@/lib/cache-config';
+import { usePermissions } from '@/lib/auth/auth-provider';
 
 export default function BookingsManager() {
-  
+
   const router = useRouter();
   const { toast } = useToast();
+  const { can } = usePermissions();
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
@@ -984,7 +986,7 @@ export default function BookingsManager() {
           >
             View
           </Button>
-          {row.status?.toLowerCase() === 'pending' && (
+          {row.status?.toLowerCase() === 'pending' && can('booking.update') && (
             <Button
               size="sm"
               variant="default"
@@ -1474,7 +1476,10 @@ export default function BookingsManager() {
           }}
           onPaymentComplete={async (updatedOrder) => {
             setSelectedOrderForPayment(null);
-            
+
+            // Notify lock screen of completed payment
+            window.dispatchEvent(new CustomEvent('payment:completed'));
+
             // Optimistically update the booking in our local state immediately
             if (updatedOrder && updatedOrder.bookingId) {
               

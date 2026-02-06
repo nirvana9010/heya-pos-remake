@@ -18,6 +18,7 @@ import { MerchantLoginDto } from "./dto/merchant-login.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { VerifyPinDto } from "./dto/verify-pin.dto";
+import { UnlockByPinDto } from "./dto/unlock-by-pin.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { AuthSession } from "../types";
@@ -134,6 +135,50 @@ export class AuthController {
       user.merchantId,
       ipAddress,
     );
+  }
+
+  @Post("staff-pin/unlock")
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async unlockByPin(
+    @Body() dto: UnlockByPinDto,
+    @CurrentUser() user: any,
+    @Req() req: any,
+  ): Promise<{
+    success: boolean;
+    staff: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      accessLevel: number;
+      role: string;
+    };
+  }> {
+    // Only merchant_user accounts can use the lock screen
+    if (user.type !== "merchant_user") {
+      throw new UnauthorizedException(
+        "PIN lock screen is only available for team member accounts",
+      );
+    }
+
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.pinAuthService.unlockByPin(
+      dto.pin,
+      user.merchantId,
+      ipAddress,
+    );
+  }
+
+  @Get("staff-pin/status")
+  @UseGuards(JwtAuthGuard)
+  async getStaffPinStatus(
+    @CurrentUser() user: any,
+  ): Promise<{
+    hasPins: boolean;
+    staffCount: number;
+    hasDuplicates: boolean;
+  }> {
+    return this.pinAuthService.getStaffPinStatus(user.merchantId);
   }
 
   @Get("session")

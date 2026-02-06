@@ -78,6 +78,27 @@ export class AuthClient extends BaseApiClient {
     return this.post('/auth/verify-action', { pin, action }, undefined, 'v1');
   }
 
+  async unlockByPin(pin: string): Promise<{
+    success: boolean;
+    staff: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      accessLevel: number;
+      role: string;
+    };
+  }> {
+    return this.post('/auth/staff-pin/unlock', { pin }, undefined, 'v1');
+  }
+
+  async getStaffPinStatus(): Promise<{
+    hasPins: boolean;
+    staffCount: number;
+    hasDuplicates: boolean;
+  }> {
+    return this.get('/auth/staff-pin/status', undefined, 'v1');
+  }
+
   async refreshToken(refreshToken: string) {
     return this.post('/auth/refresh', { refreshToken }, undefined, 'v1');
   }

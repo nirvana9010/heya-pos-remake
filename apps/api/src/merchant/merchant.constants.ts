@@ -9,6 +9,7 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   requirePinForCancellations: false, // Default to false - all PIN requirements OFF by default
   requirePinForReports: false, // Default to false - all PIN requirements OFF by default
   requirePinForStaff: false, // Default to false - all PIN requirements OFF by default
+  staffPinLockEnabled: false, // Default to false - opt-in feature for shared iPad PIN lock screen
   timezone: "Australia/Sydney",
   currency: "AUD",
   dateFormat: "DD/MM/YYYY",

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, User, Moon, Sun, Palette, Plus } from 'lucide-react'
+import { Search, User, Moon, Sun, Palette, Plus, Lock } from 'lucide-react'
 import {
   Button,
   DropdownMenu,
@@ -21,12 +21,14 @@ import { NotificationsDropdown } from '@/components/notifications-dropdown'
 import { GlobalSearch } from '@/components/global-search'
 import { useAuth } from '@/lib/auth/auth-provider'
 import { useBooking } from '@/contexts/booking-context'
+import { useStaffSession } from '@/contexts/staff-session-context'
 import { CacheBuster } from '@/components/CacheBuster'
 
 export function Topbar() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const { logout, merchant, user } = useAuth()
   const { openBookingSlideout, openQuickSale } = useBooking()
+  const { activeStaff, isLockScreenEnabled, lock } = useStaffSession()
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -63,9 +65,28 @@ export function Topbar() {
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button> */}
 
+        {/* Active Staff Indicator + Lock Button */}
+        {isLockScreenEnabled && activeStaff && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Badge variant="secondary" className="gap-1.5 py-1 px-2.5">
+              <User className="h-3 w-3" />
+              {activeStaff.firstName}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={lock}
+              className="h-8 w-8 p-0"
+              title="Lock screen"
+            >
+              <Lock className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Quick Sale Button */}
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           onClick={openQuickSale}
           className="gap-2"
         >

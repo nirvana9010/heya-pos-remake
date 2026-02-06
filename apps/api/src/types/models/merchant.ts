@@ -30,6 +30,7 @@ export interface MerchantSettings {
   requirePinForCancellations: boolean;
   requirePinForReports: boolean;
   requirePinForStaff: boolean; // If false, staff can be created without PIN
+  staffPinLockEnabled: boolean; // If true, shared devices show PIN lock screen for staff identification
   timezone: string;
   currency: string;
   dateFormat: string;

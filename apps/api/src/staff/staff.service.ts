@@ -50,14 +50,30 @@ export class StaffService {
 
     // Handle PIN logic
     if (!pin) {
-      // Always generate a PIN if not provided
-      generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-      pin = generatedPin;
+      // Auto-generate a unique PIN (retry up to 10 times on duplicate)
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const candidate = Math.floor(1000 + Math.random() * 9000).toString();
+        try {
+          await this.ensurePinUnique(candidate, merchantId);
+          generatedPin = candidate;
+          pin = candidate;
+          break;
+        } catch {
+          // Duplicate — try again
+          if (attempt === 9) {
+            throw new BadRequestException(
+              "Could not generate a unique PIN. Please provide one manually.",
+            );
+          }
+        }
+      }
     } else {
       // Validate PIN format if provided
       if (!/^\d{4}$/.test(pin)) {
         throw new BadRequestException("PIN must be exactly 4 digits");
       }
+      // Enforce PIN uniqueness per merchant
+      await this.ensurePinUnique(pin, merchantId);
     }
 
     // Hash the PIN
@@ -312,6 +328,8 @@ export class StaffService {
       if (!/^\d{4}$/.test(pin)) {
         throw new BadRequestException("PIN must be exactly 4 digits");
       }
+      // Enforce PIN uniqueness per merchant (exclude current staff)
+      await this.ensurePinUnique(pin, merchantId, id);
       updateData["pin"] = await bcrypt.hash(pin, 10);
       plainTextPin = pin; // Store for response
     }
@@ -465,6 +483,37 @@ export class StaffService {
     }
 
     return bcrypt.compare(pin, staff.pin);
+  }
+
+  /**
+   * Ensures a PIN is unique among all active staff for a merchant.
+   * Compares plaintext PIN against all existing hashed PINs via bcrypt.
+   * @param excludeStaffId - Staff ID to exclude (for updates)
+   */
+  private async ensurePinUnique(
+    pin: string,
+    merchantId: string,
+    excludeStaffId?: string,
+  ): Promise<void> {
+    const existingStaff = await this.prisma.staff.findMany({
+      where: {
+        merchantId,
+        status: "ACTIVE",
+        pin: { not: null },
+        ...(excludeStaffId ? { id: { not: excludeStaffId } } : {}),
+      },
+      select: { id: true, pin: true },
+    });
+
+    for (const staff of existingStaff) {
+      if (!staff.pin) continue;
+      const isMatch = await bcrypt.compare(pin, staff.pin);
+      if (isMatch) {
+        throw new BadRequestException(
+          "This PIN is already in use by another staff member",
+        );
+      }
+    }
   }
 
   async getAvailableStaff(merchantId: string, date: Date, serviceId?: string) {

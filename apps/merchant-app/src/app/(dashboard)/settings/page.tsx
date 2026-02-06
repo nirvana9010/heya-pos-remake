@@ -105,6 +105,10 @@ export default function SettingsPage() {
   const [requirePinForStaff, setRequirePinForStaff] = useState(
     merchantSettings.requirePinForStaff ?? true,
   );
+  const [staffPinLockEnabled, setStaffPinLockEnabled] = useState(
+    merchantSettings.staffPinLockEnabled ?? false,
+  );
+  const [staffPinLockError, setStaffPinLockError] = useState<string | null>(null);
   const [selectedTimezone, setSelectedTimezone] = useState(
     merchantSettings.timezone || "Australia/Sydney",
   );
@@ -559,6 +563,7 @@ export default function SettingsPage() {
         hydrate("requirePinForCancellations", setRequirePinForCancellations, response.requirePinForCancellations ?? true);
         hydrate("requirePinForReports", setRequirePinForReports, response.requirePinForReports ?? true);
         hydrate("requirePinForStaff", setRequirePinForStaff, response.requirePinForStaff ?? true);
+        hydrate("staffPinLockEnabled", setStaffPinLockEnabled, response.staffPinLockEnabled ?? false);
         hydrate("requireDeposit", setRequireDeposit, response.requireDeposit ?? false);
         hydrate("depositPercentage", setDepositPercentage, response.depositPercentage?.toString() || "30");
         hydrate("enableTips", setEnableTips, response.enableTips ?? false);
@@ -857,6 +862,7 @@ export default function SettingsPage() {
       requirePinForCancellations,
       requirePinForReports,
       requirePinForStaff,
+      staffPinLockEnabled,
       timezone: selectedTimezone,
       requireDeposit,
       depositPercentage: toNumberOrUndefined(depositPercentage),
@@ -921,6 +927,7 @@ export default function SettingsPage() {
       requirePinForReports,
       requirePinForRefunds,
       requirePinForStaff,
+      staffPinLockEnabled,
       selectedTimezone,
       showOnlyRosteredStaffDefault,
       allowCustomTipAmount,
@@ -2462,6 +2469,45 @@ export default function SettingsPage() {
                   <Switch
                     checked={requirePinForStaff}
                     onCheckedChange={setRequirePinForStaff}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Staff PIN Lock Screen</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Require staff to identify with their PIN before using the app on shared devices.
+                      {staffPinLockEnabled
+                        ? " Screen auto-locks after 60 seconds of inactivity."
+                        : " Only applies to team member accounts (not owner login)."}
+                    </p>
+                    {staffPinLockError && (
+                      <p className="text-sm text-red-500 mt-1">{staffPinLockError}</p>
+                    )}
+                  </div>
+                  <Switch
+                    checked={staffPinLockEnabled}
+                    onCheckedChange={async (checked) => {
+                      setStaffPinLockError(null);
+                      if (checked) {
+                        try {
+                          const status = await apiClient.auth.getStaffPinStatus();
+                          if (status.hasDuplicates) {
+                            setStaffPinLockError("Resolve duplicate PINs in Staff settings before enabling.");
+                            return;
+                          }
+                          if (!status.hasPins) {
+                            setStaffPinLockError("No staff have PINs set. Configure PINs in Staff settings first.");
+                            return;
+                          }
+                          setStaffPinLockEnabled(true);
+                        } catch {
+                          setStaffPinLockError("Failed to check staff PIN status. Please try again.");
+                        }
+                      } else {
+                        setStaffPinLockEnabled(false);
+                      }
+                    }}
                   />
                 </div>
               </CardContent>

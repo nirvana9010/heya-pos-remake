@@ -9,6 +9,7 @@ import { AuthProvider } from '@/lib/auth/auth-provider';
 import { QueryProvider } from '@/lib/query/query-provider';
 import { NotificationsProvider } from '@/contexts/notifications-context';
 import { BookingProvider } from '@/contexts/booking-context';
+import { StaffSessionProvider } from '@/contexts/staff-session-context';
 import { ClearCorruptedAuth } from './ClearCorruptedAuth';
 import { TyroSDKLoader } from './TyroSDKLoader';
 
@@ -37,15 +38,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
           )
         ) : (
           <AuthGuard>
-            <TimezoneProvider>
-              <NotificationsProvider>
-                <BookingProvider>
-                  <PerformanceMonitor />
-                  <PrefetchManager />
-                  {children}
-                </BookingProvider>
-              </NotificationsProvider>
-            </TimezoneProvider>
+            <StaffSessionProvider>
+              <TimezoneProvider>
+                <NotificationsProvider>
+                  <BookingProvider>
+                    <PerformanceMonitor />
+                    <PrefetchManager />
+                    {children}
+                  </BookingProvider>
+                </NotificationsProvider>
+              </TimezoneProvider>
+            </StaffSessionProvider>
           </AuthGuard>
         )}
       </AuthProvider>

@@ -731,10 +731,13 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
-    
+
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
+
+    // Notify lock screen of completed payment
+    window.dispatchEvent(new CustomEvent('payment:completed'));
     
     // Show success toast immediately
     toast({

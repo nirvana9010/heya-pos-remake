@@ -62,6 +62,12 @@ export class BaseApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // Include active staff ID for audit logging (informational only)
+        const activeStaffId = sessionStorage.getItem('active_staff_id');
+        if (activeStaffId) {
+          config.headers['x-active-staff-id'] = activeStaffId;
+        }
+
         return config;
       },
       (error) => Promise.reject(error)

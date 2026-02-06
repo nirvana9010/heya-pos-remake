@@ -122,6 +122,9 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   const handlePaymentComplete = async (updatedOrder: any) => {
     // Payment completed successfully
     setPaymentDialogOpen(false);
+
+    // Notify lock screen of completed payment
+    window.dispatchEvent(new CustomEvent('payment:completed'));
     
     // Show confirmation toast with customer name and total
     const customerName = isWalkIn ? 'Walk-in Customer' : (
