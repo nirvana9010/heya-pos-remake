@@ -26,6 +26,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { usePermissions } from '@/lib/auth/auth-provider';
 import {
   safeCustomerFormData,
   safeLoyaltyFormData,
@@ -64,6 +65,7 @@ export function CustomerDetailsDialog({
 }: CustomerDetailsDialogProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const { can } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -525,9 +527,11 @@ export function CustomerDetailsDialog({
                   <Button variant="outline" onClick={() => onOpenChange(false)}>
                     Close
                   </Button>
-                  <Button onClick={() => setIsEditing(true)}>
-                    Quick Edit
-                  </Button>
+                  {can('customer.update') && (
+                    <Button onClick={() => setIsEditing(true)}>
+                      Quick Edit
+                    </Button>
+                  )}
                 </>
               )}
             </div>

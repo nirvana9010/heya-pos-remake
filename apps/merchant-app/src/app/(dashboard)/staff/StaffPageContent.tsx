@@ -40,7 +40,7 @@ import {
   Info
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { useAuth } from '@/lib/auth/auth-provider';
+import { useAuth, usePermissions } from '@/lib/auth/auth-provider';
 
 interface Staff {
   id: string;
@@ -100,7 +100,8 @@ export default function StaffPageContent() {
   const [resetPinData, setResetPinData] = useState({ pin: '', showPin: false });
   const { toast } = useToast();
   const { merchant } = useAuth();
-  
+  const { can } = usePermissions();
+
   // Check if PIN is required for staff
   // Default to false (PIN not required) unless explicitly set to true
   const isPinRequired = merchant?.settings?.requirePinForStaff === true;
@@ -537,38 +538,44 @@ export default function StaffPageContent() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => openEditDialog(staff)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openResetPinDialog(staff)}>
-                <Key className="h-4 w-4 mr-2" />
-                Reset PIN
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => handleToggleStatus(staff)}
-                className={staff.status === 'ACTIVE' ? 'text-orange-600' : 'text-green-600'}
-              >
-                {staff.status === 'ACTIVE' ? (
-                  <>
-                    <UserX className="h-4 w-4 mr-2" />
-                    Deactivate
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Activate
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-red-600"
-                onClick={() => handleDelete(staff.id)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+              {can('staff.update') && (
+                <>
+                  <DropdownMenuItem onClick={() => openEditDialog(staff)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openResetPinDialog(staff)}>
+                    <Key className="h-4 w-4 mr-2" />
+                    Reset PIN
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleToggleStatus(staff)}
+                    className={staff.status === 'ACTIVE' ? 'text-orange-600' : 'text-green-600'}
+                  >
+                    {staff.status === 'ACTIVE' ? (
+                      <>
+                        <UserX className="h-4 w-4 mr-2" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                </>
+              )}
+              {can('staff.delete') && (
+                <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={() => handleDelete(staff.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -580,10 +587,12 @@ export default function StaffPageContent() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Staff Management</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Staff Member
-        </Button>
+        {can('staff.create') && (
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Staff Member
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}

@@ -2,6 +2,7 @@
 
 import { Button, Badge } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
+import { usePermissions } from "@/lib/auth/auth-provider";
 import {
   PlayCircle,
   CheckCircle,
@@ -63,6 +64,7 @@ export function BookingActions({
   onDelete,
   onReschedule
 }: BookingActionsProps) {
+  const { can } = usePermissions();
   const status = booking.status?.toLowerCase();
   const isPaid = booking.isPaid || (booking.paidAmount && booking.paidAmount > 0);
   const amount = booking.totalAmount || booking.totalPrice || 0;
@@ -83,7 +85,7 @@ export function BookingActions({
   return (
     <div className={containerClass}>
       {/* Status Actions */}
-      {status === "pending" && onStatusChange && (
+      {status === "pending" && onStatusChange && can('booking.update') && (
         <Button
           size={size}
           variant="default"
@@ -95,7 +97,7 @@ export function BookingActions({
         </Button>
       )}
       
-      {status === "confirmed" && onStatusChange && (
+      {status === "confirmed" && onStatusChange && can('booking.update') && (
         <>
           <Button
             size={size}
@@ -128,7 +130,7 @@ export function BookingActions({
         </>
       )}
       
-      {status === "in-progress" && onStatusChange && (
+      {status === "in-progress" && onStatusChange && can('booking.update') && (
         <Button
           size={size}
           variant="outline"
@@ -148,7 +150,7 @@ export function BookingActions({
       {/* Payment Actions */}
       {showPayment && status !== "cancelled" && status !== "no_show" && (
         <>
-          {!isPaid && onProcessPayment && (
+          {!isPaid && onProcessPayment && can('payment.create') && (
             <Button
               size={size}
               variant="default"
@@ -164,7 +166,7 @@ export function BookingActions({
               {isProcessingPayment ? "Processing..." : "Process Payment"}
             </Button>
           )}
-          {!isPaid && onPaymentToggle && (
+          {!isPaid && onPaymentToggle && can('payment.create') && (
             <Button
               size={size}
               variant="ghost"
@@ -190,7 +192,7 @@ export function BookingActions({
       )}
 
       {/* Edit Actions */}
-      {showEdit && onReschedule && status !== "completed" && status !== "cancelled" && (
+      {showEdit && onReschedule && status !== "completed" && status !== "cancelled" && can('booking.update') && (
         <Button
           size={size}
           variant="outline"
@@ -201,8 +203,8 @@ export function BookingActions({
           Reschedule
         </Button>
       )}
-      
-      {showEdit && onEdit && (
+
+      {showEdit && onEdit && can('booking.update') && (
         <Button
           size={size}
           variant="outline"
@@ -215,7 +217,7 @@ export function BookingActions({
       )}
 
       {/* Delete Action */}
-      {showDelete && onDelete && status !== "completed" && (
+      {showDelete && onDelete && status !== "completed" && can('booking.delete') && (
         <Button
           size={size}
           variant="outline"

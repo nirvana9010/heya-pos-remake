@@ -15,6 +15,7 @@ import { Skeleton } from '@heya-pos/ui';
 import { apiClient, CreateCustomerRequest, UpdateCustomerRequest } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { prefetchManager } from '@/lib/prefetch';
+import { usePermissions } from '@/lib/auth/auth-provider';
 import { sanitizeNullableField, sanitizeOptionalField } from '@/lib/utils/form-utils';
 
 // Import UI components normally - they're already optimized
@@ -161,6 +162,7 @@ const getDisplayPhone = (customer: Customer) => {
 export default function CustomersPageContent() {
   const router = useRouter();
   const { toast } = useToast();
+  const { can } = usePermissions();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -750,10 +752,12 @@ export default function CustomersPageContent() {
             <h1 className="text-3xl font-bold">Customers</h1>
             <p className="text-muted-foreground">Manage your customer database</p>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
+          {can('customer.create') && (
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Customer
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -892,7 +896,7 @@ export default function CustomersPageContent() {
                 <p className="text-muted-foreground max-w-sm mx-auto">
                   {searchQuery ? 'Try adjusting your search criteria' : 'Add your first customer to get started'}
                 </p>
-                {!searchQuery && (
+                {!searchQuery && can('customer.create') && (
                   <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add First Customer

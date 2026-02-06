@@ -90,7 +90,7 @@ import {
 import { bookingEvents } from "@/lib/services/booking-events";
 import { mapBookingSource } from "@/lib/booking-source";
 import { formatMerchantDateTimeISO } from "@/lib/date-utils";
-import { useAuth } from "@/lib/auth/auth-provider";
+import { useAuth, usePermissions } from "@/lib/auth/auth-provider";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useBooking } from "@/contexts/booking-context";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -323,6 +323,7 @@ function CalendarContent() {
   const { state, actions } = useCalendar();
   const { toast } = useToast();
   const { merchant } = useAuth();
+  const { can } = usePermissions();
   const { notifications, refreshNotifications } = useNotifications();
   const { staff: bookingContextStaff, loading: bookingContextLoading } =
     useBooking();
@@ -843,6 +844,15 @@ function CalendarContent() {
   const handleTimeSlotClick = useCallback(
     (date: Date, time: string, staffId: string | null) => {
       if (isBlockMode) {
+        // Check permission for creating blocks
+        if (!can('staff.update')) {
+          toast({
+            title: "Permission denied",
+            description: "You don't have permission to create time blocks.",
+            variant: "destructive",
+          });
+          return;
+        }
         if (!staffId) {
           toast({
             title: "Select a staff column to block time",
@@ -1000,6 +1010,15 @@ function CalendarContent() {
         });
         return;
       }
+      // Check permission for creating bookings
+      if (!can('booking.create')) {
+        toast({
+          title: "Permission denied",
+          description: "You don't have permission to create bookings.",
+          variant: "destructive",
+        });
+        return;
+      }
       // Set booking slide out data before opening
       const slideOutData = {
         date,
@@ -1009,7 +1028,7 @@ function CalendarContent() {
       setBookingSlideOutData(slideOutData);
       actions.openBookingSlideOut();
     },
-    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh, state.timeInterval],
+    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh, state.timeInterval, can],
   );
 
   // Memoize booking slide out callbacks to prevent infinite loops
@@ -1954,17 +1973,19 @@ function CalendarContent() {
               )}
 
               {/* New booking button */}
-              <Button
-                className="bg-teal-600 hover:bg-teal-700 text-white"
-                size="sm"
-                onClick={() => {
-                  setBookingSlideOutData(null);
-                  actions.openBookingSlideOut();
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                New Booking
-              </Button>
+              {can('booking.create') && (
+                <Button
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                  size="sm"
+                  onClick={() => {
+                    setBookingSlideOutData(null);
+                    actions.openBookingSlideOut();
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  New Booking
+                </Button>
+              )}
             </div>
           </div>
         </div>
