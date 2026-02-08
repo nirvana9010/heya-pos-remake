@@ -1896,6 +1896,10 @@ export default function SettingsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">No restriction</SelectItem>
+                      <SelectItem value="1">1 hour</SelectItem>
+                      <SelectItem value="3">3 hours</SelectItem>
+                      <SelectItem value="6">6 hours</SelectItem>
                       <SelectItem value="12">12 hours</SelectItem>
                       <SelectItem value="24">24 hours</SelectItem>
                       <SelectItem value="48">48 hours</SelectItem>

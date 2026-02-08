@@ -142,8 +142,9 @@ export function PaymentStep({
               </CardDescription>
               <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
                 <p className="text-sm text-amber-800">
-                  <strong>Cancellation Policy:</strong> We require at least {cancellationHours} hours notice for cancellations. 
-                  Please contact us if you need to reschedule or cancel your appointment.
+                  <strong>Cancellation Policy:</strong> {cancellationHours === 0
+                    ? 'You may cancel your appointment at any time.'
+                    : `We require at least ${cancellationHours} ${cancellationHours === 1 ? 'hour' : 'hours'} notice for cancellations. Please contact us if you need to reschedule or cancel your appointment.`}
                 </p>
               </div>
             </CardHeader>

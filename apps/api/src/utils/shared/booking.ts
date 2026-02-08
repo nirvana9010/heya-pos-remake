@@ -60,6 +60,10 @@ export function canCancelBooking(
     return false;
   }
 
+  if (cancellationHours === 0) {
+    return true;
+  }
+
   const now = new Date();
   const hoursUntilStart =
     (new Date(booking.startTime).getTime() - now.getTime()) / (1000 * 60 * 60);
