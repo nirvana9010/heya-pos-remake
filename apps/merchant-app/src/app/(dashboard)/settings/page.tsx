@@ -590,14 +590,13 @@ export default function SettingsPage() {
         if (response.timezone) {
           hydrate("timezone", setSelectedTimezone, response.timezone);
         }
-        const isSmsEnabled = !!response.smsEnabled;
-        setSmsEnabled(isSmsEnabled);
+        setSmsEnabled(!!response.smsEnabled);
         hydrate("bookingConfirmationEmail", setBookingConfirmationEmail, response.bookingConfirmationEmail !== false);
-        hydrate("bookingConfirmationSms", setBookingConfirmationSms, isSmsEnabled && response.bookingConfirmationSms !== false);
+        hydrate("bookingConfirmationSms", setBookingConfirmationSms, response.bookingConfirmationSms !== false);
         hydrate("appointmentReminder24hEmail", setAppointmentReminder24hEmail, response.appointmentReminder24hEmail !== false);
-        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, isSmsEnabled && response.appointmentReminder24hSms !== false);
+        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, response.appointmentReminder24hSms !== false);
         hydrate("appointmentReminder2hEmail", setAppointmentReminder2hEmail, response.appointmentReminder2hEmail !== false);
-        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, isSmsEnabled && response.appointmentReminder2hSms !== false);
+        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, response.appointmentReminder2hSms !== false);
         hydrate("newBookingNotification", setNewBookingNotification, response.newBookingNotification !== false);
         hydrate(
           "newBookingNotificationEmail",
@@ -607,7 +606,7 @@ export default function SettingsPage() {
         hydrate(
           "newBookingNotificationSms",
           setNewBookingNotificationSms,
-          isSmsEnabled && response.newBookingNotificationSms !== false,
+          response.newBookingNotificationSms !== false,
         );
         hydrate(
           "cancellationNotification",
@@ -622,7 +621,7 @@ export default function SettingsPage() {
         hydrate(
           "cancellationNotificationSms",
           setCancellationNotificationSms,
-          isSmsEnabled && response.cancellationNotificationSms !== false,
+          response.cancellationNotificationSms !== false,
         );
 
         if (response.businessHours && shouldHydrate("businessHours")) {
