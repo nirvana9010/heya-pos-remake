@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, User, Moon, Sun, Palette, Plus, Lock } from 'lucide-react'
+import { Search, User, Moon, Sun, Palette, Plus, Lock, Menu } from 'lucide-react'
 import {
   Button,
   DropdownMenu,
@@ -24,7 +24,12 @@ import { useBooking } from '@/contexts/booking-context'
 import { useStaffSession } from '@/contexts/staff-session-context'
 import { CacheBuster } from '@/components/CacheBuster'
 
-export function Topbar() {
+interface TopbarProps {
+  isMobile?: boolean
+  onMenuClick?: () => void
+}
+
+export function Topbar({ isMobile = false, onMenuClick = () => {} }: TopbarProps = {}) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const { logout, merchant, user } = useAuth()
   const { openBookingSlideout, openQuickSale } = useBooking()
@@ -52,6 +57,16 @@ export function Topbar() {
         zIndex: 40
       }}>
       <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '2rem' }}>
+        {isMobile && (
+          <button
+            onClick={onMenuClick}
+            className="btn btn-ghost btn-sm"
+            aria-label="Open sidebar"
+            style={{ padding: '0.5rem', marginRight: '-0.5rem' }}
+          >
+            <Menu size={20} />
+          </button>
+        )}
         {/* Global Search with Suggestions */}
         <GlobalSearch />
       </div>

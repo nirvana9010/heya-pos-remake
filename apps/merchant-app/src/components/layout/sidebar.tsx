@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
+  X,
   Sparkles,
   Gift,
   Bell,
@@ -51,9 +52,19 @@ interface SidebarProps {
   collapsed: boolean
   onToggle: (collapsed: boolean) => void
   features: MerchantFeatures | null
+  isMobile: boolean
+  mobileOpen: boolean
+  onMobileOpenChange: (open: boolean) => void
 }
 
-export function Sidebar({ collapsed = false, onToggle = () => { }, features = null }: Partial<SidebarProps>) {
+export function Sidebar({
+  collapsed = false,
+  onToggle = () => { },
+  features = null,
+  isMobile = false,
+  mobileOpen = false,
+  onMobileOpenChange = () => { },
+}: Partial<SidebarProps>) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -98,17 +109,21 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
       // Navigate immediately within the transition
       router.push(href)
     })
+
+    if (isMobile) {
+      onMobileOpenChange(false)
+    }
   }
 
   return (
     <div
-      className={`sidebar ${collapsed ? 'collapsed' : ''}`}
+      className={`sidebar ${collapsed && !isMobile ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}
       style={{
         position: 'fixed',
-        left: 0,
+        left: isMobile ? undefined : 0,
         top: 0,
         bottom: 0,
-        width: collapsed ? '60px' : '240px',
+        width: isMobile ? '240px' : collapsed ? '60px' : '240px',
         backgroundColor: '#f3f4f6',
         borderRight: '1px solid #e5e7eb',
         padding: '1rem',
@@ -121,11 +136,11 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
+        justifyContent: collapsed && !isMobile ? 'center' : 'space-between',
         marginBottom: '2rem',
         height: '60px'
       }}>
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <div className="sidebar-logo">
             <Sparkles size={28} />
             <span style={{ fontSize: '1.25rem' }}>
@@ -133,18 +148,25 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
             </span>
           </div>
         )}
-        {collapsed && (
+        {collapsed && !isMobile && (
           <Sparkles size={28} style={{ color: 'var(--color-primary)' }} />
         )}
 
         <button
-          onClick={() => onToggle(!collapsed)}
+          onClick={() => {
+            if (isMobile) {
+              onMobileOpenChange(false)
+              return
+            }
+            onToggle(!collapsed)
+          }}
           className="btn btn-ghost btn-sm"
+          aria-label={isMobile ? 'Close sidebar' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           style={{
             padding: '0.5rem'
           }}
         >
-          {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+          {isMobile ? <X size={20} /> : collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
         </button>
       </div>
 
@@ -168,7 +190,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
                 disabled={isPending}
               >
                 <item.icon size={20} />
-                {!collapsed && (
+                {(!collapsed || isMobile) && (
                   <span>
                     {item.name}
                   </span>
@@ -199,7 +221,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
                 disabled={isPending}
               >
                 <item.icon size={20} />
-                {!collapsed && (
+                {(!collapsed || isMobile) && (
                   <span>
                     {item.name}
                   </span>
@@ -223,7 +245,7 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            justifyContent: collapsed ? 'center' : 'flex-start'
+            justifyContent: collapsed && !isMobile ? 'center' : 'flex-start'
           }}
           onClick={() => {
             localStorage.removeItem('access_token');
@@ -232,11 +254,14 @@ export function Sidebar({ collapsed = false, onToggle = () => { }, features = nu
             localStorage.removeItem('user');
             sessionStorage.removeItem('pin_verified');
             sessionStorage.removeItem('pin_verified_at');
+            if (isMobile) {
+              onMobileOpenChange(false);
+            }
             window.location.href = '/login';
           }}
         >
           <LogOut size={20} />
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <span>
               Logout
             </span>
