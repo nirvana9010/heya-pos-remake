@@ -146,7 +146,7 @@ export class PublicBookingController {
       allowUnassignedBookings: settings?.allowUnassignedBookings ?? true,
       settings: {
         bookingAdvanceHours: settings?.bookingAdvanceHours || 168, // Default 7 days
-        cancellationHours: settings?.cancellationHours || 24, // Default 24 hours
+        cancellationHours: settings?.cancellationHours ?? 24, // Default 24 hours
         minimumBookingNotice: settings?.minimumBookingNotice || 0, // Default no restriction
         appointmentReminder24hEmail:
           settings?.appointmentReminder24hEmail ?? true,

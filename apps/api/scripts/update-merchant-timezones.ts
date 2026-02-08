@@ -48,7 +48,7 @@ async function main() {
         dateFormat: currentSettings.dateFormat || 'DD/MM/YYYY',
         timeFormat: currentSettings.timeFormat || '12h',
         bookingAdvanceHours: currentSettings.bookingAdvanceHours || 48,
-        cancellationHours: currentSettings.cancellationHours || 24,
+        cancellationHours: currentSettings.cancellationHours ?? 24,
         requirePinForRefunds: currentSettings.requirePinForRefunds ?? true,
         requirePinForCancellations: currentSettings.requirePinForCancellations ?? true,
         loyaltyType: currentSettings.loyaltyType || 'visit',
