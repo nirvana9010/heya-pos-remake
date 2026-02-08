@@ -1,4 +1,5 @@
 import { Controller, Get, Put, Body, UseGuards, Request } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { MerchantService } from "./merchant.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { MerchantSettings } from "../types/models/merchant";
@@ -25,11 +26,20 @@ interface UpdateLocationDto {
 @Controller("merchant")
 @UseGuards(JwtAuthGuard)
 export class MerchantController {
-  constructor(private readonly merchantService: MerchantService) {}
+  constructor(
+    private readonly merchantService: MerchantService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get("settings")
   async getSettings(@Request() req) {
-    return this.merchantService.getMerchantSettings(req.user.merchantId);
+    const settings = await this.merchantService.getMerchantSettings(
+      req.user.merchantId,
+    );
+    return {
+      ...settings,
+      smsEnabled: !!this.configService.get("TWILIO_ACCOUNT_SID"),
+    };
   }
 
   @Put("settings")

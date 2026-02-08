@@ -112,6 +112,8 @@ export default function SettingsPage() {
   const [selectedTimezone, setSelectedTimezone] = useState(
     merchantSettings.timezone || "Australia/Sydney",
   );
+  // SMS availability - derived from server (Twilio config), not user-togglable
+  const [smsEnabled, setSmsEnabled] = useState(false);
   // Notification settings - initialize from merchant settings to prevent flicker
   const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(
     merchantSettings.bookingConfirmationEmail !== false,
@@ -588,12 +590,14 @@ export default function SettingsPage() {
         if (response.timezone) {
           hydrate("timezone", setSelectedTimezone, response.timezone);
         }
+        const isSmsEnabled = !!response.smsEnabled;
+        setSmsEnabled(isSmsEnabled);
         hydrate("bookingConfirmationEmail", setBookingConfirmationEmail, response.bookingConfirmationEmail !== false);
-        hydrate("bookingConfirmationSms", setBookingConfirmationSms, response.bookingConfirmationSms !== false);
+        hydrate("bookingConfirmationSms", setBookingConfirmationSms, isSmsEnabled && response.bookingConfirmationSms !== false);
         hydrate("appointmentReminder24hEmail", setAppointmentReminder24hEmail, response.appointmentReminder24hEmail !== false);
-        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, response.appointmentReminder24hSms !== false);
+        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, isSmsEnabled && response.appointmentReminder24hSms !== false);
         hydrate("appointmentReminder2hEmail", setAppointmentReminder2hEmail, response.appointmentReminder2hEmail !== false);
-        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, response.appointmentReminder2hSms !== false);
+        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, isSmsEnabled && response.appointmentReminder2hSms !== false);
         hydrate("newBookingNotification", setNewBookingNotification, response.newBookingNotification !== false);
         hydrate(
           "newBookingNotificationEmail",
@@ -603,7 +607,7 @@ export default function SettingsPage() {
         hydrate(
           "newBookingNotificationSms",
           setNewBookingNotificationSms,
-          response.newBookingNotificationSms !== false,
+          isSmsEnabled && response.newBookingNotificationSms !== false,
         );
         hydrate(
           "cancellationNotification",
@@ -618,7 +622,7 @@ export default function SettingsPage() {
         hydrate(
           "cancellationNotificationSms",
           setCancellationNotificationSms,
-          response.cancellationNotificationSms !== false,
+          isSmsEnabled && response.cancellationNotificationSms !== false,
         );
 
         if (response.businessHours && shouldHydrate("businessHours")) {
@@ -2578,6 +2582,11 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {!smsEnabled && (
+                <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+                  SMS is not enabled on this account. Please contact the service provider.
+                </div>
+              )}
               <div>
                 <h3 className="text-lg font-semibold mb-4">
                   Customer Notifications
@@ -2601,6 +2610,7 @@ export default function SettingsPage() {
                       <Switch
                         checked={bookingConfirmationSms}
                         onCheckedChange={setBookingConfirmationSms}
+                        disabled={!smsEnabled}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
@@ -2623,6 +2633,7 @@ export default function SettingsPage() {
                       <Switch
                         checked={appointmentReminder24hSms}
                         onCheckedChange={setAppointmentReminder24hSms}
+                        disabled={!smsEnabled}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
@@ -2645,6 +2656,7 @@ export default function SettingsPage() {
                       <Switch
                         checked={appointmentReminder2hSms}
                         onCheckedChange={setAppointmentReminder2hSms}
+                        disabled={!smsEnabled}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
@@ -2684,6 +2696,7 @@ export default function SettingsPage() {
                       <Switch
                         checked={newBookingNotificationSms}
                         onCheckedChange={setNewBookingNotificationSms}
+                        disabled={!smsEnabled}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
@@ -2713,6 +2726,7 @@ export default function SettingsPage() {
                       <Switch
                         checked={cancellationNotificationSms}
                         onCheckedChange={setCancellationNotificationSms}
+                        disabled={!smsEnabled}
                       />
                       <span className="text-sm text-muted-foreground">SMS</span>
                     </div>
