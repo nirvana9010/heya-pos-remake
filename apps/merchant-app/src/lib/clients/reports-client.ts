@@ -141,6 +141,13 @@ export interface DailySummary {
     total: number;
     completed: number;
   };
+  staffPerformance: Array<{
+    staffId: string;
+    name: string;
+    bookings: number;
+    revenue: number;
+    utilization: number;
+  }>;
 }
 
 export class ReportsClient extends BaseApiClient {

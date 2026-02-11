@@ -516,7 +516,7 @@ export class ReportsService {
     const dayStart = this.timezoneService.getStartOfDay(targetDate, timezone);
     const dayEnd = this.timezoneService.getEndOfDay(targetDate, timezone);
 
-    const [revenueByMethod, bookingCounts] = await Promise.all([
+    const [revenueByMethod, bookingCounts, staffPerformance] = await Promise.all([
       this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
       this.prisma.booking.groupBy({
         by: ["status"],
@@ -527,6 +527,7 @@ export class ReportsService {
         },
         _count: true,
       }),
+      this.getDailyStaffPerformance(merchantId, dayStart, dayEnd, locationId, 5),
     ]);
 
     const total = bookingCounts.reduce((s, b) => s + b._count, 0);
@@ -535,7 +536,74 @@ export class ReportsService {
     return {
       revenueByMethod,
       bookings: { total, completed },
+      staffPerformance,
     };
+  }
+
+  private async getDailyStaffPerformance(
+    merchantId: string,
+    dayStart: Date,
+    dayEnd: Date,
+    locationId?: string,
+    limit = 10,
+  ) {
+    const staffPerformance = await this.prisma.booking.groupBy({
+      by: ["providerId"],
+      where: {
+        merchantId,
+        ...(locationId && { locationId }),
+        startTime: { gte: dayStart, lte: dayEnd },
+        status: { not: "DELETED" },
+        providerId: { not: null },
+      },
+      _count: true,
+      _sum: {
+        totalAmount: true,
+      },
+      orderBy: {
+        _sum: {
+          totalAmount: "desc",
+        },
+      },
+      take: limit,
+    });
+
+    if (!staffPerformance.length) {
+      return [];
+    }
+
+    const staffIds = staffPerformance
+      .map((item) => item.providerId)
+      .filter((id): id is string => Boolean(id));
+    const staff = await this.prisma.staff.findMany({
+      where: { id: { in: staffIds } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    const staffMap = staff.reduce(
+      (acc, s) => {
+        acc[s.id] = s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+    const hoursInDay = 8;
+    return staffPerformance.map((item) => {
+      const staffId = item.providerId as string;
+      const bookingsCount = item._count;
+      return {
+        staffId,
+        name: staffMap[staffId] || "Unknown Staff",
+        bookings: bookingsCount,
+        // Includes all scheduled-booking revenue for the day, including incomplete.
+        revenue: toNumber(item._sum.totalAmount),
+        utilization: Math.min(
+          100,
+          Math.round(((bookingsCount * 1.5) / hoursInDay) * 100),
+        ),
+      };
+    });
   }
 
   private async getDailyRevenueByMethod(

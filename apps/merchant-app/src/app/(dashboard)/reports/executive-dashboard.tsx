@@ -185,8 +185,9 @@ export function ExecutiveDashboard() {
   const worstDay = weekData.reduce((min, day) =>
     day.revenue < min.revenue ? day : min, weekData[0] || { revenue: 0 });
 
-  // Staff leaderboard
-  const staffPerformance = reportData.staffPerformance || [];
+  // Staff leaderboard (date-aware; fallback to overview only for today)
+  const staffPerformance = dailySummary?.staffPerformance
+    ?? (isSelectedToday ? (reportData.staffPerformance || []) : []);
 
   // Daily summary data
   const rawRevenueByMethod = dailySummary?.revenueByMethod
@@ -268,8 +269,7 @@ export function ExecutiveDashboard() {
                 <DonutChart segments={donutSegments} total={methodTotal} />
                 {/* Legend */}
                 <div className="grid grid-cols-2 gap-3 mt-6">
-                  {METHOD_ORDER.map((key) => {
-                    const value = revenueByMethod[key] || 0;
+                  {donutSegments.map(({ key, value }) => {
                     return (
                       <div key={key} className="flex items-center gap-2">
                         <div
@@ -307,7 +307,9 @@ export function ExecutiveDashboard() {
               <Trophy className="h-5 w-5 text-yellow-500" />
               Staff Leaderboard
             </CardTitle>
-            <CardDescription>This month's top performers by revenue</CardDescription>
+            <CardDescription>
+              {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")} top performers by revenue
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {staffPerformance.length > 0 ? (
