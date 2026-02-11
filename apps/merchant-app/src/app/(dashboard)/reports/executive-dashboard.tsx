@@ -209,6 +209,7 @@ export function ExecutiveDashboard() {
 
   const dayBookings = dailySummary?.bookings?.total ?? reportData.bookings?.daily ?? 0;
   const dayCompleted = dailySummary?.bookings?.completed ?? reportData.bookings?.dailyCompleted ?? 0;
+  const dayTopServices = dailySummary?.topServices ?? [];
 
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
@@ -313,7 +314,7 @@ export function ExecutiveDashboard() {
           </CardHeader>
           <CardContent>
             {staffPerformance.length > 0 ? (
-              <div className="space-y-3">
+              <div className="max-h-[320px] overflow-y-auto pr-1 space-y-3">
                 {staffPerformance.map((staff, index) => {
                   const maxRevenue = staffPerformance[0]?.revenue || 1;
                   const barWidth = (staff.revenue / maxRevenue) * 100;
@@ -421,7 +422,7 @@ export function ExecutiveDashboard() {
         </CardContent>
       </Card>
 
-      {/* Bookings */}
+      {/* Bookings + Top Services */}
       <Card className="overflow-hidden border-l-4 border-l-blue-500">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -440,6 +441,33 @@ export function ExecutiveDashboard() {
             {dayCompleted > 0 && `${dayCompleted} completed`}
             {dayCompleted === 0 && dayBookings > 0 && `${dayBookings} scheduled`}
             {dayBookings === 0 && "No bookings"}
+          </div>
+          <div className="mt-4 pt-4 border-t">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Top services booked
+            </div>
+            {dailyLoading ? (
+              <div className="space-y-2 mt-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
+              </div>
+            ) : dayTopServices.length > 0 ? (
+              <div className="space-y-2 mt-2">
+                {dayTopServices.slice(0, 3).map((service) => (
+                  <div key={service.serviceId} className="flex items-center justify-between gap-3">
+                    <span className="text-sm truncate">{service.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {service.bookings} {service.bookings === 1 ? "booking" : "bookings"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mt-2">
+                No services booked
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

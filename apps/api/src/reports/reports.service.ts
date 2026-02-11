@@ -516,7 +516,7 @@ export class ReportsService {
     const dayStart = this.timezoneService.getStartOfDay(targetDate, timezone);
     const dayEnd = this.timezoneService.getEndOfDay(targetDate, timezone);
 
-    const [revenueByMethod, bookingCounts, staffPerformance] = await Promise.all([
+    const [revenueByMethod, bookingCounts, staffPerformance, topServices] = await Promise.all([
       this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
       this.prisma.booking.groupBy({
         by: ["status"],
@@ -528,6 +528,7 @@ export class ReportsService {
         _count: true,
       }),
       this.getDailyStaffPerformance(merchantId, dayStart, dayEnd, locationId, 5),
+      this.getDailyTopServices(merchantId, dayStart, dayEnd, locationId, 5),
     ]);
 
     const total = bookingCounts.reduce((s, b) => s + b._count, 0);
@@ -537,7 +538,63 @@ export class ReportsService {
       revenueByMethod,
       bookings: { total, completed },
       staffPerformance,
+      topServices,
     };
+  }
+
+  private async getDailyTopServices(
+    merchantId: string,
+    dayStart: Date,
+    dayEnd: Date,
+    locationId?: string,
+    limit = 10,
+  ) {
+    const topServices = await this.prisma.bookingService.groupBy({
+      by: ["serviceId"],
+      where: {
+        booking: {
+          merchantId,
+          ...(locationId && { locationId }),
+          startTime: { gte: dayStart, lte: dayEnd },
+          status: { not: "DELETED" },
+        },
+      },
+      _count: true,
+      _sum: {
+        price: true,
+      },
+      orderBy: {
+        _count: {
+          serviceId: "desc",
+        },
+      },
+      take: limit,
+    });
+
+    if (!topServices.length) {
+      return [];
+    }
+
+    const serviceIds = topServices.map((s) => s.serviceId);
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, name: true },
+    });
+
+    const serviceMap = services.reduce(
+      (acc, s) => {
+        acc[s.id] = s.name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+    return topServices.map((item) => ({
+      serviceId: item.serviceId,
+      name: serviceMap[item.serviceId] || "Unknown Service",
+      bookings: item._count,
+      revenue: toNumber(item._sum.price),
+    }));
   }
 
   private async getDailyStaffPerformance(

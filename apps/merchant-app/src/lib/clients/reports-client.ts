@@ -148,6 +148,12 @@ export interface DailySummary {
     revenue: number;
     utilization: number;
   }>;
+  topServices: Array<{
+    serviceId: string;
+    name: string;
+    bookings: number;
+    revenue: number;
+  }>;
 }
 
 export class ReportsClient extends BaseApiClient {
