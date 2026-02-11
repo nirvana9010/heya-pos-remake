@@ -8,6 +8,13 @@ export interface ReportData {
     monthly: number;
     yearly: number;
   };
+  revenueByMethod: {
+    cash: number;
+    card: number;
+    deposits: number;
+    unpaid: number;
+    incomplete: number;
+  };
   revenueGrowth: {
     daily: number;
     weekly: number;
@@ -122,7 +129,28 @@ export interface ActivityLogParams {
   endDate?: string;
 }
 
+export interface DailySummary {
+  revenueByMethod: {
+    cash: number;
+    card: number;
+    deposits: number;
+    unpaid: number;
+    incomplete: number;
+  };
+  bookings: {
+    total: number;
+    completed: number;
+  };
+}
+
 export class ReportsClient extends BaseApiClient {
+  async getDailySummary(date?: string, locationId?: string): Promise<DailySummary> {
+    const params: any = {};
+    if (date) params.date = date;
+    if (locationId) params.locationId = locationId;
+    return this.get('/reports/daily-summary', { params }, 'v1');
+  }
+
   async getReportOverview(locationId?: string): Promise<ReportData> {
     const params = locationId ? { locationId } : undefined;
     return this.get('/reports/overview', { params }, 'v1');

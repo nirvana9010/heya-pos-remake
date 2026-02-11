@@ -97,6 +97,16 @@ export class ReportsController {
     });
   }
 
+  @Get("daily-summary")
+  async getDailySummary(
+    @Request() req: any,
+    @Query("date") date?: string,
+    @Query("locationId") locationId?: string,
+  ) {
+    const merchantId = req.user.merchantId;
+    return this.reportsService.getDailySummary(merchantId, date, locationId);
+  }
+
   @Get("overview")
   async getOverview(
     @Request() req: any,

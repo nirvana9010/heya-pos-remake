@@ -48,6 +48,13 @@ export function transformApiResponse(data: any): any {
     
     for (const key in data) {
       const value = data[key];
+
+      // Always recurse nested objects/arrays before scalar transforms.
+      // This prevents object fields like `revenueByMethod` being coerced to 0.
+      if (typeof value === 'object' && value !== null) {
+        transformed[key] = transformApiResponse(value);
+        continue;
+      }
       
       // Transform known decimal/money fields
       if (isMoneyField(key)) {
@@ -62,11 +69,7 @@ export function transformApiResponse(data: any): any {
         // Don't transform to Date objects - keep as ISO strings to avoid React rendering errors
         transformed[key] = value;
       }
-      // Recursively transform nested objects/arrays
-      else if (typeof value === 'object' && value !== null) {
-        transformed[key] = transformApiResponse(value);
-      }
-      // Keep other values as-is
+      // Keep other scalar values as-is
       else {
         transformed[key] = value;
       }

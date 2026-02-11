@@ -12,7 +12,20 @@ npm run lint          # Run shared lint target
 npm run typecheck     # Composite TypeScript checks
 npm run dev:all       # Start API + merchant app together
 ```
-**Always** start and stop the local stack with `./scripts/dev-start.sh` and `./scripts/dev-stop.sh`. These wrap the API (`apps/api/dev-service.sh`) and merchant service managers so only one `nest start --watch`/`next dev` process lives at a time. Avoid calling `npm run api:dev` or `npm run merchant:dev` directly unless you are actively debugging the scripts.
+Use `./scripts/dev-start.sh` and `./scripts/dev-stop.sh` for full-stack cold start/stop.
+
+## Service Restart Source Of Truth (February 10, 2026)
+- If PM2 is running this repo (check with `pm2 status`), restart services with PM2, not the per-app dev scripts.
+- API restart command:
+  ```bash
+  pm2 restart api
+  ```
+- Verify API health immediately after restart:
+  ```bash
+  curl -i --max-time 10 http://localhost:3000/api/v1/health
+  ```
+- Expected result is `HTTP/1.1 200 OK` with `{"status":"ok"...}`.
+- Do not use `apps/api/dev-service.sh` for API restarts while PM2 is supervising `api`, because PM2 will respawn processes and can create port conflicts/noisy restarts.
 
 ## Coding Style & Naming Conventions
 Use Prettier defaults (2-space indents, single quotes in TSX/TS) via `npm run format`. ESLint governs both Nest and Next codebases; resolve lint violations before pushing. Follow idiomatic React component names in PascalCase, hooks in `useCamelCase`, and file-based routes in kebab-case. Shared packages expose typed APIs—prefer importing from `@heya-pos/*` aliases defined in `tsconfig.json`.

@@ -72,12 +72,6 @@ export const cacheConfigs: Record<string, CacheConfig> = {
   'reports': {
     ttl: 10 * 60 * 1000, // 10 minutes
     staleWhileRevalidate: 30 * 60 * 1000, // 30 minutes
-    cacheKey: (params) => {
-      const key = ['reports', params.type || 'default'];
-      if (params.startDate) key.push(params.startDate);
-      if (params.endDate) key.push(params.endDate);
-      return key.join(':');
-    },
   },
   
   // Real-time data - minimal or no cache

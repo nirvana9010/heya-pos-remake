@@ -36,8 +36,12 @@ export class TimezoneService {
    */
   getStartOfDay(date: Date | string, timezone?: string): Date {
     const tz = timezone || this.DEFAULT_TIMEZONE;
-    return DateTime.fromJSDate(new Date(date))
-      .setZone(tz)
+    const dateTime =
+      typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? DateTime.fromISO(date, { zone: tz })
+        : DateTime.fromJSDate(new Date(date)).setZone(tz);
+
+    return dateTime
       .startOf("day")
       .toUTC()
       .toJSDate();
@@ -48,8 +52,12 @@ export class TimezoneService {
    */
   getEndOfDay(date: Date | string, timezone?: string): Date {
     const tz = timezone || this.DEFAULT_TIMEZONE;
-    return DateTime.fromJSDate(new Date(date))
-      .setZone(tz)
+    const dateTime =
+      typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? DateTime.fromISO(date, { zone: tz })
+        : DateTime.fromJSDate(new Date(date)).setZone(tz);
+
+    return dateTime
       .endOf("day")
       .toUTC()
       .toJSDate();

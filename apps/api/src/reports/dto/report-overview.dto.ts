@@ -55,11 +55,20 @@ export interface TrendData {
   value: number;
 }
 
+export interface RevenueByMethod {
+  cash: number;
+  card: number;
+  deposits: number;
+  unpaid: number;
+  incomplete: number;
+}
+
 // Clean, flat structure for report overview
 export interface ReportOverview {
   // Revenue metrics
   revenue: RevenueMetrics;
   revenueGrowth: GrowthMetrics;
+  revenueByMethod: RevenueByMethod;
 
   // Booking metrics
   bookings: BookingMetrics;

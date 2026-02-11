@@ -510,6 +510,110 @@ export class ReportsService {
     return result;
   }
 
+  async getDailySummary(merchantId: string, date?: string, locationId?: string) {
+    const timezone = await this.getMerchantTimezone(merchantId, locationId);
+    const targetDate: Date | string = date || new Date();
+    const dayStart = this.timezoneService.getStartOfDay(targetDate, timezone);
+    const dayEnd = this.timezoneService.getEndOfDay(targetDate, timezone);
+
+    const [revenueByMethod, bookingCounts] = await Promise.all([
+      this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
+      this.prisma.booking.groupBy({
+        by: ["status"],
+        where: {
+          merchantId,
+          ...(locationId && { locationId }),
+          startTime: { gte: dayStart, lte: dayEnd },
+        },
+        _count: true,
+      }),
+    ]);
+
+    const total = bookingCounts.reduce((s, b) => s + b._count, 0);
+    const completed = bookingCounts.find((b) => b.status === "COMPLETED")?._count || 0;
+
+    return {
+      revenueByMethod,
+      bookings: { total, completed },
+    };
+  }
+
+  private async getDailyRevenueByMethod(
+    merchantId: string,
+    dayStart: Date,
+    dayEnd: Date,
+    locationId?: string,
+  ) {
+    // Get completed payments for bookings scheduled on the selected day.
+    // This keeps the breakdown aligned to booking day (not payment processing day).
+    const payments = await this.prisma.orderPayment.findMany({
+      where: {
+        order: {
+          merchantId,
+          ...(locationId && { locationId }),
+          booking: {
+            startTime: { gte: dayStart, lte: dayEnd },
+          },
+        },
+        status: "COMPLETED",
+      },
+      select: {
+        amount: true,
+        paymentMethod: true,
+      },
+    });
+
+    let cash = 0;
+    let card = 0;
+    let deposits = 0;
+
+    for (const p of payments) {
+      const amt = toNumber(p.amount);
+      const method = (p.paymentMethod || "").toUpperCase();
+      if (method === "CASH") {
+        cash += amt;
+      } else if (method === "CARD" || method === "EFTPOS") {
+        card += amt;
+      } else {
+        // GIFT_CARD, LOYALTY_POINTS, STORE_CREDIT, ONLINE, etc.
+        deposits += amt;
+      }
+    }
+
+    // Include all non-deleted bookings in the day's total split.
+    const dayBookings = await this.prisma.booking.findMany({
+      where: {
+        merchantId,
+        ...(locationId && { locationId }),
+        startTime: { gte: dayStart, lte: dayEnd },
+      },
+      select: {
+        status: true,
+        totalAmount: true,
+      },
+    });
+
+    let completedValue = 0;
+    let incomplete = 0;
+
+    for (const booking of dayBookings) {
+      const status = (booking.status || "").toUpperCase();
+      const amount = toNumber(booking.totalAmount);
+
+      if (status === "DELETED") continue;
+      if (status === "COMPLETED") {
+        completedValue += amount;
+      } else {
+        incomplete += amount;
+      }
+    }
+
+    const totalPaid = cash + card + deposits;
+    const unpaid = Math.max(0, completedValue - totalPaid);
+
+    return { cash, card, deposits, unpaid, incomplete };
+  }
+
   async getCleanReportOverview(
     merchantId: string,
     locationId?: string,
@@ -542,6 +646,7 @@ export class ReportsService {
       staffPerformance,
       revenueTrend,
       bookingTrend,
+      revenueByMethod,
     ] = await Promise.all([
       this.getRevenueStats(merchantId, locationId),
       this.getBookingStats(merchantId, locationId),
@@ -550,6 +655,12 @@ export class ReportsService {
       this.getStaffPerformance(merchantId, 5),
       this.getDailyRevenue(merchantId, 30),
       this.getBookingTrend(merchantId, 30),
+      this.getDailyRevenueByMethod(
+        merchantId,
+        this.timezoneService.getStartOfDay(now, timezone),
+        this.timezoneService.getEndOfDay(now, timezone),
+        locationId,
+      ),
     ]);
 
     // Calculate daily growth
@@ -678,6 +789,7 @@ export class ReportsService {
     // Return clean, flat structure
     return {
       revenue: revenueData.revenue,
+      revenueByMethod,
       revenueGrowth: {
         daily: Math.round(dailyGrowth * 10) / 10,
         weekly: revenueData.growth.weekly,

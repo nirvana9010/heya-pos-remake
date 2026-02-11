@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api-client';
-import type { ReportData, DashboardStats, ActivityLogParams } from '../../clients/reports-client';
+import type { ReportData, DashboardStats, ActivityLogParams, DailySummary } from '../../clients/reports-client';
 
 // Query keys for reports
 export const reportKeys = {
   all: ['reports'] as const,
+  dailySummary: (date?: string) => [...reportKeys.all, 'daily-summary', { date }] as const,
   overview: (locationId?: string) => [...reportKeys.all, 'overview', { locationId }] as const,
   dashboard: () => [...reportKeys.all, 'dashboard'] as const,
   revenue: (locationId?: string) => [...reportKeys.all, 'revenue', { locationId }] as const,
@@ -15,6 +16,18 @@ export const reportKeys = {
   revenueTrend: (days?: number) => [...reportKeys.all, 'revenueTrend', { days }] as const,
   activityLog: (params?: ActivityLogParams) => [...reportKeys.all, 'activityLog', params] as const,
 };
+
+/**
+ * Hook to fetch daily summary (revenue breakdown + booking counts) for a specific date
+ */
+export function useDailySummary(date?: string) {
+  return useQuery<DailySummary>({
+    queryKey: reportKeys.dailySummary(date),
+    queryFn: () => apiClient.reports.getDailySummary(date),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
 
 /**
  * Hook to fetch dashboard statistics
