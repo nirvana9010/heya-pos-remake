@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya
 import { Alert, AlertDescription } from '@heya-pos/ui';
 import { Checkbox } from '@heya-pos/ui';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { REPORTS_WHATS_NEW_STORAGE_KEYS } from '@/lib/constants/reports-whats-new';
 import { Building2, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -69,6 +70,12 @@ export default function LoginPage() {
     try {
       if (login) {
         await login(formData.email, formData.password, rememberMe);
+        if (typeof window !== 'undefined') {
+          const dismissed = window.localStorage.getItem(REPORTS_WHATS_NEW_STORAGE_KEYS.dismissed) === '1';
+          if (!dismissed) {
+            window.localStorage.setItem(REPORTS_WHATS_NEW_STORAGE_KEYS.pending, '1');
+          }
+        }
         // Auth provider will handle the redirect through the useEffect above
       }
     } catch (err: any) {

@@ -182,12 +182,14 @@ export function Sidebar({
         <div style={{ flex: 1 }}>
           {filteredNavigation.mainNav.map((item, index) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href)
+            const isReportsNavItem = item.href === '/reports'
             return (
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
                 className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
                 disabled={isPending}
+                data-tour={isReportsNavItem ? 'reports-nav' : undefined}
               >
                 <item.icon size={20} />
                 {(!collapsed || isMobile) && (
@@ -213,12 +215,14 @@ export function Sidebar({
         <div>
           {filteredNavigation.bottomNav.map((item, index) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href)
+            const isReportsNavItem = item.href === '/reports'
             return (
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
                 className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
                 disabled={isPending}
+                data-tour={isReportsNavItem ? 'reports-nav' : undefined}
               >
                 <item.icon size={20} />
                 {(!collapsed || isMobile) && (
