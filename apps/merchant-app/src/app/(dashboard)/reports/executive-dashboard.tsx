@@ -25,6 +25,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { cn } from "@heya-pos/ui";
@@ -54,6 +55,19 @@ const EMPTY_REVENUE_BY_METHOD: Record<(typeof METHOD_ORDER)[number], number> = {
   unpaid: 0,
   incomplete: 0,
 };
+
+function WeekTick({ x, y, payload }: any) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} textAnchor="middle" fill="#6b7280" fontSize={12}>
+        <tspan x={0} dy="0.71em">{payload?.payload?.day ?? payload?.value}</tspan>
+        <tspan x={0} dy="1.2em" fill="#9ca3af" fontSize={11}>
+          {payload?.payload?.date ?? ""}
+        </tspan>
+      </text>
+    </g>
+  );
+}
 
 function toAmount(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -179,11 +193,6 @@ export function ExecutiveDashboard() {
         };
       })
     : [];
-
-  const bestDay = weekData.reduce((max, day) =>
-    day.revenue > max.revenue ? day : max, weekData[0] || { revenue: 0 });
-  const worstDay = weekData.reduce((min, day) =>
-    day.revenue < min.revenue ? day : min, weekData[0] || { revenue: 0 });
 
   // Staff leaderboard (date-aware; fallback to overview only for today)
   const staffPerformance = dailySummary?.staffPerformance
@@ -364,64 +373,6 @@ export function ExecutiveDashboard() {
         </Card>
       </div>
 
-      {/* Week Rhythm */}
-      <Card>
-        <CardHeader>
-          <CardTitle>This Week's Rhythm</CardTitle>
-          <CardDescription>Revenue pattern for the last 7 days</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {weekData.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={weekData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="day" stroke="#6b7280" fontSize={12} tick={{ fill: "#6b7280" }} />
-                  <YAxis stroke="#6b7280" fontSize={12} tick={{ fill: "#6b7280" }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-background border rounded-lg shadow-lg p-3">
-                            <p className="text-sm font-medium">{data.date}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Revenue: <span className="font-medium text-foreground">${data.revenue.toLocaleString()}</span>
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                    {weekData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.isToday ? "#3b82f6" : "#cbd5e1"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Best Day</span>
-                  <span className="text-sm font-medium">{bestDay.day} (${bestDay.revenue.toLocaleString()})</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Weakest Day</span>
-                  <span className="text-sm font-medium">{worstDay.day} (${worstDay.revenue.toLocaleString()})</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="h-[200px] flex flex-col items-center justify-center text-center">
-              <BarChart3 className="h-12 w-12 text-muted-foreground/20 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No revenue data available</p>
-              <p className="text-xs text-muted-foreground mt-1">Revenue data will appear as transactions are recorded</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Bookings + Top Services */}
       <Card className="overflow-hidden border-l-4 border-l-blue-500">
         <CardHeader className="pb-2">
@@ -469,6 +420,77 @@ export function ExecutiveDashboard() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Week Rhythm */}
+      <Card>
+        <CardHeader>
+          <CardTitle>This Week's Rhythm</CardTitle>
+          <CardDescription>Scheduled revenue pattern for the last 7 days (including incomplete)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {weekData.length > 0 ? (
+            <>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-[#3b82f6]" />
+                  <span>Today</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-[#cbd5e1]" />
+                  <span>Other days</span>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart data={weekData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="day"
+                    stroke="#6b7280"
+                    tick={<WeekTick />}
+                    interval={0}
+                    height={46}
+                  />
+                  <YAxis stroke="#6b7280" fontSize={12} tick={{ fill: "#6b7280" }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-background border rounded-lg shadow-lg p-3">
+                            <p className="text-sm font-medium">{data.date}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Revenue: <span className="font-medium text-foreground">${data.revenue.toLocaleString()}</span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                    {weekData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.isToday ? "#3b82f6" : "#cbd5e1"} />
+                    ))}
+                    <LabelList
+                      dataKey="revenue"
+                      position="top"
+                      formatter={(value: number) => `$${Number(value || 0).toLocaleString()}`}
+                      fill="#6b7280"
+                      fontSize={11}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          ) : (
+            <div className="h-[200px] flex flex-col items-center justify-center text-center">
+              <BarChart3 className="h-12 w-12 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">No revenue data available</p>
+              <p className="text-xs text-muted-foreground mt-1">Revenue data will appear as transactions are recorded</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

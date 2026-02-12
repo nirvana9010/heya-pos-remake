@@ -510,6 +510,60 @@ export class ReportsService {
     return result;
   }
 
+  private async getDailyScheduledRevenue(
+    merchantId: string,
+    days = 30,
+    locationId?: string,
+  ) {
+    const timezone = await this.getMerchantTimezone(merchantId, locationId);
+    const endDate = this.timezoneService.getEndOfDay(new Date(), timezone);
+    const startDate = this.timezoneService.getStartOfDay(
+      subDays(new Date(), days - 1),
+      timezone,
+    );
+
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        merchantId,
+        ...(locationId && { locationId }),
+        startTime: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: { not: "DELETED" },
+      },
+      select: {
+        startTime: true,
+        totalAmount: true,
+      },
+      orderBy: {
+        startTime: "asc",
+      },
+    });
+
+    const revenueByDay: Record<string, number> = {};
+    bookings.forEach((booking) => {
+      const dt = DateTime.fromJSDate(booking.startTime).setZone(timezone);
+      const dayKey = dt.toFormat("yyyy-MM-dd");
+      revenueByDay[dayKey] =
+        (revenueByDay[dayKey] || 0) + toNumber(booking.totalAmount);
+    });
+
+    const result = [];
+    const nowInTimezone = DateTime.now().setZone(timezone);
+
+    for (let i = 0; i < days; i++) {
+      const date = nowInTimezone.minus({ days: days - 1 - i });
+      const dayKey = date.toFormat("yyyy-MM-dd");
+      result.push({
+        date: dayKey,
+        revenue: revenueByDay[dayKey] || 0,
+      });
+    }
+
+    return result;
+  }
+
   async getDailySummary(merchantId: string, date?: string, locationId?: string) {
     const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const targetDate: Date | string = date || new Date();
@@ -778,7 +832,7 @@ export class ReportsService {
       this.getCustomerStats(merchantId),
       this.getTopServices(merchantId, 5),
       this.getStaffPerformance(merchantId, 5),
-      this.getDailyRevenue(merchantId, 30),
+      this.getDailyScheduledRevenue(merchantId, 30, locationId),
       this.getBookingTrend(merchantId, 30),
       this.getDailyRevenueByMethod(
         merchantId,
