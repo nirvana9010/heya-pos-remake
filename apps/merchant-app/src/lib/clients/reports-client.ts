@@ -148,10 +148,13 @@ export interface DailySummary {
     revenue: number;
     utilization: number;
   }>;
+  serviceLineItems: number;
   topServices: Array<{
     serviceId: string;
     name: string;
     bookings: number;
+    serviceLineItems: number;
+    bookingCount: number;
     revenue: number;
   }>;
 }

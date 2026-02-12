@@ -570,7 +570,7 @@ export class ReportsService {
     const dayStart = this.timezoneService.getStartOfDay(targetDate, timezone);
     const dayEnd = this.timezoneService.getEndOfDay(targetDate, timezone);
 
-    const [revenueByMethod, bookingCounts, staffPerformance, topServices] = await Promise.all([
+    const [revenueByMethod, bookingCounts, staffPerformance, topServicesData] = await Promise.all([
       this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
       this.prisma.booking.groupBy({
         by: ["status"],
@@ -582,7 +582,7 @@ export class ReportsService {
         _count: true,
       }),
       this.getDailyStaffPerformance(merchantId, dayStart, dayEnd, locationId, 5),
-      this.getDailyTopServices(merchantId, dayStart, dayEnd, locationId, 5),
+      this.getDailyTopServices(merchantId, dayStart, dayEnd, locationId, 10),
     ]);
 
     const total = bookingCounts.reduce((s, b) => s + b._count, 0);
@@ -592,7 +592,8 @@ export class ReportsService {
       revenueByMethod,
       bookings: { total, completed },
       staffPerformance,
-      topServices,
+      topServices: topServicesData.topServices,
+      serviceLineItems: topServicesData.serviceLineItems,
     };
   }
 
@@ -603,8 +604,7 @@ export class ReportsService {
     locationId?: string,
     limit = 10,
   ) {
-    const topServices = await this.prisma.bookingService.groupBy({
-      by: ["serviceId"],
+    const bookingServices = await this.prisma.bookingService.findMany({
       where: {
         booking: {
           merchantId,
@@ -613,22 +613,49 @@ export class ReportsService {
           status: { not: "DELETED" },
         },
       },
-      _count: true,
-      _sum: {
+      select: {
+        serviceId: true,
+        bookingId: true,
         price: true,
       },
-      orderBy: {
-        _count: {
-          serviceId: "desc",
-        },
-      },
-      take: limit,
     });
 
-    if (!topServices.length) {
-      return [];
+    if (!bookingServices.length) {
+      return {
+        topServices: [],
+        serviceLineItems: 0,
+      };
     }
 
+    const aggregate = new Map<
+      string,
+      { serviceLineItems: number; revenue: number; bookingIds: Set<string> }
+    >();
+
+    for (const row of bookingServices) {
+      const current = aggregate.get(row.serviceId) || {
+        serviceLineItems: 0,
+        revenue: 0,
+        bookingIds: new Set<string>(),
+      };
+      current.serviceLineItems += 1;
+      current.revenue += toNumber(row.price);
+      current.bookingIds.add(row.bookingId);
+      aggregate.set(row.serviceId, current);
+    }
+
+    const ranked = Array.from(aggregate.entries())
+      .map(([serviceId, values]) => ({
+        serviceId,
+        serviceLineItems: values.serviceLineItems,
+        bookingCount: values.bookingIds.size,
+        revenue: values.revenue,
+      }))
+      .sort((a, b) =>
+        b.serviceLineItems - a.serviceLineItems || b.revenue - a.revenue,
+      );
+
+    const topServices = ranked.slice(0, limit);
     const serviceIds = topServices.map((s) => s.serviceId);
     const services = await this.prisma.service.findMany({
       where: { id: { in: serviceIds } },
@@ -643,12 +670,18 @@ export class ReportsService {
       {} as Record<string, string>,
     );
 
-    return topServices.map((item) => ({
-      serviceId: item.serviceId,
-      name: serviceMap[item.serviceId] || "Unknown Service",
-      bookings: item._count,
-      revenue: toNumber(item._sum.price),
-    }));
+    return {
+      topServices: topServices.map((item) => ({
+        serviceId: item.serviceId,
+        name: serviceMap[item.serviceId] || "Unknown Service",
+        // Backwards compatibility for consumers still reading `bookings`.
+        bookings: item.serviceLineItems,
+        serviceLineItems: item.serviceLineItems,
+        bookingCount: item.bookingCount,
+        revenue: item.revenue,
+      })),
+      serviceLineItems: bookingServices.length,
+    };
   }
 
   private async getDailyStaffPerformance(

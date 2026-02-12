@@ -31,8 +31,8 @@ import { format, addDays, subDays, isToday } from "date-fns";
 import { cn } from "@heya-pos/ui";
 
 const METHOD_COLORS: Record<string, string> = {
-  cash: "#3b82f6",       // blue
-  card: "#10b981",       // green
+  cash: "#10b981",       // green
+  card: "#3b82f6",       // blue
   deposits: "#f59e0b",   // yellow
   unpaid: "#ef4444",     // red
   incomplete: "#94a3b8", // grey
@@ -217,8 +217,16 @@ export function ExecutiveDashboard() {
     .map((k) => ({ key: k, value: revenueByMethod[k], color: METHOD_COLORS[k] }));
 
   const dayBookings = dailySummary?.bookings?.total ?? reportData.bookings?.daily ?? 0;
-  const dayCompleted = dailySummary?.bookings?.completed ?? reportData.bookings?.dailyCompleted ?? 0;
   const dayTopServices = dailySummary?.topServices ?? [];
+  const dayServiceLineItems = dailySummary?.serviceLineItems
+    ?? dayTopServices.reduce(
+      (sum, service) => sum + (service.serviceLineItems ?? service.bookings ?? 0),
+      0,
+    );
+  const displayedTopServices = dayTopServices.slice(0, 10);
+  const leftTopServices = displayedTopServices.slice(0, 5);
+  const rightTopServices = displayedTopServices.slice(5, 10);
+  const showTopServiceNumber = displayedTopServices.length === 10;
 
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
@@ -332,8 +340,8 @@ export function ExecutiveDashboard() {
                       <div className={cn(
                         "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
                         index === 0 && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                        index === 1 && "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
-                        index === 2 && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                        index === 1 && "bg-slate-200 text-slate-700 dark:bg-slate-700/60 dark:text-slate-200",
+                        index === 2 && "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
                         index > 2 && "bg-muted text-muted-foreground",
                       )}>
                         {index + 1}
@@ -347,7 +355,10 @@ export function ExecutiveDashboard() {
                           <div
                             className={cn(
                               "h-1.5 rounded-full transition-all duration-300",
-                              index === 0 ? "bg-yellow-500" : "bg-primary",
+                              index === 0 && "bg-yellow-500",
+                              index === 1 && "bg-slate-400",
+                              index === 2 && "bg-amber-600",
+                              index > 2 && "bg-primary",
                             )}
                             style={{ width: `${barWidth}%` }}
                           />
@@ -387,32 +398,53 @@ export function ExecutiveDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{dayBookings}</div>
-          <div className="text-sm text-muted-foreground mt-2">
-            {dayCompleted > 0 && `${dayCompleted} completed`}
-            {dayCompleted === 0 && dayBookings > 0 && `${dayBookings} scheduled`}
-            {dayBookings === 0 && "No bookings"}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-md bg-muted/40 p-2">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">BOOKINGS</div>
+              <div className="text-3xl font-bold">{dayBookings}</div>
+            </div>
+            <div className="rounded-md bg-muted/40 p-2">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">SERVICES</div>
+              <div className="text-3xl font-bold">{dayServiceLineItems}</div>
+            </div>
           </div>
           <div className="mt-4 pt-4 border-t">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Top services booked
-            </div>
             {dailyLoading ? (
-              <div className="space-y-2 mt-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-4 w-full" />
-                ))}
-              </div>
-            ) : dayTopServices.length > 0 ? (
-              <div className="space-y-2 mt-2">
-                {dayTopServices.slice(0, 3).map((service) => (
-                  <div key={service.serviceId} className="flex items-center justify-between gap-3">
-                    <span className="text-sm truncate">{service.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {service.bookings} {service.bookings === 1 ? "booking" : "bookings"}
-                    </span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                {[1, 2].map((col) => (
+                  <div key={col} className="space-y-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={`${col}-${i}`} className="h-4 w-full" />
+                    ))}
                   </div>
                 ))}
+              </div>
+            ) : displayedTopServices.length > 0 ? (
+              <div className="grid grid-cols-2 gap-x-4 mt-2">
+                <div className="space-y-2">
+                  {leftTopServices.map((service, index) => (
+                    <div key={service.serviceId} className="flex items-center justify-between gap-3">
+                      <span className="text-sm truncate">
+                        {showTopServiceNumber ? `${index + 1}. ` : ""}{service.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {service.serviceLineItems ?? service.bookings ?? 0}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  {rightTopServices.map((service, index) => (
+                    <div key={service.serviceId} className="flex items-center justify-between gap-3">
+                      <span className="text-sm truncate">
+                        {showTopServiceNumber ? `${index + 6}. ` : ""}{service.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {service.serviceLineItems ?? service.bookings ?? 0}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-xs text-muted-foreground mt-2">
