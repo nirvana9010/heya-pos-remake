@@ -35,6 +35,9 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const createNameInputRef = React.useRef<HTMLInputElement>(null);
 
   // Handle opening/closing animations
   useEffect(() => {
@@ -62,6 +65,24 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
       setSearchQuery('');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const focusTarget = showCreateForm ? createNameInputRef.current : searchInputRef.current;
+    if (!focusTarget) return;
+
+    requestAnimationFrame(() => {
+      focusTarget.focus({ preventScroll: true });
+    });
+  }, [isOpen, showCreateForm]);
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+
+    // Reset content scroll when switching views to keep the first input visible.
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [showCreateForm]);
 
   // Search customers with debounce
   useEffect(() => {
@@ -200,7 +221,7 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
         <div className="relative w-screen max-w-md">
           <div className="flex h-full flex-col bg-white shadow-2xl">
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b px-6 py-4 z-10">
+            <div className="shrink-0 bg-white border-b px-6 py-4 z-10">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <Button
@@ -230,30 +251,30 @@ export const CustomerSelectionSlideout: React.FC<CustomerSelectionSlideoutProps>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
+                    ref={searchInputRef}
                     placeholder="Search by name, email, or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
-                    autoFocus
                   />
                 </div>
               )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
               {showCreateForm ? (
                 // Create Customer Form
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="customerName">Name *</Label>
                     <Input
+                      ref={createNameInputRef}
                       id="customerName"
                       value={newCustomerName}
                       onChange={(e) => setNewCustomerName(e.target.value)}
                       placeholder="John Doe"
                       className="mt-1"
-                      autoFocus
                     />
                   </div>
                   
