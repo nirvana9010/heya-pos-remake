@@ -17,6 +17,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Validate Prisma migrations
+        run: bash ./scripts/validate-prisma-migrations.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:

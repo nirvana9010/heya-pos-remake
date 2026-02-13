@@ -41,6 +41,7 @@
     "status": "./scripts/dev-status.sh",
     "restart": "./scripts/dev-stop.sh && ./scripts/dev-start.sh",
     "clean-start": "./scripts/dev-start.sh --clean",
+    "check:prisma-migrations": "bash ./scripts/validate-prisma-migrations.sh",
     "test:staging": "node scripts/test-staging.js",
     "test:auth": "cd apps/merchant-app && node scripts/test-auth-middleware.js",
     "deploy:staging": "git push origin staging",

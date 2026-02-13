@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate Prisma migrations
+        run: bash ./scripts/validate-prisma-migrations.sh
       
       - name: Setup Fly.io
         uses: superfly/flyctl-actions/setup-flyctl@master
