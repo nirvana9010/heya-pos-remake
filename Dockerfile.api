@@ -25,7 +25,7 @@ COPY . .
 
 # Fail fast if any Prisma migration directory is missing migration.sql.
 # This prevents shipping images that cannot run/verify migrations.
-RUN bash ./scripts/validate-prisma-migrations.sh
+RUN sh ./scripts/validate-prisma-migrations.sh
 
 # Generate Prisma client FIRST (before building)
 WORKDIR /app/apps/api

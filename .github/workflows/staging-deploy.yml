@@ -21,7 +21,7 @@ jobs:
         run: npm ci
 
       - name: Validate Prisma migrations
-        run: bash ./scripts/validate-prisma-migrations.sh
+        run: sh ./scripts/validate-prisma-migrations.sh
         
       - name: Type check
         run: npm run typecheck
