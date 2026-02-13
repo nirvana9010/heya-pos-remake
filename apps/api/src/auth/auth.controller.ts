@@ -6,6 +6,7 @@ import {
   Get,
   Req,
   UnauthorizedException,
+  BadRequestException,
   Headers,
   HttpCode,
   HttpStatus,
@@ -128,10 +129,21 @@ export class AuthController {
     };
   }> {
     const ipAddress = req.ip || req.connection?.remoteAddress;
+    const activeStaffHeader = req.headers["x-active-staff-id"];
+    const activeStaffId = Array.isArray(activeStaffHeader)
+      ? activeStaffHeader[0]
+      : activeStaffHeader;
+    const staffId = dto.staffId || activeStaffId;
+
+    if (!staffId) {
+      throw new BadRequestException(
+        "staffId is required (request body or x-active-staff-id header)",
+      );
+    }
 
     // Verify PIN and log action
     return this.pinAuthService.verifyPinAndLogAction(
-      dto,
+      { ...dto, staffId },
       user.merchantId,
       ipAddress,
     );

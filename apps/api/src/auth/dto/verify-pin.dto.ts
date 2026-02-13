@@ -8,8 +8,8 @@ import {
 
 export class VerifyPinDto {
   @IsString()
-  @IsNotEmpty()
-  staffId: string;
+  @IsOptional()
+  staffId?: string;
 
   @IsString()
   @IsNotEmpty()

@@ -121,7 +121,7 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
     lockAfter: 60,
     onWarning: handleWarning,
     onLock: handleLock,
-    enabled: featureEnabled && lockState === 'ACTIVE',
+    enabled: featureEnabled && (lockState === 'ACTIVE' || lockState === 'WARNING'),
   });
 
   const unlockWithPin = useCallback(async (pin: string) => {
