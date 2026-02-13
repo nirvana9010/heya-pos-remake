@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Manrope } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@heya-pos/ui'
@@ -25,6 +25,12 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: 'Heya POS - Merchant App',
   description: 'Point of Sale system for beauty and wellness businesses',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

@@ -99,16 +99,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-start justify-center bg-gray-50 px-4 py-6 sm:items-center sm:px-6">
       <Card className="w-full max-w-md">
-        <CardHeader>
+        <CardHeader className="pb-5">
           <div className="flex items-center gap-2 mb-2">
             <Building2 className="h-6 w-6 text-teal-600" />
             <span className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-teal-700 bg-clip-text text-transparent">
               Heya POS
             </span>
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">Welcome back</CardTitle>
           <CardDescription>
             Enter your credentials to access your merchant dashboard
           </CardDescription>
@@ -134,6 +134,7 @@ export default function LoginPage() {
                 autoFocus
                 autoComplete="email"
                 disabled={isSubmitting}
+                className="text-base sm:text-sm"
               />
             </div>
             
@@ -149,10 +150,11 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 disabled={isSubmitting}
+                className="text-base sm:text-sm"
               />
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="remember" 
@@ -168,7 +170,7 @@ export default function LoginPage() {
                 </Label>
               </div>
               
-              <a href="/forgot-password" className="text-sm text-teal-600 hover:text-teal-700">
+              <a href="/forgot-password" className="self-end text-sm text-teal-600 hover:text-teal-700 sm:self-auto">
                 Forgot password?
               </a>
             </div>
@@ -193,15 +195,15 @@ export default function LoginPage() {
           {process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === 'true' && (
             <>
               <div className="mt-6 space-y-3">
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-gray-600 break-words">
                   <div className="font-medium mb-2">Demo Credentials:</div>
                   <div className="space-y-1">
                     <div>
-                      <strong>Hamilton Beauty:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">admin@hamiltonbeauty.com</code>, 
+                      <strong>Hamilton Beauty:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded break-all">admin@hamiltonbeauty.com</code>, 
                       Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo123</code>
                     </div>
                     <div>
-                      <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded">lukas.tn90@gmail.com</code>, 
+                      <strong>Zen Wellness:</strong> Email: <code className="bg-gray-100 px-1 py-0.5 rounded break-all">lukas.tn90@gmail.com</code>, 
                       Password: <code className="bg-gray-100 px-1 py-0.5 rounded">demo456</code>
                     </div>
                   </div>
@@ -213,7 +215,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-auto w-full whitespace-normal py-2 text-left leading-snug"
                   onClick={() => {
                     setFormData({
                       email: 'admin@hamiltonbeauty.com',
@@ -236,7 +238,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-auto w-full whitespace-normal py-2 text-left leading-snug"
                   onClick={() => {
                     setFormData({
                       email: 'manager@hamiltonbeauty.com',
@@ -259,7 +261,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-auto w-full whitespace-normal py-2 text-left leading-snug"
                   onClick={() => {
                     setFormData({
                       email: 'staff@hamiltonbeauty.com',
@@ -282,7 +284,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-auto w-full whitespace-normal py-2 text-left leading-snug"
                   onClick={() => {
                     setFormData({
                       email: 'lukas.tn90@gmail.com',
