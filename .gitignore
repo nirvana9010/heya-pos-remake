@@ -125,4 +125,5 @@ apps/api/scripts/check-*.js
 # Database backups
 *.backup
 *.sql
+!apps/api/prisma/migrations/**/migration.sql
 backups/
