@@ -24,8 +24,15 @@ RUN npm ci
 COPY . .
 
 # Fail fast if any Prisma migration directory is missing migration.sql.
-# This prevents shipping images that cannot run/verify migrations.
-RUN sh ./scripts/validate-prisma-migrations.sh
+# Inline check avoids dependency on ignored build-context scripts.
+RUN set -eu; \
+  for d in apps/api/prisma/migrations/*/; do \
+    [ -d "$d" ] || continue; \
+    if [ ! -f "${d}migration.sql" ]; then \
+      echo "Missing migration.sql in ${d}"; \
+      exit 1; \
+    fi; \
+  done
 
 # Generate Prisma client FIRST (before building)
 WORKDIR /app/apps/api
