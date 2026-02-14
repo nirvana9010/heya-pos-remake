@@ -161,19 +161,17 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
     
     // Find new notifications that haven't shown browser alerts yet
+    // Only consider notifications created in the last 5 minutes to avoid
+    // spamming the user with stale notifications when returning to the tab
     const newNotifications = notifications.filter(n => {
       const isUnread = !n.read;
-      const isNew = !prevNotificationIdsRef.current.has(n.id);
       const notShownYet = !shownBrowserNotificationsRef.current.has(n.id);
-      
-      // A notification should trigger if:
-      // 1. It's unread AND
-      // 2. We haven't shown a browser notification for it yet AND
-      // 3. It's either new OR it was created recently (within last 5 minutes)
-      const createdRecently = n.timestamp ? 
+      const isNew = !prevNotificationIdsRef.current.has(n.id);
+      const createdRecently = n.timestamp ?
         new Date(n.timestamp).getTime() > Date.now() - 5 * 60 * 1000 :
-        new Date(n.createdAt).getTime() > Date.now() - 5 * 60 * 1000;
-      return isUnread && notShownYet && (isNew || createdRecently);
+        false;
+      // Must be unread, not shown yet, new to the client, AND recent
+      return isUnread && notShownYet && isNew && createdRecently;
     });
     
     
@@ -195,37 +193,54 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       // We're no longer broadcasting booking events from notifications
       // Calendar updates are now handled by user activity detection
       
-      // Show browser notifications
+      // Show browser notifications (cap at 3 individual, then summary)
       if (typeof window !== 'undefined' && 'Notification' in window) {
         const NotificationAPI = window.Notification as any;
         if (NotificationAPI.permission === 'granted') {
-          newNotifications.forEach(notification => {
+          const MAX_INDIVIDUAL = 3;
+
+          if (newNotifications.length <= MAX_INDIVIDUAL) {
+            // Show individual notifications
+            newNotifications.forEach(notification => {
+              try {
+                const tag = notification.metadata?.bookingId || notification.id;
+                const browserNotification = new NotificationAPI(notification.title, {
+                  body: notification.message,
+                  tag: tag,
+                  requireInteraction: false,
+                  renotify: false,
+                });
+                browserNotification.onclick = () => {
+                  window.focus();
+                  if (notification.actionUrl) {
+                    window.location.href = notification.actionUrl;
+                  }
+                  browserNotification.close();
+                };
+                setTimeout(() => browserNotification.close(), 5000);
+              } catch (e) {
+                // Ignore notification errors
+              }
+            });
+          } else {
+            // Too many - show a single summary notification
             try {
-              // Use booking ID as tag to prevent duplicate notifications for same booking
-              const tag = notification.metadata?.bookingId || notification.id;
-              const browserNotification = new NotificationAPI(notification.title, {
-                body: notification.message,
-                tag: tag, // Prevents duplicate notifications for same booking
+              const browserNotification = new NotificationAPI(
+                `${newNotifications.length} new notifications`, {
+                body: newNotifications.slice(0, 3).map(n => n.title).join(', ') + '...',
+                tag: 'notification-summary',
                 requireInteraction: false,
-                renotify: false, // Don't notify again for same tag
+                renotify: true,
               });
-              
-              // Handle click on browser notification
               browserNotification.onclick = () => {
                 window.focus();
-                if (notification.actionUrl) {
-                  window.location.href = notification.actionUrl;
-                }
                 browserNotification.close();
               };
-              
-              // Auto-close after 5 seconds
               setTimeout(() => browserNotification.close(), 5000);
             } catch (e) {
-              // Ignore notification errors (can happen in some browsers)
-              // Failed to show browser notification
+              // Ignore notification errors
             }
-          });
+          }
         }
       }
       
@@ -283,13 +298,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     
     // Update refs ONLY after processing
     prevUnreadCountRef.current = unreadCount;
-    // Only add NEW unread notifications that we've processed to prevNotificationIdsRef
-    // This ensures we don't miss notifications that arrive between renders
-    newNotifications.forEach(n => {
-      prevNotificationIdsRef.current.add(n.id);
-    });
-    // Also add all read notifications to prevent them from triggering sounds
-    notifications.filter(n => n.read).forEach(n => {
+    // Add ALL current notification IDs to prevNotificationIdsRef
+    // This prevents old notifications from re-triggering on subsequent polls
+    notifications.forEach(n => {
       prevNotificationIdsRef.current.add(n.id);
     });
     
