@@ -41,7 +41,7 @@ import { MerchantUsersModule } from "../merchant-users/merchant-users.module";
     PrismaModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "default-secret",
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || "365d" },
     }),
     forwardRef(() => MerchantUsersModule),
