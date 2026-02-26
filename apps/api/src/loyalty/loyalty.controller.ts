@@ -91,8 +91,8 @@ export class LoyaltyController {
   }
 
   @Post("redeem-visit")
-  // @UseGuards(PinRequiredGuard)
-  // @PinRequired('redeem_loyalty')
+  @UseGuards(PinRequiredGuard)
+  @PinRequired('redeem_loyalty')
   @HttpCode(HttpStatus.OK)
   async redeemVisit(
     @Body() body: { customerId: string; bookingId?: string },
@@ -111,8 +111,8 @@ export class LoyaltyController {
   }
 
   @Post("redeem-points")
-  // @UseGuards(PinRequiredGuard)
-  // @PinRequired('redeem_loyalty')
+  @UseGuards(PinRequiredGuard)
+  @PinRequired('redeem_loyalty')
   @HttpCode(HttpStatus.OK)
   async redeemPoints(
     @Body() body: { customerId: string; points: number; bookingId?: string },
@@ -135,8 +135,8 @@ export class LoyaltyController {
   }
 
   @Post("adjust")
-  // @UseGuards(PinRequiredGuard)
-  // @PinRequired('adjust_loyalty')
+  @UseGuards(PinRequiredGuard)
+  @PinRequired('adjust_loyalty')
   @HttpCode(HttpStatus.OK)
   async adjustLoyalty(
     @Body()

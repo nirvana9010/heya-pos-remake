@@ -2,6 +2,8 @@ import { Controller, Get, Put, Body, UseGuards, Request } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { MerchantService } from "./merchant.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 import { MerchantSettings } from "../types/models/merchant";
 
 interface UpdateMerchantProfileDto {
@@ -24,7 +26,7 @@ interface UpdateLocationDto {
 }
 
 @Controller("merchant")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class MerchantController {
   constructor(
     private readonly merchantService: MerchantService,
@@ -43,6 +45,7 @@ export class MerchantController {
   }
 
   @Put("settings")
+  @Permissions("settings.update")
   async updateSettings(
     @Request() req,
     @Body() settings: Partial<MerchantSettings>,
@@ -59,6 +62,7 @@ export class MerchantController {
   }
 
   @Put("profile")
+  @Permissions("settings.update")
   async updateProfile(
     @Request() req,
     @Body() profileData: UpdateMerchantProfileDto,
@@ -83,6 +87,7 @@ export class MerchantController {
   }
 
   @Put("location/:locationId")
+  @Permissions("settings.update")
   async updateLocation(
     @Request() req,
     @Body() locationData: UpdateLocationDto,

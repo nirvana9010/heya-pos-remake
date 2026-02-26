@@ -13,19 +13,23 @@ import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { UpdateStaffDto } from "./dto/update-staff.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 
 @Controller("staff")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
   @Post()
+  @Permissions("staff.create")
   create(@CurrentUser() user: any, @Body() createStaffDto: CreateStaffDto) {
     return this.staffService.create(user.merchantId, createStaffDto);
   }
 
   @Get()
+  @Permissions("staff.view")
   findAll(@CurrentUser() user: any, @Query("active") active?: string) {
     const isActive =
       active === "true" ? true : active === "false" ? false : undefined;
@@ -33,16 +37,19 @@ export class StaffController {
   }
 
   @Get("schedules")
+  @Permissions("staff.view")
   getAllSchedules(@CurrentUser() user: any) {
     return this.staffService.getAllSchedules(user.merchantId);
   }
 
   @Get(":id")
+  @Permissions("staff.view")
   findOne(@CurrentUser() user: any, @Param("id") id: string) {
     return this.staffService.findOne(user.merchantId, id);
   }
 
   @Patch(":id")
+  @Permissions("staff.update")
   update(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -52,6 +59,7 @@ export class StaffController {
   }
 
   @Delete(":id")
+  @Permissions("staff.delete")
   remove(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -65,11 +73,13 @@ export class StaffController {
   }
 
   @Get(":id/schedule")
+  @Permissions("staff.view")
   getSchedule(@CurrentUser() user: any, @Param("id") id: string) {
     return this.staffService.getSchedule(user.merchantId, id);
   }
 
   @Post(":id/schedule")
+  @Permissions("staff.update")
   updateSchedule(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -86,6 +96,7 @@ export class StaffController {
   }
 
   @Post(":id/schedule/default")
+  @Permissions("staff.update")
   async createDefaultSchedule(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -101,6 +112,7 @@ export class StaffController {
   }
 
   @Get(":id/overrides")
+  @Permissions("staff.view")
   getScheduleOverrides(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -116,6 +128,7 @@ export class StaffController {
   }
 
   @Post(":id/overrides")
+  @Permissions("staff.update")
   createOrUpdateScheduleOverride(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -135,6 +148,7 @@ export class StaffController {
   }
 
   @Delete(":id/overrides/:date")
+  @Permissions("staff.update")
   deleteScheduleOverride(
     @CurrentUser() user: any,
     @Param("id") id: string,
