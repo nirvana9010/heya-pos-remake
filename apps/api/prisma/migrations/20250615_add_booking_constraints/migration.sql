@@ -1,0 +1,3 @@
+-- Placeholder for manual migration applied on 2025-06-15.
+-- The original change tightened booking-related constraints outside of Prisma.
+-- No SQL to execute here; keeping the file so Prisma history stays in sync.

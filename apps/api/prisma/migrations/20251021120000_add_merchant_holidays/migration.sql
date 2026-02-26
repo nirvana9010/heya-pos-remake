@@ -1,0 +1,2 @@
+-- Placeholder: legacy manual migration that introduced merchant holidays.
+-- Schema already present in databases; file exists only to satisfy Prisma history.
