@@ -13,8 +13,7 @@ import {
   Delete,
 } from "@nestjs/common";
 import { AdminService } from "./admin.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import { AdminAuthGuard } from "./admin-auth.guard";
 import { JwtService } from "@nestjs/jwt";
 
 interface CreateMerchantDto {
@@ -60,16 +59,22 @@ export class AdminController {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Admin login - temporary solution
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: AdminLoginDto) {
-    // TODO: Replace with proper admin authentication system
-    // Temporarily allowing admin/admin123 login
-    if (dto.username === "admin" && dto.password === "admin123") {
+    const adminUser = process.env.ADMIN_USERNAME;
+    const adminPass = process.env.ADMIN_PASSWORD;
+
+    if (!adminUser || !adminPass) {
+      throw new UnauthorizedException(
+        "Admin login is not configured",
+      );
+    }
+
+    if (dto.username === adminUser && dto.password === adminPass) {
       const payload = {
         id: "admin-1",
-        username: "admin",
+        username: adminUser,
         email: "admin@heya-pos.com",
         role: "SUPER_ADMIN",
       };
@@ -83,25 +88,27 @@ export class AdminController {
     throw new UnauthorizedException("Invalid credentials");
   }
 
-  // For now, this is unprotected for testing
-  // In production, this should require super-admin authentication
   @Post("merchants")
+  @UseGuards(AdminAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createMerchant(@Body() dto: CreateMerchantDto) {
     return this.adminService.createMerchant(dto);
   }
 
   @Get("merchants")
+  @UseGuards(AdminAuthGuard)
   async listMerchants() {
     return this.adminService.listMerchants();
   }
 
   @Get("merchants/:id")
+  @UseGuards(AdminAuthGuard)
   async getMerchant(@Param("id") id: string) {
     return this.adminService.getMerchant(id);
   }
 
   @Patch("merchants/:id")
+  @UseGuards(AdminAuthGuard)
   async updateMerchant(
     @Param("id") id: string,
     @Body() dto: UpdateMerchantDto,
@@ -110,11 +117,13 @@ export class AdminController {
   }
 
   @Delete("merchants/:id")
+  @UseGuards(AdminAuthGuard)
   async deleteMerchant(@Param("id") id: string) {
     return this.adminService.deleteMerchant(id);
   }
 
   @Get("check-subdomain")
+  @UseGuards(AdminAuthGuard)
   async checkSubdomain(@Query("subdomain") subdomain: string) {
     const available =
       await this.adminService.checkSubdomainAvailability(subdomain);
@@ -122,6 +131,7 @@ export class AdminController {
   }
 
   @Get("packages")
+  @UseGuards(AdminAuthGuard)
   async getPackages() {
     return this.adminService.getPackages();
   }
