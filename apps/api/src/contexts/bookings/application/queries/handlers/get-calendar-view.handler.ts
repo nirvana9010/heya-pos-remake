@@ -74,6 +74,7 @@ export class GetCalendarViewHandler
         paymentStatus: true,
         paidAmount: true,
         completedAt: true,
+        checkedInAt: true,
         customer: {
           select: {
             firstName: true,
@@ -128,6 +129,7 @@ export class GetCalendarViewHandler
             ? booking.paidAmount.toNumber()
             : Number(booking.paidAmount || 0),
         completedAt: booking.completedAt,
+        checkedInAt: booking.checkedInAt,
         customerName: formatName(
           booking.customer.firstName,
           booking.customer.lastName,

@@ -80,6 +80,7 @@ export class BookingMapper {
       cancelledAt: prismaBooking.cancelledAt || undefined,
       cancellationReason: prismaBooking.cancellationReason || undefined,
       completedAt: prismaBooking.completedAt || undefined,
+      checkedInAt: prismaBooking.checkedInAt || undefined,
       // Payment fields
       paymentStatus:
         (prismaBooking.paymentStatus as PaymentStatusEnum) ||
@@ -121,6 +122,7 @@ export class BookingMapper {
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
       completedAt: booking.completedAt,
+      checkedInAt: booking.checkedInAt,
       customerRequestedStaff: booking.customerRequestedStaff,
       // Payment fields
       paymentStatus: booking.paymentStatus.toString(),
@@ -147,6 +149,7 @@ export class BookingMapper {
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
       completedAt: booking.completedAt,
+      checkedInAt: booking.checkedInAt,
       // Payment fields
       paymentStatus: booking.paymentStatus.toString(),
       paidAmount: booking.paidAmount,

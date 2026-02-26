@@ -241,6 +241,8 @@ class BookingApi {
       endTime: string;
       status: string;
     }>;
+    blankBookingCreated?: boolean;
+    blankBookingError?: string;
   }> {
     const response = await apiClient.post('/public/checkin', data);
     return response;

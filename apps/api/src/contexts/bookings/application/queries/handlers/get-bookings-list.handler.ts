@@ -94,6 +94,7 @@ export class GetBookingsListHandler
           paymentMethod: true,
           paidAt: true,
           completedAt: true,
+          checkedInAt: true,
           customerId: true,
           provider: {
             select: {
@@ -245,6 +246,7 @@ export class GetBookingsListHandler
         paymentMethod: booking.paymentMethod || undefined,
         paidAt: booking.paidAt || undefined,
         completedAt: booking.completedAt || undefined,
+        checkedInAt: booking.checkedInAt || undefined,
       };
     });
 

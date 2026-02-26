@@ -11,6 +11,7 @@ export interface CalendarSlot {
   paymentStatus?: string;
   paidAmount?: number;
   completedAt?: Date | null;
+  checkedInAt?: Date | null;
   customerName: string;
   serviceName: string;
   serviceColor?: string;

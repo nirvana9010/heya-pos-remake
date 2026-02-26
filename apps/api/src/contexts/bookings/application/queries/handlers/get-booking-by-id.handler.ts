@@ -159,6 +159,7 @@ export class GetBookingByIdHandler
       cancellationReason: booking.cancellationReason,
       cancelledBy: undefined, // No cancelledByStaffId in current schema
       completedAt: booking.completedAt,
+      checkedInAt: booking.checkedInAt,
 
       // Payment fields
       paymentStatus: booking.paymentStatus || "UNPAID",

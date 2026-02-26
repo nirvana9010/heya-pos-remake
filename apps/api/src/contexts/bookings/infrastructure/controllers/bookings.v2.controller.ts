@@ -681,6 +681,8 @@ export class BookingsV2Controller {
       updatedAt: booking.updatedAt,
       cancelledAt: booking.cancelledAt,
       cancellationReason: booking.cancellationReason,
+      completedAt: booking.completedAt,
+      checkedInAt: booking.checkedInAt,
     };
   }
 }

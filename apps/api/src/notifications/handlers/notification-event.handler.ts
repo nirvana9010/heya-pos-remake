@@ -1086,29 +1086,23 @@ export class NotificationEventHandler {
         return;
       }
 
-      // Create merchant notification only for external bookings
-      if (event.source === "ONLINE") {
-        const customerName = booking.customer.lastName
-          ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
-          : booking.customer.firstName;
-        const serviceSummary = this.buildServiceSummary(booking.services);
-        await this.merchantNotificationsService.createBookingNotification(
-          booking.merchantId,
-          "booking_modified",
-          {
-            id: booking.id,
-            customerName,
-            serviceName: serviceSummary.combinedName,
-            startTime: booking.startTime,
-            staffName: serviceSummary.staffName,
-          },
-          "completed their appointment",
-        );
-      } else {
-        this.logger.log(
-          `Skipping merchant notification for ${event.source || "unknown"} completed booking ${booking.id}`,
-        );
-      }
+      // Create merchant notification for all completed bookings
+      const customerName = booking.customer.lastName
+        ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
+        : booking.customer.firstName;
+      const serviceSummary = this.buildServiceSummary(booking.services);
+      await this.merchantNotificationsService.createBookingNotification(
+        booking.merchantId,
+        "booking_modified",
+        {
+          id: booking.id,
+          customerName,
+          serviceName: serviceSummary.combinedName,
+          startTime: booking.startTime,
+          staffName: serviceSummary.staffName,
+        },
+        "completed their appointment",
+      );
 
       this.logger.log(
         `Booking completed notification created for booking ${event.bookingId}`,

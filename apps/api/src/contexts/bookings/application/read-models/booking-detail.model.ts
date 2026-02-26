@@ -68,6 +68,7 @@ export interface BookingDetail {
 
   // Completion info
   completedAt?: Date;
+  checkedInAt?: Date;
 
   // Payment info
   paymentStatus: string;

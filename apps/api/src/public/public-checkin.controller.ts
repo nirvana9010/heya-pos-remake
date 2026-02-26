@@ -177,6 +177,7 @@ export class PublicCheckInController {
 
     // Create blank booking for walk-ins (customers with no existing bookings today)
     let blankBookingCreated = false;
+    let blankBookingError: string | undefined;
     if (todayBookings.length === 0) {
       try {
         await this.createBlankBooking(merchant.id, customer.id);
@@ -186,6 +187,10 @@ export class PublicCheckInController {
         );
       } catch (error) {
         console.error("[CHECK-IN] Failed to create blank booking:", error);
+        blankBookingError =
+          error instanceof Error
+            ? error.message
+            : "Failed to create booking";
         // Don't fail the check-in if blank booking creation fails
       }
     }
@@ -211,6 +216,7 @@ export class PublicCheckInController {
         : todayBookings,
       loyalty: loyaltyInfo,
       blankBookingCreated,
+      blankBookingError,
     };
   }
 
@@ -316,6 +322,7 @@ export class PublicCheckInController {
       where: { id: bookingId },
       data: {
         status: "IN_PROGRESS",
+        checkedInAt: new Date(),
         updatedAt: new Date(),
       },
       include: {

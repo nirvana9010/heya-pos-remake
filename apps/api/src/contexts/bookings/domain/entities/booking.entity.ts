@@ -32,6 +32,7 @@ export interface BookingProps {
   cancelledAt?: Date;
   cancellationReason?: string;
   completedAt?: Date;
+  checkedInAt?: Date;
   // Payment fields
   paymentStatus?: PaymentStatusEnum;
   paidAmount?: number;
@@ -67,6 +68,7 @@ export class Booking {
   private _cancelledAt?: Date;
   private _cancellationReason?: string;
   private _completedAt?: Date;
+  private _checkedInAt?: Date;
   // Payment properties
   private _paymentStatus: PaymentStatus;
   private _paidAmount: number;
@@ -102,6 +104,7 @@ export class Booking {
     this._cancelledAt = props.cancelledAt;
     this._cancellationReason = props.cancellationReason;
     this._completedAt = props.completedAt;
+    this._checkedInAt = props.checkedInAt;
     // Payment properties
     this._paymentStatus = props.paymentStatus
       ? new PaymentStatus(props.paymentStatus)
@@ -139,6 +142,7 @@ export class Booking {
     }
 
     this._status = BookingStatus.IN_PROGRESS;
+    this._checkedInAt = new Date();
     this._updatedAt = new Date();
 
     this.addDomainEvent({
@@ -447,6 +451,9 @@ export class Booking {
   }
   get completedAt(): Date | undefined {
     return this._completedAt;
+  }
+  get checkedInAt(): Date | undefined {
+    return this._checkedInAt;
   }
   get cancellationReason(): string | undefined {
     return this._cancellationReason;

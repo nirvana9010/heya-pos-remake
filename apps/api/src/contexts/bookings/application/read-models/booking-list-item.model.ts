@@ -39,4 +39,5 @@ export interface BookingListItem {
   paymentMethod?: string;
   paidAt?: Date;
   completedAt?: Date;
+  checkedInAt?: Date;
 }

@@ -63,6 +63,7 @@ export default function CheckInPageClient() {
   const [originalCustomerData, setOriginalCustomerData] = useState<CustomerData | null>(null);
   const [hasEditedDetails, setHasEditedDetails] = useState(false);
   const [isBlankBooking, setIsBlankBooking] = useState(false);
+  const [blankBookingError, setBlankBookingError] = useState<string | null>(null);
   
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: '',
@@ -227,10 +228,13 @@ export default function CheckInPageClient() {
         
         // Track if a blank booking was created for walk-in
         setIsBlankBooking(result.blankBookingCreated || false);
-        
+        setBlankBookingError(result.blankBookingError || null);
+
         toast({
           title: 'Welcome!',
-          description: 'You have successfully checked in.',
+          description: result.blankBookingError
+            ? "You're checked in. Please see staff to schedule your appointment."
+            : 'You have successfully checked in.',
         });
         
         setStep('success');
@@ -249,6 +253,7 @@ export default function CheckInPageClient() {
           setOriginalCustomerData(null);
           setHasEditedDetails(false);
           setIsBlankBooking(false);
+          setBlankBookingError(null);
         }, 5000);
       }
     } catch (error) {
@@ -645,17 +650,23 @@ export default function CheckInPageClient() {
                     </p>
                   </div>
 
-                  {todayBookings.length > 0 && (
+                  {blankBookingError ? (
+                    <Alert className="max-w-md mx-auto">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-base">
+                        You're checked in. Please see staff to schedule your appointment.
+                      </AlertDescription>
+                    </Alert>
+                  ) : todayBookings.length > 0 ? (
                     <Alert className="max-w-md mx-auto">
                       <Sparkles className="h-4 w-4" />
                       <AlertDescription className="text-base">
-                        {/* Check if this is a blank booking (walk-in) */}
                         {isBlankBooking
                           ? 'Please wait for an available staff member. Thank you for visiting!'
                           : `Your appointment for ${todayBookings[0].serviceName} with ${todayBookings[0].staffName} is at ${todayBookings[0].startTime}`}
                       </AlertDescription>
                     </Alert>
-                  )}
+                  ) : null}
 
                   <Button
                     size="lg"
@@ -672,6 +683,7 @@ export default function CheckInPageClient() {
                       setOriginalCustomerData(null);
                       setHasEditedDetails(false);
                       setIsBlankBooking(false);
+                      setBlankBookingError(null);
                     }}
                     className="mt-6"
                   >
