@@ -29,9 +29,9 @@ type OrderWithRelations = Order & {
   payments: OrderPayment[];
 };
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PinRequiredGuard } from "../auth/guards/pin-required.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
-import { PinRequired } from "../auth/decorators/pin-required.decorator";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 import {
   ProcessPaymentDto,
   SplitPaymentDto,
@@ -48,7 +48,7 @@ import { AUDIT_ACTIONS } from "../types/models/audit";
 
 // @ApiTags('payments')
 @Controller("payments")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 // @ApiBearerAuth()
 export class PaymentsController {
   constructor(
@@ -142,8 +142,7 @@ export class PaymentsController {
   }
 
   @Post("refund")
-  @UseGuards(PinRequiredGuard)
-  @PinRequired("refund_payment")
+  @Permissions("payment.refund")
   @HttpCode(HttpStatus.OK)
   // @ApiOperation({ summary: 'Refund a payment' })
   async refundPayment(
@@ -159,8 +158,7 @@ export class PaymentsController {
   }
 
   @Post("void/:paymentId")
-  @UseGuards(PinRequiredGuard)
-  @PinRequired("void_payment")
+  @Permissions("payment.refund")
   @HttpCode(HttpStatus.OK)
   // @ApiOperation({ summary: 'Void a payment (same-day only)' })
   async voidPayment(
@@ -216,36 +214,8 @@ export class PaymentsController {
       user.currentLocationId || user.merchant?.locations?.[0]?.id;
 
     if (!locationId) {
-      console.warn(
-        `[Order Creation] Merchant ${user.merchantId} has no locations. Creating default location.`,
-      );
-
-      // Create a default location for this merchant
-      const defaultLocation = await this.prisma.location.create({
-        data: {
-          merchantId: user.merchantId,
-          name: `${user.merchant?.name || "Main"} Location`,
-          address: "123 Main Street",
-          suburb: "Default Suburb",
-          city: "Default City",
-          country: "Australia",
-          isActive: true,
-          businessHours: {
-            monday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            tuesday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            wednesday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            thursday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            friday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            saturday: { isOpen: true, openTime: "09:00", closeTime: "17:00" },
-            sunday: { isOpen: false, openTime: "09:00", closeTime: "17:00" },
-          },
-          settings: {},
-        },
-      });
-
-      locationId = defaultLocation.id;
-      console.log(
-        `Created default location ${locationId} for merchant ${user.merchantId}`,
+      throw new BadRequestException(
+        "No location found for this merchant. Please set up a location in settings first.",
       );
     }
 

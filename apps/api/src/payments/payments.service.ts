@@ -114,31 +114,19 @@ export class PaymentsService {
       `[ProcessPayment] Payment processed in ${Date.now() - paymentStartTime}ms`,
     );
 
-    // Update order state in background (non-blocking)
-    // This includes recalculating totals which is expensive
-    this.updateOrderPaymentStateAsync(order.id, merchantId).catch((error) => {
+    // Update order state synchronously to prevent double-payment race conditions.
+    // The balance check above reads balanceDue — if we update async, a second
+    // concurrent request could pass the same stale check before the first updates.
+    try {
+      await this.updateOrderPaymentState(order.id, merchantId);
+    } catch (error) {
       console.error("[ProcessPayment] Failed to update order state:", error);
-      // Don't throw - payment is already processed
-    });
+      // Payment is already recorded — log but don't fail the response
+    }
 
     console.log(`[ProcessPayment] Total time: ${Date.now() - startTime}ms`);
 
     return paymentResult;
-  }
-
-  /**
-   * Async version of updateOrderPaymentState that doesn't block the response
-   */
-  private async updateOrderPaymentStateAsync(
-    orderId: string,
-    merchantId: string,
-  ) {
-    try {
-      await this.updateOrderPaymentState(orderId, merchantId);
-    } catch (error) {
-      console.error(`[UpdateOrderState] Failed for order ${orderId}:`, error);
-      // Log but don't throw - payment is already processed
-    }
   }
 
   /**
@@ -635,10 +623,24 @@ export class PaymentsService {
       throw new BadRequestException("Can only void completed payments");
     }
 
-    // Check if payment is same-day
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (payment.processedAt && payment.processedAt < today) {
+    // Check if payment is same-day in the merchant's timezone
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { settings: true },
+    });
+    const timezone =
+      (merchant?.settings as any)?.timezone || "Australia/Sydney";
+    const nowInTz = new Date(
+      new Date().toLocaleString("en-US", { timeZone: timezone }),
+    );
+    const todayInTz = new Date(nowInTz);
+    todayInTz.setHours(0, 0, 0, 0);
+    const processedInTz = payment.processedAt
+      ? new Date(
+          payment.processedAt.toLocaleString("en-US", { timeZone: timezone }),
+        )
+      : null;
+    if (processedInTz && processedInTz < todayInTz) {
       throw new BadRequestException(
         "Can only void same-day payments. Use refund instead.",
       );
