@@ -469,6 +469,16 @@ export class PublicBookingController {
       headerSubdomain,
     );
 
+    // Verify customer belongs to this merchant
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, merchantId: merchant.id },
+      select: { id: true },
+    });
+
+    if (!customer) {
+      throw new BadRequestException("Customer not found");
+    }
+
     // Get merchant's timezone from first location
     const location = await this.prisma.location.findFirst({
       where: {
@@ -542,9 +552,18 @@ export class PublicBookingController {
   }
 
   @Get("bookings/:id")
-  async getBooking(@Param("id") id: string) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id },
+  async getBooking(
+    @Param("id") id: string,
+    @Query("subdomain") subdomain?: string,
+    @Headers("x-merchant-subdomain") headerSubdomain?: string,
+  ) {
+    const merchant = await this.getMerchantBySubdomain(
+      subdomain,
+      headerSubdomain,
+    );
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { id, merchantId: merchant.id },
       include: {
         services: {
           include: {
@@ -580,8 +599,6 @@ export class PublicBookingController {
         booking.customer.firstName,
         booking.customer.lastName,
       ),
-      customerEmail: booking.customer.email,
-      customerPhone: booking.customer.mobile || booking.customer.phone,
       serviceId: service?.id,
       serviceName: service?.name,
       staffId: booking.providerId,

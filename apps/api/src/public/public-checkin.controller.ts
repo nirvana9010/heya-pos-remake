@@ -122,17 +122,13 @@ export class PublicCheckInController {
     });
 
     if (customer) {
-      // Update existing customer
+      // Update existing customer — only fill in blanks, never overwrite existing data
       customer = await this.prisma.customer.update({
         where: { id: customer.id },
         data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName || customer.lastName,
-          email: dto.email || customer.email,
-          // allergies: dto.allergies || customer.allergies,
-          // specialRequirements: dto.specialRequirements || customer.specialRequirements,
-          // referralSource: dto.referralSource || customer.referralSource,
-          // lastCheckInAt: new Date(),
+          firstName: customer.firstName || dto.firstName,
+          lastName: customer.lastName || dto.lastName,
+          email: customer.email || dto.email,
           updatedAt: new Date(),
         },
       });
