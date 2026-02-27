@@ -38,6 +38,7 @@ import { PrismaService } from "../../../../prisma/prisma.service";
 import { CacheService } from "../../../../common/cache/cache.service";
 import { AuditService } from "../../../../audit/audit.service";
 import { AUDIT_ACTIONS } from "../../../../types/models/audit";
+import { getOrCreateWalkInCustomer } from "../../../../utils/shared/walk-in-customer";
 import {
   startOfDay,
   endOfDay,
@@ -242,41 +243,13 @@ export class BookingsV2Controller {
       JSON.stringify(dto.services, null, 2),
     );
 
-    // Handle walk-in customer - create or find actual walk-in customer for merchant
+    // Handle walk-in customer - resolve to the canonical placeholder
     if (dto.customerId === "WALK_IN") {
-      // Get merchant subdomain for proper email format
-      const merchant = await this.prisma.merchant.findUnique({
-        where: { id: user.merchantId },
-        select: { subdomain: true },
-      });
-
-      // Check if walk-in customer exists for this merchant
-      const walkInEmail = `walkin@${merchant?.subdomain || "unknown"}.local`;
-      let walkInCustomer = await this.prisma.customer.findFirst({
-        where: {
-          merchantId: user.merchantId,
-          email: walkInEmail,
-        },
-      });
-
-      if (!walkInCustomer) {
-        // Create walk-in customer for this merchant
-        walkInCustomer = await this.prisma.customer.create({
-          data: {
-            merchantId: user.merchantId,
-            firstName: "Walk-in",
-            lastName: "Customer",
-            email: walkInEmail,
-            source: "WALK_IN",
-          },
-        });
-      }
-
-      dto.customerId = walkInCustomer.id;
-      console.log(
-        "[BookingsV2Controller] Resolved walk-in customer to:",
-        dto.customerId,
+      const walkIn = await getOrCreateWalkInCustomer(
+        this.prisma,
+        user.merchantId,
       );
+      dto.customerId = walkIn.id;
     }
 
     // Validate that at least one service has a staff ID
@@ -433,7 +406,7 @@ export class BookingsV2Controller {
     if (dto.customerId) {
       updateData.customerId =
         dto.customerId === "WALK_IN"
-          ? await this.resolveWalkInCustomer(user.merchantId)
+          ? (await getOrCreateWalkInCustomer(this.prisma, user.merchantId)).id
           : dto.customerId;
     }
     if (dto.services && dto.services.length > 0) {
@@ -624,38 +597,6 @@ export class BookingsV2Controller {
     const header = req.headers["x-active-staff-id"];
     const staffId = Array.isArray(header) ? header[0] : header;
     return staffId || user.staffId;
-  }
-
-  private async resolveWalkInCustomer(merchantId: string): Promise<string> {
-    // Use the same email-based lookup as the create path to avoid
-    // matching real customers named "Walk-in" or "Walk In"
-    const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId },
-      select: { subdomain: true },
-    });
-    const walkInEmail = `walkin@${merchant?.subdomain || "unknown"}.local`;
-
-    let walkInCustomer = await this.prisma.customer.findFirst({
-      where: {
-        merchantId,
-        OR: [{ email: walkInEmail }, { source: "WALK_IN" }],
-      },
-    });
-
-    if (!walkInCustomer) {
-      walkInCustomer = await this.prisma.customer.create({
-        data: {
-          merchantId,
-          firstName: "Walk-in",
-          lastName: "Customer",
-          email: walkInEmail,
-          source: "WALK_IN",
-          tags: [],
-        },
-      });
-    }
-
-    return walkInCustomer.id;
   }
 
   /**

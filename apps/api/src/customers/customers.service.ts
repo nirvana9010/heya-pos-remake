@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { getOrCreateWalkInCustomer } from "../utils/shared/walk-in-customer";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
 import { UpdateCustomerDto } from "./dto/update-customer.dto";
 import { SearchCustomersDto, CustomerSortBy } from "./dto/search-customers.dto";
@@ -1466,49 +1467,8 @@ export class CustomersService {
   }
 
   private async findOrCreateWalkInCustomer(merchantId: string) {
-    // First, try to find existing walk-in customer for this merchant
-    const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId },
-      select: { subdomain: true },
-    });
-
-    const walkInEmail = `walkin@${merchant?.subdomain || "unknown"}.local`;
-
-    // Try to find existing walk-in customer
-    let walkInCustomer = await this.prisma.customer.findFirst({
-      where: {
-        merchantId,
-        OR: [
-          { email: walkInEmail },
-          {
-            firstName: "Walk-in",
-            lastName: "Customer",
-            source: "WALK_IN",
-          },
-        ],
-      },
-    });
-
-    // If not found, create new walk-in customer
-    if (!walkInCustomer) {
-      walkInCustomer = await this.prisma.customer.create({
-        data: {
-          merchantId,
-          firstName: "Walk-in",
-          lastName: "Customer",
-          email: walkInEmail,
-          source: "WALK_IN",
-          status: "ACTIVE",
-          marketingConsent: false,
-          preferredLanguage: "en",
-          loyaltyPoints: 0,
-          visitCount: 0,
-          totalSpent: 0,
-          tags: [],
-        },
-      });
-    }
-
-    return walkInCustomer;
+    const { id } = await getOrCreateWalkInCustomer(this.prisma, merchantId);
+    // Return a full customer record for the findOne() caller
+    return this.prisma.customer.findUnique({ where: { id } });
   }
 }
