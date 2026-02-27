@@ -848,6 +848,78 @@ export default function SettingsPage() {
     [queueAutoSave],
   );
 
+  const handleShowOnlyRosteredStaffDefaultChange = useCallback(
+    (value: boolean) => {
+      setShowOnlyRosteredStaffDefault(value);
+      queueAutoSave({ showOnlyRosteredStaffDefault: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleIncludeUnscheduledStaffChange = useCallback(
+    (value: boolean) => {
+      setIncludeUnscheduledStaff(value);
+      queueAutoSave({ includeUnscheduledStaff: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleRequireDepositChange = useCallback(
+    (value: boolean) => {
+      setRequireDeposit(value);
+      queueAutoSave({ requireDeposit: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleEnableTipsChange = useCallback(
+    (value: boolean) => {
+      setEnableTips(value);
+      queueAutoSave({ enableTips: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleAllowCustomTipAmountChange = useCallback(
+    (value: boolean) => {
+      setAllowCustomTipAmount(value);
+      queueAutoSave({ allowCustomTipAmount: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleRequirePinForRefundsChange = useCallback(
+    (value: boolean) => {
+      setRequirePinForRefunds(value);
+      queueAutoSave({ requirePinForRefunds: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleRequirePinForCancellationsChange = useCallback(
+    (value: boolean) => {
+      setRequirePinForCancellations(value);
+      queueAutoSave({ requirePinForCancellations: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleRequirePinForReportsChange = useCallback(
+    (value: boolean) => {
+      setRequirePinForReports(value);
+      queueAutoSave({ requirePinForReports: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
+  const handleRequirePinForStaffChange = useCallback(
+    (value: boolean) => {
+      setRequirePinForStaff(value);
+      queueAutoSave({ requirePinForStaff: value }, { force: true });
+    },
+    [queueAutoSave],
+  );
+
   const toNumberOrUndefined = (value: string | number | undefined) => {
     if (value === "" || value === undefined || value === null) {
       return undefined;
@@ -2187,7 +2259,7 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       checked={showOnlyRosteredStaffDefault}
-                      onCheckedChange={setShowOnlyRosteredStaffDefault}
+                      onCheckedChange={handleShowOnlyRosteredStaffDefaultChange}
                     />
                   </div>
 
@@ -2205,7 +2277,7 @@ export default function SettingsPage() {
                         </div>
                     <Switch
                       checked={includeUnscheduledStaff}
-                      onCheckedChange={setIncludeUnscheduledStaff}
+                      onCheckedChange={handleIncludeUnscheduledStaffChange}
                     />
                   </div>
                 </>
@@ -2328,7 +2400,7 @@ export default function SettingsPage() {
                     </div>
                     <Switch 
                       checked={requireDeposit} 
-                      onCheckedChange={setRequireDeposit}
+                      onCheckedChange={handleRequireDepositChange}
                     />
                   </div>
 
@@ -2366,7 +2438,7 @@ export default function SettingsPage() {
                     </div>
                     <Switch 
                       checked={enableTips} 
-                      onCheckedChange={setEnableTips}
+                      onCheckedChange={handleEnableTipsChange}
                     />
                   </div>
 
@@ -2401,7 +2473,7 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                           checked={allowCustomTipAmount} 
-                          onCheckedChange={setAllowCustomTipAmount}
+                          onCheckedChange={handleAllowCustomTipAmountChange}
                         />
                       </div>
                     </div>
@@ -2435,7 +2507,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={requirePinForRefunds}
-                    onCheckedChange={setRequirePinForRefunds}
+                    onCheckedChange={handleRequirePinForRefundsChange}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -2447,7 +2519,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={requirePinForCancellations}
-                    onCheckedChange={setRequirePinForCancellations}
+                    onCheckedChange={handleRequirePinForCancellationsChange}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -2459,7 +2531,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={requirePinForReports}
-                    onCheckedChange={setRequirePinForReports}
+                    onCheckedChange={handleRequirePinForReportsChange}
                   />
                 </div>
                 <Separator />
@@ -2475,7 +2547,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     checked={requirePinForStaff}
-                    onCheckedChange={setRequirePinForStaff}
+                    onCheckedChange={handleRequirePinForStaffChange}
                   />
                 </div>
                 <Separator />
