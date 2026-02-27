@@ -66,6 +66,8 @@ const SYSTEM_ROLES = [
       // Customers
       'customers.read',
       'customers.create',
+      // Staff (view only - needed for calendar)
+      'staff.view',
       // Services (view only)
       'service.view',
       // Payments (no refunds)

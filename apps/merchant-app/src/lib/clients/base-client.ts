@@ -111,16 +111,10 @@ export class BaseApiClient {
           return this.handleAuthError(error, originalRequest);
         }
 
-        // Handle 403 errors - likely corrupted auth state
-        if (error.response?.status === 403 && !originalRequest._retry) {
-          // Special handling for realtime-token endpoint during initialization
-          if (originalRequest.url?.includes('/realtime-token')) {
-            return Promise.reject(error);
-          }
-          
-          this.clearAuthData();
-          this.redirectToLogin();
-          return Promise.reject(error);
+        // Handle 403 errors - permission denied, NOT an auth failure
+        // Don't clear auth or redirect; let the UI handle the permission error
+        if (error.response?.status === 403) {
+          return Promise.reject(this.transformError(error));
         }
 
         return Promise.reject(this.transformError(error));

@@ -7,8 +7,13 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // TEMPORARY: Always redirect to login to debug auth issue
-    router.push('/login');
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+      router.push('/login');
+    } else {
+      router.push('/calendar');
+    }
   }, [router]);
 
   return (
