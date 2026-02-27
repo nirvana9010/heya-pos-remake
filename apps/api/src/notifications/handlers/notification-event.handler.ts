@@ -605,8 +605,9 @@ export class NotificationEventHandler {
     merchantSettings: any,
   ): Promise<void> {
     try {
-      // For MVP, we'll create scheduled jobs in the database
-      // In production, use a proper job queue (Bull/BullMQ)
+      // Cancel any existing pending reminders first to prevent duplicates
+      // (e.g., if booking.confirmed fires multiple times)
+      await this.cancelReminders(bookingId);
 
       const now = new Date();
       const reminder24h = new Date(startTime);
