@@ -627,26 +627,32 @@ export class BookingsV2Controller {
   }
 
   private async resolveWalkInCustomer(merchantId: string): Promise<string> {
-    const walkInCustomer = await this.prisma.customer.findFirst({
+    // Use the same email-based lookup as the create path to avoid
+    // matching real customers named "Walk-in" or "Walk In"
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { subdomain: true },
+    });
+    const walkInEmail = `walkin@${merchant?.subdomain || "unknown"}.local`;
+
+    let walkInCustomer = await this.prisma.customer.findFirst({
       where: {
-        merchantId: merchantId,
-        OR: [{ firstName: "Walk-in" }, { firstName: "Walk In" }],
+        merchantId,
+        OR: [{ email: walkInEmail }, { source: "WALK_IN" }],
       },
     });
 
     if (!walkInCustomer) {
-      const newWalkIn = await this.prisma.customer.create({
+      walkInCustomer = await this.prisma.customer.create({
         data: {
-          merchantId: merchantId,
+          merchantId,
           firstName: "Walk-in",
           lastName: "Customer",
-          phone: "",
-          email: "",
-          tags: [],
+          email: walkInEmail,
           source: "WALK_IN",
+          tags: [],
         },
       });
-      return newWalkIn.id;
     }
 
     return walkInCustomer.id;
