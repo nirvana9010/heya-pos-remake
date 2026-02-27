@@ -17,6 +17,7 @@ import { cn } from '@heya-pos/ui';
 import type { Booking } from '../types';
 import { Check, Heart, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
+import { useStaffSession } from '@/contexts/staff-session-context';
 
 interface MonthlyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -24,7 +25,15 @@ interface MonthlyViewProps {
 }
 
 export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
-  const { state, filteredBookings } = useCalendar();
+  const { state, filteredBookings: allFilteredBookings } = useCalendar();
+  const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+
+  const filteredBookings = useMemo(() => {
+    if (isLockScreenEnabled && sessionStaff) {
+      return allFilteredBookings.filter(b => b.staffId === sessionStaff.id);
+    }
+    return allFilteredBookings;
+  }, [allFilteredBookings, isLockScreenEnabled, sessionStaff]);
   
   const monthStart = startOfMonth(state.currentDate);
   const monthEnd = endOfMonth(state.currentDate);
@@ -50,9 +59,11 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
   // Get visible staff for utilization calculation
   // Get visible staff - ONLY show active staff
   const activeStaff = state.staff.filter(s => s.isActive !== false);
-  const visibleStaff = state.selectedStaffIds.length > 0
-    ? activeStaff.filter(s => state.selectedStaffIds.includes(s.id))
-    : activeStaff;
+  const visibleStaff = isLockScreenEnabled && sessionStaff
+    ? activeStaff.filter(s => s.id === sessionStaff.id)
+    : state.selectedStaffIds.length > 0
+      ? activeStaff.filter(s => state.selectedStaffIds.includes(s.id))
+      : activeStaff;
 
   return (
     <div

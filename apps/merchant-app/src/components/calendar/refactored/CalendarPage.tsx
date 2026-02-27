@@ -95,6 +95,7 @@ import { useNotifications } from "@/contexts/notifications-context";
 import { useBooking } from "@/contexts/booking-context";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { isBlocksEnabled as isBlocksEnabledUtil } from "./utils/blocks-enabled";
+import { useStaffSession } from "@/contexts/staff-session-context";
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -327,6 +328,8 @@ function CalendarContent() {
   const { notifications, refreshNotifications } = useNotifications();
   const { staff: bookingContextStaff, loading: bookingContextLoading } =
     useBooking();
+  const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+  const isStaffSessionActive = isLockScreenEnabled && !!sessionStaff;
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigatePrevious,
@@ -707,13 +710,18 @@ function CalendarContent() {
 
   // Memoize transformed data to prevent infinite renders
   const memoizedStaff = React.useMemo(
-    () =>
-      state.staff.map((s) => ({
+    () => {
+      const allStaff = state.staff.map((s) => ({
         id: s.id,
         name: s.name,
         color: s.color,
-      })),
-    [state.staff],
+      }));
+      if (isStaffSessionActive && sessionStaff) {
+        return allStaff.filter((s) => s.id === sessionStaff.id);
+      }
+      return allStaff;
+    },
+    [state.staff, isStaffSessionActive, sessionStaff],
   );
 
   const memoizedServices = React.useMemo(
@@ -1882,9 +1890,10 @@ function CalendarContent() {
                       </div>
                     </div>
 
-                    <Separator />
+                    {!isStaffSessionActive && <Separator />}
 
-                    {/* Staff Filter */}
+                    {/* Staff Filter - hidden when staff session is active */}
+                    {!isStaffSessionActive && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm text-gray-900">
@@ -1960,6 +1969,7 @@ function CalendarContent() {
                           ))}
                       </div>
                     </div>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -2055,7 +2065,7 @@ function CalendarContent() {
           onClose={handleBookingSlideOutClose}
           initialDate={bookingSlideOutData?.date}
           initialTime={initialTime}
-          initialStaffId={bookingSlideOutData?.staffId || null}
+          initialStaffId={isStaffSessionActive && sessionStaff ? sessionStaff.id : (bookingSlideOutData?.staffId || null)}
           staff={memoizedStaff}
           services={memoizedServices}
           customers={memoizedCustomers}

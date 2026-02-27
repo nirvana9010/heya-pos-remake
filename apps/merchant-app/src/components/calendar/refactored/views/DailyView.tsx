@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth/auth-provider';
 import { useBooking } from '@/contexts/booking-context';
 import { apiClient } from '@/lib/api-client';
 import { BookingServiceLabels, createServiceLookup } from '../BookingServiceLabels';
+import { useStaffSession } from '@/contexts/staff-session-context';
 
 
 interface DailyViewProps {
@@ -442,9 +443,13 @@ export function DailyView({
     });
   }, [activeStaff, state.showOnlyRosteredStaff, currentDateStr, currentDayOfWeek, includeUnscheduledStaff]);
   
-  const visibleStaff = state.selectedStaffIds.length > 0
-    ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
-    : rosteredStaff;
+  const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+
+  const visibleStaff = isLockScreenEnabled && sessionStaff
+    ? rosteredStaff.filter(s => s.id === sessionStaff.id)
+    : state.selectedStaffIds.length > 0
+      ? rosteredStaff.filter(s => state.selectedStaffIds.includes(s.id))
+      : rosteredStaff;
 
   const rosteredIntervalsByStaff = useMemo(() => {
     const map = new Map<string, Array<{ start: number; end: number }>>();

@@ -8,7 +8,7 @@ import type { Booking } from '../types';
 import { Check, Heart, Hourglass, X } from 'lucide-react';
 import { getBookingSourcePresentation } from '../booking-source';
 import { BookingServiceLabels, createServiceLookup } from '../BookingServiceLabels';
-
+import { useStaffSession } from '@/contexts/staff-session-context';
 
 
 interface WeeklyViewProps {
@@ -19,9 +19,17 @@ interface WeeklyViewProps {
 export function WeeklyView({ 
   onBookingClick
 }: WeeklyViewProps) {
-  const { state, filteredBookings } = useCalendar();
+  const { state, filteredBookings: allFilteredBookings } = useCalendar();
+  const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
   const badgeDisplayMode = state.badgeDisplayMode;
   const serviceLookup = useMemo(() => createServiceLookup(state.services), [state.services]);
+
+  const filteredBookings = useMemo(() => {
+    if (isLockScreenEnabled && sessionStaff) {
+      return allFilteredBookings.filter(b => b.staffId === sessionStaff.id);
+    }
+    return allFilteredBookings;
+  }, [allFilteredBookings, isLockScreenEnabled, sessionStaff]);
   
   
   const weekStart = startOfWeek(state.currentDate);

@@ -38,6 +38,7 @@ import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer"
 import { useAuth } from "@/lib/auth/auth-provider";
 import { invalidateBookingsCache } from "@/lib/cache-config";
 import { DatePickerField } from "./DatePickerField";
+import { useStaffSession } from "@/contexts/staff-session-context";
 
 interface BookingSlideOutProps {
   isOpen: boolean;
@@ -86,23 +87,29 @@ export function BookingSlideOut({
 }: BookingSlideOutProps) {
   const { merchant: authMerchant } = useAuth();
   const { toast } = useToast();
-  
+  const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+  const isStaffSessionActive = isLockScreenEnabled && !!sessionStaff;
+
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
-  
-  
+
+
   // Removed draft order logic - bookings create their own orders
-  
-  // Filter out "Unassigned" staff when allowUnassignedBookings is false
+
+  // Filter staff: restrict to active session staff if PIN lock is active,
+  // otherwise filter out "Unassigned" when allowUnassignedBookings is false
   const filteredStaff = React.useMemo(() => {
+    if (isStaffSessionActive && sessionStaff) {
+      return staff.filter(s => s.id === sessionStaff.id);
+    }
     if (merchant?.settings?.allowUnassignedBookings === false) {
-      return staff.filter(s => 
-        s.name.toLowerCase() !== 'unassigned' && 
+      return staff.filter(s =>
+        s.name.toLowerCase() !== 'unassigned' &&
         s.id.toLowerCase() !== 'unassigned'
       );
     }
     return staff;
-  }, [staff, merchant?.settings?.allowUnassignedBookings]);
+  }, [staff, merchant?.settings?.allowUnassignedBookings, isStaffSessionActive, sessionStaff]);
   
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
@@ -131,7 +138,8 @@ export function BookingSlideOut({
   const [date, setDate] = useState<Date>(initialDate || defaultDate);
   const [time, setTime] = useState<Date>(initialTime || defaultTime);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId || filteredStaff[0]?.id || '');
+  const effectiveInitialStaffId = isStaffSessionActive && sessionStaff ? sessionStaff.id : initialStaffId;
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(effectiveInitialStaffId || filteredStaff[0]?.id || '');
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -175,7 +183,7 @@ export function BookingSlideOut({
       setDate(initialDate || defaultDate);
       setTime(initialTime || defaultTime);
       setSelectedServices([]);
-      setSelectedStaffId(initialStaffId || filteredStaff[0]?.id || '');
+      setSelectedStaffId(effectiveInitialStaffId || filteredStaff[0]?.id || '');
       setCustomerId("");
       setCustomerName("");
       setCustomerPhone("");
