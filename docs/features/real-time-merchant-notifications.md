@@ -11,18 +11,22 @@
 **What It Does**: Provides real-time notifications to merchants about booking events with in-app alerts, browser notifications, and sound alerts  
 **Where To Find It**: `apps/api/src/notifications` and `apps/merchant-app/src/contexts/notifications-context.tsx`  
 **How To Test It**: Manual testing - create/cancel/modify bookings and observe notifications  
-**Key Dependencies**: NestJS EventEmitter, React Query, Browser Notifications API  
+**Key Dependencies**: NestJS EventEmitter, React Query, Browser Notifications API
+
 > September 2025: Supabase realtime wiring was deprecated and the client wrapper (`apps/merchant-app/src/lib/services/supabase.ts`) has been removed. Notifications rely solely on polling until a future realtime capsule lands.
 
 ## 🎯 Business Context
 
 ### Why This Feature Exists
+
 Merchants need immediate awareness of booking activity to manage their business effectively. Without real-time notifications, merchants must constantly refresh their dashboard to see new bookings, leading to delayed responses and poor customer experience.
 
 ### User Story
+
 As a merchant, I want to receive instant notifications about booking activities so that I can respond quickly to customer needs and manage my schedule effectively.
 
 ### Success Metrics
+
 - [ ] Merchants respond to new bookings within 5 minutes on average
 - [ ] Reduced customer complaints about slow merchant responses
 - [ ] Increased merchant engagement with the platform throughout the day
@@ -30,9 +34,11 @@ As a merchant, I want to receive instant notifications about booking activities 
 ## 🏗️ Technical Implementation
 
 ### Architecture Decision
+
 Implemented a polling-based architecture (5-second intervals) instead of WebSockets for simplicity and reliability. Uses event-driven architecture on the backend with an outbox pattern for guaranteed delivery.
 
 ### Files Modified/Created
+
 ```
 CREATED:
 - apps/api/src/notifications/handlers/notification-event.handler.ts - Listens to booking events and creates notifications
@@ -48,7 +54,7 @@ MODIFIED:
   - Added: Event publishing for new bookings
   - Changed: Emits domain events on booking creation
   - Reason: Trigger notification creation
-  
+
 - apps/api/src/contexts/bookings/application/services/booking-update.service.ts
   - Added: Event publishing for booking updates/cancellations
   - Changed: Emits specific events based on status changes
@@ -56,6 +62,7 @@ MODIFIED:
 ```
 
 ### Database Changes
+
 ```sql
 -- New table for merchant notifications
 CREATE TABLE merchant_notifications (
@@ -74,11 +81,12 @@ CREATE TABLE merchant_notifications (
 );
 
 -- Index for efficient querying
-CREATE INDEX idx_merchant_notifications_merchant_read 
+CREATE INDEX idx_merchant_notifications_merchant_read
 ON merchant_notifications(merchant_id, read, created_at DESC);
 ```
 
 ### API Changes
+
 ```typescript
 // List notifications for a merchant
 GET /api/merchant-notifications/:merchantId
@@ -100,6 +108,7 @@ PUT /api/merchant-notifications/merchant/:merchantId/read-all
 ```
 
 ### Key Components/Functions
+
 ```typescript
 NotificationEventHandler
   Location: apps/api/src/notifications/handlers/notification-event.handler.ts
@@ -120,17 +129,20 @@ useNotifications
 ## 🔗 Integration Points
 
 ### Upstream Dependencies
+
 - [ ] Booking Services - Events trigger notification creation
 - [ ] Outbox Publisher - Ensures reliable event delivery
 - [ ] Browser Notifications API - For desktop notifications
 - [ ] Audio API - For sound notifications
 
 ### Downstream Impact
+
 - [ ] Merchant Dashboard - Shows notification badges and lists
 - [ ] Calendar View - May trigger notifications on booking changes
 - [ ] Booking Details - Links from notification action URLs
 
 ### Critical Paths
+
 1. New booking created → Event published → Notification created → Frontend polls → Shows notification
 2. User clicks browser notification → Window focuses → Navigates to booking details
 3. Merchant marks notification as read → Updates UI state → Persists to database
@@ -138,6 +150,7 @@ useNotifications
 ## 🧪 Testing
 
 ### Automated Tests
+
 ```bash
 # Currently no automated tests - manual testing required
 # TODO: Add unit tests for notification services
@@ -146,6 +159,7 @@ useNotifications
 ```
 
 ### Manual Testing Checklist
+
 - [ ] Create a new booking from merchant app - verify "New Booking" notification appears within 5 seconds
 - [ ] Create a new booking from public booking app - verify "New Booking" notification appears within 5 seconds
 - [ ] Cancel a booking - verify "Booking Cancelled" urgent notification appears
@@ -163,6 +177,7 @@ useNotifications
 ## ⚠️ Edge Cases & Gotchas
 
 ### Handled Edge Cases
+
 - ✅ Duplicate browser notifications - Uses booking ID as tag for deduplication
 - ✅ Sound autoplay restrictions - Errors caught silently
 - ✅ Browser notification permissions - Graceful degradation if denied
@@ -172,6 +187,7 @@ useNotifications
 - ✅ localStorage growth - Automatically cleaned up (keeps last 100 IDs)
 
 ### Known Limitations
+
 - ⚠️ 5-second delay - Not real-time, uses polling instead of WebSockets
 - ⚠️ Performance impact - Continuous polling creates backend load
 - ⚠️ No notification batching - Each event creates separate notification
@@ -180,6 +196,7 @@ useNotifications
 - ⚠️ CRITICAL: Notifications don't appear until page refresh - React Query data updates aren't triggering notification processing
 
 ### Performance Notes
+
 - Polling interval: 5 seconds (matches backend outbox polling)
 - Cache strategy: No caching (staleTime: 0) to ensure fresh data
 - Browser notifications auto-close after 5 seconds
@@ -190,6 +207,7 @@ useNotifications
 ### Common Issues
 
 **Issue**: Notifications not appearing until page refresh
+
 - Check: Browser console for `[useNotifications] Fetching notifications...` logs every 5 seconds
 - Check: Network tab for polling requests every 5 seconds returning new data
 - Check: Console for `[NotificationsContext] Processing notifications` logs
@@ -202,18 +220,21 @@ useNotifications
   - Problem persists - notifications fetch but don't process until component re-render
 
 **Issue**: Browser notifications not showing
+
 - Check: Browser notification permissions
 - Check: Browser settings for site notifications
 - Check: localStorage for `shownNotifications` entries
 - Fix: Reset permissions and clear localStorage
 
 **Issue**: Sound not playing
+
 - Check: Browser autoplay policies
 - Check: `/notification.mp3` file exists in public folder
 - Check: Console for audio playback errors
 - Fix: User interaction required before first sound
 
 ### Debug Commands
+
 ```bash
 # Check API logs for notification events
 pm2 logs api --nostream --lines 50 | grep -i notification
@@ -226,6 +247,7 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 ```
 
 ### Key Log Entries
+
 ```
 [NotificationEventHandler] Creating notification for booking
 [OutboxPublisher] Publishing X events
@@ -235,17 +257,20 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 ## 🔄 Maintenance Notes
 
 ### Safe to Modify
+
 - ✅ Notification message templates and titles
 - ✅ Notification priorities and types
 - ✅ Browser notification duration (currently 5 seconds)
 - ✅ Sound volume (currently 30%)
 
 ### Modify with Caution
+
 - ⚠️ Polling interval - Affects server load and notification delay
 - ⚠️ Event handler logic - Ensure all booking states covered
 - ⚠️ Cache invalidation strategy - May cause data inconsistencies
 
 ### Do NOT Modify Without Full Understanding
+
 - ❌ Outbox pattern implementation - Critical for reliability
 - ❌ Event publishing in booking services - May break notification flow
 - ❌ localStorage notification tracking - Prevents duplicate browser alerts
@@ -253,12 +278,14 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 ## 📊 Monitoring
 
 ### Metrics to Track
+
 - Notification delivery time - Should be < 10 seconds from event
 - Polling request rate - Should match expected merchant count
 - Unread notification count - Indicates merchant engagement
 - Browser notification permission rate - User adoption metric
 
 ### Alerts to Configure
+
 - Outbox table size > 1000 - Indicates processing issues
 - Notification creation failures - Critical for merchant awareness
 - Polling endpoint response time > 1s - Performance degradation
@@ -278,6 +305,7 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - The outbox pattern ensures notifications are never lost, even during service disruptions
 
 ### Email/SMS Implementation Status (2025-07-09)
+
 - **Complete Implementation**: All services, templates, and providers are coded
 - **Event Integration**: NotificationEventHandler calls email/SMS for all booking events
 - **Dependencies Installed**: SendGrid and Twilio packages installed successfully
@@ -289,13 +317,14 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
   TWILIO_AUTH_TOKEN=your-token
   TWILIO_PHONE_NUMBER=+1234567890  # Must be a real Twilio number
   ```
-- **Fixed Issues**: 
+- **Fixed Issues**:
   - SendGrid TypeScript import resolved (changed to CommonJS require)
   - Provider factories updated to use proper dependency injection
   - Both services initializing successfully as seen in logs
 - **To Activate**: Update Twilio phone number from placeholder to actual Twilio number
 
 ### Recent Fixes (2025-01-01)
+
 - Fixed race condition where all notifications were marked as "seen" preventing browser alerts
 - Added atomic processing to outbox events to prevent duplicate handling
 - Improved notification state tracking - only processed notifications are tracked
@@ -304,12 +333,14 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - Added localStorage cleanup to prevent unbounded growth
 
 ### Updates (2025-01-03)
+
 - Added missing `booking.rescheduled` event handler in NotificationEventHandler
 - Created database index for OutboxEvent queries: `CREATE INDEX "OutboxEvent_processedAt_retryCount_idx"`
 - Simplified notification messages to avoid time formatting issues
 - Attempted to fix auto-notification by processing on React Query data updates
 
 ### Updates (2025-07-03)
+
 - Fixed missing notifications for bookings created through public booking app
   - Added OutboxEvent creation in PublicBookingService
   - Now triggers same notification flow as merchant-created bookings
@@ -317,6 +348,7 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 - Auto-popup issue remains unresolved for all notification sources
 
 ### Updates (2025-07-09)
+
 - Implemented optimistic updates for immediate UI feedback
   - Added optimistic notifications state in NotificationsContext
   - SSE and Supabase handlers now update UI immediately without waiting for API
@@ -332,12 +364,13 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
   - SSE remains primary notification method
 
 ### Critical Unresolved Issues
+
 - **SSE Performance Issues**:
   - SSE notifications are slow (several seconds delay)
   - SSE doesn't force calendar refresh reliably
   - Console shows SSE events received but UI updates are inconsistent
-  
 - **Supabase Realtime Not Working**:
+
   - Configuration is in place but Realtime not functioning
   - Missing SQL migration for Realtime subscriptions
   - No console logs showing Supabase connection attempts
@@ -349,10 +382,11 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
   - bookingEvents.broadcast() called but calendar hooks not always responding
 
 ### Current State Summary
+
 - **Working**: Basic notification creation and display after manual refresh
 - **Partially Working**: SSE events received but slow and unreliable UI updates
 - **Not Working**: Supabase Realtime, automatic calendar refresh, instant notification popups
-- **Email/SMS Status**: 
+- **Email/SMS Status**:
   - Infrastructure fully implemented (services, templates, providers)
   - SendGrid and Twilio packages installed (2025-07-09)
   - Credentials configured in .env
@@ -360,8 +394,9 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
   - SendGrid TypeScript import issue resolved (using CommonJS require)
   - Provider factories updated to use dependency injection
   - Ready for testing but requires updating Twilio phone number from placeholder (+1234567890)
-  
+
 ### Technical Insights Discovered
+
 1. **OutboxEvent Performance**: Queries were slow (400-500ms) due to missing index on `processedAt` and `retryCount`
 2. **Event Handler Coverage**: The system was missing handlers for some booking events (e.g., rescheduled)
 3. **React Query Behavior**: Setting `structuralSharing: false` doesn't guarantee effect triggers
@@ -369,6 +404,7 @@ pm2 logs api --nostream --lines 50 | grep "Slow query"
 5. **PM2 Logging**: Always use `--nostream` flag to avoid hanging when reading logs
 
 ### Debugging Shortcuts
+
 ```bash
 # Quick notification system check
 pm2 logs api --nostream --lines 20 | grep -E "(notification|Notification|NOTIFICATION)"
@@ -385,7 +421,7 @@ pm2 logs api --nostream --lines 20 | grep "Creating notification for"
 **Last Updated**: 2025-07-03  
 **Next Review Date**: 2025-10-03
 
-<!-- 
+<!--
 Template Usage Notes:
 - Fill in all sections, even if briefly
 - Use specific examples rather than vague descriptions

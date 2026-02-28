@@ -61,8 +61,14 @@ describe("UnassignedCapacityService", () => {
 
     transactionMock.staff.findMany
       .mockResolvedValueOnce([
-        { id: "staff-a", schedules: [{ startTime: "09:00", endTime: "17:00" }] },
-        { id: "staff-b", schedules: [{ startTime: "09:00", endTime: "17:00" }] },
+        {
+          id: "staff-a",
+          schedules: [{ startTime: "09:00", endTime: "17:00" }],
+        },
+        {
+          id: "staff-b",
+          schedules: [{ startTime: "09:00", endTime: "17:00" }],
+        },
       ])
       .mockResolvedValueOnce([]);
 
@@ -95,8 +101,14 @@ describe("UnassignedCapacityService", () => {
 
     transactionMock.staff.findMany
       .mockResolvedValueOnce([
-        { id: "staff-a", schedules: [{ startTime: "09:00", endTime: "17:00" }] },
-        { id: "staff-b", schedules: [{ startTime: "09:00", endTime: "17:00" }] },
+        {
+          id: "staff-a",
+          schedules: [{ startTime: "09:00", endTime: "17:00" }],
+        },
+        {
+          id: "staff-b",
+          schedules: [{ startTime: "09:00", endTime: "17:00" }],
+        },
       ])
       .mockResolvedValueOnce([{ id: "unassigned-id" }]);
 
@@ -114,7 +126,9 @@ describe("UnassignedCapacityService", () => {
     });
 
     expect(result.hasCapacity).toBe(false);
-    expect(result.message).toBe("All staff members are already booked for this time.");
+    expect(result.message).toBe(
+      "All staff members are already booked for this time.",
+    );
   });
 
   it("locks merchant row when requested", async () => {
@@ -129,7 +143,10 @@ describe("UnassignedCapacityService", () => {
 
     transactionMock.staff.findMany
       .mockResolvedValueOnce([
-        { id: "staff-a", schedules: [{ startTime: "09:00", endTime: "17:00" }] },
+        {
+          id: "staff-a",
+          schedules: [{ startTime: "09:00", endTime: "17:00" }],
+        },
       ])
       .mockResolvedValueOnce([]);
 

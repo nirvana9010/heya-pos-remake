@@ -1,6 +1,7 @@
 # Memory Management Guide - Heya POS
 
 ## Overview
+
 This guide documents memory management best practices, monitoring tools, and troubleshooting procedures for the Heya POS application.
 
 ## Memory Monitoring Tools
@@ -17,11 +18,13 @@ The API includes several endpoints for monitoring memory usage:
 ### 2. Automatic Memory Logging
 
 When running in development mode, the API automatically logs memory usage every 30 seconds. Look for logs like:
+
 ```
 [MemoryMonitorService] Memory Usage: {"uptime":"5.2 min","heap":{"used":"152.34 MB","total":"512.00 MB","percent":"29.8%","growth":"+2.15 MB","peak":"152.34 MB"}...}
 ```
 
 Warning levels:
+
 - **Normal**: < 1500 MB heap usage
 - **Warning**: > 1500 MB heap usage (logged as WARN)
 - **Critical**: > 1700 MB heap usage (logged as ERROR)
@@ -45,6 +48,7 @@ npm run start:dev:inspect
 ## Common Memory Leak Patterns
 
 ### 1. Uncleaned Intervals/Timeouts
+
 ```typescript
 // BAD - Memory leak
 export class LeakyService {
@@ -56,11 +60,11 @@ export class LeakyService {
 // GOOD - Proper cleanup
 export class ProperService implements OnModuleDestroy {
   private intervalId: NodeJS.Timeout;
-  
+
   onModuleInit() {
     this.intervalId = setInterval(() => this.doWork(), 1000);
   }
-  
+
   onModuleDestroy() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -70,17 +74,19 @@ export class ProperService implements OnModuleDestroy {
 ```
 
 ### 2. Event Listener Accumulation
+
 ```typescript
 // BAD - Listeners accumulate
-socket.on('message', handler);
+socket.on("message", handler);
 
 // GOOD - Remove listeners on cleanup
-socket.on('message', handler);
+socket.on("message", handler);
 // Later...
-socket.off('message', handler);
+socket.off("message", handler);
 ```
 
 ### 3. Large Data Structures in Memory
+
 ```typescript
 // BAD - Unbounded growth
 private cache: Map<string, any> = new Map();
@@ -99,6 +105,7 @@ addToCache(key: string, value: any) {
 ```
 
 ### 4. Circular References
+
 ```typescript
 // BAD - Circular reference prevents GC
 class Parent {
@@ -115,7 +122,7 @@ class Child {
 // GOOD - Break circular references
 class Parent {
   child: Child;
-  
+
   destroy() {
     this.child.parent = null;
     this.child = null;
@@ -126,6 +133,7 @@ class Parent {
 ## Memory Leak Detection Process
 
 ### 1. Monitor Memory Growth
+
 ```bash
 # Watch memory usage in real-time
 curl http://localhost:3000/api/debug/memory
@@ -135,6 +143,7 @@ curl http://localhost:3000/api/debug/memory/history
 ```
 
 ### 2. Create Heap Dumps
+
 ```bash
 # Create initial heap dump
 curl -X POST http://localhost:3000/api/debug/memory/heapdump
@@ -146,6 +155,7 @@ curl -X POST http://localhost:3000/api/debug/memory/heapdump
 ```
 
 ### 3. Analyze Heap Dumps
+
 1. Open Chrome DevTools
 2. Go to Memory tab
 3. Load the heap snapshots
@@ -157,6 +167,7 @@ curl -X POST http://localhost:3000/api/debug/memory/heapdump
    - Event listeners
 
 ### 4. Using Chrome DevTools Inspector
+
 ```bash
 # Start with inspector
 npm run start:dev:inspect
@@ -171,8 +182,9 @@ chrome://inspect
 ## Cleanup Patterns for Services
 
 ### Basic Service Cleanup Template
+
 ```typescript
-import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Logger } from "@nestjs/common";
 
 @Injectable()
 export class MyService implements OnModuleDestroy {
@@ -182,23 +194,24 @@ export class MyService implements OnModuleDestroy {
 
   onModuleDestroy() {
     // Clear all intervals
-    this.intervals.forEach(interval => clearInterval(interval));
-    
+    this.intervals.forEach((interval) => clearInterval(interval));
+
     // Unsubscribe from all subscriptions
-    this.subscriptions.forEach(sub => sub.unsubscribe?.());
-    
+    this.subscriptions.forEach((sub) => sub.unsubscribe?.());
+
     // Clear any caches or maps
     this.cache?.clear();
-    
+
     // Close any connections
     this.connection?.close();
-    
-    this.logger.log('Service cleanup completed');
+
+    this.logger.log("Service cleanup completed");
   }
 }
 ```
 
 ### WebSocket Cleanup
+
 ```typescript
 @WebSocketGateway()
 export class MyGateway implements OnGatewayDisconnect {
@@ -207,9 +220,9 @@ export class MyGateway implements OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     // Clean up client data
     this.clients.delete(client.id);
-    
+
     // Leave all rooms
-    client.rooms.forEach(room => client.leave(room));
+    client.rooms.forEach((room) => client.leave(room));
   }
 }
 ```
@@ -217,12 +230,15 @@ export class MyGateway implements OnGatewayDisconnect {
 ## Performance Optimization Tips
 
 ### 1. Increase Node.js Memory Limit
+
 Already configured in package.json scripts:
+
 ```json
 "start:dev": "NODE_OPTIONS='--max-old-space-size=4096' nest start --watch"
 ```
 
 ### 2. Optimize NestJS Build
+
 ```json
 // nest-cli.json
 {
@@ -234,7 +250,9 @@ Already configured in package.json scripts:
 ```
 
 ### 3. Disable Source Maps in Development
+
 If memory is critical:
+
 ```json
 // tsconfig.json
 {
@@ -245,6 +263,7 @@ If memory is critical:
 ```
 
 ### 4. Use Lazy Loading for Large Modules
+
 ```typescript
 // Instead of eager loading
 @Module({
@@ -267,20 +286,24 @@ If memory is critical:
 When encountering "JavaScript heap out of memory" errors:
 
 1. **Check current memory usage**
+
    ```bash
    curl http://localhost:3000/api/debug/memory
    ```
 
 2. **Look for memory growth patterns**
+
    - Is it gradual (leak) or sudden (spike)?
    - Which operations trigger growth?
 
 3. **Review recent changes**
+
    - New intervals/timeouts?
    - New event listeners?
    - Large data processing?
 
 4. **Check for common issues**
+
    - [ ] All intervals have cleanup
    - [ ] All event listeners are removed
    - [ ] No unbounded arrays/maps
@@ -288,6 +311,7 @@ When encountering "JavaScript heap out of memory" errors:
    - [ ] Database connections are pooled
 
 5. **Create heap dumps**
+
    - Before high memory usage
    - After high memory usage
    - Compare in Chrome DevTools
@@ -302,11 +326,13 @@ When encountering "JavaScript heap out of memory" errors:
 If the application is running out of memory in production:
 
 1. **Immediate mitigation**
+
    - Restart the application
    - Increase memory limit temporarily
    - Scale horizontally if possible
 
 2. **Gather diagnostics**
+
    - Create heap dump before restart
    - Save application logs
    - Note what operations were running

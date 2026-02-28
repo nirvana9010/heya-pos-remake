@@ -11,14 +11,16 @@
 ## 📖 How to Use
 
 ### Basic Usage
+
 ```typescript
-import { utilityName } from '@/utils/utility-name';
+import { utilityName } from "@/utils/utility-name";
 
 // Basic example
 const result = utilityName(input);
 ```
 
 ### Common Patterns
+
 ```typescript
 // Pattern 1: [Description]
 const example1 = utilityName(param1, param2);
@@ -30,25 +32,29 @@ const example2 = utilityName({ option: value });
 ## 📝 API Reference
 
 ### Function Signature
+
 ```typescript
 function utilityName(
   param1: Type1,
   param2?: Type2,
-  options?: OptionsType
-): ReturnType
+  options?: OptionsType,
+): ReturnType;
 ```
 
 ### Parameters
+
 - `param1` - [Description, required/optional, valid values]
 - `param2` - [Description, default value if any]
 - `options` - [Description of options object]
 
 ### Return Value
+
 [What it returns and in what format]
 
 ## 🧪 Examples
 
 ### Example 1: [Common Use Case]
+
 ```typescript
 // Input
 const input = [example input];
@@ -59,6 +65,7 @@ console.log(result); // [expected output]
 ```
 
 ### Example 2: [Edge Case]
+
 ```typescript
 // Handling [specific scenario]
 const edgeCase = utilityName(specialInput, { flag: true });
@@ -74,13 +81,16 @@ const edgeCase = utilityName(specialInput, { flag: true });
 ## 🔧 Implementation Notes
 
 ### Why It Works This Way
+
 [Brief explanation of design decisions, e.g., "Uses UTC internally because..."]
 
 ### Dependencies
+
 - [Any external libraries used]
 - [Other utilities it depends on]
 
 ### Performance
+
 - Time complexity: O(?)
 - Space complexity: O(?)
 - [Any caching or optimization notes]
@@ -88,11 +98,13 @@ const edgeCase = utilityName(specialInput, { flag: true });
 ## 🧹 Maintenance
 
 ### To Modify Safely
+
 1. [What to check before changing]
 2. [Tests to run]
 3. [Common places that might break]
 
 ### Test Command
+
 ```bash
 npm run test -- [test file path or pattern]
 ```
@@ -105,6 +117,7 @@ npm run test -- [test file path or pattern]
 
 ---
 
-**See Also**: 
+**See Also**:
+
 - [Related utility](/docs/utilities/related.md)
 - [Feature that uses this](/docs/features/feature.md)

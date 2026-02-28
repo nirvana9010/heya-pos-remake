@@ -1,4 +1,4 @@
-import { apiClient } from './api-client';
+import { apiClient } from "./api-client";
 
 /**
  * Simple notification triggers for essential business events
@@ -13,17 +13,19 @@ export function triggerNewBookingNotification(booking: {
   startTime: string;
 }) {
   // Dispatch custom event that the notifications context listens to
-  window.dispatchEvent(new CustomEvent('booking:created', {
-    detail: {
-      id: booking.id,
-      customerName: booking.customerName,
-      serviceName: booking.serviceName,
-      time: new Date(booking.startTime).toLocaleTimeString('en-AU', { 
-        hour: 'numeric', 
-        minute: '2-digit' 
-      })
-    }
-  }));
+  window.dispatchEvent(
+    new CustomEvent("booking:created", {
+      detail: {
+        id: booking.id,
+        customerName: booking.customerName,
+        serviceName: booking.serviceName,
+        time: new Date(booking.startTime).toLocaleTimeString("en-AU", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      },
+    }),
+  );
 }
 
 // Trigger a booking modification notification
@@ -32,13 +34,15 @@ export function triggerBookingModifiedNotification(booking: {
   customerName: string;
   changes: string; // e.g., "changed time to 3:00 PM"
 }) {
-  window.dispatchEvent(new CustomEvent('booking:modified', {
-    detail: {
-      id: booking.id,
-      customerName: booking.customerName,
-      changes: booking.changes
-    }
-  }));
+  window.dispatchEvent(
+    new CustomEvent("booking:modified", {
+      detail: {
+        id: booking.id,
+        customerName: booking.customerName,
+        changes: booking.changes,
+      },
+    }),
+  );
 }
 
 // Trigger a booking cancellation notification
@@ -48,17 +52,19 @@ export function triggerBookingCancelledNotification(booking: {
   serviceName: string;
   startTime: string;
 }) {
-  window.dispatchEvent(new CustomEvent('booking:cancelled', {
-    detail: {
-      id: booking.id,
-      customerName: booking.customerName,
-      serviceName: booking.serviceName,
-      time: new Date(booking.startTime).toLocaleTimeString('en-AU', { 
-        hour: 'numeric', 
-        minute: '2-digit' 
-      })
-    }
-  }));
+  window.dispatchEvent(
+    new CustomEvent("booking:cancelled", {
+      detail: {
+        id: booking.id,
+        customerName: booking.customerName,
+        serviceName: booking.serviceName,
+        time: new Date(booking.startTime).toLocaleTimeString("en-AU", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      },
+    }),
+  );
 }
 
 // Trigger a refund notification
@@ -67,11 +73,13 @@ export function triggerRefundNotification(refund: {
   customerName: string;
   amount: number;
 }) {
-  window.dispatchEvent(new CustomEvent('payment:refunded', {
-    detail: {
-      paymentId: refund.paymentId,
-      customerName: refund.customerName,
-      amount: refund.amount
-    }
-  }));
+  window.dispatchEvent(
+    new CustomEvent("payment:refunded", {
+      detail: {
+        paymentId: refund.paymentId,
+        customerName: refund.customerName,
+        amount: refund.amount,
+      },
+    }),
+  );
 }

@@ -1,18 +1,45 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
-import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Plus, Search, MoreVertical, Edit, Trash2, DollarSign, Clock, 
-  ChevronDown, ChevronRight, Users, Copy, Check, X,
-  Scissors, Package, AlertCircle, Menu, ChevronLeft
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  DollarSign,
+  Clock,
+  ChevronDown,
+  ChevronRight,
+  Users,
+  Copy,
+  Check,
+  X,
+  Scissors,
+  Package,
+  AlertCircle,
+  Menu,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@heya-pos/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { Alert, AlertDescription } from "@heya-pos/ui";
@@ -22,31 +49,54 @@ import { DataTable, createSelectColumn } from "@heya-pos/ui";
 import { Skeleton, TableSkeleton } from "@heya-pos/ui";
 import { Spinner, SuccessCheck, ErrorShake, FadeIn } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
-import { SlideOutPanel } from '@/components/SlideOutPanel';
-import CategoryDialog from '@/components/CategoryDialog';
+import { SlideOutPanel } from "@/components/SlideOutPanel";
+import CategoryDialog from "@/components/CategoryDialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { debounce } from "lodash";
-import { apiClient } from '@/lib/api-client';
-import { usePermissions } from '@/lib/auth/auth-provider';
-import { 
-  useServicesData, 
-  useCreateService, 
-  useUpdateService, 
+import { apiClient } from "@/lib/api-client";
+import { usePermissions } from "@/lib/auth/auth-provider";
+import {
+  useServicesData,
+  useCreateService,
+  useUpdateService,
   useDeleteService,
   useCreateCategory,
   useUpdateCategory,
-  useDeleteCategory 
-} from '@/hooks/use-services';
-import type { ServiceRecord, ServiceCategoryRecord } from '@/lib/normalizers/service';
+  useDeleteCategory,
+} from "@/hooks/use-services";
+import type {
+  ServiceRecord,
+  ServiceCategoryRecord,
+} from "@/lib/normalizers/service";
 
 const SORT_OPTIONS = [
-  { value: 'name-asc', label: 'Name (A-Z)', sortBy: 'name', sortOrder: 'asc' as const },
-  { value: 'name-desc', label: 'Name (Z-A)', sortBy: 'name', sortOrder: 'desc' as const },
-  { value: 'price-asc', label: 'Price (Low to High)', sortBy: 'price', sortOrder: 'asc' as const },
-  { value: 'price-desc', label: 'Price (High to Low)', sortBy: 'price', sortOrder: 'desc' as const },
+  {
+    value: "name-asc",
+    label: "Name (A-Z)",
+    sortBy: "name",
+    sortOrder: "asc" as const,
+  },
+  {
+    value: "name-desc",
+    label: "Name (Z-A)",
+    sortBy: "name",
+    sortOrder: "desc" as const,
+  },
+  {
+    value: "price-asc",
+    label: "Price (Low to High)",
+    sortBy: "price",
+    sortOrder: "asc" as const,
+  },
+  {
+    value: "price-desc",
+    label: "Price (High to Low)",
+    sortBy: "price",
+    sortOrder: "desc" as const,
+  },
 ] as const;
 
-type SortOptionValue = typeof SORT_OPTIONS[number]['value'];
+type SortOptionValue = (typeof SORT_OPTIONS)[number]["value"];
 
 interface ServiceRow extends ServiceRecord {
   staffCount: number;
@@ -59,40 +109,50 @@ export default function ServicesPageContent() {
   const searchParams = useSearchParams();
 
   // Pre-compute permission checks to avoid stale closures in memoized structures
-  const canCreateService = can('service.create');
-  const canUpdateService = can('service.update');
-  const canDeleteService = can('service.delete');
-  
+  const canCreateService = can("service.create");
+  const canUpdateService = can("service.update");
+  const canDeleteService = can("service.delete");
+
   // Initialize state from URL parameters
   const [currentPage, setCurrentPage] = useState(() => {
-    const page = searchParams.get('page');
+    const page = searchParams.get("page");
     return page ? parseInt(page) : 1;
   });
   const [pageSize, setPageSize] = useState(() => {
-    const size = searchParams.get('pageSize');
+    const size = searchParams.get("pageSize");
     return size ? parseInt(size) : 20;
   });
   const [searchQuery, setSearchQuery] = useState(() => {
-    return searchParams.get('search') || "";
+    return searchParams.get("search") || "";
   });
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(() => {
-    return searchParams.get('search') || "";
+    return searchParams.get("search") || "";
   });
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>(() => {
-    return searchParams.get('category') || "all";
-  });
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>(
+    () => {
+      return searchParams.get("category") || "all";
+    },
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingService, setEditingService] = useState<ServiceRecord | null>(null);
+  const [editingService, setEditingService] = useState<ServiceRecord | null>(
+    null,
+  );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
+  const [deletingServiceId, setDeletingServiceId] = useState<string | null>(
+    null,
+  );
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ServiceCategoryRecord | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<ServiceCategoryRecord | null>(null);
   const [savingService, setSavingService] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const [editingCell, setEditingCell] = useState<{ id: string; field: 'price' | 'duration' } | null>(null);
+  const [editingCell, setEditingCell] = useState<{
+    id: string;
+    field: "price" | "duration";
+  } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [savingInline, setSavingInline] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
@@ -100,41 +160,61 @@ export default function ServicesPageContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    categoryId: '',
+    name: "",
+    description: "",
+    categoryId: "",
     duration: 30,
     price: 0,
     isActive: true,
-    staffNotes: '',
-    dependencies: [] as string[]
+    staffNotes: "",
+    dependencies: [] as string[],
   });
 
   const defaultSort = SORT_OPTIONS[0];
   const [sortOption, setSortOption] = useState<SortOptionValue>(() => {
-    const sort = searchParams.get('sort');
-    return SORT_OPTIONS.some(option => option.value === sort)
+    const sort = searchParams.get("sort");
+    return SORT_OPTIONS.some((option) => option.value === sort)
       ? (sort as SortOptionValue)
       : defaultSort.value;
   });
 
-  const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption) ?? defaultSort;
+  const selectedSort =
+    SORT_OPTIONS.find((option) => option.value === sortOption) ?? defaultSort;
   const sortBy = selectedSort.sortBy;
   const sortOrder = selectedSort.sortOrder;
 
   // Data fetching hooks - now all state is declared
-  const queryParams = useMemo(() => ({
-    page: currentPage,
-    limit: pageSize,
-    searchTerm: debouncedSearchQuery || undefined,
-    categoryId: selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter,
-    sortBy,
-    sortOrder,
-  }), [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, sortBy, sortOrder]);
-  
+  const queryParams = useMemo(
+    () => ({
+      page: currentPage,
+      limit: pageSize,
+      searchTerm: debouncedSearchQuery || undefined,
+      categoryId:
+        selectedCategoryFilter === "all" ? undefined : selectedCategoryFilter,
+      sortBy,
+      sortOrder,
+    }),
+    [
+      currentPage,
+      pageSize,
+      debouncedSearchQuery,
+      selectedCategoryFilter,
+      sortBy,
+      sortOrder,
+    ],
+  );
+
   const servicesData = useServicesData(queryParams);
-  const { services, categories, serviceCounts, totalServices, meta, isLoading, refetch } = servicesData;
-  
+  const {
+    services,
+    categories,
+    serviceCounts,
+    totalServices,
+    meta,
+    isLoading,
+    refetch,
+  } = servicesData;
+
   const createService = useCreateService();
   const updateService = useUpdateService();
   const deleteService = useDeleteService();
@@ -142,33 +222,50 @@ export default function ServicesPageContent() {
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
-  
+
   // Set expanded categories after categories are loaded
   useEffect(() => {
-    if (categories && categories.length > 0 && expandedCategories.length === 0) {
-      setExpandedCategories(categories.map(c => c.id));
+    if (
+      categories &&
+      categories.length > 0 &&
+      expandedCategories.length === 0
+    ) {
+      setExpandedCategories(categories.map((c) => c.id));
     }
   }, [categories, expandedCategories.length]);
 
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (currentPage > 1) params.set('page', currentPage.toString());
-    if (pageSize !== 20) params.set('pageSize', pageSize.toString());
-    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
-    if (selectedCategoryFilter !== 'all') params.set('category', selectedCategoryFilter);
-    if (sortOption !== defaultSort.value) params.set('sort', sortOption);
-    
-    router.replace(`/services${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
-  }, [currentPage, pageSize, debouncedSearchQuery, selectedCategoryFilter, sortOption, router, defaultSort.value]);
+    if (currentPage > 1) params.set("page", currentPage.toString());
+    if (pageSize !== 20) params.set("pageSize", pageSize.toString());
+    if (debouncedSearchQuery) params.set("search", debouncedSearchQuery);
+    if (selectedCategoryFilter !== "all")
+      params.set("category", selectedCategoryFilter);
+    if (sortOption !== defaultSort.value) params.set("sort", sortOption);
+
+    router.replace(
+      `/services${params.toString() ? "?" + params.toString() : ""}`,
+      { scroll: false },
+    );
+  }, [
+    currentPage,
+    pageSize,
+    debouncedSearchQuery,
+    selectedCategoryFilter,
+    sortOption,
+    router,
+    defaultSort.value,
+  ]);
 
   // Debounced search
   const debouncedSearch = useMemo(
-    () => debounce((value: string) => {
-      setDebouncedSearchQuery(value);
-      setIsSearching(false);
-    }, 500),
-    []
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearchQuery(value);
+        setIsSearching(false);
+      }, 500),
+    [],
   );
 
   useEffect(() => {
@@ -181,10 +278,10 @@ export default function ServicesPageContent() {
   // Update expanded categories when categories change
   useEffect(() => {
     if (categories.length > 0 && expandedCategories.length === 0) {
-      setExpandedCategories(categories.map(c => c.id));
+      setExpandedCategories(categories.map((c) => c.id));
     }
   }, [categories, expandedCategories.length]);
-  
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -201,25 +298,34 @@ export default function ServicesPageContent() {
     return services.map((service) => ({
       ...service,
       staffCount: getStaffCount(service.id),
-      categoryColor: categories.find((category) => category.id === service.categoryId)?.color,
-      categoryName: categories.find((category) => category.id === service.categoryId)?.name ?? service.categoryName,
+      categoryColor: categories.find(
+        (category) => category.id === service.categoryId,
+      )?.color,
+      categoryName:
+        categories.find((category) => category.id === service.categoryId)
+          ?.name ?? service.categoryName,
     }));
   }, [services, categories]);
 
-  const serviceToDelete = deletingServiceId ? tableData.find((service) => service.id === deletingServiceId) : undefined;
+  const serviceToDelete = deletingServiceId
+    ? tableData.find((service) => service.id === deletingServiceId)
+    : undefined;
 
   // Handle row selection changes
-  const handleRowSelectionChange = useCallback((newRowSelection: Record<string, boolean>) => {
-    // Update the row selection state
-    setRowSelection(newRowSelection);
-    
-    // Convert row selection object to array of selected service IDs
-    const selectedIds = Object.keys(newRowSelection)
-      .filter((key) => newRowSelection[key])
-      .map((index) => tableData[Number(index)]?.id)
-      .filter((id): id is string => Boolean(id));
-    setSelectedServices(selectedIds);
-  }, [tableData]);
+  const handleRowSelectionChange = useCallback(
+    (newRowSelection: Record<string, boolean>) => {
+      // Update the row selection state
+      setRowSelection(newRowSelection);
+
+      // Convert row selection object to array of selected service IDs
+      const selectedIds = Object.keys(newRowSelection)
+        .filter((key) => newRowSelection[key])
+        .map((index) => tableData[Number(index)]?.id)
+        .filter((id): id is string => Boolean(id));
+      setSelectedServices(selectedIds);
+    },
+    [tableData],
+  );
 
   // Format duration display
   const formatDuration = (minutes: number) => {
@@ -238,13 +344,13 @@ export default function ServicesPageContent() {
     try {
       setSavingInline(true);
       setInlineError(null);
-      
-      const service = services.find(s => s.id === editingCell.id);
+
+      const service = services.find((s) => s.id === editingCell.id);
       if (!service) return;
 
       const updateData: any = {};
-      
-      if (editingCell.field === 'price') {
+
+      if (editingCell.field === "price") {
         const price = parseFloat(editValue);
         if (isNaN(price) || price < 0) {
           setInlineError(editingCell.id);
@@ -256,7 +362,7 @@ export default function ServicesPageContent() {
           return;
         }
         updateData.price = price;
-      } else if (editingCell.field === 'duration') {
+      } else if (editingCell.field === "duration") {
         const duration = parseInt(editValue);
         if (isNaN(duration) || duration < 5 || duration > 240) {
           setInlineError(editingCell.id);
@@ -271,12 +377,12 @@ export default function ServicesPageContent() {
       }
 
       await updateService.mutateAsync({ id: editingCell.id, data: updateData });
-      
+
       // Show success state
       setInlineSuccess(editingCell.id);
       setEditingCell(null);
       setEditValue("");
-      
+
       // Remove success indicator after delay
       setTimeout(() => setInlineSuccess(null), 2000);
     } catch (error) {
@@ -306,16 +412,16 @@ export default function ServicesPageContent() {
       header: "Service Name",
       cell: ({ row }) => {
         const service = row.original;
-        const category = categories.find(c => c.id === service.categoryId);
-        const categoryColor = category?.color || '#6B7280';
-        
+        const category = categories.find((c) => c.id === service.categoryId);
+        const categoryColor = category?.color || "#6B7280";
+
         return (
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
               style={{ backgroundColor: categoryColor }}
             >
-              {service.categoryName?.charAt(0) || 'U'}
+              {service.categoryName?.charAt(0) || "U"}
             </div>
             <div className="min-w-0 max-w-[320px]">
               <p className="font-medium text-gray-900 line-clamp-1 break-words">
@@ -338,7 +444,7 @@ export default function ServicesPageContent() {
         const service = row.original;
         return (
           <Badge variant="secondary" className="font-normal">
-            {service.categoryName || 'Uncategorized'}
+            {service.categoryName || "Uncategorized"}
           </Badge>
         );
       },
@@ -348,8 +454,9 @@ export default function ServicesPageContent() {
       header: "Duration",
       cell: ({ row }) => {
         const service = row.original;
-        const isEditing = editingCell?.id === service.id && editingCell.field === 'duration';
-        
+        const isEditing =
+          editingCell?.id === service.id && editingCell.field === "duration";
+
         if (isEditing) {
           return (
             <ErrorShake error={inlineError === service.id}>
@@ -359,12 +466,12 @@ export default function ServicesPageContent() {
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleInlineEditSave();
-                    if (e.key === 'Escape') handleInlineEditCancel();
+                    if (e.key === "Enter") handleInlineEditSave();
+                    if (e.key === "Escape") handleInlineEditCancel();
                   }}
                   className={cn(
                     "h-7 w-20 text-sm",
-                    inlineError === service.id && "border-red-500"
+                    inlineError === service.id && "border-red-500",
                   )}
                   min="5"
                   max="240"
@@ -393,13 +500,13 @@ export default function ServicesPageContent() {
             </ErrorShake>
           );
         }
-        
+
         return (
           <div className="flex items-center gap-1">
             {canUpdateService ? (
               <button
                 onClick={() => {
-                  setEditingCell({ id: service.id, field: 'duration' });
+                  setEditingCell({ id: service.id, field: "duration" });
                   setEditValue(service.duration.toString());
                 }}
                 className="flex items-center gap-1 text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
@@ -424,30 +531,31 @@ export default function ServicesPageContent() {
     },
     {
       accessorKey: "price",
-      header: ({ column }) => (
-        <div className="text-right">Price</div>
-      ),
+      header: ({ column }) => <div className="text-right">Price</div>,
       cell: ({ row }) => {
         const service = row.original;
-        const isEditing = editingCell?.id === service.id && editingCell.field === 'price';
-        
+        const isEditing =
+          editingCell?.id === service.id && editingCell.field === "price";
+
         if (isEditing) {
           return (
             <div className="flex items-center gap-1 justify-end">
               <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                  $
+                </span>
                 <Input
                   type="text"
                   value={editValue}
                   onChange={(e) => {
                     const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                    if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
                       setEditValue(value);
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleInlineEditSave();
-                    if (e.key === 'Escape') handleInlineEditCancel();
+                    if (e.key === "Enter") handleInlineEditSave();
+                    if (e.key === "Escape") handleInlineEditCancel();
                   }}
                   className="h-7 w-24 text-sm pl-6"
                   autoFocus
@@ -468,11 +576,11 @@ export default function ServicesPageContent() {
             </div>
           );
         }
-        
+
         return canUpdateService ? (
           <button
             onClick={() => {
-              setEditingCell({ id: service.id, field: 'price' });
+              setEditingCell({ id: service.id, field: "price" });
               setEditValue(service.price.toString());
             }}
             className="block w-full text-right font-medium text-gray-900 hover:text-gray-700 hover:bg-gray-50 px-2 py-1 rounded transition-colors border-b border-dashed border-gray-300"
@@ -505,11 +613,13 @@ export default function ServicesPageContent() {
       cell: ({ row }) => {
         const service = row.original;
         return (
-          <Badge 
+          <Badge
             variant={service.isActive ? "default" : "secondary"}
             className={cn(
               "font-normal",
-              service.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+              service.isActive
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-700",
             )}
           >
             {service.isActive ? "Active" : "Inactive"}
@@ -518,8 +628,8 @@ export default function ServicesPageContent() {
       },
     },
     {
-      id: 'actions',
-      header: 'Actions',
+      id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const service = row.original;
         return (
@@ -537,7 +647,9 @@ export default function ServicesPageContent() {
                 </DropdownMenuItem>
               )}
               {canCreateService && (
-                <DropdownMenuItem onClick={() => handleDuplicateService(service)}>
+                <DropdownMenuItem
+                  onClick={() => handleDuplicateService(service)}
+                >
                   <Copy className="h-4 w-4 mr-2" />
                   Duplicate
                 </DropdownMenuItem>
@@ -573,17 +685,17 @@ export default function ServicesPageContent() {
     setIsDeleteDialogOpen(false);
     setDeletingServiceId(null);
     setIsCategoryDialogOpen(false);
-    
+
     setEditingService(service);
     setFormData({
       name: service.name,
-      description: service.description || '',
-      categoryId: service.categoryId || '',
+      description: service.description || "",
+      categoryId: service.categoryId || "",
       duration: service.duration,
       price: service.price,
       isActive: service.isActive,
-      staffNotes: '',
-      dependencies: []
+      staffNotes: "",
+      dependencies: [],
     });
     setIsAddDialogOpen(true);
   };
@@ -596,16 +708,16 @@ export default function ServicesPageContent() {
         categoryId: service.categoryId,
         duration: service.duration,
         price: service.price,
-        isActive: false
+        isActive: false,
       };
-      
+
       await apiClient.createService(duplicatedService);
-      
+
       toast({
         title: "Success",
         description: "Service duplicated successfully",
       });
-      
+
       await refetch();
     } catch (error) {
       toast({
@@ -618,7 +730,7 @@ export default function ServicesPageContent() {
 
   const handleDeleteService = async () => {
     if (!deletingServiceId) return;
-    
+
     try {
       await deleteService.mutateAsync(deletingServiceId);
     } catch (error) {
@@ -651,11 +763,14 @@ export default function ServicesPageContent() {
         categoryId: formData.categoryId || undefined,
         duration: formData.duration,
         price: formData.price,
-        isActive: formData.isActive
+        isActive: formData.isActive,
       };
 
       if (editingService) {
-        await updateService.mutateAsync({ id: editingService.id, data: serviceData });
+        await updateService.mutateAsync({
+          id: editingService.id,
+          data: serviceData,
+        });
       } else {
         await createService.mutateAsync(serviceData);
       }
@@ -675,34 +790,37 @@ export default function ServicesPageContent() {
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      categoryId: '',
+      name: "",
+      description: "",
+      categoryId: "",
       duration: 30,
       price: 0,
       isActive: true,
-      staffNotes: '',
-      dependencies: []
+      staffNotes: "",
+      dependencies: [],
     });
   };
 
-  const handleDeleteCategory = async (categoryId: string, visibleServiceCount: number) => {
+  const handleDeleteCategory = async (
+    categoryId: string,
+    visibleServiceCount: number,
+  ) => {
     // Note: visibleServiceCount only shows services on current page/filter
     // The backend will check ALL services in the database
-    
+
     const confirmDelete = window.confirm(
-      'Are you sure you want to delete this category? This action cannot be undone.'
+      "Are you sure you want to delete this category? This action cannot be undone.",
     );
-    
+
     if (!confirmDelete) return;
-    
+
     try {
       await deleteCategory.mutateAsync(categoryId);
-      
+
       // Force refresh the page to ensure UI updates
       window.location.reload();
     } catch (error: any) {
-      console.error('Delete category error:', error);
+      console.error("Delete category error:", error);
       // The hook will show the appropriate error message from the backend
       // which will indicate if there are services in this category
     }
@@ -710,25 +828,25 @@ export default function ServicesPageContent() {
 
   const handleBulkDelete = async () => {
     if (selectedServices.length === 0) return;
-    
+
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}? This action cannot be undone.`
+      `Are you sure you want to delete ${selectedServices.length} service${selectedServices.length > 1 ? "s" : ""}? This action cannot be undone.`,
     );
-    
+
     if (!confirmDelete) return;
-    
+
     try {
-      const deletePromises = selectedServices.map(serviceId => 
-        deleteServiceBulk.mutateAsync(serviceId)
+      const deletePromises = selectedServices.map((serviceId) =>
+        deleteServiceBulk.mutateAsync(serviceId),
       );
-      
+
       await Promise.all(deletePromises);
-      
+
       toast({
         title: "Success",
-        description: `Deleted ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}`,
+        description: `Deleted ${selectedServices.length} service${selectedServices.length > 1 ? "s" : ""}`,
       });
-      
+
       // Clear both selections
       setSelectedServices([]);
       setRowSelection({});
@@ -771,10 +889,12 @@ export default function ServicesPageContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Category Sidebar */}
-      <div className={cn(
-        "bg-white border-r transition-all duration-300 flex-shrink-0",
-        isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
-      )}>
+      <div
+        className={cn(
+          "bg-white border-r transition-all duration-300 flex-shrink-0",
+          isSidebarOpen ? "w-64" : "w-0 overflow-hidden",
+        )}
+      >
         <div className="h-full flex flex-col">
           {/* Sidebar Header */}
           <div className="p-4 border-b flex items-center justify-between">
@@ -788,7 +908,7 @@ export default function ServicesPageContent() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
-          
+
           {/* Category List */}
           <div className="flex-1 overflow-y-auto p-3">
             {/* All Services */}
@@ -796,9 +916,9 @@ export default function ServicesPageContent() {
               onClick={() => setSelectedCategoryFilter("all")}
               className={cn(
                 "w-full text-left p-3 rounded-lg mb-1 transition-colors flex items-center justify-between group",
-                selectedCategoryFilter === "all" 
-                  ? "bg-teal-50 text-teal-700" 
-                  : "hover:bg-gray-50"
+                selectedCategoryFilter === "all"
+                  ? "bg-teal-50 text-teal-700"
+                  : "hover:bg-gray-50",
               )}
             >
               <div className="flex items-center gap-3">
@@ -809,7 +929,7 @@ export default function ServicesPageContent() {
                 {totalServices}
               </Badge>
             </button>
-            
+
             {/* Categories */}
             {categories.map((category) => {
               const categoryServiceCount = serviceCounts[category.id] || 0;
@@ -820,9 +940,9 @@ export default function ServicesPageContent() {
                   onMouseLeave={() => setHoveredCategory(null)}
                   className={cn(
                     "relative rounded-lg mb-1 transition-colors flex items-center group",
-                    selectedCategoryFilter === category.id 
-                      ? "bg-teal-50" 
-                      : "hover:bg-gray-50"
+                    selectedCategoryFilter === category.id
+                      ? "bg-teal-50"
+                      : "hover:bg-gray-50",
                   )}
                 >
                   <button
@@ -830,61 +950,71 @@ export default function ServicesPageContent() {
                     className="flex-1 text-left p-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: category.color || '#6B7280' }}
+                        style={{ backgroundColor: category.color || "#6B7280" }}
                       />
-                      <span className={cn(
-                        "font-medium",
-                        selectedCategoryFilter === category.id && "text-teal-700",
-                        categoryServiceCount === 0 && "text-gray-400"
-                      )}>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          selectedCategoryFilter === category.id &&
+                            "text-teal-700",
+                          categoryServiceCount === 0 && "text-gray-400",
+                        )}
+                      >
                         {category.name}
                       </span>
                     </div>
-                    <Badge variant="secondary" className={cn(
-                      "bg-gray-100",
-                      categoryServiceCount === 0 && "opacity-50"
-                    )}>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "bg-gray-100",
+                        categoryServiceCount === 0 && "opacity-50",
+                      )}
+                    >
                       {categoryServiceCount}
                     </Badge>
                   </button>
-                  {hoveredCategory === category.id && (canUpdateService || canDeleteService) && (
-                    <div className="flex items-center gap-1 pr-3 animate-in slide-in-from-right-2">
-                      {canUpdateService && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingCategory(category);
-                            setIsCategoryDialogOpen(true);
-                          }}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      )}
-                      {canDeleteService && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCategory(category.id, categoryServiceCount);
-                          }}
-                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  {hoveredCategory === category.id &&
+                    (canUpdateService || canDeleteService) && (
+                      <div className="flex items-center gap-1 pr-3 animate-in slide-in-from-right-2">
+                        {canUpdateService && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCategory(category);
+                              setIsCategoryDialogOpen(true);
+                            }}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {canDeleteService && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(
+                                category.id,
+                                categoryServiceCount,
+                              );
+                            }}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                 </div>
               );
             })}
           </div>
-          
+
           {/* Add Category Button */}
           {canCreateService && (
             <div className="p-3 border-t">
@@ -939,7 +1069,9 @@ export default function ServicesPageContent() {
                 </div>
                 <Select
                   value={sortOption}
-                  onValueChange={(value) => setSortOption(value as SortOptionValue)}
+                  onValueChange={(value) =>
+                    setSortOption(value as SortOptionValue)
+                  }
                 >
                   <SelectTrigger className="w-52">
                     <SelectValue placeholder="Sort services" />
@@ -972,208 +1104,226 @@ export default function ServicesPageContent() {
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="container max-w-7xl mx-auto p-6">
-        {tableData.length === 0 && !searchQuery ? (
-          // Empty state
-          <div className="bg-white rounded-lg shadow-sm border p-12">
-            <div className="text-center max-w-md mx-auto">
-              <div className="mx-auto w-24 h-24 bg-teal-100 rounded-full flex items-center justify-center mb-6">
-                <Scissors className="h-12 w-12 text-teal-600" />
+            {tableData.length === 0 && !searchQuery ? (
+              // Empty state
+              <div className="bg-white rounded-lg shadow-sm border p-12">
+                <div className="text-center max-w-md mx-auto">
+                  <div className="mx-auto w-24 h-24 bg-teal-100 rounded-full flex items-center justify-center mb-6">
+                    <Scissors className="h-12 w-12 text-teal-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    {selectedCategoryFilter === "all"
+                      ? "No services yet"
+                      : "No services in this category"}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {selectedCategoryFilter === "all"
+                      ? "Get started by adding your first service to build your service menu."
+                      : `Add services to the ${categories.find((c) => c.id === selectedCategoryFilter)?.name} category.`}
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    {canCreateService && (
+                      <Button
+                        onClick={() => {
+                          resetForm();
+                          if (selectedCategoryFilter !== "all") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              categoryId: selectedCategoryFilter,
+                            }));
+                          }
+                          setIsAddDialogOpen(true);
+                        }}
+                        className="bg-teal-600 hover:bg-teal-700"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        {selectedCategoryFilter === "all"
+                          ? "Add Your First Service"
+                          : "Add Service Here"}
+                      </Button>
+                    )}
+                    {selectedCategoryFilter !== "all" && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSelectedCategoryFilter("all")}
+                      >
+                        View All Services
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {selectedCategoryFilter === "all" ? "No services yet" : "No services in this category"}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {selectedCategoryFilter === "all" 
-                  ? "Get started by adding your first service to build your service menu."
-                  : `Add services to the ${categories.find(c => c.id === selectedCategoryFilter)?.name} category.`}
-              </p>
-              <div className="flex gap-3 justify-center">
-                {canCreateService && (
-                  <Button
-                    onClick={() => {
-                      resetForm();
-                      if (selectedCategoryFilter !== "all") {
-                        setFormData(prev => ({ ...prev, categoryId: selectedCategoryFilter }));
-                      }
-                      setIsAddDialogOpen(true);
-                    }}
-                    className="bg-teal-600 hover:bg-teal-700"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    {selectedCategoryFilter === "all" ? "Add Your First Service" : "Add Service Here"}
-                  </Button>
-                )}
-                {selectedCategoryFilter !== "all" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedCategoryFilter("all")}
-                  >
-                    View All Services
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : tableData.length === 0 && searchQuery ? (
-          // No search results
-          <div className="bg-white rounded-lg shadow-sm border p-12">
-            <div className="text-center max-w-md mx-auto">
-              <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Search className="h-10 w-10 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No services found
-              </h3>
-              <p className="text-gray-600 mb-4">
-                No services match "{searchQuery}"
-                {selectedCategoryFilter !== "all" && ` in ${categories.find(c => c.id === selectedCategoryFilter)?.name}`}
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setSearchQuery("")}
-                >
-                  Clear Search
-                </Button>
-                {selectedCategoryFilter !== "all" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedCategoryFilter("all")}
-                  >
-                    Search All Categories
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Data table
-          <div className="bg-white rounded-lg shadow-sm border">
-            <DataTable
-              columns={columns}
-              data={tableData}
-              showRowSelection={true}
-              rowSelection={rowSelection}
-              onRowSelectionChange={handleRowSelectionChange}
-              showPagination={false} // Disable DataTable's internal pagination - we're using server-side pagination
-              pageSize={9999} // Set a high page size to show all data passed to it
-              headerActions={
-                selectedServices.length > 0 && canDeleteService ? (
-                  <>
-                    <span className="flex items-center text-sm text-gray-600">
-                      {selectedServices.length} selected
-                    </span>
+            ) : tableData.length === 0 && searchQuery ? (
+              // No search results
+              <div className="bg-white rounded-lg shadow-sm border p-12">
+                <div className="text-center max-w-md mx-auto">
+                  <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Search className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No services found
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    No services match "{searchQuery}"
+                    {selectedCategoryFilter !== "all" &&
+                      ` in ${categories.find((c) => c.id === selectedCategoryFilter)?.name}`}
+                  </p>
+                  <div className="flex gap-3 justify-center">
                     <Button
                       variant="outline"
-                      size="sm"
-                      onClick={handleBulkDelete}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setSearchQuery("")}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Bulk Delete
+                      Clear Search
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedServices([]);
-                        setRowSelection({});
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  </>
-                ) : null
-              }
-            />
-            
-            {/* Pagination Controls */}
-            {meta && (
-              <div className="flex items-center justify-between px-4 py-3 border-t">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-700">
-                    {meta.total === 0 
-                      ? "No services found" 
-                      : `Showing ${((currentPage - 1) * pageSize) + 1} to ${Math.min(currentPage * pageSize, meta.total)} of ${meta.total} services`
-                    }
-                  </span>
-                  <Select
-                    value={pageSize.toString()}
-                    onValueChange={(value) => {
-                      setPageSize(Number(value));
-                      setCurrentPage(1); // Reset to first page when changing page size
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
-                      <SelectItem value="100">100 / page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    First
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">Page</span>
-                    <Input
-                      type="number"
-                      min="1"
-                      max={meta.totalPages}
-                      value={currentPage}
-                      onChange={(e) => {
-                        const page = parseInt(e.target.value) || 1;
-                        setCurrentPage(Math.min(Math.max(1, page), meta.totalPages));
-                      }}
-                      className="h-8 w-16 text-center"
-                    />
-                    <span className="text-sm">of {meta.totalPages}</span>
+                    {selectedCategoryFilter !== "all" && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSelectedCategoryFilter("all")}
+                      >
+                        Search All Categories
+                      </Button>
+                    )}
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.log('[Pagination] Next clicked, currentPage:', currentPage, 'totalPages:', meta.totalPages);
-                      setCurrentPage(prev => Math.min(meta.totalPages, prev + 1));
-                    }}
-                    disabled={currentPage === meta.totalPages}
-                  >
-                    Next
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(meta.totalPages)}
-                    disabled={currentPage === meta.totalPages}
-                  >
-                    Last
-                  </Button>
                 </div>
               </div>
+            ) : (
+              // Data table
+              <div className="bg-white rounded-lg shadow-sm border">
+                <DataTable
+                  columns={columns}
+                  data={tableData}
+                  showRowSelection={true}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={handleRowSelectionChange}
+                  showPagination={false} // Disable DataTable's internal pagination - we're using server-side pagination
+                  pageSize={9999} // Set a high page size to show all data passed to it
+                  headerActions={
+                    selectedServices.length > 0 && canDeleteService ? (
+                      <>
+                        <span className="flex items-center text-sm text-gray-600">
+                          {selectedServices.length} selected
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleBulkDelete}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Bulk Delete
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedServices([]);
+                            setRowSelection({});
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </>
+                    ) : null
+                  }
+                />
+
+                {/* Pagination Controls */}
+                {meta && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-gray-700">
+                        {meta.total === 0
+                          ? "No services found"
+                          : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, meta.total)} of ${meta.total} services`}
+                      </span>
+                      <Select
+                        value={pageSize.toString()}
+                        onValueChange={(value) => {
+                          setPageSize(Number(value));
+                          setCurrentPage(1); // Reset to first page when changing page size
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="50">50 / page</SelectItem>
+                          <SelectItem value="100">100 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">Page</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={meta.totalPages}
+                          value={currentPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value) || 1;
+                            setCurrentPage(
+                              Math.min(Math.max(1, page), meta.totalPages),
+                            );
+                          }}
+                          className="h-8 w-16 text-center"
+                        />
+                        <span className="text-sm">of {meta.totalPages}</span>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          console.log(
+                            "[Pagination] Next clicked, currentPage:",
+                            currentPage,
+                            "totalPages:",
+                            meta.totalPages,
+                          );
+                          setCurrentPage((prev) =>
+                            Math.min(meta.totalPages, prev + 1),
+                          );
+                        }}
+                        disabled={currentPage === meta.totalPages}
+                      >
+                        Next
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(meta.totalPages)}
+                        disabled={currentPage === meta.totalPages}
+                      >
+                        Last
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        )}
           </div>
         </div>
       </div>
@@ -1196,22 +1346,26 @@ export default function ServicesPageContent() {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900">
-                  {editingService ? 'Edit Service' : 'Create New Service'}
+                  {editingService ? "Edit Service" : "Create New Service"}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  {editingService 
-                    ? 'Update the service details below'
-                    : 'Add a new service to your menu'
-                  }
+                  {editingService
+                    ? "Update the service details below"
+                    : "Add a new service to your menu"}
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <Switch
                   id="active"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
                 />
-                <Label htmlFor="active" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="active"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Active
                 </Label>
                 <button
@@ -1231,16 +1385,23 @@ export default function ServicesPageContent() {
           <div className="flex-1 overflow-y-auto px-8 py-6 -mx-8">
             <div className="space-y-8 pb-20">
               <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
-                <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">Basic Information</h3>
-                
+                <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
+                  Basic Information
+                </h3>
+
                 <div>
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  <Label
+                    htmlFor="name"
+                    className="text-sm font-medium text-gray-700 mb-1.5 block"
+                  >
                     Service Name <span className="text-red-500">*</span>
                   </Label>
-                  <Input 
-                    id="name" 
+                  <Input
+                    id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="e.g., Deep Tissue Massage"
                     className="w-full"
                     autoFocus
@@ -1248,12 +1409,20 @@ export default function ServicesPageContent() {
                 </div>
 
                 <div>
-                  <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  <Label
+                    htmlFor="category"
+                    className="text-sm font-medium text-gray-700 mb-1.5 block"
+                  >
                     Category
                   </Label>
-                  <Select 
+                  <Select
                     value={formData.categoryId || "none"}
-                    onValueChange={(value) => setFormData({ ...formData, categoryId: value === "none" ? "" : value })}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        categoryId: value === "none" ? "" : value,
+                      })
+                    }
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select category" />
@@ -1270,13 +1439,18 @@ export default function ServicesPageContent() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  <Label
+                    htmlFor="description"
+                    className="text-sm font-medium text-gray-700 mb-1.5 block"
+                  >
                     Description
                   </Label>
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Brief description of the service"
                     rows={3}
                   />
@@ -1284,11 +1458,16 @@ export default function ServicesPageContent() {
               </div>
 
               <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
-                <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">Pricing & Duration</h3>
-                
+                <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
+                  Pricing & Duration
+                </h3>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="duration" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    <Label
+                      htmlFor="duration"
+                      className="text-sm font-medium text-gray-700 mb-1.5 block"
+                    >
                       Duration (minutes) <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -1296,7 +1475,10 @@ export default function ServicesPageContent() {
                       value={formData.duration}
                       onChange={(e) => {
                         const value = parseInt(e.target.value) || 0;
-                        setFormData({ ...formData, duration: Math.max(0, Math.min(240, value)) });
+                        setFormData({
+                          ...formData,
+                          duration: Math.max(0, Math.min(240, value)),
+                        });
                       }}
                       min="0"
                       max="240"
@@ -1305,19 +1487,27 @@ export default function ServicesPageContent() {
                   </div>
 
                   <div>
-                    <Label htmlFor="price" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    <Label
+                      htmlFor="price"
+                      className="text-sm font-medium text-gray-700 mb-1.5 block"
+                    >
                       Price <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                        $
+                      </span>
                       <Input
                         id="price"
                         type="text"
-                        value={formData.price === 0 ? '' : formData.price}
+                        value={formData.price === 0 ? "" : formData.price}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
-                            setFormData({ ...formData, price: value === '' ? 0 : parseFloat(value) || 0 });
+                          if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                            setFormData({
+                              ...formData,
+                              price: value === "" ? 0 : parseFloat(value) || 0,
+                            });
                           }
                         }}
                         placeholder="0.00"
@@ -1348,7 +1538,7 @@ export default function ServicesPageContent() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <Button 
+                <Button
                   variant="ghost"
                   onClick={() => {
                     setIsAddDialogOpen(false);
@@ -1358,18 +1548,24 @@ export default function ServicesPageContent() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSaveService}
-                  disabled={!formData.name.trim() || formData.price <= 0 || savingService}
+                  disabled={
+                    !formData.name.trim() ||
+                    formData.price <= 0 ||
+                    savingService
+                  }
                   className="bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingService ? (
                     <>
                       <Spinner className="h-4 w-4 mr-2" />
-                      {editingService ? 'Updating...' : 'Creating...'}
+                      {editingService ? "Updating..." : "Creating..."}
                     </>
+                  ) : editingService ? (
+                    "Update Service"
                   ) : (
-                    editingService ? 'Update Service' : 'Create Service'
+                    "Create Service"
                   )}
                 </Button>
               </div>
@@ -1377,7 +1573,6 @@ export default function ServicesPageContent() {
           </div>
         </div>
       </SlideOutPanel>
-
 
       {/* Delete Confirmation Panel */}
       <SlideOutPanel
@@ -1395,19 +1590,22 @@ export default function ServicesPageContent() {
           <Alert className="border-orange-200 bg-orange-50">
             <AlertCircle className="h-4 w-4 text-orange-600" />
             <AlertDescription className="text-orange-700">
-              This action cannot be undone. Any future bookings with this service will need to be updated.
+              This action cannot be undone. Any future bookings with this
+              service will need to be updated.
             </AlertDescription>
           </Alert>
-          
+
           {serviceToDelete && (
             <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-sm text-gray-900 mb-2">Service to be deleted:</h4>
+              <h4 className="font-medium text-sm text-gray-900 mb-2">
+                Service to be deleted:
+              </h4>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-gray-900">
                   {serviceToDelete.name}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {serviceToDelete.categoryName ?? 'Uncategorized'}
+                  {serviceToDelete.categoryName ?? "Uncategorized"}
                 </p>
                 <p className="text-sm text-gray-600">
                   ${serviceToDelete.price} • {serviceToDelete.duration} min
@@ -1417,8 +1615,8 @@ export default function ServicesPageContent() {
           )}
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setIsDeleteDialogOpen(false);
                 setDeletingServiceId(null);
@@ -1447,7 +1645,9 @@ export default function ServicesPageContent() {
           setEditingCategory(null);
           toast({
             title: "Success",
-            description: editingCategory ? "Category updated successfully" : "Category created successfully",
+            description: editingCategory
+              ? "Category updated successfully"
+              : "Category created successfully",
           });
         }}
       />

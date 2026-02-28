@@ -1,8 +1,8 @@
-import type { BookingSourceCategory } from '@/lib/booking-source';
-import type { BookingServiceSummary } from '@/lib/clients/bookings-client';
+import type { BookingSourceCategory } from "@/lib/booking-source";
+import type { BookingServiceSummary } from "@/lib/clients/bookings-client";
 
 // Calendar view types
-export type CalendarView = 'day' | 'week' | 'month';
+export type CalendarView = "day" | "week" | "month";
 
 // Time interval types
 export type TimeInterval = 15 | 30 | 60;
@@ -15,31 +15,32 @@ export interface DateRange {
 
 // Booking status types
 export type BookingStatus =
-  | 'pending'
-  | 'scheduled'
-  | 'confirmed'
-  | 'in-progress'
-  | 'completed'
-  | 'cancelled'
-  | 'no-show'
-  | 'deleted'
-  | 'optimistic';
+  | "pending"
+  | "scheduled"
+  | "confirmed"
+  | "in-progress"
+  | "completed"
+  | "cancelled"
+  | "no-show"
+  | "deleted"
+  | "optimistic";
 
 // Statuses that can be filtered on the calendar
 // Note: 'deleted' is intentionally excluded - deleted bookings should never appear on the calendar
 // They are filtered out at the data layer in CalendarProvider
 export const ALL_CALENDAR_STATUSES: BookingStatus[] = [
-  'pending',
-  'scheduled',
-  'confirmed',
-  'in-progress',
-  'completed',
-  'cancelled',
-  'no-show',
-  'optimistic',
+  "pending",
+  "scheduled",
+  "confirmed",
+  "in-progress",
+  "completed",
+  "cancelled",
+  "no-show",
+  "optimistic",
 ];
 
-export const DEFAULT_CALENDAR_STATUS_FILTERS: BookingStatus[] = ALL_CALENDAR_STATUSES;
+export const DEFAULT_CALENDAR_STATUS_FILTERS: BookingStatus[] =
+  ALL_CALENDAR_STATUSES;
 
 // Core data models
 export interface Booking {
@@ -53,7 +54,7 @@ export interface Booking {
   // Locally created booking state (prevents race conditions)
   isLocalOnly?: boolean;
   localOnlyExpiresAt?: number;
-  
+
   // Relations
   customerId: string;
   customerName: string;
@@ -63,16 +64,16 @@ export interface Booking {
   source?: string | null; // Raw booking source from API
   sourceCategory: BookingSourceCategory;
   sourceLabel: string;
-  
+
   serviceId: string | null;
   serviceName: string;
   servicePrice: number;
   services?: BookingServiceSummary[];
-  
-  staffId: string | null;  // null for unassigned
+
+  staffId: string | null; // null for unassigned
   staffName: string;
-  providerId?: string;  // Legacy field
-  
+  providerId?: string; // Legacy field
+
   // Additional fields
   notes?: string;
   internalNotes?: string;
@@ -83,7 +84,7 @@ export interface Booking {
   paidAmount?: number;
   totalAmount?: number;
   customerRequestedStaff?: boolean;
-  
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
@@ -98,7 +99,7 @@ export interface Staff {
   accessLevel?: string;
   calendarColor?: string;
   status?: string;
-  color: string;  // Required for calendar display
+  color: string; // Required for calendar display
   avatar?: string;
   isActive: boolean;
   firstName?: string;
@@ -157,7 +158,7 @@ export interface CalendarBlock {
   id: string;
   staffId: string;
   startTime: string; // ISO
-  endTime: string;   // ISO
+  endTime: string; // ISO
   locationId?: string | null;
   reason?: string | null;
 }
@@ -169,7 +170,7 @@ export interface CalendarState {
   currentDate: Date;
   dateRange: DateRange;
   timeInterval: TimeInterval;
-  
+
   // Data
   bookings: Booking[];
   blocks: CalendarBlock[];
@@ -177,35 +178,35 @@ export interface CalendarState {
   services: Service[];
   customers: Customer[];
   businessHours: BusinessHours;
-  
+
   // UI State
   selectedBookingId: string | null;
   selectedStaffIds: string[];
   selectedServiceIds: string[];
   selectedStatusFilters: BookingStatus[];
   searchQuery: string;
-  badgeDisplayMode: 'full' | 'icon';
+  badgeDisplayMode: "full" | "icon";
   staffDisplayOrder: string[];
-  
+
   // Feature flags
   showUnassignedColumn: boolean;
   showBlockedTime: boolean;
   showBreaks: boolean;
   showOnlyRosteredStaff: boolean;
-  
+
   // Calendar display settings
   calendarStartHour: number;
   calendarEndHour: number;
-  
+
   // Loading states
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
-  
+
   // Drag state
   isDragging: boolean;
   draggedBookingId: string | null;
-  
+
   // Sidebar states
   isBookingSlideOutOpen: boolean;
   isDetailsSlideOutOpen: boolean;
@@ -215,59 +216,76 @@ export interface CalendarState {
 // Calendar actions
 export type CalendarAction =
   // View actions
-  | { type: 'SET_VIEW'; payload: CalendarView }
-  | { type: 'SET_DATE'; payload: Date }
-  | { type: 'SET_TIME_INTERVAL'; payload: TimeInterval }
-  | { type: 'NAVIGATE'; payload: 'prev' | 'next' }
-  
+  | { type: "SET_VIEW"; payload: CalendarView }
+  | { type: "SET_DATE"; payload: Date }
+  | { type: "SET_TIME_INTERVAL"; payload: TimeInterval }
+  | { type: "NAVIGATE"; payload: "prev" | "next" }
+
   // Data actions
-  | { type: 'SET_BOOKINGS'; payload: Booking[] }
-  | { type: 'UPDATE_BOOKING'; payload: { id: string; updates: Partial<Booking> } }
-  | { type: 'ADD_BOOKING'; payload: Booking }
-  | { type: 'REMOVE_BOOKING'; payload: string }
-  | { type: 'REPLACE_BOOKING'; payload: { oldId: string; newBooking: Booking } }
-  | { type: 'SET_BLOCKS'; payload: CalendarBlock[] }
-  | { type: 'ADD_BLOCK'; payload: CalendarBlock }
-  | { type: 'REMOVE_BLOCK'; payload: string }
-  | { type: 'SET_STAFF'; payload: Staff[] }
-  | { type: 'SET_SERVICES'; payload: Service[] }
-  | { type: 'SET_CUSTOMERS'; payload: Customer[] }
-  
+  | { type: "SET_BOOKINGS"; payload: Booking[] }
+  | {
+      type: "UPDATE_BOOKING";
+      payload: { id: string; updates: Partial<Booking> };
+    }
+  | { type: "ADD_BOOKING"; payload: Booking }
+  | { type: "REMOVE_BOOKING"; payload: string }
+  | { type: "REPLACE_BOOKING"; payload: { oldId: string; newBooking: Booking } }
+  | { type: "SET_BLOCKS"; payload: CalendarBlock[] }
+  | { type: "ADD_BLOCK"; payload: CalendarBlock }
+  | { type: "REMOVE_BLOCK"; payload: string }
+  | { type: "SET_STAFF"; payload: Staff[] }
+  | { type: "SET_SERVICES"; payload: Service[] }
+  | { type: "SET_CUSTOMERS"; payload: Customer[] }
+
   // Filter actions
-  | { type: 'SET_STAFF_FILTER'; payload: string[] }
-  | { type: 'SET_STAFF_ORDER'; payload: string[] }
-  | { type: 'SET_SERVICE_FILTER'; payload: string[] }
-  | { type: 'SET_STATUS_FILTER'; payload: BookingStatus[] }
-  | { type: 'SET_SEARCH'; payload: string }
-  | { type: 'SET_BADGE_DISPLAY_MODE'; payload: 'full' | 'icon' }
-  
+  | { type: "SET_STAFF_FILTER"; payload: string[] }
+  | { type: "SET_STAFF_ORDER"; payload: string[] }
+  | { type: "SET_SERVICE_FILTER"; payload: string[] }
+  | { type: "SET_STATUS_FILTER"; payload: BookingStatus[] }
+  | { type: "SET_SEARCH"; payload: string }
+  | { type: "SET_BADGE_DISPLAY_MODE"; payload: "full" | "icon" }
+
   // UI actions
-  | { type: 'SET_UI_FLAGS'; payload: Partial<Pick<CalendarState, 'showUnassignedColumn' | 'showBlockedTime' | 'showBreaks' | 'showOnlyRosteredStaff'>> }
-  | { type: 'TOGGLE_UNASSIGNED' }
-  | { type: 'TOGGLE_BLOCKED' }
-  | { type: 'TOGGLE_BREAKS' }
-  | { type: 'TOGGLE_ROSTERED_ONLY' }
-  
+  | {
+      type: "SET_UI_FLAGS";
+      payload: Partial<
+        Pick<
+          CalendarState,
+          | "showUnassignedColumn"
+          | "showBlockedTime"
+          | "showBreaks"
+          | "showOnlyRosteredStaff"
+        >
+      >;
+    }
+  | { type: "TOGGLE_UNASSIGNED" }
+  | { type: "TOGGLE_BLOCKED" }
+  | { type: "TOGGLE_BREAKS" }
+  | { type: "TOGGLE_ROSTERED_ONLY" }
+
   // Drag actions
-  | { type: 'START_DRAG'; payload: string }
-  | { type: 'END_DRAG' }
-  
+  | { type: "START_DRAG"; payload: string }
+  | { type: "END_DRAG" }
+
   // Sidebar actions
-  | { type: 'OPEN_BOOKING_SLIDEOUT' }
-  | { type: 'CLOSE_BOOKING_SLIDEOUT' }
-  | { type: 'OPEN_DETAILS_SLIDEOUT'; payload: string }
-  | { type: 'CLOSE_DETAILS_SLIDEOUT' }
-  
+  | { type: "OPEN_BOOKING_SLIDEOUT" }
+  | { type: "CLOSE_BOOKING_SLIDEOUT" }
+  | { type: "OPEN_DETAILS_SLIDEOUT"; payload: string }
+  | { type: "CLOSE_DETAILS_SLIDEOUT" }
+
   // Loading actions
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_REFRESHING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_REFRESHING"; payload: boolean }
+  | { type: "SET_ERROR"; payload: string | null }
+
   // Settings actions
-  | { type: 'UPDATE_CALENDAR_HOURS'; payload: { startHour: number; endHour: number } }
-  
+  | {
+      type: "UPDATE_CALENDAR_HOURS";
+      payload: { startHour: number; endHour: number };
+    }
+
   // Reset
-  | { type: 'RESET' };
+  | { type: "RESET" };
 
 // Context actions interface
 export interface CalendarActions {
@@ -275,8 +293,8 @@ export interface CalendarActions {
   setView: (view: CalendarView) => void;
   setDate: (date: Date) => void;
   setTimeInterval: (interval: TimeInterval) => void;
-  navigate: (direction: 'prev' | 'next') => void;
-  
+  navigate: (direction: "prev" | "next") => void;
+
   // Data actions
   setBookings: (bookings: Booking[]) => void;
   updateBooking: (id: string, updates: Partial<Booking>) => void;
@@ -291,35 +309,35 @@ export interface CalendarActions {
   setStaffOrder: (order: string[]) => void;
   setServices: (services: Service[]) => void;
   setCustomers: (customers: Customer[]) => void;
-  
+
   // Filter actions
   setStaffFilter: (staffIds: string[]) => void;
   setServiceFilter: (serviceIds: string[]) => void;
   setStatusFilter: (statuses: BookingStatus[]) => void;
   setSearch: (query: string) => void;
-  setBadgeDisplayMode: (mode: 'full' | 'icon') => void;
-  
+  setBadgeDisplayMode: (mode: "full" | "icon") => void;
+
   // UI actions
   toggleUnassignedColumn: () => void;
   toggleBlockedTime: () => void;
   toggleBreaks: () => void;
   toggleRosteredOnly: () => void;
-  
+
   // Drag actions
   startDrag: (bookingId: string) => void;
   endDrag: () => void;
-  
+
   // Sidebar actions
   openBookingSlideOut: () => void;
   closeBookingSlideOut: () => void;
   openDetailsSlideOut: (bookingId: string) => void;
   closeDetailsSlideOut: () => void;
-  
+
   // Loading actions
   setLoading: (loading: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
   setError: (error: string | null) => void;
-  
+
   // Reset
   reset: () => void;
 
@@ -337,7 +355,7 @@ export interface CalendarContextType {
 // Business hours configuration
 export interface BusinessHours {
   start: string; // "09:00"
-  end: string;   // "18:00"
+  end: string; // "18:00"
   days: number[]; // [1,2,3,4,5] for Mon-Fri
 }
 

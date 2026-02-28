@@ -1,21 +1,29 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../api-client';
-import type { Booking, CreateBookingRequest, UpdateBookingRequest } from '../../clients/bookings-client';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../../api-client";
+import type {
+  Booking,
+  CreateBookingRequest,
+  UpdateBookingRequest,
+} from "../../clients/bookings-client";
 
 // Query keys for bookings
 export const bookingKeys = {
-  all: ['bookings'] as const,
-  lists: () => [...bookingKeys.all, 'list'] as const,
+  all: ["bookings"] as const,
+  lists: () => [...bookingKeys.all, "list"] as const,
   list: (params?: any) => [...bookingKeys.lists(), { params }] as const,
-  details: () => [...bookingKeys.all, 'detail'] as const,
+  details: () => [...bookingKeys.all, "detail"] as const,
   detail: (id: string) => [...bookingKeys.details(), id] as const,
-  availability: (date: Date, serviceId: string, staffId?: string) => 
-    [...bookingKeys.all, 'availability', { date: date.toISOString(), serviceId, staffId }] as const,
+  availability: (date: Date, serviceId: string, staffId?: string) =>
+    [
+      ...bookingKeys.all,
+      "availability",
+      { date: date.toISOString(), serviceId, staffId },
+    ] as const,
 };
 
 // Query key for notifications (used to trigger refresh after booking changes)
 export const notificationKeys = {
-  all: ['notifications'] as const,
+  all: ["notifications"] as const,
 };
 
 /**
@@ -43,14 +51,15 @@ export function useTodayBookings() {
   tomorrow.setDate(today.getDate() + 1);
 
   return useQuery({
-    queryKey: bookingKeys.list({ 
-      startDate: today.toISOString(),
-      endDate: tomorrow.toISOString() 
-    }),
-    queryFn: () => apiClient.bookings.getBookings({
+    queryKey: bookingKeys.list({
       startDate: today.toISOString(),
       endDate: tomorrow.toISOString(),
     }),
+    queryFn: () =>
+      apiClient.bookings.getBookings({
+        startDate: today.toISOString(),
+        endDate: tomorrow.toISOString(),
+      }),
     staleTime: 1 * 60 * 1000, // 1 minute for today's bookings
     refetchOnWindowFocus: false, // Disable auto refetch for now
     refetchInterval: false, // Disable interval refetch to prevent constant errors
@@ -76,10 +85,16 @@ export function useBooking(id: string, enabled: boolean = true) {
 /**
  * Hook to check availability for booking slots
  */
-export function useAvailability(date: Date, serviceId: string, staffId?: string, enabled: boolean = true) {
+export function useAvailability(
+  date: Date,
+  serviceId: string,
+  staffId?: string,
+  enabled: boolean = true,
+) {
   return useQuery({
     queryKey: bookingKeys.availability(date, serviceId, staffId),
-    queryFn: () => apiClient.bookings.checkAvailability({ date, serviceId, staffId }),
+    queryFn: () =>
+      apiClient.bookings.checkAvailability({ date, serviceId, staffId }),
     enabled: enabled && !!serviceId,
     staleTime: 1 * 60 * 1000, // 1 minute for availability
   });
@@ -92,24 +107,21 @@ export function useCreateBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateBookingRequest) => apiClient.bookings.createBooking(data),
+    mutationFn: (data: CreateBookingRequest) =>
+      apiClient.bookings.createBooking(data),
     onSuccess: (newBooking) => {
       // Invalidate and refetch bookings lists
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-      
+
       // Add the new booking to the cache
-      queryClient.setQueryData(
-        bookingKeys.detail(newBooking.id),
-        newBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(newBooking.id), newBooking);
+
       // Trigger notification refresh (notification will be created on backend)
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       }, 1000); // Small delay to allow backend to create notification
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }
 
@@ -120,25 +132,21 @@ export function useUpdateBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateBookingRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateBookingRequest }) =>
       apiClient.bookings.updateBooking(id, data),
     onSuccess: (updatedBooking, { id }) => {
       // Update the specific booking in cache
-      queryClient.setQueryData(
-        bookingKeys.detail(id),
-        updatedBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(id), updatedBooking);
+
       // Invalidate lists to ensure they're updated
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-      
+
       // Trigger notification refresh if status changed (notification created on backend)
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       }, 1000);
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }
 
@@ -149,26 +157,29 @@ export function useRescheduleBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { startTime: string; staffId?: string } }) => 
-      apiClient.bookings.rescheduleBooking(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { startTime: string; staffId?: string };
+    }) => apiClient.bookings.rescheduleBooking(id, data),
     onSuccess: (updatedBooking, { id }) => {
       // Update the specific booking in cache
-      queryClient.setQueryData(
-        bookingKeys.detail(id),
-        updatedBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(id), updatedBooking);
+
       // Invalidate lists and availability queries
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: [...bookingKeys.all, 'availability'] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [...bookingKeys.all, "availability"],
+      });
+
       // Trigger notification refresh (booking_modified notification)
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       }, 1000);
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }
 
@@ -182,16 +193,12 @@ export function useStartBooking() {
     mutationFn: (id: string) => apiClient.bookings.startBooking(id),
     onSuccess: (updatedBooking, id) => {
       // Update the specific booking in cache
-      queryClient.setQueryData(
-        bookingKeys.detail(id),
-        updatedBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(id), updatedBooking);
+
       // Invalidate lists to update status
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }
 
@@ -205,16 +212,12 @@ export function useCompleteBooking() {
     mutationFn: (id: string) => apiClient.bookings.completeBooking(id),
     onSuccess: (updatedBooking, id) => {
       // Update the specific booking in cache
-      queryClient.setQueryData(
-        bookingKeys.detail(id),
-        updatedBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(id), updatedBooking);
+
       // Invalidate lists to update status
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }
 
@@ -225,24 +228,20 @@ export function useCancelBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => 
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       apiClient.bookings.cancelBooking(id, reason),
     onSuccess: (updatedBooking, { id }) => {
       // Update the specific booking in cache
-      queryClient.setQueryData(
-        bookingKeys.detail(id),
-        updatedBooking
-      );
-      
+      queryClient.setQueryData(bookingKeys.detail(id), updatedBooking);
+
       // Invalidate lists to update status
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-      
+
       // Trigger notification refresh (booking_cancelled notification)
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       }, 1000);
     },
-    onError: (error) => {
-    },
+    onError: (error) => {},
   });
 }

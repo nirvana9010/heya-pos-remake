@@ -1,27 +1,27 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function checkOrdersForLoyalty() {
   try {
-    console.log('Checking orders that should earn loyalty...\n');
-    
+    console.log("Checking orders that should earn loyalty...\n");
+
     // Get all paid orders with customers
     const paidOrders = await prisma.order.findMany({
       where: {
-        state: 'PAID',
-        customerId: { not: null }
+        state: "PAID",
+        customerId: { not: null },
       },
       include: {
         customer: true,
         merchant: true,
-        booking: true
-      }
+        booking: true,
+      },
     });
 
     // Separate direct orders from booking-based orders
-    const directOrders = paidOrders.filter(order => !order.bookingId);
-    const bookingOrders = paidOrders.filter(order => order.bookingId);
+    const directOrders = paidOrders.filter((order) => !order.bookingId);
+    const bookingOrders = paidOrders.filter((order) => order.bookingId);
 
     console.log(`Total paid orders with customers: ${paidOrders.length}`);
     console.log(`- Direct orders (Quick Sale): ${directOrders.length}`);
@@ -35,8 +35,8 @@ async function checkOrdersForLoyalty() {
       const loyaltyTransaction = await prisma.loyaltyTransaction.findFirst({
         where: {
           orderId: order.id,
-          type: 'EARNED'
-        }
+          type: "EARNED",
+        },
       });
 
       if (loyaltyTransaction) {
@@ -58,7 +58,7 @@ async function checkOrdersForLoyalty() {
         merchantSummary[merchantName] = {
           count: 0,
           totalAmount: 0,
-          hasLoyaltyProgram: false
+          hasLoyaltyProgram: false,
         };
       }
       merchantSummary[merchantName].count++;
@@ -67,13 +67,15 @@ async function checkOrdersForLoyalty() {
 
     // Check which merchants have loyalty programs
     for (const merchantName of Object.keys(merchantSummary)) {
-      const merchant = directOrdersWithoutLoyalty.find(o => o.merchant.name === merchantName)?.merchant;
+      const merchant = directOrdersWithoutLoyalty.find(
+        (o) => o.merchant.name === merchantName,
+      )?.merchant;
       if (merchant) {
         const loyaltyProgram = await prisma.loyaltyProgram.findFirst({
           where: {
             merchantId: merchant.id,
-            isActive: true
-          }
+            isActive: true,
+          },
         });
         merchantSummary[merchantName].hasLoyaltyProgram = !!loyaltyProgram;
         merchantSummary[merchantName].loyaltyType = loyaltyProgram?.type;
@@ -86,18 +88,21 @@ async function checkOrdersForLoyalty() {
       console.log(`\n${merchantName}:`);
       console.log(`  - Orders: ${merchantData.count}`);
       console.log(`  - Total revenue: $${merchantData.totalAmount.toFixed(2)}`);
-      console.log(`  - Has active loyalty: ${merchantData.hasLoyaltyProgram ? `Yes (${merchantData.loyaltyType})` : 'No'}`);
+      console.log(
+        `  - Has active loyalty: ${merchantData.hasLoyaltyProgram ? `Yes (${merchantData.loyaltyType})` : "No"}`,
+      );
     }
 
     // Show sample orders that would be processed
     console.log(`\nSample orders that need loyalty processing:`);
     const samples = directOrdersWithoutLoyalty.slice(0, 5);
     for (const order of samples) {
-      console.log(`- Order ${order.orderNumber}: ${order.customer.firstName} ${order.customer.lastName || ''} - $${order.totalAmount} - ${order.merchant.name}`);
+      console.log(
+        `- Order ${order.orderNumber}: ${order.customer.firstName} ${order.customer.lastName || ""} - $${order.totalAmount} - ${order.merchant.name}`,
+      );
     }
-
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
   } finally {
     await prisma.$disconnect();
   }
@@ -106,10 +111,10 @@ async function checkOrdersForLoyalty() {
 // Run the script
 checkOrdersForLoyalty()
   .then(() => {
-    console.log('\nAnalysis completed');
+    console.log("\nAnalysis completed");
     process.exit(0);
   })
   .catch((error) => {
-    console.error('\nScript failed:', error);
+    console.error("\nScript failed:", error);
     process.exit(1);
   });

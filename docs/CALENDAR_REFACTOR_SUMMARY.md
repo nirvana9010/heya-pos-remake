@@ -7,6 +7,7 @@ I've created a completely refactored calendar architecture that addresses your f
 ## New Architecture
 
 ### File Structure
+
 ```
 apps/merchant-app/src/components/calendar/refactored/
 ├── CalendarProvider.tsx    # Centralized state management
@@ -21,6 +22,7 @@ apps/merchant-app/src/components/calendar/refactored/
 ### Key Components
 
 1. **CalendarProvider.tsx** (290 lines)
+
    - Uses React Context + useReducer pattern
    - Single source of truth for all calendar state
    - 43 typed actions for predictable state updates
@@ -28,11 +30,13 @@ apps/merchant-app/src/components/calendar/refactored/
    - Built-in filtering logic
 
 2. **types.ts** (200 lines)
+
    - Complete TypeScript definitions
    - Ensures type safety throughout
    - Clear data models for Booking, Staff, Service, etc.
 
 3. **hooks.ts** (330 lines)
+
    - `useCalendarData()` - Handles all data fetching
    - `useTimeGrid()` - Generates time slots
    - `useBookingOperations()` - CRUD operations
@@ -41,6 +45,7 @@ apps/merchant-app/src/components/calendar/refactored/
    - `useCalendarDragDrop()` - Drag & drop handling
 
 4. **DailyView.tsx** (250 lines)
+
    - Focused only on rendering the daily view
    - Clean separation from business logic
    - Optimized with proper memoization
@@ -54,38 +59,46 @@ apps/merchant-app/src/components/calendar/refactored/
 ## Problems Solved
 
 ### 1. Timezone Issues ✅
+
 - **Before**: `toISOString().split('T')[0]` causing date shifts
 - **After**: Consistent use of `date-utils.ts` with merchant timezone
 
 ### 2. Unassigned Bookings ✅
+
 - **Before**: Complex `staffId || providerId` logic failing
 - **After**: Explicit `staffId: null` handling throughout
 
 ### 3. State Management ✅
+
 - **Before**: 20+ useState hooks causing chaos
 - **After**: Single useReducer with typed actions
 
 ### 4. Performance ✅
+
 - **Before**: Full re-renders on any change
 - **After**: Optimized with useMemo and targeted updates
 
 ### 5. Maintainability ✅
+
 - **Before**: 2962-line God Component
 - **After**: Modular components under 350 lines each
 
 ## How It Works
 
 ### State Flow
+
 ```
 User Action → Dispatch Action → Reducer → State Update → Re-render
 ```
 
 ### Data Flow
+
 ```
 API → CalendarProvider → Hooks → View Components
 ```
 
 ### Example: Moving a Booking
+
 ```typescript
 1. User drags booking
 2. DailyView calls handleDragEnd

@@ -1,14 +1,14 @@
-import { format, parseISO } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from 'date-fns-tz';
+import { format, parseISO } from "date-fns";
+import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from "date-fns-tz";
 
 // Australian Eastern Time Zone
-export const MERCHANT_TIMEZONE = 'Australia/Sydney';
+export const MERCHANT_TIMEZONE = "Australia/Sydney";
 
 /**
  * Convert a UTC date to merchant's local time (Australian Eastern Time)
  */
 export function toMerchantTime(date: Date | string): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  const dateObj = typeof date === "string" ? parseISO(date) : date;
   return utcToZonedTime(dateObj, MERCHANT_TIMEZONE);
 }
 
@@ -16,21 +16,24 @@ export function toMerchantTime(date: Date | string): Date {
  * Convert merchant's local time to UTC
  */
 export function toUTC(date: Date | string): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  const dateObj = typeof date === "string" ? parseISO(date) : date;
   return zonedTimeToUtc(dateObj, MERCHANT_TIMEZONE);
 }
 
 /**
  * Format a date in merchant's timezone
  */
-export function formatInMerchantTime(date: Date | string, formatStr: string): string {
+export function formatInMerchantTime(
+  date: Date | string,
+  formatStr: string,
+): string {
   const merchantDate = toMerchantTime(date);
   return format(merchantDate, formatStr);
 }
 
 const ensureSecondsInTime = (time: string): string => {
-  if (time.includes(':')) {
-    const parts = time.split(':');
+  if (time.includes(":")) {
+    const parts = time.split(":");
     if (parts.length === 2) {
       return `${parts[0]}:${parts[1]}:00`;
     }
@@ -50,8 +53,15 @@ const ensureSecondsInTime = (time: string): string => {
  */
 export function formatMerchantDateTimeISO(date: string, time: string): string {
   const normalizedTime = ensureSecondsInTime(time);
-  const utcDate = zonedTimeToUtc(`${date}T${normalizedTime}`, MERCHANT_TIMEZONE);
-  return formatInTimeZone(utcDate, MERCHANT_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssxxx");
+  const utcDate = zonedTimeToUtc(
+    `${date}T${normalizedTime}`,
+    MERCHANT_TIMEZONE,
+  );
+  return formatInTimeZone(
+    utcDate,
+    MERCHANT_TIMEZONE,
+    "yyyy-MM-dd'T'HH:mm:ssxxx",
+  );
 }
 
 /**
@@ -63,16 +73,19 @@ export function getTimezoneAbbr(): string {
   // Check if daylight saving is active
   const month = merchantTime.getMonth();
   const isDST = month >= 9 || month <= 3; // Oct-Mar is DST in Australia
-  return isDST ? 'AEDT' : 'AEST';
+  return isDST ? "AEDT" : "AEST";
 }
 
 /**
  * Display helpers for common formats
  */
 export const displayFormats = {
-  time: (date: Date | string) => formatInMerchantTime(date, 'h:mm a'),
-  timeWithZone: (date: Date | string) => `${formatInMerchantTime(date, 'h:mm a')} ${getTimezoneAbbr()}`,
-  date: (date: Date | string) => formatInMerchantTime(date, 'MMM dd, yyyy'),
-  dateTime: (date: Date | string) => formatInMerchantTime(date, 'MMM dd, yyyy h:mm a'),
-  fullDateTime: (date: Date | string) => `${formatInMerchantTime(date, 'EEEE, MMMM d, yyyy h:mm a')} ${getTimezoneAbbr()}`,
+  time: (date: Date | string) => formatInMerchantTime(date, "h:mm a"),
+  timeWithZone: (date: Date | string) =>
+    `${formatInMerchantTime(date, "h:mm a")} ${getTimezoneAbbr()}`,
+  date: (date: Date | string) => formatInMerchantTime(date, "MMM dd, yyyy"),
+  dateTime: (date: Date | string) =>
+    formatInMerchantTime(date, "MMM dd, yyyy h:mm a"),
+  fullDateTime: (date: Date | string) =>
+    `${formatInMerchantTime(date, "EEEE, MMMM d, yyyy h:mm a")} ${getTimezoneAbbr()}`,
 };

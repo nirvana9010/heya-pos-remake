@@ -1,8 +1,18 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 
-import { Bell, Calendar, XCircle, Edit, RefreshCw, Check, X, ExternalLink, Inbox } from 'lucide-react';
+import {
+  Bell,
+  Calendar,
+  XCircle,
+  Edit,
+  RefreshCw,
+  Check,
+  X,
+  ExternalLink,
+  Inbox,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +22,16 @@ import {
   DropdownMenuTrigger,
   Button,
   ScrollArea,
-} from '@heya-pos/ui';
-import { useNotifications } from '@/contexts/notifications-context';
-import { notificationConfig, formatNotificationTime, groupNotificationsByDate, NotificationType } from '@/lib/notifications';
-import Link from 'next/link';
-import { cn } from '@heya-pos/ui';
+} from "@heya-pos/ui";
+import { useNotifications } from "@/contexts/notifications-context";
+import {
+  notificationConfig,
+  formatNotificationTime,
+  groupNotificationsByDate,
+  NotificationType,
+} from "@/lib/notifications";
+import Link from "next/link";
+import { cn } from "@heya-pos/ui";
 
 const iconMap = {
   Calendar,
@@ -31,15 +46,25 @@ type ConnectionDetail = {
 };
 
 export function NotificationsDropdown() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearNotification,
+    clearAll,
+  } = useNotifications();
   const grouped = groupNotificationsByDate(notifications);
-  const [connectionStatus, setConnectionStatus] = React.useState<{ isConnected: boolean; lastNotification: Date | null }>({
+  const [connectionStatus, setConnectionStatus] = React.useState<{
+    isConnected: boolean;
+    lastNotification: Date | null;
+  }>({
     isConnected: false,
     lastNotification: null,
   });
 
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<ConnectionDetail>).detail;
@@ -49,14 +74,19 @@ export function NotificationsDropdown() {
 
       setConnectionStatus({
         isConnected: !!detail.isConnected,
-        lastNotification: detail.lastNotification ? new Date(detail.lastNotification) : null,
+        lastNotification: detail.lastNotification
+          ? new Date(detail.lastNotification)
+          : null,
       });
     };
 
-    window.addEventListener('ws-connection-status', handler as EventListener);
+    window.addEventListener("ws-connection-status", handler as EventListener);
 
     return () => {
-      window.removeEventListener('ws-connection-status', handler as EventListener);
+      window.removeEventListener(
+        "ws-connection-status",
+        handler as EventListener,
+      );
     };
   }, []);
 
@@ -68,12 +98,12 @@ export function NotificationsDropdown() {
 
   const renderNotification = (notification: any) => {
     const config = notificationConfig[notification.type as NotificationType];
-    
+
     // Skip rendering if notification type doesn't exist in current config
     if (!config) {
       return null;
     }
-    
+
     const Icon = iconMap[config.icon as keyof typeof iconMap];
 
     return (
@@ -81,7 +111,7 @@ export function NotificationsDropdown() {
         key={notification.id}
         className={cn(
           "relative px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer",
-          !notification.read && "bg-accent/20"
+          !notification.read && "bg-accent/20",
         )}
         onClick={() => handleNotificationClick(notification)}
       >
@@ -89,7 +119,7 @@ export function NotificationsDropdown() {
           <div className={cn("mt-0.5", config.color)}>
             <Icon className="h-5 w-5" />
           </div>
-          
+
           <div className="flex-1 space-y-1">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium leading-tight">
@@ -105,30 +135,30 @@ export function NotificationsDropdown() {
                 <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
               </button>
             </div>
-            
+
             <p className="text-sm text-muted-foreground">
               {notification.message}
             </p>
-            
+
             <div className="flex items-center justify-between pt-1">
               <span className="text-xs text-muted-foreground">
                 {formatNotificationTime(notification.timestamp)}
               </span>
-              
+
               {notification.actionUrl && (
                 <Link
                   href={notification.actionUrl}
                   onClick={(e) => e.stopPropagation()}
                   className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
                 >
-                  {notification.actionLabel || 'View'}
+                  {notification.actionLabel || "View"}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               )}
             </div>
           </div>
         </div>
-        
+
         {!notification.read && (
           <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full" />
         )}
@@ -138,19 +168,17 @@ export function NotificationsDropdown() {
 
   const renderGroup = (title: string, items: any[]) => {
     if (items.length === 0) return null;
-    
+
     // Filter out invalid notifications
     const validNotifications = items.map(renderNotification).filter(Boolean);
     if (validNotifications.length === 0) return null;
-    
+
     return (
       <>
         <div className="px-4 py-2 bg-muted/50">
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
         </div>
-        <div className="group">
-          {validNotifications}
-        </div>
+        <div className="group">{validNotifications}</div>
       </>
     );
   };
@@ -162,16 +190,16 @@ export function NotificationsDropdown() {
           <Bell size={18} />
           {unreadCount > 0 && (
             <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </div>
           )}
         </button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent 
-        align="end" 
+
+      <DropdownMenuContent
+        align="end"
         className="w-[380px] p-0"
-        style={{ maxHeight: '80vh' }}
+        style={{ maxHeight: "80vh" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h3 className="font-semibold">Notifications</h3>
@@ -200,7 +228,7 @@ export function NotificationsDropdown() {
             Last update {connectionStatus.lastNotification.toLocaleTimeString()}
           </div>
         )}
-        
+
         <ScrollArea className="h-[500px]">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -212,13 +240,13 @@ export function NotificationsDropdown() {
             </div>
           ) : (
             <>
-              {renderGroup('Today', grouped.today)}
-              {renderGroup('Yesterday', grouped.yesterday)}
-              {renderGroup('Older', grouped.older)}
+              {renderGroup("Today", grouped.today)}
+              {renderGroup("Yesterday", grouped.yesterday)}
+              {renderGroup("Older", grouped.older)}
             </>
           )}
         </ScrollArea>
-        
+
         {notifications.length > 0 && (
           <div className="border-t p-3">
             <Link href="/notifications">

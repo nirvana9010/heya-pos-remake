@@ -21,14 +21,14 @@ export interface TrendOptions {
 export function calculateTrend(
   current: number,
   previous: number,
-  options: TrendOptions = {}
+  options: TrendOptions = {},
 ): TrendData {
   const {
     precision = 1,
-    formatPrefix = '',
-    formatSuffix = '%',
+    formatPrefix = "",
+    formatSuffix = "%",
     showPlus = true,
-    treatZeroAsNeutral = true
+    treatZeroAsNeutral = true,
   } = options;
 
   // Handle edge cases
@@ -39,7 +39,7 @@ export function calculateTrend(
       change: 0,
       changePercent: 0,
       isPositive: true,
-      formatted: treatZeroAsNeutral ? '0%' : '+0%'
+      formatted: treatZeroAsNeutral ? "0%" : "+0%",
     };
   }
 
@@ -51,7 +51,7 @@ export function calculateTrend(
       change: current,
       changePercent: 100,
       isPositive: true,
-      formatted: `${formatPrefix}New${formatSuffix === '%' ? '' : formatSuffix}`
+      formatted: `${formatPrefix}New${formatSuffix === "%" ? "" : formatSuffix}`,
     };
   }
 
@@ -63,7 +63,7 @@ export function calculateTrend(
       change: -previous,
       changePercent: -100,
       isPositive: false,
-      formatted: `${formatPrefix}-100${formatSuffix}`
+      formatted: `${formatPrefix}-100${formatSuffix}`,
     };
   }
 
@@ -73,7 +73,7 @@ export function calculateTrend(
   const isPositive = change >= 0;
 
   // Format the display string
-  const sign = isPositive && showPlus ? '+' : '';
+  const sign = isPositive && showPlus ? "+" : "";
   const formattedPercent = changePercent.toFixed(precision);
   const formatted = `${formatPrefix}${sign}${formattedPercent}${formatSuffix}`;
 
@@ -83,7 +83,7 @@ export function calculateTrend(
     change,
     changePercent,
     isPositive,
-    formatted
+    formatted,
   };
 }
 
@@ -93,12 +93,12 @@ export function calculateTrend(
 export function calculateCurrencyTrend(
   current: number,
   previous: number,
-  currencySymbol: string = '$'
+  currencySymbol: string = "$",
 ): TrendData {
   return calculateTrend(current, previous, {
     formatPrefix: currencySymbol,
-    formatSuffix: '',
-    precision: 0
+    formatSuffix: "",
+    precision: 0,
   });
 }
 
@@ -107,10 +107,10 @@ export function calculateCurrencyTrend(
  */
 export function calculateCountTrend(
   current: number,
-  previous: number
+  previous: number,
 ): TrendData {
   return calculateTrend(current, previous, {
-    precision: 0
+    precision: 0,
   });
 }
 
@@ -123,9 +123,9 @@ export function formatTrendDisplay(
     showValue?: boolean;
     valuePrefix?: string;
     valueSuffix?: string;
-  } = {}
+  } = {},
 ): string {
-  const { showValue = false, valuePrefix = '', valueSuffix = '' } = options;
+  const { showValue = false, valuePrefix = "", valueSuffix = "" } = options;
 
   if (showValue) {
     return `${valuePrefix}${trend.current}${valueSuffix} (${trend.formatted})`;
@@ -139,14 +139,14 @@ export function formatTrendDisplay(
  */
 export function getTrendColor(
   trend: TrendData,
-  invertColors: boolean = false
+  invertColors: boolean = false,
 ): string {
   if (trend.changePercent === 0) {
-    return 'neutral';
+    return "neutral";
   }
 
   const isGood = invertColors ? !trend.isPositive : trend.isPositive;
-  return isGood ? 'success' : 'danger';
+  return isGood ? "success" : "danger";
 }
 
 /**
@@ -154,7 +154,7 @@ export function getTrendColor(
  */
 export function getTrendIcon(trend: TrendData): string {
   if (trend.changePercent === 0) {
-    return 'minus';
+    return "minus";
   }
-  return trend.isPositive ? 'trending-up' : 'trending-down';
+  return trend.isPositive ? "trending-up" : "trending-down";
 }

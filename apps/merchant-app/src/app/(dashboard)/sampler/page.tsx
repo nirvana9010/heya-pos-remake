@@ -1,32 +1,36 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { cn } from '@heya-pos/ui';
-import { Clock, Check } from 'lucide-react';
+import React from "react";
+import { cn } from "@heya-pos/ui";
+import { Clock, Check } from "lucide-react";
 
 // Mock booking data
 const mockBooking = {
-  id: '1',
-  customerName: 'Sarah Johnson',
-  serviceName: 'Hair Cut & Style',
-  time: '10:30',
+  id: "1",
+  customerName: "Sarah Johnson",
+  serviceName: "Hair Cut & Style",
+  time: "10:30",
   duration: 60,
   isPaid: false,
 };
 
 const mockBookingPaid = {
   ...mockBooking,
-  id: '2',
+  id: "2",
   isPaid: true,
 };
 
-const staffColor = '#0F766E'; // Teal color
+const staffColor = "#0F766E"; // Teal color
 
 export default function SamplerPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">PENDING Booking Visual Options</h1>
-      <p className="text-gray-600 mb-8">Compare different visual approaches for displaying PENDING bookings</p>
+      <h1 className="text-3xl font-bold mb-2">
+        PENDING Booking Visual Options
+      </h1>
+      <p className="text-gray-600 mb-8">
+        Compare different visual approaches for displaying PENDING bookings
+      </p>
 
       <div className="space-y-12">
         {/* Option 1: Subtle Overlay with Badge */}
@@ -35,25 +39,27 @@ export default function SamplerPage() {
           description="Keep staff color with semi-transparent white overlay, badge aligned with PAID"
         >
           <BookingCard confirmed color={staffColor} />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             color={staffColor}
             style={{
               backgroundColor: `${staffColor}CC`, // 80% opacity
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
-              backgroundBlendMode: 'overlay',
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))",
+              backgroundBlendMode: "overlay",
               borderLeft: `4px dashed ${staffColor}`,
             }}
             badgePosition="bottom"
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             paid
             color={staffColor}
             style={{
               backgroundColor: `${staffColor}CC`,
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
-              backgroundBlendMode: 'overlay',
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))",
+              backgroundBlendMode: "overlay",
               borderLeft: `4px dashed ${staffColor}`,
             }}
             badgePosition="bottom"
@@ -66,8 +72,8 @@ export default function SamplerPage() {
           description="Muted staff color with yellow dot indicator and aligned badges"
         >
           <BookingCard confirmed color={staffColor} />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             color={desaturateColor(staffColor)}
             style={{
               borderLeft: `4px dashed ${desaturateColor(staffColor)}`,
@@ -75,8 +81,8 @@ export default function SamplerPage() {
             showDot
             badgePosition="bottom"
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             paid
             color={desaturateColor(staffColor)}
             style={{
@@ -93,24 +99,24 @@ export default function SamplerPage() {
           description="Transparent background with staff color as border"
         >
           <BookingCard confirmed color={staffColor} />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             color="#F5F5F5"
             textColor="text-gray-800"
             style={{
-              backgroundColor: '#FAFAFA',
+              backgroundColor: "#FAFAFA",
               border: `3px dashed ${staffColor}`,
               borderLeft: `6px dashed ${staffColor}`,
             }}
             badgePosition="bottom"
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             paid
             color="#F5F5F5"
             textColor="text-gray-800"
             style={{
-              backgroundColor: '#FAFAFA',
+              backgroundColor: "#FAFAFA",
               border: `3px dashed ${staffColor}`,
               borderLeft: `6px dashed ${staffColor}`,
             }}
@@ -124,17 +130,8 @@ export default function SamplerPage() {
           description="Normal appearance with yellow status strip on top"
         >
           <BookingCard confirmed color={staffColor} />
-          <BookingCard 
-            pending 
-            color={staffColor}
-            showStrip
-          />
-          <BookingCard 
-            pending 
-            paid
-            color={staffColor}
-            showStrip
-          />
+          <BookingCard pending color={staffColor} showStrip />
+          <BookingCard pending paid color={staffColor} showStrip />
         </DesignOption>
 
         {/* Option 5: Icon + Badge Approach */}
@@ -143,8 +140,8 @@ export default function SamplerPage() {
           description="Staff color at reduced opacity with clock icon"
         >
           <BookingCard confirmed color={staffColor} />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             color={staffColor}
             style={{
               opacity: 0.85,
@@ -153,8 +150,8 @@ export default function SamplerPage() {
             showClockIcon
             badgePosition="inline"
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             paid
             color={staffColor}
             style={{
@@ -171,8 +168,8 @@ export default function SamplerPage() {
           title="Past Pending Booking (Current Implementation)"
           description="Shows how pending bookings appear when they're in the past - combining past opacity with pending overlay"
         >
-          <BookingCard 
-            confirmed 
+          <BookingCard
+            confirmed
             color={staffColor}
             textColor="text-gray-700"
             style={{
@@ -181,28 +178,30 @@ export default function SamplerPage() {
             }}
             past
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             color={staffColor}
             textColor="text-gray-700"
             style={{
               backgroundColor: `${staffColor}4D`, // 30% opacity for past
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
-              backgroundBlendMode: 'overlay',
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))",
+              backgroundBlendMode: "overlay",
               borderLeft: `3px dashed ${staffColor}`,
             }}
             badgePosition="bottom"
             past
           />
-          <BookingCard 
-            pending 
+          <BookingCard
+            pending
             paid
             color={staffColor}
             textColor="text-gray-700"
             style={{
               backgroundColor: `${staffColor}4D`, // 30% opacity for past
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))',
-              backgroundBlendMode: 'overlay',
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3))",
+              backgroundBlendMode: "overlay",
               borderLeft: `3px dashed ${staffColor}`,
             }}
             badgePosition="bottom"
@@ -214,13 +213,13 @@ export default function SamplerPage() {
   );
 }
 
-function DesignOption({ 
-  title, 
-  description, 
-  children 
-}: { 
-  title: string; 
-  description: string; 
+function DesignOption({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
   children: React.ReactNode;
 }) {
   return (
@@ -245,18 +244,18 @@ function DesignOption({
   );
 }
 
-function BookingCard({ 
+function BookingCard({
   confirmed = false,
   pending = false,
   paid = false,
   past = false,
   color,
-  textColor = 'text-white',
+  textColor = "text-white",
   style = {},
   showDot = false,
   showStrip = false,
   showClockIcon = false,
-  badgePosition = 'none'
+  badgePosition = "none",
 }: {
   confirmed?: boolean;
   pending?: boolean;
@@ -268,18 +267,15 @@ function BookingCard({
   showDot?: boolean;
   showStrip?: boolean;
   showClockIcon?: boolean;
-  badgePosition?: 'bottom' | 'inline' | 'none';
+  badgePosition?: "bottom" | "inline" | "none";
 }) {
   return (
-    <div 
-      className={cn(
-        "rounded-lg p-4 relative overflow-hidden h-32",
-        textColor
-      )}
+    <div
+      className={cn("rounded-lg p-4 relative overflow-hidden h-32", textColor)}
       style={{
         backgroundColor: color,
         borderLeft: `4px solid ${color}`,
-        ...style
+        ...style,
       }}
     >
       {/* Status Strip */}
@@ -300,20 +296,16 @@ function BookingCard({
       )}
 
       {/* Content */}
-      <div className={showStrip ? 'mt-6' : ''}>
+      <div className={showStrip ? "mt-6" : ""}>
         <div className="text-sm opacity-75">
-          {mockBooking.time} • {mockBooking.duration}m {past && '(Past)'}
+          {mockBooking.time} • {mockBooking.duration}m {past && "(Past)"}
         </div>
-        <div className="font-bold text-lg mt-1">
-          {mockBooking.customerName}
-        </div>
-        <div className="text-sm mt-1 opacity-90">
-          {mockBooking.serviceName}
-        </div>
+        <div className="font-bold text-lg mt-1">{mockBooking.customerName}</div>
+        <div className="text-sm mt-1 opacity-90">{mockBooking.serviceName}</div>
       </div>
 
       {/* Badges */}
-      {badgePosition === 'bottom' && (
+      {badgePosition === "bottom" && (
         <div className="absolute bottom-3 right-3 flex gap-2">
           {pending && (
             <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
@@ -328,7 +320,7 @@ function BookingCard({
         </div>
       )}
 
-      {badgePosition === 'inline' && (
+      {badgePosition === "inline" && (
         <div className="absolute bottom-3 right-3 flex items-center gap-2">
           {paid && (
             <div className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">
@@ -359,15 +351,15 @@ function desaturateColor(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  
+
   // Calculate grayscale value
   const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-  
+
   // Mix with original color (50% desaturation)
   const newR = Math.round((r + gray) / 2);
   const newG = Math.round((g + gray) / 2);
   const newB = Math.round((b + gray) / 2);
-  
+
   // Convert back to hex
-  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`;
 }

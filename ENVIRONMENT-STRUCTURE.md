@@ -5,6 +5,7 @@ This document outlines the standard environment file structure for the Heya POS 
 ## Standard Pattern
 
 Each app follows this pattern:
+
 - `.env` - Active configuration (git-ignored)
 - `.env.example` - Template with all variables documented
 - `.env.local` - Local overrides (optional, git-ignored)
@@ -35,6 +36,7 @@ heya-pos/
 ## Database Configuration
 
 All database connections now point to DigitalOcean:
+
 - Host: `heyapos-db-do-user-21925728-0.h.db.ondigitalocean.com`
 - Port: `25060`
 - Database: `defaultdb`
@@ -45,6 +47,7 @@ Supabase references have been removed/commented out in all environment files.
 ## Removed Files
 
 The following redundant files were removed during cleanup:
+
 - `.env.example.upgraded`
 - `.env.local` (root level)
 - `apps/api/.env.development`
@@ -58,11 +61,13 @@ The following redundant files were removed during cleanup:
 ## Key Variables by App
 
 ### Root `.env`
+
 - `DATABASE_URL` - Required for Prisma CLI commands
 - `DIRECT_URL` - Direct database connection
 - `NODE_ENV` - Environment mode
 
 ### API (`apps/api/.env`)
+
 - Database: `DATABASE_URL`, `DIRECT_URL`
 - JWT: `JWT_SECRET`, `JWT_REFRESH_SECRET`
 - CORS: `FRONTEND_URL`, `FRONTEND_URLS`
@@ -72,7 +77,9 @@ The following redundant files were removed during cleanup:
 - Payment: `PAYMENT_PROVIDER`, `PAYMENT_MERCHANT_ID`
 
 ### Frontend Apps
+
 All frontend apps (merchant-app, booking-app, admin-dashboard) use:
+
 - `NEXT_PUBLIC_API_URL` - API endpoint (typically `http://localhost:3000/api`)
 - App-specific feature flags and configurations
 
@@ -84,6 +91,7 @@ All frontend apps (merchant-app, booking-app, admin-dashboard) use:
 4. Always update `.env.example` when adding new variables
 
 ### Local Development Services
+
 - Use `./scripts/dev-start.sh` and `./scripts/dev-stop.sh` to boot the stack. These scripts source `.env` files, invoke `apps/api/dev-service.sh`, and prevent orphaned `nest`/`next` watchers. Avoid `npm run api:dev` / `npm run merchant:dev` unless you are working on the service scripts themselves.
 
 ## Migration Notes

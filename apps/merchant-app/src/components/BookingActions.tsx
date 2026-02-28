@@ -16,7 +16,7 @@ import {
   CreditCard,
   Clock,
   AlertCircle,
-  Loader2
+  Loader2,
 } from "lucide-react";
 
 export interface BookingActionsProps {
@@ -62,30 +62,37 @@ export function BookingActions({
   onProcessPayment,
   onEdit,
   onDelete,
-  onReschedule
+  onReschedule,
 }: BookingActionsProps) {
   const { can } = usePermissions();
   const status = booking.status?.toLowerCase();
-  const isPaid = booking.isPaid || (booking.paidAmount && booking.paidAmount > 0);
+  const isPaid =
+    booking.isPaid || (booking.paidAmount && booking.paidAmount > 0);
   const amount = booking.totalAmount || booking.totalPrice || 0;
-  
+
   // Check if booking is upcoming
-  const isUpcoming = booking.startTime && new Date(booking.startTime) > new Date();
-  const isStartingSoon = isUpcoming && 
+  const isUpcoming =
+    booking.startTime && new Date(booking.startTime) > new Date();
+  const isStartingSoon =
+    isUpcoming &&
     new Date(booking.startTime).getTime() - new Date().getTime() < 3600000; // Within 1 hour
 
   const handleDelete = () => {
-    if (onDelete && window.confirm("Are you sure you want to delete this booking?")) {
+    if (
+      onDelete &&
+      window.confirm("Are you sure you want to delete this booking?")
+    ) {
       onDelete(booking.id);
     }
   };
 
-  const containerClass = variant === "stacked" ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const containerClass =
+    variant === "stacked" ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
 
   return (
     <div className={containerClass}>
       {/* Status Actions */}
-      {status === "pending" && onStatusChange && can('booking.update') && (
+      {status === "pending" && onStatusChange && can("booking.update") && (
         <Button
           size={size}
           variant="default"
@@ -96,8 +103,8 @@ export function BookingActions({
           Confirm
         </Button>
       )}
-      
-      {status === "confirmed" && onStatusChange && can('booking.update') && (
+
+      {status === "confirmed" && onStatusChange && can("booking.update") && (
         <>
           <Button
             size={size}
@@ -129,8 +136,8 @@ export function BookingActions({
           </Button>
         </>
       )}
-      
-      {status === "in-progress" && onStatusChange && can('booking.update') && (
+
+      {status === "in-progress" && onStatusChange && can("booking.update") && (
         <Button
           size={size}
           variant="outline"
@@ -150,7 +157,7 @@ export function BookingActions({
       {/* Payment Actions */}
       {showPayment && status !== "cancelled" && status !== "no_show" && (
         <>
-          {!isPaid && onProcessPayment && can('payment.create') && (
+          {!isPaid && onProcessPayment && can("payment.create") && (
             <Button
               size={size}
               variant="default"
@@ -166,7 +173,7 @@ export function BookingActions({
               {isProcessingPayment ? "Processing..." : "Process Payment"}
             </Button>
           )}
-          {!isPaid && onPaymentToggle && can('payment.create') && (
+          {!isPaid && onPaymentToggle && can("payment.create") && (
             <Button
               size={size}
               variant="ghost"
@@ -192,19 +199,23 @@ export function BookingActions({
       )}
 
       {/* Edit Actions */}
-      {showEdit && onReschedule && status !== "completed" && status !== "cancelled" && can('booking.update') && (
-        <Button
-          size={size}
-          variant="outline"
-          onClick={() => onReschedule(booking.id)}
-          className="flex items-center gap-1"
-        >
-          <Calendar className="h-4 w-4" />
-          Reschedule
-        </Button>
-      )}
+      {showEdit &&
+        onReschedule &&
+        status !== "completed" &&
+        status !== "cancelled" &&
+        can("booking.update") && (
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => onReschedule(booking.id)}
+            className="flex items-center gap-1"
+          >
+            <Calendar className="h-4 w-4" />
+            Reschedule
+          </Button>
+        )}
 
-      {showEdit && onEdit && can('booking.update') && (
+      {showEdit && onEdit && can("booking.update") && (
         <Button
           size={size}
           variant="outline"
@@ -217,16 +228,19 @@ export function BookingActions({
       )}
 
       {/* Delete Action */}
-      {showDelete && onDelete && status !== "completed" && can('booking.delete') && (
-        <Button
-          size={size}
-          variant="outline"
-          onClick={handleDelete}
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      )}
+      {showDelete &&
+        onDelete &&
+        status !== "completed" &&
+        can("booking.delete") && (
+          <Button
+            size={size}
+            variant="outline"
+            onClick={handleDelete}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
     </div>
   );
 }

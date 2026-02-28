@@ -1,48 +1,48 @@
 // Payment-related types and interfaces
 
 export enum PaymentMethod {
-  CASH = 'CASH',
-  CARD = 'CARD',
-  GIFT_CARD = 'GIFT_CARD',
-  STORE_CREDIT = 'STORE_CREDIT',
-  OTHER = 'OTHER'
+  CASH = "CASH",
+  CARD = "CARD",
+  GIFT_CARD = "GIFT_CARD",
+  STORE_CREDIT = "STORE_CREDIT",
+  OTHER = "OTHER",
 }
 
 export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
-  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED',
-  VOIDED = 'VOIDED'
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+  PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
+  VOIDED = "VOIDED",
 }
 
 export enum RefundStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED'
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
 export enum OrderState {
-  DRAFT = 'DRAFT',
-  LOCKED = 'LOCKED',
-  PENDING_PAYMENT = 'PENDING_PAYMENT',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  PAID = 'PAID',
-  COMPLETE = 'COMPLETE',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED'
+  DRAFT = "DRAFT",
+  LOCKED = "LOCKED",
+  PENDING_PAYMENT = "PENDING_PAYMENT",
+  PARTIALLY_PAID = "PARTIALLY_PAID",
+  PAID = "PAID",
+  COMPLETE = "COMPLETE",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
 }
 
 export enum OrderModifierType {
-  DISCOUNT = 'DISCOUNT',
-  SURCHARGE = 'SURCHARGE'
+  DISCOUNT = "DISCOUNT",
+  SURCHARGE = "SURCHARGE",
 }
 
 export enum OrderModifierCalculation {
-  PERCENTAGE = 'PERCENTAGE',
-  FIXED_AMOUNT = 'FIXED_AMOUNT'
+  PERCENTAGE = "PERCENTAGE",
+  FIXED_AMOUNT = "FIXED_AMOUNT",
 }
 
 export interface PaymentResult {
@@ -91,28 +91,32 @@ export interface OrderModifierDto {
 }
 
 export interface PaymentGatewayConfig {
-  provider: 'TYRO' | 'STRIPE' | 'SQUARE' | 'MOCK';
+  provider: "TYRO" | "STRIPE" | "SQUARE" | "MOCK";
   apiKey?: string;
   secretKey?: string;
   merchantId?: string;
   terminalId?: string;
   webhookSecret?: string;
-  environment?: 'production' | 'sandbox';
+  environment?: "production" | "sandbox";
   testMode?: boolean;
 }
 
 // Payment gateway abstraction
 export interface IPaymentGateway {
   initialize(config: PaymentGatewayConfig): Promise<void>;
-  
+
   // Terminal-based payments
   createTerminalPayment(amount: number, orderId: string): Promise<string>;
   getTerminalStatus(referenceId: string): Promise<PaymentResult>;
-  
+
   // Refunds and voids
-  refundPayment(paymentId: string, amount: number, reason?: string): Promise<RefundResult>;
+  refundPayment(
+    paymentId: string,
+    amount: number,
+    reason?: string,
+  ): Promise<RefundResult>;
   voidPayment(paymentId: string): Promise<RefundResult>;
-  
+
   // Health check
   isConnected(): Promise<boolean>;
 }

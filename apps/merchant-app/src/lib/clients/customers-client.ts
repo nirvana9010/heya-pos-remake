@@ -1,4 +1,4 @@
-import { BaseApiClient, resolveApiBaseUrl } from './base-client';
+import { BaseApiClient, resolveApiBaseUrl } from "./base-client";
 
 export interface Customer {
   id: string;
@@ -37,7 +37,7 @@ export interface UpdateCustomerRequest {
 }
 
 export interface CustomerImportOptions {
-  duplicateAction: 'skip' | 'update';
+  duplicateAction: "skip" | "update";
   skipInvalidRows: boolean;
 }
 
@@ -64,7 +64,7 @@ export interface CustomerImportPreviewRow {
     errors: string[];
     warnings: string[];
   };
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
   existingCustomerId?: string;
 }
 
@@ -98,12 +98,16 @@ interface CustomerImportExecutionRow {
   validation: {
     isValid: boolean;
   };
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
   existingCustomerId?: string;
 }
 
 export class CustomersClient extends BaseApiClient {
-  async getCustomers(params?: { limit?: number; page?: number; search?: string }): Promise<{
+  async getCustomers(params?: {
+    limit?: number;
+    page?: number;
+    search?: string;
+  }): Promise<{
     data: Customer[];
     meta?: {
       total: number;
@@ -112,7 +116,7 @@ export class CustomersClient extends BaseApiClient {
       totalPages: number;
     };
   }> {
-    const response = await this.get('/customers', { params }, 'v1');
+    const response = await this.get("/customers", { params }, "v1");
     // Return full paginated response
     return response;
   }
@@ -123,23 +127,26 @@ export class CustomersClient extends BaseApiClient {
     total: number;
     hasMore: boolean;
   }> {
-    return this.get('/customers/search', { params: { q: query } }, 'v1');
+    return this.get("/customers/search", { params: { q: query } }, "v1");
   }
 
   async getCustomer(id: string): Promise<Customer> {
-    return this.get(`/customers/${id}`, undefined, 'v1');
+    return this.get(`/customers/${id}`, undefined, "v1");
   }
 
   async createCustomer(data: CreateCustomerRequest): Promise<Customer> {
-    return this.post('/customers', data, undefined, 'v1');
+    return this.post("/customers", data, undefined, "v1");
   }
 
-  async updateCustomer(id: string, data: UpdateCustomerRequest): Promise<Customer> {
-    return this.patch(`/customers/${id}`, data, undefined, 'v1');
+  async updateCustomer(
+    id: string,
+    data: UpdateCustomerRequest,
+  ): Promise<Customer> {
+    return this.patch(`/customers/${id}`, data, undefined, "v1");
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    return this.delete(`/customers/${id}`, undefined, 'v1');
+    return this.delete(`/customers/${id}`, undefined, "v1");
   }
 
   async getStats(): Promise<{
@@ -148,7 +155,7 @@ export class CustomersClient extends BaseApiClient {
     newThisMonth: number;
     totalRevenue: number;
   }> {
-    return this.get('/customers/stats', undefined, 'v1');
+    return this.get("/customers/stats", undefined, "v1");
   }
 
   async previewCustomerImport(
@@ -157,30 +164,33 @@ export class CustomersClient extends BaseApiClient {
     columnMappings?: Record<string, string>,
   ): Promise<CustomerImportPreview> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     Object.entries(options).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
 
     if (columnMappings) {
-      formData.append('columnMappings', JSON.stringify(columnMappings));
+      formData.append("columnMappings", JSON.stringify(columnMappings));
     }
 
     const API_BASE_URL = resolveApiBaseUrl();
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
 
-    const response = await fetch(`${API_BASE_URL}/v1/customers/import/preview`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
+    const response = await fetch(
+      `${API_BASE_URL}/v1/customers/import/preview`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       },
-      body: formData,
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Failed to preview customer import');
+      throw new Error(error.message || "Failed to preview customer import");
     }
 
     return response.json();
@@ -190,7 +200,7 @@ export class CustomersClient extends BaseApiClient {
     rows: CustomerImportPreviewRow[],
     options: CustomerImportOptions,
   ): Promise<CustomerImportResult> {
-    const payloadRows: CustomerImportExecutionRow[] = rows.map(row => ({
+    const payloadRows: CustomerImportExecutionRow[] = rows.map((row) => ({
       rowNumber: row.rowNumber,
       data: row.data,
       validation: {
@@ -200,6 +210,11 @@ export class CustomersClient extends BaseApiClient {
       existingCustomerId: row.existingCustomerId,
     }));
 
-    return this.post('/customers/import/execute', { rows: payloadRows, options }, undefined, 'v1');
+    return this.post(
+      "/customers/import/execute",
+      { rows: payloadRows, options },
+      undefined,
+      "v1",
+    );
   }
 }

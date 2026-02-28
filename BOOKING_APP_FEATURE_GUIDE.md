@@ -1,6 +1,7 @@
 # Heya POS Booking App - Customer Interface Feature Guide & Test Cases
 
 ## 🎯 Executive Summary
+
 The Booking App is the customer-facing interface for Heya POS, providing a multi-tenant booking platform where customers can discover services, book appointments, manage their bookings, and check in for their appointments. Each merchant has their own customized booking interface accessible via subdomain paths.
 
 ---
@@ -8,12 +9,14 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 🌐 Module 1: Multi-Tenant Architecture
 
 ### Features
+
 - **Subdomain-Based Access**: Each merchant has unique URL path (e.g., `/zen-wellness/`)
 - **Dynamic Branding**: Merchant-specific colors, logos, and themes
 - **Business Information**: Location, hours, contact details
 - **Timezone Support**: All times displayed in merchant's timezone
 
 ### Test Cases
+
 ```
 ✅ MERCHANT ACCESS
 □ Access merchant via correct subdomain path
@@ -37,6 +40,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 🏠 Module 2: Landing Page
 
 ### Features
+
 - **Business Showcase**: Welcome message, description, photos
 - **Popular Services**: Featured services with pricing
 - **Operating Hours**: Daily schedule with current status
@@ -45,6 +49,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Call-to-Actions**: Book Now, View Services, Contact Us
 
 ### Test Cases
+
 ```
 ✅ CONTENT DISPLAY
 □ Business name and description visible
@@ -69,6 +74,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 1: Service Selection
 
 #### Features
+
 - **Service Categories**: Organized by type (Massage, Facial, etc.)
 - **Search & Filter**: Find services quickly
 - **Multi-Service Selection**: Book multiple services at once
@@ -76,6 +82,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Service Details**: Descriptions and benefits
 
 #### Test Cases
+
 ```
 ✅ SERVICE BROWSING
 □ All active services display
@@ -97,12 +104,14 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 2: Staff Selection
 
 #### Features
+
 - **Staff Profiles**: Photos, names, experience
 - **"Any Available" Option**: System assigns best match
 - **Service Compatibility**: Only shows qualified staff
 - **Availability Preview**: Basic availability indicator
 
 #### Test Cases
+
 ```
 ✅ STAFF DISPLAY
 □ Only qualified staff shown for selected services
@@ -122,6 +131,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 3: Date & Time Selection
 
 #### Features
+
 - **Calendar View**: Horizontal date picker
 - **Availability Checking**: Real-time slot availability
 - **Time Grouping**: Morning, Afternoon, Evening slots
@@ -129,6 +139,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Advance Booking Limits**: Enforce merchant policies
 
 #### Test Cases
+
 ```
 ✅ DATE SELECTION
 □ Current date is highlighted
@@ -158,6 +169,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 4: Customer Information
 
 #### Features
+
 - **Returning Customer Check**: Phone/email lookup
 - **Auto-Population**: Previous customer data fills
 - **New Customer Registration**: Required fields validation
@@ -165,6 +177,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Contact Preferences**: SMS/Email opt-in
 
 #### Test Cases
+
 ```
 ✅ RETURNING CUSTOMER
 □ Phone number lookup works
@@ -192,6 +205,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 5: Payment (Optional)
 
 #### Features
+
 - **Deposit Collection**: If required by merchant
 - **Full Payment Option**: Pay entire amount upfront
 - **Secure Processing**: PCI-compliant payment
@@ -199,6 +213,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Receipt Generation**: Email confirmation
 
 #### Test Cases
+
 ```
 ✅ PAYMENT REQUIREMENTS
 □ Deposit amount calculates correctly
@@ -218,6 +233,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ### Step 6: Confirmation
 
 #### Features
+
 - **Booking Summary**: All details displayed
 - **Confirmation Number**: Unique booking reference
 - **Calendar Integration**: Add to Google/Apple Calendar
@@ -225,6 +241,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Print Option**: Printable confirmation
 
 #### Test Cases
+
 ```
 ✅ CONFIRMATION DISPLAY
 □ Booking ID shown prominently
@@ -247,6 +264,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 📱 Module 4: Customer Check-In
 
 ### Features
+
 - **Self-Service Check-In**: Customer-initiated arrival
 - **Phone Number Entry**: Simple identification
 - **Booking Display**: Show today's appointments
@@ -254,6 +272,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Status Updates**: Real-time merchant notification
 
 ### Test Cases
+
 ```
 ✅ CHECK-IN FLOW
 □ Phone number input formats correctly
@@ -290,6 +309,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 👤 Module 5: My Bookings (Customer Portal)
 
 ### Features
+
 - **Booking History**: Past and upcoming appointments
 - **Booking Management**: View, cancel, reschedule
 - **Quick Rebook**: Repeat previous services
@@ -297,6 +317,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - **Profile Management**: Update contact information
 
 ### Test Cases
+
 ```
 ✅ AUTHENTICATION
 □ Login with phone number
@@ -332,12 +353,14 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 🔄 Integration Points
 
 ### With Merchant App
+
 - **Real-Time Updates**: Check-ins appear instantly
 - **Availability Sync**: Live calendar updates
 - **Booking Notifications**: New booking alerts
 - **Status Changes**: Cancellations, modifications
 
 ### With Admin Dashboard
+
 - **Multi-Tenant Config**: Merchant settings applied
 - **Package Limits**: Booking restrictions enforced
 - **Analytics Tracking**: Customer behavior data
@@ -347,6 +370,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 🧪 Comprehensive Testing Scenarios
 
 ### Scenario 1: Complete Customer Journey
+
 ```
 1. Discovery
    □ Find merchant via search/link
@@ -371,6 +395,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ```
 
 ### Scenario 2: Edge Cases
+
 ```
 □ Book appointment at day boundary (11:45 PM)
 □ Book with "Any Available" staff
@@ -382,6 +407,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ```
 
 ### Scenario 3: Performance Testing
+
 ```
 □ Load landing page < 2 seconds
 □ Service search returns < 500ms
@@ -396,6 +422,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 🚨 Critical Test Points
 
 ### Data Validation
+
 - Email formats validated
 - Phone numbers formatted correctly
 - No SQL injection possible
@@ -403,6 +430,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - CSRF tokens present
 
 ### User Experience
+
 - Mobile-first responsive design
 - Accessible forms (ARIA labels)
 - Clear error messages
@@ -410,6 +438,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 - Success confirmations clear
 
 ### Business Logic
+
 - Availability accurately calculated
 - Pricing matches merchant settings
 - Timezone conversions correct
@@ -421,6 +450,7 @@ The Booking App is the customer-facing interface for Heya POS, providing a multi
 ## 📋 Test Accounts & URLs
 
 ### Test Merchants
+
 ```
 Zen Wellness:
 - URL: http://localhost:3001/zen-wellness
@@ -432,6 +462,7 @@ Hamilton Beauty Spa:
 ```
 
 ### Test Customers
+
 ```
 New Customer Test:
 - Use any unregistered phone number
@@ -447,6 +478,7 @@ Returning Customer:
 ## 🔑 Key Testing Checklist
 
 ### Mobile Testing (Priority)
+
 - [ ] Complete booking on iPhone Safari
 - [ ] Complete booking on Android Chrome
 - [ ] Check-in process on tablet
@@ -454,12 +486,14 @@ Returning Customer:
 - [ ] Touch interactions work smoothly
 
 ### Cross-Browser Testing
+
 - [ ] Chrome (latest)
 - [ ] Safari (latest)
 - [ ] Firefox (latest)
 - [ ] Edge (latest)
 
 ### Accessibility Testing
+
 - [ ] Keyboard navigation
 - [ ] Screen reader compatible
 - [ ] Color contrast ratios
@@ -467,6 +501,7 @@ Returning Customer:
 - [ ] Form labels present
 
 ### Performance Testing
+
 - [ ] Lighthouse score > 90
 - [ ] First Contentful Paint < 1.5s
 - [ ] Time to Interactive < 3s
@@ -475,5 +510,5 @@ Returning Customer:
 
 ---
 
-*Last Updated: 2025-01-09*
-*Version: 1.0*
+_Last Updated: 2025-01-09_
+_Version: 1.0_

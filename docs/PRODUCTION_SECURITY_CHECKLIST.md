@@ -5,17 +5,20 @@
 ### Before Deploying to Production
 
 - [ ] **Remove hardcoded demo PINs**
+
   - Search for: `pin === "1234"`
   - Remove all demo PIN validation code
   - Ensure only API validation remains
 
 - [ ] **Implement PIN verification endpoint**
+
   - `POST /api/v1/auth/verify-pin`
   - Validate against hashed PINs in database
   - Implement rate limiting
   - Track failed attempts
 
 - [ ] **Remove development hints**
+
   - All `process.env.NODE_ENV === 'development'` checks working
   - No PIN hints in production
   - No debug console logs in production
@@ -28,6 +31,7 @@
 ### PIN Storage Requirements
 
 1. **Database Schema**
+
    ```sql
    user_pins (
      user_id UUID,
@@ -40,6 +44,7 @@
    ```
 
 2. **API Implementation**
+
    ```typescript
    // Verify PIN endpoint
    POST /api/v1/auth/verify-pin
@@ -47,7 +52,7 @@
      "pin": "string",
      "feature": "reports|refunds|cancellations"
    }
-   
+
    Response:
    {
      "valid": boolean,
@@ -65,13 +70,15 @@
 ### Environment-Specific Code
 
 All development-only code is wrapped in:
+
 ```javascript
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   // Development only code
 }
 ```
 
 This includes:
+
 - Demo PIN validation
 - PIN hints in UI
 - Debug console logs
@@ -80,21 +87,24 @@ This includes:
 ### Testing Production Build
 
 1. **Build for production**
+
    ```bash
    NODE_ENV=production npm run build
    ```
 
 2. **Test PIN protection**
+
    - No demo hints visible
    - Demo PIN (1234) rejected
    - Only API validation works
    - No debug logs in console
 
 3. **Security audit**
+
    ```bash
    # Search for hardcoded values
    grep -r "1234" --include="*.js" --include="*.tsx" dist/
-   
+
    # Check for console.log
    grep -r "console.log.*[Pp][Ii][Nn]" dist/
    ```
@@ -118,14 +128,17 @@ This includes:
 ### Additional Security Layers
 
 1. **Two-Factor Authentication**
+
    - SMS verification for PIN reset
    - Email confirmation for sensitive changes
 
 2. **Biometric Support**
+
    - Fingerprint as PIN alternative
    - Face ID integration (mobile)
 
 3. **Time-Based Restrictions**
+
    - Limit access to business hours
    - Require additional auth outside hours
 
@@ -144,6 +157,7 @@ This includes:
 ### Emergency Procedures
 
 1. **Compromised PIN**
+
    - Immediate lockout capability
    - Force PIN reset on next login
    - Notify user of security event

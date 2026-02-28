@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { cn } from '@heya-pos/ui';
+import * as React from "react";
+import { cn } from "@heya-pos/ui";
 
-import type { Booking, Service } from './types';
+import type { Booking, Service } from "./types";
 
 export interface ServiceLookup {
   byId: Map<string, Service>;
@@ -13,7 +13,7 @@ export interface ServiceLookup {
   serviceColors: Map<string, string>;
 }
 
-export const DEFAULT_SERVICE_COLOR = '#94A3B8'; // slate-400
+export const DEFAULT_SERVICE_COLOR = "#94A3B8"; // slate-400
 
 const generateDeterministicColor = (seed: string): string => {
   if (!seed) {
@@ -30,7 +30,7 @@ const generateDeterministicColor = (seed: string): string => {
 };
 
 const normalizeColor = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     return null;
   }
 
@@ -40,7 +40,7 @@ const normalizeColor = (value: unknown): string | null => {
   }
 
   const lowered = trimmed.toLowerCase();
-  if (['auto', 'automatic', 'inherit', 'default', 'none'].includes(lowered)) {
+  if (["auto", "automatic", "inherit", "default", "none"].includes(lowered)) {
     return null;
   }
 
@@ -59,7 +59,7 @@ const pickNormalizedColor = (...values: unknown[]): string | null => {
 };
 
 const safeServiceId = (value: unknown): string | undefined => {
-  if (typeof value === 'string' && value.trim().length > 0) {
+  if (typeof value === "string" && value.trim().length > 0) {
     return value;
   }
 
@@ -72,12 +72,12 @@ const safeServiceId = (value: unknown): string | undefined => {
 };
 
 const safeCategoryId = (value: unknown): string | undefined => {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
   }
 
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);
   }
 
@@ -90,7 +90,7 @@ const safeCategoryId = (value: unknown): string | undefined => {
 };
 
 const toCategoryNameKey = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     return undefined;
   }
 
@@ -112,12 +112,15 @@ const deriveServiceItems = (
     fallbackCategoryId?: string,
     fallbackCategoryNameKey?: string,
   ) => {
-    const categoryId = safeCategoryId(fallbackCategoryId ?? serviceRecord?.categoryId);
+    const categoryId = safeCategoryId(
+      fallbackCategoryId ?? serviceRecord?.categoryId,
+    );
     const categoryNameKey =
-      fallbackCategoryNameKey ??
-      toCategoryNameKey(serviceRecord?.categoryName);
+      fallbackCategoryNameKey ?? toCategoryNameKey(serviceRecord?.categoryName);
 
-    const lookupColorById = categoryId ? lookup.categoryColors.get(categoryId) : null;
+    const lookupColorById = categoryId
+      ? lookup.categoryColors.get(categoryId)
+      : null;
     const lookupColorByName = categoryNameKey
       ? lookup.categoryColorsByName.get(categoryNameKey)
       : null;
@@ -136,7 +139,9 @@ const deriveServiceItems = (
 
     const resolvedColor =
       color ??
-      (serviceRecord?.id ? generateDeterministicColor(serviceRecord.id) : undefined) ??
+      (serviceRecord?.id
+        ? generateDeterministicColor(serviceRecord.id)
+        : undefined) ??
       generateDeterministicColor(name || key);
 
     items.push({ key, name, color: resolvedColor });
@@ -144,11 +149,15 @@ const deriveServiceItems = (
 
   if (Array.isArray(booking.services) && booking.services.length > 0) {
     booking.services.forEach((service, index) => {
-      const serviceId = safeServiceId((service as any)?.serviceId ?? (service as any)?.id);
+      const serviceId = safeServiceId(
+        (service as any)?.serviceId ?? (service as any)?.id,
+      );
       const matched = serviceId ? lookup.byId.get(serviceId) : undefined;
-      const matchedByName = matched || (typeof (service as any)?.name === 'string'
-        ? lookup.byName.get((service as any).name.toLowerCase())
-        : undefined);
+      const matchedByName =
+        matched ||
+        (typeof (service as any)?.name === "string"
+          ? lookup.byName.get((service as any).name.toLowerCase())
+          : undefined);
 
       const rawCategoryId =
         (service as any)?.categoryId ??
@@ -162,14 +171,14 @@ const deriveServiceItems = (
         (service as any)?.service?.name ??
         matchedByName?.name ??
         booking.serviceName ??
-        'Service';
+        "Service";
 
       const categoryNameKey = toCategoryNameKey(
         (service as any)?.categoryName ??
-        (service as any)?.category?.name ??
-        (service as any)?.service?.category?.name ??
-        matchedByName?.categoryName ??
-        matched?.categoryName,
+          (service as any)?.category?.name ??
+          (service as any)?.service?.category?.name ??
+          matchedByName?.categoryName ??
+          matched?.categoryName,
       );
 
       const categoryColor = pickNormalizedColor(
@@ -177,7 +186,9 @@ const deriveServiceItems = (
         (service as any)?.category?.color,
         (service as any)?.service?.category?.color,
         categoryId ? lookup.categoryColors.get(categoryId) : null,
-        categoryNameKey ? lookup.categoryColorsByName.get(categoryNameKey) : null,
+        categoryNameKey
+          ? lookup.categoryColorsByName.get(categoryNameKey)
+          : null,
       );
 
       const key = serviceId ?? `${booking.id}-service-${index}`;
@@ -198,7 +209,10 @@ const deriveServiceItems = (
 
   const serviceName = booking.serviceName?.trim();
   if (serviceName) {
-    const parts = serviceName.split(/\s*\+\s*/).map(part => part.trim()).filter(Boolean);
+    const parts = serviceName
+      .split(/\s*\+\s*/)
+      .map((part) => part.trim())
+      .filter(Boolean);
 
     if (parts.length > 1) {
       parts.forEach((name, index) => {
@@ -210,7 +224,9 @@ const deriveServiceItems = (
           matched,
           undefined,
           matched?.categoryId,
-          matched?.categoryName ? toCategoryNameKey(matched.categoryName) : undefined,
+          matched?.categoryName
+            ? toCategoryNameKey(matched.categoryName)
+            : undefined,
         );
       });
 
@@ -230,7 +246,8 @@ const deriveServiceItems = (
       categoryId ? lookup.categoryColors.get(categoryId) : null,
       categoryNameKey ? lookup.categoryColorsByName.get(categoryNameKey) : null,
     );
-    const key = booking.serviceId || matched?.id || `${booking.id}-primary-service`;
+    const key =
+      booking.serviceId || matched?.id || `${booking.id}-primary-service`;
     mapFromServiceRecord(
       key,
       serviceName,
@@ -242,7 +259,7 @@ const deriveServiceItems = (
     return items;
   }
 
-  mapFromServiceRecord(`${booking.id}-fallback`, 'Service');
+  mapFromServiceRecord(`${booking.id}-fallback`, "Service");
   return items;
 };
 
@@ -259,9 +276,12 @@ export const BookingServiceLabels: React.FC<BookingServiceLabelsProps> = ({
   lookup,
   className,
   textClassName,
-  dotClassName = 'h-2.5 w-2.5',
+  dotClassName = "h-2.5 w-2.5",
 }) => {
-  const serviceItems = React.useMemo(() => deriveServiceItems(booking, lookup), [booking, lookup]);
+  const serviceItems = React.useMemo(
+    () => deriveServiceItems(booking, lookup),
+    [booking, lookup],
+  );
 
   if (serviceItems.length === 0) {
     return null;
@@ -270,13 +290,13 @@ export const BookingServiceLabels: React.FC<BookingServiceLabelsProps> = ({
   if (serviceItems.length === 1) {
     const [item] = serviceItems;
     return (
-      <div className={cn('flex min-w-0 items-center gap-1', className)}>
+      <div className={cn("flex min-w-0 items-center gap-1", className)}>
         <span
-          className={cn('flex-shrink-0 rounded-full', dotClassName)}
+          className={cn("flex-shrink-0 rounded-full", dotClassName)}
           style={{ backgroundColor: item.color }}
           aria-hidden="true"
         />
-        <span className={cn('truncate', textClassName)} title={item.name}>
+        <span className={cn("truncate", textClassName)} title={item.name}>
           {item.name}
         </span>
       </div>
@@ -284,15 +304,15 @@ export const BookingServiceLabels: React.FC<BookingServiceLabelsProps> = ({
   }
 
   return (
-    <div className={cn('flex min-w-0 flex-col gap-0.5', className)}>
-      {serviceItems.map(item => (
+    <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
+      {serviceItems.map((item) => (
         <div key={item.key} className="flex min-w-0 items-center gap-1">
           <span
-            className={cn('flex-shrink-0 rounded-full', dotClassName)}
+            className={cn("flex-shrink-0 rounded-full", dotClassName)}
             style={{ backgroundColor: item.color }}
             aria-hidden="true"
           />
-          <span className={cn('truncate', textClassName)} title={item.name}>
+          <span className={cn("truncate", textClassName)} title={item.name}>
             {item.name}
           </span>
         </div>
@@ -308,7 +328,7 @@ export const createServiceLookup = (services: Service[]): ServiceLookup => {
   const categoryColorsByName = new Map<string, string>();
   const serviceColors = new Map<string, string>();
 
-  services.forEach(service => {
+  services.forEach((service) => {
     if (service.id) {
       byId.set(service.id, service);
     }
@@ -318,8 +338,12 @@ export const createServiceLookup = (services: Service[]): ServiceLookup => {
         byName.set(key, service);
       }
     }
-    const normalizedColor = normalizeColor(service.categoryColor ?? service.color);
-    const normalizedServiceColor = normalizeColor(service.color ?? service.categoryColor);
+    const normalizedColor = normalizeColor(
+      service.categoryColor ?? service.color,
+    );
+    const normalizedServiceColor = normalizeColor(
+      service.color ?? service.categoryColor,
+    );
     if (service.categoryId && normalizedColor) {
       categoryColors.set(service.categoryId, normalizedColor);
     }

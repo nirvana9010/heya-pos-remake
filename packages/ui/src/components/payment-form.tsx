@@ -1,7 +1,14 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./card";
 import { Input } from "./input";
 import { Label } from "./label";
 import { RadioGroup, RadioGroupItem } from "./radio-group";
@@ -17,7 +24,11 @@ interface PaymentFormProps {
   className?: string;
 }
 
-export type PaymentMethod = 'card' | 'cash' | 'bank-transfer' | 'digital-wallet';
+export type PaymentMethod =
+  | "card"
+  | "cash"
+  | "bank-transfer"
+  | "digital-wallet";
 
 export interface PaymentDetails {
   method: PaymentMethod;
@@ -27,20 +38,29 @@ export interface PaymentDetails {
   change?: number;
 }
 
-const defaultMethods: PaymentMethod[] = ['card', 'cash', 'bank-transfer', 'digital-wallet'];
+const defaultMethods: PaymentMethod[] = [
+  "card",
+  "cash",
+  "bank-transfer",
+  "digital-wallet",
+];
 
 const quickCashAmounts = [5, 10, 20, 50, 100];
 
 export function PaymentForm({
   amount,
-  currency = 'AUD',
+  currency = "AUD",
   onPaymentComplete,
   onCancel,
   allowedMethods = defaultMethods,
-  className
+  className,
 }: PaymentFormProps) {
-  const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethod>(allowedMethods[0]);
-  const [cashReceived, setCashReceived] = React.useState<string>(amount.toString());
+  const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethod>(
+    allowedMethods[0],
+  );
+  const [cashReceived, setCashReceived] = React.useState<string>(
+    amount.toString(),
+  );
   const [reference, setReference] = React.useState("");
   const [processing, setProcessing] = React.useState(false);
 
@@ -50,19 +70,19 @@ export function PaymentForm({
   }, [cashReceived, amount]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
+    return new Intl.NumberFormat("en-AU", {
+      style: "currency",
       currency,
     }).format(value);
   };
 
   const handleSubmit = async () => {
     setProcessing(true);
-    
+
     const details: PaymentDetails = {
       method: selectedMethod,
       amount,
-      ...(selectedMethod === 'cash' && {
+      ...(selectedMethod === "cash" && {
         cashReceived: parseFloat(cashReceived),
         change,
       }),
@@ -70,20 +90,20 @@ export function PaymentForm({
     };
 
     // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     onPaymentComplete(selectedMethod, details);
     setProcessing(false);
   };
 
   const isValid = () => {
     switch (selectedMethod) {
-      case 'cash':
+      case "cash":
         return parseFloat(cashReceived) >= amount;
-      case 'bank-transfer':
-      case 'digital-wallet':
+      case "bank-transfer":
+      case "digital-wallet":
         return reference.trim().length > 0;
-      case 'card':
+      case "card":
         return true; // Card validation handled by Stripe
       default:
         return false;
@@ -99,28 +119,42 @@ export function PaymentForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={selectedMethod} onValueChange={(v) => setSelectedMethod(v as PaymentMethod)}>
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${allowedMethods.length}, 1fr)` }}>
-            {allowedMethods.includes('card') && (
+        <Tabs
+          value={selectedMethod}
+          onValueChange={(v) => setSelectedMethod(v as PaymentMethod)}
+        >
+          <TabsList
+            className="grid w-full"
+            style={{
+              gridTemplateColumns: `repeat(${allowedMethods.length}, 1fr)`,
+            }}
+          >
+            {allowedMethods.includes("card") && (
               <TabsTrigger value="card" className="flex items-center gap-1">
                 <CreditCard className="h-4 w-4" />
                 Card
               </TabsTrigger>
             )}
-            {allowedMethods.includes('cash') && (
+            {allowedMethods.includes("cash") && (
               <TabsTrigger value="cash" className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
                 Cash
               </TabsTrigger>
             )}
-            {allowedMethods.includes('bank-transfer') && (
-              <TabsTrigger value="bank-transfer" className="flex items-center gap-1">
+            {allowedMethods.includes("bank-transfer") && (
+              <TabsTrigger
+                value="bank-transfer"
+                className="flex items-center gap-1"
+              >
                 <Calculator className="h-4 w-4" />
                 Bank
               </TabsTrigger>
             )}
-            {allowedMethods.includes('digital-wallet') && (
-              <TabsTrigger value="digital-wallet" className="flex items-center gap-1">
+            {allowedMethods.includes("digital-wallet") && (
+              <TabsTrigger
+                value="digital-wallet"
+                className="flex items-center gap-1"
+              >
                 <Smartphone className="h-4 w-4" />
                 Digital
               </TabsTrigger>
@@ -182,13 +216,15 @@ export function PaymentForm({
               </div>
             )}
 
-            {parseFloat(cashReceived) < amount && parseFloat(cashReceived) > 0 && (
-              <div className="rounded-lg border p-4 bg-red-50">
-                <p className="text-sm text-red-800">
-                  Insufficient amount. Need {formatCurrency(amount - parseFloat(cashReceived))} more.
-                </p>
-              </div>
-            )}
+            {parseFloat(cashReceived) < amount &&
+              parseFloat(cashReceived) > 0 && (
+                <div className="rounded-lg border p-4 bg-red-50">
+                  <p className="text-sm text-red-800">
+                    Insufficient amount. Need{" "}
+                    {formatCurrency(amount - parseFloat(cashReceived))} more.
+                  </p>
+                </div>
+              )}
           </TabsContent>
 
           <TabsContent value="bank-transfer" className="space-y-4">
@@ -205,8 +241,10 @@ export function PaymentForm({
             <div className="rounded-lg border p-4 bg-blue-50">
               <p className="text-sm font-medium">Bank Details:</p>
               <p className="text-xs text-muted-foreground mt-1">
-                BSB: 123-456<br />
-                Account: 12345678<br />
+                BSB: 123-456
+                <br />
+                Account: 12345678
+                <br />
                 Name: Business Name
               </p>
             </div>
@@ -256,7 +294,7 @@ export function PaymentForm({
           disabled={!isValid() || processing}
           className="ml-auto"
         >
-          {processing ? 'Processing...' : 'Process Payment'}
+          {processing ? "Processing..." : "Process Payment"}
         </Button>
       </CardFooter>
     </Card>

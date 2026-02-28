@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { AuthGuard } from './AuthGuard';
-import { PrefetchManager } from './PrefetchManager';
-import { PerformanceMonitor } from './PerformanceMonitor';
-import { TimezoneProvider } from '@/contexts/timezone-context';
-import { AuthProvider } from '@/lib/auth/auth-provider';
-import { QueryProvider } from '@/lib/query/query-provider';
-import { NotificationsProvider } from '@/contexts/notifications-context';
-import { BookingProvider } from '@/contexts/booking-context';
-import { StaffSessionProvider } from '@/contexts/staff-session-context';
-import { ClearCorruptedAuth } from './ClearCorruptedAuth';
-import { TyroSDKLoader } from './TyroSDKLoader';
+import { usePathname } from "next/navigation";
+import { AuthGuard } from "./AuthGuard";
+import { PrefetchManager } from "./PrefetchManager";
+import { PerformanceMonitor } from "./PerformanceMonitor";
+import { TimezoneProvider } from "@/contexts/timezone-context";
+import { AuthProvider } from "@/lib/auth/auth-provider";
+import { QueryProvider } from "@/lib/query/query-provider";
+import { NotificationsProvider } from "@/contexts/notifications-context";
+import { BookingProvider } from "@/contexts/booking-context";
+import { StaffSessionProvider } from "@/contexts/staff-session-context";
+import { ClearCorruptedAuth } from "./ClearCorruptedAuth";
+import { TyroSDKLoader } from "./TyroSDKLoader";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login';
-  const isTestPage = pathname.startsWith('/test');
-  const needsNotifications = pathname === '/test-notifications';
+  const isAuthPage = pathname === "/login";
+  const isTestPage = pathname.startsWith("/test");
+  const needsNotifications = pathname === "/test-notifications";
 
   return (
     <QueryProvider>
@@ -30,9 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         ) : isTestPage ? (
           // Test pages may need notifications context
           needsNotifications ? (
-            <NotificationsProvider>
-              {children}
-            </NotificationsProvider>
+            <NotificationsProvider>{children}</NotificationsProvider>
           ) : (
             children
           )

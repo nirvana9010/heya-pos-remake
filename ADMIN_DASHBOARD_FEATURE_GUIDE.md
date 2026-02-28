@@ -1,6 +1,7 @@
 # Heya POS Admin Dashboard - System Administration Feature Guide & Test Cases
 
 ## 🎯 Executive Summary
+
 The Admin Dashboard is the super-admin interface for Heya POS, providing centralized control over all merchants, system configuration, monitoring, and platform-wide analytics. This is the command center for managing the entire multi-tenant platform.
 
 ---
@@ -8,6 +9,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 🔐 Module 1: Authentication & Access Control
 
 ### Features
+
 - **Admin-Only Access**: Restricted to platform administrators
 - **Role-Based Permissions**: Different admin levels (Super Admin, Support, Read-Only)
 - **Secure Authentication**: JWT-based with enhanced security
@@ -15,6 +17,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Session Management**: Timeout and concurrent session controls
 
 ### Test Cases
+
 ```
 ✅ AUTHENTICATION
 □ Login with admin credentials
@@ -37,6 +40,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 📊 Module 2: System Dashboard
 
 ### Features
+
 - **Platform Metrics**: Real-time system statistics
 - **Health Monitoring**: System status and performance
 - **Revenue Overview**: Platform-wide financial metrics
@@ -45,6 +49,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Alert Center**: System warnings and notifications
 
 ### Test Cases
+
 ```
 ✅ METRICS DISPLAY
 □ Total merchants count accurate
@@ -74,6 +79,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 🏢 Module 3: Merchant Management
 
 ### Features
+
 - **Merchant Directory**: Complete list with search/filter
 - **Merchant Creation**: Onboard new businesses
 - **Profile Management**: Edit merchant details
@@ -84,6 +90,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ### Test Cases
 
 #### Merchant Listing
+
 ```
 ✅ MERCHANT DIRECTORY
 □ All merchants displayed in table
@@ -104,6 +111,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 #### Create New Merchant
+
 ```
 ✅ MERCHANT CREATION
 □ Business name required and validated
@@ -139,6 +147,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 #### Merchant Details View
+
 ```
 ✅ MERCHANT INFORMATION
 □ Business details displayed
@@ -174,6 +183,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 #### Edit Merchant
+
 ```
 ✅ PROFILE UPDATES
 □ Business name editable
@@ -215,6 +225,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 👥 Module 4: User Management
 
 ### Features
+
 - **Global User Directory**: All users across all merchants
 - **User Search**: Find users across the platform
 - **Access Management**: Enable/disable accounts
@@ -223,6 +234,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Support Tools**: Password resets, unlock accounts
 
 ### Test Cases
+
 ```
 ✅ USER DIRECTORY
 □ All platform users listed
@@ -256,6 +268,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 📦 Module 5: Package & Subscription Management
 
 ### Features
+
 - **Package Templates**: Define subscription tiers
 - **Feature Controls**: Set package limitations
 - **Pricing Management**: Configure billing amounts
@@ -264,6 +277,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Promotion Codes**: Discount and trial extensions
 
 ### Test Cases
+
 ```
 ✅ PACKAGE CONFIGURATION
 □ View all package types
@@ -296,6 +310,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 📈 Module 6: Analytics & Reporting
 
 ### Features
+
 - **Platform Analytics**: System-wide metrics
 - **Financial Reports**: Revenue and billing summaries
 - **Usage Analytics**: Feature and resource utilization
@@ -304,6 +319,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Custom Reports**: Build specific queries
 
 ### Test Cases
+
 ```
 ✅ PLATFORM METRICS
 □ Total revenue calculation correct
@@ -335,6 +351,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## ⚙️ Module 7: System Configuration
 
 ### Features
+
 - **Global Settings**: Platform-wide configuration
 - **Feature Flags**: Control feature rollouts
 - **Email Templates**: Customize system emails
@@ -343,6 +360,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Maintenance Mode**: System maintenance controls
 
 ### Test Cases
+
 ```
 ✅ GLOBAL SETTINGS
 □ Platform name/branding
@@ -373,6 +391,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 🔧 Module 8: System Monitoring
 
 ### Features
+
 - **Real-Time Monitoring**: Live system metrics
 - **Error Tracking**: Application errors and exceptions
 - **Performance Monitoring**: Response times and throughput
@@ -381,6 +400,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - **Alert Management**: Configure monitoring alerts
 
 ### Test Cases
+
 ```
 ✅ SYSTEM HEALTH
 □ Server CPU usage displayed
@@ -412,6 +432,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 🧪 Comprehensive Testing Scenarios
 
 ### Scenario 1: New Merchant Onboarding
+
 ```
 1. Create Merchant
    □ Enter business details
@@ -419,13 +440,13 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
    □ Select starter package
    □ Skip trial period
    □ Generate credentials
-   
+
 2. Configure Merchant
    □ Add business location
    □ Set timezone
    □ Upload logo
    □ Configure features
-   
+
 3. Verify Setup
    □ Access merchant dashboard
    □ Check booking app URL
@@ -434,6 +455,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 ### Scenario 2: Trial Management
+
 ```
 □ View merchant in trial
 □ Check trial end date (30 days)
@@ -445,18 +467,19 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 ### Scenario 3: System Maintenance
+
 ```
 1. Pre-Maintenance
    □ Schedule maintenance window
    □ Notify all merchants
    □ Set maintenance message
-   
+
 2. During Maintenance
    □ Enable maintenance mode
    □ Verify customer-facing apps show message
    □ Admin access still works
    □ Monitor system health
-   
+
 3. Post-Maintenance
    □ Disable maintenance mode
    □ Verify all services restored
@@ -465,6 +488,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ```
 
 ### Scenario 4: Performance Investigation
+
 ```
 □ Identify slow merchant
 □ Check usage statistics
@@ -480,6 +504,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 🚨 Critical Test Points
 
 ### Data Integrity
+
 - Merchant isolation verified
 - No cross-tenant data leaks
 - Audit logs complete
@@ -487,6 +512,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - Data export accurate
 
 ### Security
+
 - Admin authentication strong
 - Session management secure
 - Audit trail comprehensive
@@ -494,6 +520,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 - Access controls enforced
 
 ### Performance
+
 - Dashboard loads < 2 seconds
 - Merchant list handles 1000+ entries
 - Search returns < 500ms
@@ -505,6 +532,7 @@ The Admin Dashboard is the super-admin interface for Heya POS, providing central
 ## 📋 Admin Access & Test Scenarios
 
 ### Test Credentials
+
 ```
 Super Admin:
 - Email: admin@heyapos.com
@@ -518,6 +546,7 @@ Support Admin:
 ```
 
 ### Test URLs
+
 ```
 Production:
 - Admin Dashboard: https://admin.heyapos.com
@@ -531,6 +560,7 @@ Development:
 ## 🔑 Key Administrative Tasks Checklist
 
 ### Daily Tasks
+
 - [ ] Check system health dashboard
 - [ ] Review error logs
 - [ ] Monitor active merchants
@@ -538,6 +568,7 @@ Development:
 - [ ] Review new registrations
 
 ### Weekly Tasks
+
 - [ ] Generate usage reports
 - [ ] Review merchant performance
 - [ ] Check package limit violations
@@ -545,6 +576,7 @@ Development:
 - [ ] Review and action support tickets
 
 ### Monthly Tasks
+
 - [ ] Platform analytics review
 - [ ] Revenue reconciliation
 - [ ] Merchant satisfaction metrics
@@ -552,6 +584,7 @@ Development:
 - [ ] Security audit review
 
 ### Critical Operations
+
 - [ ] Emergency merchant suspension
 - [ ] System-wide maintenance mode
 - [ ] Bulk merchant notifications
@@ -563,6 +596,7 @@ Development:
 ## 📊 Metrics to Monitor
 
 ### Business Metrics
+
 - Monthly Recurring Revenue (MRR)
 - Customer Acquisition Cost (CAC)
 - Lifetime Value (LTV)
@@ -571,6 +605,7 @@ Development:
 - Average Revenue Per User (ARPU)
 
 ### System Metrics
+
 - Uptime percentage (target: 99.9%)
 - Average response time (< 200ms)
 - Error rate (< 0.1%)
@@ -579,6 +614,7 @@ Development:
 - API rate limit violations
 
 ### User Metrics
+
 - Daily active merchants
 - Bookings per merchant
 - Feature adoption rates
@@ -587,5 +623,5 @@ Development:
 
 ---
 
-*Last Updated: 2025-01-09*
-*Version: 1.0*
+_Last Updated: 2025-01-09_
+_Version: 1.0_

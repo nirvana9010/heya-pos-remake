@@ -1,7 +1,7 @@
-export { 
-  User, 
-  Phone, 
-  Mail, 
+export {
+  User,
+  Phone,
+  Mail,
   Calendar,
   Star,
   Crown,
@@ -16,5 +16,5 @@ export {
   Copy,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+  ChevronRight,
+} from "lucide-react";

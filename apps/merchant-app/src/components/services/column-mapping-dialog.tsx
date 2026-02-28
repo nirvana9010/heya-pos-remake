@@ -1,7 +1,27 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@heya-pos/ui";
 import { Button } from "@heya-pos/ui";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Alert, AlertDescription } from "@heya-pos/ui";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -19,18 +39,18 @@ interface ColumnMappingDialogProps {
   onConfirm: (mappings: Record<string, string>) => void;
 }
 
-const REQUIRED_FIELDS = ['name', 'price'];
-const OPTIONAL_FIELDS = ['id', 'category', 'description', 'duration', 'active'];
+const REQUIRED_FIELDS = ["name", "price"];
+const OPTIONAL_FIELDS = ["id", "category", "description", "duration", "active"];
 const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
 const FIELD_LABELS: Record<string, string> = {
-  id: 'Service ID',
-  name: 'Service Name',
-  category: 'Category',
-  description: 'Description',
-  duration: 'Duration',
-  price: 'Price',
-  active: 'Active Status'
+  id: "Service ID",
+  name: "Service Name",
+  category: "Category",
+  description: "Description",
+  duration: "Duration",
+  price: "Price",
+  active: "Active Status",
 };
 
 export function ColumnMappingDialog({
@@ -38,7 +58,7 @@ export function ColumnMappingDialog({
   onClose,
   csvHeaders,
   csvPreviewRows,
-  onConfirm
+  onConfirm,
 }: ColumnMappingDialogProps) {
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -46,30 +66,55 @@ export function ColumnMappingDialog({
   // Auto-detect mappings when dialog opens
   useEffect(() => {
     if (open && csvHeaders.length > 0) {
-      const autoMappings = csvHeaders.map(header => {
+      const autoMappings = csvHeaders.map((header) => {
         const lowerHeader = header.toLowerCase().trim();
         let detectedField: string | null = null;
 
         // Try to auto-detect based on common variations
-        if (lowerHeader === 'id' || lowerHeader.includes('service id') || lowerHeader.includes('service_id') || lowerHeader === 'code' || lowerHeader === 'sku') {
-          detectedField = 'id';
-        } else if (lowerHeader.includes('name') || lowerHeader === 'service' || lowerHeader === 'service name') {
-          detectedField = 'name';
-        } else if (lowerHeader.includes('price') || lowerHeader.includes('cost') || lowerHeader.includes('amount')) {
-          detectedField = 'price';
-        } else if (lowerHeader.includes('category') || lowerHeader === 'type') {
-          detectedField = 'category';
-        } else if (lowerHeader.includes('description') || lowerHeader.includes('desc')) {
-          detectedField = 'description';
-        } else if (lowerHeader.includes('duration') || lowerHeader.includes('time') || lowerHeader.includes('minutes')) {
-          detectedField = 'duration';
-        } else if (lowerHeader.includes('active') || lowerHeader.includes('status') || lowerHeader.includes('enabled')) {
-          detectedField = 'active';
+        if (
+          lowerHeader === "id" ||
+          lowerHeader.includes("service id") ||
+          lowerHeader.includes("service_id") ||
+          lowerHeader === "code" ||
+          lowerHeader === "sku"
+        ) {
+          detectedField = "id";
+        } else if (
+          lowerHeader.includes("name") ||
+          lowerHeader === "service" ||
+          lowerHeader === "service name"
+        ) {
+          detectedField = "name";
+        } else if (
+          lowerHeader.includes("price") ||
+          lowerHeader.includes("cost") ||
+          lowerHeader.includes("amount")
+        ) {
+          detectedField = "price";
+        } else if (lowerHeader.includes("category") || lowerHeader === "type") {
+          detectedField = "category";
+        } else if (
+          lowerHeader.includes("description") ||
+          lowerHeader.includes("desc")
+        ) {
+          detectedField = "description";
+        } else if (
+          lowerHeader.includes("duration") ||
+          lowerHeader.includes("time") ||
+          lowerHeader.includes("minutes")
+        ) {
+          detectedField = "duration";
+        } else if (
+          lowerHeader.includes("active") ||
+          lowerHeader.includes("status") ||
+          lowerHeader.includes("enabled")
+        ) {
+          detectedField = "active";
         }
 
         return {
           csvColumn: header,
-          field: detectedField
+          field: detectedField,
         };
       });
 
@@ -79,7 +124,7 @@ export function ColumnMappingDialog({
 
   const handleMappingChange = (index: number, field: string | null) => {
     const newMappings = [...mappings];
-    
+
     // If this field was already mapped elsewhere, clear it
     if (field) {
       newMappings.forEach((mapping, i) => {
@@ -88,7 +133,7 @@ export function ColumnMappingDialog({
         }
       });
     }
-    
+
     newMappings[index].field = field;
     setMappings(newMappings);
     setError(null);
@@ -96,14 +141,18 @@ export function ColumnMappingDialog({
 
   const validateMappings = () => {
     const mappedFields = mappings
-      .filter(m => m.field !== null)
-      .map(m => m.field);
+      .filter((m) => m.field !== null)
+      .map((m) => m.field);
 
     // Check if all required fields are mapped
-    const missingRequired = REQUIRED_FIELDS.filter(field => !mappedFields.includes(field));
-    
+    const missingRequired = REQUIRED_FIELDS.filter(
+      (field) => !mappedFields.includes(field),
+    );
+
     if (missingRequired.length > 0) {
-      setError(`Required fields not mapped: ${missingRequired.map(f => FIELD_LABELS[f]).join(', ')}`);
+      setError(
+        `Required fields not mapped: ${missingRequired.map((f) => FIELD_LABELS[f]).join(", ")}`,
+      );
       return false;
     }
 
@@ -118,7 +167,7 @@ export function ColumnMappingDialog({
 
     // Convert to mapping object
     const mappingObject: Record<string, string> = {};
-    mappings.forEach(mapping => {
+    mappings.forEach((mapping) => {
       if (mapping.field) {
         mappingObject[mapping.csvColumn] = mapping.field;
       }
@@ -129,14 +178,14 @@ export function ColumnMappingDialog({
 
   const getAvailableFields = (currentField: string | null) => {
     const mappedFields = mappings
-      .filter(m => m.field !== null && m.field !== currentField)
-      .map(m => m.field);
-    
-    return ALL_FIELDS.filter(field => !mappedFields.includes(field));
+      .filter((m) => m.field !== null && m.field !== currentField)
+      .map((m) => m.field);
+
+    return ALL_FIELDS.filter((field) => !mappedFields.includes(field));
   };
 
   const getMappedField = (field: string) => {
-    const mapping = mappings.find(m => m.field === field);
+    const mapping = mappings.find((m) => m.field === field);
     return mapping ? mapping.csvColumn : null;
   };
 
@@ -146,7 +195,8 @@ export function ColumnMappingDialog({
         <DialogHeader>
           <DialogTitle>Map CSV Columns</DialogTitle>
           <DialogDescription>
-            Match your CSV columns to the service fields. Required fields must be mapped.
+            Match your CSV columns to the service fields. Required fields must
+            be mapped.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,7 +205,7 @@ export function ColumnMappingDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Required Fields</h4>
-              {REQUIRED_FIELDS.map(field => (
+              {REQUIRED_FIELDS.map((field) => (
                 <div key={field} className="flex items-center gap-2 text-sm">
                   {getMappedField(field) ? (
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -164,14 +214,16 @@ export function ColumnMappingDialog({
                   )}
                   <span>{FIELD_LABELS[field]}</span>
                   {getMappedField(field) && (
-                    <span className="text-muted-foreground">→ {getMappedField(field)}</span>
+                    <span className="text-muted-foreground">
+                      → {getMappedField(field)}
+                    </span>
                   )}
                 </div>
               ))}
             </div>
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Optional Fields</h4>
-              {OPTIONAL_FIELDS.map(field => (
+              {OPTIONAL_FIELDS.map((field) => (
                 <div key={field} className="flex items-center gap-2 text-sm">
                   {getMappedField(field) ? (
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -180,7 +232,9 @@ export function ColumnMappingDialog({
                   )}
                   <span>{FIELD_LABELS[field]}</span>
                   {getMappedField(field) && (
-                    <span className="text-muted-foreground">→ {getMappedField(field)}</span>
+                    <span className="text-muted-foreground">
+                      → {getMappedField(field)}
+                    </span>
                   )}
                 </div>
               ))}
@@ -208,12 +262,14 @@ export function ColumnMappingDialog({
               <TableBody>
                 {mappings.map((mapping, index) => (
                   <TableRow key={mapping.csvColumn}>
-                    <TableCell className="font-medium">{mapping.csvColumn}</TableCell>
+                    <TableCell className="font-medium">
+                      {mapping.csvColumn}
+                    </TableCell>
                     <TableCell>
                       <div className="text-xs space-y-1">
                         {csvPreviewRows.slice(0, 3).map((row, rowIndex) => (
                           <div key={rowIndex} className="text-muted-foreground">
-                            {row[index] || '-'}
+                            {row[index] || "-"}
                           </div>
                         ))}
                       </div>
@@ -221,14 +277,21 @@ export function ColumnMappingDialog({
                     <TableCell>
                       <Select
                         value={mapping.field || "unmapped"}
-                        onValueChange={(value) => handleMappingChange(index, value === "unmapped" ? null : value)}
+                        onValueChange={(value) =>
+                          handleMappingChange(
+                            index,
+                            value === "unmapped" ? null : value,
+                          )
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="unmapped">Do not import</SelectItem>
-                          {getAvailableFields(mapping.field).map(field => (
+                          <SelectItem value="unmapped">
+                            Do not import
+                          </SelectItem>
+                          {getAvailableFields(mapping.field).map((field) => (
                             <SelectItem key={field} value={field}>
                               {FIELD_LABELS[field]}
                               {REQUIRED_FIELDS.includes(field) && " *"}
@@ -248,9 +311,7 @@ export function ColumnMappingDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm}>
-            Continue to Preview
-          </Button>
+          <Button onClick={handleConfirm}>Continue to Preview</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

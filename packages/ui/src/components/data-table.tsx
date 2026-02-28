@@ -58,12 +58,12 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
-  
+
   // Use controlled selection if provided, otherwise use internal state
   const rowSelection = controlledRowSelection ?? internalRowSelection;
 
@@ -78,8 +78,9 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: (updater) => {
-      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-      
+      const newSelection =
+        typeof updater === "function" ? updater(rowSelection) : updater;
+
       // If using controlled selection, just call the callback
       if (controlledRowSelection !== undefined && onRowSelectionChange) {
         onRowSelectionChange(newSelection);
@@ -112,7 +113,9 @@ export function DataTable<TData, TValue>({
           {searchKey && (
             <Input
               placeholder={`Search ${searchKey}...`}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+              value={
+                (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
+              }
               onChange={(event) =>
                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
               }
@@ -162,7 +165,7 @@ export function DataTable<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -181,7 +184,7 @@ export function DataTable<TData, TValue>({
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -237,7 +240,7 @@ export function DataTable<TData, TValue>({
 // Column helper for sorting
 export function createSortableColumn<TData>(
   accessorKey: string,
-  header: string
+  header: string,
 ): ColumnDef<TData> {
   return {
     accessorKey,
@@ -260,7 +263,7 @@ export function createActionsColumn<TData>(
   actions: Array<{
     label: string;
     onClick: (data: TData) => void;
-  }>
+  }>,
 ): ColumnDef<TData> {
   return {
     id: "actions",

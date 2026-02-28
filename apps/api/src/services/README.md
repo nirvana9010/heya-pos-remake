@@ -18,6 +18,7 @@ This module handles the service catalog system including services, categories, p
 ### Services
 
 #### Create Service
+
 ```bash
 POST /api/services
 Authorization: Bearer <token>
@@ -34,12 +35,14 @@ Authorization: Bearer <token>
 ```
 
 #### List Services
+
 ```bash
 GET /api/services?categoryId=xxx&isActive=true&minPrice=20&maxPrice=100
 Authorization: Bearer <token>
 ```
 
 Query parameters:
+
 - `categoryId` - Filter by category
 - `isActive` - Filter active/inactive
 - `searchTerm` - Search in name, description, category
@@ -49,6 +52,7 @@ Query parameters:
 - `sortBy` / `sortOrder` - Sorting
 
 #### Update Service
+
 ```bash
 PATCH /api/services/:id
 Authorization: Bearer <token>
@@ -59,15 +63,18 @@ Authorization: Bearer <token>
 ```
 
 #### Delete Service
+
 ```bash
 DELETE /api/services/:id
 Authorization: Bearer <token>
 ```
+
 Note: Services used in bookings are soft-deleted (deactivated)
 
 ### Categories
 
 #### Create Category
+
 ```bash
 POST /api/service-categories
 Authorization: Bearer <token>
@@ -80,13 +87,16 @@ Authorization: Bearer <token>
 ```
 
 #### List Categories
+
 ```bash
 GET /api/service-categories
 Authorization: Bearer <token>
 ```
+
 Returns categories with service counts
 
 #### Update Category
+
 ```bash
 PATCH /api/service-categories/:id
 Authorization: Bearer <token>
@@ -97,15 +107,18 @@ Authorization: Bearer <token>
 ```
 
 #### Delete Category
+
 ```bash
 DELETE /api/service-categories/:id
 Authorization: Bearer <token>
 ```
+
 Note: Cannot delete categories with existing services
 
 ### Import Operations
 
 #### Import from CSV
+
 ```bash
 POST /api/services/import/csv?updateExisting=false&createCategories=true
 Authorization: Bearer <token>
@@ -114,6 +127,7 @@ file: [CSV file]
 ```
 
 CSV Format (Hamilton Beauty):
+
 ```csv
 Service Name,Price,Duration (min),Category
 Full Legs Waxing,50,30,Waxing
@@ -121,6 +135,7 @@ Eyebrow Tinting,20,15,Tinting
 ```
 
 #### Import from JSON
+
 ```bash
 POST /api/services/import
 Authorization: Bearer <token>
@@ -141,6 +156,7 @@ Authorization: Bearer <token>
 ### Bulk Operations
 
 #### Reorder Services
+
 ```bash
 PATCH /api/services/reorder
 Authorization: Bearer <token>
@@ -151,6 +167,7 @@ Authorization: Bearer <token>
 ```
 
 #### Bulk Status Update
+
 ```bash
 PATCH /api/services/bulk/status
 Authorization: Bearer <token>
@@ -180,6 +197,7 @@ Authorization: Bearer <token>
 ## Import Results
 
 Import operations return:
+
 ```json
 {
   "imported": 45,

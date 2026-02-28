@@ -1,9 +1,13 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient } from "./base-client";
 
 export interface MerchantNotification {
   id: string;
-  type: 'booking_new' | 'booking_cancelled' | 'booking_modified' | 'payment_refunded';
-  priority: 'urgent' | 'important' | 'info';
+  type:
+    | "booking_new"
+    | "booking_cancelled"
+    | "booking_modified"
+    | "payment_refunded";
+  priority: "urgent" | "important" | "info";
   title: string;
   message: string;
   read: boolean;
@@ -37,7 +41,7 @@ export class NotificationsClient extends BaseApiClient {
     take?: number;
     unreadOnly?: boolean;
   }): Promise<NotificationsResponse> {
-    const result = await this.get('/merchant/notifications', { params });
+    const result = await this.get("/merchant/notifications", { params });
     return result;
   }
 
@@ -46,14 +50,16 @@ export class NotificationsClient extends BaseApiClient {
   }
 
   async markAllAsRead(): Promise<{ count: number }> {
-    return this.patch('/merchant/notifications/read-all');
+    return this.patch("/merchant/notifications/read-all");
   }
 
-  async deleteNotification(notificationId: string): Promise<{ success: boolean }> {
+  async deleteNotification(
+    notificationId: string,
+  ): Promise<{ success: boolean }> {
     return this.delete(`/merchant/notifications/${notificationId}`);
   }
 
   async deleteAllNotifications(): Promise<{ count: number }> {
-    return this.delete('/merchant/notifications');
+    return this.delete("/merchant/notifications");
   }
 }

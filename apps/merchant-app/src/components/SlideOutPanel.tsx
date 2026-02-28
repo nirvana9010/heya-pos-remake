@@ -24,9 +24,9 @@ interface SlideOutPanelProps {
 
 const widthClasses = {
   narrow: "max-w-md",
-  medium: "max-w-2xl", 
+  medium: "max-w-2xl",
   wide: "max-w-4xl",
-  full: "max-w-full"
+  full: "max-w-full",
 };
 
 export function SlideOutPanel({
@@ -90,7 +90,7 @@ export function SlideOutPanel({
 
     const timer = setTimeout(() => {
       const firstInput = contentRef.current?.querySelector<HTMLElement>(
-        'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])'
+        "input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])",
       );
       firstInput?.focus();
     }, 350); // After animation completes
@@ -102,15 +102,15 @@ export function SlideOutPanel({
   useEffect(() => {
     if (isOpen) {
       // Store original overflow value
-      const originalOverflow = document.body.style.overflow || '';
+      const originalOverflow = document.body.style.overflow || "";
       document.body.style.overflow = "hidden";
-      
+
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     } else {
       // Ensure overflow is reset when closed
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
   }, [isOpen]);
 
@@ -124,7 +124,7 @@ export function SlideOutPanel({
           className={cn(
             "fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-40",
             isVisible ? "opacity-100" : "opacity-0 pointer-events-none",
-            overlayClassName
+            overlayClassName,
           )}
           onClick={closeOnOverlayClick ? onClose : undefined}
           aria-hidden="true"
@@ -146,46 +146,45 @@ export function SlideOutPanel({
             width === "medium" && "max-w-2xl",
             width === "wide" && "max-w-4xl",
             width === "full" && "max-w-none w-full",
-            className
+            className,
           )}
           style={{ display: shouldRender || preserveState ? "flex" : "none" }}
         >
-        {/* Header */}
-        {(title || subtitle) && (
-          <div className="flex items-start justify-between p-6 border-b border-gray-200">
-            <div className="flex-1">
-              {title && (
-                <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-              )}
-              {subtitle && (
-                <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
-              )}
+          {/* Header */}
+          {(title || subtitle) && (
+            <div className="flex items-start justify-between p-6 border-b border-gray-200">
+              <div className="flex-1">
+                {title && (
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {title}
+                  </h2>
+                )}
+                {subtitle && (
+                  <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 ml-4 hover:bg-gray-100 rounded-lg"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 ml-4 hover:bg-gray-100 rounded-lg"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+          )}
 
-        {/* Content */}
-        <div 
-          ref={contentRef}
-          className="flex-1 overflow-y-auto p-6"
-        >
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
-            {footer}
+          {/* Content */}
+          <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
+            {children}
           </div>
-        )}
+
+          {/* Footer */}
+          {footer && (
+            <div className="border-t border-gray-200 p-6 bg-gray-50">
+              {footer}
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -196,7 +195,7 @@ export function SlideOutPanel({
 export function useSwipeToClose(
   isOpen: boolean,
   onClose: () => void,
-  threshold = 100
+  threshold = 100,
 ) {
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
@@ -220,7 +219,7 @@ export function useSwipeToClose(
 
     const handleTouchEnd = () => {
       const diff = currentXRef.current - startXRef.current;
-      
+
       if (diff > threshold) {
         onClose();
       } else if (panelRef.current) {

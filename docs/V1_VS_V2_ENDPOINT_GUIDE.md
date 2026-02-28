@@ -3,12 +3,14 @@
 ## Quick Reference
 
 ### Use V1 Endpoints For:
+
 - **Authentication** - All auth endpoints remain V1
 - **Simple CRUD Operations** - Staff, Customers, Services, etc.
 - **Existing Features** - Everything except bookings
 - **Public API** - All public endpoints use V1
 
 ### Use V2 Endpoints For:
+
 - **Bookings** - All booking-related operations
 - **Complex Business Logic** - Features with multiple states and workflows
 - **Event-Driven Features** - Where domain events are needed
@@ -16,6 +18,7 @@
 ## Complete Endpoint Reference
 
 ### Authentication (V1 Only)
+
 ```
 POST   /api/v1/auth/merchant/login
 POST   /api/v1/auth/refresh
@@ -28,6 +31,7 @@ GET    /api/v1/auth/health
 ```
 
 ### Bookings (V2 Only)
+
 ```
 GET    /api/v2/bookings              # List bookings with filtering
 GET    /api/v2/bookings/calendar     # Calendar view of bookings
@@ -42,6 +46,7 @@ DELETE /api/v2/bookings/:id          # Delete a booking
 ```
 
 ### Customers (V1 Only)
+
 ```
 GET    /api/v1/customers
 POST   /api/v1/customers
@@ -53,6 +58,7 @@ POST   /api/v1/customers/import
 ```
 
 ### Services (V1 Only)
+
 ```
 GET    /api/v1/services
 POST   /api/v1/services
@@ -66,6 +72,7 @@ PATCH  /api/v1/services/bulk/status
 ```
 
 ### Service Categories (V1 Only)
+
 ```
 GET    /api/v1/service-categories
 POST   /api/v1/service-categories
@@ -74,6 +81,7 @@ DELETE /api/v1/service-categories/:id
 ```
 
 ### Staff (V1 Only)
+
 ```
 GET    /api/v1/staff
 POST   /api/v1/staff
@@ -83,6 +91,7 @@ DELETE /api/v1/staff/:id
 ```
 
 ### Payments (V1 Only)
+
 ```
 POST   /api/v1/payments/process
 POST   /api/v1/payments/split
@@ -98,6 +107,7 @@ GET    /api/v1/payments
 ```
 
 ### Locations (V1 Only)
+
 ```
 GET    /api/v1/locations
 GET    /api/v1/locations/:id
@@ -106,6 +116,7 @@ PATCH  /api/v1/locations/:id/timezone
 ```
 
 ### Merchant (V1 Only)
+
 ```
 GET    /api/v1/merchant/settings
 PUT    /api/v1/merchant/settings
@@ -115,6 +126,7 @@ GET    /api/v1/merchant/settings/raw
 ```
 
 ### Loyalty (V1 Only)
+
 ```
 GET    /api/v1/loyalty/program
 POST   /api/v1/loyalty/program
@@ -126,6 +138,7 @@ GET    /api/v1/loyalty/check/:customerId
 ```
 
 ### Public Endpoints (V1 Only)
+
 ```
 GET    /api/v1/public/merchant-info
 GET    /api/v1/public/services
@@ -139,6 +152,7 @@ GET    /api/v1/public/availability
 ```
 
 ### Admin Endpoints (V1 Only)
+
 ```
 # Authentication
 POST   /api/v1/admin/login          # Admin login (temporary hardcoded)
@@ -165,12 +179,14 @@ GET    /api/v1/admin/outbox/unprocessed
 ## Key Differences
 
 ### V1 Endpoints
+
 - Direct database access through Prisma
 - Simple request/response pattern
 - Synchronous operations
 - Traditional REST semantics
 
 ### V2 Endpoints
+
 - Command/Query separation (CQRS)
 - Domain-driven design with bounded contexts
 - Event sourcing capabilities via Outbox pattern
@@ -179,30 +195,35 @@ GET    /api/v1/admin/outbox/unprocessed
 
 ## Migration Status
 
-| Feature | V1 Status | V2 Status | Notes |
-|---------|-----------|-----------|-------|
-| Authentication | ✅ Active | ❌ Not Planned | Will remain V1 |
-| Bookings | ❌ Removed | ✅ Active | Fully migrated to V2 |
-| Customers | ✅ Active | 🔄 Planned | Next migration candidate |
-| Services | ✅ Active | 🔄 Planned | Future migration |
-| Staff | ✅ Active | 🔄 Planned | Future migration |
-| Payments | ✅ Active | 🔄 Planned | Complex - needs careful planning |
-| Loyalty | ✅ Active | 🔄 Planned | Low priority |
-| Public API | ✅ Active | ❌ Not Planned | Will remain V1 for compatibility |
+| Feature        | V1 Status  | V2 Status      | Notes                            |
+| -------------- | ---------- | -------------- | -------------------------------- |
+| Authentication | ✅ Active  | ❌ Not Planned | Will remain V1                   |
+| Bookings       | ❌ Removed | ✅ Active      | Fully migrated to V2             |
+| Customers      | ✅ Active  | 🔄 Planned     | Next migration candidate         |
+| Services       | ✅ Active  | 🔄 Planned     | Future migration                 |
+| Staff          | ✅ Active  | 🔄 Planned     | Future migration                 |
+| Payments       | ✅ Active  | 🔄 Planned     | Complex - needs careful planning |
+| Loyalty        | ✅ Active  | 🔄 Planned     | Low priority                     |
+| Public API     | ✅ Active  | ❌ Not Planned | Will remain V1 for compatibility |
 
 ## Frontend Integration Notes
 
 ### API Client Configuration
+
 The frontend API client (`api-client.ts`) automatically routes to the correct version:
+
 - `/bookings/*` → `/api/v2/bookings/*`
 - All other paths → `/api/v1/*`
 
 ### Response Format Differences
+
 V2 endpoints may have different response formats:
+
 - V1: Direct database models (nested relations)
 - V2: Flattened DTOs optimized for frontend use
 
 Example:
+
 ```javascript
 // V1 Response
 {
@@ -231,14 +252,17 @@ Example:
 ### Common Issues
 
 1. **404 Not Found**
+
    - Check you're using the correct version prefix
    - Ensure the endpoint exists in that version
 
 2. **Different Response Format**
+
    - V2 endpoints return flattened/optimized data
    - Update frontend transformations accordingly
 
 3. **Missing Generic Operations**
+
    - V2 uses specific actions (start, complete, cancel)
    - No generic status updates in V2
 
@@ -249,12 +273,14 @@ Example:
 ## Future Roadmap
 
 ### Next V2 Migrations (Priority Order)
+
 1. **Customers** - Has complex relationships and would benefit from bounded context
 2. **Inventory** - Natural fit for event sourcing
 3. **Reporting** - Read models perfect for CQRS
 4. **Services** - Could benefit from rich domain logic
 
 ### Will Remain V1
+
 - Authentication (stable, no complex domain logic)
 - Public API (backward compatibility)
 - Simple lookups (locations, settings)

@@ -99,7 +99,9 @@ describe("AuthController.verifyAction", () => {
     const user = { merchantId: "merchant-1" };
     const req = { ip: "10.0.0.3", headers: {} };
 
-    await expect(controller.verifyAction(dto as any, user, req)).rejects.toThrow(
+    await expect(
+      controller.verifyAction(dto as any, user, req),
+    ).rejects.toThrow(
       new BadRequestException(
         "staffId is required (request body or x-active-staff-id header)",
       ),

@@ -1,10 +1,10 @@
 // Normalize potentially nested settings (handles { settings: { settings: { ... } } })
 function normalizeSettings(settings: any): any {
-  if (!settings || typeof settings !== 'object') return {};
+  if (!settings || typeof settings !== "object") return {};
 
   let normalized = { ...settings };
   // Unwrap nested settings if present
-  while (normalized.settings && typeof normalized.settings === 'object') {
+  while (normalized.settings && typeof normalized.settings === "object") {
     const inner = normalized.settings;
     delete normalized.settings;
     normalized = { ...normalized, ...inner };

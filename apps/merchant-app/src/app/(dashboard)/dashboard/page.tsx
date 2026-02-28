@@ -1,48 +1,73 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Skeleton } from '@heya-pos/ui';
-import { Calendar, Users, DollarSign, Clock, Plus, TrendingUp, Sparkles, Zap } from 'lucide-react';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { useDashboardStats, useTodayBookings } from '@/lib/query/hooks';
-import { StatCard } from '@/components/StatCard';
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Clock,
+  Plus,
+  TrendingUp,
+  Sparkles,
+  Zap,
+} from "lucide-react";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { useDashboardStats, useTodayBookings } from "@/lib/query/hooks";
+import { StatCard } from "@/components/StatCard";
 
 export default function DashboardPage() {
   const router = useRouter();
-  
+
   // Use React Query hooks for data fetching
-  const { 
-    data: stats, 
-    isLoading: statsLoading, 
+  const {
+    data: stats,
+    isLoading: statsLoading,
     error: statsError,
-    isRefetching: statsRefetching
+    isRefetching: statsRefetching,
   } = useDashboardStats();
-  
-  const { 
-    data: todayBookings = [], 
-    isLoading: bookingsLoading, 
+
+  const {
+    data: todayBookings = [],
+    isLoading: bookingsLoading,
     error: bookingsError,
-    isRefetching: bookingsRefetching
+    isRefetching: bookingsRefetching,
   } = useTodayBookings();
 
   // Determine overall loading state
   const isInitialLoad = statsLoading || bookingsLoading;
   const isRefreshing = statsRefetching || bookingsRefetching;
-  
+
   // Handle errors gracefully - don't let bookings error crash the whole page
   const hasStatsError = !!statsError;
   const hasBookingsError = !!bookingsError;
-  
+
   // Use empty array if bookings failed to load
   const safeBookings = hasBookingsError ? [] : todayBookings;
 
   const quickActions = [
-    { label: 'New Booking', icon: Plus, action: () => router.push('/bookings/new') },
-    { label: 'View Calendar', icon: Calendar, action: () => router.push('/calendar') },
-    { label: 'Customers', icon: Users, action: () => router.push('/customers') },
-    { label: 'Reports', icon: DollarSign, action: () => router.push('/reports') }
+    {
+      label: "New Booking",
+      icon: Plus,
+      action: () => router.push("/bookings/new"),
+    },
+    {
+      label: "View Calendar",
+      icon: Calendar,
+      action: () => router.push("/calendar"),
+    },
+    {
+      label: "Customers",
+      icon: Users,
+      action: () => router.push("/customers"),
+    },
+    {
+      label: "Reports",
+      icon: DollarSign,
+      action: () => router.push("/reports"),
+    },
   ];
 
   // Show skeleton during initial load
@@ -107,245 +132,309 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 style={{ 
-              fontSize: '2.5rem', 
-              marginBottom: '0.5rem',
-              color: 'var(--color-text-primary)'
-            }}>
+            <h1
+              style={{
+                fontSize: "2.5rem",
+                marginBottom: "0.5rem",
+                color: "var(--color-text-primary)",
+              }}
+            >
               Welcome back!
             </h1>
-            <p style={{ 
-              color: 'var(--color-text-secondary)', 
-              fontSize: '1.125rem'
-            }}>
+            <p
+              style={{
+                color: "var(--color-text-secondary)",
+                fontSize: "1.125rem",
+              }}
+            >
               Here's what's happening at your salon today
             </p>
           </div>
-          <button 
+          <button
             className="btn btn-primary"
-            onClick={() => router.push('/bookings/new')}
+            onClick={() => router.push("/bookings/new")}
           >
             <Plus size={18} />
             New Booking
           </button>
         </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Today's Bookings"
-          value={stats?.todayBookings || safeBookings.length || 0}
-          previousValue={stats?.bookingGrowth !== undefined ? 
-            (stats.todayBookings || 0) / (1 + stats.bookingGrowth / 100) : undefined}
-          icon={Calendar}
-          trendOptions={{ type: 'count' }}
-          loading={isInitialLoad || isRefreshing}
-        />
-        <StatCard
-          title="Today's Revenue"
-          value={`$${Math.round(Number(stats?.todayRevenue) || 0)}`}
-          previousValue={stats?.revenueGrowth !== undefined ?
-            (Number(stats?.todayRevenue) || 0) / (1 + stats.revenueGrowth / 100) : undefined}
-          icon={DollarSign}
-          trendOptions={{ type: 'currency' }}
-          loading={isInitialLoad || isRefreshing}
-        />
-        <StatCard
-          title="New Customers"
-          value={stats?.newCustomers || 0}
-          previousValue={stats?.customerGrowth !== undefined ?
-            (stats.newCustomers || 0) / (1 + stats.customerGrowth / 100) : undefined}
-          icon={Users}
-          trendOptions={{ type: 'count' }}
-          loading={isInitialLoad || isRefreshing}
-        />
-        <StatCard
-          title="Pending Bookings"
-          value={stats?.pendingBookings || 0}
-          icon={Clock}
-          iconColor="text-orange-600"
-          iconBgColor="bg-orange-100"
-          loading={isInitialLoad || isRefreshing}
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <h2 style={{ 
-          fontSize: '1.5rem',
-          marginBottom: '1.5rem',
-          color: 'var(--color-text-primary)'
-        }}>
-          Quick Actions
-        </h2>
-        <div className="quick-actions">
-          {quickActions.map((action, index) => (
-            <div
-              key={action.label}
-              className="quick-action"
-              onClick={action.action}
-            >
-              <div className="quick-action-icon">
-                <action.icon size={24} />
-              </div>
-              <span style={{ 
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: 'var(--color-text-primary)'
-              }}>
-                {action.label}
-              </span>
-            </div>
-          ))}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Today's Bookings"
+            value={stats?.todayBookings || safeBookings.length || 0}
+            previousValue={
+              stats?.bookingGrowth !== undefined
+                ? (stats.todayBookings || 0) / (1 + stats.bookingGrowth / 100)
+                : undefined
+            }
+            icon={Calendar}
+            trendOptions={{ type: "count" }}
+            loading={isInitialLoad || isRefreshing}
+          />
+          <StatCard
+            title="Today's Revenue"
+            value={`$${Math.round(Number(stats?.todayRevenue) || 0)}`}
+            previousValue={
+              stats?.revenueGrowth !== undefined
+                ? (Number(stats?.todayRevenue) || 0) /
+                  (1 + stats.revenueGrowth / 100)
+                : undefined
+            }
+            icon={DollarSign}
+            trendOptions={{ type: "currency" }}
+            loading={isInitialLoad || isRefreshing}
+          />
+          <StatCard
+            title="New Customers"
+            value={stats?.newCustomers || 0}
+            previousValue={
+              stats?.customerGrowth !== undefined
+                ? (stats.newCustomers || 0) / (1 + stats.customerGrowth / 100)
+                : undefined
+            }
+            icon={Users}
+            trendOptions={{ type: "count" }}
+            loading={isInitialLoad || isRefreshing}
+          />
+          <StatCard
+            title="Pending Bookings"
+            value={stats?.pendingBookings || 0}
+            icon={Clock}
+            iconColor="text-orange-600"
+            iconBgColor="bg-orange-100"
+            loading={isInitialLoad || isRefreshing}
+          />
         </div>
-      </div>
 
-      {/* Today's Schedule */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-6">
-          <h2 style={{ 
-            fontSize: '1.5rem',
-            color: 'var(--color-text-primary)',
-            margin: 0
-          }}>
-            Today's Schedule
-          </h2>
-          <button 
-            className="btn btn-secondary"
-            onClick={() => router.push('/bookings')}
+        {/* Quick Actions */}
+        <div className="card">
+          <h2
+            style={{
+              fontSize: "1.5rem",
+              marginBottom: "1.5rem",
+              color: "var(--color-text-primary)",
+            }}
           >
-            View All
-          </button>
-        </div>
-        
-        <div className="flex flex-col gap-4">
-          {isRefreshing ? (
-            <div className="text-center" style={{ 
-              padding: '4rem', 
-              color: 'var(--color-text-secondary)'
-            }}>
-              <div style={{ 
-                height: '60px', 
-                backgroundColor: 'var(--color-background-soft)',
-                borderRadius: '0.5rem',
-                marginBottom: '1rem',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-              <div style={{ 
-                height: '60px', 
-                backgroundColor: 'var(--bg-tertiary)',
-                borderRadius: 'var(--radius-md)',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-            </div>
-          ) : hasBookingsError ? (
-            <div className="text-center" style={{ 
-              padding: '4rem', 
-              color: 'var(--color-text-secondary)'
-            }}>
-              <Calendar size={48} style={{ 
-                margin: '0 auto 1.5rem', 
-                color: 'var(--color-error)',
-                opacity: 0.5
-              }} />
-              <p>Unable to load today's bookings</p>
-              <p style={{ fontSize: '0.875rem' }}>There's an issue with the booking system. Please try again later.</p>
-            </div>
-          ) : safeBookings.length === 0 ? (
-            <div className="text-center" style={{ 
-              padding: '4rem', 
-              color: 'var(--color-text-secondary)'
-            }}>
-              <Calendar size={48} style={{ 
-                margin: '0 auto 1.5rem', 
-                color: 'var(--color-primary)',
-                opacity: 0.5
-              }} />
-              <p>No bookings scheduled for today</p>
-              <p style={{ fontSize: '0.875rem' }}>Time to relax or catch up on other tasks!</p>
-            </div>
-          ) : (
-            // Use real booking data from React Query
-            safeBookings.map((booking, index) => (
+            Quick Actions
+          </h2>
+          <div className="quick-actions">
+            {quickActions.map((action, index) => (
               <div
-                key={booking.id}
-                className="card-interactive"
-                onClick={() => router.push(`/bookings/${booking.id}`)}
+                key={action.label}
+                className="quick-action"
+                onClick={action.action}
+              >
+                <div className="quick-action-icon">
+                  <action.icon size={24} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "500",
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  {action.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Today's Schedule */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                color: "var(--color-text-primary)",
+                margin: 0,
+              }}
+            >
+              Today's Schedule
+            </h2>
+            <button
+              className="btn btn-secondary"
+              onClick={() => router.push("/bookings")}
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {isRefreshing ? (
+              <div
+                className="text-center"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '1rem'
+                  padding: "4rem",
+                  color: "var(--color-text-secondary)",
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <div className="flex items-center gap-4">
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      background: 'var(--color-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: '600',
-                      fontSize: '0.875rem'
-                    }}>
-                      {booking.customerName.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <p style={{ 
-                        fontWeight: '600',
-                        color: 'var(--color-text-primary)',
-                        margin: 0,
-                        marginBottom: '4px'
-                      }}>
-                        {booking.customerName}
-                      </p>
-                      <p style={{ 
-                        fontSize: '0.875rem', 
-                        color: 'var(--color-text-secondary)',
-                        margin: 0
-                      }}>
-                        {booking.serviceName}
-                      </p>
+                <div
+                  style={{
+                    height: "60px",
+                    backgroundColor: "var(--color-background-soft)",
+                    borderRadius: "0.5rem",
+                    marginBottom: "1rem",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                ></div>
+                <div
+                  style={{
+                    height: "60px",
+                    backgroundColor: "var(--bg-tertiary)",
+                    borderRadius: "var(--radius-md)",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                ></div>
+              </div>
+            ) : hasBookingsError ? (
+              <div
+                className="text-center"
+                style={{
+                  padding: "4rem",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                <Calendar
+                  size={48}
+                  style={{
+                    margin: "0 auto 1.5rem",
+                    color: "var(--color-error)",
+                    opacity: 0.5,
+                  }}
+                />
+                <p>Unable to load today's bookings</p>
+                <p style={{ fontSize: "0.875rem" }}>
+                  There's an issue with the booking system. Please try again
+                  later.
+                </p>
+              </div>
+            ) : safeBookings.length === 0 ? (
+              <div
+                className="text-center"
+                style={{
+                  padding: "4rem",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                <Calendar
+                  size={48}
+                  style={{
+                    margin: "0 auto 1.5rem",
+                    color: "var(--color-primary)",
+                    opacity: 0.5,
+                  }}
+                />
+                <p>No bookings scheduled for today</p>
+                <p style={{ fontSize: "0.875rem" }}>
+                  Time to relax or catch up on other tasks!
+                </p>
+              </div>
+            ) : (
+              // Use real booking data from React Query
+              safeBookings.map((booking, index) => (
+                <div
+                  key={booking.id}
+                  className="card-interactive"
+                  onClick={() => router.push(`/bookings/${booking.id}`)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "1rem",
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div className="flex items-center gap-4">
+                      <div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          background: "var(--color-primary)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          fontWeight: "600",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        {booking.customerName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                      <div>
+                        <p
+                          style={{
+                            fontWeight: "600",
+                            color: "var(--color-text-primary)",
+                            margin: 0,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {booking.customerName}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "0.875rem",
+                            color: "var(--color-text-secondary)",
+                            margin: 0,
+                          }}
+                        >
+                          {booking.serviceName}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <div style={{ textAlign: "right", marginRight: "1rem" }}>
+                    <p
+                      style={{
+                        fontWeight: "600",
+                        color: "var(--color-text-primary)",
+                        margin: 0,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {booking.startTime}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--color-text-secondary)",
+                        margin: 0,
+                      }}
+                    >
+                      with {booking.staffName}
+                    </p>
+                  </div>
+                  <div>
+                    <span
+                      className={
+                        booking.status === "confirmed"
+                          ? "badge badge-success"
+                          : booking.status === "pending"
+                            ? "badge badge-warning"
+                            : booking.status === "in-progress"
+                              ? "badge badge-info"
+                              : "badge badge-error"
+                      }
+                    >
+                      {booking.status === "in-progress"
+                        ? "In Progress"
+                        : booking.status}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right', marginRight: '1rem' }}>
-                  <p style={{ 
-                    fontWeight: '600',
-                    color: 'var(--color-text-primary)',
-                    margin: 0,
-                    marginBottom: '4px'
-                  }}>
-                    {booking.startTime}
-                  </p>
-                  <p style={{ 
-                    fontSize: '0.875rem', 
-                    color: 'var(--color-text-secondary)',
-                    margin: 0
-                  }}>
-                    with {booking.staffName}
-                  </p>
-                </div>
-                <div>
-                  <span className={
-                    booking.status === 'confirmed' ? 'badge badge-success' :
-                    booking.status === 'pending' ? 'badge badge-warning' :
-                    booking.status === 'in-progress' ? 'badge badge-info' :
-                    'badge badge-error'
-                  }>
-                    {booking.status === 'in-progress' ? 'In Progress' : booking.status}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </ErrorBoundary>
   );
 }

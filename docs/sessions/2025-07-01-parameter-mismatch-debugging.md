@@ -11,7 +11,8 @@ After ~20 failed attempts to fix what appeared to be a status validation error, 
 ## Root Cause
 
 **Parameter mismatch in event handlers:**
-- `BookingActions` component called: `onStatusChange(bookingId, status)` 
+
+- `BookingActions` component called: `onStatusChange(bookingId, status)`
 - `BookingDetailsSlideOut` handler expected: `(status)`
 - Result: The booking ID (UUID) was passed as the status parameter, causing validation to fail
 
@@ -26,6 +27,7 @@ After ~20 failed attempts to fix what appeared to be a status validation error, 
 ## Critical Debugging Lessons
 
 ### 1. Always Log Actual Values
+
 ```typescript
 // Add logging at both ends
 console.log('Calling with:', param1, param2);
@@ -37,6 +39,7 @@ const handler = (received1, received2) => {
 ```
 
 ### 2. Check Parameter Signatures Match
+
 ```typescript
 // BAD: Mismatch in parameters
 // Caller: onStatusChange(bookingId, status)
@@ -44,20 +47,23 @@ const handler = (received1, received2) => {
 // Result: bookingId gets passed as status!
 
 // GOOD: Parameters match
-// Caller: onStatusChange(bookingId, status)  
+// Caller: onStatusChange(bookingId, status)
 // Handler: const handleStatusChange = (bookingId, status) => {}
 ```
 
 ### 3. Verify Component Usage
+
 - Check dynamic imports: `import('@/components/...')`
 - Don't waste time fixing files that aren't being loaded
 
 ### 4. Compare at Same Layer
+
 - UI handlers should be compared to UI handlers
 - Don't compare API calls to UI events
 - Working features might mask the same bug
 
 ### 5. Error Messages Can Mislead
+
 - "status: must be one of..." → Actually receiving a UUID
 - Focus on what's actually being passed, not what error says
 - Toast messages often reveal real values: "Booking marked as [UUID]"
@@ -105,9 +111,10 @@ const handleStatusChange = async (bookingId: string, newStatus: string) => {
 **WE HAD THE RIGHT CHECKLIST BUT DIDN'T FOLLOW IT!**
 
 The debugging checklist already said "CHECK BROWSER DEVTOOLS NETWORK TAB FIRST" but we ignored it and jumped straight to code changes. The Network tab would have shown:
+
 ```json
 {
-  "status": "5ab3f904-67ce-443e-8758-1e06233187"  // UUID instead of status string!
+  "status": "5ab3f904-67ce-443e-8758-1e06233187" // UUID instead of status string!
 }
 ```
 

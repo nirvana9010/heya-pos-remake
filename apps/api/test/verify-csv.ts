@@ -1,13 +1,16 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { parse } from 'csv-parse/sync';
+import * as fs from "fs";
+import * as path from "path";
+import { parse } from "csv-parse/sync";
 
-console.log('📄 Verifying Hamilton Beauty Services CSV...\n');
+console.log("📄 Verifying Hamilton Beauty Services CSV...\n");
 
 try {
-  const csvPath = path.join(__dirname, '../../../test-data/hamilton-beauty-services.csv');
-  const csvContent = fs.readFileSync(csvPath, 'utf-8');
-  
+  const csvPath = path.join(
+    __dirname,
+    "../../../test-data/hamilton-beauty-services.csv",
+  );
+  const csvContent = fs.readFileSync(csvPath, "utf-8");
+
   const records = parse(csvContent, {
     columns: true,
     skip_empty_lines: true,
@@ -27,44 +30,47 @@ try {
     categories.get(category)!.push(record);
   });
 
-  console.log('📋 Services by Category:');
-  console.log('═══════════════════════════════════════\n');
+  console.log("📋 Services by Category:");
+  console.log("═══════════════════════════════════════\n");
 
   categories.forEach((services, category) => {
     console.log(`${category} (${services.length} services):`);
-    services.forEach(service => {
-      console.log(`  - ${service['Service Name']} ($${service.Price}, ${service['Duration (min)']} min)`);
+    services.forEach((service) => {
+      console.log(
+        `  - ${service["Service Name"]} ($${service.Price}, ${service["Duration (min)"]} min)`,
+      );
     });
-    console.log('');
+    console.log("");
   });
 
-  console.log('💰 Price Analysis:');
-  console.log('═══════════════════════════════════════');
-  
+  console.log("💰 Price Analysis:");
+  console.log("═══════════════════════════════════════");
+
   const prices = records.map((r: any) => parseFloat(r.Price));
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const avgPrice = prices.reduce((a: number, b: number) => a + b, 0) / prices.length;
-  
+  const avgPrice =
+    prices.reduce((a: number, b: number) => a + b, 0) / prices.length;
+
   console.log(`  Minimum: $${minPrice}`);
   console.log(`  Maximum: $${maxPrice}`);
   console.log(`  Average: $${avgPrice.toFixed(2)}\n`);
 
-  console.log('⏱️  Duration Analysis:');
-  console.log('═══════════════════════════════════════');
-  
-  const durations = records.map((r: any) => parseInt(r['Duration (min)']));
+  console.log("⏱️  Duration Analysis:");
+  console.log("═══════════════════════════════════════");
+
+  const durations = records.map((r: any) => parseInt(r["Duration (min)"]));
   const minDuration = Math.min(...durations);
   const maxDuration = Math.max(...durations);
-  const avgDuration = durations.reduce((a: number, b: number) => a + b, 0) / durations.length;
-  
+  const avgDuration =
+    durations.reduce((a: number, b: number) => a + b, 0) / durations.length;
+
   console.log(`  Minimum: ${minDuration} minutes`);
   console.log(`  Maximum: ${maxDuration} minutes`);
   console.log(`  Average: ${avgDuration.toFixed(0)} minutes\n`);
 
-  console.log('✅ CSV verification complete!');
-  console.log('✅ Ready for import into the booking system');
-
+  console.log("✅ CSV verification complete!");
+  console.log("✅ Ready for import into the booking system");
 } catch (error) {
-  console.error('❌ Error loading CSV:', error.message);
+  console.error("❌ Error loading CSV:", error.message);
 }

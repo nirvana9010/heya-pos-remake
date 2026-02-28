@@ -1,9 +1,10 @@
-import apiClient from './api-client';
+import apiClient from "./api-client";
 
 // Broadcast channel for cross-tab communication
-const broadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window 
-  ? new BroadcastChannel('heya-pos-bookings') 
-  : null;
+const broadcastChannel =
+  typeof window !== "undefined" && "BroadcastChannel" in window
+    ? new BroadcastChannel("heya-pos-bookings")
+    : null;
 
 export interface Service {
   id: string;
@@ -93,13 +94,16 @@ export interface MerchantInfo {
   timezone: string;
   currency: string;
   address: string;
-  businessHours?: Record<string, {
-    isOpen?: boolean;
-    open?: string | null;
-    close?: string | null;
-    openTime?: string | null;
-    closeTime?: string | null;
-  }>;
+  businessHours?: Record<
+    string,
+    {
+      isOpen?: boolean;
+      open?: string | null;
+      close?: string | null;
+      openTime?: string | null;
+      closeTime?: string | null;
+    }
+  >;
   phone: string;
   email: string;
   requireDeposit: boolean;
@@ -120,26 +124,34 @@ export interface MerchantInfo {
 class BookingApi {
   // Get merchant info (public endpoint)
   async getMerchantInfo(): Promise<MerchantInfo> {
-    const response = await apiClient.get<MerchantInfo>('/public/merchant-info');
+    const response = await apiClient.get<MerchantInfo>("/public/merchant-info");
     return response;
   }
 
   // Get services available for booking (public endpoint)
   async getServices(): Promise<Service[]> {
-    const response = await apiClient.get<{ data: Service[] }>('/public/services');
+    const response = await apiClient.get<{ data: Service[] }>(
+      "/public/services",
+    );
     return response.data;
   }
 
   // Get service categories (public endpoint)
   async getCategories(): Promise<ServiceCategory[]> {
-    const response = await apiClient.get<{ data: ServiceCategory[] }>('/public/service-categories');
+    const response = await apiClient.get<{ data: ServiceCategory[] }>(
+      "/public/service-categories",
+    );
     return response.data || [];
   }
 
   // Get active staff members (public endpoint)
   async getStaff(params?: { date?: string }): Promise<Staff[]> {
-    const query = params?.date ? `?date=${encodeURIComponent(params.date)}` : '';
-    const response = await apiClient.get<{ data: Staff[] }>(`/public/staff${query}`);
+    const query = params?.date
+      ? `?date=${encodeURIComponent(params.date)}`
+      : "";
+    const response = await apiClient.get<{ data: Staff[] }>(
+      `/public/staff${query}`,
+    );
     return response.data;
   }
 
@@ -154,8 +166,8 @@ class BookingApi {
     }>;
   }): Promise<TimeSlot[]> {
     const response = await apiClient.post<{ slots: TimeSlot[] }>(
-      '/public/bookings/check-availability',
-      params
+      "/public/bookings/check-availability",
+      params,
     );
     return response.slots;
   }
@@ -164,36 +176,40 @@ class BookingApi {
   async createBooking(bookingData: CreateBookingData): Promise<Booking> {
     // Format date in local timezone to avoid UTC conversion issues
     const year = bookingData.date.getFullYear();
-    const month = String(bookingData.date.getMonth() + 1).padStart(2, '0');
-    const day = String(bookingData.date.getDate()).padStart(2, '0');
+    const month = String(bookingData.date.getMonth() + 1).padStart(2, "0");
+    const day = String(bookingData.date.getDate()).padStart(2, "0");
     const localDateString = `${year}-${month}-${day}`;
-    
+
     const formattedData = {
       ...bookingData,
       date: localDateString,
     };
-    
-    const response = await apiClient.post<Booking>('/public/bookings', formattedData);
-    
+
+    const response = await apiClient.post<Booking>(
+      "/public/bookings",
+      formattedData,
+    );
+
     // Broadcast booking creation event to other tabs/windows
     if (broadcastChannel && response) {
       try {
         broadcastChannel.postMessage({
-          type: 'booking_created',
+          type: "booking_created",
           bookingId: response.id,
-          source: 'ONLINE',
-          timestamp: Date.now()
+          source: "ONLINE",
+          timestamp: Date.now(),
         });
-      } catch (error) {
-      }
+      } catch (error) {}
     }
-    
+
     return response;
   }
 
   // Get booking by ID (for confirmation page)
   async getBooking(bookingId: string): Promise<Booking> {
-    const response = await apiClient.get<Booking>(`/public/bookings/${bookingId}`);
+    const response = await apiClient.get<Booking>(
+      `/public/bookings/${bookingId}`,
+    );
     return response;
   }
 
@@ -208,7 +224,7 @@ class BookingApi {
       phone: string;
     };
   }> {
-    const response = await apiClient.post('/public/customers/lookup', params);
+    const response = await apiClient.post("/public/customers/lookup", params);
     return response;
   }
 
@@ -244,7 +260,7 @@ class BookingApi {
     blankBookingCreated?: boolean;
     blankBookingError?: string;
   }> {
-    const response = await apiClient.post('/public/checkin', data);
+    const response = await apiClient.post("/public/checkin", data);
     return response;
   }
 
@@ -262,12 +278,14 @@ class BookingApi {
   }> {
     try {
       // Use the public endpoint that doesn't require authentication
-      const response = await apiClient.get(`/public/customers/${customerId}/bookings`);
-      
+      const response = await apiClient.get(
+        `/public/customers/${customerId}/bookings`,
+      );
+
       // The response already has the correct format from the API
       return response;
     } catch (error) {
-      console.error('Failed to fetch bookings:', error);
+      console.error("Failed to fetch bookings:", error);
       return { bookings: [] };
     }
   }
@@ -280,7 +298,9 @@ class BookingApi {
       status: string;
     };
   }> {
-    const response = await apiClient.post(`/public/bookings/${bookingId}/checkin`);
+    const response = await apiClient.post(
+      `/public/bookings/${bookingId}/checkin`,
+    );
     return response;
   }
 }

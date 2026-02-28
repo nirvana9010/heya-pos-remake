@@ -2,15 +2,46 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, MoreVertical, Edit, Eye, Building2, DollarSign, Users, AlertCircle, Copy, ExternalLink, Loader2, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Eye,
+  Building2,
+  DollarSign,
+  Users,
+  AlertCircle,
+  Copy,
+  ExternalLink,
+  Loader2,
+  X,
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { DataTable } from "@heya-pos/ui";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@heya-pos/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Alert, AlertDescription, AlertTitle } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
@@ -23,26 +54,28 @@ function MerchantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
+  const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subdomain: '',
-    password: '',
-    packageId: '',
-    abn: '',
-    skipTrial: false
+    name: "",
+    email: "",
+    phone: "",
+    subdomain: "",
+    password: "",
+    packageId: "",
+    abn: "",
+    skipTrial: false,
   });
   const [checkingAvailability, setCheckingAvailability] = useState({
-    subdomain: false
+    subdomain: false,
   });
   const [availability, setAvailability] = useState({
-    subdomain: true
+    subdomain: true,
   });
 
   useEffect(() => {
@@ -54,12 +87,12 @@ function MerchantsPage() {
       setLoading(true);
       const [merchantsData, packagesData] = await Promise.all([
         adminApi.getMerchants(),
-        adminApi.getPackages()
+        adminApi.getPackages(),
       ]);
       setMerchants(merchantsData);
       setPackages(packagesData);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error("Failed to load data:", error);
       toast({
         title: "Error",
         description: "Failed to load merchants",
@@ -72,73 +105,85 @@ function MerchantsPage() {
 
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (!subdomain || subdomain.length < 3) return;
-    
-    setCheckingAvailability(prev => ({ ...prev, subdomain: true }));
+
+    setCheckingAvailability((prev) => ({ ...prev, subdomain: true }));
     try {
       const result = await adminApi.checkSubdomainAvailability(subdomain);
-      setAvailability(prev => ({ ...prev, subdomain: result.available }));
+      setAvailability((prev) => ({ ...prev, subdomain: result.available }));
     } catch (error) {
-      console.error('Failed to check subdomain:', error);
+      console.error("Failed to check subdomain:", error);
     } finally {
-      setCheckingAvailability(prev => ({ ...prev, subdomain: false }));
+      setCheckingAvailability((prev) => ({ ...prev, subdomain: false }));
     }
   };
 
   const generateSubdomain = (name: string) => {
-    return name.toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
   };
 
   const generateUsername = (name: string) => {
     // Auto-generate username from merchant name
     // Remove special characters and spaces, convert to uppercase
-    return name.toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '')
+    return name
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "")
       .substring(0, 20);
   };
 
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({ ...prev, name }));
-    
+    setFormData((prev) => ({ ...prev, name }));
+
     // Auto-generate subdomain if not manually edited
-    if (!formData.subdomain || formData.subdomain === generateSubdomain(formData.name)) {
+    if (
+      !formData.subdomain ||
+      formData.subdomain === generateSubdomain(formData.name)
+    ) {
       const subdomain = generateSubdomain(name);
-      setFormData(prev => ({ ...prev, subdomain }));
+      setFormData((prev) => ({ ...prev, subdomain }));
       checkSubdomainAvailability(subdomain);
     }
   };
 
   const handleSubdomainChange = (subdomain: string) => {
-    const cleaned = subdomain.toLowerCase()
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/--+/g, '-')
-      .replace(/^-|-$/g, '');
-    setFormData(prev => ({ ...prev, subdomain: cleaned }));
+    const cleaned = subdomain
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/--+/g, "-")
+      .replace(/^-|-$/g, "");
+    setFormData((prev) => ({ ...prev, subdomain: cleaned }));
     checkSubdomainAvailability(cleaned);
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subdomain: '',
-      password: '',
-      packageId: '',
-      abn: '',
-      skipTrial: false
+      name: "",
+      email: "",
+      phone: "",
+      subdomain: "",
+      password: "",
+      packageId: "",
+      abn: "",
+      skipTrial: false,
     });
     setAvailability({
-      subdomain: true
+      subdomain: true,
     });
     setShowCreateForm(false);
   };
 
   const handleCreateMerchant = async () => {
     // Validate form
-    if (!formData.name || !formData.email || !formData.phone || !formData.subdomain || 
-        !formData.password || !formData.packageId) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.subdomain ||
+      !formData.password ||
+      !formData.packageId
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -159,15 +204,15 @@ function MerchantsPage() {
 
     try {
       setCreating(true);
-      
+
       // Auto-generate username from merchant name
       const username = generateUsername(formData.name);
-      
+
       const merchant = await adminApi.createMerchant({
         ...formData,
-        username
+        username,
       });
-      
+
       toast({
         title: "Success!",
         description: `Merchant "${merchant.name}" created successfully`,
@@ -186,11 +231,11 @@ Password: ${formData.password}
 Please save these credentials securely.
       `;
       alert(message);
-      
+
       resetForm();
       await loadData();
     } catch (error: any) {
-      console.error('Failed to create merchant:', error);
+      console.error("Failed to create merchant:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create merchant",
@@ -201,10 +246,12 @@ Please save these credentials securely.
     }
   };
 
-  const filteredMerchants = merchants.filter(merchant => {
-    const matchesSearch = merchant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         merchant.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || merchant.status === statusFilter;
+  const filteredMerchants = merchants.filter((merchant) => {
+    const matchesSearch =
+      merchant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      merchant.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || merchant.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -237,7 +284,7 @@ Please save these credentials securely.
       header: "Package",
       cell: ({ row }: any) => (
         <Badge variant="outline">
-          {row.original.subscription?.package?.name || 'Basic'}
+          {row.original.subscription?.package?.name || "Basic"}
         </Badge>
       ),
     },
@@ -245,7 +292,9 @@ Please save these credentials securely.
       accessorKey: "status",
       header: "Status",
       cell: ({ row }: any) => {
-        const status = row.original.status || (row.original.isActive ? 'ACTIVE' : 'INACTIVE');
+        const status =
+          row.original.status ||
+          (row.original.isActive ? "ACTIVE" : "INACTIVE");
         return (
           <Badge variant={status === "ACTIVE" ? "default" : "secondary"}>
             {status}
@@ -270,11 +319,15 @@ Please save these credentials securely.
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => router.push(`/merchants/${row.original.id}`)}>
+            <DropdownMenuItem
+              onClick={() => router.push(`/merchants/${row.original.id}`)}
+            >
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push(`/merchants/${row.original.id}/edit`)}>
+            <DropdownMenuItem
+              onClick={() => router.push(`/merchants/${row.original.id}/edit`)}
+            >
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </DropdownMenuItem>
@@ -288,29 +341,37 @@ Please save these credentials securely.
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Merchants</h1>
-        <p className="text-muted-foreground mt-1">Manage merchant accounts and subscriptions</p>
+        <p className="text-muted-foreground mt-1">
+          Manage merchant accounts and subscriptions
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Merchants</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Merchants
+            </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{merchants.length}</div>
-            <p className="text-xs text-muted-foreground">All registered merchants</p>
+            <p className="text-xs text-muted-foreground">
+              All registered merchants
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Merchants</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Merchants
+            </CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {merchants.filter(m => m.status === 'ACTIVE').length}
+              {merchants.filter((m) => m.status === "ACTIVE").length}
             </div>
             <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
@@ -324,7 +385,9 @@ Please save these credentials securely.
             <div className="text-2xl font-bold">
               {merchants.reduce((acc, m) => acc + (m._count?.staff || 0), 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Across all merchants</p>
+            <p className="text-xs text-muted-foreground">
+              Across all merchants
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -346,13 +409,11 @@ Please save these credentials securely.
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Create New Merchant</CardTitle>
-                <CardDescription>Add a new merchant to the platform</CardDescription>
+                <CardDescription>
+                  Add a new merchant to the platform
+                </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetForm}
-              >
+              <Button variant="ghost" size="sm" onClick={resetForm}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -369,45 +430,59 @@ Please save these credentials securely.
                     placeholder="e.g., Hamilton Beauty Salon"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email*</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
                     placeholder="merchant@example.com"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone*</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
                     placeholder="+61 400 000 000"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="abn">ABN (Optional)</Label>
                   <Input
                     id="abn"
                     value={formData.abn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, abn: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, abn: e.target.value }))
+                    }
                     placeholder="12 345 678 901"
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="subdomain">
                     Subdomain*
                     {checkingAvailability.subdomain && (
-                      <span className="ml-2 text-xs text-muted-foreground">Checking...</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        Checking...
+                      </span>
                     )}
                   </Label>
                   <div className="flex items-center gap-2">
@@ -416,31 +491,46 @@ Please save these credentials securely.
                       value={formData.subdomain}
                       onChange={(e) => handleSubdomainChange(e.target.value)}
                       placeholder="hamilton-beauty"
-                      className={!availability.subdomain && formData.subdomain ? 'border-destructive' : ''}
+                      className={
+                        !availability.subdomain && formData.subdomain
+                          ? "border-destructive"
+                          : ""
+                      }
                     />
-                    <span className="text-sm text-muted-foreground">.heya-pos.com</span>
+                    <span className="text-sm text-muted-foreground">
+                      .heya-pos.com
+                    </span>
                   </div>
                   {!availability.subdomain && formData.subdomain && (
-                    <p className="text-xs text-destructive">This subdomain is already taken</p>
+                    <p className="text-xs text-destructive">
+                      This subdomain is already taken
+                    </p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="password">Password*</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
                     placeholder="Enter a secure password"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="package">Package*</Label>
                   <Select
                     value={formData.packageId}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, packageId: value }))}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, packageId: value }))
+                    }
                   >
                     <SelectTrigger id="package">
                       <SelectValue placeholder="Select a package" />
@@ -456,31 +546,39 @@ Please save these credentials securely.
                 </div>
               </div>
             </div>
-            
+
             {/* Trial Period Button */}
             <div className="border-t pt-4 mt-4">
               <div className="space-y-2">
                 <Label>Trial Period Option</Label>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Choose whether to give the merchant a 30-day trial or full access immediately
+                  Choose whether to give the merchant a 30-day trial or full
+                  access immediately
                 </p>
                 <Button
                   type="button"
                   variant={formData.skipTrial ? "default" : "outline"}
-                  onClick={() => setFormData(prev => ({ ...prev, skipTrial: !prev.skipTrial }))}
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      skipTrial: !prev.skipTrial,
+                    }))
+                  }
                   className="w-full"
                 >
-                  {formData.skipTrial ? '✓ Full Access (No Trial)' : '30-Day Trial Period'}
+                  {formData.skipTrial
+                    ? "✓ Full Access (No Trial)"
+                    : "30-Day Trial Period"}
                 </Button>
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-4 mt-6">
               <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleCreateMerchant} 
+              <Button
+                onClick={handleCreateMerchant}
                 disabled={creating || !availability.subdomain}
               >
                 {creating ? (
@@ -489,7 +587,7 @@ Please save these credentials securely.
                     Creating...
                   </>
                 ) : (
-                  'Create Merchant'
+                  "Create Merchant"
                 )}
               </Button>
             </div>
@@ -503,10 +601,15 @@ Please save these credentials securely.
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>All Merchants</CardTitle>
-              <CardDescription>View and manage all merchant accounts</CardDescription>
+              <CardDescription>
+                View and manage all merchant accounts
+              </CardDescription>
             </div>
             {!showCreateForm && (
-              <Button onClick={() => setShowCreateForm(true)} className="bg-primary hover:bg-primary/90">
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Merchant
               </Button>
@@ -536,7 +639,7 @@ Please save these credentials securely.
               </SelectContent>
             </Select>
           </div>
-          
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

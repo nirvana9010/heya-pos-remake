@@ -564,29 +564,41 @@ export class ReportsService {
     return result;
   }
 
-  async getDailySummary(merchantId: string, date?: string, locationId?: string) {
+  async getDailySummary(
+    merchantId: string,
+    date?: string,
+    locationId?: string,
+  ) {
     const timezone = await this.getMerchantTimezone(merchantId, locationId);
     const targetDate: Date | string = date || new Date();
     const dayStart = this.timezoneService.getStartOfDay(targetDate, timezone);
     const dayEnd = this.timezoneService.getEndOfDay(targetDate, timezone);
 
-    const [revenueByMethod, bookingCounts, staffPerformance, topServicesData] = await Promise.all([
-      this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
-      this.prisma.booking.groupBy({
-        by: ["status"],
-        where: {
+    const [revenueByMethod, bookingCounts, staffPerformance, topServicesData] =
+      await Promise.all([
+        this.getDailyRevenueByMethod(merchantId, dayStart, dayEnd, locationId),
+        this.prisma.booking.groupBy({
+          by: ["status"],
+          where: {
+            merchantId,
+            ...(locationId && { locationId }),
+            startTime: { gte: dayStart, lte: dayEnd },
+          },
+          _count: true,
+        }),
+        this.getDailyStaffPerformance(
           merchantId,
-          ...(locationId && { locationId }),
-          startTime: { gte: dayStart, lte: dayEnd },
-        },
-        _count: true,
-      }),
-      this.getDailyStaffPerformance(merchantId, dayStart, dayEnd, locationId, 5),
-      this.getDailyTopServices(merchantId, dayStart, dayEnd, locationId, 10),
-    ]);
+          dayStart,
+          dayEnd,
+          locationId,
+          5,
+        ),
+        this.getDailyTopServices(merchantId, dayStart, dayEnd, locationId, 10),
+      ]);
 
     const total = bookingCounts.reduce((s, b) => s + b._count, 0);
-    const completed = bookingCounts.find((b) => b.status === "COMPLETED")?._count || 0;
+    const completed =
+      bookingCounts.find((b) => b.status === "COMPLETED")?._count || 0;
 
     return {
       revenueByMethod,
@@ -651,8 +663,9 @@ export class ReportsService {
         bookingCount: values.bookingIds.size,
         revenue: values.revenue,
       }))
-      .sort((a, b) =>
-        b.serviceLineItems - a.serviceLineItems || b.revenue - a.revenue,
+      .sort(
+        (a, b) =>
+          b.serviceLineItems - a.serviceLineItems || b.revenue - a.revenue,
       );
 
     const topServices = ranked.slice(0, limit);

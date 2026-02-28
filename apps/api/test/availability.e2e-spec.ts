@@ -1,11 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { TestSeederService } from '../src/test/services/test-seeder.service';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from "@nestjs/common";
+import * as request from "supertest";
+import { AppModule } from "../src/app.module";
+import { TestSeederService } from "../src/test/services/test-seeder.service";
+import { PrismaService } from "../src/prisma/prisma.service";
 
-describe('Public Availability API (e2e)', () => {
+describe("Public Availability API (e2e)", () => {
   let app: INestApplication;
   let testData: any;
   let prismaService: PrismaService;
@@ -17,27 +21,30 @@ describe('Public Availability API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
-    // Configure app
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }));
 
-    app.setGlobalPrefix('api');
-    
+    // Configure app
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+
+    app.setGlobalPrefix("api");
+
     // Enable versioning
     app.enableVersioning({
       type: VersioningType.URI,
-      prefix: 'v',
-      defaultVersion: '1',
+      prefix: "v",
+      defaultVersion: "1",
     });
 
     await app.init();
 
     prismaService = moduleFixture.get<PrismaService>(PrismaService);
-    const seederService = moduleFixture.get<TestSeederService>(TestSeederService);
+    const seederService =
+      moduleFixture.get<TestSeederService>(TestSeederService);
 
     // Create test scenarios
     const scenarios = await seederService.createTestScenarios();
@@ -48,95 +55,95 @@ describe('Public Availability API (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /api/public/availability', () => {
-    it('should return available slots for a staff member', async () => {
+  describe("GET /api/public/availability", () => {
+    it("should return available slots for a staff member", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
 
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
           serviceId: testData.services[0].id,
-          startDate: tomorrow.toISOString().split('T')[0],
-          endDate: dayAfter.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split("T")[0],
+          endDate: dayAfter.toISOString().split("T")[0],
         })
         .expect(200);
 
       expect(response.body).toMatchObject({
         staffId: testData.staff[0].id,
         serviceId: testData.services[0].id,
-        timezone: 'Australia/Sydney',
+        timezone: "Australia/Sydney",
       });
-      expect(response.body).toHaveProperty('availableSlots');
+      expect(response.body).toHaveProperty("availableSlots");
       expect(response.body.availableSlots).toBeInstanceOf(Array);
     });
 
-    it('should validate date range', async () => {
+    it("should validate date range", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
           serviceId: testData.services[0].id,
-          startDate: '2025-01-01',
-          endDate: '2025-01-01', // Same date
+          startDate: "2025-01-01",
+          endDate: "2025-01-01", // Same date
         })
         .expect(400);
 
       expect(response.body).toMatchObject({
         statusCode: 400,
-        message: 'Start date must be before end date',
+        message: "Start date must be before end date",
       });
     });
 
-    it('should limit date range to prevent abuse', async () => {
+    it("should limit date range to prevent abuse", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
           serviceId: testData.services[0].id,
-          startDate: '2025-01-01',
-          endDate: '2025-12-31', // Almost a year
+          startDate: "2025-01-01",
+          endDate: "2025-12-31", // Almost a year
         })
         .expect(400);
 
       expect(response.body).toMatchObject({
         statusCode: 400,
-        message: 'Date range cannot exceed 90 days',
+        message: "Date range cannot exceed 90 days",
       });
     });
 
-    it('should handle non-existent staff', async () => {
+    it("should handle non-existent staff", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
-          staffId: '00000000-0000-0000-0000-000000000000',
+          staffId: "00000000-0000-0000-0000-000000000000",
           serviceId: testData.services[0].id,
-          startDate: '2025-01-01',
-          endDate: '2025-01-02',
+          startDate: "2025-01-01",
+          endDate: "2025-01-02",
         })
         .expect(400);
 
-      expect(response.body.message).toContain('Staff member not found');
+      expect(response.body.message).toContain("Staff member not found");
     });
 
-    it('should handle non-existent service', async () => {
+    it("should handle non-existent service", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
-          serviceId: '00000000-0000-0000-0000-000000000000',
-          startDate: '2025-01-01',
-          endDate: '2025-01-02',
+          serviceId: "00000000-0000-0000-0000-000000000000",
+          startDate: "2025-01-01",
+          endDate: "2025-01-02",
         })
         .expect(400);
 
-      expect(response.body.message).toContain('Service not found');
+      expect(response.body.message).toContain("Service not found");
     });
 
-    it('should exclude booked time slots', async () => {
+    it("should exclude booked time slots", async () => {
       // Create a booking for tomorrow at 10 AM
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -149,12 +156,12 @@ describe('Public Availability API (e2e)', () => {
           customerId: testData.customers[0].id,
           providerId: testData.staff[0].id,
           bookingNumber: `TEST-${Date.now()}`,
-          status: 'CONFIRMED',
+          status: "CONFIRMED",
           startTime: tomorrow,
           endTime: new Date(tomorrow.getTime() + 60 * 60 * 1000), // 1 hour later
           totalAmount: testData.services[0].price,
           depositAmount: 0,
-          source: 'TEST',
+          source: "TEST",
           createdById: testData.staff[0].id,
         },
       });
@@ -173,12 +180,12 @@ describe('Public Availability API (e2e)', () => {
       dayAfter.setDate(dayAfter.getDate() + 1);
 
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
           serviceId: testData.services[0].id,
-          startDate: tomorrow.toISOString().split('T')[0],
-          endDate: dayAfter.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split("T")[0],
+          endDate: dayAfter.toISOString().split("T")[0],
         })
         .expect(200);
 
@@ -192,15 +199,18 @@ describe('Public Availability API (e2e)', () => {
       expect(tenAmSlot).toBeUndefined();
     });
 
-    it('should respect service padding times', async () => {
+    it("should respect service padding times", async () => {
       // Create a service with padding
       const paddedService = await prismaService.service.create({
         data: {
           merchantId: testData.merchant.id,
-          categoryId: (await prismaService.serviceCategory.findFirst({
-            where: { merchantId: testData.merchant.id }
-          }))?.id || '',
-          name: 'Padded Service',
+          categoryId:
+            (
+              await prismaService.serviceCategory.findFirst({
+                where: { merchantId: testData.merchant.id },
+              })
+            )?.id || "",
+          name: "Padded Service",
           duration: 60,
           price: 150,
           paddingBefore: 15,
@@ -215,32 +225,33 @@ describe('Public Availability API (e2e)', () => {
       dayAfter.setDate(dayAfter.getDate() + 1);
 
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
           staffId: testData.staff[0].id,
           serviceId: paddedService.id,
-          startDate: tomorrow.toISOString().split('T')[0],
-          endDate: dayAfter.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split("T")[0],
+          endDate: dayAfter.toISOString().split("T")[0],
         })
         .expect(200);
 
       expect(response.body.availableSlots).toBeInstanceOf(Array);
-      
+
       // With padding, the effective duration is 90 minutes (15 + 60 + 15)
       // So slots should be spaced appropriately
       if (response.body.availableSlots.length >= 2) {
         const slot1Start = new Date(response.body.availableSlots[0].startTime);
         const slot2Start = new Date(response.body.availableSlots[1].startTime);
-        const timeDiff = (slot2Start.getTime() - slot1Start.getTime()) / (1000 * 60); // in minutes
-        
+        const timeDiff =
+          (slot2Start.getTime() - slot1Start.getTime()) / (1000 * 60); // in minutes
+
         // Time between slots should account for service duration but not padding
         expect(timeDiff).toBeLessThanOrEqual(60);
       }
     });
   });
 
-  describe('Performance and Security', () => {
-    it('should handle concurrent requests gracefully', async () => {
+  describe("Performance and Security", () => {
+    it("should handle concurrent requests gracefully", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayAfter = new Date(tomorrow);
@@ -249,38 +260,40 @@ describe('Public Availability API (e2e)', () => {
       const query = {
         staffId: testData.staff[0].id,
         serviceId: testData.services[0].id,
-        startDate: tomorrow.toISOString().split('T')[0],
-        endDate: dayAfter.toISOString().split('T')[0],
+        startDate: tomorrow.toISOString().split("T")[0],
+        endDate: dayAfter.toISOString().split("T")[0],
       };
 
       // Make 5 concurrent requests
-      const requests = Array(5).fill(null).map(() =>
-        request(app.getHttpServer())
-          .get('/api/public/availability')
-          .query(query)
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map(() =>
+          request(app.getHttpServer())
+            .get("/api/public/availability")
+            .query(query),
+        );
 
       const responses = await Promise.all(requests);
-      
+
       // All should succeed
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('availableSlots');
+        expect(response.body).toHaveProperty("availableSlots");
       });
     });
 
-    it('should validate UUID formats', async () => {
+    it("should validate UUID formats", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/public/availability')
+        .get("/api/public/availability")
         .query({
-          staffId: 'not-a-uuid',
-          serviceId: 'also-not-a-uuid',
-          startDate: '2025-01-01',
-          endDate: '2025-01-02',
+          staffId: "not-a-uuid",
+          serviceId: "also-not-a-uuid",
+          startDate: "2025-01-01",
+          endDate: "2025-01-02",
         })
         .expect(400);
 
-      expect(response.body.message).toContain('Validation failed');
+      expect(response.body.message).toContain("Validation failed");
     });
   });
 });

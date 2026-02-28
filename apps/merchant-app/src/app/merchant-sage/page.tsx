@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import DashboardPage from '../(dashboard)/dashboard/page';
+import DashboardPage from "../(dashboard)/dashboard/page";
 
 export default function MerchantSagePage() {
   return <DashboardPage />;

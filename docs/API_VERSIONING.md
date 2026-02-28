@@ -7,12 +7,14 @@ The Heya POS API implements versioning to support backward compatibility while a
 ## Version Strategy
 
 ### V1 - Original Implementation
+
 - **Path Pattern**: `/api/v1/*`
 - **Architecture**: Traditional service layer pattern
 - **Available Since**: Initial release
 - **Status**: Stable, maintained for backward compatibility
 
 ### V2 - CQRS/Bounded Context Pattern
+
 - **Path Pattern**: `/api/v2/*`
 - **Architecture**: Command Query Responsibility Segregation (CQRS) with bounded contexts
 - **Available Since**: Phase 4 architectural improvements
@@ -21,7 +23,9 @@ The Heya POS API implements versioning to support backward compatibility while a
 ## Endpoint Reference
 
 ### Authentication (V1)
+
 All authentication endpoints use V1:
+
 ```
 POST   /api/v1/auth/merchant/login
 POST   /api/v1/auth/refresh
@@ -32,6 +36,7 @@ GET    /api/v1/auth/session
 ```
 
 ### V1 Endpoints
+
 ```
 # Customers
 GET    /api/v1/customers
@@ -92,6 +97,7 @@ GET    /api/v1/public/service-categories
 ```
 
 ### V2 Endpoints
+
 ```
 # Bookings (CQRS Implementation)
 GET    /api/v2/bookings              # List bookings
@@ -124,11 +130,13 @@ curl http://localhost:3000/api/v1/staff \
 ## Migration Notes
 
 ### For Frontend Applications
+
 - Update all API calls to include version numbers
 - The base URL remains the same: `http://localhost:3000`
 - Add `/v1` or `/v2` after `/api` in all endpoints
 
 ### Common Mistakes
+
 1. **Missing version number**: `/api/auth/login` → Should be `/api/v1/auth/merchant/login`
 2. **Wrong version for bookings**: `/api/v1/bookings` → Should be `/api/v2/bookings`
 3. **Version in wrong place**: `/v1/api/auth` → Should be `/api/v1/auth`
@@ -136,6 +144,7 @@ curl http://localhost:3000/api/v1/staff \
 ## Testing
 
 ### Quick Test Commands
+
 ```bash
 # Test V1 endpoint
 curl http://localhost:3000/api/v1/health
@@ -152,6 +161,7 @@ curl http://localhost:3000/api/v2/bookings \
 ## Future Versions
 
 As more bounded contexts are implemented, they will be added as V2 endpoints:
+
 - Customers (planned)
 - Inventory (planned)
 - Reporting (planned)

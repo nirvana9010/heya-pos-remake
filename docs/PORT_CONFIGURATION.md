@@ -2,18 +2,20 @@
 
 ## Standard Port Assignments
 
-| Service          | Port | Environment Variable    | Purpose                        |
-|------------------|------|-------------------------|--------------------------------|
-| API Server       | 3000 | PORT                    | NestJS backend API             |
-| Booking App      | 3001 | -                       | Customer-facing booking site   |
-| Merchant App     | 3002 | -                       | Merchant POS interface         |
-| Admin Dashboard  | 3003 | -                       | Admin management interface     |
+| Service         | Port | Environment Variable | Purpose                      |
+| --------------- | ---- | -------------------- | ---------------------------- |
+| API Server      | 3000 | PORT                 | NestJS backend API           |
+| Booking App     | 3001 | -                    | Customer-facing booking site |
+| Merchant App    | 3002 | -                    | Merchant POS interface       |
+| Admin Dashboard | 3003 | -                    | Admin management interface   |
 
 ## Common Issues and Solutions
 
 ### Issue 1: "Failed to fetch" on login
+
 **Cause**: API not running or wrong port
-**Solution**: 
+**Solution**:
+
 ```bash
 # Check if API is running
 curl http://localhost:3000/api
@@ -22,9 +24,11 @@ curl http://localhost:3000/api
 cd apps/api && npm run start:dev
 ```
 
-### Issue 2: "Cannot find module './496.js'" 
+### Issue 2: "Cannot find module './496.js'"
+
 **Cause**: Corrupted Next.js build cache
 **Solution**:
+
 ```bash
 # Clean and restart
 rm -rf apps/merchant-app/.next
@@ -32,8 +36,10 @@ cd apps/merchant-app && npm run dev
 ```
 
 ### Issue 3: "EADDRINUSE: address already in use"
+
 **Cause**: Previous process still running
 **Solution**:
+
 ```bash
 # Kill process on specific port (e.g., 3000)
 lsof -ti:3000 | xargs kill -9
@@ -43,8 +49,10 @@ lsof -ti:3000 | xargs kill -9
 ```
 
 ### Issue 4: Multiple processes on same port
+
 **Cause**: Zombie processes from improper shutdown
 **Solution**:
+
 ```bash
 # Kill all Node processes
 pkill -f "node"
@@ -56,21 +64,25 @@ pkill -f "node"
 ## Quick Commands
 
 ### Start Everything
+
 ```bash
 ./scripts/dev-start.sh
 ```
 
 ### Stop Everything
+
 ```bash
 ./scripts/dev-stop.sh
 ```
 
 ### Check Status
+
 ```bash
 ./scripts/dev-status.sh
 ```
 
 ### Clean Start (with cache clear)
+
 ```bash
 ./scripts/dev-start.sh --clean
 ```
@@ -78,6 +90,7 @@ pkill -f "node"
 ## Environment Variables
 
 ### API (.env)
+
 ```
 PORT=3000
 DATABASE_URL="file:./dev.db"
@@ -85,6 +98,7 @@ JWT_SECRET=your-secret-key
 ```
 
 ### Frontend Apps
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
@@ -92,11 +106,13 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ## Debugging Network Issues
 
 1. **Check API is accessible**:
+
    ```bash
    curl http://localhost:3000/api
    ```
 
 2. **Test CORS**:
+
    ```bash
    curl -H "Origin: http://localhost:3002" \
         -H "Access-Control-Request-Method: POST" \
@@ -113,6 +129,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ## Logs Location
 
 All logs are saved in the `logs/` directory:
+
 - `logs/api.log` - Backend API logs
 - `logs/merchant.log` - Merchant app logs
 - `logs/booking.log` - Booking app logs

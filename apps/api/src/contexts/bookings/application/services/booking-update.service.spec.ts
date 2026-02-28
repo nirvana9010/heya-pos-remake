@@ -1,31 +1,33 @@
-import { BadRequestException } from '@nestjs/common';
-import { BookingUpdateService } from './booking-update.service';
-import { Booking } from '../../domain/entities/booking.entity';
-import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
-import { BookingStatusValue } from '../../domain/value-objects/booking-status.vo';
-import { PaymentStatusEnum } from '../../domain/value-objects/payment-status.vo';
+import { BadRequestException } from "@nestjs/common";
+import { BookingUpdateService } from "./booking-update.service";
+import { Booking } from "../../domain/entities/booking.entity";
+import { TimeSlot } from "../../domain/value-objects/time-slot.vo";
+import { BookingStatusValue } from "../../domain/value-objects/booking-status.vo";
+import { PaymentStatusEnum } from "../../domain/value-objects/payment-status.vo";
 
-const makeBooking = (overrides: Partial<ConstructorParameters<typeof Booking>[0]> = {}): Booking => {
-  const start = new Date('2024-01-01T10:00:00.000Z');
-  const end = new Date('2024-01-01T11:00:00.000Z');
+const makeBooking = (
+  overrides: Partial<ConstructorParameters<typeof Booking>[0]> = {},
+): Booking => {
+  const start = new Date("2024-01-01T10:00:00.000Z");
+  const end = new Date("2024-01-01T11:00:00.000Z");
 
   const base = {
-    id: 'booking-1',
-    bookingNumber: 'B-1',
+    id: "booking-1",
+    bookingNumber: "B-1",
     status: BookingStatusValue.CONFIRMED,
     timeSlot: new TimeSlot(start, end),
-    customerId: 'customer-1',
-    staffId: 'staff-1',
-    serviceId: 'service-1',
-    locationId: 'location-1',
-    merchantId: 'merchant-1',
+    customerId: "customer-1",
+    staffId: "staff-1",
+    serviceId: "service-1",
+    locationId: "location-1",
+    merchantId: "merchant-1",
     notes: undefined,
     totalAmount: 100,
     depositAmount: 0,
     isOverride: false,
     overrideReason: undefined,
-    source: 'INTERNAL',
-    createdById: 'staff-1',
+    source: "INTERNAL",
+    createdById: "staff-1",
     customerRequestedStaff: false,
     createdAt: start,
     updatedAt: start,
@@ -45,7 +47,7 @@ const makeBooking = (overrides: Partial<ConstructorParameters<typeof Booking>[0]
   });
 };
 
-describe('BookingUpdateService - customer reassignment', () => {
+describe("BookingUpdateService - customer reassignment", () => {
   let prisma: any;
   let bookingRepository: any;
   let loyaltyService: any;
@@ -80,26 +82,25 @@ describe('BookingUpdateService - customer reassignment', () => {
       cacheService,
       outboxRepository,
     );
-
   });
 
   afterEach(() => {
     jest.resetAllMocks();
   });
 
-  it('reassigns the customer and rewires linked order', async () => {
+  it("reassigns the customer and rewires linked order", async () => {
     const booking = makeBooking();
-    const updatedBooking = makeBooking({ customerId: 'customer-2' });
+    const updatedBooking = makeBooking({ customerId: "customer-2" });
 
     bookingRepository.findById.mockResolvedValue(booking);
     bookingRepository.update.mockResolvedValue(updatedBooking);
 
     const tx = {
       customer: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'customer-2' }),
+        findFirst: jest.fn().mockResolvedValue({ id: "customer-2" }),
       },
       order: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'order-1' }),
+        findFirst: jest.fn().mockResolvedValue({ id: "order-1" }),
         update: jest.fn().mockResolvedValue(undefined),
       },
       booking: {
@@ -118,38 +119,43 @@ describe('BookingUpdateService - customer reassignment', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(async (callback: any) => callback(tx));
+    prisma.$transaction.mockImplementation(async (callback: any) =>
+      callback(tx),
+    );
 
     const result = await service.updateBooking({
-      bookingId: 'booking-1',
-      merchantId: 'merchant-1',
-      customerId: 'customer-2',
+      bookingId: "booking-1",
+      merchantId: "merchant-1",
+      customerId: "customer-2",
     });
 
-    expect(bookingRepository.findById).toHaveBeenCalledWith('booking-1', 'merchant-1');
+    expect(bookingRepository.findById).toHaveBeenCalledWith(
+      "booking-1",
+      "merchant-1",
+    );
     expect(tx.customer.findFirst).toHaveBeenCalledWith({
-      where: { id: 'customer-2', merchantId: 'merchant-1' },
+      where: { id: "customer-2", merchantId: "merchant-1" },
       select: { id: true },
     });
     expect(tx.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-1' },
-      data: { customerId: 'customer-2' },
+      where: { id: "order-1" },
+      data: { customerId: "customer-2" },
     });
     expect(outboxRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'customer_changed' }),
+      expect.objectContaining({ eventType: "customer_changed" }),
       tx,
     );
-    expect(result.customerId).toBe('customer-2');
+    expect(result.customerId).toBe("customer-2");
     expect(cacheService.deletePattern).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects reassignment when payment has been recorded', async () => {
+  it("rejects reassignment when payment has been recorded", async () => {
     const paidBooking = makeBooking({ paymentStatus: PaymentStatusEnum.PAID });
     bookingRepository.findById.mockResolvedValue(paidBooking);
 
     const tx = {
       customer: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'customer-2' }),
+        findFirst: jest.fn().mockResolvedValue({ id: "customer-2" }),
       },
       order: {
         findFirst: jest.fn(),
@@ -171,13 +177,15 @@ describe('BookingUpdateService - customer reassignment', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(async (callback: any) => callback(tx));
+    prisma.$transaction.mockImplementation(async (callback: any) =>
+      callback(tx),
+    );
 
     await expect(
       service.updateBooking({
-        bookingId: 'booking-1',
-        merchantId: 'merchant-1',
-        customerId: 'customer-2',
+        bookingId: "booking-1",
+        merchantId: "merchant-1",
+        customerId: "customer-2",
       }),
     ).rejects.toThrow(BadRequestException);
 

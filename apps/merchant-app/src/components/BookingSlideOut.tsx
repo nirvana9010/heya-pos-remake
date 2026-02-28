@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { 
-  ChevronRight, 
-  User, 
-  Clock, 
-  Scissors, 
+import {
+  ChevronRight,
+  User,
+  Clock,
+  Scissors,
   Calendar,
   Phone,
   Mail,
@@ -17,12 +17,18 @@ import {
   Gift,
   Pencil,
   Check,
-  Heart
+  Heart,
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
@@ -34,7 +40,10 @@ import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { apiClient } from "@/lib/api-client";
 import type { Customer } from "@/components/customers";
-import { WALK_IN_CUSTOMER_ID, isWalkInCustomer } from "@/lib/constants/customer";
+import {
+  WALK_IN_CUSTOMER_ID,
+  isWalkInCustomer,
+} from "@/lib/constants/customer";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { invalidateBookingsCache } from "@/lib/cache-config";
 import { DatePickerField } from "./DatePickerField";
@@ -47,8 +56,20 @@ interface BookingSlideOutProps {
   initialTime?: Date;
   initialStaffId?: string;
   staff: Array<{ id: string; name: string; color: string }>;
-  services: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
-  customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
+  services: Array<{
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+    categoryName?: string;
+  }>;
+  customers?: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    mobile?: string;
+    email?: string;
+  }>;
   bookings?: Array<any>; // For availability checking
   onSave: (booking: any) => void;
   merchant?: {
@@ -83,7 +104,7 @@ export function BookingSlideOut({
   customers = [],
   bookings = [],
   onSave,
-  merchant: merchantProp
+  merchant: merchantProp,
 }: BookingSlideOutProps) {
   const { merchant: authMerchant } = useAuth();
   const { toast } = useToast();
@@ -93,31 +114,36 @@ export function BookingSlideOut({
   // Use prop merchant if provided, otherwise fall back to auth merchant
   const merchant = merchantProp || authMerchant;
 
-
   // Removed draft order logic - bookings create their own orders
 
   // Filter staff: restrict to active session staff if PIN lock is active,
   // otherwise filter out "Unassigned" when allowUnassignedBookings is false
   const filteredStaff = React.useMemo(() => {
     if (isStaffSessionActive && sessionStaff) {
-      return staff.filter(s => s.id === sessionStaff.id);
+      return staff.filter((s) => s.id === sessionStaff.id);
     }
     if (merchant?.settings?.allowUnassignedBookings === false) {
-      return staff.filter(s =>
-        s.name.toLowerCase() !== 'unassigned' &&
-        s.id.toLowerCase() !== 'unassigned'
+      return staff.filter(
+        (s) =>
+          s.name.toLowerCase() !== "unassigned" &&
+          s.id.toLowerCase() !== "unassigned",
       );
     }
     return staff;
-  }, [staff, merchant?.settings?.allowUnassignedBookings, isStaffSessionActive, sessionStaff]);
-  
+  }, [
+    staff,
+    merchant?.settings?.allowUnassignedBookings,
+    isStaffSessionActive,
+    sessionStaff,
+  ]);
+
   // Create stable defaults to prevent infinite loops
   const [defaultDate] = useState(() => new Date());
   const [defaultTime] = useState(() => {
     const now = new Date();
     const minutes = now.getMinutes();
     const remainder = minutes % 15;
-    
+
     // Round up to next 15-minute interval
     if (remainder === 0) {
       // Already on a 15-minute mark, add 15 minutes
@@ -126,20 +152,25 @@ export function BookingSlideOut({
       // Round up to next 15-minute mark
       now.setMinutes(minutes + (15 - remainder));
     }
-    
+
     // Reset seconds and milliseconds
     now.setSeconds(0);
     now.setMilliseconds(0);
-    
+
     return now;
   });
-  
+
   // Form state
   const [date, setDate] = useState<Date>(initialDate || defaultDate);
   const [time, setTime] = useState<Date>(initialTime || defaultTime);
-  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
-  const effectiveInitialStaffId = isStaffSessionActive && sessionStaff ? sessionStaff.id : initialStaffId;
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(effectiveInitialStaffId || filteredStaff[0]?.id || '');
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>(
+    [],
+  );
+  const effectiveInitialStaffId =
+    isStaffSessionActive && sessionStaff ? sessionStaff.id : initialStaffId;
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(
+    effectiveInitialStaffId || filteredStaff[0]?.id || "",
+  );
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -148,25 +179,26 @@ export function BookingSlideOut({
   const [notes, setNotes] = useState("");
   const [sendReminder, setSendReminder] = useState(true);
   const [customerRequestedStaff, setCustomerRequestedStaff] = useState(false);
-  
+
   // UI state
   const [isServiceSlideoutOpen, setIsServiceSlideoutOpen] = useState(false);
   const [isCustomerSlideoutOpen, setIsCustomerSlideoutOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [finalCustomerId, setFinalCustomerId] = useState<string>("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
-  
-  // Calculate totals
-  const totalDuration = useMemo(() => 
-    selectedServices.reduce((sum, s) => sum + s.duration, 0), 
-    [selectedServices]
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
   );
-  
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+
+  // Calculate totals
+  const totalDuration = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + s.duration, 0),
+    [selectedServices],
+  );
+
   const totalPrice = useMemo(() => {
     return selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
   }, [selectedServices]);
-  
 
   // Track previous open state to detect transitions
   const prevIsOpenRef = React.useRef(isOpen);
@@ -176,14 +208,14 @@ export function BookingSlideOut({
   useEffect(() => {
     const wasClosedNowOpen = !prevIsOpenRef.current && isOpen;
     const wasOpenNowClosed = prevIsOpenRef.current && !isOpen;
-    
+
     if (wasClosedNowOpen) {
       // Always reset form when opening, regardless of services
       // This ensures a fresh start for each new booking
       setDate(initialDate || defaultDate);
       setTime(initialTime || defaultTime);
       setSelectedServices([]);
-      setSelectedStaffId(effectiveInitialStaffId || filteredStaff[0]?.id || '');
+      setSelectedStaffId(effectiveInitialStaffId || filteredStaff[0]?.id || "");
       setCustomerId("");
       setCustomerName("");
       setCustomerPhone("");
@@ -194,38 +226,36 @@ export function BookingSlideOut({
       setFinalCustomerId("");
       setSelectedCustomer(null);
       setCustomerRequestedStaff(false);
-      
+
       hasInitializedRef.current = true;
     } else if (wasOpenNowClosed) {
       hasInitializedRef.current = false;
     }
-    
+
     // Update the ref for next render
     prevIsOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialDate, initialTime]); // Include initialDate and initialTime in dependencies
-  
+
   // Update date and time when initialDate or initialTime props change
   useEffect(() => {
     if (isOpen && initialDate) {
       setDate(initialDate);
     }
   }, [isOpen, initialDate]);
-  
+
   useEffect(() => {
     if (isOpen && initialTime) {
       setTime(initialTime);
     }
   }, [isOpen, initialTime]);
-  
-  
+
   const handleServiceSelect = (service: any) => {
-    
     // Defensive check to ensure slideout is still open
     if (!isOpen) {
       return;
     }
-    
+
     const newService: SelectedService = {
       id: `service-${Date.now()}-${Math.random()}`,
       serviceId: service.id,
@@ -234,59 +264,62 @@ export function BookingSlideOut({
       basePrice: service.price,
       adjustedPrice: service.price,
       staffId: selectedStaffId, // Use the single selected staff
-      categoryName: service.categoryName
+      categoryName: service.categoryName,
     };
-    
-    setSelectedServices(prev => {
+
+    setSelectedServices((prev) => {
       const updated = [...prev, newService];
       return updated;
     });
-    
+
     // Close service slideout with a small delay to ensure state is saved
     setTimeout(() => {
       setIsServiceSlideoutOpen(false);
     }, 50);
   };
-  
+
   const removeService = (serviceId: string) => {
-    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
+    setSelectedServices(selectedServices.filter((s) => s.id !== serviceId));
   };
-  
+
   // No longer needed - we use a single staff selector
   // const updateServiceStaff = (serviceId: string, staffId: string) => {
-  //   setSelectedServices(selectedServices.map(s => 
+  //   setSelectedServices(selectedServices.map(s =>
   //     s.id === serviceId ? { ...s, staffId } : s
   //   ));
   // };
-  
+
   const updateServicePrice = (serviceId: string, price: string) => {
     const numPrice = parseFloat(price) || 0;
-    setSelectedServices(selectedServices.map(s => 
-      s.id === serviceId ? { ...s, adjustedPrice: numPrice } : s
-    ));
+    setSelectedServices(
+      selectedServices.map((s) =>
+        s.id === serviceId ? { ...s, adjustedPrice: numPrice } : s,
+      ),
+    );
   };
-  
+
   const handleSelectCustomer = (customer: Customer | null, walkIn: boolean) => {
     if (walkIn) {
-      setCustomerId('WALK_IN'); // Use 'WALK_IN' for V2 API
-      setCustomerName('Walk-in Customer');
-      setCustomerPhone('');
-      setCustomerEmail('');
+      setCustomerId("WALK_IN"); // Use 'WALK_IN' for V2 API
+      setCustomerName("Walk-in Customer");
+      setCustomerPhone("");
+      setCustomerEmail("");
       setIsWalkIn(true);
       setSelectedCustomer(null);
     } else if (customer) {
-      const fullName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+      const fullName =
+        customer.name ||
+        `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
       setCustomerId(customer.id);
       setCustomerName(fullName);
-      setCustomerPhone(customer.mobile || customer.phone || '');
-      setCustomerEmail(customer.email || '');
+      setCustomerPhone(customer.mobile || customer.phone || "");
+      setCustomerEmail(customer.email || "");
       setIsWalkIn(false);
       setSelectedCustomer(customer);
     }
     setIsCustomerSlideoutOpen(false);
   };
-  
-  
+
   const handleCreateBooking = async () => {
     // Early return if already saving (prevent duplicate calls)
     if (isSaving) {
@@ -296,78 +329,86 @@ export function BookingSlideOut({
     if (!time || !date || selectedServices.length === 0) {
       return;
     }
-    
+
     // Validate customer selection
     if (!isWalkIn && !selectedCustomer) {
-      alert('Please select a customer');
+      alert("Please select a customer");
       return;
     }
-    
+
     // Validate all services have staff assigned
-    const servicesWithoutStaff = selectedServices.filter(s => !s.staffId);
+    const servicesWithoutStaff = selectedServices.filter((s) => !s.staffId);
     if (servicesWithoutStaff.length > 0) {
-      alert('Please select a staff member for all services');
+      alert("Please select a staff member for all services");
       return;
     }
-    
+
     setIsSaving(true);
-    
+
     let dismissLoadingToast: (() => void) | undefined;
-    
+
     try {
       // Customer is already resolved from the selection slideout
-      const resolvedCustomerId = isWalkIn ? 'WALK_IN' : selectedCustomer?.id || customerId;
-      
+      const resolvedCustomerId = isWalkIn
+        ? "WALK_IN"
+        : selectedCustomer?.id || customerId;
+
       // Store the final customer ID for order creation
       setFinalCustomerId(resolvedCustomerId);
-      
+
       // Combine date and time
       const combinedDateTime = new Date(date);
       combinedDateTime.setHours(time.getHours());
       combinedDateTime.setMinutes(time.getMinutes());
       combinedDateTime.setSeconds(0);
       combinedDateTime.setMilliseconds(0);
-      
+
       // Build booking data for V2 API
       const startTimeISO = combinedDateTime.toISOString();
-      
+
       const finalCustomerIdForBooking = resolvedCustomerId;
-      
+
       // Strict validation to prevent API validation errors
-      if (!finalCustomerIdForBooking || finalCustomerIdForBooking.trim() === '') {
-        throw new Error('Customer ID is required for booking creation');
+      if (
+        !finalCustomerIdForBooking ||
+        finalCustomerIdForBooking.trim() === ""
+      ) {
+        throw new Error("Customer ID is required for booking creation");
       }
-      
-      const resolvedCustomerSource = isWalkIn ? 'WALK_IN' : (selectedCustomer ? (selectedCustomer as any).source ?? null : null);
+
+      const resolvedCustomerSource = isWalkIn
+        ? "WALK_IN"
+        : selectedCustomer
+          ? ((selectedCustomer as any).source ?? null)
+          : null;
 
       const bookingData: any = {
         // Use 'WALK_IN' as customerId for walk-in customers
         customerId: finalCustomerIdForBooking,
-        services: selectedServices.map(service => ({
+        services: selectedServices.map((service) => ({
           serviceId: service.serviceId,
           staffId: selectedStaffId, // Use the single selected staff for all services
           // Include price override if changed (V2 uses 'price' not 'priceOverride')
           // Keep original prices - don't apply loyalty discount here
           ...(service.adjustedPrice !== service.basePrice && {
-            price: service.adjustedPrice
-          })
+            price: service.adjustedPrice,
+          }),
         })),
         locationId: merchant?.locations?.[0]?.id || merchant?.locationId,
         startTime: startTimeISO,
         notes: notes,
-        source: 'IN_PERSON',
+        source: "IN_PERSON",
         isOverride: true,
-        customerRequestedStaff
+        customerRequestedStaff,
       };
-      
-      
+
       // Cache invalidation before API call
       try {
         invalidateBookingsCache();
       } catch (callbackError) {
         // Silently ignore cache invalidation errors
       }
-      
+
       // Show immediate loading toast and store the function to dismiss it
       const toastResult = toast({
         title: "Creating booking...",
@@ -375,57 +416,66 @@ export function BookingSlideOut({
         duration: 10000, // Long duration, will be dismissed when complete
       });
       dismissLoadingToast = toastResult.dismiss;
-      
+
       // Close the slideout immediately for better UX
       onClose();
-      
+
       // Create the booking and measure response time
       const startTime = performance.now();
       const response = await apiClient.bookings.createBooking(bookingData);
       const responseTime = performance.now() - startTime;
-      
-      
+
       // Pass the real booking data to parent component
       if (response && response.id) {
         // Map the API response to the expected format
         const requestedPreferredFlag = Boolean(customerRequestedStaff);
         const serverPreferredFlag = response.customerRequestedStaff;
-        const finalPreferredFlag = requestedPreferredFlag ? true : Boolean(serverPreferredFlag);
+        const finalPreferredFlag = requestedPreferredFlag
+          ? true
+          : Boolean(serverPreferredFlag);
 
         const realBooking = {
           id: response.id,
-          bookingNumber: response.bookingNumber || 'PENDING',
-          customerName: isWalkIn ? 'Walk-in Customer' : (selectedCustomer?.name || 
-            `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()),
-          customerPhone: isWalkIn ? '' : (selectedCustomer?.phone || selectedCustomer?.mobile || ''),
-          customerEmail: isWalkIn ? '' : (selectedCustomer?.email || ''),
-          services: response.services || selectedServices.map(s => ({
-            id: s.serviceId,
-            name: s.name,
-            duration: s.duration,
-            price: s.adjustedPrice
-          })),
-          staffName: staff.find(s => s.id === selectedStaffId)?.name || '',
+          bookingNumber: response.bookingNumber || "PENDING",
+          customerName: isWalkIn
+            ? "Walk-in Customer"
+            : selectedCustomer?.name ||
+              `${selectedCustomer?.firstName || ""} ${selectedCustomer?.lastName || ""}`.trim(),
+          customerPhone: isWalkIn
+            ? ""
+            : selectedCustomer?.phone || selectedCustomer?.mobile || "",
+          customerEmail: isWalkIn ? "" : selectedCustomer?.email || "",
+          services:
+            response.services ||
+            selectedServices.map((s) => ({
+              id: s.serviceId,
+              name: s.name,
+              duration: s.duration,
+              price: s.adjustedPrice,
+            })),
+          staffName: staff.find((s) => s.id === selectedStaffId)?.name || "",
           staffId: selectedStaffId,
           startTime: response.startTime || combinedDateTime,
-          endTime: response.endTime || new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
+          endTime:
+            response.endTime ||
+            new Date(combinedDateTime.getTime() + totalDuration * 60 * 1000),
           // Use the totalAmount from the API response which reflects discounted prices
           totalPrice: response.totalAmount || response.totalPrice || totalPrice,
           // Normalize status to lowercase to match our BookingStatus type
-          status: (response.status || 'CONFIRMED').toLowerCase() as any,
+          status: (response.status || "CONFIRMED").toLowerCase() as any,
           isPaid: false,
-          notes: notes || '',
+          notes: notes || "",
           customerRequestedStaff: finalPreferredFlag,
-          source: response.source ?? bookingData.source ?? 'IN_PERSON',
-          customerSource: response.customerSource ?? resolvedCustomerSource
+          source: response.source ?? bookingData.source ?? "IN_PERSON",
+          customerSource: response.customerSource ?? resolvedCustomerSource,
         };
         onSave(realBooking);
-        
+
         // Dismiss the loading toast
         if (dismissLoadingToast) {
           dismissLoadingToast();
         }
-        
+
         // Show success toast
         toast({
           title: "Booking created successfully",
@@ -433,15 +483,12 @@ export function BookingSlideOut({
           duration: 3000,
         });
       }
-      
     } catch (error) {
-      
       // Dismiss the loading toast
       if (dismissLoadingToast) {
         dismissLoadingToast();
       }
-      
-      
+
       // Show error toast instead of alert
       toast({
         title: "Failed to create booking",
@@ -449,19 +496,20 @@ export function BookingSlideOut({
         variant: "destructive",
         duration: 5000,
       });
-      
+
       // Re-open the slideout so user can try again
       // Note: This assumes parent provides a way to re-open, otherwise user needs to start over
     } finally {
       setIsSaving(false);
     }
   };
-  
-  
+
   const canCreateBooking = () => {
-    return date && time && selectedServices.length > 0 && customerName && !isSaving;
+    return (
+      date && time && selectedServices.length > 0 && customerName && !isSaving
+    );
   };
-  
+
   return (
     <>
       <SlideOutPanel
@@ -476,7 +524,7 @@ export function BookingSlideOut({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateBooking}
               disabled={!canCreateBooking()}
               className="bg-teal-600 hover:bg-teal-700"
@@ -539,21 +587,25 @@ export function BookingSlideOut({
                     <SelectContent>
                       {Array.from({ length: 24 }, (_, i) => {
                         const hour12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
-                        const ampm = i < 12 ? 'AM' : 'PM';
+                        const ampm = i < 12 ? "AM" : "PM";
                         return (
                           <SelectItem key={i} value={i.toString()}>
-                            {hour12.toString().padStart(2, '0')} {ampm}
+                            {hour12.toString().padStart(2, "0")} {ampm}
                           </SelectItem>
                         );
                       })}
                     </SelectContent>
                   </Select>
-                  
+
                   <span className="text-gray-400">:</span>
-                  
+
                   {/* Minute selector - 15 minute increments */}
                   <Select
-                    value={time ? (Math.round(time.getMinutes() / 15) * 15).toString() : ""}
+                    value={
+                      time
+                        ? (Math.round(time.getMinutes() / 15) * 15).toString()
+                        : ""
+                    }
                     onValueChange={(minute) => {
                       const newTime = new Date(time || defaultTime);
                       newTime.setMinutes(parseInt(minute));
@@ -568,27 +620,28 @@ export function BookingSlideOut({
                         const minutes = i * 15;
                         return (
                           <SelectItem key={minutes} value={minutes.toString()}>
-                            {minutes.toString().padStart(2, '0')}
+                            {minutes.toString().padStart(2, "0")}
                           </SelectItem>
                         );
                       })}
                     </SelectContent>
                   </Select>
-                  
+
                   {/* AM/PM indicator */}
                   <div className="px-3 text-sm text-gray-600 border-l">
-                    {time ? format(time, 'a') : 'AM'}
+                    {time ? format(time, "a") : "AM"}
                   </div>
                 </div>
               </div>
             </div>
             {totalDuration > 0 && (
               <div className="mt-3 text-sm text-gray-600">
-                Duration: <span className="font-medium">{totalDuration} minutes</span>
+                Duration:{" "}
+                <span className="font-medium">{totalDuration} minutes</span>
               </div>
             )}
           </div>
-          
+
           {/* Staff Selection */}
           <div>
             <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -598,16 +651,24 @@ export function BookingSlideOut({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setCustomerRequestedStaff(prev => !prev)}
+                onClick={() => setCustomerRequestedStaff((prev) => !prev)}
                 className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
                   customerRequestedStaff
                     ? "border-teal-500 bg-teal-50 text-teal-600"
-                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+                    : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600",
                 )}
                 aria-pressed={customerRequestedStaff}
-                aria-label={customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
-                title={customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+                aria-label={
+                  customerRequestedStaff
+                    ? "Unmark preferred staff"
+                    : "Mark staff as preferred"
+                }
+                title={
+                  customerRequestedStaff
+                    ? "Preferred staff selected"
+                    : "Mark this staff as preferred"
+                }
               >
                 <Heart
                   className="h-4 w-4"
@@ -620,21 +681,26 @@ export function BookingSlideOut({
                 onValueChange={setSelectedStaffId}
               >
                 <SelectTrigger className="w-full">
-                  {selectedStaffId && (() => {
-                    const selected = filteredStaff.find(s => s.id === selectedStaffId);
-                    return selected ? (
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: selected.color }}
-                        />
-                        <span>{selected.name}</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="Select staff member" />
-                    );
-                  })()}
-                  {!selectedStaffId && <SelectValue placeholder="Select staff member" />}
+                  {selectedStaffId &&
+                    (() => {
+                      const selected = filteredStaff.find(
+                        (s) => s.id === selectedStaffId,
+                      );
+                      return selected ? (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: selected.color }}
+                          />
+                          <span>{selected.name}</span>
+                        </div>
+                      ) : (
+                        <SelectValue placeholder="Select staff member" />
+                      );
+                    })()}
+                  {!selectedStaffId && (
+                    <SelectValue placeholder="Select staff member" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {filteredStaff.map((member) => (
@@ -652,7 +718,7 @@ export function BookingSlideOut({
               </Select>
             </div>
           </div>
-          
+
           {/* Services Section */}
           <div>
             <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -662,125 +728,164 @@ export function BookingSlideOut({
             {selectedServices.length > 0 ? (
               <div className="space-y-2">
                 {selectedServices.map((service) => (
-                  <div key={service.id} className="p-3 border rounded-lg bg-gray-50">
-                      {/* Service Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="font-medium text-gray-900">{service.name}</div>
-                          <div className="text-sm text-gray-600">
-                            {service.duration} min • Base: ${service.basePrice.toFixed(2)}
-                            {service.adjustedPrice !== service.basePrice && (
-                              <span className={cn(
-                                "ml-2 font-medium",
-                                service.adjustedPrice < service.basePrice ? "text-green-600" : "text-orange-600"
-                              )}>
-                                {service.adjustedPrice < service.basePrice 
-                                  ? `-$${(service.basePrice - service.adjustedPrice).toFixed(2)}`
-                                  : `+$${(service.adjustedPrice - service.basePrice).toFixed(2)}`
-                                }
-                              </span>
-                            )}
-                          </div>
+                  <div
+                    key={service.id}
+                    className="p-3 border rounded-lg bg-gray-50"
+                  >
+                    {/* Service Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {service.name}
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeService(service.id)}
-                          className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {/* Price Row */}
-                      <div className="flex items-center gap-2">
-                        {/* Price Controls */}
-                        <div className="flex items-center gap-1 ml-auto">
-                          {editingPriceId === service.id ? (
-                            <>
-                              {/* Edit Mode */}
-                              {/* Negative Adjustments */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateServicePrice(service.id, Math.max(0, service.adjustedPrice - 5).toString())}
-                                className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-                              >
-                                -$5
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateServicePrice(service.id, Math.max(0, service.adjustedPrice - 1).toString())}
-                                className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-                              >
-                                -$1
-                              </Button>
-                              
-                              {/* Price Input */}
-                              <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                                <Input
-                                  type="number"
-                                  value={service.adjustedPrice}
-                                  onChange={(e) => updateServicePrice(service.id, e.target.value)}
-                                  className="h-9 w-20 pl-6 pr-1 text-center font-medium bg-white"
-                                  step="0.01"
-                                  min="0"
-                                  autoFocus
-                                />
-                              </div>
-                              
-                              {/* Positive Adjustments */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateServicePrice(service.id, (service.adjustedPrice + 1).toString())}
-                                className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
-                              >
-                                +$1
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateServicePrice(service.id, (service.adjustedPrice + 5).toString())}
-                                className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
-                              >
-                                +$5
-                              </Button>
-                              
-                              {/* Done Button */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingPriceId(null)}
-                                className="h-9 w-9 p-0 hover:bg-green-50"
-                              >
-                                <Check className="h-4 w-4 text-green-600" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              {/* Display Mode */}
-                              <div className="flex items-center gap-1">
-                                <div className="px-3 py-1.5 bg-gray-100 rounded-md font-medium text-sm text-gray-700">
-                                  ${service.adjustedPrice.toFixed(2)}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setEditingPriceId(service.id)}
-                                  className="h-9 w-9 p-0 hover:bg-blue-50"
-                                  title="Edit price"
-                                >
-                                  <Pencil className="h-3.5 w-3.5 text-gray-500" />
-                                </Button>
-                              </div>
-                            </>
+                        <div className="text-sm text-gray-600">
+                          {service.duration} min • Base: $
+                          {service.basePrice.toFixed(2)}
+                          {service.adjustedPrice !== service.basePrice && (
+                            <span
+                              className={cn(
+                                "ml-2 font-medium",
+                                service.adjustedPrice < service.basePrice
+                                  ? "text-green-600"
+                                  : "text-orange-600",
+                              )}
+                            >
+                              {service.adjustedPrice < service.basePrice
+                                ? `-$${(service.basePrice - service.adjustedPrice).toFixed(2)}`
+                                : `+$${(service.adjustedPrice - service.basePrice).toFixed(2)}`}
+                            </span>
                           )}
                         </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeService(service.id)}
+                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
+
+                    {/* Price Row */}
+                    <div className="flex items-center gap-2">
+                      {/* Price Controls */}
+                      <div className="flex items-center gap-1 ml-auto">
+                        {editingPriceId === service.id ? (
+                          <>
+                            {/* Edit Mode */}
+                            {/* Negative Adjustments */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateServicePrice(
+                                  service.id,
+                                  Math.max(
+                                    0,
+                                    service.adjustedPrice - 5,
+                                  ).toString(),
+                                )
+                              }
+                              className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                            >
+                              -$5
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateServicePrice(
+                                  service.id,
+                                  Math.max(
+                                    0,
+                                    service.adjustedPrice - 1,
+                                  ).toString(),
+                                )
+                              }
+                              className="h-9 px-2 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                            >
+                              -$1
+                            </Button>
+
+                            {/* Price Input */}
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                                $
+                              </span>
+                              <Input
+                                type="number"
+                                value={service.adjustedPrice}
+                                onChange={(e) =>
+                                  updateServicePrice(service.id, e.target.value)
+                                }
+                                className="h-9 w-20 pl-6 pr-1 text-center font-medium bg-white"
+                                step="0.01"
+                                min="0"
+                                autoFocus
+                              />
+                            </div>
+
+                            {/* Positive Adjustments */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateServicePrice(
+                                  service.id,
+                                  (service.adjustedPrice + 1).toString(),
+                                )
+                              }
+                              className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                            >
+                              +$1
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateServicePrice(
+                                  service.id,
+                                  (service.adjustedPrice + 5).toString(),
+                                )
+                              }
+                              className="h-9 px-2 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+                            >
+                              +$5
+                            </Button>
+
+                            {/* Done Button */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingPriceId(null)}
+                              className="h-9 w-9 p-0 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4 text-green-600" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {/* Display Mode */}
+                            <div className="flex items-center gap-1">
+                              <div className="px-3 py-1.5 bg-gray-100 rounded-md font-medium text-sm text-gray-700">
+                                ${service.adjustedPrice.toFixed(2)}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingPriceId(service.id)}
+                                className="h-9 w-9 p-0 hover:bg-blue-50"
+                                title="Edit price"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
                 <Button
                   onClick={() => setIsServiceSlideoutOpen(true)}
@@ -820,10 +925,12 @@ export function BookingSlideOut({
               </>
             )}
           </div>
-          
+
           {/* Customer Section */}
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Customer</Label>
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              Customer
+            </Label>
             {selectedCustomer || isWalkIn ? (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -836,13 +943,15 @@ export function BookingSlideOut({
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {isWalkIn ? 'Walk-in Customer' : (
-                        selectedCustomer?.name || 
-                        `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()
-                      )}
+                      {isWalkIn
+                        ? "Walk-in Customer"
+                        : selectedCustomer?.name ||
+                          `${selectedCustomer?.firstName || ""} ${selectedCustomer?.lastName || ""}`.trim()}
                     </p>
                     {!isWalkIn && selectedCustomer?.phone && (
-                      <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                      <p className="text-sm text-gray-600">
+                        {selectedCustomer.phone}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -865,7 +974,7 @@ export function BookingSlideOut({
               </Button>
             )}
           </div>
-          
+
           {/* Notes Section */}
           <div>
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -880,7 +989,7 @@ export function BookingSlideOut({
           </div>
         </div>
       </SlideOutPanel>
-      
+
       {/* Service Selection Slideout */}
       <ServiceSelectionSlideout
         isOpen={isServiceSlideoutOpen}
@@ -888,7 +997,7 @@ export function BookingSlideOut({
         services={services}
         onSelectService={handleServiceSelect}
       />
-      
+
       {/* Customer Selection Slideout */}
       <CustomerSelectionSlideout
         isOpen={isCustomerSlideoutOpen}

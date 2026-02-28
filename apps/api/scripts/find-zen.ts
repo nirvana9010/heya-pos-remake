@@ -1,15 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function findZen() {
   const merchants = await prisma.merchant.findMany({
-    where: { 
-      name: { contains: 'Zen', mode: 'insensitive' }
+    where: {
+      name: { contains: "Zen", mode: "insensitive" },
     },
-    select: { id: true, name: true, subdomain: true }
+    select: { id: true, name: true, subdomain: true },
   });
-  console.log('Merchants with Zen in name:', merchants);
+  console.log("Merchants with Zen in name:", merchants);
 }
 
 findZen()

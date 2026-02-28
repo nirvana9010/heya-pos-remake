@@ -1,7 +1,9 @@
 # 🚨 PRODUCTION MIGRATION TODO 🚨
 
 ## Current MVP Setup (NOT FOR PRODUCTION)
+
 The Dockerfile currently runs migrations on every startup:
+
 ```dockerfile
 CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm run start:prod"]
 ```
@@ -9,29 +11,35 @@ CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm run start:prod"]
 ## Before Going to Production, You MUST:
 
 ### 1. Remove Auto-Migration from Dockerfile
+
 ```dockerfile
 # Change back to:
 CMD ["npm", "run", "start:prod"]
 ```
 
 ### 2. Set Up Proper Migration Strategy
+
 - Use `prisma migrate` instead of `prisma db push`
 - Create migration files: `npx prisma migrate dev --name init`
 - Deploy migrations separately: `npx prisma migrate deploy`
 - NEVER use `--accept-data-loss` in production
 
 ### 3. Implement Migration Pipeline
+
 Options:
+
 - **Release Phase**: Add migration step in Railway/Vercel release phase
 - **CI/CD**: Run migrations in GitHub Actions before deployment
 - **Separate Job**: Create a one-off migration job/task
 
 ### 4. Database Backup Strategy
+
 - Set up automated backups in Supabase
 - Test restore procedures
 - Document rollback process
 
 ### 5. Connection Pool Configuration
+
 - Use separate URLs for migrations (direct) vs app (pooled)
 - Configure connection limits properly
 - Monitor connection usage
@@ -39,6 +47,7 @@ Options:
 ## Example Production Setup
 
 ### Railway.json (Production)
+
 ```json
 {
   "build": {
@@ -51,6 +60,7 @@ Options:
 ```
 
 ### Environment Variables (Production)
+
 ```bash
 # Pooled for app
 DATABASE_URL="postgresql://...pooler.supabase.com:6543/postgres?pgbouncer=true"
@@ -60,6 +70,7 @@ DIRECT_URL="postgresql://...supabase.co:5432/postgres"
 ```
 
 ## Red Flags That You're Still on MVP Config
+
 - [ ] Dockerfile contains `prisma db push`
 - [ ] Using `--accept-data-loss` anywhere
 - [ ] No migration files in `prisma/migrations/`

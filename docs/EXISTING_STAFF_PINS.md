@@ -2,11 +2,11 @@
 
 ## Hamilton Beauty Spa Staff
 
-| Name | Role | Access Level | PIN | Email |
-|------|------|--------------|-----|-------|
-| **Sarah Johnson** | Owner | 3 | `1234` | sarah@hamiltonbeauty.com |
-| Emma Williams | Manager | 2 | `5678` | emma@hamiltonbeauty.com |
-| Olivia Brown | Employee | 1 | `9012` | olivia@hamiltonbeauty.com |
+| Name              | Role     | Access Level | PIN    | Email                     |
+| ----------------- | -------- | ------------ | ------ | ------------------------- |
+| **Sarah Johnson** | Owner    | 3            | `1234` | sarah@hamiltonbeauty.com  |
+| Emma Williams     | Manager  | 2            | `5678` | emma@hamiltonbeauty.com   |
+| Olivia Brown      | Employee | 1            | `9012` | olivia@hamiltonbeauty.com |
 
 ## Important Notes
 
@@ -18,6 +18,7 @@
 ## PIN Protected Features
 
 Based on merchant settings:
+
 - ✅ Reports (when enabled in settings)
 - ✅ Refunds (enabled by default)
 - ✅ Cancellations (enabled by default)
@@ -31,6 +32,7 @@ Based on merchant settings:
 ## Why You Were Asked for PIN
 
 The system flow worked correctly:
+
 1. Detected Sarah Johnson exists ✓
 2. Checked if she has a PIN → YES (from seed data) ✓
 3. Asked you to enter the PIN ✓

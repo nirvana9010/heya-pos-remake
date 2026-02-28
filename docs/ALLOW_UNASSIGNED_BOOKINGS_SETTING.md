@@ -1,6 +1,7 @@
 # Allow Unassigned Bookings Setting
 
 ## Overview
+
 A new merchant setting `allowUnassignedBookings` has been added to control whether customers can create bookings without selecting a specific staff member.
 
 ## Setting Details
@@ -10,6 +11,7 @@ A new merchant setting `allowUnassignedBookings` has been added to control wheth
 **Default Value**: `true` (allows flexibility)
 
 **Options**:
+
 - **true**: Customers can select "Any Available" and bookings will be created without a specific staff assignment
 - **false**: Customers must select a specific staff member or the system will auto-assign one
 
@@ -17,7 +19,8 @@ A new merchant setting `allowUnassignedBookings` has been added to control wheth
 
 ### When `allowUnassignedBookings = true` (Default)
 
-1. **Booking App**: 
+1. **Booking App**:
+
    - Shows "Any Available" option
    - When selected, creates booking with `providerId = null`
    - Booking appears in "Unassigned" column on calendar
@@ -30,6 +33,7 @@ A new merchant setting `allowUnassignedBookings` has been added to control wheth
 ### When `allowUnassignedBookings = false`
 
 1. **Booking App**:
+
    - Shows "Any Available" option
    - When selected, automatically assigns first available staff member
    - Booking is created with specific `providerId`
@@ -37,6 +41,7 @@ A new merchant setting `allowUnassignedBookings` has been added to control wheth
    - If no staff available, booking fails with error message
 
 2. **Merchant Slideout**:
+
    - No change - continues to pre-resolve staff
 
 3. **API Validation**:
@@ -46,6 +51,7 @@ A new merchant setting `allowUnassignedBookings` has been added to control wheth
 ## Database Changes
 
 ### Updated TypeScript Interfaces
+
 ```typescript
 // apps/api/src/types/models/merchant.ts
 export interface MerchantSettings {
@@ -56,7 +62,9 @@ export interface MerchantSettings {
 ```
 
 ### Migration Script
+
 Run this script to add the setting to existing merchants:
+
 ```bash
 cd apps/api
 npx tsx src/scripts/add-allow-unassigned-bookings-setting.ts
@@ -65,7 +73,9 @@ npx tsx src/scripts/add-allow-unassigned-bookings-setting.ts
 ## API Changes
 
 ### Public Booking Controller
+
 The `/api/v1/public/merchant-info` endpoint now returns:
+
 ```json
 {
   "id": "...",
@@ -76,33 +86,41 @@ The `/api/v1/public/merchant-info` endpoint now returns:
 ```
 
 ### Public Booking Service
+
 Added validation in `createPublicBooking`:
+
 ```typescript
 if (!staffId && !allowUnassignedBookings) {
-  throw new Error('This business requires staff selection...');
+  throw new Error("This business requires staff selection...");
 }
 ```
 
 ## UI Changes
 
 ### Settings Page
+
 New toggle in Settings → General → Booking Settings:
+
 - **Label**: "Allow Unassigned Bookings"
 - **Description**: "Allow customers to book without selecting a specific staff member (they can choose 'Any Available')"
 
 ### Booking App
+
 Updated behavior based on merchant setting:
+
 - Conditional auto-assignment when setting is false
 - Different descriptive text based on setting value
 
 ## Testing
 
 Use the provided test script:
+
 ```bash
 node test-allow-unassigned-bookings.js
 ```
 
 This tests all four scenarios:
+
 1. ✅ Setting true + No staff = Success (unassigned booking)
 2. ✅ Setting true + With staff = Success (assigned booking)
 3. ❌ Setting false + No staff = Fail (validation error)
@@ -111,12 +129,14 @@ This tests all four scenarios:
 ## Business Impact
 
 ### Benefits of `allowUnassignedBookings = true`:
+
 - Maximum flexibility for staff scheduling
 - Customers can book anytime without availability constraints
 - Staff can be assigned later based on actual availability
 - Supports batch assignment workflows
 
 ### Benefits of `allowUnassignedBookings = false`:
+
 - Ensures all bookings have assigned staff immediately
 - No manual assignment needed later
 - Clearer customer expectations
@@ -126,7 +146,7 @@ This tests all four scenarios:
 
 1. **For high-volume businesses**: Keep `true` for flexibility
 2. **For appointment-based services**: Consider `false` for clarity
-3. **Platform enforcement**: 
+3. **Platform enforcement**:
    - The merchant app now keeps `showUnassignedColumn` in sync with `allowUnassignedBookings`
    - Enabling unassigned bookings automatically displays the "Unassigned" calendar column
 
@@ -136,4 +156,3 @@ This tests all four scenarios:
 2. **Customer Preference**: Remember customer's preferred staff
 3. **Service-Specific Settings**: Some services require specific staff
 4. **Notification Options**: Alert when unassigned bookings are created
-

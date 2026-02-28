@@ -1,18 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { TestSeederService } from '../src/test/services/test-seeder.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from "@nestjs/common";
+import * as request from "supertest";
+import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/prisma/prisma.service";
+import { TestSeederService } from "../src/test/services/test-seeder.service";
 
 // Ensure test environment is loaded
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = "test";
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'postgresql://postgres.hpvnmqvdgkfeykekosrh:WV3R4JZIF2Htu92k@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true';
+  process.env.DATABASE_URL =
+    "postgresql://postgres.hpvnmqvdgkfeykekosrh:WV3R4JZIF2Htu92k@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true";
   process.env.DIRECT_URL = process.env.DATABASE_URL;
 }
 
-describe('Bookings v1 API (e2e)', () => {
+describe("Bookings v1 API (e2e)", () => {
   let app: INestApplication;
   let prismaService: PrismaService;
   let authToken: string;
@@ -28,27 +33,30 @@ describe('Bookings v1 API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
-    // Configure app similar to main.ts
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }));
 
-    app.setGlobalPrefix('api');
-    
+    // Configure app similar to main.ts
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+
+    app.setGlobalPrefix("api");
+
     // Enable versioning
     app.enableVersioning({
       type: VersioningType.URI,
-      prefix: 'v',
-      defaultVersion: '1',
+      prefix: "v",
+      defaultVersion: "1",
     });
 
     await app.init();
 
     prismaService = moduleFixture.get<PrismaService>(PrismaService);
-    const seederService = moduleFixture.get<TestSeederService>(TestSeederService);
+    const seederService =
+      moduleFixture.get<TestSeederService>(TestSeederService);
 
     // Seed test data
     const seedResult = await seederService.seed({
@@ -65,7 +73,7 @@ describe('Bookings v1 API (e2e)', () => {
 
     // Login to get auth token
     const loginResponse = await request(app.getHttpServer())
-      .post('/api/v1/auth/merchant/login')
+      .post("/api/v1/auth/merchant/login")
       .send({
         username: testMerchant.merchant.username,
         password: testMerchant.merchant.password,
@@ -78,15 +86,15 @@ describe('Bookings v1 API (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /api/v1/bookings', () => {
-    it('should return empty bookings list initially', async () => {
+  describe("GET /api/v1/bookings", () => {
+    it("should return empty bookings list initially", async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .get("/api/v1/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('meta');
+      expect(response.body).toHaveProperty("data");
+      expect(response.body).toHaveProperty("meta");
       expect(response.body.data).toBeInstanceOf(Array);
       expect(response.body.data).toHaveLength(0);
       expect(response.body.meta).toMatchObject({
@@ -97,15 +105,13 @@ describe('Bookings v1 API (e2e)', () => {
       });
     });
 
-    it('should require authentication', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/bookings')
-        .expect(401);
+    it("should require authentication", async () => {
+      await request(app.getHttpServer()).get("/api/v1/bookings").expect(401);
     });
   });
 
-  describe('POST /api/v1/bookings', () => {
-    it('should create a booking successfully', async () => {
+  describe("POST /api/v1/bookings", () => {
+    it("should create a booking successfully", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(10, 0, 0, 0);
@@ -113,84 +119,92 @@ describe('Bookings v1 API (e2e)', () => {
       const createBookingDto = {
         customerId: testCustomerId,
         providerId: testStaffId,
-        locationId: (await prismaService.location.findFirst({ 
-          where: { merchantId: testMerchantId } 
-        }))?.id,
-        services: [{
-          serviceId: testServiceId,
-          duration: 60,
-          price: 100,
-        }],
+        locationId: (
+          await prismaService.location.findFirst({
+            where: { merchantId: testMerchantId },
+          })
+        )?.id,
+        services: [
+          {
+            serviceId: testServiceId,
+            duration: 60,
+            price: 100,
+          },
+        ],
         startTime: tomorrow.toISOString(),
         totalAmount: 100,
-        status: 'CONFIRMED',
+        status: "CONFIRMED",
       };
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .send(createBookingDto)
         .expect(201);
 
       expect(response.body).toMatchObject({
         customerId: testCustomerId,
         providerId: testStaffId,
-        status: 'CONFIRMED',
-        totalAmount: '100',
+        status: "CONFIRMED",
+        totalAmount: "100",
       });
-      expect(response.body).toHaveProperty('id');
-      expect(response.body).toHaveProperty('bookingNumber');
+      expect(response.body).toHaveProperty("id");
+      expect(response.body).toHaveProperty("bookingNumber");
     });
 
-    it('should validate required fields', async () => {
+    it("should validate required fields", async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
           // Missing required fields
           customerId: testCustomerId,
         })
         .expect(400);
 
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.message).toContain('validation');
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.message).toContain("validation");
     });
   });
 
-  describe('POST /api/v1/bookings/create-with-check', () => {
-    it('should prevent double booking', async () => {
+  describe("POST /api/v1/bookings/create-with-check", () => {
+    it("should prevent double booking", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(14, 0, 0, 0);
 
-      const locationId = (await prismaService.location.findFirst({ 
-        where: { merchantId: testMerchantId } 
-      }))?.id;
+      const locationId = (
+        await prismaService.location.findFirst({
+          where: { merchantId: testMerchantId },
+        })
+      )?.id;
 
       const bookingData = {
         customerId: testCustomerId,
         providerId: testStaffId,
         locationId,
-        services: [{
-          serviceId: testServiceId,
-          duration: 60,
-          price: 100,
-        }],
+        services: [
+          {
+            serviceId: testServiceId,
+            duration: 60,
+            price: 100,
+          },
+        ],
         startTime: tomorrow.toISOString(),
         totalAmount: 100,
       };
 
       // Create first booking
       await request(app.getHttpServer())
-        .post('/api/v1/bookings/create-with-check')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings/create-with-check")
+        .set("Authorization", `Bearer ${authToken}`)
         .send(bookingData)
         .expect(201);
 
       // Try to create conflicting booking
       const conflictResponse = await request(app.getHttpServer())
-        .post('/api/v1/bookings/create-with-check')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings/create-with-check")
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
           ...bookingData,
           customerId: testMerchant.customers[1].id, // Different customer
@@ -198,72 +212,76 @@ describe('Bookings v1 API (e2e)', () => {
         .expect(409);
 
       expect(conflictResponse.body).toMatchObject({
-        message: 'This time slot has conflicts with existing bookings',
+        message: "This time slot has conflicts with existing bookings",
         requiresOverride: true,
       });
-      expect(conflictResponse.body).toHaveProperty('conflicts');
+      expect(conflictResponse.body).toHaveProperty("conflicts");
     });
 
-    it('should allow override for double booking', async () => {
+    it("should allow override for double booking", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(15, 0, 0, 0);
 
-      const locationId = (await prismaService.location.findFirst({ 
-        where: { merchantId: testMerchantId } 
-      }))?.id;
+      const locationId = (
+        await prismaService.location.findFirst({
+          where: { merchantId: testMerchantId },
+        })
+      )?.id;
 
       const bookingData = {
         customerId: testCustomerId,
         providerId: testStaffId,
         locationId,
-        services: [{
-          serviceId: testServiceId,
-          duration: 60,
-          price: 100,
-        }],
+        services: [
+          {
+            serviceId: testServiceId,
+            duration: 60,
+            price: 100,
+          },
+        ],
         startTime: tomorrow.toISOString(),
         totalAmount: 100,
       };
 
       // Create first booking
       await request(app.getHttpServer())
-        .post('/api/v1/bookings/create-with-check')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings/create-with-check")
+        .set("Authorization", `Bearer ${authToken}`)
         .send(bookingData)
         .expect(201);
 
       // Create conflicting booking with override
       const overrideResponse = await request(app.getHttpServer())
-        .post('/api/v1/bookings/create-with-check')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings/create-with-check")
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
           ...bookingData,
           customerId: testMerchant.customers[1].id,
           isOverride: true,
-          overrideReason: 'Customer specifically requested this time',
+          overrideReason: "Customer specifically requested this time",
         })
         .expect(201);
 
-      expect(overrideResponse.body).toHaveProperty('isOverride', true);
-      expect(overrideResponse.body).toHaveProperty('overrideReason');
+      expect(overrideResponse.body).toHaveProperty("isOverride", true);
+      expect(overrideResponse.body).toHaveProperty("overrideReason");
     });
   });
 
-  describe('GET /api/v1/bookings/available-slots', () => {
-    it('should return available time slots', async () => {
+  describe("GET /api/v1/bookings/available-slots", () => {
+    it("should return available time slots", async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = tomorrow.toISOString().split("T")[0];
 
       const response = await request(app.getHttpServer())
-        .get('/api/v1/bookings/available-slots')
+        .get("/api/v1/bookings/available-slots")
         .query({
           staffId: testStaffId,
           serviceId: testServiceId,
           date: dateStr,
         })
-        .set('Authorization', `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
@@ -271,21 +289,21 @@ describe('Bookings v1 API (e2e)', () => {
         serviceId: testServiceId,
         date: dateStr,
       });
-      expect(response.body).toHaveProperty('slots');
+      expect(response.body).toHaveProperty("slots");
       expect(response.body.slots).toBeInstanceOf(Array);
-      
+
       // Should have available slots
       expect(response.body.slots.length).toBeGreaterThan(0);
-      
+
       // Each slot should have the correct structure
       if (response.body.slots.length > 0) {
-        expect(response.body.slots[0]).toHaveProperty('startTime');
-        expect(response.body.slots[0]).toHaveProperty('endTime');
+        expect(response.body.slots[0]).toHaveProperty("startTime");
+        expect(response.body.slots[0]).toHaveProperty("endTime");
       }
     });
   });
 
-  describe('PATCH /api/v1/bookings/:id', () => {
+  describe("PATCH /api/v1/bookings/:id", () => {
     let bookingId: string;
 
     beforeEach(async () => {
@@ -294,82 +312,86 @@ describe('Bookings v1 API (e2e)', () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(16, 0, 0, 0);
 
-      const locationId = (await prismaService.location.findFirst({ 
-        where: { merchantId: testMerchantId } 
-      }))?.id;
+      const locationId = (
+        await prismaService.location.findFirst({
+          where: { merchantId: testMerchantId },
+        })
+      )?.id;
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .post("/api/v1/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
           customerId: testCustomerId,
           providerId: testStaffId,
           locationId,
-          services: [{
-            serviceId: testServiceId,
-            duration: 60,
-            price: 100,
-          }],
+          services: [
+            {
+              serviceId: testServiceId,
+              duration: 60,
+              price: 100,
+            },
+          ],
           startTime: tomorrow.toISOString(),
           totalAmount: 100,
-          status: 'CONFIRMED',
+          status: "CONFIRMED",
         });
 
       bookingId = response.body.id;
     });
 
-    it('should update booking status', async () => {
+    it("should update booking status", async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/v1/bookings/${bookingId}/status`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
-          status: 'IN_PROGRESS',
+          status: "IN_PROGRESS",
         })
         .expect(200);
 
       expect(response.body).toMatchObject({
         id: bookingId,
-        status: 'IN_PROGRESS',
+        status: "IN_PROGRESS",
       });
     });
 
-    it('should handle booking cancellation', async () => {
+    it("should handle booking cancellation", async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/v1/bookings/${bookingId}/status`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set("Authorization", `Bearer ${authToken}`)
         .send({
-          status: 'CANCELLED',
-          cancellationReason: 'Customer requested cancellation',
+          status: "CANCELLED",
+          cancellationReason: "Customer requested cancellation",
         })
         .expect(200);
 
       expect(response.body).toMatchObject({
         id: bookingId,
-        status: 'CANCELLED',
+        status: "CANCELLED",
       });
-      expect(response.body).toHaveProperty('cancelledAt');
+      expect(response.body).toHaveProperty("cancelledAt");
     });
   });
 
-  describe('API Versioning', () => {
-    it('should accept v1 prefix explicitly', async () => {
+  describe("API Versioning", () => {
+    it("should accept v1 prefix explicitly", async () => {
       await request(app.getHttpServer())
-        .get('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .get("/api/v1/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
     });
 
-    it('should use v1 as default when no version specified', async () => {
+    it("should use v1 as default when no version specified", async () => {
       await request(app.getHttpServer())
-        .get('/api/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .get("/api/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
     });
 
-    it('should return 404 for non-existent versions', async () => {
+    it("should return 404 for non-existent versions", async () => {
       await request(app.getHttpServer())
-        .get('/api/v2/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
+        .get("/api/v2/bookings")
+        .set("Authorization", `Bearer ${authToken}`)
         .expect(404);
     });
   });

@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { Suspense } from 'react'
-import { Skeleton } from '@heya-pos/ui'
+import { Suspense } from "react";
+import { Skeleton } from "@heya-pos/ui";
 
 interface RouteSuspenseWrapperProps {
-  children: React.ReactNode
-  fallback?: React.ReactNode
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 // Default loading component for routes
@@ -19,13 +19,16 @@ function DefaultRouteLoading() {
         <p className="text-muted-foreground">Loading...</p>
       </div>
     </div>
-  )
+  );
 }
 
-export function RouteSuspenseWrapper({ children, fallback }: RouteSuspenseWrapperProps) {
+export function RouteSuspenseWrapper({
+  children,
+  fallback,
+}: RouteSuspenseWrapperProps) {
   return (
     <Suspense fallback={fallback || <DefaultRouteLoading />}>
       {children}
     </Suspense>
-  )
+  );
 }

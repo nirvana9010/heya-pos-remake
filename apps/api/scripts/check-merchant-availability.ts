@@ -54,7 +54,9 @@ async function main() {
   const serviceId = argMap.service;
 
   if (!dateInput) {
-    console.error("Usage: ts-node check-merchant-availability.ts --date=YYYY-MM-DD [--merchant=subdomain] [--service=serviceId]");
+    console.error(
+      "Usage: ts-node check-merchant-availability.ts --date=YYYY-MM-DD [--merchant=subdomain] [--service=serviceId]",
+    );
     process.exit(1);
   }
 
@@ -76,7 +78,9 @@ async function main() {
     });
 
     if (!merchant) {
-      throw new Error(`Merchant with subdomain "${merchantSubdomain}" not found`);
+      throw new Error(
+        `Merchant with subdomain "${merchantSubdomain}" not found`,
+      );
     }
 
     const settings = (merchant.settings ?? {}) as Prisma.JsonObject;
@@ -110,7 +114,10 @@ async function main() {
       targetDate,
       effectiveTimezone,
     );
-    const endDate = TimezoneUtils.endOfDayInTimezone(targetDate, effectiveTimezone);
+    const endDate = TimezoneUtils.endOfDayInTimezone(
+      targetDate,
+      effectiveTimezone,
+    );
 
     const services = await prisma.service.findMany({
       where: {

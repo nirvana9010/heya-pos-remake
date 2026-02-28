@@ -1,6 +1,7 @@
 # Heya POS Complete System Integration Guide
 
 ## 🎯 Executive Summary
+
 This guide covers end-to-end testing scenarios that span across all three Heya POS applications (Booking App, Merchant App, Admin Dashboard), ensuring proper integration and data flow throughout the entire system.
 
 ---
@@ -8,6 +9,7 @@ This guide covers end-to-end testing scenarios that span across all three Heya P
 ## 🔄 System Architecture Overview
 
 ### Application Ecosystem
+
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Booking App   │────▶│    Heya API     │◀────│  Merchant App   │
@@ -22,6 +24,7 @@ This guide covers end-to-end testing scenarios that span across all three Heya P
 ```
 
 ### Data Flow Patterns
+
 1. **Customer → Merchant**: Bookings, check-ins, payments
 2. **Merchant → Customer**: Availability, confirmations, receipts
 3. **Admin → Merchant**: Configuration, packages, restrictions
@@ -32,6 +35,7 @@ This guide covers end-to-end testing scenarios that span across all three Heya P
 ## 🧪 Cross-Application Test Scenarios
 
 ### Scenario 1: Complete Booking Lifecycle
+
 ```
 PARTICIPANTS: Customer (Booking App) + Staff (Merchant App) + Admin (Dashboard)
 
@@ -87,6 +91,7 @@ VERIFICATION POINTS:
 ```
 
 ### Scenario 2: Trial Period Management
+
 ```
 PARTICIPANTS: Admin + Merchant + Customer
 
@@ -121,6 +126,7 @@ VERIFICATION:
 ```
 
 ### Scenario 3: Multi-Location Operations
+
 ```
 PARTICIPANTS: All three applications
 
@@ -150,6 +156,7 @@ VERIFICATION:
 ```
 
 ### Scenario 4: Package Limit Enforcement
+
 ```
 PARTICIPANTS: Admin + Merchant
 
@@ -176,6 +183,7 @@ VERIFICATION:
 ```
 
 ### Scenario 5: System-Wide Maintenance
+
 ```
 PARTICIPANTS: All applications
 
@@ -209,6 +217,7 @@ VERIFICATION:
 ## 🔗 Integration Test Cases
 
 ### API Integration Tests
+
 ```
 ✅ AUTHENTICATION FLOW
 □ Merchant login token works across sessions
@@ -233,6 +242,7 @@ VERIFICATION:
 ```
 
 ### Business Logic Validation
+
 ```
 ✅ BOOKING RULES
 □ Advance notice enforced
@@ -263,6 +273,7 @@ VERIFICATION:
 ## 📊 End-to-End Performance Tests
 
 ### Load Testing Scenarios
+
 ```
 SCENARIO 1: Peak Booking Hours
 □ 100 concurrent customers browsing
@@ -287,6 +298,7 @@ Expected: No timeouts or failures
 ```
 
 ### Data Integrity Tests
+
 ```
 ✅ TRANSACTION CONSISTENCY
 □ No orphaned bookings
@@ -308,23 +320,28 @@ Expected: No timeouts or failures
 ## 🚨 Critical Integration Points
 
 ### Must-Test Integrations
+
 1. **Booking Creation → Merchant Notification**
+
    - Real-time update in merchant calendar
    - Email/SMS notification sent
    - Dashboard metrics updated
 
 2. **Check-in → Status Update**
+
    - Booking status changes
    - Staff notified
    - Timer starts if applicable
 
 3. **Payment → Financial Records**
+
    - Transaction recorded
    - Reports updated
    - Commission calculated
    - Receipt generated
 
 4. **Admin Changes → Merchant Impact**
+
    - Package limits enforced
    - Feature flags applied
    - Settings cascaded
@@ -339,6 +356,7 @@ Expected: No timeouts or failures
 ## 🔄 Regression Test Suite
 
 ### After Each Release
+
 ```
 BOOKING APP
 □ Complete booking flow
@@ -371,6 +389,7 @@ INTEGRATION
 ## 📋 Integration Testing Checklist
 
 ### Daily Smoke Tests
+
 - [ ] Customer can book appointment
 - [ ] Merchant receives notification
 - [ ] Check-in process works
@@ -378,6 +397,7 @@ INTEGRATION
 - [ ] Admin can view system status
 
 ### Weekly Integration Tests
+
 - [ ] Full booking lifecycle
 - [ ] Multi-service bookings
 - [ ] Staff scheduling conflicts
@@ -385,6 +405,7 @@ INTEGRATION
 - [ ] Package limit enforcement
 
 ### Monthly Full Regression
+
 - [ ] All user journeys
 - [ ] Edge cases and error paths
 - [ ] Performance benchmarks
@@ -396,6 +417,7 @@ INTEGRATION
 ## 🔧 Troubleshooting Common Integration Issues
 
 ### Issue: Bookings Not Appearing in Merchant App
+
 ```
 CHECK:
 1. API connection status
@@ -412,6 +434,7 @@ SOLUTION:
 ```
 
 ### Issue: Payments Not Processing
+
 ```
 CHECK:
 1. Payment gateway configuration
@@ -428,6 +451,7 @@ SOLUTION:
 ```
 
 ### Issue: Notifications Not Delivering
+
 ```
 CHECK:
 1. Email service configuration
@@ -448,6 +472,7 @@ SOLUTION:
 ## 🎯 Success Metrics
 
 ### System Integration Health
+
 - **API Success Rate**: > 99.9%
 - **Data Sync Delay**: < 1 second
 - **Notification Delivery**: > 98%
@@ -455,6 +480,7 @@ SOLUTION:
 - **Cross-App Consistency**: 100%
 
 ### User Experience Metrics
+
 - **Booking Completion Rate**: > 70%
 - **Check-in Success Rate**: > 90%
 - **Payment Processing Time**: < 3 seconds
@@ -466,6 +492,7 @@ SOLUTION:
 ## 📚 Testing Resources
 
 ### Test Accounts
+
 ```
 Customer:
 - Phone: 0400000001
@@ -481,6 +508,7 @@ Admin:
 ```
 
 ### Test URLs
+
 ```
 Booking App: http://localhost:3001/test-spa
 Merchant App: http://localhost:3002
@@ -489,6 +517,7 @@ API: http://localhost:3000/api
 ```
 
 ### Test Data Sets
+
 - Services: 10 pre-configured
 - Staff: 5 with varied schedules
 - Customers: 50 with history
@@ -499,6 +528,7 @@ API: http://localhost:3000/api
 ## 🏁 Final Verification
 
 Your integration testing is complete when:
+
 1. ✅ All cross-app workflows succeed
 2. ✅ Data consistency verified across apps
 3. ✅ Performance metrics met
@@ -508,5 +538,5 @@ Your integration testing is complete when:
 
 ---
 
-*Last Updated: 2025-01-09*
-*Version: 1.0*
+_Last Updated: 2025-01-09_
+_Version: 1.0_

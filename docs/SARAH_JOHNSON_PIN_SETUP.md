@@ -1,6 +1,7 @@
 # Sarah Johnson PIN Setup Guide
 
 ## Current Situation
+
 - **Owner**: Sarah Johnson already exists as owner-level staff (Access Level 3)
 - **PIN Status**: No PIN set yet
 - **Expected Flow**: Should skip owner creation and go directly to PIN setup
@@ -8,11 +9,13 @@
 ## Test Steps
 
 ### 1. Navigate to Reports Page
+
 - Go to `/reports`
 - **Expected**: Should NOT show "Create Owner Account" form
 - **Expected**: Should show "Set Owner PIN" form with Sarah Johnson's name
 
 ### 2. PIN Setup Screen
+
 - **Title**: "Set Owner PIN"
 - **Description**: "Sarah Johnson - Create a secure PIN for accessing sensitive features"
 - Enter a PIN (e.g., 5678)
@@ -20,10 +23,12 @@
 - Click "Set Owner PIN"
 
 ### 3. After PIN Setup
+
 - Reports page should load
 - Sarah's PIN is now set and stored
 
 ### 4. Test PIN Access
+
 - Navigate away from Reports
 - Return to Reports page
 - **Expected**: PIN entry prompt appears
@@ -33,6 +38,7 @@
 ## Technical Details
 
 The system correctly identifies Sarah Johnson as owner because:
+
 - She has `accessLevel: 3` (which means owner according to the Staff interface)
 - The detection logic checks for:
   - `role === "OWNER"` OR

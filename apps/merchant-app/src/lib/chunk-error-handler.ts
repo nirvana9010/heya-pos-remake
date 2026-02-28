@@ -1,6 +1,6 @@
 /**
  * Chunk Error Handler - Phase 3 Build System Improvements
- * 
+ *
  * This module handles webpack chunk loading errors gracefully
  * to prevent the app from crashing when chunks fail to load.
  */
@@ -14,8 +14,8 @@ declare global {
 }
 
 export function setupChunkErrorHandler() {
-  if (typeof window === 'undefined') return;
-  
+  if (typeof window === "undefined") return;
+
   // Prevent multiple installations
   if (window.__CHUNK_ERROR_HANDLER_ACTIVE__) return;
   window.__CHUNK_ERROR_HANDLER_ACTIVE__ = true;
@@ -23,9 +23,14 @@ export function setupChunkErrorHandler() {
   // Increase webpack chunk load timeout (default is often too low)
   if (window.__webpack_require__ && window.__webpack_require__.l) {
     const originalLoader = window.__webpack_require__.l;
-    window.__webpack_require__.l = function(url: string, done: any, key: any, chunkId: any) {
+    window.__webpack_require__.l = function (
+      url: string,
+      done: any,
+      key: any,
+      chunkId: any,
+    ) {
       // Set a longer timeout for chunk loading (30 seconds instead of default)
-      const script = document.createElement('script');
+      const script = document.createElement("script");
       script.timeout = 30000;
       return originalLoader.call(this, url, done, key, chunkId);
     };
@@ -40,10 +45,10 @@ export function setupChunkErrorHandler() {
   window.onerror = function (msg, source, lineno, colno, error) {
     // Check if this is a chunk loading error
     if (
-      error?.name === 'ChunkLoadError' ||
-      (typeof msg === 'string' && msg.includes('Loading chunk'))
+      error?.name === "ChunkLoadError" ||
+      (typeof msg === "string" && msg.includes("Loading chunk"))
     ) {
-      console.warn('[ChunkErrorHandler] Chunk loading error detected:', error);
+      console.warn("[ChunkErrorHandler] Chunk loading error detected:", error);
 
       // Extract chunk name from error
       const chunkMatch = error?.message?.match(/chunk (\S+) failed/);
@@ -58,24 +63,30 @@ export function setupChunkErrorHandler() {
         // Try to recover automatically
         const attempts = retryAttempts.get(chunkName) || 0;
         retryAttempts.set(chunkName, attempts + 1);
-        
+
         if (attempts < 3) {
-          console.log(`[ChunkErrorHandler] Attempting to retry chunk ${chunkName} (attempt ${attempts + 1}/3)`);
-          
+          console.log(
+            `[ChunkErrorHandler] Attempting to retry chunk ${chunkName} (attempt ${attempts + 1}/3)`,
+          );
+
           // Clear webpack cache for this chunk if possible
           if (window.__webpack_require__ && window.__webpack_require__.cache) {
             delete window.__webpack_require__.cache[chunkName];
           }
-          
+
           // Auto-reload after a short delay without confirmation
           setTimeout(() => {
-            console.log('[ChunkErrorHandler] Auto-reloading page...');
+            console.log("[ChunkErrorHandler] Auto-reloading page...");
             window.location.reload();
           }, 1500);
         } else {
           // After 3 attempts, ask user
           setTimeout(() => {
-            if (window.confirm('Some resources failed to load after multiple attempts. Would you like to reload the page?')) {
+            if (
+              window.confirm(
+                "Some resources failed to load after multiple attempts. Would you like to reload the page?",
+              )
+            ) {
               window.location.reload();
             }
           }, 2000);
@@ -95,52 +106,65 @@ export function setupChunkErrorHandler() {
   };
 
   // Also handle unhandled promise rejections for dynamic imports
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener("unhandledrejection", (event) => {
     if (
-      event.reason?.name === 'ChunkLoadError' ||
-      event.reason?.message?.includes('Loading chunk') ||
-      event.reason?.message?.includes('Failed to fetch dynamically imported module')
+      event.reason?.name === "ChunkLoadError" ||
+      event.reason?.message?.includes("Loading chunk") ||
+      event.reason?.message?.includes(
+        "Failed to fetch dynamically imported module",
+      )
     ) {
-      console.warn('[ChunkErrorHandler] Unhandled chunk loading rejection:', event.reason);
+      console.warn(
+        "[ChunkErrorHandler] Unhandled chunk loading rejection:",
+        event.reason,
+      );
       event.preventDefault();
-      
+
       // Extract chunk info and retry
-      const chunkInfo = event.reason?.message || '';
-      const chunkName = chunkInfo.match(/chunk ([\w\/.-]+)/)?.[1] || 'unknown';
-      
+      const chunkInfo = event.reason?.message || "";
+      const chunkName = chunkInfo.match(/chunk ([\w\/.-]+)/)?.[1] || "unknown";
+
       if (!failedChunks.has(chunkName)) {
         failedChunks.add(chunkName);
         const attempts = retryAttempts.get(chunkName) || 0;
-        
+
         if (attempts < 2) {
           retryAttempts.set(chunkName, attempts + 1);
           showChunkErrorNotification();
-          
+
           // Auto-reload for dynamic import failures
           setTimeout(() => {
-            console.log('[ChunkErrorHandler] Auto-reloading due to dynamic import failure...');
+            console.log(
+              "[ChunkErrorHandler] Auto-reloading due to dynamic import failure...",
+            );
             window.location.reload();
           }, 1500);
         }
       }
     }
   });
-  
+
   // Add service worker update handler to clear cache on updates
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(registration => {
-      registration.addEventListener('updatefound', () => {
-        console.log('[ChunkErrorHandler] Service worker update found, preparing for refresh...');
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.addEventListener("updatefound", () => {
+        console.log(
+          "[ChunkErrorHandler] Service worker update found, preparing for refresh...",
+        );
         const newWorker = registration.installing;
         if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'activated') {
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "activated") {
               // Clear caches and reload
-              caches.keys().then(names => {
-                Promise.all(names.map(name => caches.delete(name))).then(() => {
-                  console.log('[ChunkErrorHandler] Caches cleared, reloading...');
-                  window.location.reload();
-                });
+              caches.keys().then((names) => {
+                Promise.all(names.map((name) => caches.delete(name))).then(
+                  () => {
+                    console.log(
+                      "[ChunkErrorHandler] Caches cleared, reloading...",
+                    );
+                    window.location.reload();
+                  },
+                );
               });
             }
           });
@@ -152,11 +176,11 @@ export function setupChunkErrorHandler() {
 
 function showChunkErrorNotification() {
   // Check if a notification is already showing
-  if (document.getElementById('chunk-error-notification')) return;
+  if (document.getElementById("chunk-error-notification")) return;
 
-  const notification = document.createElement('div');
-  notification.id = 'chunk-error-notification';
-  notification.className = 'chunk-error-notification';
+  const notification = document.createElement("div");
+  notification.id = "chunk-error-notification";
+  notification.className = "chunk-error-notification";
   notification.innerHTML = `
     <div style="
       position: fixed;
@@ -220,11 +244,13 @@ export function useChunkErrorRecovery() {
           return await importFn();
         } catch (error) {
           if (i === retries - 1) throw error;
-          
+
           // Wait before retrying with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, i)),
+          );
         }
       }
-    }
+    },
   };
 }

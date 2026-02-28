@@ -758,9 +758,7 @@ export default function RosterPage() {
         <p className="text-gray-600">Manage staff schedules and availability</p>
         <div className="mt-2 text-sm text-gray-500">
           Overrides this week:{" "}
-          <span className="font-medium text-gray-900">
-            {totalOverrides}
-          </span>{" "}
+          <span className="font-medium text-gray-900">{totalOverrides}</span>{" "}
           {totalOverrides === 1 ? "override" : "overrides"} across{" "}
           <span className="font-medium text-gray-900">
             {staffWithOverrides}

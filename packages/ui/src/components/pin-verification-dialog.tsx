@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle 
-} from './dialog';
-import { Button } from './button';
-import { Alert, AlertDescription } from './alert';
-import { cn } from '../lib/utils';
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
+import { Button } from "./button";
+import { Alert, AlertDescription } from "./alert";
+import { cn } from "../lib/utils";
 
 export interface PinVerificationDialogProps {
   open: boolean;
@@ -41,16 +41,16 @@ export function PinVerificationDialog({
   onSuccess,
   onCancel,
 }: PinVerificationDialogProps) {
-  const [pin, setPin] = React.useState('');
+  const [pin, setPin] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [error, setError] = React.useState("");
   const [attempts, setAttempts] = React.useState(3);
 
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open) {
-      setPin('');
-      setError('');
+      setPin("");
+      setError("");
       setAttempts(3);
     }
   }, [open]);
@@ -59,7 +59,7 @@ export function PinVerificationDialog({
     if (pin.length < 4) {
       const newPin = pin + digit;
       setPin(newPin);
-      
+
       // Auto-submit when 4 digits are entered
       if (newPin.length === 4) {
         handleSubmit(newPin);
@@ -68,27 +68,27 @@ export function PinVerificationDialog({
   };
 
   const handleClear = () => {
-    setPin('');
-    setError('');
+    setPin("");
+    setError("");
   };
 
   const handleSubmit = async (pinCode: string = pin) => {
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const result = await onVerify(pinCode);
-      
+
       if (result.success && result.staff) {
         // Success - close dialog and call success callback
         onSuccess?.(result.staff);
         onOpenChange(false);
       } else {
         // Failed - show error and clear PIN
-        setError(result.error || 'Invalid PIN');
-        setPin('');
-        setAttempts(prev => Math.max(0, prev - 1));
-        
+        setError(result.error || "Invalid PIN");
+        setPin("");
+        setAttempts((prev) => Math.max(0, prev - 1));
+
         if (attempts <= 1) {
           // No more attempts - close dialog
           setTimeout(() => {
@@ -98,9 +98,9 @@ export function PinVerificationDialog({
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Verification failed');
-      setPin('');
-      setAttempts(prev => Math.max(0, prev - 1));
+      setError(err.message || "Verification failed");
+      setPin("");
+      setAttempts((prev) => Math.max(0, prev - 1));
     } finally {
       setLoading(false);
     }
@@ -112,32 +112,36 @@ export function PinVerificationDialog({
   };
 
   const PinDot = ({ filled }: { filled: boolean }) => (
-    <div 
+    <div
       className={cn(
         "w-3 h-3 rounded-full border-2 transition-all",
-        filled 
-          ? "bg-primary border-primary scale-110" 
-          : "border-gray-300 bg-gray-50"
-      )} 
+        filled
+          ? "bg-primary border-primary scale-110"
+          : "border-gray-300 bg-gray-50",
+      )}
     />
   );
 
   // Format action name for display
   const formattedAction = action
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>PIN Verification Required</DialogTitle>
           <DialogDescription>
-            {actionDescription || `Enter your PIN to ${formattedAction.toLowerCase()}`}
+            {actionDescription ||
+              `Enter your PIN to ${formattedAction.toLowerCase()}`}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6 py-4">
           {error && (
             <Alert variant="destructive" className="py-2">
@@ -182,7 +186,7 @@ export function PinVerificationDialog({
               variant="outline"
               size="lg"
               className="h-14 text-lg font-semibold hover:bg-primary hover:text-primary-foreground transition-colors"
-              onClick={() => handlePinInput('0')}
+              onClick={() => handlePinInput("0")}
               disabled={loading || pin.length >= 4 || attempts === 0}
             >
               0

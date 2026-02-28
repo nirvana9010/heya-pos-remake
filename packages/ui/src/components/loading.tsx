@@ -1,8 +1,11 @@
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 // Inline spinner for search fields and buttons
-export function Spinner({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function Spinner({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn("inline-flex items-center justify-center", className)}
@@ -29,7 +32,7 @@ export function Spinner({ className, ...props }: React.HTMLAttributes<HTMLDivEle
         />
       </svg>
     </div>
-  )
+  );
 }
 
 // Success checkmark animation
@@ -53,27 +56,22 @@ export function SuccessCheck({ className }: { className?: string }) {
         />
       </svg>
     </div>
-  )
+  );
 }
 
 // Error shake animation wrapper
-export function ErrorShake({ 
-  children, 
+export function ErrorShake({
+  children,
   error,
-  className 
-}: { 
-  children: React.ReactNode
-  error?: boolean
-  className?: string 
+  className,
+}: {
+  children: React.ReactNode;
+  error?: boolean;
+  className?: string;
 }) {
   return (
-    <div className={cn(
-      error && "animate-shake",
-      className
-    )}>
-      {children}
-    </div>
-  )
+    <div className={cn(error && "animate-shake", className)}>{children}</div>
+  );
 }
 
 // Loading button with text
@@ -85,15 +83,15 @@ export function LoadingButton({
   disabled,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  loading?: boolean
-  loadingText?: string
+  loading?: boolean;
+  loadingText?: string;
 }) {
   return (
     <button
       className={cn(
         "inline-flex items-center justify-center gap-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",
-        className
+        className,
       )}
       disabled={disabled || loading}
       {...props}
@@ -107,118 +105,112 @@ export function LoadingButton({
         children
       )}
     </button>
-  )
+  );
 }
 
 // Pulse overlay for updating items
 export function PulseOverlay({ visible }: { visible: boolean }) {
-  if (!visible) return null
-  
+  if (!visible) return null;
+
   return (
     <div className="absolute inset-0 bg-white/50 animate-pulse pointer-events-none" />
-  )
+  );
 }
 
 // Connection status indicator
-export function ConnectionStatus({ 
-  status = "connected" 
-}: { 
-  status?: "connected" | "polling" | "disconnected" 
+export function ConnectionStatus({
+  status = "connected",
+}: {
+  status?: "connected" | "polling" | "disconnected";
 }) {
   const statusConfig = {
     connected: {
       color: "bg-green-500",
       text: "Live",
-      pulse: true
+      pulse: true,
     },
     polling: {
       color: "bg-yellow-500",
       text: "Updating",
-      pulse: true
+      pulse: true,
     },
     disconnected: {
       color: "bg-red-500",
       text: "Offline",
-      pulse: false
-    }
-  }
+      pulse: false,
+    },
+  };
 
-  const config = statusConfig[status]
+  const config = statusConfig[status];
 
   return (
     <div className="inline-flex items-center gap-2 text-sm text-gray-600">
       <div className="relative">
-        <div className={cn(
-          "h-2 w-2 rounded-full",
-          config.color
-        )} />
+        <div className={cn("h-2 w-2 rounded-full", config.color)} />
         {config.pulse && (
-          <div className={cn(
-            "absolute inset-0 h-2 w-2 rounded-full animate-ping",
-            config.color,
-            "opacity-75"
-          )} />
+          <div
+            className={cn(
+              "absolute inset-0 h-2 w-2 rounded-full animate-ping",
+              config.color,
+              "opacity-75",
+            )}
+          />
         )}
       </div>
       <span>{config.text}</span>
     </div>
-  )
+  );
 }
 
 // Last updated timestamp
 export function LastUpdated({ timestamp }: { timestamp: Date }) {
-  const [relative, setRelative] = React.useState("")
+  const [relative, setRelative] = React.useState("");
 
   React.useEffect(() => {
     const updateRelative = () => {
-      const now = new Date()
-      const diff = now.getTime() - timestamp.getTime()
-      const seconds = Math.floor(diff / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const hours = Math.floor(minutes / 60)
+      const now = new Date();
+      const diff = now.getTime() - timestamp.getTime();
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
 
       if (seconds < 10) {
-        setRelative("just now")
+        setRelative("just now");
       } else if (seconds < 60) {
-        setRelative("a few seconds ago")
+        setRelative("a few seconds ago");
       } else if (minutes < 60) {
-        setRelative(`${minutes} minute${minutes > 1 ? 's' : ''} ago`)
+        setRelative(`${minutes} minute${minutes > 1 ? "s" : ""} ago`);
       } else {
-        setRelative(`${hours} hour${hours > 1 ? 's' : ''} ago`)
+        setRelative(`${hours} hour${hours > 1 ? "s" : ""} ago`);
       }
-    }
+    };
 
-    updateRelative()
-    const interval = setInterval(updateRelative, 10000)
-    return () => clearInterval(interval)
-  }, [timestamp])
+    updateRelative();
+    const interval = setInterval(updateRelative, 10000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
 
   return (
-    <span className="text-sm text-gray-500">
-      Last updated: {relative}
-    </span>
-  )
+    <span className="text-sm text-gray-500">Last updated: {relative}</span>
+  );
 }
 
 // Fade in animation wrapper
-export function FadeIn({ 
-  children, 
+export function FadeIn({
+  children,
   className,
-  delay = 0 
-}: { 
-  children: React.ReactNode
-  className?: string
-  delay?: number
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
 }) {
   return (
-    <div 
-      className={cn(
-        "animate-fade-in",
-        className
-      )}
+    <div
+      className={cn("animate-fade-in", className)}
       style={{ animationDelay: `${delay}ms` }}
     >
       {children}
     </div>
-  )
+  );
 }

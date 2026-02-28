@@ -1,33 +1,39 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
-import { Button } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { Label } from '@heya-pos/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Alert, AlertDescription } from '@heya-pos/ui';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { Button } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { Label } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
+import { Alert, AlertDescription } from "@heya-pos/ui";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       await login(username, password);
       // Redirect handled by auth context
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +55,7 @@ export default function LoginPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -62,7 +68,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -75,19 +81,15 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </Button>
           </form>
@@ -99,11 +101,11 @@ export default function LoginPage() {
               variant="outline"
               className="w-full"
               onClick={() => {
-                setUsername('admin');
-                setPassword('admin123');
+                setUsername("admin");
+                setPassword("admin123");
                 // Auto submit after a short delay
                 setTimeout(() => {
-                  document.querySelector('form')?.requestSubmit();
+                  document.querySelector("form")?.requestSubmit();
                 }, 100);
               }}
               disabled={isLoading}
@@ -111,7 +113,7 @@ export default function LoginPage() {
               🚀 Quick Login
             </Button>
           </div>
-          
+
           <div className="mt-4 text-sm text-gray-600 text-center">
             <p>Admin credentials:</p>
             <p className="font-mono">admin / admin123</p>

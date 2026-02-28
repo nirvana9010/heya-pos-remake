@@ -97,7 +97,7 @@ export class MerchantUsersClient extends BaseApiClient {
    * Invite a new team member (legacy - prefer createMerchantUser)
    */
   async inviteMerchantUser(
-    data: InviteMerchantUserRequest
+    data: InviteMerchantUserRequest,
   ): Promise<InviteMerchantUserResponse> {
     return this.post("/merchant-users/invite", data, undefined, "v1");
   }
@@ -106,7 +106,7 @@ export class MerchantUsersClient extends BaseApiClient {
    * Create a new team member with email and password
    */
   async createMerchantUser(
-    data: CreateMerchantUserRequest
+    data: CreateMerchantUserRequest,
   ): Promise<MerchantUser> {
     return this.post("/merchant-users", data, undefined, "v1");
   }
@@ -116,7 +116,7 @@ export class MerchantUsersClient extends BaseApiClient {
    */
   async updateMerchantUser(
     id: string,
-    data: UpdateMerchantUserRequest
+    data: UpdateMerchantUserRequest,
   ): Promise<MerchantUser> {
     return this.patch(`/merchant-users/${id}`, data, undefined, "v1");
   }
@@ -148,7 +148,7 @@ export class MerchantUsersClient extends BaseApiClient {
       name?: string;
       description?: string;
       permissions?: string[];
-    }
+    },
   ): Promise<MerchantRole> {
     return this.patch(`/merchant-users/roles/${id}`, data, undefined, "v1");
   }

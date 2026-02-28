@@ -1,22 +1,48 @@
-import { format, parse, addMinutes, isAfter, isBefore, isWithinInterval, startOfDay, endOfDay, addDays, subDays, startOfWeek, endOfWeek, differenceInMinutes } from 'date-fns';
+import {
+  format,
+  parse,
+  addMinutes,
+  isAfter,
+  isBefore,
+  isWithinInterval,
+  startOfDay,
+  endOfDay,
+  addDays,
+  subDays,
+  startOfWeek,
+  endOfWeek,
+  differenceInMinutes,
+} from "date-fns";
 
-export function formatDate(date: Date | string, formatStr: string = 'yyyy-MM-dd'): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+export function formatDate(
+  date: Date | string,
+  formatStr: string = "yyyy-MM-dd",
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
   return format(d, formatStr);
 }
 
-export function formatTime(date: Date | string, use24Hour: boolean = true): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return format(d, use24Hour ? 'HH:mm' : 'h:mm a');
+export function formatTime(
+  date: Date | string,
+  use24Hour: boolean = true,
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, use24Hour ? "HH:mm" : "h:mm a");
 }
 
-export function formatDateTime(date: Date | string, use24Hour: boolean = true): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return format(d, use24Hour ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd h:mm a');
+export function formatDateTime(
+  date: Date | string,
+  use24Hour: boolean = true,
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, use24Hour ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd h:mm a");
 }
 
-export function parseTime(timeStr: string, referenceDate: Date = new Date()): Date {
-  return parse(timeStr, 'HH:mm', referenceDate);
+export function parseTime(
+  timeStr: string,
+  referenceDate: Date = new Date(),
+): Date {
+  return parse(timeStr, "HH:mm", referenceDate);
 }
 
 export function addMinutesToDate(date: Date, minutes: number): Date {
@@ -26,12 +52,12 @@ export function addMinutesToDate(date: Date, minutes: number): Date {
 export function isTimeSlotAvailable(
   startTime: Date,
   endTime: Date,
-  existingBookings: { startTime: Date; endTime: Date }[]
+  existingBookings: { startTime: Date; endTime: Date }[],
 ): boolean {
-  return !existingBookings.some(booking => {
+  return !existingBookings.some((booking) => {
     const bookingStart = new Date(booking.startTime);
     const bookingEnd = new Date(booking.endTime);
-    
+
     return (
       (isAfter(startTime, bookingStart) && isBefore(startTime, bookingEnd)) ||
       (isAfter(endTime, bookingStart) && isBefore(endTime, bookingEnd)) ||
@@ -45,18 +71,18 @@ export function generateTimeSlots(
   startTime: string,
   endTime: string,
   slotDuration: number,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
 ): string[] {
   const slots: string[] = [];
   const start = parseTime(startTime, referenceDate);
   const end = parseTime(endTime, referenceDate);
-  
+
   let current = start;
   while (isBefore(current, end)) {
-    slots.push(format(current, 'HH:mm'));
+    slots.push(format(current, "HH:mm"));
     current = addMinutes(current, slotDuration);
   }
-  
+
   return slots;
 }
 
@@ -72,18 +98,21 @@ export function convertFromTimezone(date: Date, timezone: string): Date {
   return date;
 }
 
-export function getBusinessWeek(date: Date = new Date()): { start: Date; end: Date } {
+export function getBusinessWeek(date: Date = new Date()): {
+  start: Date;
+  end: Date;
+} {
   return {
     start: startOfWeek(date, { weekStartsOn: 1 }), // Monday
-    end: endOfWeek(date, { weekStartsOn: 1 })
+    end: endOfWeek(date, { weekStartsOn: 1 }),
   };
 }
 
 export function isWithinBusinessHours(
   date: Date,
-  businessHours: { open: string; close: string }
+  businessHours: { open: string; close: string },
 ): boolean {
-  const timeStr = format(date, 'HH:mm');
+  const timeStr = format(date, "HH:mm");
   return timeStr >= businessHours.open && timeStr <= businessHours.close;
 }
 
@@ -97,17 +126,17 @@ export function getDateRange(days: number): { start: Date; end: Date } {
   return { start, end };
 }
 
-export { 
-  format, 
-  parse, 
-  addMinutes, 
-  addDays, 
+export {
+  format,
+  parse,
+  addMinutes,
+  addDays,
   subDays,
-  isAfter, 
-  isBefore, 
+  isAfter,
+  isBefore,
   isWithinInterval,
-  startOfDay, 
+  startOfDay,
   endOfDay,
   startOfWeek,
-  endOfWeek
+  endOfWeek,
 };

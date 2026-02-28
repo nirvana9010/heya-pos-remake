@@ -30,9 +30,9 @@ interface CustomerImportPreviewDialogProps {
   preview: CustomerImportPreview | null;
   onConfirm: () => void;
   importing: boolean;
-  duplicateAction: 'skip' | 'update';
+  duplicateAction: "skip" | "update";
   skipInvalidRows: boolean;
-  onDuplicateActionChange: (value: 'skip' | 'update') => void;
+  onDuplicateActionChange: (value: "skip" | "update") => void;
   onSkipInvalidRowsChange: (value: boolean) => void;
   onRefresh: () => void;
 }
@@ -60,7 +60,8 @@ export function CustomerImportPreviewDialog({
         <DialogHeader>
           <DialogTitle>Customer Import Preview</DialogTitle>
           <DialogDescription>
-            Review the customers to import. Fix any errors before continuing to avoid missing data.
+            Review the customers to import. Fix any errors before continuing to
+            avoid missing data.
           </DialogDescription>
         </DialogHeader>
 
@@ -70,18 +71,23 @@ export function CustomerImportPreviewDialog({
               <Label>Duplicate handling</Label>
               <Select
                 value={duplicateAction}
-                onValueChange={(value) => onDuplicateActionChange(value as 'skip' | 'update')}
+                onValueChange={(value) =>
+                  onDuplicateActionChange(value as "skip" | "update")
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select how to handle duplicates" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="update">Update existing customers</SelectItem>
+                  <SelectItem value="update">
+                    Update existing customers
+                  </SelectItem>
                   <SelectItem value="skip">Skip duplicate rows</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Applies to rows that match an existing customer by email or mobile.
+                Applies to rows that match an existing customer by email or
+                mobile.
               </p>
             </div>
             <div className="space-y-2">
@@ -93,8 +99,8 @@ export function CustomerImportPreviewDialog({
                 />
                 <span className="text-sm text-muted-foreground">
                   {skipInvalidRows
-                    ? 'Rows with validation errors are ignored.'
-                    : 'Validation errors stop the import until corrected.'}
+                    ? "Rows with validation errors are ignored."
+                    : "Validation errors stop the import until corrected."}
                 </span>
               </div>
             </div>
@@ -106,20 +112,30 @@ export function CustomerImportPreviewDialog({
               <div className="text-sm text-muted-foreground">Total Rows</div>
             </div>
             <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{summary.valid}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {summary.valid}
+              </div>
               <div className="text-sm text-muted-foreground">Valid</div>
             </div>
             <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{summary.invalid}</div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {summary.invalid}
+              </div>
               <div className="text-sm text-muted-foreground">Invalid</div>
             </div>
             <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{summary.duplicates}</div>
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {summary.duplicates}
+              </div>
               <div className="text-sm text-muted-foreground">Duplicates</div>
             </div>
             <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-950 rounded-lg">
-              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totalActions}</div>
-              <div className="text-sm text-muted-foreground">Will Import / Update</div>
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {totalActions}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Will Import / Update
+              </div>
             </div>
           </div>
 
@@ -137,10 +153,12 @@ export function CustomerImportPreviewDialog({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.slice(0, 50).map(row => {
+              {rows.slice(0, 50).map((row) => {
                 const name = row.data
-                  ? [row.data.firstName, row.data.lastName].filter(Boolean).join(' ')
-                  : '—';
+                  ? [row.data.firstName, row.data.lastName]
+                      .filter(Boolean)
+                      .join(" ")
+                  : "—";
 
                 return (
                   <TableRow key={row.rowNumber}>
@@ -152,20 +170,28 @@ export function CustomerImportPreviewDialog({
                         <XCircle className="h-4 w-4 text-red-600" />
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{name || '—'}</TableCell>
-                    <TableCell>{row.data?.email || '—'}</TableCell>
-                    <TableCell>{row.data?.mobile || row.data?.phone || '—'}</TableCell>
-                    <TableCell>{row.data?.source || '—'}</TableCell>
+                    <TableCell className="font-medium">{name || "—"}</TableCell>
+                    <TableCell>{row.data?.email || "—"}</TableCell>
+                    <TableCell>
+                      {row.data?.mobile || row.data?.phone || "—"}
+                    </TableCell>
+                    <TableCell>{row.data?.source || "—"}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {row.validation.errors.map((error, index) => (
-                          <div key={index} className="text-xs text-red-600 flex items-center gap-1">
+                          <div
+                            key={index}
+                            className="text-xs text-red-600 flex items-center gap-1"
+                          >
                             <AlertCircle className="h-3 w-3" />
                             {error}
                           </div>
                         ))}
                         {row.validation.warnings.map((warning, index) => (
-                          <div key={index} className="text-xs text-orange-600 flex items-center gap-1">
+                          <div
+                            key={index}
+                            className="text-xs text-orange-600 flex items-center gap-1"
+                          >
                             <AlertCircle className="h-3 w-3" />
                             {warning}
                           </div>
@@ -175,11 +201,11 @@ export function CustomerImportPreviewDialog({
                     <TableCell>
                       <Badge
                         variant={
-                          row.action === 'create'
-                            ? 'default'
-                            : row.action === 'update'
-                            ? 'secondary'
-                            : 'outline'
+                          row.action === "create"
+                            ? "default"
+                            : row.action === "update"
+                              ? "secondary"
+                              : "outline"
                         }
                       >
                         {row.action}
@@ -209,11 +235,20 @@ export function CustomerImportPreviewDialog({
             Refresh Preview
           </Button>
           <div className="flex w-full sm:w-auto gap-2">
-            <Button variant="outline" onClick={onClose} disabled={importing} className="flex-1 sm:flex-none">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={importing}
+              className="flex-1 sm:flex-none"
+            >
               Cancel
             </Button>
-            <Button onClick={onConfirm} disabled={importing || totalActions === 0} className="flex-1 sm:flex-none">
-              {importing ? 'Importing...' : `Import ${totalActions} Customers`}
+            <Button
+              onClick={onConfirm}
+              disabled={importing || totalActions === 0}
+              className="flex-1 sm:flex-none"
+            >
+              {importing ? "Importing..." : `Import ${totalActions} Customers`}
             </Button>
           </div>
         </DialogFooter>

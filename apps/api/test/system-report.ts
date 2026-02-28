@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
@@ -182,25 +182,25 @@ To fully test the system:
 `);
 
 // Verify file structure
-console.log('\n📂 FILE STRUCTURE VERIFICATION\n');
+console.log("\n📂 FILE STRUCTURE VERIFICATION\n");
 
 const filesToCheck = [
-  'src/main.ts',
-  'src/app.module.ts',
-  'src/auth/auth.module.ts',
-  'src/auth/auth.service.ts',
-  'src/services/services.module.ts',
-  'src/services/services.service.ts',
-  'src/customers/customers.module.ts',
-  'src/customers/customers.service.ts',
-  'src/bookings/bookings.module.ts',
-  'src/bookings/bookings.service.ts',
-  'src/bookings/bookings.gateway.ts',
-  'prisma/schema.prisma',
-  '../test-data/hamilton-beauty-services.csv',
+  "src/main.ts",
+  "src/app.module.ts",
+  "src/auth/auth.module.ts",
+  "src/auth/auth.service.ts",
+  "src/services/services.module.ts",
+  "src/services/services.service.ts",
+  "src/customers/customers.module.ts",
+  "src/customers/customers.service.ts",
+  "src/bookings/bookings.module.ts",
+  "src/bookings/bookings.service.ts",
+  "src/bookings/bookings.gateway.ts",
+  "prisma/schema.prisma",
+  "../test-data/hamilton-beauty-services.csv",
 ];
 
-filesToCheck.forEach(file => {
-  const exists = fs.existsSync(path.join(__dirname, '..', file));
-  console.log(`${exists ? '✅' : '❌'} ${file}`);
+filesToCheck.forEach((file) => {
+  const exists = fs.existsSync(path.join(__dirname, "..", file));
+  console.log(`${exists ? "✅" : "❌"} ${file}`);
 });

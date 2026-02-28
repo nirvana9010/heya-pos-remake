@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, UserPlus, User, Phone, Mail, Check } from 'lucide-react';
-import { Button, Input } from '@heya-pos/ui';
-import { apiClient } from '../lib/api-client';
-import { WALK_IN_CUSTOMER } from '../lib/constants/customer';
-import type { Customer } from './customers';
-import { cn } from '@heya-pos/ui';
+import React, { useState, useEffect } from "react";
+import { X, Search, UserPlus, User, Phone, Mail, Check } from "lucide-react";
+import { Button, Input } from "@heya-pos/ui";
+import { apiClient } from "../lib/api-client";
+import { WALK_IN_CUSTOMER } from "../lib/constants/customer";
+import type { Customer } from "./customers";
+import { cn } from "@heya-pos/ui";
 
 interface CustomerSelectionModalProps {
   isOpen: boolean;
@@ -21,10 +21,12 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
   currentCustomer,
   isCurrentWalkIn,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   // Search customers with debounce
   useEffect(() => {
@@ -48,7 +50,7 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
         const response = await apiClient.searchCustomers(searchQuery);
         setCustomers(response.data || []);
       } catch (error) {
-        console.error('Failed to search customers:', error);
+        console.error("Failed to search customers:", error);
         setCustomers([]);
       } finally {
         setLoading(false);
@@ -77,11 +79,11 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="bg-white w-full sm:max-w-lg h-full sm:h-[70vh] sm:rounded-lg shadow-xl flex flex-col animate-slide-up sm:animate-fade-in">
@@ -100,7 +102,7 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            
+
             {/* Search */}
             <div className="mt-3">
               <div className="relative">
@@ -125,28 +127,34 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
                 "w-full p-4 text-left border rounded-lg transition-all mb-4",
                 isCurrentWalkIn
                   ? "bg-teal-50 border-teal-300"
-                  : "bg-gray-50 border-gray-200 hover:border-teal-300 hover:bg-teal-50"
+                  : "bg-gray-50 border-gray-200 hover:border-teal-300 hover:bg-teal-50",
               )}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
-                    isCurrentWalkIn ? "bg-teal-600" : "bg-gray-300"
-                  )}>
-                    <UserPlus className={cn(
-                      "h-5 w-5",
-                      isCurrentWalkIn ? "text-white" : "text-gray-600"
-                    )} />
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center",
+                      isCurrentWalkIn ? "bg-teal-600" : "bg-gray-300",
+                    )}
+                  >
+                    <UserPlus
+                      className={cn(
+                        "h-5 w-5",
+                        isCurrentWalkIn ? "text-white" : "text-gray-600",
+                      )}
+                    />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Walk-in Customer</h4>
-                    <p className="text-sm text-gray-600">No customer information required</p>
+                    <h4 className="font-medium text-gray-900">
+                      Walk-in Customer
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      No customer information required
+                    </p>
                   </div>
                 </div>
-                {isCurrentWalkIn && (
-                  <Check className="h-5 w-5 text-teal-600" />
-                )}
+                {isCurrentWalkIn && <Check className="h-5 w-5 text-teal-600" />}
               </div>
             </button>
 
@@ -173,7 +181,9 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
               <div className="text-center py-8">
                 <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <p className="text-gray-500">No customers found</p>
-                <p className="text-sm text-gray-400 mt-1">Try a different search term</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try a different search term
+                </p>
               </div>
             )}
 
@@ -181,10 +191,12 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
             {!loading && customers.length > 0 && (
               <div className="space-y-2">
                 {customers.map((customer) => {
-                  const isSelected = currentCustomer?.id === customer.id && !isCurrentWalkIn;
-                  const displayName = customer.name || 
-                    `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
-                    'Unnamed Customer';
+                  const isSelected =
+                    currentCustomer?.id === customer.id && !isCurrentWalkIn;
+                  const displayName =
+                    customer.name ||
+                    `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
+                    "Unnamed Customer";
 
                   return (
                     <button
@@ -194,19 +206,23 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
                         "w-full p-4 text-left border rounded-lg transition-all",
                         isSelected
                           ? "bg-teal-50 border-teal-300"
-                          : "bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50"
+                          : "bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50",
                       )}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
-                            isSelected ? "bg-teal-600" : "bg-gray-200"
-                          )}>
-                            <User className={cn(
-                              "h-5 w-5",
-                              isSelected ? "text-white" : "text-gray-600"
-                            )} />
+                          <div
+                            className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                              isSelected ? "bg-teal-600" : "bg-gray-200",
+                            )}
+                          >
+                            <User
+                              className={cn(
+                                "h-5 w-5",
+                                isSelected ? "text-white" : "text-gray-600",
+                              )}
+                            />
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-medium text-gray-900 truncate">
@@ -216,7 +232,9 @@ export const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
                               {customer.email && (
                                 <div className="flex items-center gap-1 text-sm text-gray-600">
                                   <Mail className="h-3 w-3" />
-                                  <span className="truncate">{customer.email}</span>
+                                  <span className="truncate">
+                                    {customer.email}
+                                  </span>
                                 </div>
                               )}
                               {customer.phone && (

@@ -15,7 +15,10 @@ export function MerchantHeader() {
     <header className="w-full bg-white shadow-sm sticky top-0 z-40">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link href={`/${merchantSubdomain}`} className="flex items-center gap-3">
+          <Link
+            href={`/${merchantSubdomain}`}
+            className="flex items-center gap-3"
+          >
             {merchant.logo ? (
               <div className="relative h-10 w-32">
                 <Image
@@ -32,22 +35,22 @@ export function MerchantHeader() {
               </h1>
             )}
           </Link>
-          
+
           <nav className="flex items-center gap-6">
-            <Link 
-              href={`/${merchantSubdomain}/booking`} 
+            <Link
+              href={`/${merchantSubdomain}/booking`}
               className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
             >
               Book Now
             </Link>
-            <Link 
-              href={`/${merchantSubdomain}/services`} 
+            <Link
+              href={`/${merchantSubdomain}/services`}
               className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
             >
               Services
             </Link>
-            <Link 
-              href={`/${merchantSubdomain}/contact`} 
+            <Link
+              href={`/${merchantSubdomain}/contact`}
               className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
             >
               Contact

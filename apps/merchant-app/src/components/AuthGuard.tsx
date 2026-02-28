@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth/auth-provider';
+import { useEffect, useState, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth/auth-provider";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -41,52 +41,54 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // Check if already redirecting globally
     if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-      console.log('[AuthGuard] Redirect already in progress, skipping');
+      console.log("[AuthGuard] Redirect already in progress, skipping");
       return;
     }
 
     // Check if token is expired
-    const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
-    
+    const isTokenExpired =
+      tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
+
     // If not authenticated or token expired, redirect to login
     if (!isAuthenticated || isTokenExpired) {
-      console.log('[AuthGuard] Auth check failed:', { 
-        isAuthenticated, 
+      console.log("[AuthGuard] Auth check failed:", {
+        isAuthenticated,
         isTokenExpired,
         tokenExpiresAt,
-        pathname 
+        pathname,
       });
-      
+
       // Only redirect if not already on login page and haven't redirected yet
-      if (pathname !== '/login' && !hasRedirectedRef.current) {
+      if (pathname !== "/login" && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
         setShowRedirectMessage(true);
         // Set global flag to prevent API calls and other redirects
         (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
 
         // Validate pathname before using it in redirect - don't save invalid paths
-        const isValidPath = pathname &&
-          pathname.startsWith('/') &&
-          !pathname.includes('undefined') &&
-          !pathname.includes('null');
-        const redirectPath = isValidPath ? pathname : '/';
+        const isValidPath =
+          pathname &&
+          pathname.startsWith("/") &&
+          !pathname.includes("undefined") &&
+          !pathname.includes("null");
+        const redirectPath = isValidPath ? pathname : "/";
 
         // Add a small delay to prevent race conditions
         redirectTimeoutRef.current = setTimeout(() => {
-          console.log('[AuthGuard] Executing redirect to login');
+          console.log("[AuthGuard] Executing redirect to login");
           try {
             router.replace(`/login?from=${encodeURIComponent(redirectPath)}`);
           } catch (error) {
-            console.error('[AuthGuard] Failed to redirect:', error);
+            console.error("[AuthGuard] Failed to redirect:", error);
             // Fallback: use window.location for redirect
             window.location.href = `/login?from=${encodeURIComponent(redirectPath)}`;
           }
         }, 100);
-        
+
         // Set up fallback redirect after 3 seconds
         fallbackTimeoutRef.current = setTimeout(() => {
-          console.warn('[AuthGuard] Redirect seems stuck, forcing navigation');
-          window.location.href = '/login';
+          console.warn("[AuthGuard] Redirect seems stuck, forcing navigation");
+          window.location.href = "/login";
         }, 3000);
       }
     }
@@ -102,15 +104,21 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // Check token expiration on render as well
-  const isTokenExpired = tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
-  
+  const isTokenExpired =
+    tokenExpiresAt && new Date(tokenExpiresAt) < new Date();
+
   // If not authenticated or token expired after check, show redirect message
   if (!isAuthenticated || isTokenExpired || showRedirectMessage) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Redirecting to login...</p>
-          <p className="text-sm text-gray-500 mt-2">If you're not redirected, <a href="/login" className="text-blue-600 underline">click here</a></p>
+          <p className="text-sm text-gray-500 mt-2">
+            If you're not redirected,{" "}
+            <a href="/login" className="text-blue-600 underline">
+              click here
+            </a>
+          </p>
         </div>
       </div>
     );

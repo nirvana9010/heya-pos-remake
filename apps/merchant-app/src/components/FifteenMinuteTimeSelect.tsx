@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 
 interface FifteenMinuteTimeSelectProps {
@@ -36,7 +42,8 @@ export function FifteenMinuteTimeSelect({
 
     const safeHour = Number.isNaN(parsedHour) ? undefined : parsedHour;
     const safeMinute = Number.isNaN(parsedMinute) ? undefined : parsedMinute;
-    const period = typeof safeHour === "number" ? (safeHour >= 12 ? "PM" : "AM") : "--";
+    const period =
+      typeof safeHour === "number" ? (safeHour >= 12 ? "PM" : "AM") : "--";
 
     return {
       hourValue: typeof safeHour === "number" ? safeHour : undefined,
@@ -45,9 +52,13 @@ export function FifteenMinuteTimeSelect({
     };
   }, [value]);
 
-  const applyChange = (hour: number | undefined, minute: number | undefined) => {
+  const applyChange = (
+    hour: number | undefined,
+    minute: number | undefined,
+  ) => {
     const safeHour = typeof hour === "number" && !Number.isNaN(hour) ? hour : 0;
-    const safeMinute = typeof minute === "number" && !Number.isNaN(minute) ? minute : 0;
+    const safeMinute =
+      typeof minute === "number" && !Number.isNaN(minute) ? minute : 0;
 
     const formatted = `${safeHour.toString().padStart(2, "0")}:${safeMinute
       .toString()
@@ -70,7 +81,7 @@ export function FifteenMinuteTimeSelect({
     <div
       className={cn(
         "flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-2",
-        className
+        className,
       )}
     >
       <Select
@@ -95,7 +106,9 @@ export function FifteenMinuteTimeSelect({
       <span className="text-gray-400">:</span>
 
       <Select
-        value={typeof minuteValue === "number" ? minuteValue.toString() : undefined}
+        value={
+          typeof minuteValue === "number" ? minuteValue.toString() : undefined
+        }
         onValueChange={handleMinuteChange}
         disabled={disabled}
       >
@@ -112,9 +125,7 @@ export function FifteenMinuteTimeSelect({
       </Select>
 
       {showPeriod && (
-        <div className="px-3 text-sm text-gray-600 border-l">
-          {periodLabel}
-        </div>
+        <div className="px-3 text-sm text-gray-600 border-l">{periodLabel}</div>
       )}
     </div>
   );

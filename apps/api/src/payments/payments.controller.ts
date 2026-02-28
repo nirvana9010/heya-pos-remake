@@ -79,9 +79,7 @@ export class PaymentsController {
     });
 
     if (!staff) {
-      throw new BadRequestException(
-        "No active staff found to process payment",
-      );
+      throw new BadRequestException("No active staff found to process payment");
     }
 
     return staff.id;

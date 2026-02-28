@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { PaymentDialog } from './PaymentDialog';
-import { apiClient } from '@/lib/api-client';
-import { WALK_IN_CUSTOMER_ID } from '@/lib/constants/customer';
+import React, { useState, useEffect, useCallback } from "react";
+import { PaymentDialog } from "./PaymentDialog";
+import { apiClient } from "@/lib/api-client";
+import { WALK_IN_CUSTOMER_ID } from "@/lib/constants/customer";
 
 interface PaymentDialogEnhancedProps {
   open: boolean;
@@ -34,22 +34,27 @@ export function PaymentDialogEnhanced({
   customer,
   isWalkIn = false,
   itemAdjustments = {},
-  orderAdjustment = { amount: 0, reason: '' },
-  loyaltyDiscount: initialLoyaltyDiscount = { amount: 0, description: '' },
+  orderAdjustment = { amount: 0, reason: "" },
+  loyaltyDiscount: initialLoyaltyDiscount = { amount: 0, description: "" },
 }: PaymentDialogEnhancedProps) {
   const [order, setOrder] = useState(existingOrder);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState(initialLoyaltyDiscount);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(
+    initialLoyaltyDiscount,
+  );
 
   // Callback to refresh order
   const handleOrderUpdate = useCallback((updatedOrder: any) => {
     setOrder(updatedOrder);
   }, []);
 
-  const handleLoyaltyUpdate = useCallback((discount: { amount: number; description: string }) => {
-    setLoyaltyDiscount(discount);
-  }, []);
+  const handleLoyaltyUpdate = useCallback(
+    (discount: { amount: number; description: string }) => {
+      setLoyaltyDiscount(discount);
+    },
+    [],
+  );
 
   // Update order when existingOrder prop changes or dialog opens
   useEffect(() => {
@@ -65,27 +70,27 @@ export function PaymentDialogEnhanced({
     try {
       // Prepare items with adjustments
       const items = (selectedServices || []).map((service, index) => {
-        const originalPrice = typeof service.price === 'object' && service.price.toNumber 
-          ? service.price.toNumber() 
-          : Number(service.price || 0);
-        
+        const originalPrice =
+          typeof service.price === "object" && service.price.toNumber
+            ? service.price.toNumber()
+            : Number(service.price || 0);
+
         const originalTotal = originalPrice * service.quantity;
         const adjustedTotal = itemAdjustments[index] || originalTotal;
         const discount = originalTotal - adjustedTotal; // This can be positive (discount) or negative (surcharge)
-        
-        
+
         const baseItem: any = {
-          itemType: 'SERVICE',
+          itemType: "SERVICE",
           itemId: service.id,
           description: service.name,
           unitPrice: originalPrice,
           quantity: service.quantity || 1,
           discount: discount,
-          taxRate: 0
+          taxRate: 0,
         };
-        
+
         // Only include staffId if it's a valid UUID (not mock data)
-        if (service.staffId && service.staffId.includes('-')) {
+        if (service.staffId && service.staffId.includes("-")) {
           baseItem.staffId = service.staffId;
         }
 
@@ -106,47 +111,59 @@ export function PaymentDialogEnhanced({
       // Add order modifier if needed (prefer loyalty discount over manual adjustment)
       if (loyaltyDiscount && loyaltyDiscount.amount > 0) {
         requestData.orderModifier = {
-          type: 'DISCOUNT',
+          type: "DISCOUNT",
           amount: loyaltyDiscount.amount,
-          description: loyaltyDiscount.description || 'Loyalty Reward'
+          description: loyaltyDiscount.description || "Loyalty Reward",
         };
       } else if (orderAdjustment && orderAdjustment.amount !== 0) {
         requestData.orderModifier = {
-          type: orderAdjustment.amount < 0 ? 'DISCOUNT' : 'SURCHARGE',
+          type: orderAdjustment.amount < 0 ? "DISCOUNT" : "SURCHARGE",
           amount: Math.abs(orderAdjustment.amount),
-          description: orderAdjustment.reason || 
-            `Order ${orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}`
+          description:
+            orderAdjustment.reason ||
+            `Order ${orderAdjustment.amount < 0 ? "Discount" : "Surcharge"}`,
         };
       }
 
       // Single API call to prepare everything
       const paymentData = await apiClient.prepareOrderForPayment(requestData);
-      
+
       setOrder({
         ...paymentData.order,
         items: paymentData.order?.items?.map((item: any) => ({
           id: item.id,
           description: item.description,
           quantity: item.quantity,
-          unitPrice: item.unitPrice
+          unitPrice: item.unitPrice,
         })),
         totalAmount: paymentData.order?.totalAmount,
-        state: paymentData.order?.state
+        state: paymentData.order?.state,
       });
-      
+
       // Lock the order for payment if needed
-      if (paymentData.order.state === 'DRAFT') {
-        await apiClient.updateOrderState(paymentData.order.id, 'LOCKED');
-        paymentData.order.state = 'LOCKED';
+      if (paymentData.order.state === "DRAFT") {
+        await apiClient.updateOrderState(paymentData.order.id, "LOCKED");
+        paymentData.order.state = "LOCKED";
       }
-      
+
       setOrder(paymentData.order);
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to prepare order');
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to prepare order",
+      );
     } finally {
       setIsCreatingOrder(false);
     }
-  }, [selectedServices, isWalkIn, customerId, itemAdjustments, orderAdjustment, loyaltyDiscount]);
+  }, [
+    selectedServices,
+    isWalkIn,
+    customerId,
+    itemAdjustments,
+    orderAdjustment,
+    loyaltyDiscount,
+  ]);
 
   // Clear order state when modal closes
   useEffect(() => {
@@ -167,16 +184,35 @@ export function PaymentDialogEnhanced({
       setOrder(null);
       setError(null);
     }
-  }, [selectedServices, itemAdjustments, orderAdjustment, loyaltyDiscount, open, existingOrder]);
+  }, [
+    selectedServices,
+    itemAdjustments,
+    orderAdjustment,
+    loyaltyDiscount,
+    open,
+    existingOrder,
+  ]);
 
   // If we have selectedServices but no order, create order when dialog opens
   useEffect(() => {
     // Only create order from services if we don't have an existing order
-    if (open && selectedServices && !order && !isCreatingOrder && !existingOrder) {
+    if (
+      open &&
+      selectedServices &&
+      !order &&
+      !isCreatingOrder &&
+      !existingOrder
+    ) {
       createOrderFromServices();
     }
-  }, [open, selectedServices, order, isCreatingOrder, createOrderFromServices, existingOrder]);
-
+  }, [
+    open,
+    selectedServices,
+    order,
+    isCreatingOrder,
+    createOrderFromServices,
+    existingOrder,
+  ]);
 
   // Show error state
   if (open && error) {
@@ -187,7 +223,7 @@ export function PaymentDialogEnhanced({
         order={{
           error: error,
           totalAmount: 0,
-          items: []
+          items: [],
         }}
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}
@@ -212,7 +248,7 @@ export function PaymentDialogEnhanced({
         order={{
           isLoading: true,
           totalAmount: 0,
-          items: []
+          items: [],
         }}
         onPaymentComplete={onPaymentComplete}
         enableTips={enableTips}

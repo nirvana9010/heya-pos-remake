@@ -26,24 +26,27 @@ class ApiClient {
 
   private async request<T = any>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.config.baseURL}${endpoint}`;
-    
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout!);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      this.config.timeout!,
+    );
 
     try {
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       };
-      
+
       // Add authorization header if token exists
       if (this.authToken) {
-        headers['Authorization'] = `Bearer ${this.authToken}`;
+        headers["Authorization"] = `Bearer ${this.authToken}`;
       }
-      
+
       const response = await fetch(url, {
         ...options,
         headers,
@@ -56,56 +59,59 @@ class ApiClient {
         const error = await response.json().catch(() => ({
           message: `HTTP ${response.status}: ${response.statusText}`,
         }));
-        throw new Error(error.message || error.error || 'Request failed');
+        throw new Error(error.message || error.error || "Request failed");
       }
 
       const data = await response.json();
       return data;
     } catch (error: any) {
       clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout');
+
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout");
       }
-      
+
       throw error;
     }
   }
 
-  async get<T = any>(endpoint: string, params?: Record<string, any>): Promise<T> {
+  async get<T = any>(
+    endpoint: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const queryString = params
-      ? '?' + new URLSearchParams(params).toString()
-      : '';
-    
+      ? "?" + new URLSearchParams(params).toString()
+      : "";
+
     return this.request<T>(`${endpoint}${queryString}`, {
-      method: 'GET',
+      method: "GET",
     });
   }
 
   async post<T = any>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async patch<T = any>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async delete<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 }
 
 // Create the API client instance
 const apiClient = new ApiClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api",
 });
 
 export default apiClient;

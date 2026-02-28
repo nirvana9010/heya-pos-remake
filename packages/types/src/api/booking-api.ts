@@ -1,5 +1,5 @@
-import type { Booking, BookingStatus, BookingSource } from '../models';
-import type { PaginationParams } from '../common';
+import type { Booking, BookingStatus, BookingSource } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface CreateBookingRequest {
   locationId: string;

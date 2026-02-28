@@ -7,11 +7,13 @@ The notification system includes scheduled jobs for sending appointment reminder
 ### Deployment Options:
 
 1. **Full Featured (Recommended for VPS/Docker)**
+
    - The system will automatically use `@nestjs/schedule` if available
    - Provides cron-based scheduling for reminder notifications
    - Works on standard Node.js environments with crypto module
 
 2. **Simple Scheduler Fallback**
+
    - Automatically activates if `@nestjs/schedule` fails to load
    - Uses native `setInterval` for scheduling
    - No external dependencies required
@@ -43,6 +45,7 @@ SMS_API_KEY=your-sms-api-key
 ### Troubleshooting:
 
 If you see the error: `ReferenceError: crypto is not defined`
+
 1. The system will automatically fallback to SimpleSchedulerService
 2. Or set `DISABLE_SCHEDULED_JOBS=true` to disable scheduled jobs entirely
 3. Consider using a different Node.js base image if using Docker
@@ -52,6 +55,7 @@ If you see the error: `ReferenceError: crypto is not defined`
 The included `Dockerfile.api` uses `node:18-alpine` which includes crypto support. If deploying to a platform with issues:
 
 1. Try using the full Node.js image instead of Alpine:
+
    ```dockerfile
    FROM node:18 AS builder
    # ... rest of Dockerfile

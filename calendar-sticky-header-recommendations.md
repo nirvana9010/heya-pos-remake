@@ -27,6 +27,7 @@ Current attempts to make the staff header sticky fail because sticky positioning
 ## Target Architecture
 
 ### Goals
+
 1. Only **one vertical scroller** for calendar content.
 2. Sticky items (calendar toolbar, staff header) are **direct children** of that scroller.
 3. Staff header and time grid **scroll together horizontally**.
@@ -72,6 +73,7 @@ Current attempts to make the staff header sticky fail because sticky positioning
 ```
 
 **Why this works**
+
 - Vertical sticky is relative to `#calendar-vertical-scroll` (the only vertical scroller).
 - Staff header is **inside a horizontal scroller**, so it moves horizontally with the grid.
 - The header’s `top` equals the computed toolbar height via a CSS variable.
@@ -91,9 +93,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <Topbar id="topbar" className="sticky top-0 z-40" />
       {/* No overflow-y here */}
-      <main className="flex-1 min-h-0 flex flex-col">
-        {children}
-      </main>
+      <main className="flex-1 min-h-0 flex flex-col">{children}</main>
     </div>
   );
 }
@@ -149,7 +149,10 @@ export default function CalendarPage() {
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
-      <div id="calendar-vertical-scroll" className="min-h-0 flex-1 flex flex-col overflow-y-auto">
+      <div
+        id="calendar-vertical-scroll"
+        className="min-h-0 flex-1 flex flex-col overflow-y-auto"
+      >
         {/* Sticky toolbar */}
         <div
           ref={toolbarRef}
@@ -194,7 +197,10 @@ If the header and grid must scroll **in lockstep** horizontally, sync `scrollLef
 // useScrollSync.ts
 import { useEffect } from "react";
 
-export function useScrollSync(headerEl: HTMLElement | null, gridEl: HTMLElement | null) {
+export function useScrollSync(
+  headerEl: HTMLElement | null,
+  gridEl: HTMLElement | null,
+) {
   useEffect(() => {
     if (!headerEl || !gridEl) return;
 
@@ -263,7 +269,7 @@ useEffect(() => {
 
 - Prefer `overflow-y: auto` on the single vertical scroller, not multiple nested `overflow`.
 - Avoid `overflow: clip`; use `hidden` if you must clip.
-- Ensure the sticky element’s parent has **no** vertical overflow; the sticky reference for the *vertical* axis must be the ancestor with vertical scrolling.
+- Ensure the sticky element’s parent has **no** vertical overflow; the sticky reference for the _vertical_ axis must be the ancestor with vertical scrolling.
 
 ---
 
@@ -281,14 +287,14 @@ This approach is robust but adds JS complexity; prefer CSS sticky first.
 
 ## Do / Don’t
 
-| Do | Don’t |
-|---|---|
-| Use one vertical scroller inside the calendar shell | Put `overflow-y:auto` on `main` **and** inner calendar containers |
-| Make sticky elements direct children of the vertical scroller | Nest sticky items under wrappers with `overflow` or `transform` |
-| Put staff header and grid inside a **shared** horizontal scroller (or sync them) | Let the grid scroll horizontally while the header stays static |
-| Compute offsets via CSS variables with `ResizeObserver` | Hard-code `top-16` and hope it fits everywhere |
-| Set explicit `z-index` + solid background on sticky layers | Allow events to bleed through transparent sticky bars |
-| Add `min-h-0` on flex ancestors | Omit `min-h-0` and lose scrollability |
+| Do                                                                               | Don’t                                                             |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Use one vertical scroller inside the calendar shell                              | Put `overflow-y:auto` on `main` **and** inner calendar containers |
+| Make sticky elements direct children of the vertical scroller                    | Nest sticky items under wrappers with `overflow` or `transform`   |
+| Put staff header and grid inside a **shared** horizontal scroller (or sync them) | Let the grid scroll horizontally while the header stays static    |
+| Compute offsets via CSS variables with `ResizeObserver`                          | Hard-code `top-16` and hope it fits everywhere                    |
+| Set explicit `z-index` + solid background on sticky layers                       | Allow events to bleed through transparent sticky bars             |
+| Add `min-h-0` on flex ancestors                                                  | Omit `min-h-0` and lose scrollability                             |
 
 ---
 

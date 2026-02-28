@@ -1,9 +1,11 @@
 # Heya POS E2E Test Plan
 
 ## Overview
+
 This document outlines all user flows that need to be tested before switching from mockApi to the real API backend.
 
 ## Test Environment
+
 - API URL: http://localhost:3001
 - Merchant App URL: http://localhost:3002
 - Test Credentials: luxeadmin / testpassword123
@@ -11,6 +13,7 @@ This document outlines all user flows that need to be tested before switching fr
 ## Critical User Flows to Test
 
 ### 1. Authentication Flow
+
 - [ ] Merchant login with valid credentials
 - [ ] Token storage in localStorage
 - [ ] Token refresh mechanism
@@ -19,6 +22,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Redirect to login when token is invalid/expired
 
 ### 2. Customer Management
+
 - [ ] List all customers with pagination
 - [ ] Search customers by name/phone/email
 - [ ] Create new customer with all fields
@@ -28,6 +32,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Delete customer (if supported)
 
 ### 3. Service Management
+
 - [ ] List all services
 - [ ] Filter services by category
 - [ ] View service details (name, price, duration)
@@ -35,6 +40,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Check service availability
 
 ### 4. Booking Management
+
 - [ ] Create new booking with:
   - [ ] Customer selection
   - [ ] Service selection
@@ -49,6 +55,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Check booking conflicts
 
 ### 5. Calendar View
+
 - [ ] View daily calendar
 - [ ] View weekly calendar
 - [ ] View monthly calendar
@@ -57,6 +64,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Check availability slots
 
 ### 6. Real-time Updates
+
 - [ ] WebSocket connection establishment
 - [ ] Receive booking creation notifications
 - [ ] Receive booking update notifications
@@ -64,6 +72,7 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Handle connection failures gracefully
 
 ### 7. Dashboard
+
 - [ ] Load dashboard statistics
 - [ ] Today's bookings count
 - [ ] Revenue metrics
@@ -71,11 +80,13 @@ This document outlines all user flows that need to be tested before switching fr
 - [ ] Recent bookings list
 
 ### 8. Reports (if implemented)
+
 - [ ] Generate daily reports
 - [ ] Generate revenue reports
 - [ ] Export reports
 
 ### 9. Settings
+
 - [ ] View merchant profile
 - [ ] Update business hours
 - [ ] Manage staff members
@@ -83,11 +94,13 @@ This document outlines all user flows that need to be tested before switching fr
 ## API Endpoints to Test
 
 ### Auth Endpoints
+
 - POST /auth/merchant/login
 - POST /auth/refresh
 - POST /auth/logout
 
 ### Customer Endpoints
+
 - GET /customers
 - GET /customers/search
 - GET /customers/:id
@@ -96,11 +109,13 @@ This document outlines all user flows that need to be tested before switching fr
 - DELETE /customers/:id
 
 ### Service Endpoints
+
 - GET /services
 - GET /services/categories
 - GET /services/:id
 
 ### Booking Endpoints
+
 - GET /bookings
 - GET /bookings/:id
 - POST /bookings
@@ -109,6 +124,7 @@ This document outlines all user flows that need to be tested before switching fr
 - POST /bookings/check-availability
 
 ### WebSocket Events
+
 - connection
 - booking:created
 - booking:updated
@@ -117,16 +133,19 @@ This document outlines all user flows that need to be tested before switching fr
 ## Expected Issues to Watch For
 
 1. **Authentication**
+
    - JWT token format differences
    - Token expiration handling
    - Guard execution order
 
 2. **Data Format**
+
    - Date/time format differences
    - ID format (string vs number)
    - Pagination response structure
 
 3. **Error Handling**
+
    - Different error response formats
    - Status codes
    - Validation error messages

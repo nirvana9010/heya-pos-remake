@@ -1,22 +1,37 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, lazy, Suspense, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Button } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { Label } from '@heya-pos/ui';
-import { Textarea } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
-import { Skeleton } from '@heya-pos/ui';
-import { apiClient, CreateCustomerRequest, UpdateCustomerRequest } from '@/lib/api-client';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { prefetchManager } from '@/lib/prefetch';
-import { usePermissions } from '@/lib/auth/auth-provider';
-import { sanitizeNullableField, sanitizeOptionalField } from '@/lib/utils/form-utils';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  lazy,
+  Suspense,
+  useCallback,
+  useRef,
+} from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { Button } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import { Label } from "@heya-pos/ui";
+import { Textarea } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
+import {
+  apiClient,
+  CreateCustomerRequest,
+  UpdateCustomerRequest,
+} from "@/lib/api-client";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { prefetchManager } from "@/lib/prefetch";
+import { usePermissions } from "@/lib/auth/auth-provider";
+import {
+  sanitizeNullableField,
+  sanitizeOptionalField,
+} from "@/lib/utils/form-utils";
 
 // Import UI components normally - they're already optimized
 import {
@@ -34,24 +49,44 @@ import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
-} from '@heya-pos/ui';
+  TabsTrigger,
+} from "@heya-pos/ui";
 
 // Lazy load icons - only import the ones we need immediately
-import { Plus, Search, Users, TrendingUp, Gift, Clock, Crown } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Users,
+  TrendingUp,
+  Gift,
+  Clock,
+  Crown,
+} from "lucide-react";
 
 // Lazy load other icons
-const LucideIcons = dynamic(() => import('./customer-icons'), { ssr: false });
+const LucideIcons = dynamic(() => import("./customer-icons"), { ssr: false });
 
 // Only lazy load truly heavy components
-const LoyaltyDialog = dynamic(() => import('@/components/loyalty/LoyaltyDialog').then(mod => ({ default: mod.LoyaltyDialog })), {
-  loading: () => null,
-  ssr: false
-});
-const CustomerDetailsDialog = dynamic(() => import('@/components/CustomerDetailsDialog').then(mod => ({ default: mod.CustomerDetailsDialog })), {
-  loading: () => null,
-  ssr: false
-});
+const LoyaltyDialog = dynamic(
+  () =>
+    import("@/components/loyalty/LoyaltyDialog").then((mod) => ({
+      default: mod.LoyaltyDialog,
+    })),
+  {
+    loading: () => null,
+    ssr: false,
+  },
+);
+const CustomerDetailsDialog = dynamic(
+  () =>
+    import("@/components/CustomerDetailsDialog").then((mod) => ({
+      default: mod.CustomerDetailsDialog,
+    })),
+  {
+    loading: () => null,
+    ssr: false,
+  },
+);
 
 // Import types
 interface Customer {
@@ -90,34 +125,37 @@ const stringToColor = (str: string) => {
   }
 
   const colors = [
-    'bg-teal-500',
-    'bg-blue-500',
-    'bg-green-500',
-    'bg-yellow-500',
-    'bg-red-500',
-    'bg-teal-500',
-    'bg-pink-500',
-    'bg-teal-500',
-    'bg-orange-500',
-    'bg-cyan-500'
+    "bg-teal-500",
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-red-500",
+    "bg-teal-500",
+    "bg-pink-500",
+    "bg-teal-500",
+    "bg-orange-500",
+    "bg-cyan-500",
   ];
 
   return colors[Math.abs(hash) % colors.length];
 };
 
-const getInitials = (firstName: string, lastName: string | null | undefined) => {
-  const firstInitial = firstName ? firstName.charAt(0) : '';
-  const lastInitial = lastName ? lastName.charAt(0) : '';
+const getInitials = (
+  firstName: string,
+  lastName: string | null | undefined,
+) => {
+  const firstInitial = firstName ? firstName.charAt(0) : "";
+  const lastInitial = lastName ? lastName.charAt(0) : "";
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
 const formatPhoneNumber = (value?: string | null) => {
   if (!value) {
-    return '';
+    return "";
   }
 
   const trimmed = value.trim();
-  const digits = trimmed.replace(/\D/g, '');
+  const digits = trimmed.replace(/\D/g, "");
 
   if (!digits) {
     return trimmed;
@@ -125,23 +163,23 @@ const formatPhoneNumber = (value?: string | null) => {
 
   let normalized = digits;
 
-  if (digits.startsWith('61') && digits.length >= 9) {
+  if (digits.startsWith("61") && digits.length >= 9) {
     const withoutCountryCode = digits.slice(2);
-    normalized = withoutCountryCode.startsWith('0')
+    normalized = withoutCountryCode.startsWith("0")
       ? withoutCountryCode
       : `0${withoutCountryCode}`;
   }
 
-  if (normalized.length === 10 && normalized.startsWith('04')) {
-    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+  if (normalized.length === 10 && normalized.startsWith("04")) {
+    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3");
   }
 
   if (normalized.length === 10 && /^0[2378]/.test(normalized)) {
-    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3');
+    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, "$1 $2 $3");
   }
 
-  if (trimmed.startsWith('+61')) {
-    const localPortion = trimmed.slice(3).replace(/\s+/g, '');
+  if (trimmed.startsWith("+61")) {
+    const localPortion = trimmed.slice(3).replace(/\s+/g, "");
     if (localPortion.length >= 3) {
       return `+61 ${localPortion}`;
     }
@@ -151,9 +189,9 @@ const formatPhoneNumber = (value?: string | null) => {
 };
 
 const getDisplayPhone = (customer: Customer) => {
-  const rawPhone = customer.mobile ?? customer.phone ?? '';
+  const rawPhone = customer.mobile ?? customer.phone ?? "";
   if (!rawPhone) {
-    return '';
+    return "";
   }
 
   return formatPhoneNumber(rawPhone);
@@ -168,21 +206,22 @@ export default function CustomersPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [serverTotalPages, setServerTotalPages] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
-  const [selectedSegment, setSelectedSegment] = useState('all');
-  const [sortBy, setSortBy] = useState('recent');
+  const [selectedSegment, setSelectedSegment] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    notes: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    notes: "",
   });
-  const [loyaltyDialogCustomer, setLoyaltyDialogCustomer] = useState<Customer | null>(null);
+  const [loyaltyDialogCustomer, setLoyaltyDialogCustomer] =
+    useState<Customer | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -192,69 +231,80 @@ export default function CustomersPageContent() {
     total: 0,
     vip: 0,
     newThisMonth: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
   });
   const [isRemoteSearchResult, setIsRemoteSearchResult] = useState(false);
 
-  const isFiltering = Boolean(searchQuery?.trim()) || selectedSegment !== 'all';
+  const isFiltering = Boolean(searchQuery?.trim()) || selectedSegment !== "all";
 
   // Forward declaration of loadCustomers to avoid hoisting issues
-  const loadCustomersRef = useRef<(params?: { search?: string; limit?: number; page?: number }) => Promise<void>>();
+  const loadCustomersRef =
+    useRef<
+      (params?: {
+        search?: string;
+        limit?: number;
+        page?: number;
+      }) => Promise<void>
+    >();
 
   // Define searchCustomers early using useCallback to avoid hoisting issues
-  const searchCustomers = useCallback(async (query: string) => {
-    // Clear timeout if there's a pending search
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // If empty query, reload all customers to reset from search results
-    if (!query || query.trim().length === 0) {
-      setIsSearching(false);
-      setIsRemoteSearchResult(false);
-      // Reload all customers to clear search results
-      loadCustomersRef.current?.({ limit: itemsPerPage, page: currentPage });
-      return;
-    }
-
-    // Debounce search
-    searchTimeoutRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      setIsRemoteSearchResult(false);
-
-      try {
-        const response = await apiClient.customers.searchCustomers(query);
-
-        // Handle response
-        const customersData = response.data || [];
-        const totalCount = response.total ?? customersData.length;
-
-        // Map the API response
-        const mappedCustomers = customersData.map((customer: any) => ({
-          ...customer,
-          totalVisits: customer.visitCount || 0,
-          totalSpent: customer.totalSpent || 0,
-          loyaltyPoints: customer.loyaltyPoints || 0,
-          loyaltyVisits: customer.loyaltyVisits || 0,
-        }));
-        setCustomers(mappedCustomers);
-        setFilteredCustomers(mappedCustomers);
-        setTotalCustomers(totalCount);
-        setServerTotalPages(1);
-        setIsRemoteSearchResult(true);
-      } catch (error: any) {
-        console.error('Customer search failed:', error);
-        toast({
-          title: "Search Error",
-          description: error.response?.data?.message || "Failed to search customers",
-          variant: "destructive",
-        });
-        setIsRemoteSearchResult(false);
-      } finally {
-        setIsSearching(false);
+  const searchCustomers = useCallback(
+    async (query: string) => {
+      // Clear timeout if there's a pending search
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    }, 300); // 300ms debounce
-  }, [toast, itemsPerPage, currentPage]);
+
+      // If empty query, reload all customers to reset from search results
+      if (!query || query.trim().length === 0) {
+        setIsSearching(false);
+        setIsRemoteSearchResult(false);
+        // Reload all customers to clear search results
+        loadCustomersRef.current?.({ limit: itemsPerPage, page: currentPage });
+        return;
+      }
+
+      // Debounce search
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+        setIsRemoteSearchResult(false);
+
+        try {
+          const response = await apiClient.customers.searchCustomers(query);
+
+          // Handle response
+          const customersData = response.data || [];
+          const totalCount = response.total ?? customersData.length;
+
+          // Map the API response
+          const mappedCustomers = customersData.map((customer: any) => ({
+            ...customer,
+            totalVisits: customer.visitCount || 0,
+            totalSpent: customer.totalSpent || 0,
+            loyaltyPoints: customer.loyaltyPoints || 0,
+            loyaltyVisits: customer.loyaltyVisits || 0,
+          }));
+          setCustomers(mappedCustomers);
+          setFilteredCustomers(mappedCustomers);
+          setTotalCustomers(totalCount);
+          setServerTotalPages(1);
+          setIsRemoteSearchResult(true);
+        } catch (error: any) {
+          console.error("Customer search failed:", error);
+          toast({
+            title: "Search Error",
+            description:
+              error.response?.data?.message || "Failed to search customers",
+            variant: "destructive",
+          });
+          setIsRemoteSearchResult(false);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300); // 300ms debounce
+    },
+    [toast, itemsPerPage, currentPage],
+  );
 
   // Load customers and stats immediately on mount
   useEffect(() => {
@@ -263,14 +313,15 @@ export default function CustomersPageContent() {
     setIsRemoteSearchResult(false);
 
     // Fetch real stats from the database separately
-    apiClient.customers.getStats()
-      .then(stats => {
+    apiClient.customers
+      .getStats()
+      .then((stats) => {
         if (stats) {
           setGlobalStats(stats);
         }
       })
-      .catch(error => {
-        console.error('Failed to load customer stats:', error);
+      .catch((error) => {
+        console.error("Failed to load customer stats:", error);
         toast({
           title: "Warning",
           description: "Failed to load customer statistics",
@@ -298,17 +349,29 @@ export default function CustomersPageContent() {
     if (!loading && !isSearching) {
       filterCustomers();
     }
-  }, [customers, selectedSegment, sortBy, loading, isSearching, isRemoteSearchResult]);
+  }, [
+    customers,
+    selectedSegment,
+    sortBy,
+    loading,
+    isSearching,
+    isRemoteSearchResult,
+  ]);
 
   // Reset pagination when filters are applied
   useEffect(() => {
-    const hasActiveFilters = Boolean(searchQuery?.trim()) || selectedSegment !== 'all';
+    const hasActiveFilters =
+      Boolean(searchQuery?.trim()) || selectedSegment !== "all";
     if (!loading && !isSearching && hasActiveFilters) {
       setCurrentPage(1);
     }
   }, [searchQuery, selectedSegment, sortBy, loading, isSearching]);
 
-  const loadCustomers = async (params?: { search?: string; limit?: number; page?: number }) => {
+  const loadCustomers = async (params?: {
+    search?: string;
+    limit?: number;
+    page?: number;
+  }) => {
     try {
       setLoading(true);
 
@@ -319,7 +382,7 @@ export default function CustomersPageContent() {
       const apiParams = {
         limit: requestedLimit,
         page: requestedPage,
-        ...params
+        ...params,
       };
 
       // Load customers from API with parameters
@@ -345,15 +408,17 @@ export default function CustomersPageContent() {
       setCustomers(mappedCustomers);
       setFilteredCustomers(mappedCustomers);
       setTotalCustomers(totalCount);
-      const calculatedTotalPages = meta.totalPages ?? (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 1);
+      const calculatedTotalPages =
+        meta.totalPages ??
+        (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 1);
       setServerTotalPages(Math.max(1, calculatedTotalPages));
       setCurrentPage(responsePage);
       setLoading(false);
-
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to load customers",
+        description:
+          error.response?.data?.message || "Failed to load customers",
         variant: "destructive",
       });
       setLoading(false);
@@ -363,7 +428,10 @@ export default function CustomersPageContent() {
   // Assign loadCustomers to ref
   loadCustomersRef.current = loadCustomers;
 
-  const processBookingsInChunks = (customersData: Customer[], bookingsData: any[]) => {
+  const processBookingsInChunks = (
+    customersData: Customer[],
+    bookingsData: any[],
+  ) => {
     const CHUNK_SIZE = 100;
     let currentIndex = 0;
 
@@ -374,14 +442,16 @@ export default function CustomersPageContent() {
       // Process this chunk
       const customerStats = new Map();
 
-      chunk.forEach(booking => {
+      chunk.forEach((booking) => {
         // Process booking stats - try to match customer by name if no ID
         let customerId = booking.customerId || booking.customer?.id;
 
         // If no customer ID, try to match by name
         if (!customerId && booking.customerName) {
-          const matchingCustomer = customersData.find(c =>
-            `${c.firstName} ${c.lastName}`.toLowerCase() === booking.customerName.toLowerCase()
+          const matchingCustomer = customersData.find(
+            (c) =>
+              `${c.firstName} ${c.lastName}`.toLowerCase() ===
+              booking.customerName.toLowerCase(),
           );
           if (matchingCustomer) {
             customerId = matchingCustomer.id;
@@ -398,15 +468,18 @@ export default function CustomersPageContent() {
             services: new Map(),
             nextAppointment: null,
             upcomingBookings: 0,
-            pendingRevenue: 0
+            pendingRevenue: 0,
           });
         }
 
         const stats = customerStats.get(customerId);
 
-        if (['COMPLETED', 'completed'].includes(booking.status)) {
+        if (["COMPLETED", "completed"].includes(booking.status)) {
           stats.totalVisits++;
-          const paidAmount = booking.paidAmount !== undefined ? booking.paidAmount : (booking.totalAmount || booking.price || 0);
+          const paidAmount =
+            booking.paidAmount !== undefined
+              ? booking.paidAmount
+              : booking.totalAmount || booking.price || 0;
           stats.totalSpent += paidAmount;
 
           const bookingDateStr = booking.startTime || booking.date;
@@ -419,8 +492,11 @@ export default function CustomersPageContent() {
             }
           }
 
-          const serviceName = booking.serviceName || 'Service';
-          stats.services.set(serviceName, (stats.services.get(serviceName) || 0) + 1);
+          const serviceName = booking.serviceName || "Service";
+          stats.services.set(
+            serviceName,
+            (stats.services.get(serviceName) || 0) + 1,
+          );
         }
 
         const bookingDateStr = booking.startTime || booking.date;
@@ -428,14 +504,23 @@ export default function CustomersPageContent() {
           const bookingDate = new Date(bookingDateStr);
           const now = new Date();
 
-          if (!isNaN(bookingDate.getTime()) && bookingDate > now && !['CANCELLED', 'NO_SHOW', 'cancelled', 'no_show'].includes(booking.status)) {
+          if (
+            !isNaN(bookingDate.getTime()) &&
+            bookingDate > now &&
+            !["CANCELLED", "NO_SHOW", "cancelled", "no_show"].includes(
+              booking.status,
+            )
+          ) {
             stats.upcomingBookings++;
             stats.pendingRevenue += booking.totalAmount || booking.price || 0;
 
-            if (!stats.nextAppointment || bookingDate < new Date(stats.nextAppointment.date)) {
+            if (
+              !stats.nextAppointment ||
+              bookingDate < new Date(stats.nextAppointment.date)
+            ) {
               stats.nextAppointment = {
                 date: bookingDateStr,
-                service: booking.serviceName || 'Service'
+                service: booking.serviceName || "Service",
               };
             }
           }
@@ -443,8 +528,8 @@ export default function CustomersPageContent() {
       });
 
       // Update customers with new stats
-      setCustomers(prevCustomers => {
-        return prevCustomers.map(customer => {
+      setCustomers((prevCustomers) => {
+        return prevCustomers.map((customer) => {
           const stats = customerStats.get(customer.id);
           if (!stats) return customer;
 
@@ -457,13 +542,18 @@ export default function CustomersPageContent() {
             ...customer,
             totalVisits: customer.totalVisits + stats.totalVisits,
             totalSpent: customer.totalSpent + stats.totalSpent,
-            updatedAt: stats.lastVisit && stats.lastVisit instanceof Date && !isNaN(stats.lastVisit.getTime())
-              ? stats.lastVisit.toISOString()
-              : customer.updatedAt,
+            updatedAt:
+              stats.lastVisit &&
+              stats.lastVisit instanceof Date &&
+              !isNaN(stats.lastVisit.getTime())
+                ? stats.lastVisit.toISOString()
+                : customer.updatedAt,
             topServices,
             nextAppointment: stats.nextAppointment || customer.nextAppointment,
-            upcomingBookings: (customer.upcomingBookings || 0) + stats.upcomingBookings,
-            pendingRevenue: (customer.pendingRevenue || 0) + stats.pendingRevenue
+            upcomingBookings:
+              (customer.upcomingBookings || 0) + stats.upcomingBookings,
+            pendingRevenue:
+              (customer.pendingRevenue || 0) + stats.pendingRevenue,
           };
         });
       });
@@ -483,25 +573,30 @@ export default function CustomersPageContent() {
   const filterCustomers = () => {
     let filtered = [...customers];
 
-    const hasSearchQuery = Boolean(searchQuery && searchQuery.trim().length > 0);
+    const hasSearchQuery = Boolean(
+      searchQuery && searchQuery.trim().length > 0,
+    );
 
     // Apply client-side search filtering only when we don't have remote search results
     if (hasSearchQuery && !isSearching && !isRemoteSearchResult) {
       const query = searchQuery.toLowerCase();
-      const numericQuery = searchQuery.replace(/\D/g, '');
-      filtered = filtered.filter(customer => {
-        const firstName = customer.firstName?.toLowerCase() || '';
-        const lastName = customer.lastName?.toLowerCase() || '';
-        const email = customer.email?.toLowerCase() || '';
-        const phoneDigits = (customer.phone || '').replace(/\D/g, '');
-        const mobileDigits = (customer.mobile || customer.phone || '').replace(/\D/g, '');
+      const numericQuery = searchQuery.replace(/\D/g, "");
+      filtered = filtered.filter((customer) => {
+        const firstName = customer.firstName?.toLowerCase() || "";
+        const lastName = customer.lastName?.toLowerCase() || "";
+        const email = customer.email?.toLowerCase() || "";
+        const phoneDigits = (customer.phone || "").replace(/\D/g, "");
+        const mobileDigits = (customer.mobile || customer.phone || "").replace(
+          /\D/g,
+          "",
+        );
 
         const stringMatch =
           firstName.includes(query) ||
           lastName.includes(query) ||
           email.includes(query) ||
-          (customer.phone || '').includes(query) ||
-          (customer.mobile || '').includes(query);
+          (customer.phone || "").includes(query) ||
+          (customer.mobile || "").includes(query);
 
         if (stringMatch) {
           return true;
@@ -514,26 +609,30 @@ export default function CustomersPageContent() {
         return (
           phoneDigits.includes(numericQuery) ||
           mobileDigits.includes(numericQuery) ||
-          phoneDigits.includes(numericQuery.replace(/^0/, '')) ||
-          mobileDigits.includes(numericQuery.replace(/^0/, ''))
+          phoneDigits.includes(numericQuery.replace(/^0/, "")) ||
+          mobileDigits.includes(numericQuery.replace(/^0/, ""))
         );
       });
     }
 
     // Apply segment filter
-    if (selectedSegment !== 'all') {
+    if (selectedSegment !== "all") {
       const now = new Date();
-      filtered = filtered.filter(customer => {
+      filtered = filtered.filter((customer) => {
         switch (selectedSegment) {
-          case 'vip':
+          case "vip":
             return customer.totalSpent > 1000 || customer.totalVisits > 10;
-          case 'regular':
+          case "regular":
             return customer.totalVisits >= 3 && customer.totalVisits <= 10;
-          case 'new':
+          case "new":
             return customer.totalVisits === 0;
-          case 'inactive':
-            const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : new Date(customer.createdAt);
-            const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
+          case "inactive":
+            const lastVisit = customer.updatedAt
+              ? new Date(customer.updatedAt)
+              : new Date(customer.createdAt);
+            const daysSinceLastVisit = Math.floor(
+              (now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24),
+            );
             return daysSinceLastVisit > 90;
           default:
             return true;
@@ -544,15 +643,19 @@ export default function CustomersPageContent() {
     // Apply sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'name':
-          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-        case 'spent':
+        case "name":
+          return `${a.firstName} ${a.lastName}`.localeCompare(
+            `${b.firstName} ${b.lastName}`,
+          );
+        case "spent":
           return b.totalSpent - a.totalSpent;
-        case 'visits':
+        case "visits":
           return b.totalVisits - a.totalVisits;
-        case 'recent':
+        case "recent":
         default:
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          return (
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          );
       }
     });
 
@@ -566,9 +669,15 @@ export default function CustomersPageContent() {
     if (isFiltering && filteredCustomers.length > 0) {
       return {
         total: filteredCustomers.length,
-        vip: filteredCustomers.filter(c => c.totalSpent > 1000 || c.totalVisits > 10).length,
-        newThisMonth: filteredCustomers.filter(c => c.totalVisits === 0).length,
-        totalRevenue: filteredCustomers.reduce((sum, c) => sum + c.totalSpent, 0)
+        vip: filteredCustomers.filter(
+          (c) => c.totalSpent > 1000 || c.totalVisits > 10,
+        ).length,
+        newThisMonth: filteredCustomers.filter((c) => c.totalVisits === 0)
+          .length,
+        totalRevenue: filteredCustomers.reduce(
+          (sum, c) => sum + c.totalSpent,
+          0,
+        ),
       };
     }
 
@@ -587,28 +696,32 @@ export default function CustomersPageContent() {
     return filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
   }, [customers, filteredCustomers, currentPage, itemsPerPage, isFiltering]);
 
-  const totalPages = isFiltering ?
-    Math.ceil(filteredCustomers.length / itemsPerPage) :
-    serverTotalPages;
+  const totalPages = isFiltering
+    ? Math.ceil(filteredCustomers.length / itemsPerPage)
+    : serverTotalPages;
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl + K for search focus
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
 
       // Escape to clear search
-      if (e.key === 'Escape' && searchQuery) {
-        setSearchQuery('');
+      if (e.key === "Escape" && searchQuery) {
+        setSearchQuery("");
       }
 
       // Left/Right arrows for pagination when not in input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
 
-      if (e.key === 'ArrowLeft' && currentPage > 1) {
+      if (e.key === "ArrowLeft" && currentPage > 1) {
         const newPage = currentPage - 1;
         setCurrentPage(newPage);
         if (!isFiltering) {
@@ -616,7 +729,7 @@ export default function CustomersPageContent() {
         }
       }
 
-      if (e.key === 'ArrowRight' && currentPage < totalPages) {
+      if (e.key === "ArrowRight" && currentPage < totalPages) {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
         if (!isFiltering) {
@@ -625,8 +738,8 @@ export default function CustomersPageContent() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [searchQuery, currentPage, totalPages, itemsPerPage, isFiltering]);
 
   // Form handlers
@@ -664,19 +777,26 @@ export default function CustomersPageContent() {
       }
       setIsAddDialogOpen(false);
       setEditingCustomer(null);
-      setFormData({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        notes: "",
+      });
       // Reload customers and stats
       setCurrentPage(targetPage);
       await loadCustomers({ limit: itemsPerPage, page: targetPage });
       setIsRemoteSearchResult(false);
-      apiClient.customers.getStats()
-        .then(stats => {
+      apiClient.customers
+        .getStats()
+        .then((stats) => {
           if (stats) {
             setGlobalStats(stats);
           }
         })
-        .catch(error => {
-          console.error('Failed to refresh stats:', error);
+        .catch((error) => {
+          console.error("Failed to refresh stats:", error);
         });
     } catch (error) {
       toast({
@@ -750,9 +870,11 @@ export default function CustomersPageContent() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Customers</h1>
-            <p className="text-muted-foreground">Manage your customer database</p>
+            <p className="text-muted-foreground">
+              Manage your customer database
+            </p>
           </div>
-          {can('customer.create') && (
+          {can("customer.create") && (
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Customer
@@ -764,7 +886,9 @@ export default function CustomersPageContent() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Customers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Customers
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -777,7 +901,9 @@ export default function CustomersPageContent() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">VIP Customers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                VIP Customers
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.vip}</div>
@@ -790,7 +916,9 @@ export default function CustomersPageContent() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">New This Month</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                New This Month
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.newThisMonth}</div>
@@ -803,10 +931,18 @@ export default function CustomersPageContent() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Revenue
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(stats.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+              <div className="text-2xl font-bold">
+                $
+                {Number(stats.totalRevenue).toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </div>
               <p className="text-xs text-muted-foreground">
                 <Gift className="inline w-3 h-3 mr-1" />
                 All time
@@ -867,11 +1003,13 @@ export default function CustomersPageContent() {
         </div>
 
         {/* Results Summary */}
-        {(searchQuery || selectedSegment !== 'all') && (
+        {(searchQuery || selectedSegment !== "all") && (
           <div className="mb-4 text-sm text-muted-foreground">
             Showing {filteredCustomers.length} of {totalCustomers} customers
             {searchQuery && <span> matching "{searchQuery}"</span>}
-            {selectedSegment !== 'all' && <span> in {selectedSegment} segment</span>}
+            {selectedSegment !== "all" && (
+              <span> in {selectedSegment} segment</span>
+            )}
           </div>
         )}
 
@@ -882,7 +1020,9 @@ export default function CustomersPageContent() {
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                <span className="text-sm text-muted-foreground">Loading customers...</span>
+                <span className="text-sm text-muted-foreground">
+                  Loading customers...
+                </span>
               </div>
             </div>
           )}
@@ -892,12 +1032,19 @@ export default function CustomersPageContent() {
                 <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <Users className="h-10 w-10 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">No customers found</h3>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                  No customers found
+                </h3>
                 <p className="text-muted-foreground max-w-sm mx-auto">
-                  {searchQuery ? 'Try adjusting your search criteria' : 'Add your first customer to get started'}
+                  {searchQuery
+                    ? "Try adjusting your search criteria"
+                    : "Add your first customer to get started"}
                 </p>
-                {!searchQuery && can('customer.create') && (
-                  <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
+                {!searchQuery && can("customer.create") && (
+                  <Button
+                    className="mt-4"
+                    onClick={() => setIsAddDialogOpen(true)}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Add First Customer
                   </Button>
@@ -906,22 +1053,41 @@ export default function CustomersPageContent() {
             ) : (
               <div className="divide-y divide-gray-100">
                 {paginatedCustomers.map((customer) => {
-                  const isVIP = customer.totalSpent > 1000 || customer.totalVisits > 10;
+                  const isVIP =
+                    customer.totalSpent > 1000 || customer.totalVisits > 10;
                   const isNew = customer.totalVisits === 0;
 
                   // Only show last visit if customer has actually visited
-                  const lastVisitDate = customer.totalVisits > 0 && customer.updatedAt ? new Date(customer.updatedAt) : null;
-                  const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                  const lastVisitDate =
+                    customer.totalVisits > 0 && customer.updatedAt
+                      ? new Date(customer.updatedAt)
+                      : null;
+                  const daysSinceLastVisit = lastVisitDate
+                    ? Math.floor(
+                        (Date.now() - lastVisitDate.getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    : null;
                   const displayPhone = getDisplayPhone(customer);
 
                   return (
-                    <div key={customer.id} className="group hover:bg-gray-50 transition-colors duration-200">
+                    <div
+                      key={customer.id}
+                      className="group hover:bg-gray-50 transition-colors duration-200"
+                    >
                       <div className="flex items-center justify-between py-4 px-4 -mx-4">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className={cn(
-                            "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold relative shadow-sm",
-                            isVIP ? "bg-gradient-to-br from-yellow-400 to-yellow-600" : stringToColor(customer.firstName + (customer.lastName || ''))
-                          )}>
+                          <div
+                            className={cn(
+                              "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold relative shadow-sm",
+                              isVIP
+                                ? "bg-gradient-to-br from-yellow-400 to-yellow-600"
+                                : stringToColor(
+                                    customer.firstName +
+                                      (customer.lastName || ""),
+                                  ),
+                            )}
+                          >
                             {getInitials(customer.firstName, customer.lastName)}
                             {isVIP && (
                               <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
@@ -931,22 +1097,35 @@ export default function CustomersPageContent() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-gray-900">{customer.firstName || 'Unknown'}{customer.lastName ? ` ${customer.lastName}` : ''}</p>
+                              <p className="font-medium text-gray-900">
+                                {customer.firstName || "Unknown"}
+                                {customer.lastName
+                                  ? ` ${customer.lastName}`
+                                  : ""}
+                              </p>
                               <div className="flex items-center gap-1">
                                 {isNew && (
-                                  <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 text-xs px-2 py-0">
+                                  <Badge
+                                    variant="secondary"
+                                    className="bg-green-100 text-green-700 border-0 text-xs px-2 py-0"
+                                  >
                                     New
                                   </Badge>
                                 )}
                                 {isVIP && (
-                                  <Badge variant="default" className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-0 text-xs px-2 py-0">
+                                  <Badge
+                                    variant="default"
+                                    className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-0 text-xs px-2 py-0"
+                                  >
                                     VIP
                                   </Badge>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="truncate">{customer.email || 'No email'}</span>
+                              <span className="truncate">
+                                {customer.email || "No email"}
+                              </span>
                               {displayPhone && (
                                 <>
                                   <span className="text-gray-300">•</span>
@@ -957,9 +1136,12 @@ export default function CustomersPageContent() {
                                 <>
                                   <span className="text-gray-300">•</span>
                                   <span className="text-xs">
-                                    Last visit: {daysSinceLastVisit === 0 ? 'Today' :
-                                      daysSinceLastVisit === 1 ? 'Yesterday' :
-                                        `${daysSinceLastVisit} days ago`}
+                                    Last visit:{" "}
+                                    {daysSinceLastVisit === 0
+                                      ? "Today"
+                                      : daysSinceLastVisit === 1
+                                        ? "Yesterday"
+                                        : `${daysSinceLastVisit} days ago`}
                                   </span>
                                 </>
                               )}
@@ -969,15 +1151,17 @@ export default function CustomersPageContent() {
                         <div className="flex items-center gap-3">
                           <div className="text-right mr-2">
                             <p className="text-sm font-medium text-gray-900">
-                              {customer.totalSpent > 0 ?
-                                `$${customer.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` :
-                                '-'
-                              }
+                              {customer.totalSpent > 0
+                                ? `$${customer.totalSpent.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                                : "-"}
                             </p>
                             {/* Show visits only if > 0 */}
                             {customer.totalVisits > 0 && (
                               <p className="text-xs text-muted-foreground">
-                                {customer.totalVisits} {customer.totalVisits === 1 ? 'visit' : 'visits'}
+                                {customer.totalVisits}{" "}
+                                {customer.totalVisits === 1
+                                  ? "visit"
+                                  : "visits"}
                               </p>
                             )}
                           </div>
@@ -1009,15 +1193,27 @@ export default function CustomersPageContent() {
             <div className="border-t px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, isFiltering ? filteredCustomers.length : totalCustomers)} of {isFiltering ? filteredCustomers.length : totalCustomers} customers
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                  {Math.min(
+                    currentPage * itemsPerPage,
+                    isFiltering ? filteredCustomers.length : totalCustomers,
+                  )}{" "}
+                  of {isFiltering ? filteredCustomers.length : totalCustomers}{" "}
+                  customers
                 </p>
-                <Select value={itemsPerPage.toString()} onValueChange={(value) => {
-                  setItemsPerPage(Number(value));
-                  setCurrentPage(1);
-                  if (!isFiltering) {
-                    loadCustomersRef.current?.({ limit: Number(value), page: 1 });
-                  }
-                }}>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    setCurrentPage(1);
+                    if (!isFiltering) {
+                      loadCustomersRef.current?.({
+                        limit: Number(value),
+                        page: 1,
+                      });
+                    }
+                  }}
+                >
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
@@ -1039,7 +1235,10 @@ export default function CustomersPageContent() {
                     const newPage = Math.max(1, currentPage - 1);
                     setCurrentPage(newPage);
                     if (!isFiltering) {
-                      loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+                      loadCustomersRef.current?.({
+                        limit: itemsPerPage,
+                        page: newPage,
+                      });
                     }
                   }}
                   disabled={currentPage === 1 || loading}
@@ -1049,7 +1248,9 @@ export default function CustomersPageContent() {
                 <div className="flex items-center gap-1">
                   <span className="text-sm text-muted-foreground">Page</span>
                   <span className="text-sm font-medium">{currentPage}</span>
-                  <span className="text-sm text-muted-foreground">of {totalPages}</span>
+                  <span className="text-sm text-muted-foreground">
+                    of {totalPages}
+                  </span>
                 </div>
                 <Button
                   variant="outline"
@@ -1059,7 +1260,10 @@ export default function CustomersPageContent() {
                     const newPage = Math.min(totalPages, currentPage + 1);
                     setCurrentPage(newPage);
                     if (!isFiltering) {
-                      loadCustomersRef.current?.({ limit: itemsPerPage, page: newPage });
+                      loadCustomersRef.current?.({
+                        limit: itemsPerPage,
+                        page: newPage,
+                      });
                     }
                   }}
                   disabled={currentPage === totalPages || loading}
@@ -1073,18 +1277,31 @@ export default function CustomersPageContent() {
 
         {/* Add/Edit Customer Dialog */}
         <Suspense fallback={null}>
-          <Dialog open={isAddDialogOpen || !!editingCustomer} onOpenChange={(open) => {
-            if (!open) {
-              setIsAddDialogOpen(false);
-              setEditingCustomer(null);
-              setFormData({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
-            }
-          }}>
+          <Dialog
+            open={isAddDialogOpen || !!editingCustomer}
+            onOpenChange={(open) => {
+              if (!open) {
+                setIsAddDialogOpen(false);
+                setEditingCustomer(null);
+                setFormData({
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  phone: "",
+                  notes: "",
+                });
+              }
+            }}
+          >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+                <DialogTitle>
+                  {editingCustomer ? "Edit Customer" : "Add New Customer"}
+                </DialogTitle>
                 <DialogDescription>
-                  {editingCustomer ? 'Update customer information' : 'Create a new customer record'}
+                  {editingCustomer
+                    ? "Update customer information"
+                    : "Create a new customer record"}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -1095,7 +1312,12 @@ export default function CustomersPageContent() {
                       <Input
                         id="firstName"
                         value={formData.firstName}
-                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            firstName: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -1104,7 +1326,9 @@ export default function CustomersPageContent() {
                       <Input
                         id="lastName"
                         value={formData.lastName}
-                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, lastName: e.target.value })
+                        }
                         required
                       />
                     </div>
@@ -1115,7 +1339,9 @@ export default function CustomersPageContent() {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       placeholder="Optional"
                     />
                   </div>
@@ -1124,7 +1350,9 @@ export default function CustomersPageContent() {
                     <Input
                       id="phone"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
                       placeholder="Optional"
                     />
                   </div>
@@ -1133,14 +1361,16 @@ export default function CustomersPageContent() {
                     <Textarea
                       id="notes"
                       value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, notes: e.target.value })
+                      }
                       rows={3}
                     />
                   </div>
                 </div>
                 <DialogFooter className="mt-6">
                   <Button type="submit">
-                    {editingCustomer ? 'Update' : 'Create'} Customer
+                    {editingCustomer ? "Update" : "Create"} Customer
                   </Button>
                 </DialogFooter>
               </form>

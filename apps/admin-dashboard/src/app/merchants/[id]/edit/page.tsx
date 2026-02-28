@@ -5,9 +5,21 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Save, AlertCircle, Calendar } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
@@ -25,14 +37,14 @@ function EditMerchantPage() {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    abn: '',
-    subdomain: '',
-    packageId: '',
+    name: "",
+    email: "",
+    phone: "",
+    abn: "",
+    subdomain: "",
+    packageId: "",
     isActive: true,
-    subscriptionStatus: '',
+    subscriptionStatus: "",
     trialEndsAt: null as Date | null,
     skipTrial: false,
   });
@@ -46,33 +58,33 @@ function EditMerchantPage() {
       setLoading(true);
       const [merchantData, packagesData] = await Promise.all([
         adminApi.getMerchant(merchantId),
-        adminApi.getPackages()
+        adminApi.getPackages(),
       ]);
-      
+
       setMerchant(merchantData);
       setPackages(packagesData);
-      
+
       // Initialize form with merchant data
       setFormData({
         name: merchantData.name,
         email: merchantData.email,
         phone: merchantData.phone,
-        abn: merchantData.abn || '',
+        abn: merchantData.abn || "",
         subdomain: merchantData.subdomain,
-        packageId: merchantData.subscription?.package?.id || '',
+        packageId: merchantData.subscription?.package?.id || "",
         isActive: merchantData.isActive,
-        subscriptionStatus: merchantData.subscriptionStatus || 'TRIAL',
+        subscriptionStatus: merchantData.subscriptionStatus || "TRIAL",
         trialEndsAt: merchantData.trialEndsAt,
         skipTrial: false,
       });
     } catch (error) {
-      console.error('Failed to load merchant:', error);
+      console.error("Failed to load merchant:", error);
       toast({
         title: "Error",
         description: "Failed to load merchant data",
         variant: "destructive",
       });
-      router.push('/merchants');
+      router.push("/merchants");
     } finally {
       setLoading(false);
     }
@@ -83,7 +95,7 @@ function EditMerchantPage() {
 
     try {
       setSaving(true);
-      
+
       const updateData: any = {
         name: formData.name,
         email: formData.email,
@@ -94,7 +106,10 @@ function EditMerchantPage() {
       };
 
       // Only include packageId if it's changed
-      if (formData.packageId && formData.packageId !== merchant?.subscription?.package?.id) {
+      if (
+        formData.packageId &&
+        formData.packageId !== merchant?.subscription?.package?.id
+      ) {
         updateData.packageId = formData.packageId;
       }
 
@@ -106,15 +121,15 @@ function EditMerchantPage() {
       }
 
       await adminApi.updateMerchant(merchantId, updateData);
-      
+
       toast({
         title: "Success!",
         description: "Merchant updated successfully",
       });
-      
-      router.push('/merchants');
+
+      router.push("/merchants");
     } catch (error: any) {
-      console.error('Failed to update merchant:', error);
+      console.error("Failed to update merchant:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update merchant",
@@ -150,7 +165,7 @@ function EditMerchantPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push('/merchants')}
+          onClick={() => router.push("/merchants")}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Merchants
@@ -159,7 +174,9 @@ function EditMerchantPage() {
 
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Edit Merchant</h1>
-        <p className="text-muted-foreground mt-1">Update merchant information and settings</p>
+        <p className="text-muted-foreground mt-1">
+          Update merchant information and settings
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -168,7 +185,9 @@ function EditMerchantPage() {
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Update the merchant's basic details</CardDescription>
+              <CardDescription>
+                Update the merchant's basic details
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -177,7 +196,9 @@ function EditMerchantPage() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     required
                   />
                 </div>
@@ -188,7 +209,12 @@ function EditMerchantPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </div>
@@ -198,7 +224,12 @@ function EditMerchantPage() {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </div>
@@ -208,7 +239,9 @@ function EditMerchantPage() {
                   <Input
                     id="abn"
                     value={formData.abn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, abn: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, abn: e.target.value }))
+                    }
                     placeholder="Optional"
                   />
                 </div>
@@ -220,14 +253,18 @@ function EditMerchantPage() {
           <Card>
             <CardHeader>
               <CardTitle>Subscription</CardTitle>
-              <CardDescription>Manage the merchant's subscription package</CardDescription>
+              <CardDescription>
+                Manage the merchant's subscription package
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="package">Package</Label>
                 <Select
                   value={formData.packageId}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, packageId: value }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, packageId: value }))
+                  }
                 >
                   <SelectTrigger id="package">
                     <SelectValue placeholder="Select a package" />
@@ -248,12 +285,19 @@ function EditMerchantPage() {
                   <Input
                     id="subdomain"
                     value={formData.subdomain}
-                    onChange={(e) => setFormData(prev => ({ ...prev, subdomain: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        subdomain: e.target.value,
+                      }))
+                    }
                     placeholder="Enter subdomain"
                     pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"
                     title="Subdomain must be 3-63 characters, lowercase letters, numbers and hyphens only"
                   />
-                  <span className="text-sm text-muted-foreground">.heya-pos.com</span>
+                  <span className="text-sm text-muted-foreground">
+                    .heya-pos.com
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Used for booking URLs and public access.
@@ -266,34 +310,48 @@ function EditMerchantPage() {
                   {/* Current Status Display */}
                   <div className="flex items-center gap-2">
                     <Label>Current Status:</Label>
-                    <Badge variant={formData.subscriptionStatus === 'TRIAL' ? 'secondary' : 'default'}>
+                    <Badge
+                      variant={
+                        formData.subscriptionStatus === "TRIAL"
+                          ? "secondary"
+                          : "default"
+                      }
+                    >
                       {formData.subscriptionStatus}
                     </Badge>
-                    {formData.subscriptionStatus === 'TRIAL' && formData.trialEndsAt && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        Ends: {new Date(formData.trialEndsAt).toLocaleDateString()}
-                      </div>
-                    )}
+                    {formData.subscriptionStatus === "TRIAL" &&
+                      formData.trialEndsAt && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          Ends:{" "}
+                          {new Date(formData.trialEndsAt).toLocaleDateString()}
+                        </div>
+                      )}
                   </div>
 
                   {/* Skip Trial Button */}
                   <div className="space-y-2">
                     <Label>Remove Trial Period</Label>
                     <p className="text-sm text-muted-foreground mb-2">
-                      {formData.subscriptionStatus === 'TRIAL' 
-                        ? 'Click to give the merchant full access immediately'
-                        : 'Merchant already has full access'
-                      }
+                      {formData.subscriptionStatus === "TRIAL"
+                        ? "Click to give the merchant full access immediately"
+                        : "Merchant already has full access"}
                     </p>
-                    {formData.subscriptionStatus === 'TRIAL' ? (
+                    {formData.subscriptionStatus === "TRIAL" ? (
                       <Button
                         type="button"
                         variant={formData.skipTrial ? "default" : "outline"}
-                        onClick={() => setFormData(prev => ({ ...prev, skipTrial: !prev.skipTrial }))}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            skipTrial: !prev.skipTrial,
+                          }))
+                        }
                         className="w-full"
                       >
-                        {formData.skipTrial ? '✓ Trial Will Be Removed on Save' : 'Click to Remove Trial'}
+                        {formData.skipTrial
+                          ? "✓ Trial Will Be Removed on Save"
+                          : "Click to Remove Trial"}
                       </Button>
                     ) : (
                       <div className="p-3 bg-muted rounded text-center text-sm">
@@ -310,7 +368,9 @@ function EditMerchantPage() {
           <Card>
             <CardHeader>
               <CardTitle>Status</CardTitle>
-              <CardDescription>Control the merchant's access to the platform</CardDescription>
+              <CardDescription>
+                Control the merchant's access to the platform
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
@@ -323,7 +383,9 @@ function EditMerchantPage() {
                 <Switch
                   id="active"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, isActive: checked }))
+                  }
                 />
               </div>
             </CardContent>
@@ -339,19 +401,27 @@ function EditMerchantPage() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Locations</p>
-                  <p className="text-2xl font-bold">{merchant._count?.locations || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {merchant._count?.locations || 0}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Staff</p>
-                  <p className="text-2xl font-bold">{merchant._count?.staff || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {merchant._count?.staff || 0}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Services</p>
-                  <p className="text-2xl font-bold">{merchant._count?.services || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {merchant._count?.services || 0}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Customers</p>
-                  <p className="text-2xl font-bold">{merchant._count?.customers || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {merchant._count?.customers || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -362,7 +432,7 @@ function EditMerchantPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push('/merchants')}
+              onClick={() => router.push("/merchants")}
             >
               Cancel
             </Button>

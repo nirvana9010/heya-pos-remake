@@ -1,4 +1,4 @@
-import type { AustralianState } from '@heya-pos/types';
+import type { AustralianState } from "@heya-pos/types";
 
 export interface StateHolidayDefinition {
   state: AustralianState;
@@ -6,13 +6,28 @@ export interface StateHolidayDefinition {
   date: Date;
 }
 
-const STATES: AustralianState[] = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
+const STATES: AustralianState[] = [
+  "ACT",
+  "NSW",
+  "NT",
+  "QLD",
+  "SA",
+  "TAS",
+  "VIC",
+  "WA",
+];
 
 const toUtcDate = (year: number, month: number, day: number) =>
   new Date(Date.UTC(year, month - 1, day));
 
 const addUtcDays = (date: Date, amount: number) =>
-  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + amount));
+  new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate() + amount,
+    ),
+  );
 
 const getNthWeekdayOfMonth = (
   year: number,
@@ -26,7 +41,11 @@ const getNthWeekdayOfMonth = (
   return toUtcDate(year, month, day);
 };
 
-const getLastWeekdayOfMonth = (year: number, month: number, weekday: number) => {
+const getLastWeekdayOfMonth = (
+  year: number,
+  month: number,
+  weekday: number,
+) => {
   const lastDay = toUtcDate(year, month + 1, 0);
   const diff = (lastDay.getUTCDay() - weekday + 7) % 7;
   return addUtcDays(lastDay, -diff);
@@ -74,49 +93,52 @@ const getFridayBeforeAflGrandFinal = (year: number) =>
 const getMelbourneCupDay = (year: number) =>
   getNthWeekdayOfMonth(year, 11, 2, 1); // First Tuesday November
 
-const getChristmasHolidays = (year: number, state: AustralianState): StateHolidayDefinition[] => {
+const getChristmasHolidays = (
+  year: number,
+  state: AustralianState,
+): StateHolidayDefinition[] => {
   const holidays: StateHolidayDefinition[] = [];
   const christmas = toUtcDate(year, 12, 25);
   const boxing = toUtcDate(year, 12, 26);
   const christmasWeekday = christmas.getUTCDay();
   const boxingWeekday = boxing.getUTCDay();
 
-  holidays.push({ state, name: 'Christmas Day', date: christmas });
+  holidays.push({ state, name: "Christmas Day", date: christmas });
 
   if (christmasWeekday === 6) {
     holidays.push({
       state,
-      name: 'Christmas Day (observed)',
+      name: "Christmas Day (observed)",
       date: addUtcDays(christmas, 2),
     });
   } else if (christmasWeekday === 0) {
     holidays.push({
       state,
-      name: 'Christmas Day (observed)',
+      name: "Christmas Day (observed)",
       date: addUtcDays(christmas, 1),
     });
   }
 
-  if (state === 'SA') {
+  if (state === "SA") {
     holidays.push({
       state,
-      name: 'Proclamation Day public holiday / Boxing Day',
+      name: "Proclamation Day public holiday / Boxing Day",
       date: boxing,
     });
   } else {
-    holidays.push({ state, name: 'Boxing Day', date: boxing });
+    holidays.push({ state, name: "Boxing Day", date: boxing });
   }
 
   if (boxingWeekday === 6) {
     holidays.push({
       state,
-      name: 'Boxing Day (observed)',
+      name: "Boxing Day (observed)",
       date: addUtcDays(boxing, 2),
     });
   } else if (boxingWeekday === 0) {
     holidays.push({
       state,
-      name: 'Boxing Day (observed)',
+      name: "Boxing Day (observed)",
       date: addUtcDays(boxing, 2),
     });
   }
@@ -124,7 +146,10 @@ const getChristmasHolidays = (year: number, state: AustralianState): StateHolida
   return holidays;
 };
 
-const getNewYearHoliday = (year: number, state: AustralianState): StateHolidayDefinition[] => {
+const getNewYearHoliday = (
+  year: number,
+  state: AustralianState,
+): StateHolidayDefinition[] => {
   const date = toUtcDate(year, 1, 1);
   const weekday = date.getUTCDay();
   const holidays: StateHolidayDefinition[] = [
@@ -148,20 +173,23 @@ const getNewYearHoliday = (year: number, state: AustralianState): StateHolidayDe
   return holidays;
 };
 
-const getAustraliaDayHoliday = (year: number, state: AustralianState): StateHolidayDefinition[] => {
+const getAustraliaDayHoliday = (
+  year: number,
+  state: AustralianState,
+): StateHolidayDefinition[] => {
   const date = toUtcDate(year, 1, 26);
   const weekday = date.getUTCDay();
   if (weekday === 0 || weekday === 6) {
     return [
       {
         state,
-        name: 'Australia Day',
+        name: "Australia Day",
         date: addUtcDays(date, weekday === 6 ? 2 : 1),
       },
     ];
   }
 
-  return [{ state, name: 'Australia Day', date }];
+  return [{ state, name: "Australia Day", date }];
 };
 
 const baseStateFactory = (
@@ -176,16 +204,16 @@ const baseStateFactory = (
   const holidays: StateHolidayDefinition[] = [
     ...getNewYearHoliday(year, state),
     ...getAustraliaDayHoliday(year, state),
-    { state, name: 'Good Friday', date: goodFriday },
-    { state, name: 'Easter Monday', date: easterMonday },
-    { state, name: 'Anzac Day', date: toUtcDate(year, 4, 25) },
+    { state, name: "Good Friday", date: goodFriday },
+    { state, name: "Easter Monday", date: easterMonday },
+    { state, name: "Anzac Day", date: toUtcDate(year, 4, 25) },
     ...getChristmasHolidays(year, state),
     ...extras,
   ];
 
   const deduped = new Map<string, StateHolidayDefinition>();
   holidays.forEach((holiday) => {
-    const key = holiday.date.toISOString().split('T')[0];
+    const key = holiday.date.toISOString().split("T")[0];
     if (!deduped.has(key)) {
       deduped.set(key, holiday);
     }
@@ -196,102 +224,105 @@ const baseStateFactory = (
   );
 };
 
-const stateFactories: Record<AustralianState, (year: number) => StateHolidayDefinition[]> = {
+const stateFactories: Record<
+  AustralianState,
+  (year: number) => StateHolidayDefinition[]
+> = {
   ACT: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('ACT', year, [
+    return baseStateFactory("ACT", year, [
       {
-        state: 'ACT',
-        name: 'Canberra Day',
+        state: "ACT",
+        name: "Canberra Day",
         date: getNthWeekdayOfMonth(year, 3, 1, 2),
       },
       {
-        state: 'ACT',
-        name: 'Easter Saturday – the day after Good Friday',
+        state: "ACT",
+        name: "Easter Saturday – the day after Good Friday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'ACT',
-        name: 'Easter Sunday',
+        state: "ACT",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'ACT',
-        name: 'Reconciliation Day',
+        state: "ACT",
+        name: "Reconciliation Day",
         date: getFirstWeekdayOnOrAfter(year, 5, 27, 1),
       },
       {
-        state: 'ACT',
-        name: 'King’s Birthday',
+        state: "ACT",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'ACT',
-        name: 'Labour Day',
+        state: "ACT",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 10, 1, 1),
       },
     ]);
   },
   NSW: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('NSW', year, [
+    return baseStateFactory("NSW", year, [
       {
-        state: 'NSW',
-        name: 'Easter Saturday',
+        state: "NSW",
+        name: "Easter Saturday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'NSW',
-        name: 'Easter Sunday',
+        state: "NSW",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'NSW',
-        name: 'King’s Birthday',
+        state: "NSW",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'NSW',
-        name: 'Labour Day',
+        state: "NSW",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 10, 1, 1),
       },
     ]);
   },
   NT: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('NT', year, [
+    return baseStateFactory("NT", year, [
       {
-        state: 'NT',
-        name: 'Easter Saturday',
+        state: "NT",
+        name: "Easter Saturday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'NT',
-        name: 'Easter Sunday',
+        state: "NT",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'NT',
-        name: 'May Day',
+        state: "NT",
+        name: "May Day",
         date: getNthWeekdayOfMonth(year, 5, 1, 1),
       },
       {
-        state: 'NT',
-        name: 'King’s Birthday',
+        state: "NT",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'NT',
-        name: 'Picnic Day',
+        state: "NT",
+        name: "Picnic Day",
         date: getNthWeekdayOfMonth(year, 8, 1, 1),
       },
       {
-        state: 'NT',
-        name: 'Christmas Eve (part-day, 7 pm – midnight)',
+        state: "NT",
+        name: "Christmas Eve (part-day, 7 pm – midnight)",
         date: toUtcDate(year, 12, 24),
       },
       {
-        state: 'NT',
+        state: "NT",
         name: "New Year's Eve (part-day, 7 pm – midnight)",
         date: toUtcDate(year, 12, 31),
       },
@@ -299,74 +330,74 @@ const stateFactories: Record<AustralianState, (year: number) => StateHolidayDefi
   },
   QLD: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('QLD', year, [
+    return baseStateFactory("QLD", year, [
       {
-        state: 'QLD',
-        name: 'The day after Good Friday',
+        state: "QLD",
+        name: "The day after Good Friday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'QLD',
-        name: 'Easter Sunday',
+        state: "QLD",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'QLD',
-        name: 'Labour Day',
+        state: "QLD",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 5, 1, 1),
       },
       {
-        state: 'QLD',
-        name: 'Royal Queensland Show (Brisbane area only)',
+        state: "QLD",
+        name: "Royal Queensland Show (Brisbane area only)",
         date: getRoyalQueenslandShowDay(year),
       },
       {
-        state: 'QLD',
-        name: 'King’s Birthday',
+        state: "QLD",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 10, 1, 1),
       },
       {
-        state: 'QLD',
-        name: 'Christmas Eve (part-day, 6 pm – midnight)',
+        state: "QLD",
+        name: "Christmas Eve (part-day, 6 pm – midnight)",
         date: toUtcDate(year, 12, 24),
       },
     ]);
   },
   SA: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('SA', year, [
+    return baseStateFactory("SA", year, [
       {
-        state: 'SA',
-        name: 'Adelaide Cup Day',
+        state: "SA",
+        name: "Adelaide Cup Day",
         date: getNthWeekdayOfMonth(year, 3, 1, 2),
       },
       {
-        state: 'SA',
-        name: 'Easter Saturday',
+        state: "SA",
+        name: "Easter Saturday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'SA',
-        name: 'Easter Sunday',
+        state: "SA",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'SA',
-        name: 'King’s Birthday',
+        state: "SA",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'SA',
-        name: 'Labour Day',
+        state: "SA",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 10, 1, 1),
       },
       {
-        state: 'SA',
-        name: 'Christmas Eve (part-day, 7 pm – midnight)',
+        state: "SA",
+        name: "Christmas Eve (part-day, 7 pm – midnight)",
         date: toUtcDate(year, 12, 24),
       },
       {
-        state: 'SA',
+        state: "SA",
         name: "New Year's Eve (part-day, 7 pm – midnight)",
         date: toUtcDate(year, 12, 31),
       },
@@ -375,90 +406,90 @@ const stateFactories: Record<AustralianState, (year: number) => StateHolidayDefi
   TAS: (year) => {
     const easterSunday = getEasterSunday(year);
     const easterTuesday = addUtcDays(easterSunday, 2);
-    return baseStateFactory('TAS', year, [
+    return baseStateFactory("TAS", year, [
       {
-        state: 'TAS',
-        name: 'Royal Hobart Regatta (certain areas only)',
+        state: "TAS",
+        name: "Royal Hobart Regatta (certain areas only)",
         date: getNthWeekdayOfMonth(year, 2, 1, 2),
       },
       {
-        state: 'TAS',
-        name: 'Eight Hours Day',
+        state: "TAS",
+        name: "Eight Hours Day",
         date: getNthWeekdayOfMonth(year, 3, 1, 2),
       },
       {
-        state: 'TAS',
-        name: 'Easter Tuesday (generally Tasmanian Public Service only)',
+        state: "TAS",
+        name: "Easter Tuesday (generally Tasmanian Public Service only)",
         date: easterTuesday,
       },
       {
-        state: 'TAS',
-        name: 'King’s Birthday',
+        state: "TAS",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'TAS',
-        name: 'Recreation Day (certain areas only)',
+        state: "TAS",
+        name: "Recreation Day (certain areas only)",
         date: getNthWeekdayOfMonth(year, 11, 1, 1),
       },
     ]);
   },
   VIC: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('VIC', year, [
+    return baseStateFactory("VIC", year, [
       {
-        state: 'VIC',
-        name: 'Labour Day',
+        state: "VIC",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 3, 1, 2),
       },
       {
-        state: 'VIC',
-        name: 'Saturday before Easter Sunday',
+        state: "VIC",
+        name: "Saturday before Easter Sunday",
         date: addUtcDays(easterSunday, -1),
       },
       {
-        state: 'VIC',
-        name: 'Easter Sunday',
+        state: "VIC",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'VIC',
-        name: 'King’s Birthday',
+        state: "VIC",
+        name: "King’s Birthday",
         date: getNthWeekdayOfMonth(year, 6, 1, 2),
       },
       {
-        state: 'VIC',
-        name: 'Friday before the AFL Grand Final',
+        state: "VIC",
+        name: "Friday before the AFL Grand Final",
         date: getFridayBeforeAflGrandFinal(year),
       },
       {
-        state: 'VIC',
-        name: 'Melbourne Cup',
+        state: "VIC",
+        name: "Melbourne Cup",
         date: getMelbourneCupDay(year),
       },
     ]);
   },
   WA: (year) => {
     const easterSunday = getEasterSunday(year);
-    return baseStateFactory('WA', year, [
+    return baseStateFactory("WA", year, [
       {
-        state: 'WA',
-        name: 'Labour Day',
+        state: "WA",
+        name: "Labour Day",
         date: getNthWeekdayOfMonth(year, 3, 1, 1),
       },
       {
-        state: 'WA',
-        name: 'Easter Sunday',
+        state: "WA",
+        name: "Easter Sunday",
         date: easterSunday,
       },
       {
-        state: 'WA',
-        name: 'Western Australia Day',
+        state: "WA",
+        name: "Western Australia Day",
         date: getNthWeekdayOfMonth(year, 6, 1, 1),
       },
       {
-        state: 'WA',
-        name: 'King’s Birthday',
+        state: "WA",
+        name: "King’s Birthday",
         date: getLastWeekdayOfMonth(year, 9, 1),
       },
     ]);

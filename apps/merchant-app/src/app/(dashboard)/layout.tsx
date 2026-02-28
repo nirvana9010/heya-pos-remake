@@ -1,5 +1,5 @@
-import DashboardClient from './dashboard-client';
-import { getServerFeatures } from '@/lib/features/server-features';
+import DashboardClient from "./dashboard-client";
+import { getServerFeatures } from "@/lib/features/server-features";
 
 export default async function DashboardLayout({
   children,
@@ -8,10 +8,6 @@ export default async function DashboardLayout({
 }) {
   // Fetch features on the server
   const features = await getServerFeatures();
-  
-  return (
-    <DashboardClient features={features}>
-      {children}
-    </DashboardClient>
-  );
+
+  return <DashboardClient features={features}>{children}</DashboardClient>;
 }

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useMerchant } from '@/contexts/merchant-context';
+import { useMerchant } from "@/contexts/merchant-context";
 
 export function Footer() {
   const { merchant, loading } = useMerchant();
@@ -20,7 +20,10 @@ export function Footer() {
 
   // Parse address to separate lines if it contains commas or newlines
   const addressLines = merchant.address
-    ? merchant.address.split(/[,\n]/).map(line => line.trim()).filter(Boolean)
+    ? merchant.address
+        .split(/[,\n]/)
+        .map((line) => line.trim())
+        .filter(Boolean)
     : [];
 
   return (
@@ -30,27 +33,33 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold mb-4">{merchant.name}</h3>
             {merchant.description && (
-              <p className="text-gray-400">
-                {merchant.description}
-              </p>
+              <p className="text-gray-400">{merchant.description}</p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Services</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="/services" className="hover:text-white">View All Services</a></li>
-              <li><a href="/booking" className="hover:text-white">Book Now</a></li>
+              <li>
+                <a href="/services" className="hover:text-white">
+                  View All Services
+                </a>
+              </li>
+              <li>
+                <a href="/booking" className="hover:text-white">
+                  Book Now
+                </a>
+              </li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Hours</h4>
             <ul className="space-y-2 text-gray-400">
               <li>Check our booking calendar for availability</li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Contact</h4>
             <ul className="space-y-2 text-gray-400">
@@ -62,11 +71,14 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} {merchant.name}. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} {merchant.name}. All rights
+            reserved.
+          </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }

@@ -1,19 +1,17 @@
-"use client"
+"use client";
 
-import { Suspense, ReactNode } from 'react'
-import { Skeleton } from '@heya-pos/ui'
+import { Suspense, ReactNode } from "react";
+import { Skeleton } from "@heya-pos/ui";
 
 interface PageTransitionProps {
-  children: ReactNode
-  fallback?: ReactNode
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
 export function PageTransition({ children, fallback }: PageTransitionProps) {
   return (
-    <Suspense fallback={fallback || <PageSkeleton />}>
-      {children}
-    </Suspense>
-  )
+    <Suspense fallback={fallback || <PageSkeleton />}>{children}</Suspense>
+  );
 }
 
 export function PageSkeleton() {
@@ -26,14 +24,14 @@ export function PageSkeleton() {
           <Skeleton className="h-10 w-32" />
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
-      
+
       <Skeleton className="h-96 w-full" />
     </div>
-  )
+  );
 }

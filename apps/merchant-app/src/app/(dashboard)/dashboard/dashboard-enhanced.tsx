@@ -1,16 +1,27 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { StatCard } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Skeleton, CardSkeleton } from '@heya-pos/ui';
-import { LastUpdated, ConnectionStatus, FadeIn } from '@heya-pos/ui';
-import { Calendar, Users, DollarSign, Clock, Plus, TrendingUp, Sparkles, Zap, ArrowUp, ArrowDown } from 'lucide-react';
-import { type Booking, type DashboardStats } from '@heya-pos/shared';
-import { apiClient } from '@/lib/api-client';
-import { cn } from '@heya-pos/ui';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { StatCard } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Skeleton, CardSkeleton } from "@heya-pos/ui";
+import { LastUpdated, ConnectionStatus, FadeIn } from "@heya-pos/ui";
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Clock,
+  Plus,
+  TrendingUp,
+  Sparkles,
+  Zap,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import { type Booking, type DashboardStats } from "@heya-pos/shared";
+import { apiClient } from "@/lib/api-client";
+import { cn } from "@heya-pos/ui";
 
 export default function DashboardPageEnhanced() {
   const router = useRouter();
@@ -18,15 +29,17 @@ export default function DashboardPageEnhanced() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "polling" | "disconnected">("connected");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connected" | "polling" | "disconnected"
+  >("connected");
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Check authentication
-    const token = localStorage.getItem('access_token');
-    
+    const token = localStorage.getItem("access_token");
+
     if (!token) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
@@ -44,19 +57,19 @@ export default function DashboardPageEnhanced() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch dashboard stats and today's bookings in parallel
       const [dashboardStats, bookings] = await Promise.all([
         apiClient.getDashboardStats(),
-        apiClient.getBookings(new Date())
+        apiClient.getBookings(new Date()),
       ]);
-      
+
       setStats(dashboardStats);
       setTodayBookings(bookings);
       setLastUpdated(new Date());
       setConnectionStatus("connected");
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      console.error("Failed to load dashboard data:", error);
       setConnectionStatus("disconnected");
     } finally {
       setLoading(false);
@@ -67,18 +80,18 @@ export default function DashboardPageEnhanced() {
     try {
       setRefreshing(true);
       setConnectionStatus("polling");
-      
+
       const [dashboardStats, bookings] = await Promise.all([
         apiClient.getDashboardStats(),
-        apiClient.getBookings(new Date())
+        apiClient.getBookings(new Date()),
       ]);
-      
+
       setStats(dashboardStats);
       setTodayBookings(bookings);
       setLastUpdated(new Date());
       setConnectionStatus("connected");
     } catch (error) {
-      console.error('Failed to refresh dashboard data:', error);
+      console.error("Failed to refresh dashboard data:", error);
       setConnectionStatus("disconnected");
     } finally {
       setRefreshing(false);
@@ -86,10 +99,30 @@ export default function DashboardPageEnhanced() {
   };
 
   const quickActions = [
-    { label: 'New Booking', icon: Plus, action: () => router.push('/bookings/new'), color: 'bg-teal-600 hover:bg-teal-700' },
-    { label: 'View Calendar', icon: Calendar, action: () => router.push('/calendar'), color: 'bg-blue-600 hover:bg-blue-700' },
-    { label: 'Customers', icon: Users, action: () => router.push('/customers'), color: 'bg-green-600 hover:bg-green-700' },
-    { label: 'Reports', icon: DollarSign, action: () => router.push('/reports'), color: 'bg-amber-600 hover:bg-amber-700' }
+    {
+      label: "New Booking",
+      icon: Plus,
+      action: () => router.push("/bookings/new"),
+      color: "bg-teal-600 hover:bg-teal-700",
+    },
+    {
+      label: "View Calendar",
+      icon: Calendar,
+      action: () => router.push("/calendar"),
+      color: "bg-blue-600 hover:bg-blue-700",
+    },
+    {
+      label: "Customers",
+      icon: Users,
+      action: () => router.push("/customers"),
+      color: "bg-green-600 hover:bg-green-700",
+    },
+    {
+      label: "Reports",
+      icon: DollarSign,
+      action: () => router.push("/reports"),
+      color: "bg-amber-600 hover:bg-amber-700",
+    },
   ];
 
   if (loading) {
@@ -119,7 +152,10 @@ export default function DashboardPageEnhanced() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-24" />
@@ -152,9 +188,7 @@ export default function DashboardPageEnhanced() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back!
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back!</h1>
           <div className="flex items-center gap-4 mt-1">
             <p className="text-gray-600">
               Here's what's happening at your salon today
@@ -163,8 +197,8 @@ export default function DashboardPageEnhanced() {
             <LastUpdated timestamp={lastUpdated} />
           </div>
         </div>
-        <Button 
-          onClick={() => router.push('/bookings/new')}
+        <Button
+          onClick={() => router.push("/bookings/new")}
           className="bg-teal-600 hover:bg-teal-700"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -183,7 +217,7 @@ export default function DashboardPageEnhanced() {
             className={refreshing ? "opacity-70" : ""}
           />
         </FadeIn>
-        
+
         <FadeIn delay={100}>
           <StatCard
             title="Today's Revenue"
@@ -193,7 +227,7 @@ export default function DashboardPageEnhanced() {
             className={refreshing ? "opacity-70" : ""}
           />
         </FadeIn>
-        
+
         <FadeIn delay={200}>
           <StatCard
             title="New Customers"
@@ -203,7 +237,7 @@ export default function DashboardPageEnhanced() {
             className={refreshing ? "opacity-70" : ""}
           />
         </FadeIn>
-        
+
         <FadeIn delay={300}>
           <StatCard
             title="Avg Service Time"
@@ -221,7 +255,11 @@ export default function DashboardPageEnhanced() {
           <Card className={cn(refreshing && "opacity-70")}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Bookings</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/bookings')}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/bookings")}
+              >
                 View All
               </Button>
             </CardHeader>
@@ -231,23 +269,34 @@ export default function DashboardPageEnhanced() {
                   <FadeIn key={booking.id} delay={index * 50}>
                     <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                       <div>
-                        <p className="font-medium text-sm">{booking.customerName}</p>
+                        <p className="font-medium text-sm">
+                          {booking.customerName}
+                        </p>
                         <p className="text-xs text-gray-600">
-                          {booking.serviceName} • {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {booking.serviceName} •{" "}
+                          {new Date(booking.startTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
-                      <div className={cn(
-                        "px-2 py-1 rounded text-xs font-medium",
-                        booking.status === 'confirmed' && "bg-blue-100 text-blue-700",
-                        booking.status === 'in-progress' && "bg-yellow-100 text-yellow-700",
-                        booking.status === 'completed' && "bg-green-100 text-green-700"
-                      )}>
+                      <div
+                        className={cn(
+                          "px-2 py-1 rounded text-xs font-medium",
+                          booking.status === "confirmed" &&
+                            "bg-blue-100 text-blue-700",
+                          booking.status === "in-progress" &&
+                            "bg-yellow-100 text-yellow-700",
+                          booking.status === "completed" &&
+                            "bg-green-100 text-green-700",
+                        )}
+                      >
                         {booking.status}
                       </div>
                     </div>
                   </FadeIn>
                 ))}
-                
+
                 {todayBookings.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -273,7 +322,7 @@ export default function DashboardPageEnhanced() {
                       onClick={action.action}
                       className={cn(
                         "p-4 rounded-lg text-white transition-all hover:scale-105",
-                        action.color
+                        action.color,
                       )}
                     >
                       <action.icon className="w-6 h-6 mb-2" />
@@ -305,7 +354,10 @@ export default function DashboardPageEnhanced() {
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '85%' }} />
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{ width: "85%" }}
+                  />
                 </div>
               </div>
 
@@ -319,7 +371,10 @@ export default function DashboardPageEnhanced() {
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-amber-600 h-2 rounded-full" style={{ width: '72%' }} />
+                  <div
+                    className="bg-amber-600 h-2 rounded-full"
+                    style={{ width: "72%" }}
+                  />
                 </div>
               </div>
 
@@ -338,7 +393,7 @@ export default function DashboardPageEnhanced() {
                       key={star}
                       className={cn(
                         "w-6 h-6 rounded",
-                        star <= 4.8 ? "bg-yellow-400" : "bg-gray-200"
+                        star <= 4.8 ? "bg-yellow-400" : "bg-gray-200",
                       )}
                     />
                   ))}

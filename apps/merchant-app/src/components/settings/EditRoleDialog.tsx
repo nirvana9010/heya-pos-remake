@@ -20,7 +20,10 @@ import { apiClient } from "@/lib/api-client";
 import type { MerchantRole } from "@/lib/clients/merchant-users-client";
 
 // All available permissions grouped by category
-const PERMISSION_GROUPS: Record<string, { permission: string; label: string }[]> = {
+const PERMISSION_GROUPS: Record<
+  string,
+  { permission: string; label: string }[]
+> = {
   Bookings: [
     { permission: "booking.view", label: "View Bookings" },
     { permission: "booking.create", label: "Create Bookings" },
@@ -79,7 +82,9 @@ export function EditRoleDialog({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Reset form when role changes
   useEffect(() => {
@@ -95,8 +100,11 @@ export function EditRoleDialog({
   }, [role]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: { name?: string; description?: string; permissions?: string[] }) =>
-      apiClient.merchantUsers.updateRole(role!.id, data),
+    mutationFn: (data: {
+      name?: string;
+      description?: string;
+      permissions?: string[];
+    }) => apiClient.merchantUsers.updateRole(role!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchantRoles"] });
       toast({
@@ -126,8 +134,12 @@ export function EditRoleDialog({
   };
 
   const handleCategoryToggle = (category: string) => {
-    const categoryPermissions = PERMISSION_GROUPS[category].map((p) => p.permission);
-    const allSelected = categoryPermissions.every((p) => selectedPermissions.has(p));
+    const categoryPermissions = PERMISSION_GROUPS[category].map(
+      (p) => p.permission,
+    );
+    const allSelected = categoryPermissions.every((p) =>
+      selectedPermissions.has(p),
+    );
 
     const newPermissions = new Set(selectedPermissions);
     if (allSelected) {
@@ -139,12 +151,16 @@ export function EditRoleDialog({
   };
 
   const isCategoryFullySelected = (category: string) => {
-    return PERMISSION_GROUPS[category].every((p) => selectedPermissions.has(p.permission));
+    return PERMISSION_GROUPS[category].every((p) =>
+      selectedPermissions.has(p.permission),
+    );
   };
 
   const isCategoryPartiallySelected = (category: string) => {
     const perms = PERMISSION_GROUPS[category];
-    const selectedCount = perms.filter((p) => selectedPermissions.has(p.permission)).length;
+    const selectedCount = perms.filter((p) =>
+      selectedPermissions.has(p.permission),
+    ).length;
     return selectedCount > 0 && selectedCount < perms.length;
   };
 
@@ -220,49 +236,60 @@ export function EditRoleDialog({
             <div className="space-y-4">
               <Label>Permissions</Label>
               <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(PERMISSION_GROUPS).map(([category, permissions]) => (
-                  <div key={category} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={`category-${category}`}
-                        checked={isCategoryFullySelected(category)}
-                        ref={(el) => {
-                          if (el) {
-                            (el as HTMLButtonElement).dataset.state = isCategoryPartiallySelected(category)
-                              ? "indeterminate"
-                              : isCategoryFullySelected(category)
-                              ? "checked"
-                              : "unchecked";
-                          }
-                        }}
-                        onCheckedChange={() => handleCategoryToggle(category)}
-                      />
-                      <Label
-                        htmlFor={`category-${category}`}
-                        className="font-medium cursor-pointer"
-                      >
-                        {category}
-                      </Label>
-                    </div>
-                    <div className="ml-6 space-y-2">
-                      {permissions.map(({ permission, label }) => (
-                        <div key={permission} className="flex items-center gap-2">
-                          <Checkbox
-                            id={permission}
-                            checked={selectedPermissions.has(permission)}
-                            onCheckedChange={() => handlePermissionToggle(permission)}
-                          />
-                          <Label
-                            htmlFor={permission}
-                            className="text-sm font-normal cursor-pointer"
+                {Object.entries(PERMISSION_GROUPS).map(
+                  ([category, permissions]) => (
+                    <div
+                      key={category}
+                      className="border rounded-lg p-4 space-y-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`category-${category}`}
+                          checked={isCategoryFullySelected(category)}
+                          ref={(el) => {
+                            if (el) {
+                              (el as HTMLButtonElement).dataset.state =
+                                isCategoryPartiallySelected(category)
+                                  ? "indeterminate"
+                                  : isCategoryFullySelected(category)
+                                    ? "checked"
+                                    : "unchecked";
+                            }
+                          }}
+                          onCheckedChange={() => handleCategoryToggle(category)}
+                        />
+                        <Label
+                          htmlFor={`category-${category}`}
+                          className="font-medium cursor-pointer"
+                        >
+                          {category}
+                        </Label>
+                      </div>
+                      <div className="ml-6 space-y-2">
+                        {permissions.map(({ permission, label }) => (
+                          <div
+                            key={permission}
+                            className="flex items-center gap-2"
                           >
-                            {label}
-                          </Label>
-                        </div>
-                      ))}
+                            <Checkbox
+                              id={permission}
+                              checked={selectedPermissions.has(permission)}
+                              onCheckedChange={() =>
+                                handlePermissionToggle(permission)
+                              }
+                            />
+                            <Label
+                              htmlFor={permission}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
 

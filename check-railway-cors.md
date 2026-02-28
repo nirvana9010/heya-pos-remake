@@ -1,9 +1,11 @@
 # Railway CORS Configuration Checklist
 
 ## The Problem
+
 The API is not sending the `access-control-allow-origin` header for requests from `https://booking.heyapos.com`.
 
 ## Root Cause
+
 Based on the CORS test, the API is not recognizing `https://booking.heyapos.com` as an allowed origin, which means:
 
 1. The `FRONTEND_URLS` environment variable on Railway either:
@@ -26,7 +28,8 @@ In your Railway dashboard:
 https://heya-pos-merchant.vercel.app,https://heya-pos-booking.vercel.app,https://heya-pos-admin.vercel.app,https://booking.heyapos.com,https://merchant.heyapos.com,https://admin.heyapos.com
 ```
 
-**Important**: 
+**Important**:
+
 - No spaces between URLs
 - Include `https://` protocol
 - No trailing slashes
@@ -35,6 +38,7 @@ https://heya-pos-merchant.vercel.app,https://heya-pos-booking.vercel.app,https:/
 ### 2. Check for Multiple Environment Variables
 
 Make sure you don't have both:
+
 - `FRONTEND_URL` (singular)
 - `FRONTEND_URLS` (plural)
 
@@ -54,9 +58,9 @@ After verifying/updating the environment variable:
 If you want to see what the API is actually receiving, you can temporarily add this to `apps/api/src/main.ts` after line 66:
 
 ```typescript
-console.log('CORS Debug - NODE_ENV:', process.env.NODE_ENV);
-console.log('CORS Debug - FRONTEND_URLS:', process.env.FRONTEND_URLS);
-console.log('CORS Debug - Parsed origins:', allowedOrigins);
+console.log("CORS Debug - NODE_ENV:", process.env.NODE_ENV);
+console.log("CORS Debug - FRONTEND_URLS:", process.env.FRONTEND_URLS);
+console.log("CORS Debug - Parsed origins:", allowedOrigins);
 ```
 
 Then check the Railway logs after deployment.
@@ -79,6 +83,7 @@ curl -X GET https://heya-pos-remake-production.up.railway.app/api/v1/public/merc
 ```
 
 You should see:
+
 ```
 < access-control-allow-origin: https://booking.heyapos.com
 ```

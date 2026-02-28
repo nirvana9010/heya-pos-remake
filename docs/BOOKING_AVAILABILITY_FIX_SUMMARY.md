@@ -5,6 +5,7 @@
 ### 1. Database Query Bug in BookingAvailabilityService
 
 **Problem**: The availability check was using incorrect date filtering:
+
 ```typescript
 // BEFORE (incorrect):
 endTime: {
@@ -13,6 +14,7 @@ endTime: {
 ```
 
 **Fix Applied**: Changed to proper overlap detection:
+
 ```typescript
 // AFTER (correct):
 startTime: {
@@ -28,12 +30,14 @@ endTime: {
 ### 2. Error Message Not Displayed to Customers
 
 **Problem**: The booking app was showing a generic error message instead of the actual API error:
+
 ```typescript
 // BEFORE:
 description: "Failed to create booking. Please try again.",
 ```
 
 **Fix Applied**: Changed to display the actual error message:
+
 ```typescript
 // AFTER:
 description: error.message || "Failed to create booking. Please try again.",
@@ -44,11 +48,13 @@ description: error.message || "Failed to create booking. Please try again.",
 ## Current Status
 
 ### Working ✅
+
 1. **Booking Creation**: Correctly detects and rejects conflicting bookings
 2. **Error Messages**: Actual error messages are now shown to customers
 3. **Conflict Detection**: The booking creation logic properly checks for overlapping time slots
 
 ### Still Has Issues ⚠️
+
 1. **Availability Display**: The availability check endpoint still shows booked slots as available
    - This appears to be a more complex issue possibly related to:
      - How the query results are processed
@@ -58,6 +64,7 @@ description: error.message || "Failed to create booking. Please try again.",
 ## Testing Results
 
 When testing the fixes:
+
 - ✅ Conflicting bookings are correctly rejected with the message "This time slot is no longer available"
 - ✅ The error message is properly displayed in the UI
 - ⚠️ The availability check still shows booked slots as available (but at least bookings are rejected)
@@ -65,10 +72,11 @@ When testing the fixes:
 ## Recommendations
 
 1. **Immediate**: The current fixes improve the user experience by:
+
    - Preventing double bookings (even if slots appear available)
    - Showing clear error messages when conflicts occur
 
-2. **Follow-up Investigation Needed**: 
+2. **Follow-up Investigation Needed**:
    - The availability check logic needs deeper investigation
    - Consider adding integration tests for the availability service
    - May need to review timezone handling throughout the booking flow
@@ -76,6 +84,7 @@ When testing the fixes:
 ## How to Test
 
 1. Run the test script:
+
    ```bash
    node scripts/test-booking-fixes.js
    ```

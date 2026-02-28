@@ -1,4 +1,4 @@
-import apiClient from './api-client';
+import apiClient from "./api-client";
 
 export interface Package {
   id: string;
@@ -33,7 +33,7 @@ export interface Merchant {
   subdomain: string;
   abn?: string;
   isActive: boolean;
-  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   subscriptionStatus?: string;
   trialEndsAt?: string | null;
   createdAt: string;
@@ -84,7 +84,10 @@ class AdminApi {
 
   // Admin authentication
   async login(credentials: AdminLoginData): Promise<AdminAuthResponse> {
-    const response = await apiClient.post<AdminAuthResponse>('/v1/admin/login', credentials);
+    const response = await apiClient.post<AdminAuthResponse>(
+      "/v1/admin/login",
+      credentials,
+    );
     if (response.token) {
       apiClient.setAuthToken(response.token);
     }
@@ -97,7 +100,7 @@ class AdminApi {
 
   // Merchant management
   async getMerchants(): Promise<Merchant[]> {
-    const response = await apiClient.get<Merchant[]>('/v1/admin/merchants');
+    const response = await apiClient.get<Merchant[]>("/v1/admin/merchants");
     return response;
   }
 
@@ -107,17 +110,26 @@ class AdminApi {
   }
 
   async createMerchant(data: CreateMerchantData): Promise<Merchant> {
-    const response = await apiClient.post<Merchant>('/v1/admin/merchants', data);
+    const response = await apiClient.post<Merchant>(
+      "/v1/admin/merchants",
+      data,
+    );
     return response;
   }
 
-  async updateMerchant(id: string, data: Partial<CreateMerchantData> & {
-    isActive?: boolean;
-    subscriptionStatus?: string;
-    trialEndsAt?: Date | null;
-    skipTrial?: boolean;
-  }): Promise<Merchant> {
-    const response = await apiClient.patch<Merchant>(`/v1/admin/merchants/${id}`, data);
+  async updateMerchant(
+    id: string,
+    data: Partial<CreateMerchantData> & {
+      isActive?: boolean;
+      subscriptionStatus?: string;
+      trialEndsAt?: Date | null;
+      skipTrial?: boolean;
+    },
+  ): Promise<Merchant> {
+    const response = await apiClient.patch<Merchant>(
+      `/v1/admin/merchants/${id}`,
+      data,
+    );
     return response;
   }
 
@@ -126,8 +138,13 @@ class AdminApi {
   }
 
   // Check subdomain availability
-  async checkSubdomainAvailability(subdomain: string): Promise<{ available: boolean }> {
-    const response = await apiClient.get<{ available: boolean }>('/v1/admin/check-subdomain', { subdomain });
+  async checkSubdomainAvailability(
+    subdomain: string,
+  ): Promise<{ available: boolean }> {
+    const response = await apiClient.get<{ available: boolean }>(
+      "/v1/admin/check-subdomain",
+      { subdomain },
+    );
     return response;
   }
 
@@ -135,7 +152,7 @@ class AdminApi {
 
   // Get available packages
   async getPackages(): Promise<Package[]> {
-    const response = await apiClient.get<Package[]>('/v1/admin/packages');
+    const response = await apiClient.get<Package[]>("/v1/admin/packages");
     return response;
   }
 }

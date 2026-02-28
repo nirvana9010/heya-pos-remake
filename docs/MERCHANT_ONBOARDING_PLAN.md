@@ -1,13 +1,16 @@
 # Merchant Onboarding Implementation Plan
 
 ## Overview
+
 This document outlines the step-by-step plan to implement:
+
 1. Admin portal merchant creation functionality
 2. Competitor data import system for customers and services
 
 ## Task 1: Admin Portal Merchant Creation
 
 ### Current State
+
 - ✅ UI exists with merchant listing and add form
 - ✅ API endpoints exist with full creation logic
 - ❌ UI and API are not connected
@@ -16,7 +19,9 @@ This document outlines the step-by-step plan to implement:
 ### Implementation Steps
 
 #### Phase 1: API Client Setup (2-3 hours)
+
 1. **Create API client for admin dashboard**
+
    ```typescript
    // apps/admin-dashboard/src/lib/api-client.ts
    - Copy pattern from booking-app
@@ -25,6 +30,7 @@ This document outlines the step-by-step plan to implement:
    ```
 
 2. **Add authentication context**
+
    ```typescript
    // apps/admin-dashboard/src/contexts/auth-context.tsx
    - Store admin token
@@ -38,7 +44,9 @@ This document outlines the step-by-step plan to implement:
    ```
 
 #### Phase 2: Update Merchant Creation Form (3-4 hours)
+
 1. **Fix form fields to match API requirements**
+
    - Change `merchantCode` to `subdomain`
    - Add `username` field (required)
    - Add `password` field with generator
@@ -47,6 +55,7 @@ This document outlines the step-by-step plan to implement:
    - Show default settings (timezone, currency)
 
 2. **Add form validation**
+
    - Subdomain: lowercase, alphanumeric with hyphens
    - Username: uppercase, alphanumeric
    - Password: minimum 8 characters
@@ -58,20 +67,23 @@ This document outlines the step-by-step plan to implement:
    - Check username availability via API
 
 #### Phase 3: Connect UI to API (2-3 hours)
+
 1. **Replace mock API calls**
+
    ```typescript
    // Before (mock):
    const merchants = await mockApi.getMerchants();
-   
+
    // After (real):
-   const merchants = await apiClient.get('/admin/merchants');
+   const merchants = await apiClient.get("/admin/merchants");
    ```
 
 2. **Implement merchant creation**
+
    ```typescript
    const createMerchant = async (data) => {
      try {
-       const response = await apiClient.post('/admin/merchants', {
+       const response = await apiClient.post("/admin/merchants", {
          name: data.name,
          email: data.email,
          phone: data.phone,
@@ -79,18 +91,18 @@ This document outlines the step-by-step plan to implement:
          username: data.username,
          password: data.password,
          packageId: data.packageId,
-         abn: data.abn
+         abn: data.abn,
        });
-       
+
        // Show success with credentials
        showSuccessDialog({
          merchantName: response.name,
          bookingUrl: `https://bookings.heya-pos.com/${response.subdomain}`,
          loginUrl: `https://merchant.heya-pos.com`,
          username: data.username,
-         password: data.password
+         password: data.password,
        });
-       
+
        // Refresh merchant list
        await fetchMerchants();
      } catch (error) {
@@ -105,7 +117,9 @@ This document outlines the step-by-step plan to implement:
    - Handle network failures gracefully
 
 #### Phase 4: Post-Creation Features (2-3 hours)
+
 1. **Success dialog improvements**
+
    - Show all merchant details
    - Copy buttons for URLs and credentials
    - Send welcome email option
@@ -118,7 +132,9 @@ This document outlines the step-by-step plan to implement:
    - Import data button → leads to import wizard
 
 #### Phase 5: Testing & Polish (2-3 hours)
+
 1. **End-to-end testing checklist**
+
    - [ ] Create merchant with all fields
    - [ ] Verify merchant appears in list
    - [ ] Login as new merchant works
@@ -127,6 +143,7 @@ This document outlines the step-by-step plan to implement:
    - [ ] Bookings can be created
 
 2. **Edge cases to test**
+
    - Duplicate subdomain
    - Duplicate username
    - Invalid email/phone
@@ -142,12 +159,15 @@ This document outlines the step-by-step plan to implement:
 ## Task 2: Competitor Data Import System
 
 ### Import Strategy
+
 Build a flexible import system that can handle various competitor formats
 
 ### Implementation Steps
 
 #### Phase 1: Import Infrastructure (3-4 hours)
+
 1. **Create import service**
+
    ```typescript
    // apps/api/src/imports/import.service.ts
    - Parse CSV/Excel files
@@ -158,6 +178,7 @@ Build a flexible import system that can handle various competitor formats
    ```
 
 2. **Import controller endpoints**
+
    ```typescript
    POST /api/v1/imports/validate - Validate import file
    POST /api/v1/imports/preview - Preview import results
@@ -182,28 +203,31 @@ Build a flexible import system that can handle various competitor formats
    ```
 
 #### Phase 2: Customer Import (4-5 hours)
+
 1. **Customer import formats**
+
    ```typescript
    // Support common fields from competitors:
    interface CustomerImportRow {
      // Required
-     firstName: string
-     lastName: string
-     email: string
-     phone: string
-     
+     firstName: string;
+     lastName: string;
+     email: string;
+     phone: string;
+
      // Optional
-     dateOfBirth?: string
-     address?: string
-     notes?: string
-     tags?: string[]
-     lastVisit?: string
-     totalSpent?: number
-     visitCount?: number
+     dateOfBirth?: string;
+     address?: string;
+     notes?: string;
+     tags?: string[];
+     lastVisit?: string;
+     totalSpent?: number;
+     visitCount?: number;
    }
    ```
 
 2. **Import processing logic**
+
    ```typescript
    async processCustomerImport(file, merchantId) {
      // 1. Parse file (CSV/Excel)
@@ -223,23 +247,26 @@ Build a flexible import system that can handle various competitor formats
    - Manual review
 
 #### Phase 3: Service Import (4-5 hours)
+
 1. **Service import formats**
+
    ```typescript
    interface ServiceImportRow {
      // Required
-     name: string
-     price: number
-     duration: number  // in minutes
-     
+     name: string;
+     price: number;
+     duration: number; // in minutes
+
      // Optional
-     category?: string
-     description?: string
-     isActive?: boolean
-     order?: number
+     category?: string;
+     description?: string;
+     isActive?: boolean;
+     order?: number;
    }
    ```
 
 2. **Category mapping**
+
    - Auto-create categories if not exist
    - Map competitor categories to ours
    - Default category for unmapped
@@ -250,25 +277,30 @@ Build a flexible import system that can handle various competitor formats
    - Validate reasonable ranges
 
 #### Phase 4: Import UI Wizard (4-5 hours)
+
 1. **Step 1: Upload file**
+
    - Drag & drop interface
    - Support CSV, Excel (.xlsx, .xls)
    - Show file preview
    - Auto-detect type (customers/services)
 
 2. **Step 2: Field mapping**
+
    - Show source columns
    - Map to target fields
    - Preview mapped data
    - Save mapping templates
 
 3. **Step 3: Review & options**
+
    - Show import summary
    - Duplicate handling options
    - Data validation warnings
    - Estimated import time
 
 4. **Step 4: Import progress**
+
    - Real-time progress bar
    - Streaming results
    - Error details
@@ -281,7 +313,9 @@ Build a flexible import system that can handle various competitor formats
    - Undo option (soft delete)
 
 #### Phase 5: Competitor-Specific Templates (3-4 hours)
+
 1. **Create import templates for major competitors**
+
    ```typescript
    const COMPETITOR_TEMPLATES = {
      'square': {
@@ -309,12 +343,15 @@ Build a flexible import system that can handle various competitor formats
 ### Testing Plan
 
 #### Merchant Creation Testing
+
 1. **Unit tests**
+
    - Form validation
    - API client methods
    - Error handling
 
 2. **Integration tests**
+
    - Full creation flow
    - Duplicate detection
    - Transaction rollback
@@ -323,13 +360,16 @@ Build a flexible import system that can handle various competitor formats
    - Create merchant → login → add service → create booking
 
 #### Import System Testing
+
 1. **Test data sets**
+
    - Small (10 records)
    - Medium (1,000 records)
    - Large (10,000+ records)
    - Edge cases (special characters, missing data)
 
 2. **Performance benchmarks**
+
    - Import speed targets
    - Memory usage limits
    - Database optimization
@@ -343,11 +383,13 @@ Build a flexible import system that can handle various competitor formats
 ### Security Considerations
 
 1. **Admin authentication**
+
    - Implement proper admin auth before production
    - Role-based permissions
    - Audit logging
 
 2. **Import security**
+
    - File size limits
    - Virus scanning
    - Input sanitization
@@ -361,6 +403,7 @@ Build a flexible import system that can handle various competitor formats
 ### Success Metrics
 
 1. **Merchant creation**
+
    - < 2 minutes to create new merchant
    - 100% success rate with valid data
    - Clear error messages for failures
@@ -373,11 +416,13 @@ Build a flexible import system that can handle various competitor formats
 ### Timeline Estimate
 
 **Task 1: Admin Portal Merchant Creation**
+
 - Total: 12-16 hours
 - Can be completed in 2-3 days
 
 **Task 2: Import System**
-- Total: 18-24 hours  
+
+- Total: 18-24 hours
 - Can be completed in 3-4 days
 
 **Total Project: 5-7 days**

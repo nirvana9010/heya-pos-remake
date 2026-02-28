@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import { Search } from 'lucide-react'
+import * as React from "react";
+import { Search } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -10,70 +10,70 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from './command'
-import { Button } from './button'
-import { cn } from '../lib/utils'
+} from "./command";
+import { Button } from "./button";
+import { cn } from "../lib/utils";
 
 export interface SearchResult {
-  id: string
-  title: string
-  subtitle?: string
-  category: string
-  icon?: React.ComponentType<{ className?: string }>
-  onSelect: () => void
+  id: string;
+  title: string;
+  subtitle?: string;
+  category: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onSelect: () => void;
 }
 
 export interface SearchCommandProps {
-  results: SearchResult[]
-  placeholder?: string
-  emptyText?: string
-  trigger?: React.ReactNode
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  results: SearchResult[];
+  placeholder?: string;
+  emptyText?: string;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SearchCommand({
   results,
-  placeholder = 'Search...',
-  emptyText = 'No results found.',
+  placeholder = "Search...",
+  emptyText = "No results found.",
   trigger,
   open: controlledOpen,
-  onOpenChange: controlledOnOpenChange
+  onOpenChange: controlledOnOpenChange,
 }: SearchCommandProps) {
-  const [internalOpen, setInternalOpen] = React.useState(false)
-  
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
-  const setOpen = controlledOnOpenChange || setInternalOpen
+  const [internalOpen, setInternalOpen] = React.useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen(!open)
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen(!open);
       }
-    }
+    };
 
-    document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
-  }, [setOpen])
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [setOpen]);
 
   const groupedResults = React.useMemo(() => {
-    const groups: Record<string, SearchResult[]> = {}
-    
-    results.forEach(result => {
+    const groups: Record<string, SearchResult[]> = {};
+
+    results.forEach((result) => {
       if (!groups[result.category]) {
-        groups[result.category] = []
+        groups[result.category] = [];
       }
-      groups[result.category].push(result)
-    })
-    
-    return groups
-  }, [results])
+      groups[result.category].push(result);
+    });
+
+    return groups;
+  }, [results]);
 
   const handleSelect = (result: SearchResult) => {
-    result.onSelect()
-    setOpen(false)
-  }
+    result.onSelect();
+    setOpen(false);
+  };
 
   return (
     <>
@@ -83,7 +83,7 @@ export function SearchCommand({
         <Button
           variant="outline"
           className={cn(
-            'relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64'
+            "relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
           )}
           onClick={() => setOpen(true)}
         >
@@ -103,11 +103,11 @@ export function SearchCommand({
               {index > 0 && <CommandSeparator />}
               <CommandGroup heading={category}>
                 {items.map((result) => {
-                  const Icon = result.icon
+                  const Icon = result.icon;
                   return (
                     <CommandItem
                       key={result.id}
-                      value={`${result.title} ${result.subtitle || ''}`}
+                      value={`${result.title} ${result.subtitle || ""}`}
                       onSelect={() => handleSelect(result)}
                     >
                       {Icon && <Icon className="mr-2 h-4 w-4" />}
@@ -120,7 +120,7 @@ export function SearchCommand({
                         )}
                       </div>
                     </CommandItem>
-                  )
+                  );
                 })}
               </CommandGroup>
             </React.Fragment>
@@ -128,22 +128,22 @@ export function SearchCommand({
         </CommandList>
       </CommandDialog>
     </>
-  )
+  );
 }
 
 export function QuickSearch({
   value,
   onChange,
-  placeholder = 'Search...',
-  className
+  placeholder = "Search...",
+  className,
 }: {
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  className?: string
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn("relative", className)}>
       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
       <input
         type="text"
@@ -153,5 +153,5 @@ export function QuickSearch({
         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 pl-8 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       />
     </div>
-  )
+  );
 }

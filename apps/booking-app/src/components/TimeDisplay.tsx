@@ -1,11 +1,16 @@
-import React from 'react';
-import { useTimezone } from '@/contexts/timezone-context';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
+import React from "react";
+import { useTimezone } from "@/contexts/timezone-context";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
 
 interface TimeDisplayProps {
   date: Date | string;
-  format?: 'time' | 'date' | 'datetime';
+  format?: "time" | "date" | "datetime";
   showTimezone?: boolean;
   showUserTime?: boolean;
   className?: string;
@@ -13,19 +18,27 @@ interface TimeDisplayProps {
 
 export const TimeDisplay: React.FC<TimeDisplayProps> = ({
   date,
-  format = 'time',
+  format = "time",
   showTimezone = true,
   showUserTime = true,
-  className
+  className,
 }) => {
-  const { formatInMerchantTz, formatInUserTz, getCurrentTimezoneAbbr, merchantTimezone, userTimezone } = useTimezone();
+  const {
+    formatInMerchantTz,
+    formatInUserTz,
+    getCurrentTimezoneAbbr,
+    merchantTimezone,
+    userTimezone,
+  } = useTimezone();
 
   const merchantTime = formatInMerchantTz(date, format);
   const userTime = formatInUserTz(date, format);
   const merchantTzAbbr = getCurrentTimezoneAbbr(merchantTimezone);
   const userTzAbbr = getCurrentTimezoneAbbr(userTimezone);
 
-  const displayText = showTimezone ? `${merchantTime} ${merchantTzAbbr}` : merchantTime;
+  const displayText = showTimezone
+    ? `${merchantTime} ${merchantTzAbbr}`
+    : merchantTime;
   const isDifferentTimezone = merchantTimezone !== userTimezone;
 
   if (!showUserTime || !isDifferentTimezone) {
@@ -36,13 +49,21 @@ export const TimeDisplay: React.FC<TimeDisplayProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn('cursor-help border-b border-dotted border-muted-foreground/50', className)}>
+          <span
+            className={cn(
+              "cursor-help border-b border-dotted border-muted-foreground/50",
+              className,
+            )}
+          >
             {displayText}
           </span>
         </TooltipTrigger>
         <TooltipContent>
           <p className="text-sm">
-            Your local time: <span className="font-medium">{userTime} {userTzAbbr}</span>
+            Your local time:{" "}
+            <span className="font-medium">
+              {userTime} {userTzAbbr}
+            </span>
           </p>
         </TooltipContent>
       </Tooltip>
@@ -54,12 +75,19 @@ interface TimezoneIndicatorProps {
   className?: string;
 }
 
-export const TimezoneIndicator: React.FC<TimezoneIndicatorProps> = ({ className }) => {
+export const TimezoneIndicator: React.FC<TimezoneIndicatorProps> = ({
+  className,
+}) => {
   const { merchantTimezone, getCurrentTimezoneAbbr } = useTimezone();
   const tzAbbr = getCurrentTimezoneAbbr(merchantTimezone);
 
   return (
-    <div className={cn('text-xs text-muted-foreground bg-gray-50 px-2 py-1 rounded', className)}>
+    <div
+      className={cn(
+        "text-xs text-muted-foreground bg-gray-50 px-2 py-1 rounded",
+        className,
+      )}
+    >
       All times shown in {tzAbbr}
     </div>
   );

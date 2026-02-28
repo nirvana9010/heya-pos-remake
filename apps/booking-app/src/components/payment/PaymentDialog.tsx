@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Dialog,
@@ -6,8 +6,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@heya-pos/ui';
-import { MockPaymentForm } from './MockPaymentForm';
+} from "@heya-pos/ui";
+import { MockPaymentForm } from "./MockPaymentForm";
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export function PaymentDialog({
   isOpen,
   onClose,
   amount,
-  currency = 'AUD',
+  currency = "AUD",
   onPaymentSuccess,
 }: PaymentDialogProps) {
   const handleSuccess = () => {

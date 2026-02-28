@@ -3,11 +3,13 @@
 ## On Every New Session
 
 1. **FIRST COMMAND TO RUN**:
+
    ```bash
    cd /path/to/heya-pos && ./check-docs.sh
    ```
 
 2. **MUST READ**:
+
    ```bash
    cat docs/AI_SESSION_MEMORY.md
    ```
@@ -20,16 +22,19 @@
 ## During the Session
 
 ### When Encountering Errors
+
 1. Check if it's a known issue in AI_SESSION_MEMORY.md
 2. Don't repeat previous mistakes
 3. Update the memory if you find new solutions
 
 ### When Making Changes
+
 1. Authentication: Check guard order rules
-2. Controllers: Check path prefix rules  
+2. Controllers: Check path prefix rules
 3. Process management: Use specific commands
 
 ### Before Ending Session
+
 1. Update AI_SESSION_MEMORY.md with new learnings
 2. Create session log if significant work done
 3. Update status dashboard

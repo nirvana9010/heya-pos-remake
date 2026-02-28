@@ -1,10 +1,21 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '@/lib/auth/auth-provider';
-import { apiClient } from '@/lib/api-client';
-import { useIdleDetection } from '@/hooks/use-idle-detection';
-import { LockScreenOverlay, type LockState } from '@/components/lock-screen/LockScreenOverlay';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
+import { useAuth } from "@/lib/auth/auth-provider";
+import { apiClient } from "@/lib/api-client";
+import { useIdleDetection } from "@/hooks/use-idle-detection";
+import {
+  LockScreenOverlay,
+  type LockState,
+} from "@/components/lock-screen/LockScreenOverlay";
 
 interface ActiveStaff {
   id: string;
@@ -31,29 +42,35 @@ interface StaffSessionContextValue {
   showPostTransactionPrompt: () => void;
 }
 
-const StaffSessionContext = createContext<StaffSessionContextValue | null>(null);
+const StaffSessionContext = createContext<StaffSessionContextValue | null>(
+  null,
+);
 
 const SESSION_KEYS = {
-  ACTIVE_STAFF_ID: 'active_staff_id',
-  ACTIVE_STAFF_SESSION: 'active_staff_session',
+  ACTIVE_STAFF_ID: "active_staff_id",
+  ACTIVE_STAFF_SESSION: "active_staff_session",
 } as const;
 
-export function StaffSessionProvider({ children }: { children: React.ReactNode }) {
+export function StaffSessionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { merchant, user } = useAuth();
-  const [lockState, setLockState] = useState<LockState>('LOCKED');
+  const [lockState, setLockState] = useState<LockState>("LOCKED");
   const [activeStaff, setActiveStaff] = useState<ActiveStaff | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [featureEnabled, setFeatureEnabled] = useState(false);
   const [featureChecked, setFeatureChecked] = useState(false);
-  const lockStateRef = useRef<LockState>('LOCKED');
+  const lockStateRef = useRef<LockState>("LOCKED");
 
   // Keep ref in sync for callbacks that shouldn't re-render
   lockStateRef.current = lockState;
 
   // Determine if feature should be active
-  const isOwner = user?.type === 'merchant' || user?.permissions?.includes('*');
-  const isMerchantUser = user?.type === 'merchant_user';
+  const isOwner = user?.type === "merchant" || user?.permissions?.includes("*");
+  const isMerchantUser = user?.type === "merchant_user";
   const settingEnabled = merchant?.settings?.staffPinLockEnabled === true;
 
   // Check feature eligibility on mount
@@ -66,22 +83,27 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
 
     // Feature toggle is on and user is merchant_user — check if staff have PINs
     let cancelled = false;
-    apiClient.auth.getStaffPinStatus().then((status) => {
-      if (cancelled) return;
-      if (status.hasPins) {
-        setFeatureEnabled(true);
-      } else {
-        setFeatureEnabled(false);
-      }
-      setFeatureChecked(true);
-    }).catch(() => {
-      if (!cancelled) {
-        setFeatureEnabled(false);
+    apiClient.auth
+      .getStaffPinStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (status.hasPins) {
+          setFeatureEnabled(true);
+        } else {
+          setFeatureEnabled(false);
+        }
         setFeatureChecked(true);
-      }
-    });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFeatureEnabled(false);
+          setFeatureChecked(true);
+        }
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [settingEnabled, isMerchantUser, isOwner]);
 
   // Restore session from sessionStorage
@@ -89,11 +111,13 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
     if (!featureEnabled) return;
 
     try {
-      const savedSession = sessionStorage.getItem(SESSION_KEYS.ACTIVE_STAFF_SESSION);
+      const savedSession = sessionStorage.getItem(
+        SESSION_KEYS.ACTIVE_STAFF_SESSION,
+      );
       if (savedSession) {
         const staff = JSON.parse(savedSession) as ActiveStaff;
         setActiveStaff(staff);
-        setLockState('ACTIVE');
+        setLockState("ACTIVE");
       }
     } catch {
       // Corrupted session data, stay locked
@@ -102,14 +126,17 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
 
   // Idle detection callbacks
   const handleWarning = useCallback(() => {
-    if (lockStateRef.current === 'ACTIVE') {
-      setLockState('WARNING');
+    if (lockStateRef.current === "ACTIVE") {
+      setLockState("WARNING");
     }
   }, []);
 
   const handleLock = useCallback(() => {
-    if (lockStateRef.current === 'ACTIVE' || lockStateRef.current === 'WARNING') {
-      setLockState('LOCKED');
+    if (
+      lockStateRef.current === "ACTIVE" ||
+      lockStateRef.current === "WARNING"
+    ) {
+      setLockState("LOCKED");
       setActiveStaff(null);
       sessionStorage.removeItem(SESSION_KEYS.ACTIVE_STAFF_ID);
       sessionStorage.removeItem(SESSION_KEYS.ACTIVE_STAFF_SESSION);
@@ -121,7 +148,8 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
     lockAfter: 60,
     onWarning: handleWarning,
     onLock: handleLock,
-    enabled: featureEnabled && (lockState === 'ACTIVE' || lockState === 'WARNING'),
+    enabled:
+      featureEnabled && (lockState === "ACTIVE" || lockState === "WARNING"),
   });
 
   const unlockWithPin = useCallback(async (pin: string) => {
@@ -131,14 +159,17 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
       const result = await apiClient.auth.unlockByPin(pin);
       const staff = result.staff;
       setActiveStaff(staff);
-      setLockState('ACTIVE');
+      setLockState("ACTIVE");
       setPinError(null);
 
       // Persist to sessionStorage
       sessionStorage.setItem(SESSION_KEYS.ACTIVE_STAFF_ID, staff.id);
-      sessionStorage.setItem(SESSION_KEYS.ACTIVE_STAFF_SESSION, JSON.stringify(staff));
+      sessionStorage.setItem(
+        SESSION_KEYS.ACTIVE_STAFF_SESSION,
+        JSON.stringify(staff),
+      );
     } catch (err: any) {
-      const message = err?.message || err?.data?.message || 'Invalid PIN';
+      const message = err?.message || err?.data?.message || "Invalid PIN";
       setPinError(message);
       throw err; // Re-throw so PinPad can clear digits
     } finally {
@@ -147,7 +178,7 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const lock = useCallback(() => {
-    setLockState('LOCKED');
+    setLockState("LOCKED");
     setActiveStaff(null);
     setPinError(null);
     sessionStorage.removeItem(SESSION_KEYS.ACTIVE_STAFF_ID);
@@ -155,18 +186,18 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const continueWorking = useCallback(() => {
-    setLockState('ACTIVE');
+    setLockState("ACTIVE");
     resetTimer();
   }, [resetTimer]);
 
   const showPostTransactionPrompt = useCallback(() => {
-    if (featureEnabled && lockStateRef.current === 'ACTIVE') {
-      setLockState('POST_TRANSACTION');
+    if (featureEnabled && lockStateRef.current === "ACTIVE") {
+      setLockState("POST_TRANSACTION");
     }
   }, [featureEnabled]);
 
   const handleImHere = useCallback(() => {
-    setLockState('ACTIVE');
+    setLockState("ACTIVE");
     resetTimer();
   }, [resetTimer]);
 
@@ -175,13 +206,14 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
     if (!featureEnabled) return;
 
     const handlePaymentCompleted = () => {
-      if (lockStateRef.current === 'ACTIVE') {
-        setLockState('POST_TRANSACTION');
+      if (lockStateRef.current === "ACTIVE") {
+        setLockState("POST_TRANSACTION");
       }
     };
 
-    window.addEventListener('payment:completed', handlePaymentCompleted);
-    return () => window.removeEventListener('payment:completed', handlePaymentCompleted);
+    window.addEventListener("payment:completed", handlePaymentCompleted);
+    return () =>
+      window.removeEventListener("payment:completed", handlePaymentCompleted);
   }, [featureEnabled]);
 
   // Clean up on auth logout
@@ -191,8 +223,8 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
       sessionStorage.removeItem(SESSION_KEYS.ACTIVE_STAFF_SESSION);
     };
     // Listen for auth clear event from base client
-    window.addEventListener('auth:unauthorized', handleLogout);
-    return () => window.removeEventListener('auth:unauthorized', handleLogout);
+    window.addEventListener("auth:unauthorized", handleLogout);
+    return () => window.removeEventListener("auth:unauthorized", handleLogout);
   }, []);
 
   const staffName = activeStaff
@@ -201,25 +233,40 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
       : activeStaff.firstName
     : undefined;
 
-  const contextValue = useMemo<StaffSessionContextValue>(() => ({
-    activeStaff,
-    lockState,
-    isLockScreenEnabled: featureEnabled,
-    unlockWithPin,
-    lock,
-    continueWorking,
-    showPostTransactionPrompt,
-  }), [activeStaff, lockState, featureEnabled, unlockWithPin, lock, continueWorking, showPostTransactionPrompt]);
+  const contextValue = useMemo<StaffSessionContextValue>(
+    () => ({
+      activeStaff,
+      lockState,
+      isLockScreenEnabled: featureEnabled,
+      unlockWithPin,
+      lock,
+      continueWorking,
+      showPostTransactionPrompt,
+    }),
+    [
+      activeStaff,
+      lockState,
+      featureEnabled,
+      unlockWithPin,
+      lock,
+      continueWorking,
+      showPostTransactionPrompt,
+    ],
+  );
 
   // If feature isn't ready yet, just render children
   if (!featureChecked) {
-    return <StaffSessionContext.Provider value={contextValue}>{children}</StaffSessionContext.Provider>;
+    return (
+      <StaffSessionContext.Provider value={contextValue}>
+        {children}
+      </StaffSessionContext.Provider>
+    );
   }
 
   return (
     <StaffSessionContext.Provider value={contextValue}>
       {children}
-      {featureEnabled && lockState !== 'ACTIVE' && (
+      {featureEnabled && lockState !== "ACTIVE" && (
         <LockScreenOverlay
           lockState={lockState}
           activeStaffName={staffName}
@@ -239,7 +286,9 @@ export function StaffSessionProvider({ children }: { children: React.ReactNode }
 export function useStaffSession(): StaffSessionContextValue {
   const context = useContext(StaffSessionContext);
   if (!context) {
-    throw new Error('useStaffSession must be used within a StaffSessionProvider');
+    throw new Error(
+      "useStaffSession must be used within a StaffSessionProvider",
+    );
   }
   return context;
 }

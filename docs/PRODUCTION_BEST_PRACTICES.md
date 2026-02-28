@@ -3,6 +3,7 @@
 ## API Fallback Strategies
 
 ### ❌ What NOT to Do in Production:
+
 1. **Mock API as Fallback** - Never use mock data when real API fails
 2. **Silent Failures** - Always inform users when operations fail
 3. **Fake Success** - Never pretend operations succeeded when they didn't
@@ -11,6 +12,7 @@
 ### ✅ Proper Production Strategies:
 
 ## 1. Graceful Degradation
+
 ```typescript
 // Show clear error states
 if (apiError) {
@@ -22,6 +24,7 @@ if (apiError) {
 ```
 
 ## 2. Offline Support (where appropriate)
+
 ```typescript
 // Cache read-only data
 const services = await apiClient.getServices(); // Caches automatically
@@ -32,6 +35,7 @@ offlineQueue.add(() => apiClient.updateCustomerNotes(id, notes));
 ```
 
 ## 3. Circuit Breaker Pattern
+
 ```typescript
 class CircuitBreaker {
   private failures = 0;
@@ -41,9 +45,9 @@ class CircuitBreaker {
 
   async call(fn: () => Promise<any>) {
     if (this.isOpen()) {
-      throw new Error('Service temporarily unavailable');
+      throw new Error("Service temporarily unavailable");
     }
-    
+
     try {
       const result = await fn();
       this.onSuccess();
@@ -57,48 +61,52 @@ class CircuitBreaker {
 ```
 
 ## 4. Health Checks & Monitoring
+
 ```typescript
 // Regular health checks
 setInterval(async () => {
   try {
     await apiClient.healthCheck();
-    setApiStatus('healthy');
+    setApiStatus("healthy");
   } catch {
-    setApiStatus('unhealthy');
-    notifyOps('API health check failed');
+    setApiStatus("unhealthy");
+    notifyOps("API health check failed");
   }
 }, 30000);
 ```
 
 ## 5. Progressive Web App Features
+
 - Service Workers for offline caching
 - Background sync for deferred operations
 - Push notifications for status updates
 
 ## 6. Proper Error Handling
+
 ```typescript
 try {
   await apiClient.createBooking(data);
-  showSuccess('Booking created successfully');
+  showSuccess("Booking created successfully");
 } catch (error) {
   if (error.isNetworkError) {
-    showError('No internet connection. Please try again when online.');
+    showError("No internet connection. Please try again when online.");
   } else if (error.statusCode >= 500) {
-    showError('Server error. Our team has been notified.');
+    showError("Server error. Our team has been notified.");
     logToSentry(error);
   } else {
-    showError(error.message || 'Something went wrong');
+    showError(error.message || "Something went wrong");
   }
 }
 ```
 
 ## 7. Multi-Region Failover
+
 ```yaml
 # Production infrastructure
 regions:
   primary: us-east-1
   secondary: us-west-2
-  
+
 failover:
   automatic: true
   health_check_interval: 10s
@@ -108,16 +116,19 @@ failover:
 ## Development vs Production
 
 ### Development Environment:
+
 - Mock API for rapid development ✅
 - Offline-first development ✅
 - Fast feedback loops ✅
 
 ### Staging Environment:
+
 - Real API with test data ✅
 - Error simulation ✅
 - Performance testing ✅
 
 ### Production Environment:
+
 - Real API only ✅
 - Proper error handling ✅
 - Monitoring & alerting ✅
@@ -126,16 +137,19 @@ failover:
 ## Monitoring & Observability
 
 1. **Application Performance Monitoring (APM)**
+
    - Datadog, New Relic, or AppDynamics
    - Track API response times
    - Monitor error rates
 
 2. **Error Tracking**
+
    - Sentry or Rollbar
    - Capture and group errors
    - Alert on new issues
 
 3. **Uptime Monitoring**
+
    - Pingdom or UptimeRobot
    - Multi-region checks
    - Alert on downtime

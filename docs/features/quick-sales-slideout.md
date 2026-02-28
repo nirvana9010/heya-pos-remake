@@ -15,12 +15,15 @@
 ## 🎯 Business Context
 
 ### Why This Feature Exists
+
 The Quick Sales feature addresses the need for fast, walk-in customer transactions at beauty and wellness establishments. It eliminates the need to create bookings for immediate services, streamlining the checkout process for walk-in customers and quick service scenarios.
 
 ### User Story
+
 As a merchant staff member, I want to quickly create an order for walk-in customers so that I can process immediate service payments without creating a booking.
 
 ### Success Metrics
+
 - [x] Order creation time reduced from 4+ API calls to 1
 - [x] Payment modal loads instantly with cached data
 - [x] Support for both walk-in and registered customers
@@ -30,9 +33,11 @@ As a merchant staff member, I want to quickly create an order for walk-in custom
 ## 🏗️ Technical Implementation
 
 ### Architecture Decision
+
 Implemented a multi-layered slideout architecture with React Portals for payment processing. This approach prevents z-index conflicts, enables smooth animations, and provides instant UI feedback through localStorage caching and draft order pre-creation.
 
 ### Files Modified/Created
+
 ```
 CREATED:
 - /apps/merchant-app/src/components/QuickSaleSlideOut.tsx - Main slideout component with draft order management
@@ -48,15 +53,15 @@ MODIFIED:
   - Added: prepareOrderForPayment method for single-call order creation
   - Added: recalculateOrderTotalsInTransaction for transaction-safe calculations
   - Reason: Performance optimization to reduce multiple API calls to one atomic operation
-  
+
 - /apps/api/src/payments/orders.controller.ts
   - Added: POST /api/v1/payments/prepare-order endpoint
   - Reason: Unified endpoint for both new and existing order preparation
-  
+
 - /apps/merchant-app/src/lib/api-client/payments.client.ts
   - Added: prepareOrderForPayment method
   - Reason: Client-side API integration
-  
+
 - /apps/merchant-app/src/components/PaymentDialog.tsx
   - Added: Display logic for individual service adjustments
   - Changed: Shows both discounts and surcharges with clear visual indicators
@@ -64,6 +69,7 @@ MODIFIED:
 ```
 
 ### Database Changes
+
 ```sql
 -- No schema changes required
 -- Uses existing Order, OrderItem, and OrderModifier tables
@@ -71,6 +77,7 @@ MODIFIED:
 ```
 
 ### API Changes
+
 ```typescript
 // New unified order preparation endpoint
 POST /api/v1/payments/prepare-order
@@ -108,27 +115,28 @@ POST /api/v1/payments/prepare-order
 ```
 
 ### Key Components/Functions
+
 ```typescript
 QuickSaleSlideOut
   Location: /apps/merchant-app/src/components/QuickSaleSlideOut.tsx
   Purpose: Main slideout container managing service selection, customer assignment, and order creation
   Used by: Quick sale button on payments page, test page
-  
+
 ServiceSelectionSlideout
   Location: /apps/merchant-app/src/components/ServiceSelectionSlideout.tsx
   Purpose: Nested slideout for browsing and selecting services with staff assignment
   Used by: QuickSaleSlideOut component
-  
+
 CustomerSelectionSlideout
   Location: /apps/merchant-app/src/components/CustomerSelectionSlideout.tsx
   Purpose: Nested slideout for searching and selecting customers or walk-in option
   Used by: QuickSaleSlideOut component
-  
+
 PaymentDialogEnhanced
   Location: /apps/merchant-app/src/components/PaymentDialogEnhanced.tsx
   Purpose: Enhanced payment dialog that creates/updates orders in a single API call
   Used by: QuickSaleSlideOut via PaymentDialogPortal
-  
+
 prepareOrderForPayment (service method)
   Location: /apps/api/src/payments/orders.service.ts:568
   Purpose: Unified method to create or update orders with all items and modifiers atomically
@@ -138,18 +146,21 @@ prepareOrderForPayment (service method)
 ## 🔗 Integration Points
 
 ### Upstream Dependencies
+
 - [x] Service catalog - Must have active services defined
 - [x] Staff members - At least one active staff required for order creation
 - [x] Customer database - For customer selection (optional for walk-ins)
 - [x] Payment gateway configuration - Required for payment processing
 
 ### Downstream Impact
+
 - [x] Order Management - Creates orders in DRAFT state
 - [x] Payment Processing - Integrates with payment dialog
 - [x] Analytics/Reporting - Orders created are included in reports
 - [ ] Inventory - Not yet integrated for product sales
 
 ### Critical Paths
+
 1. Quick Sale from Payments Page → Service Selection → Customer Selection → Payment
 2. Walk-in Customer → Skip Customer Selection → Direct to Payment
 3. Price Adjustment Flow → Modify Individual Services → Apply Order Discount → Process Payment
@@ -157,11 +168,12 @@ prepareOrderForPayment (service method)
 ## 🧪 Testing
 
 ### Automated Tests
+
 ```bash
 # Unit tests
 npm run test -- QuickSaleSlideOut
 
-# Integration tests  
+# Integration tests
 npm run test -- prepare-order
 
 # E2E tests
@@ -169,6 +181,7 @@ npm run test -- prepare-order
 ```
 
 ### Manual Testing Checklist
+
 - [x] Open Quick Sale slideout from payments page
 - [x] Select multiple services with different quantities
 - [x] Assign different staff to each service
@@ -184,6 +197,7 @@ npm run test -- prepare-order
 ## ⚠️ Edge Cases & Gotchas
 
 ### Handled Edge Cases
+
 - ✅ Prisma Decimal conversion - Automatically converts Decimal objects to numbers
 - ✅ Invalid staff IDs - Filters out non-UUID staff IDs from mock data
 - ✅ Locked order errors - Tracks used draft orders and creates new ones
@@ -191,11 +205,13 @@ npm run test -- prepare-order
 - ✅ Missing staff - Automatically selects first active staff if none provided
 
 ### Known Limitations
+
 - ⚠️ Draft orders expire after 5 minutes - User must complete within timeout
 - ⚠️ No product support yet - Only services can be added to quick sales
 - ⚠️ Single location only - Uses user's primary location
 
 ### Performance Notes
+
 - Draft order pre-creation reduces payment initiation from ~2s to near-instant
 - localStorage caching enables optimistic UI rendering
 - Single API call for order preparation vs previous 4+ calls
@@ -206,20 +222,24 @@ npm run test -- prepare-order
 ### Common Issues
 
 **Issue**: "Cannot modify a locked order" error
+
 - Check: Is the draft order already used? Check `usedDraftOrderId` state
 - Check: Order state in database - must be DRAFT
 - Fix: Component tracks used orders and creates new draft if needed
 
 **Issue**: Payment modal shows loading indefinitely
+
 - Check: Browser console for API errors
 - Check: PM2 logs for prepare-order endpoint errors
 - Fix: Ensure all required fields are sent in prepare-order request
 
 **Issue**: Slideouts appear behind each other
+
 - Check: Z-index values in component classes
 - Fix: Nested slideouts must use z-[60], main slideout uses z-50
 
 ### Debug Commands
+
 ```bash
 # Check API logs for order creation
 pm2 logs api --nostream | grep "PrepareOrder"
@@ -232,6 +252,7 @@ localStorage.removeItem('quickSale')
 ```
 
 ### Key Log Entries
+
 ```
 [PrepareOrder] Completed in Xms - Performance timing
 [PaymentDialogEnhanced] Service X adjustment details - Price calculations
@@ -242,18 +263,21 @@ Full error object: Cannot modify a locked order - State conflict
 ## 🔄 Maintenance Notes
 
 ### Safe to Modify
+
 - ✅ UI styling and layout adjustments
 - ✅ Adding new service filters or search options
 - ✅ Timeout values for draft orders
 - ✅ localStorage cache duration
 
 ### Modify with Caution
+
 - ⚠️ Z-index values - Must maintain proper hierarchy
 - ⚠️ Price calculation logic - Affects order totals
 - ⚠️ Draft order state management - Can cause locked order errors
 - ⚠️ API endpoint changes - Used by multiple features
 
 ### Do NOT Modify Without Full Understanding
+
 - ❌ Transaction handling in prepareOrderForPayment - Can cause data inconsistency
 - ❌ Decimal to number conversions - Will cause Prisma errors
 - ❌ Portal rendering logic - Can break payment dialog
@@ -262,12 +286,14 @@ Full error object: Cannot modify a locked order - State conflict
 ## 📊 Monitoring
 
 ### Metrics to Track
+
 - Draft order creation time - Should be <500ms
 - Order preparation API response time - Target <1s
 - Draft order utilization rate - % that become completed orders
 - Payment modal load time - Should be instant with cache
 
 ### Alerts to Configure
+
 - Draft order creation failures >5% - Indicates staff configuration issues
 - Transaction timeouts >1% - Database performance degradation
 - Order preparation >2s response time - Performance regression
@@ -284,6 +310,7 @@ Full error object: Cannot modify a locked order - State conflict
 **Design Philosophy**: The Quick Sales feature prioritizes speed and user experience. Every decision, from draft order pre-creation to localStorage caching, aims to minimize perceived latency. The slideout architecture provides a focused workflow while maintaining access to the underlying UI.
 
 **Future Enhancements**:
+
 1. Product support for retail sales
 2. Multi-location order creation
 3. Batch service selection
@@ -291,6 +318,7 @@ Full error object: Cannot modify a locked order - State conflict
 5. Preset service packages
 
 **Performance Baseline** (as of implementation):
+
 - Order creation: 4 API calls → 1 API call
 - Payment modal load: ~2s → Instant (with cache)
 - Total transaction time: ~8s → ~3s

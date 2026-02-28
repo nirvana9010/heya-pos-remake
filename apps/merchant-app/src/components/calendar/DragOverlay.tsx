@@ -1,10 +1,10 @@
 "use client";
 
-import React from 'react';
-import { DragOverlay as DndDragOverlay } from '@dnd-kit/core';
-import { Clock, User, ArrowRight } from 'lucide-react';
-import { cn } from '@heya-pos/ui';
-import { displayFormats } from '@/lib/date-utils';
+import React from "react";
+import { DragOverlay as DndDragOverlay } from "@dnd-kit/core";
+import { Clock, User, ArrowRight } from "lucide-react";
+import { cn } from "@heya-pos/ui";
+import { displayFormats } from "@/lib/date-utils";
 
 interface CalendarDragOverlayProps {
   activeBooking: {
@@ -25,51 +25,60 @@ interface CalendarDragOverlayProps {
   } | null;
 }
 
-export function CalendarDragOverlay({ activeBooking, dragOverSlot }: CalendarDragOverlayProps) {
+export function CalendarDragOverlay({
+  activeBooking,
+  dragOverSlot,
+}: CalendarDragOverlayProps) {
   if (!activeBooking) return null;
 
   return (
     <DndDragOverlay>
-      <div className={cn(
-        "bg-white rounded-lg shadow-2xl p-3 cursor-grabbing",
-        "border-2 border-teal-500",
-        "min-w-[200px] max-w-[300px]",
-        "opacity-90"
-      )}>
+      <div
+        className={cn(
+          "bg-white rounded-lg shadow-2xl p-3 cursor-grabbing",
+          "border-2 border-teal-500",
+          "min-w-[200px] max-w-[300px]",
+          "opacity-90",
+        )}
+      >
         <div className="space-y-2">
           <div className="font-medium text-sm truncate">
             {activeBooking.customerName}
           </div>
-          
+
           <div className="text-xs text-gray-600 space-y-1">
             {activeBooking.services && activeBooking.services.length > 0 ? (
               <div className="truncate">
-                {activeBooking.services.map((s: any) => s.name).join(' + ')}
+                {activeBooking.services.map((s: any) => s.name).join(" + ")}
               </div>
             ) : (
               <div className="truncate">{activeBooking.serviceName}</div>
             )}
-            
+
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                <span>{(() => {
-                  try {
-                    // Construct Date from booking date and time strings
-                    const startTime = new Date(`${activeBooking.date}T${activeBooking.time}:00`);
-                    return displayFormats.time(startTime);
-                  } catch (error) {
-                    return activeBooking.time || 'N/A';
-                  }
-                })()}</span>
+                <span>
+                  {(() => {
+                    try {
+                      // Construct Date from booking date and time strings
+                      const startTime = new Date(
+                        `${activeBooking.date}T${activeBooking.time}:00`,
+                      );
+                      return displayFormats.time(startTime);
+                    } catch (error) {
+                      return activeBooking.time || "N/A";
+                    }
+                  })()}
+                </span>
               </div>
-              
+
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />
                 <span>{activeBooking.staffName}</span>
               </div>
             </div>
-            
+
             {/* Show destination time when hovering over a slot */}
             {dragOverSlot && (
               <div className="mt-2 pt-2 border-t border-gray-200">

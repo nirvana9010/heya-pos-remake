@@ -3,6 +3,7 @@
 ## ✅ What We've Implemented
 
 ### 1. Backend (API) Changes
+
 - **Updated all public endpoints** to accept merchant subdomain via:
   - Query parameter: `?subdomain=hamilton`
   - Header: `X-Merchant-Subdomain: hamilton`
@@ -14,6 +15,7 @@
   - `/api/v1/public/customers/lookup` - Customer lookup scoped to merchant
 
 ### 2. Frontend (Booking App) Changes
+
 - **Created middleware** to detect merchant from URL (path-based for dev)
 - **Created MerchantContext** to provide merchant data throughout the app
 - **Created MerchantGuard** component for loading/error states
@@ -21,17 +23,21 @@
 - **Updated components** to use dynamic merchant data instead of hardcoded values
 
 ### 3. Multi-Tenant URL Structure
+
 Currently configured for **path-based routing** (development mode):
+
 - Format: `http://localhost:3001/[merchant-subdomain]`
 - Example: `http://localhost:3001/hamilton`
 
 Can be switched to **subdomain-based routing** (production mode):
+
 - Format: `https://[merchant-subdomain].bookings.heya-pos.com`
 - Example: `https://hamilton.bookings.heya-pos.com`
 
 ## 🧪 Testing the Implementation
 
 ### 1. Test the API directly:
+
 ```bash
 # Get merchant info
 curl "http://localhost:3000/api/v1/public/merchant-info?subdomain=hamilton"
@@ -44,6 +50,7 @@ curl "http://localhost:3000/api/v1/public/staff?subdomain=hamilton"
 ```
 
 ### 2. Test the booking app:
+
 1. Start the booking app: `npm run dev:booking`
 2. Visit: `http://localhost:3001/hamilton`
 3. You should see "Hamilton Beauty Spa" instead of hardcoded text
@@ -53,12 +60,14 @@ curl "http://localhost:3000/api/v1/public/staff?subdomain=hamilton"
 ## 📋 Environment Configuration
 
 Add to `apps/booking-app/.env.local`:
+
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 NEXT_PUBLIC_MERCHANT_DETECTION_MODE=path
 ```
 
 Detection modes:
+
 - `subdomain` - For production with real domains
 - `path` - For development (current setting)
 - `query` - For quick testing only

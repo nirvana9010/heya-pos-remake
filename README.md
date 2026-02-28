@@ -5,6 +5,7 @@ A comprehensive point-of-sale system for managing bookings, customers, and payme
 ## Architecture
 
 The system consists of multiple applications:
+
 - **API** (Port 3000) - NestJS backend service
 - **Merchant App** (Port 3002) - Dashboard for merchants
 - **Booking App** (Port 3001) - Customer booking interface
@@ -30,7 +31,7 @@ pm2 start ecosystem.config.js
 
 ## Database Configuration
 
-This project uses Supabase PostgreSQL with connection pooling. 
+This project uses Supabase PostgreSQL with connection pooling.
 
 ### Important: Connection URLs
 
@@ -40,6 +41,7 @@ This project uses Supabase PostgreSQL with connection pooling.
 ⚠️ **Critical**: Always use the pooled connection (port 6543) with `?pgbouncer=true` for the DATABASE_URL to avoid connection issues.
 
 Example `.env` configuration:
+
 ```env
 # Direct connection for migrations
 DIRECT_URL="postgresql://user:pass@host:5432/postgres"
@@ -51,6 +53,7 @@ DATABASE_URL="postgresql://user:pass@host:6543/postgres?pgbouncer=true"
 ### Troubleshooting Database Connections
 
 If you encounter "Can't reach database server" errors:
+
 1. Verify DATABASE_URL uses port 6543 (not 5432)
 2. Ensure `?pgbouncer=true` is included
 3. Check that you haven't accidentally switched to the direct connection URL
@@ -88,6 +91,7 @@ pm2 restart [app-name] --update-env
 ### Code Quality
 
 Before committing code:
+
 ```bash
 npm run lint
 npm run typecheck
@@ -124,15 +128,18 @@ If Prisma reports drift, don’t reset the database. Instead reconcile the histo
 
 When a migration wipes a specific table (for example `StaffSchedule` or `ScheduleOverride`), follow this checklist to recover production data quickly without nuking the rest of the database.
 
-1. **Spin up a restore cluster from the relevant Fly MPG snapshot.**  
-   - `fly pg backup list --app <cluster-name>` to pick the right timestamp.  
+1. **Spin up a restore cluster from the relevant Fly MPG snapshot.**
+
+   - `fly pg backup list --app <cluster-name>` to pick the right timestamp.
    - `fly pg backup restore <new-temp-app> --app <cluster-name> --backup <backup-id>` (initiate in a separate shell).
 
-2. **Proxy into both clusters one at a time.**  
-   - Use the sandbox-approved script: `nohup fly mpg proxy --cluster <cluster-id> >/tmp/fly_proxy_<id>.log 2>&1 & echo $! > /tmp/fly_proxy_<id>.pid`  
+2. **Proxy into both clusters one at a time.**
+
+   - Use the sandbox-approved script: `nohup fly mpg proxy --cluster <cluster-id> >/tmp/fly_proxy_<id>.log 2>&1 & echo $! > /tmp/fly_proxy_<id>.pid`
    - Only run a single proxy per port; kill old ones first (`pkill -f "flyctl mpg proxy"`).
 
-3. **Dump only the affected tables from the restored cluster.**  
+3. **Dump only the affected tables from the restored cluster.**
+
    ```bash
    PGPASSWORD=<restored-password> \
      pg_dump -h 127.0.0.1 -p 16380 -U fly-user -d fly-db \
@@ -140,7 +147,8 @@ When a migration wipes a specific table (for example `StaffSchedule` or `Schedul
      --data-only --column-inserts > /tmp/roster_backup.sql
    ```
 
-4. **Wrap the dump in a safe transaction before replaying.**  
+4. **Wrap the dump in a safe transaction before replaying.**
+
    ```bash
    cat <<'SQL' >/tmp/roster_restore.sql
    BEGIN;
@@ -151,12 +159,14 @@ When a migration wipes a specific table (for example `StaffSchedule` or `Schedul
    echo 'COMMIT;' >> /tmp/roster_restore.sql
    ```
 
-5. **Load into production via the prod proxy.**  
+5. **Load into production via the prod proxy.**
+
    ```bash
    PGPASSWORD=<prod-password> \
      psql -h 127.0.0.1 -p 16380 -U fly-user -d fly-db \
      -f /tmp/roster_restore.sql
    ```
+
    Verify counts (`SELECT COUNT(*) FROM "StaffSchedule";`) match the restored cluster before tearing down proxies.
 
 6. **Extract CSVs for manual entry (optional fallback).**  
@@ -165,9 +175,9 @@ When a migration wipes a specific table (for example `StaffSchedule` or `Schedul
 7. **Patch the API if Prisma throws `P2021`.**  
    Guard `merchantHoliday.findMany` in `apps/api/src/staff/staff.service.ts` so missing holiday tables don’t break roster reads (`P2021` → log + skip).
 
-8. **Clean up.**  
-   - `kill $(cat /tmp/fly_proxy_<id>.pid)` for each proxy.  
-   - Delete `/tmp/roster_backup.sql`, `/tmp/roster_restore.sql`, and any derived CSVs.  
+8. **Clean up.**
+   - `kill $(cat /tmp/fly_proxy_<id>.pid)` for each proxy.
+   - Delete `/tmp/roster_backup.sql`, `/tmp/roster_restore.sql`, and any derived CSVs.
    - `git stash pop` if you parked local changes while restoring.
 
 Document every restore in `staff-roster-fix.md` (or a merchant-specific log) so we have traceability.

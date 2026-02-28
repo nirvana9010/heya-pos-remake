@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import * as dotenv from 'dotenv';
+import { PrismaClient } from "@prisma/client";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
@@ -10,32 +10,34 @@ async function checkStaff() {
     const merchants = await prisma.merchant.findMany({
       select: {
         id: true,
-        name: true
-      }
+        name: true,
+      },
     });
 
-    console.log('Found merchants:', merchants.length);
-    
+    console.log("Found merchants:", merchants.length);
+
     for (const merchant of merchants) {
       console.log(`\nMerchant: ${merchant.name} (${merchant.id})`);
-      
+
       const staff = await prisma.staff.findMany({
         where: {
-          merchantId: merchant.id
+          merchantId: merchant.id,
         },
         include: {
-          schedules: true
-        }
+          schedules: true,
+        },
       });
-      
+
       console.log(`  Staff members: ${staff.length}`);
-      
-      staff.forEach(s => {
-        console.log(`    - ${s.firstName} ${s.lastName || ''} (${s.status}) - ${s.schedules.length} schedules`);
+
+      staff.forEach((s) => {
+        console.log(
+          `    - ${s.firstName} ${s.lastName || ""} (${s.status}) - ${s.schedules.length} schedules`,
+        );
       });
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
   } finally {
     await prisma.$disconnect();
   }

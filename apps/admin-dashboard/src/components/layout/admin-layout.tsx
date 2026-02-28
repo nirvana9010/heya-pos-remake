@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { AdminSidebar } from './admin-sidebar'
-import { AdminTopbar } from './admin-topbar'
+import { AdminSidebar } from "./admin-sidebar";
+import { AdminTopbar } from "./admin-topbar";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,5 +14,5 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-  )
+  );
 }

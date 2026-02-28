@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Shield, Lock } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -15,23 +21,32 @@ import "@/lib/api-extensions/pin-api"; // Initialize PIN API extensions
 
 interface PinProtectedProps {
   children: React.ReactNode;
-  feature: "reports" | "refunds" | "cancellations" | "settings" | "void" | "discounts" | "staff";
+  feature:
+    | "reports"
+    | "refunds"
+    | "cancellations"
+    | "settings"
+    | "void"
+    | "discounts"
+    | "staff";
   title?: string;
   description?: string;
 }
 
-export function PinProtected({ 
-  children, 
-  feature, 
+export function PinProtected({
+  children,
+  feature,
   title = "PIN Required",
-  description = "Enter your PIN to access this feature"
+  description = "Enter your PIN to access this feature",
 }: PinProtectedProps) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [requiresPin, setRequiresPin] = useState(true);
-  const [needsSetup, setNeedsSetup] = useState<"no-owner" | "no-pin" | null>(null);
+  const [needsSetup, setNeedsSetup] = useState<"no-owner" | "no-pin" | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const { toast } = useToast();
 
@@ -53,23 +68,25 @@ export function PinProtected({
     try {
       // First check settings to see if PIN is required for this feature
       const settings = await apiClient.get("/merchant/settings");
-      
-      if (process.env.NODE_ENV === 'development') {
+
+      if (process.env.NODE_ENV === "development") {
         console.log(`[PinProtected] Settings loaded for ${feature}:`, {
           requirePinForReports: settings.requirePinForReports,
           requirePinForRefunds: settings.requirePinForRefunds,
-          requirePinForCancellations: settings.requirePinForCancellations
+          requirePinForCancellations: settings.requirePinForCancellations,
         });
       }
-      
+
       let featureRequiresPin = true;
-      
+
       switch (feature) {
         case "reports":
           // Default to false if undefined (PIN not required by default)
           featureRequiresPin = settings.requirePinForReports === true;
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[PinProtected] Reports PIN required: ${featureRequiresPin}`);
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              `[PinProtected] Reports PIN required: ${featureRequiresPin}`,
+            );
           }
           break;
         case "refunds":
@@ -97,13 +114,13 @@ export function PinProtected({
         default:
           featureRequiresPin = true;
       }
-      
+
       setRequiresPin(featureRequiresPin);
-      
+
       // Only check owner status if PIN is required for this feature
       if (featureRequiresPin) {
         const ownerStatus = await checkOwnerStatus();
-        
+
         if (ownerStatus.needsSetup) {
           setNeedsSetup(ownerStatus.setupType);
           setIsLoading(false);
@@ -118,27 +135,34 @@ export function PinProtected({
       setIsLoading(false);
     }
   };
-  
-  const checkOwnerStatus = async (): Promise<{ needsSetup: boolean; setupType?: "no-owner" | "no-pin" }> => {
+
+  const checkOwnerStatus = async (): Promise<{
+    needsSetup: boolean;
+    setupType?: "no-owner" | "no-pin";
+  }> => {
     try {
       // Check if owner exists
       const staff = await apiClient.getStaff();
       // Access level 3 = owner (based on Staff interface: 1=employee, 2=manager, 3=owner)
-      const owner = staff.find((s: any) => 
-        s.role === "OWNER" || 
-        s.accessLevel === 3 || 
-        s.permissions?.includes("*")
+      const owner = staff.find(
+        (s: any) =>
+          s.role === "OWNER" ||
+          s.accessLevel === 3 ||
+          s.permissions?.includes("*"),
       );
-      
+
       if (!owner) {
         return { needsSetup: true, setupType: "no-owner" };
       }
-      
+
       // Store owner info for later use
       if (owner) {
-        localStorage.setItem("owner_name", formatName(owner.firstName, owner.lastName));
+        localStorage.setItem(
+          "owner_name",
+          formatName(owner.firstName, owner.lastName),
+        );
       }
-      
+
       // Check if owner has PIN set
       try {
         const pinStatus = await (apiClient as any).getPinStatus();
@@ -147,9 +171,12 @@ export function PinProtected({
         }
       } catch (pinError) {
         // If PIN status check fails, assume PIN is set up
-        console.log("[PinProtected] Could not check PIN status, assuming PIN is set:", pinError);
+        console.log(
+          "[PinProtected] Could not check PIN status, assuming PIN is set:",
+          pinError,
+        );
       }
-      
+
       return { needsSetup: false };
     } catch (error) {
       // If we can't check owner status, assume it's set up
@@ -169,12 +196,16 @@ export function PinProtected({
 
     try {
       // Try to verify PIN with backend - this should check against owner PIN
-      const response = await (apiClient as any).verifyPin(pin, feature, "OWNER");
+      const response = await (apiClient as any).verifyPin(
+        pin,
+        feature,
+        "OWNER",
+      );
 
       if (response.valid) {
         setIsUnlocked(true);
         // No session storage - PIN required every time
-        
+
         toast({
           title: "Success",
           description: "PIN verified successfully",
@@ -183,8 +214,8 @@ export function PinProtected({
         throw new Error("Invalid PIN");
       }
     } catch (error: any) {
-      setAttempts(prev => prev + 1);
-      
+      setAttempts((prev) => prev + 1);
+
       if (attempts >= 2) {
         setError("Too many failed attempts. Please contact your manager.");
         toast({
@@ -195,7 +226,7 @@ export function PinProtected({
       } else {
         setError("Invalid PIN. Please try again.");
       }
-      
+
       setPin("");
     }
   };
@@ -265,22 +296,28 @@ export function PinProtected({
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={!pin || attempts >= 3}
             >
               Verify PIN
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              {feature === "reports" && "Enter the owner PIN to access financial reports"}
-              {feature === "refunds" && "Enter the owner PIN to process refunds"}
-              {feature === "cancellations" && "Enter the owner PIN for late cancellations"}
-              {feature === "settings" && "Enter the owner PIN to modify system settings"}
+              {feature === "reports" &&
+                "Enter the owner PIN to access financial reports"}
+              {feature === "refunds" &&
+                "Enter the owner PIN to process refunds"}
+              {feature === "cancellations" &&
+                "Enter the owner PIN for late cancellations"}
+              {feature === "settings" &&
+                "Enter the owner PIN to modify system settings"}
               {feature === "void" && "Enter the owner PIN to void transactions"}
-              {feature === "discounts" && "Enter the owner PIN to apply discount overrides"}
-              {feature === "staff" && "Enter the owner PIN to manage staff accounts"}
+              {feature === "discounts" &&
+                "Enter the owner PIN to apply discount overrides"}
+              {feature === "staff" &&
+                "Enter the owner PIN to manage staff accounts"}
             </div>
           </form>
         </CardContent>

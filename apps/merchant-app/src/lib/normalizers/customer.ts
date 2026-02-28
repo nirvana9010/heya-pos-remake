@@ -1,4 +1,4 @@
-import type { Customer as ApiCustomer } from '@/lib/clients/customers-client';
+import type { Customer as ApiCustomer } from "@/lib/clients/customers-client";
 
 export interface CustomerRecord {
   id: string;
@@ -29,20 +29,25 @@ export interface CustomerRecord {
   lastVisit?: string;
 }
 
-export const mapApiCustomerToRecord = (customer: ApiCustomer): CustomerRecord => {
-  const safeFirstName = customer.firstName ?? '';
-  const safeLastName = customer.lastName ?? '';
+export const mapApiCustomerToRecord = (
+  customer: ApiCustomer,
+): CustomerRecord => {
+  const safeFirstName = customer.firstName ?? "";
+  const safeLastName = customer.lastName ?? "";
 
   const tags = Array.isArray((customer as any).tags)
     ? ((customer as any).tags as string[])
     : [];
 
   const topServicesRaw = Array.isArray((customer as any).topServices)
-    ? ((customer as any).topServices as Array<{ name?: string; count?: number }>)
+    ? ((customer as any).topServices as Array<{
+        name?: string;
+        count?: number;
+      }>)
     : [];
 
-  const topServices = topServicesRaw.map(service => ({
-    name: service.name ?? 'Service',
+  const topServices = topServicesRaw.map((service) => ({
+    name: service.name ?? "Service",
     count: Number.isFinite(service.count) ? Number(service.count) : 0,
   }));
 
@@ -51,7 +56,7 @@ export const mapApiCustomerToRecord = (customer: ApiCustomer): CustomerRecord =>
 
   return {
     id: customer.id,
-    firstName: safeFirstName || 'Customer',
+    firstName: safeFirstName || "Customer",
     lastName: safeLastName,
     email: customer.email ?? undefined,
     phone: customer.phone ?? undefined,
@@ -64,7 +69,8 @@ export const mapApiCustomerToRecord = (customer: ApiCustomer): CustomerRecord =>
     postcode: (customer as any).postcode ?? undefined,
     marketingConsent,
     smsConsent,
-    preferredContactMethod: (customer as any).preferredContactMethod ?? undefined,
+    preferredContactMethod:
+      (customer as any).preferredContactMethod ?? undefined,
     totalSpent: customer.totalSpent ?? 0,
     totalVisits: customer.lifetimeVisits ?? customer.visitCount ?? 0,
     loyaltyPoints: customer.loyaltyPoints ?? 0,

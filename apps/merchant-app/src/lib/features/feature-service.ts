@@ -1,7 +1,7 @@
-import { apiClient } from '../api-client';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import React from 'react';
+import { apiClient } from "../api-client";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import React from "react";
 
 export interface FeatureModule {
   id: string;
@@ -54,7 +54,11 @@ export const useFeatureStore = create<FeatureStore>()(
         const now = Date.now();
 
         // Use cache if fresh
-        if (state.features && state.lastFetched && (now - state.lastFetched) < CACHE_DURATION) {
+        if (
+          state.features &&
+          state.lastFetched &&
+          now - state.lastFetched < CACHE_DURATION
+        ) {
           return;
         }
 
@@ -63,23 +67,23 @@ export const useFeatureStore = create<FeatureStore>()(
         try {
           const [features, modules] = await Promise.all([
             apiClient.features.getFeatures(),
-            apiClient.features.getFeatureModules()
+            apiClient.features.getFeatureModules(),
           ]);
 
-          console.log('[FeatureStore] Features API response:', features);
-          console.log('[FeatureStore] Modules API response:', modules);
+          console.log("[FeatureStore] Features API response:", features);
+          console.log("[FeatureStore] Modules API response:", modules);
 
           set({
             features,
             modules,
             loading: false,
-            lastFetched: now
+            lastFetched: now,
           });
         } catch (error: any) {
-          console.error('[FeatureStore] Error loading features:', error);
+          console.error("[FeatureStore] Error loading features:", error);
           set({
-            error: error.message || 'Failed to load features',
-            loading: false
+            error: error.message || "Failed to load features",
+            loading: false,
           });
         }
       },
@@ -87,9 +91,11 @@ export const useFeatureStore = create<FeatureStore>()(
       hasFeature: (featureId: string) => {
         const { features } = get();
         if (!features) return false;
-        
-        return features.enabled.includes(featureId) && 
-               !features.disabled.includes(featureId);
+
+        return (
+          features.enabled.includes(featureId) &&
+          !features.disabled.includes(featureId)
+        );
       },
 
       getFeatureSetting: (featureId: string, key: string) => {
@@ -114,15 +120,15 @@ export const useFeatureStore = create<FeatureStore>()(
         if (!features || !modules) return true; // Allow access if not loaded
 
         // Find modules that own this route
-        const routeModules = modules.filter(m => 
-          m.routes.some(r => route.startsWith(r))
+        const routeModules = modules.filter((m) =>
+          m.routes.some((r) => route.startsWith(r)),
         );
 
         // If no modules own this route, it's always accessible
         if (routeModules.length === 0) return true;
 
         // Check if any owning module is enabled
-        return routeModules.some(m => get().hasFeature(m.id));
+        return routeModules.some((m) => get().hasFeature(m.id));
       },
 
       reset: () => {
@@ -131,20 +137,20 @@ export const useFeatureStore = create<FeatureStore>()(
           modules: null,
           loading: false,
           error: null,
-          lastFetched: 0
+          lastFetched: 0,
         });
-      }
+      },
     }),
     {
-      name: 'merchant-features'
-    }
-  )
+      name: "merchant-features",
+    },
+  ),
 );
 
 // Hook to use features
 export function useFeatures() {
   const store = useFeatureStore();
-  
+
   // Load features on mount if needed
   React.useEffect(() => {
     if (!store.features && !store.loading) {
@@ -160,16 +166,16 @@ export const featureService = {
   hasFeature: (featureId: string) => {
     return useFeatureStore.getState().hasFeature(featureId);
   },
-  
+
   canAccessRoute: (route: string) => {
     return useFeatureStore.getState().canAccessRoute(route);
   },
-  
+
   getFeatureSetting: (featureId: string, key: string) => {
     return useFeatureStore.getState().getFeatureSetting(featureId, key);
   },
-  
+
   loadFeatures: () => {
     return useFeatureStore.getState().loadFeatures();
-  }
+  },
 };

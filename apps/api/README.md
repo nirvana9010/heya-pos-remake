@@ -20,6 +20,7 @@ POST /api/auth/merchant/login
 ```
 
 Returns:
+
 - JWT token
 - Refresh token
 - Merchant details
@@ -39,6 +40,7 @@ Authorization: Bearer <merchant_token>
 ```
 
 Returns:
+
 - Staff details
 - New JWT token with staff context
 - Permissions based on access level
@@ -58,6 +60,7 @@ Authorization: Bearer <staff_token>
 ```
 
 Or use header:
+
 ```bash
 X-Staff-Pin: 1234
 ```
@@ -79,11 +82,13 @@ X-Staff-Pin: 1234
 ## Guards & Decorators
 
 ### Guards
+
 - `@UseGuards(JwtAuthGuard)` - Require authentication
 - `@UseGuards(PermissionsGuard)` - Check permissions
 - `@UseGuards(PinRequiredGuard)` - Require PIN verification
 
 ### Decorators
+
 - `@RequirePermissions('booking.cancel')` - Specify required permissions
 - `@PinRequired('booking.cancel')` - Mark action as PIN-protected
 - `@CurrentUser()` - Get current user from request
@@ -91,14 +96,14 @@ X-Staff-Pin: 1234
 ## Example Usage
 
 ```typescript
-@Controller('bookings')
+@Controller("bookings")
 @UseGuards(JwtAuthGuard)
 export class BookingController {
-  @Post('cancel/:id')
-  @RequirePermissions('booking.cancel')
-  @PinRequired('booking.cancel')
+  @Post("cancel/:id")
+  @RequirePermissions("booking.cancel")
+  @PinRequired("booking.cancel")
   async cancelBooking(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() dto: CancelBookingDto,
     @CurrentUser() user: CurrentUser,
   ) {

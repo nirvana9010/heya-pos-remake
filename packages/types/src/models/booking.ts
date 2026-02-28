@@ -40,22 +40,22 @@ export interface BookingService {
 }
 
 export enum BookingStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  CHECKED_IN = 'CHECKED_IN',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  NO_SHOW = 'NO_SHOW'
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  CHECKED_IN = "CHECKED_IN",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
 export enum BookingSource {
-  ONLINE = 'ONLINE',
-  WALK_IN = 'WALK_IN',
-  PHONE = 'PHONE',
-  POS = 'POS',
-  ADMIN = 'ADMIN',
-  MANUAL = 'MANUAL'
+  ONLINE = "ONLINE",
+  WALK_IN = "WALK_IN",
+  PHONE = "PHONE",
+  POS = "POS",
+  ADMIN = "ADMIN",
+  MANUAL = "MANUAL",
 }
 
 // Keeping BookingItem for backward compatibility with utils
@@ -77,4 +77,4 @@ export interface BookingItem {
   updatedAt: Date;
 }
 
-import type { Customer, Staff, Service } from './';
+import type { Customer, Staff, Service } from "./";

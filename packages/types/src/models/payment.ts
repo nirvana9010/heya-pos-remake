@@ -1,6 +1,6 @@
 // Import PaymentMethod, PaymentStatus and RefundStatus from payments module
-import { PaymentMethod, PaymentStatus, RefundStatus } from '../payments';
-import type { Invoice } from './';
+import { PaymentMethod, PaymentStatus, RefundStatus } from "../payments";
+import type { Invoice } from "./";
 
 // Re-export for backwards compatibility
 export { PaymentMethod, PaymentStatus, RefundStatus };

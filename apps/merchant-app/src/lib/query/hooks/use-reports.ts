@@ -1,20 +1,33 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../../api-client';
-import type { ReportData, DashboardStats, ActivityLogParams, DailySummary } from '../../clients/reports-client';
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../api-client";
+import type {
+  ReportData,
+  DashboardStats,
+  ActivityLogParams,
+  DailySummary,
+} from "../../clients/reports-client";
 
 // Query keys for reports
 export const reportKeys = {
-  all: ['reports'] as const,
-  dailySummary: (date?: string) => [...reportKeys.all, 'daily-summary', { date }] as const,
-  overview: (locationId?: string) => [...reportKeys.all, 'overview', { locationId }] as const,
-  dashboard: () => [...reportKeys.all, 'dashboard'] as const,
-  revenue: (locationId?: string) => [...reportKeys.all, 'revenue', { locationId }] as const,
-  bookings: (locationId?: string) => [...reportKeys.all, 'bookings', { locationId }] as const,
-  customers: () => [...reportKeys.all, 'customers'] as const,
-  topServices: (limit?: number) => [...reportKeys.all, 'topServices', { limit }] as const,
-  staffPerformance: (limit?: number) => [...reportKeys.all, 'staffPerformance', { limit }] as const,
-  revenueTrend: (days?: number) => [...reportKeys.all, 'revenueTrend', { days }] as const,
-  activityLog: (params?: ActivityLogParams) => [...reportKeys.all, 'activityLog', params] as const,
+  all: ["reports"] as const,
+  dailySummary: (date?: string) =>
+    [...reportKeys.all, "daily-summary", { date }] as const,
+  overview: (locationId?: string) =>
+    [...reportKeys.all, "overview", { locationId }] as const,
+  dashboard: () => [...reportKeys.all, "dashboard"] as const,
+  revenue: (locationId?: string) =>
+    [...reportKeys.all, "revenue", { locationId }] as const,
+  bookings: (locationId?: string) =>
+    [...reportKeys.all, "bookings", { locationId }] as const,
+  customers: () => [...reportKeys.all, "customers"] as const,
+  topServices: (limit?: number) =>
+    [...reportKeys.all, "topServices", { limit }] as const,
+  staffPerformance: (limit?: number) =>
+    [...reportKeys.all, "staffPerformance", { limit }] as const,
+  revenueTrend: (days?: number) =>
+    [...reportKeys.all, "revenueTrend", { days }] as const,
+  activityLog: (params?: ActivityLogParams) =>
+    [...reportKeys.all, "activityLog", params] as const,
 };
 
 /**

@@ -10,6 +10,7 @@
 ## Recommended: Fly.io Migration
 
 ### Prerequisites
+
 ```bash
 # Install Fly CLI
 curl -L https://fly.io/install.sh | sh
@@ -57,7 +58,7 @@ primary_region = "syd"
 
 ```bash
 # Set your environment variables
-fly secrets set DATABASE_URL="postgresql://..." 
+fly secrets set DATABASE_URL="postgresql://..."
 fly secrets set REDIS_URL="..."
 fly secrets set JWT_SECRET="..."
 # ... add all your env vars
@@ -81,6 +82,7 @@ fly redis create --region syd --name heya-pos-redis
 ### Step 5: Update Your Frontend Apps
 
 Update API endpoints in your frontend apps to point to:
+
 ```
 https://heya-pos-api.fly.dev/api
 ```
@@ -107,19 +109,21 @@ https://heya-pos-api.fly.dev/api
 
 ## Expected Performance Improvements
 
-| Operation | Before (SE Asia → Sydney) | After (Sydney → Sydney) |
-|-----------|--------------------------|------------------------|
-| Simple Query | 700-1000ms | 10-50ms |
-| Payment Flow (15 queries) | 10-15 seconds | 0.5-1 second |
-| API Response Time | 1500-2000ms | 100-200ms |
+| Operation                 | Before (SE Asia → Sydney) | After (Sydney → Sydney) |
+| ------------------------- | ------------------------- | ----------------------- |
+| Simple Query              | 700-1000ms                | 10-50ms                 |
+| Payment Flow (15 queries) | 10-15 seconds             | 0.5-1 second            |
+| API Response Time         | 1500-2000ms               | 100-200ms               |
 
 ## Cost Comparison
 
 ### Railway (Current)
+
 - ~$20/month for API hosting
 - High data transfer costs (cross-region)
 
 ### Fly.io (Sydney)
+
 - ~$15-25/month for API hosting
 - Minimal data transfer costs (same region)
 - Free Redis instance included
@@ -127,6 +131,7 @@ https://heya-pos-api.fly.dev/api
 ## Rollback Plan
 
 If issues arise:
+
 1. Keep Railway running during migration
 2. Use DNS to switch between services
 3. Can instantly rollback by updating DNS
@@ -134,6 +139,7 @@ If issues arise:
 ## Additional Optimizations for Sydney
 
 Once in Sydney, you can:
+
 1. Remove aggressive connection pooling (not needed in same region)
 2. Simplify caching strategies
 3. Enable prepared statements again

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [user, isLoading, router]);
 

@@ -5,6 +5,7 @@
 Implementing real-time notifications using WebSocket with PostgreSQL LISTEN/NOTIFY is powerful but fraught with pitfalls. This document captures the hard-won lessons from days of debugging and trial-and-error to create a production-ready real-time system.
 
 ## Table of Contents
+
 1. [The Journey: What Went Wrong](#the-journey-what-went-wrong)
 2. [Architecture That Finally Worked](#architecture-that-finally-worked)
 3. [Critical Pitfalls and Gotchas](#critical-pitfalls-and-gotchas)
@@ -16,7 +17,9 @@ Implementing real-time notifications using WebSocket with PostgreSQL LISTEN/NOTI
 ## The Journey: What Went Wrong
 
 ### 1. WebSocket Adapter Not Initialized (Day 1)
+
 **Problem**: WebSocket connections weren't working despite correct Socket.IO setup.
+
 ```typescript
 // ❌ WRONG - Forgot to initialize adapter
 async function bootstrap() {
@@ -33,21 +36,25 @@ async function bootstrap() {
 ```
 
 ### 2. Token Available But Not Used (Day 1-2)
+
 **Problem**: Token existed in localStorage but WebSocket wasn't using it.
+
 ```typescript
 // ❌ WRONG - Relying on auth context that might not be ready
 const { user } = useAuth();
 if (!user) return; // Token exists but user not loaded yet
 
 // ✅ CORRECT - Get token directly from storage
-const token = localStorage.getItem('access_token');
+const token = localStorage.getItem("access_token");
 if (token) {
   connectWithToken(token);
 }
 ```
 
 ### 3. React Hook Dependency Array Hell (Day 2)
+
 **Problem**: useEffect dependencies changing caused infinite reconnection loops.
+
 ```typescript
 // ❌ WRONG - Options object recreated every render
 useEffect(() => {
@@ -63,18 +70,22 @@ useEffect(() => {
 ```
 
 ### 4. Invalid Namespace Error (Day 2)
+
 **Problem**: WebSocket URL included '/api' prefix causing namespace errors.
+
 ```typescript
 // ❌ WRONG
-const socket = io('http://localhost:3000/api/notifications');
+const socket = io("http://localhost:3000/api/notifications");
 
 // ✅ CORRECT - Remove /api prefix for WebSocket
-const baseUrl = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
+const baseUrl = process.env.NEXT_PUBLIC_API_URL.replace("/api", "");
 const socket = io(`${baseUrl}/notifications`);
 ```
 
 ### 5. Database Column Mismatches (Day 3)
+
 **Problem**: SQL triggers using wrong column names causing silent failures.
+
 ```sql
 -- ❌ WRONG - serviceId doesn't exist in Booking table
 'serviceId', NEW."serviceId"
@@ -84,7 +95,9 @@ const socket = io(`${baseUrl}/notifications`);
 ```
 
 ### 6. Missing Required Fields in NOTIFY Payload (Day 3)
+
 **Problem**: Frontend expected fields that didn't exist or were named differently.
+
 ```sql
 -- ❌ WRONG - Missing required fields
 json_build_object('id', NEW.id)
@@ -99,13 +112,17 @@ json_build_object(
 ```
 
 ### 7. JWT Expiration Edge Cases (Day 4)
+
 **Problem**: 7-day tokens expired while users stayed logged in, WebSocket never recovered.
+
 - No proactive refresh mechanism
 - No reactive retry on auth failure
 - Users stuck in limbo: logged in but disconnected
 
 ### 8. Error Toasts Confusing Users
+
 **Problem**: WebSocket errors shown to merchants who didn't understand them.
+
 ```typescript
 // ❌ WRONG - Showing technical errors to users
 toast.error('WebSocket connection failed: JWT expired');
@@ -120,6 +137,7 @@ toast.error('WebSocket connection failed: JWT expired');
 ## Architecture That Finally Worked
 
 ### Backend Architecture
+
 ```
 PostgreSQL Database
     ↓ (Triggers on INSERT/UPDATE/DELETE)
@@ -137,6 +155,7 @@ WebSocket Connection → Frontend
 ```
 
 ### Frontend Architecture
+
 ```
 useRobustWebSocket Hook
     ├── Connection State Machine
@@ -157,35 +176,41 @@ useRobustWebSocket Hook
 ## Critical Pitfalls and Gotchas
 
 ### 1. Database Triggers Are Fragile
+
 - **Column names must match exactly** (case-sensitive with quotes)
 - **Check for NULL values** - COALESCE everything
 - **Test with actual SQL** before implementing triggers
 - **Log trigger failures** - They fail silently otherwise
 
 ### 2. WebSocket URL Gotchas
+
 - Remove `/api` prefix for Socket.IO namespaces
 - Use full URL for CORS in production
 - WebSocket path is NOT the same as HTTP endpoint path
 
 ### 3. Token Management Complexity
+
 - Tokens in localStorage != tokens in memory
 - Auth context might not be ready when WebSocket initializes
 - Multiple token sources (localStorage, cookies, auth context)
 - Refresh tokens need separate handling
 
 ### 4. React Hook Pitfalls
+
 - Dependency arrays with objects = infinite loops
 - Missing dependencies = stale closures
 - Too many dependencies = excessive re-renders
 - Solution: useRef for stable references
 
 ### 5. Silent Failures Everywhere
+
 - Database triggers fail silently
 - NOTIFY has 8KB payload limit (fails silently if exceeded)
 - WebSocket disconnections might not trigger events
 - JWT expiration might not throw errors
 
 ### 6. Development vs Production Differences
+
 - CORS behaves differently
 - WebSocket transports (polling vs websocket)
 - SSL/WSS requirements in production
@@ -196,6 +221,7 @@ useRobustWebSocket Hook
 ## Best Practices for Future Implementation
 
 ### 1. Start Simple, Add Complexity Gradually
+
 ```typescript
 // Phase 1: Basic connection
 const socket = io(url, { auth: { token } });
@@ -207,11 +233,12 @@ const socket = io(url, { auth: { token } });
 ```
 
 ### 2. Always Use the Ref Pattern for Hooks
+
 ```typescript
 export function useWebSocket(options) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
-  
+
   useEffect(() => {
     // Use optionsRef.current, not options
   }, []); // Empty dependency array
@@ -219,15 +246,17 @@ export function useWebSocket(options) {
 ```
 
 ### 3. Implement Comprehensive Logging
+
 ```typescript
 const debug = (message: string, ...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log(`[WebSocket] ${message}`, ...args);
   }
 };
 ```
 
 ### 4. Database Trigger Best Practices
+
 ```sql
 CREATE OR REPLACE FUNCTION notify_changes()
 RETURNS trigger AS $$
@@ -240,7 +269,7 @@ BEGIN
     'field', COALESCE(NEW.field, 'default'),
     'timestamp', NOW()
   );
-  
+
   -- Check payload size (8KB limit)
   IF length(payload::text) < 8000 THEN
     PERFORM pg_notify('channel', payload::text);
@@ -251,7 +280,7 @@ BEGIN
       'error', 'payload_too_large'
     )::text);
   END IF;
-  
+
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
   -- Log error but don't fail the transaction
@@ -262,12 +291,13 @@ $$ LANGUAGE plpgsql;
 ```
 
 ### 5. Implement Proper State Machine
+
 ```typescript
-type ConnectionState = 
-  | 'INITIALIZING'    // First connection
-  | 'CONNECTED'       // Working perfectly
-  | 'RECONNECTING'    // Temporary issue
-  | 'DEGRADED';       // Fallback mode
+type ConnectionState =
+  | "INITIALIZING" // First connection
+  | "CONNECTED" // Working perfectly
+  | "RECONNECTING" // Temporary issue
+  | "DEGRADED"; // Fallback mode
 
 // State transitions should be explicit
 const transition = (from: ConnectionState, to: ConnectionState) => {
@@ -277,16 +307,17 @@ const transition = (from: ConnectionState, to: ConnectionState) => {
 ```
 
 ### 6. Token Refresh Strategy
+
 ```typescript
 // Proactive: Refresh before expiry
 const scheduleRefresh = (expiresAt: Date) => {
-  const refreshTime = expiresAt.getTime() - (60 * 60 * 1000); // 1hr before
+  const refreshTime = expiresAt.getTime() - 60 * 60 * 1000; // 1hr before
   setTimeout(() => refreshToken(), refreshTime - Date.now());
 };
 
 // Reactive: Refresh on failure
-socket.on('connect_error', async (error) => {
-  if (error.message.includes('jwt')) {
+socket.on("connect_error", async (error) => {
+  if (error.message.includes("jwt")) {
     const newToken = await refreshToken();
     socket.auth.token = newToken;
     socket.connect();
@@ -295,9 +326,10 @@ socket.on('connect_error', async (error) => {
 ```
 
 ### 7. Visual Feedback is Critical
+
 ```typescript
 // Users need to know connection status
-<ConnectionStatus 
+<ConnectionStatus
   status={state}
   onReconnect={manualReconnect}
 />
@@ -313,6 +345,7 @@ socket.on('connect_error', async (error) => {
 ## Production Checklist
 
 ### Pre-Deployment
+
 - [ ] WebSocket adapter initialized in main.ts
 - [ ] Database triggers tested with production data volume
 - [ ] NOTIFY payload size verified (<8KB)
@@ -329,6 +362,7 @@ socket.on('connect_error', async (error) => {
 - [ ] Monitoring/alerting for connection failures
 
 ### Post-Deployment Monitoring
+
 - [ ] Track connection success rate
 - [ ] Monitor average reconnection time
 - [ ] Alert on high disconnection rates
@@ -339,6 +373,7 @@ socket.on('connect_error', async (error) => {
 - [ ] User feedback on real-time performance
 
 ### Rollback Plan
+
 - [ ] Feature flag to disable WebSocket
 - [ ] Fallback to polling-only mode
 - [ ] Database triggers can be dropped without breaking app
@@ -349,21 +384,22 @@ socket.on('connect_error', async (error) => {
 ## Code Template for Future Projects
 
 ### Backend Setup (NestJS)
+
 ```typescript
 // 1. postgres-listener.service.ts
 @Injectable()
 export class PostgresListenerService implements OnModuleInit, OnModuleDestroy {
   private client: Client;
-  
+
   async onModuleInit() {
     this.client = new Client({
       connectionString: process.env.DATABASE_URL,
     });
     await this.client.connect();
-    
-    await this.client.query('LISTEN your_channel');
-    
-    this.client.on('notification', (msg) => {
+
+    await this.client.query("LISTEN your_channel");
+
+    this.client.on("notification", (msg) => {
       const payload = JSON.parse(msg.payload);
       this.eventEmitter.emit(`postgres.${msg.channel}`, payload);
     });
@@ -372,26 +408,26 @@ export class PostgresListenerService implements OnModuleInit, OnModuleDestroy {
 
 // 2. notifications.gateway.ts
 @WebSocketGateway({
-  namespace: '/notifications',
-  cors: { origin: '*', credentials: true },
+  namespace: "/notifications",
+  cors: { origin: "*", credentials: true },
 })
 export class NotificationsGateway {
   @WebSocketServer()
   server: Server;
-  
+
   async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth.token;
       const payload = this.jwtService.verify(token);
       const room = `merchant-${payload.merchantId}`;
       await client.join(room);
-      client.emit('connected', { room });
+      client.emit("connected", { room });
     } catch (error) {
       client.disconnect();
     }
   }
-  
-  @OnEvent('postgres.**')
+
+  @OnEvent("postgres.**")
   handleDatabaseEvent(payload: any) {
     const room = `merchant-${payload.merchantId}`;
     this.server.to(room).emit(payload.type, payload);
@@ -400,47 +436,49 @@ export class NotificationsGateway {
 ```
 
 ### Frontend Setup (React)
+
 ```typescript
 // useRobustWebSocket.ts
 export function useRobustWebSocket(options = {}) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
-  
-  const [state, setState] = useState('INITIALIZING');
+
+  const [state, setState] = useState("INITIALIZING");
   const socketRef = useRef(null);
-  
+
   useEffect(() => {
     let mounted = true;
-    
+
     const connect = () => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) return;
-      
+
       socketRef.current = io(WS_URL, {
         auth: { token },
-        transports: ['websocket', 'polling'],
+        transports: ["websocket", "polling"],
       });
-      
-      socketRef.current.on('connect', () => {
-        if (mounted) setState('CONNECTED');
+
+      socketRef.current.on("connect", () => {
+        if (mounted) setState("CONNECTED");
       });
-      
+
       // ... other event handlers
     };
-    
+
     connect();
-    
+
     return () => {
       mounted = false;
       socketRef.current?.disconnect();
     };
   }, []); // Empty array!
-  
+
   return { state, socket: socketRef.current };
 }
 ```
 
 ### Database Triggers
+
 ```sql
 -- Generic trigger function
 CREATE OR REPLACE FUNCTION notify_table_changes()
@@ -451,11 +489,11 @@ BEGIN
     json_build_object(
       'operation', TG_OP,
       'table', TG_TABLE_NAME,
-      'id', CASE 
-        WHEN TG_OP = 'DELETE' THEN OLD.id 
-        ELSE NEW.id 
+      'id', CASE
+        WHEN TG_OP = 'DELETE' THEN OLD.id
+        ELSE NEW.id
       END,
-      'data', CASE 
+      'data', CASE
         WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)
         ELSE row_to_json(NEW)
       END,
@@ -477,6 +515,7 @@ FOR EACH ROW EXECUTE FUNCTION notify_table_changes();
 ## Conclusion
 
 Building a production-ready WebSocket + PostgreSQL LISTEN/NOTIFY system requires:
+
 1. **Meticulous attention to detail** - One wrong column name breaks everything
 2. **Comprehensive error handling** - Assume everything can fail
 3. **User-centric design** - Visual feedback > error messages

@@ -24,7 +24,7 @@ export interface Merchant {
 export interface MerchantSettings {
   bookingAdvanceHours: number;
   cancellationHours: number;
-  loyaltyType: 'visit' | 'spend';
+  loyaltyType: "visit" | "spend";
   loyaltyRate: number;
   requirePinForRefunds: boolean;
   requirePinForCancellations: boolean;
@@ -34,7 +34,7 @@ export interface MerchantSettings {
   timezone: string;
   currency: string;
   dateFormat: string;
-  timeFormat: '12h' | '24h';
+  timeFormat: "12h" | "24h";
   // Payment settings
   requireDeposit: boolean;
   depositPercentage: number; // 1-100
@@ -67,15 +67,15 @@ export interface MerchantSettings {
 }
 
 export enum MerchantStatus {
-  ACTIVE = 'ACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  CANCELLED = 'CANCELLED'
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  CANCELLED = "CANCELLED",
 }
 
 export enum SubscriptionStatus {
-  TRIAL = 'TRIAL',
-  ACTIVE = 'ACTIVE',
-  CANCELLED = 'CANCELLED'
+  TRIAL = "TRIAL",
+  ACTIVE = "ACTIVE",
+  CANCELLED = "CANCELLED",
 }
 
 export interface MerchantAuth {
@@ -88,9 +88,17 @@ export interface MerchantAuth {
   updatedAt: Date;
 }
 
-export type AustralianState = 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA';
+export type AustralianState =
+  | "ACT"
+  | "NSW"
+  | "NT"
+  | "QLD"
+  | "SA"
+  | "TAS"
+  | "VIC"
+  | "WA";
 
-export type HolidaySource = 'STATE' | 'CUSTOM';
+export type HolidaySource = "STATE" | "CUSTOM";
 
 export interface MerchantHoliday {
   id: string;
@@ -104,4 +112,4 @@ export interface MerchantHoliday {
   updatedAt: string;
 }
 
-import type { Package } from './package';
+import type { Package } from "./package";

@@ -11,104 +11,108 @@ TimezoneUtils provides comprehensive timezone handling for the POS system, ensur
 ## 📖 How to Use
 
 ### Basic Usage
+
 ```typescript
-import { TimezoneUtils } from '@heya/utils';
+import { TimezoneUtils } from "@heya/utils";
 
 // Create a date in a specific timezone
 const appointmentDate = TimezoneUtils.createDateInTimezone(
-  '2024-03-15', 
-  '14:30', 
-  'Australia/Sydney'
+  "2024-03-15",
+  "14:30",
+  "Australia/Sydney",
 );
 ```
 
 ### Common Patterns
+
 ```typescript
 // Pattern 1: Display a UTC date in merchant's timezone
 const booking = await getBooking();
 const displayInfo = TimezoneUtils.toTimezoneDisplay(
-  booking.startTime, 
-  merchant.timezone
+  booking.startTime,
+  merchant.timezone,
 );
 console.log(displayInfo.time); // "2:30 PM"
 
 // Pattern 2: Get day boundaries for filtering
 const startOfDay = TimezoneUtils.startOfDayInTimezone(
-  new Date(), 
-  'Australia/Perth'
+  new Date(),
+  "Australia/Perth",
 );
 const endOfDay = TimezoneUtils.endOfDayInTimezone(
-  new Date(), 
-  'Australia/Perth'
+  new Date(),
+  "Australia/Perth",
 );
 ```
 
 ## 📝 API Reference
 
 ### Function Signature
+
 ```typescript
 class TimezoneUtils {
   static createDateInTimezone(
     dateStr: string,
     timeStr: string,
-    timezone: string
-  ): Date
+    timezone: string,
+  ): Date;
 
   static formatInTimezone(
     date: Date | string,
     timezone: string,
-    formatStr?: 'date' | 'time' | 'datetime'
-  ): string
+    formatStr?: "date" | "time" | "datetime",
+  ): string;
 
-  static startOfDayInTimezone(
-    date: Date | string,
-    timezone: string
-  ): Date
+  static startOfDayInTimezone(date: Date | string, timezone: string): Date;
 
-  static endOfDayInTimezone(
-    date: Date | string,
-    timezone: string
-  ): Date
+  static endOfDayInTimezone(date: Date | string, timezone: string): Date;
 
   static toTimezoneDisplay(
     date: Date | string,
-    timezone: string
-  ): { date: string; time: string; datetime: string }
+    timezone: string,
+  ): { date: string; time: string; datetime: string };
 
-  static getAustralianTimezones(): Array<{value: string, label: string}>
+  static getAustralianTimezones(): Array<{ value: string; label: string }>;
 
-  static getAllTimezones(): Record<string, Array<{value: string, label: string}>>
+  static getAllTimezones(): Record<
+    string,
+    Array<{ value: string; label: string }>
+  >;
 
-  static isValidTimezone(timezone: string): boolean
+  static isValidTimezone(timezone: string): boolean;
 }
 ```
 
 ### Parameters
+
 - `dateStr` - Date in YYYY-MM-DD format (required)
 - `timeStr` - Time in HH:mm format (required)
 - `timezone` - IANA timezone identifier (e.g., 'Australia/Sydney')
 - `formatStr` - Optional format type: 'date', 'time', or 'datetime'
 
 ### Return Value
+
 Methods return either Date objects (in UTC) or formatted strings based on the operation.
 
 ## 🧪 Examples
 
 ### Example 1: Creating a Booking in Merchant's Timezone
+
 ```typescript
 // Input
 const bookingDate = TimezoneUtils.createDateInTimezone(
-  '2024-03-15',
-  '10:00',
-  'Australia/Sydney'
+  "2024-03-15",
+  "10:00",
+  "Australia/Sydney",
 );
 
 // Output
-console.log(bookingDate.toISOString()); 
+console.log(bookingDate.toISOString());
 // "2024-03-14T23:00:00.000Z" (UTC - 11 hours during AEDT)
 ```
 
 ### Example 2: Displaying Times to Users
+
 ```typescript
 // Showing a booking time to a merchant in Perth
 const booking = { startTime: '2024-03-15T04:00:00Z' };
@@ -126,6 +130,7 @@ const display = TimezoneUtils.toTimezoneDisplay(
 ```
 
 ### Example 3: Using with React Context (Walk-in Customers)
+
 ```typescript
 // Import the timezone context
 import { useTimezone } from "@/contexts/timezone-context";
@@ -139,7 +144,7 @@ bookingDateTime.setHours(formData.time.getHours());
 bookingDateTime.setMinutes(formData.time.getMinutes());
 
 // Format consistently in merchant's timezone
-const timeStr = formatInMerchantTz(bookingDateTime, 'time');
+const timeStr = formatInMerchantTz(bookingDateTime, "time");
 const monthDay = format(bookingDateTime, "MMM-dd");
 const customerName = `Walk-in ${monthDay}-${timeStr}`;
 ```
@@ -153,13 +158,16 @@ const customerName = `Walk-in ${monthDay}-${timeStr}`;
 ## 🔧 Implementation Notes
 
 ### Why It Works This Way
+
 Uses the native Intl.DateTimeFormat API internally because it provides accurate timezone calculations including DST transitions without external dependencies. All methods return UTC dates to ensure consistent database storage.
 
 ### Dependencies
+
 - date-fns (for parseISO utility only)
 - Native JavaScript Intl API
 
 ### Performance
+
 - Time complexity: O(1) for all operations
 - Space complexity: O(1)
 - No caching needed as Intl API is highly optimized
@@ -167,11 +175,13 @@ Uses the native Intl.DateTimeFormat API internally because it provides accurate 
 ## 🧹 Maintenance
 
 ### To Modify Safely
+
 1. Run existing tests to ensure compatibility
 2. Test DST transitions (March/October for Australian timezones)
 3. Verify booking creation and display still work correctly
 
 ### Test Command
+
 ```bash
 npm run test -- packages/utils/src/__tests__/timezone.test.ts
 ```
@@ -192,6 +202,7 @@ npm run test -- packages/utils/src/__tests__/timezone.test.ts
 
 ---
 
-**See Also**: 
+**See Also**:
+
 - [Booking Manager](/docs/features/merchant-bookings-dashboard.md)
 - [Merchant Settings](/docs/features/merchant-settings.md)

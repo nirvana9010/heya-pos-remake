@@ -1,5 +1,5 @@
-import { Header } from './header'
-import { Footer } from './footer'
+import { Header } from "./header";
+import { Footer } from "./footer";
 
 export function BookingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,5 +8,5 @@ export function BookingLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
-  )
+  );
 }

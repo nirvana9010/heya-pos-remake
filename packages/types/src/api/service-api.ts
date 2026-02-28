@@ -1,5 +1,5 @@
-import type { Service, ServiceCategory } from '../models';
-import type { PaginationParams } from '../common';
+import type { Service, ServiceCategory } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface CreateServiceRequest {
   name: string;
@@ -37,7 +37,8 @@ export interface CreateServiceCategoryRequest {
   sortOrder?: number;
 }
 
-export interface UpdateServiceCategoryRequest extends Partial<CreateServiceCategoryRequest> {
+export interface UpdateServiceCategoryRequest
+  extends Partial<CreateServiceCategoryRequest> {
   isActive?: boolean;
 }
 

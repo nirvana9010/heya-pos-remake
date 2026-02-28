@@ -1,2 +1,2 @@
-export { CustomerSearchInput } from './CustomerSearchInput';
-export type { Customer } from './CustomerSearchInput';
+export { CustomerSearchInput } from "./CustomerSearchInput";
+export type { Customer } from "./CustomerSearchInput";

@@ -1,13 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { Server, Shield, Bell, Database, CreditCard, Mail, Globe } from "lucide-react";
+import {
+  Server,
+  Shield,
+  Bell,
+  Database,
+  CreditCard,
+  Mail,
+  Globe,
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
@@ -27,7 +47,9 @@ export default function SettingsPage() {
             <Server className="h-5 w-5" />
             System Configuration
           </CardTitle>
-          <CardDescription>Core platform settings and configuration</CardDescription>
+          <CardDescription>
+            Core platform settings and configuration
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -37,7 +59,10 @@ export default function SettingsPage() {
                 Enable maintenance mode to prevent user access during updates
               </p>
             </div>
-            <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
+            <Switch
+              checked={maintenanceMode}
+              onCheckedChange={setMaintenanceMode}
+            />
           </div>
 
           {maintenanceMode && (
@@ -57,7 +82,9 @@ export default function SettingsPage() {
             <h3 className="text-lg font-semibold">API Configuration</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="api-rate-limit">API Rate Limit (per minute)</Label>
+                <Label htmlFor="api-rate-limit">
+                  API Rate Limit (per minute)
+                </Label>
                 <Input id="api-rate-limit" type="number" defaultValue="100" />
               </div>
               <div className="space-y-2">
@@ -73,7 +100,9 @@ export default function SettingsPage() {
             <h3 className="text-lg font-semibold">Session Management</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+                <Label htmlFor="session-timeout">
+                  Session Timeout (minutes)
+                </Label>
                 <Input id="session-timeout" type="number" defaultValue="60" />
               </div>
               <div className="space-y-2">
@@ -95,7 +124,9 @@ export default function SettingsPage() {
             <Shield className="h-5 w-5" />
             Security Settings
           </CardTitle>
-          <CardDescription>Platform security and authentication configuration</CardDescription>
+          <CardDescription>
+            Platform security and authentication configuration
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -105,7 +136,10 @@ export default function SettingsPage() {
                 Require 2FA for all platform administrators
               </p>
             </div>
-            <Switch checked={twoFactorRequired} onCheckedChange={setTwoFactorRequired} />
+            <Switch
+              checked={twoFactorRequired}
+              onCheckedChange={setTwoFactorRequired}
+            />
           </div>
 
           <div className="flex items-center justify-between">
@@ -187,7 +221,9 @@ export default function SettingsPage() {
             <Bell className="h-5 w-5" />
             Notification Settings
           </CardTitle>
-          <CardDescription>Configure system notifications and alerts</CardDescription>
+          <CardDescription>
+            Configure system notifications and alerts
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -197,7 +233,10 @@ export default function SettingsPage() {
                 Send email alerts for critical system events
               </p>
             </div>
-            <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={setEmailNotifications}
+            />
           </div>
 
           <div className="space-y-4">
@@ -224,28 +263,36 @@ export default function SettingsPage() {
               <label className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <span className="font-medium">System Errors</span>
-                  <p className="text-sm text-muted-foreground">Critical system failures</p>
+                  <p className="text-sm text-muted-foreground">
+                    Critical system failures
+                  </p>
                 </div>
                 <Switch defaultChecked />
               </label>
               <label className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <span className="font-medium">Security Alerts</span>
-                  <p className="text-sm text-muted-foreground">Failed login attempts, suspicious activity</p>
+                  <p className="text-sm text-muted-foreground">
+                    Failed login attempts, suspicious activity
+                  </p>
                 </div>
                 <Switch defaultChecked />
               </label>
               <label className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <span className="font-medium">Performance Issues</span>
-                  <p className="text-sm text-muted-foreground">High CPU, memory, or response times</p>
+                  <p className="text-sm text-muted-foreground">
+                    High CPU, memory, or response times
+                  </p>
                 </div>
                 <Switch defaultChecked />
               </label>
               <label className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <span className="font-medium">New Merchant Signups</span>
-                  <p className="text-sm text-muted-foreground">Notifications for new registrations</p>
+                  <p className="text-sm text-muted-foreground">
+                    Notifications for new registrations
+                  </p>
                 </div>
                 <Switch />
               </label>
@@ -264,7 +311,9 @@ export default function SettingsPage() {
             <Database className="h-5 w-5" />
             Database Management
           </CardTitle>
-          <CardDescription>Database backup and maintenance settings</CardDescription>
+          <CardDescription>
+            Database backup and maintenance settings
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -353,7 +402,9 @@ export default function SettingsPage() {
             <CreditCard className="h-5 w-5" />
             Billing Configuration
           </CardTitle>
-          <CardDescription>Payment processing and subscription settings</CardDescription>
+          <CardDescription>
+            Payment processing and subscription settings
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -361,15 +412,27 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="stripe-pk">Publishable Key</Label>
-                <Input id="stripe-pk" type="password" defaultValue="pk_live_••••••••••••••••" />
+                <Input
+                  id="stripe-pk"
+                  type="password"
+                  defaultValue="pk_live_••••••••••••••••"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stripe-sk">Secret Key</Label>
-                <Input id="stripe-sk" type="password" defaultValue="sk_live_••••••••••••••••" />
+                <Input
+                  id="stripe-sk"
+                  type="password"
+                  defaultValue="sk_live_••••••••••••••••"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="webhook-secret">Webhook Secret</Label>
-                <Input id="webhook-secret" type="password" defaultValue="whsec_••••••••••••••••" />
+                <Input
+                  id="webhook-secret"
+                  type="password"
+                  defaultValue="whsec_••••••••••••••••"
+                />
               </div>
             </div>
           </div>
@@ -382,21 +445,27 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <p className="font-medium">Starter Plan</p>
-                  <p className="text-sm text-muted-foreground">$99/month - 1 location, 3 staff</p>
+                  <p className="text-sm text-muted-foreground">
+                    $99/month - 1 location, 3 staff
+                  </p>
                 </div>
                 <Badge>Active</Badge>
               </div>
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <p className="font-medium">Professional Plan</p>
-                  <p className="text-sm text-muted-foreground">$199/month - 2 locations, 10 staff</p>
+                  <p className="text-sm text-muted-foreground">
+                    $199/month - 2 locations, 10 staff
+                  </p>
                 </div>
                 <Badge>Active</Badge>
               </div>
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <p className="font-medium">Enterprise Plan</p>
-                  <p className="text-sm text-muted-foreground">$399/month - 5 locations, 50 staff</p>
+                  <p className="text-sm text-muted-foreground">
+                    $399/month - 5 locations, 50 staff
+                  </p>
                 </div>
                 <Badge>Active</Badge>
               </div>
@@ -411,7 +480,9 @@ export default function SettingsPage() {
     <div className="container max-w-5xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Platform Settings</h1>
-        <p className="text-muted-foreground mt-1">Configure system-wide settings and preferences</p>
+        <p className="text-muted-foreground mt-1">
+          Configure system-wide settings and preferences
+        </p>
       </div>
 
       <Tabs defaultValue="system" className="space-y-6">

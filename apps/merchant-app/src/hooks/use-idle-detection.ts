@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from "react";
 
 interface UseIdleDetectionOptions {
   /** Seconds of idle time before warning fires (default: 50) */
@@ -75,23 +75,33 @@ export function useIdleDetection({
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === "hidden") {
         // Tab backgrounded — lock immediately
         clearTimers();
         onLockRef.current?.();
       }
     };
 
-    const events = ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'] as const;
-    events.forEach((event) => window.addEventListener(event, handleActivity, { passive: true }));
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const events = [
+      "mousemove",
+      "keydown",
+      "touchstart",
+      "click",
+      "scroll",
+    ] as const;
+    events.forEach((event) =>
+      window.addEventListener(event, handleActivity, { passive: true }),
+    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Start initial timers
     startTimers();
 
     return () => {
-      events.forEach((event) => window.removeEventListener(event, handleActivity));
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      events.forEach((event) =>
+        window.removeEventListener(event, handleActivity),
+      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearTimers();
     };
   }, [enabled, startTimers, clearTimers, resetTimer]);

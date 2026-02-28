@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import React, { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Create a client with optimized settings for our POS system
 const queryClient = new QueryClient({
@@ -34,7 +34,7 @@ interface QueryProviderProps {
 
 /**
  * React Query Provider - Phase 2 State Management
- * 
+ *
  * Provides centralized server state management with:
  * - Automatic caching and invalidation
  * - Background updates
@@ -47,9 +47,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
     <QueryClientProvider client={queryClient}>
       {children}
       {/* Only show devtools in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false} 
+      {process.env.NODE_ENV === "development" && (
+        <ReactQueryDevtools
+          initialIsOpen={false}
           position="bottom-right"
           buttonPosition="bottom-right"
         />

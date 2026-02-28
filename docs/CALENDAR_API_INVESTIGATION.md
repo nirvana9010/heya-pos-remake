@@ -5,6 +5,7 @@
 ### 1. Original Calendar (CalendarPageContent.tsx)
 
 **API Calls Being Made:**
+
 - `apiClient.getBookings(params)` - Fetches bookings with date range
 - `apiClient.getStaff()` - Fetches staff members
 - `apiClient.getMerchantSettings()` - Fetches merchant settings
@@ -12,6 +13,7 @@
 - `apiClient.rescheduleBooking(id, data)` - Reschedules a booking
 
 **Mock Data Being Used:**
+
 - `mockServices` - Hardcoded service data
 - `mockCustomers` - Hardcoded customer data
 
@@ -28,20 +30,20 @@ apiClient = {
   staff: StaffClient,
   payments: PaymentsClient,
   reports: ReportsClient,
-  locations: LocationsClient
-}
+  locations: LocationsClient,
+};
 ```
 
 ### 3. Available Methods Mapping
 
-| Original Call | Correct Method | Returns |
-|--------------|----------------|---------|
-| `apiClient.getBookings(params)` | ✅ Works as is | `Booking[]` |
-| `apiClient.getStaff()` | ✅ Works as is | `Staff[]` |
-| `apiClient.getServices()` | ✅ Works as is | `Service[]` |
-| `apiClient.getCustomers()` | ✅ Works as is | `Customer[]` |
+| Original Call                     | Correct Method | Returns         |
+| --------------------------------- | -------------- | --------------- |
+| `apiClient.getBookings(params)`   | ✅ Works as is | `Booking[]`     |
+| `apiClient.getStaff()`            | ✅ Works as is | `Staff[]`       |
+| `apiClient.getServices()`         | ✅ Works as is | `Service[]`     |
+| `apiClient.getCustomers()`        | ✅ Works as is | `Customer[]`    |
 | `apiClient.getMerchantSettings()` | ✅ Works as is | Settings object |
-| `apiClient.rescheduleBooking()` | ✅ Works as is | Updated booking |
+| `apiClient.rescheduleBooking()`   | ✅ Works as is | Updated booking |
 | `apiClient.updateBookingStatus()` | ✅ Works as is | Updated booking |
 
 ### 4. Key Findings
@@ -53,20 +55,24 @@ apiClient = {
 ### 5. Data Transformations Needed
 
 **Bookings:**
+
 - API returns bookings with `startTime` and `endTime` as ISO strings
 - Need to extract `date` and `time` for calendar display
 - Handle `staffId` vs `providerId` legacy fields
 
 **Staff:**
+
 - API returns `{ id, firstName, lastName, email, phone, role, isActive }`
 - Need to combine name: `${firstName} ${lastName}`
 - Default color if not provided
 
 **Services:**
+
 - API returns proper service objects
 - No transformation needed
 
 **Customers:**
+
 - API returns proper customer objects
 - Handle `mobile` vs `phone` fields
 

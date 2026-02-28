@@ -8,7 +8,7 @@
  */
 export function transformDecimal(value: any): number {
   if (value === null || value === undefined) return 0;
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return parseFloat(value);
   }
   return Number(value) || 0;
@@ -18,8 +18,8 @@ export function transformDecimal(value: any): number {
  * Transform boolean values from PostgreSQL
  */
 export function transformBoolean(value: any): boolean {
-  if (typeof value === 'boolean') return value;
-  return value === 'true' || value === true;
+  if (typeof value === "boolean") return value;
+  return value === "true" || value === true;
 }
 
 /**
@@ -36,26 +36,26 @@ export function transformDate(value: any): Date {
  */
 export function transformApiResponse(data: any): any {
   if (!data) return data;
-  
+
   // Handle arrays
   if (Array.isArray(data)) {
-    return data.map(item => transformApiResponse(item));
+    return data.map((item) => transformApiResponse(item));
   }
-  
+
   // Handle objects
-  if (typeof data === 'object' && data !== null) {
+  if (typeof data === "object" && data !== null) {
     const transformed: any = {};
-    
+
     for (const key in data) {
       const value = data[key];
 
       // Always recurse nested objects/arrays before scalar transforms.
       // This prevents object fields like `revenueByMethod` being coerced to 0.
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         transformed[key] = transformApiResponse(value);
         continue;
       }
-      
+
       // Transform known decimal/money fields
       if (isMoneyField(key)) {
         transformed[key] = transformDecimal(value);
@@ -74,10 +74,10 @@ export function transformApiResponse(data: any): any {
         transformed[key] = value;
       }
     }
-    
+
     return transformed;
   }
-  
+
   return data;
 }
 
@@ -86,60 +86,65 @@ export function transformApiResponse(data: any): any {
  */
 function isMoneyField(fieldName: string): boolean {
   const moneyFields = [
-    'price',
-    'amount',
-    'totalAmount',
-    'total',
-    'cost',
-    'revenue',
-    'balance',
-    'balanceDue',
-    'paidAmount',
-    'discount',
-    'tax',
-    'taxAmount',
-    'subtotal',
-    'fee',
-    'value',
+    "price",
+    "amount",
+    "totalAmount",
+    "total",
+    "cost",
+    "revenue",
+    "balance",
+    "balanceDue",
+    "paidAmount",
+    "discount",
+    "tax",
+    "taxAmount",
+    "subtotal",
+    "fee",
+    "value",
     // 'payment', // REMOVED: This was causing 'payments' array to be treated as money!
-    'refund',
-    'credit',
-    'debit',
-    'spent',
-    'totalSpent',
-    'earnings',
-    'salary',
-    'wage',
-    'todayRevenue',
-    'weeklyRevenue',
-    'monthlyRevenue',
-    'yearlyRevenue',
-    'avgServiceValue',
-    'unitPrice',
-    'tipAmount',
-    'loyaltyPoints'
+    "refund",
+    "credit",
+    "debit",
+    "spent",
+    "totalSpent",
+    "earnings",
+    "salary",
+    "wage",
+    "todayRevenue",
+    "weeklyRevenue",
+    "monthlyRevenue",
+    "yearlyRevenue",
+    "avgServiceValue",
+    "unitPrice",
+    "tipAmount",
+    "loyaltyPoints",
   ];
-  
+
   const fieldLower = fieldName.toLowerCase();
-  
+
   // CRITICAL FIX: Exclude plural forms that are likely arrays
-  if (fieldLower === 'payments' || fieldLower === 'refunds' || fieldLower === 'credits') {
+  if (
+    fieldLower === "payments" ||
+    fieldLower === "refunds" ||
+    fieldLower === "credits"
+  ) {
     return false;
   }
-  
+
   // CRITICAL FIX: Exclude trend arrays (revenueTrend, bookingTrend, etc.)
-  if (fieldLower.endsWith('trend')) {
+  if (fieldLower.endsWith("trend")) {
     return false;
   }
-  
-  return moneyFields.some(field => 
-    fieldLower.includes(field.toLowerCase()) ||
-    fieldLower.endsWith('price') ||
-    fieldLower.endsWith('amount') ||
-    fieldLower.endsWith('total') ||
-    fieldLower.endsWith('cost') ||
-    fieldLower.endsWith('revenue') ||
-    fieldLower.endsWith('fee')
+
+  return moneyFields.some(
+    (field) =>
+      fieldLower.includes(field.toLowerCase()) ||
+      fieldLower.endsWith("price") ||
+      fieldLower.endsWith("amount") ||
+      fieldLower.endsWith("total") ||
+      fieldLower.endsWith("cost") ||
+      fieldLower.endsWith("revenue") ||
+      fieldLower.endsWith("fee"),
   );
 }
 
@@ -148,45 +153,46 @@ function isMoneyField(fieldName: string): boolean {
  */
 function isBooleanField(fieldName: string): boolean {
   const booleanFields = [
-    'isActive',
-    'isDeleted',
-    'isEnabled',
-    'isDisabled',
-    'isPaid',
-    'isRefunded',
-    'isCancelled',
-    'isCompleted',
-    'isPublished',
-    'isPrivate',
-    'isPublic',
-    'hasLoyalty',
-    'allowBooking',
-    'requireDeposit',
-    'active',
-    'enabled',
-    'disabled',
-    'paid',
-    'refunded',
-    'cancelled',
-    'completed',
-    'published'
+    "isActive",
+    "isDeleted",
+    "isEnabled",
+    "isDisabled",
+    "isPaid",
+    "isRefunded",
+    "isCancelled",
+    "isCompleted",
+    "isPublished",
+    "isPrivate",
+    "isPublic",
+    "hasLoyalty",
+    "allowBooking",
+    "requireDeposit",
+    "active",
+    "enabled",
+    "disabled",
+    "paid",
+    "refunded",
+    "cancelled",
+    "completed",
+    "published",
   ];
-  
+
   const fieldLower = fieldName.toLowerCase();
   // Special case: don't treat feature arrays as booleans
-  if (fieldLower === 'enabledfeatures' || fieldLower === 'disabledfeatures') {
+  if (fieldLower === "enabledfeatures" || fieldLower === "disabledfeatures") {
     return false;
   }
-  
-  return booleanFields.some(field =>
-    fieldLower === field.toLowerCase() ||
-    fieldLower.startsWith('is') ||
-    fieldLower.startsWith('has') ||
-    fieldLower.startsWith('allow') ||
-    fieldLower.startsWith('require') ||
-    fieldLower.startsWith('enable') ||
-    fieldLower.startsWith('disable') ||
-    fieldLower.endsWith('enabled')
+
+  return booleanFields.some(
+    (field) =>
+      fieldLower === field.toLowerCase() ||
+      fieldLower.startsWith("is") ||
+      fieldLower.startsWith("has") ||
+      fieldLower.startsWith("allow") ||
+      fieldLower.startsWith("require") ||
+      fieldLower.startsWith("enable") ||
+      fieldLower.startsWith("disable") ||
+      fieldLower.endsWith("enabled"),
   );
 }
 
@@ -195,35 +201,36 @@ function isBooleanField(fieldName: string): boolean {
  */
 function isDateField(fieldName: string): boolean {
   const dateFields = [
-    'createdAt',
-    'updatedAt',
-    'deletedAt',
-    'date',
-    'time',
-    'datetime',
-    'timestamp',
-    'startTime',
-    'endTime',
-    'startDate',
-    'endDate',
-    'bookingDate',
-    'appointmentDate',
-    'expiresAt',
-    'lastLogin',
-    'processedAt',
-    'scheduledAt',
-    'cancelledAt',
-    'completedAt',
-    'paidAt'
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+    "date",
+    "time",
+    "datetime",
+    "timestamp",
+    "startTime",
+    "endTime",
+    "startDate",
+    "endDate",
+    "bookingDate",
+    "appointmentDate",
+    "expiresAt",
+    "lastLogin",
+    "processedAt",
+    "scheduledAt",
+    "cancelledAt",
+    "completedAt",
+    "paidAt",
   ];
-  
+
   const fieldLower = fieldName.toLowerCase();
-  return dateFields.some(field => 
-    fieldLower === field.toLowerCase() ||
-    fieldLower.endsWith('at') ||
-    fieldLower.endsWith('date') ||
-    fieldLower.endsWith('time') ||
-    fieldLower.includes('timestamp')
+  return dateFields.some(
+    (field) =>
+      fieldLower === field.toLowerCase() ||
+      fieldLower.endsWith("at") ||
+      fieldLower.endsWith("date") ||
+      fieldLower.endsWith("time") ||
+      fieldLower.includes("timestamp"),
   );
 }
 

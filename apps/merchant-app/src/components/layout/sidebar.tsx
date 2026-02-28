@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { cn } from '@heya-pos/ui'
-import { useTransition, useState, useEffect, useMemo } from 'react'
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@heya-pos/ui";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import {
   LayoutDashboard,
   Calendar,
@@ -19,26 +19,102 @@ import {
   Sparkles,
   Gift,
   Bell,
-} from 'lucide-react'
-import { Button } from '@heya-pos/ui'
-import { usePermissions, useAuth } from '@/lib/auth/auth-provider'
+} from "lucide-react";
+import { Button } from "@heya-pos/ui";
+import { usePermissions, useAuth } from "@/lib/auth/auth-provider";
 
 const allNavigation = [
   // Main navigation
-  { name: 'Calendar', href: '/calendar', icon: Calendar, feature: 'bookings', permission: 'booking.read' },
-  { name: 'Bookings', href: '/bookings', icon: Calendar, feature: 'bookings', permission: 'booking.read' },
-  { name: 'Check-Ins', href: '/check-ins', icon: Calendar, feature: 'check_in_only', permission: 'booking.read' },
-  { name: 'Customers', href: '/customers', icon: Users, feature: 'customers', permission: 'customers.read' },
-  { name: 'Staff', href: '/staff', icon: Users, feature: 'staff', permission: 'staff.view' },
-  { name: 'Roster', href: '/roster', icon: Calendar, feature: 'roster', permission: 'staff.view' },
-  { name: 'Services', href: '/services', icon: Package, feature: 'services', permission: 'service.view' },
-  { name: 'Payments', href: '/payments', icon: DollarSign, feature: 'payments', permission: 'payment.view' },
+  {
+    name: "Calendar",
+    href: "/calendar",
+    icon: Calendar,
+    feature: "bookings",
+    permission: "booking.read",
+  },
+  {
+    name: "Bookings",
+    href: "/bookings",
+    icon: Calendar,
+    feature: "bookings",
+    permission: "booking.read",
+  },
+  {
+    name: "Check-Ins",
+    href: "/check-ins",
+    icon: Calendar,
+    feature: "check_in_only",
+    permission: "booking.read",
+  },
+  {
+    name: "Customers",
+    href: "/customers",
+    icon: Users,
+    feature: "customers",
+    permission: "customers.read",
+  },
+  {
+    name: "Staff",
+    href: "/staff",
+    icon: Users,
+    feature: "staff",
+    permission: "staff.view",
+  },
+  {
+    name: "Roster",
+    href: "/roster",
+    icon: Calendar,
+    feature: "roster",
+    permission: "staff.view",
+  },
+  {
+    name: "Services",
+    href: "/services",
+    icon: Package,
+    feature: "services",
+    permission: "service.view",
+  },
+  {
+    name: "Payments",
+    href: "/payments",
+    icon: DollarSign,
+    feature: "payments",
+    permission: "payment.view",
+  },
   // Bottom navigation
-  { name: 'Loyalty', href: '/loyalty', icon: Gift, feature: 'loyalty', position: 'bottom', permission: 'customers.read' },
-  { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports', position: 'bottom', permission: 'reports.view' },
-  { name: 'Notifications', href: '/notifications', icon: Bell, feature: 'notifications', position: 'bottom', permission: null },
-  { name: 'Settings', href: '/settings', icon: Settings, feature: null, position: 'bottom', permission: 'settings.view' },
-]
+  {
+    name: "Loyalty",
+    href: "/loyalty",
+    icon: Gift,
+    feature: "loyalty",
+    position: "bottom",
+    permission: "customers.read",
+  },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+    feature: "reports",
+    position: "bottom",
+    permission: "reports.view",
+  },
+  {
+    name: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+    feature: "notifications",
+    position: "bottom",
+    permission: null,
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+    feature: null,
+    position: "bottom",
+    permission: "settings.view",
+  },
+];
 
 interface MerchantFeatures {
   enabledFeatures: string[];
@@ -49,27 +125,27 @@ interface MerchantFeatures {
 }
 
 interface SidebarProps {
-  collapsed: boolean
-  onToggle: (collapsed: boolean) => void
-  features: MerchantFeatures | null
-  isMobile: boolean
-  mobileOpen: boolean
-  onMobileOpenChange: (open: boolean) => void
+  collapsed: boolean;
+  onToggle: (collapsed: boolean) => void;
+  features: MerchantFeatures | null;
+  isMobile: boolean;
+  mobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
 }
 
 export function Sidebar({
   collapsed = false,
-  onToggle = () => { },
+  onToggle = () => {},
   features = null,
   isMobile = false,
   mobileOpen = false,
-  onMobileOpenChange = () => { },
+  onMobileOpenChange = () => {},
 }: Partial<SidebarProps>) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  const { user } = useAuth()
-  const { can } = usePermissions()
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const { user } = useAuth();
+  const { can } = usePermissions();
 
   // Filter navigation based on features AND permissions
   const filteredNavigation = useMemo(() => {
@@ -85,189 +161,198 @@ export function Sidebar({
     };
 
     const mainNav = allNavigation
-      .filter(item => !item.position || item.position !== 'bottom')
-      .filter(item => !item.feature || hasFeature(item.feature))
-      .filter(item => hasPermission(item.permission))
+      .filter((item) => !item.position || item.position !== "bottom")
+      .filter((item) => !item.feature || hasFeature(item.feature))
+      .filter((item) => hasPermission(item.permission));
 
     const bottomNav = allNavigation
-      .filter(item => item.position === 'bottom')
-      .filter(item => !item.feature || hasFeature(item.feature))
-      .filter(item => hasPermission(item.permission))
+      .filter((item) => item.position === "bottom")
+      .filter((item) => !item.feature || hasFeature(item.feature))
+      .filter((item) => hasPermission(item.permission));
 
-    return { mainNav, bottomNav }
-  }, [features, can, user])
+    return { mainNav, bottomNav };
+  }, [features, can, user]);
 
   const handleNavigation = (href: string) => {
     // If we're already on the target page, do nothing to avoid unnecessary processing
-    if (pathname === href) return
+    if (pathname === href) return;
 
     // Use React's concurrent features to keep UI responsive
     startTransition(() => {
       // Prefetch the route first
-      router.prefetch(href)
+      router.prefetch(href);
 
       // Navigate immediately within the transition
-      router.push(href)
-    })
+      router.push(href);
+    });
 
     if (isMobile) {
-      onMobileOpenChange(false)
+      onMobileOpenChange(false);
     }
-  }
+  };
 
   return (
     <div
-      className={`sidebar ${collapsed && !isMobile ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}
+      className={`sidebar ${collapsed && !isMobile ? "collapsed" : ""} ${mobileOpen ? "open" : ""}`}
       style={{
-        position: 'fixed',
+        position: "fixed",
         left: isMobile ? undefined : 0,
         top: 0,
         bottom: 0,
-        width: isMobile ? '240px' : collapsed ? '60px' : '240px',
-        backgroundColor: '#f3f4f6',
-        borderRight: '1px solid #e5e7eb',
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
+        width: isMobile ? "240px" : collapsed ? "60px" : "240px",
+        backgroundColor: "#f3f4f6",
+        borderRight: "1px solid #e5e7eb",
+        padding: "1rem",
+        display: "flex",
+        flexDirection: "column",
         zIndex: 40,
-        transition: 'width 0.3s ease-in-out'
-      }}>
+        transition: "width 0.3s ease-in-out",
+      }}
+    >
       {/* Logo Section */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: collapsed && !isMobile ? 'center' : 'space-between',
-        marginBottom: '2rem',
-        height: '60px'
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: collapsed && !isMobile ? "center" : "space-between",
+          marginBottom: "2rem",
+          height: "60px",
+        }}
+      >
         {(!collapsed || isMobile) && (
           <div className="sidebar-logo">
             <Sparkles size={28} />
-            <span style={{ fontSize: '1.25rem' }}>
-              Heya
-            </span>
+            <span style={{ fontSize: "1.25rem" }}>Heya</span>
           </div>
         )}
         {collapsed && !isMobile && (
-          <Sparkles size={28} style={{ color: 'var(--color-primary)' }} />
+          <Sparkles size={28} style={{ color: "var(--color-primary)" }} />
         )}
 
         <button
           onClick={() => {
             if (isMobile) {
-              onMobileOpenChange(false)
-              return
+              onMobileOpenChange(false);
+              return;
             }
-            onToggle(!collapsed)
+            onToggle(!collapsed);
           }}
           className="btn btn-ghost btn-sm"
-          aria-label={isMobile ? 'Close sidebar' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={
+            isMobile
+              ? "Close sidebar"
+              : collapsed
+                ? "Expand sidebar"
+                : "Collapse sidebar"
+          }
           style={{
-            padding: '0.5rem'
+            padding: "0.5rem",
           }}
         >
-          {isMobile ? <X size={20} /> : collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+          {isMobile ? (
+            <X size={20} />
+          ) : collapsed ? (
+            <Menu size={20} />
+          ) : (
+            <ChevronLeft size={20} />
+          )}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.25rem',
-        opacity: 1
-      }}>
+      <nav
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.25rem",
+          opacity: 1,
+        }}
+      >
         {/* Main Navigation */}
         <div style={{ flex: 1 }}>
           {filteredNavigation.mainNav.map((item, index) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href)
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href);
             return (
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
-                className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
+                className={`nav-item ${isActive ? "active" : ""} ${isPending ? "opacity-50" : ""}`}
                 disabled={isPending}
               >
                 <item.icon size={20} />
-                {(!collapsed || isMobile) && (
-                  <span>
-                    {item.name}
-                  </span>
-                )}
+                {(!collapsed || isMobile) && <span>{item.name}</span>}
               </button>
-            )
+            );
           })}
         </div>
 
         {/* Separator - only show if bottom nav has items */}
         {filteredNavigation.bottomNav.length > 0 && (
-          <div style={{
-            borderTop: '1px solid var(--color-border)',
-            marginTop: '1rem',
-            marginBottom: '1rem'
-          }} />
+          <div
+            style={{
+              borderTop: "1px solid var(--color-border)",
+              marginTop: "1rem",
+              marginBottom: "1rem",
+            }}
+          />
         )}
 
         {/* Bottom Navigation */}
         <div>
           {filteredNavigation.bottomNav.map((item, index) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href)
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href);
             return (
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item.href)}
-                className={`nav-item ${isActive ? 'active' : ''} ${isPending ? 'opacity-50' : ''}`}
+                className={`nav-item ${isActive ? "active" : ""} ${isPending ? "opacity-50" : ""}`}
                 disabled={isPending}
               >
                 <item.icon size={20} />
-                {(!collapsed || isMobile) && (
-                  <span>
-                    {item.name}
-                  </span>
-                )}
+                {(!collapsed || isMobile) && <span>{item.name}</span>}
               </button>
-            )
+            );
           })}
         </div>
       </nav>
 
       {/* Logout Section */}
-      <div style={{
-        borderTop: '1px solid var(--color-border)',
-        paddingTop: '1rem',
-        marginTop: '1rem'
-      }}>
+      <div
+        style={{
+          borderTop: "1px solid var(--color-border)",
+          paddingTop: "1rem",
+          marginTop: "1rem",
+        }}
+      >
         <button
           className="nav-item"
           style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            justifyContent: collapsed && !isMobile ? 'center' : 'flex-start'
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            justifyContent: collapsed && !isMobile ? "center" : "flex-start",
           }}
           onClick={() => {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('merchant');
-            localStorage.removeItem('user');
-            sessionStorage.removeItem('pin_verified');
-            sessionStorage.removeItem('pin_verified_at');
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("merchant");
+            localStorage.removeItem("user");
+            sessionStorage.removeItem("pin_verified");
+            sessionStorage.removeItem("pin_verified_at");
             if (isMobile) {
               onMobileOpenChange(false);
             }
-            window.location.href = '/login';
+            window.location.href = "/login";
           }}
         >
           <LogOut size={20} />
-          {(!collapsed || isMobile) && (
-            <span>
-              Logout
-            </span>
-          )}
+          {(!collapsed || isMobile) && <span>Logout</span>}
         </button>
       </div>
     </div>
-  )
+  );
 }

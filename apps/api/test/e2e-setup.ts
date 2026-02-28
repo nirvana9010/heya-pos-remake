@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
-import * as request from 'supertest';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/prisma/prisma.service";
+import * as request from "supertest";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 export class E2ETestSetup {
   app: INestApplication;
@@ -23,13 +23,13 @@ export class E2ETestSetup {
     await this.app.init();
 
     this.prisma = this.app.get<PrismaService>(PrismaService);
-    
+
     // Clean database
     await this.cleanDatabase();
-    
+
     // Setup test data
     await this.setupTestData();
-    
+
     return this;
   }
 
@@ -52,17 +52,17 @@ export class E2ETestSetup {
     // Create test merchant
     const merchant = await this.prisma.merchant.create({
       data: {
-        businessName: 'Hamilton Beauty Test',
-        contactEmail: 'test@hamiltonbeauty.com',
-        contactPhone: '+1234567890',
-        address: '123 Test Street',
-        city: 'Hamilton',
-        state: 'ON',
-        country: 'Canada',
-        postalCode: 'L8P 4S6',
-        timezone: 'America/Toronto',
-        currency: 'CAD',
-        status: 'ACTIVE',
+        businessName: "Hamilton Beauty Test",
+        contactEmail: "test@hamiltonbeauty.com",
+        contactPhone: "+1234567890",
+        address: "123 Test Street",
+        city: "Hamilton",
+        state: "ON",
+        country: "Canada",
+        postalCode: "L8P 4S6",
+        timezone: "America/Toronto",
+        currency: "CAD",
+        status: "ACTIVE",
       },
     });
     this.merchantId = merchant.id;
@@ -71,8 +71,9 @@ export class E2ETestSetup {
     await this.prisma.merchantAuth.create({
       data: {
         merchantId: merchant.id,
-        username: 'hamilton_test',
-        password: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', // secret
+        username: "hamilton_test",
+        password:
+          "$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW", // secret
       },
     });
 
@@ -80,14 +81,14 @@ export class E2ETestSetup {
     const location = await this.prisma.location.create({
       data: {
         merchantId: merchant.id,
-        name: 'Main Branch',
-        address: '123 Test Street',
-        city: 'Hamilton',
-        state: 'ON',
-        country: 'Canada',
-        postalCode: 'L8P 4S6',
-        phone: '+1234567890',
-        email: 'main@hamiltonbeauty.com',
+        name: "Main Branch",
+        address: "123 Test Street",
+        city: "Hamilton",
+        state: "ON",
+        country: "Canada",
+        postalCode: "L8P 4S6",
+        phone: "+1234567890",
+        email: "main@hamiltonbeauty.com",
         isActive: true,
       },
     });
@@ -96,12 +97,12 @@ export class E2ETestSetup {
     const staff = await this.prisma.staff.create({
       data: {
         merchantId: merchant.id,
-        email: 'staff@hamiltonbeauty.com',
-        firstName: 'Test',
-        lastName: 'Staff',
-        pin: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', // 1234
+        email: "staff@hamiltonbeauty.com",
+        firstName: "Test",
+        lastName: "Staff",
+        pin: "$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW", // 1234
         accessLevel: 2,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         hireDate: new Date(),
       },
     });
@@ -119,10 +120,10 @@ export class E2ETestSetup {
 
   async login(): Promise<string> {
     const response = await request(this.app.getHttpServer())
-      .post('/api/auth/merchant-login')
+      .post("/api/auth/merchant-login")
       .send({
-        username: 'hamilton_test',
-        password: 'secret',
+        username: "hamilton_test",
+        password: "secret",
       });
 
     this.authToken = response.body.accessToken;
@@ -131,14 +132,17 @@ export class E2ETestSetup {
 
   async loadHamiltonBeautyServices() {
     // Load CSV data
-    const csvPath = join(__dirname, '../../../test-data/hamilton-beauty-services.csv');
+    const csvPath = join(
+      __dirname,
+      "../../../test-data/hamilton-beauty-services.csv",
+    );
     const csvContent = readFileSync(csvPath);
 
     // Import services
     const response = await request(this.app.getHttpServer())
-      .post('/api/services/import/csv')
-      .set('Authorization', `Bearer ${this.authToken}`)
-      .attach('file', csvContent, 'hamilton-beauty-services.csv');
+      .post("/api/services/import/csv")
+      .set("Authorization", `Bearer ${this.authToken}`)
+      .attach("file", csvContent, "hamilton-beauty-services.csv");
 
     return response.body;
   }
@@ -146,45 +150,45 @@ export class E2ETestSetup {
   async createTestCustomers() {
     const customers = [
       {
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.johnson@email.com',
-        mobile: '+14165551001',
-        dateOfBirth: '1985-06-15',
-        gender: 'FEMALE',
-        address: '123 Queen St',
-        city: 'Hamilton',
-        state: 'ON',
-        country: 'Canada',
-        postalCode: 'L8P 1A1',
+        firstName: "Sarah",
+        lastName: "Johnson",
+        email: "sarah.johnson@email.com",
+        mobile: "+14165551001",
+        dateOfBirth: "1985-06-15",
+        gender: "FEMALE",
+        address: "123 Queen St",
+        city: "Hamilton",
+        state: "ON",
+        country: "Canada",
+        postalCode: "L8P 1A1",
         marketingConsent: true,
       },
       {
-        firstName: 'Michael',
-        lastName: 'Chen',
-        email: 'michael.chen@email.com',
-        mobile: '+14165551002',
-        dateOfBirth: '1990-03-22',
-        gender: 'MALE',
-        address: '456 King St',
-        city: 'Hamilton',
-        state: 'ON',
-        country: 'Canada',
-        postalCode: 'L8P 2B2',
+        firstName: "Michael",
+        lastName: "Chen",
+        email: "michael.chen@email.com",
+        mobile: "+14165551002",
+        dateOfBirth: "1990-03-22",
+        gender: "MALE",
+        address: "456 King St",
+        city: "Hamilton",
+        state: "ON",
+        country: "Canada",
+        postalCode: "L8P 2B2",
         marketingConsent: true,
       },
       {
-        firstName: 'Emma',
-        lastName: 'Wilson',
-        email: 'emma.wilson@email.com',
-        mobile: '+14165551003',
-        dateOfBirth: '1992-11-08',
-        gender: 'FEMALE',
-        address: '789 Main St',
-        city: 'Hamilton',
-        state: 'ON',
-        country: 'Canada',
-        postalCode: 'L8P 3C3',
+        firstName: "Emma",
+        lastName: "Wilson",
+        email: "emma.wilson@email.com",
+        mobile: "+14165551003",
+        dateOfBirth: "1992-11-08",
+        gender: "FEMALE",
+        address: "789 Main St",
+        city: "Hamilton",
+        state: "ON",
+        country: "Canada",
+        postalCode: "L8P 3C3",
         marketingConsent: false,
       },
     ];
@@ -192,10 +196,10 @@ export class E2ETestSetup {
     const createdCustomers = [];
     for (const customer of customers) {
       const response = await request(this.app.getHttpServer())
-        .post('/api/customers')
-        .set('Authorization', `Bearer ${this.authToken}`)
+        .post("/api/customers")
+        .set("Authorization", `Bearer ${this.authToken}`)
         .send(customer);
-      
+
       createdCustomers.push(response.body);
     }
 

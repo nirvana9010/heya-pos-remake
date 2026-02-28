@@ -3,6 +3,7 @@
 ## Navigation Freeze Fix Implementation
 
 ### Problem Identified
+
 The merchant app experienced significant navigation freezes when switching between pages, particularly when navigating to the Customers page. The root causes were:
 
 1. **Massive synchronous imports**: The Customers page imported 39 Lucide icons at the module level
@@ -13,30 +14,36 @@ The merchant app experienced significant navigation freezes when switching betwe
 ### Solutions Implemented
 
 #### 1. Optimized Customers Page
+
 - **Dynamic imports**: Heavy components (Dialog, Select, Tabs) are now lazy-loaded
 - **Icon optimization**: Only essential icons imported directly, others lazy-loaded
-- **Progressive data loading**: 
+- **Progressive data loading**:
   - Customers load first (fast)
   - Bookings load in the background
   - Data processed in chunks using `requestAnimationFrame`
 - **Efficient state management**: Separated initial load from data updates
 
 #### 2. Loading States
+
 Created loading.tsx files for heavy pages:
+
 - `/app/customers/loading.tsx`
-- `/app/bookings/loading.tsx` 
+- `/app/bookings/loading.tsx`
 - `/app/staff/loading.tsx`
 - `/app/reports/loading.tsx`
 
 These provide immediate visual feedback while the page loads.
 
 #### 3. Sidebar Navigation Improvements
+
 - Added `requestAnimationFrame` for navigation timing
 - Implemented loading states during navigation
 - Added route prefetching for faster transitions
 
 #### 4. Performance Utilities
+
 Created `/lib/performance-utils.ts` with helpers for:
+
 - **processInChunks**: Process large datasets without blocking UI
 - **debounce**: Optimize search/filter operations
 - **deferredComputation**: Defer heavy computations until browser is idle
@@ -45,7 +52,9 @@ Created `/lib/performance-utils.ts` with helpers for:
 - **getVisibleItems**: Virtual scrolling for large lists
 
 #### 5. Next.js Configuration
+
 Enhanced `next.config.js` with:
+
 - Aggressive code splitting
 - Vendor chunk optimization
 - UI library separation
@@ -54,6 +63,7 @@ Enhanced `next.config.js` with:
 ### Key Patterns for Future Development
 
 #### 1. Import Optimization
+
 ```typescript
 // BAD - Imports everything
 import { Icon1, Icon2, Icon3, ... Icon39 } from 'lucide-react';
@@ -66,6 +76,7 @@ const OtherIcons = dynamic(() => import('./other-icons'), { ssr: false });
 ```
 
 #### 2. Progressive Data Loading
+
 ```typescript
 // BAD - Load everything at once
 useEffect(() => {
@@ -78,7 +89,7 @@ useEffect(() => {
   // Load critical data first
   const customers = await loadCustomers();
   setCustomers(customers);
-  
+
   // Load heavy data in background
   requestIdleCallback(() => {
     loadBookingsInBackground();
@@ -87,9 +98,10 @@ useEffect(() => {
 ```
 
 #### 3. Chunk Processing
+
 ```typescript
 // BAD - Process all at once
-bookings.forEach(booking => {
+bookings.forEach((booking) => {
   // Heavy processing
 });
 
@@ -100,6 +112,7 @@ processInChunks(bookings, processBooking, 100, (progress, total) => {
 ```
 
 #### 4. Component Splitting
+
 ```typescript
 // BAD - One giant component (1200+ lines)
 export default function CustomersPage() {
@@ -107,9 +120,9 @@ export default function CustomersPage() {
 }
 
 // GOOD - Split into smaller components
-const CustomerList = dynamic(() => import('./CustomerList'));
-const CustomerDialog = dynamic(() => import('./CustomerDialog'));
-const CustomerStats = dynamic(() => import('./CustomerStats'));
+const CustomerList = dynamic(() => import("./CustomerList"));
+const CustomerDialog = dynamic(() => import("./CustomerDialog"));
+const CustomerStats = dynamic(() => import("./CustomerStats"));
 ```
 
 ### Performance Metrics to Monitor
@@ -122,11 +135,13 @@ const CustomerStats = dynamic(() => import('./CustomerStats'));
 ### Testing Performance
 
 1. **Chrome DevTools**:
+
    - Performance tab: Record navigation between pages
    - Network tab: Check bundle sizes
    - Coverage tab: Find unused code
 
 2. **Lighthouse**:
+
    ```bash
    npm run build
    npm run start

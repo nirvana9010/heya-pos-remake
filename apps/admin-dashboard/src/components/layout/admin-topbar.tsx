@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { Bell, Shield, User } from 'lucide-react'
+import { Bell, Shield, User } from "lucide-react";
 import {
   Button,
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
   AvatarFallback,
   AvatarImage,
   Badge,
-} from '@heya-pos/ui'
+} from "@heya-pos/ui";
 
 export function AdminTopbar() {
   return (
@@ -88,9 +88,7 @@ export function AdminTopbar() {
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Security Settings
-            </DropdownMenuItem>
+            <DropdownMenuItem>Security Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-600">
               Log out
@@ -99,5 +97,5 @@ export function AdminTopbar() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

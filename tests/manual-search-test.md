@@ -21,6 +21,7 @@
 ## What to check:
 
 1. If you see the ❌ error log, check the error details for:
+
    - error.message
    - error.response (might indicate API response)
    - error.config (shows the API request config)
@@ -36,6 +37,7 @@
 ## Current hypothesis:
 
 Based on the code investigation, the customer search should work like this:
+
 1. User types in the search input
 2. After 300ms debounce, `searchCustomers` is called
 3. It should call `apiClient.searchCustomers(query)`

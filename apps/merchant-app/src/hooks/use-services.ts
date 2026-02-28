@@ -1,28 +1,31 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { useToast } from '@heya-pos/ui';
-import { prefetchManager } from '@/lib/prefetch';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@heya-pos/ui";
+import { prefetchManager } from "@/lib/prefetch";
 import type {
   CreateServiceRequest,
   UpdateServiceRequest,
   CreateCategoryRequest,
   UpdateCategoryRequest,
-} from '@/lib/clients/services-client';
+} from "@/lib/clients/services-client";
 import {
   mapApiServicesToRecords,
   mapApiCategoriesToRecords,
-} from '@/lib/normalizers/service';
-import type { ServiceRecord, ServiceCategoryRecord } from '@/lib/normalizers/service';
+} from "@/lib/normalizers/service";
+import type {
+  ServiceRecord,
+  ServiceCategoryRecord,
+} from "@/lib/normalizers/service";
 
 // Query keys
 export const servicesKeys = {
-  all: ['services'] as const,
-  services: () => [...servicesKeys.all, 'list'] as const,
-  service: (id: string) => [...servicesKeys.all, 'detail', id] as const,
-  categories: () => [...servicesKeys.all, 'categories'] as const,
-  counts: () => [...servicesKeys.all, 'counts'] as const,
+  all: ["services"] as const,
+  services: () => [...servicesKeys.all, "list"] as const,
+  service: (id: string) => [...servicesKeys.all, "detail", id] as const,
+  categories: () => [...servicesKeys.all, "categories"] as const,
+  counts: () => [...servicesKeys.all, "counts"] as const,
 };
 
 interface ServicesMeta {
@@ -52,7 +55,7 @@ export function useServices(params?: {
   categoryId?: string;
   isActive?: boolean;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }) {
   const queryKey = [...servicesKeys.services(), params];
 
@@ -76,7 +79,7 @@ export function useCategories() {
     queryKey: servicesKeys.categories(),
     queryFn: async () => {
       // Check prefetch cache first
-      const cached = prefetchManager.getCached('services');
+      const cached = prefetchManager.getCached("services");
       if (cached?.categories) {
         // Return cached data immediately, React Query will refetch in background
         return cached.categories as ServiceCategoryRecord[];
@@ -96,18 +99,18 @@ export function useServiceCounts() {
     queryFn: async () => {
       const response = await apiClient.getServices({ limit: 1000 });
       const services = mapApiServicesToRecords(response?.data);
-      
+
       // Calculate counts per category
       const counts: Record<string, number> = {};
-      services.forEach(service => {
+      services.forEach((service) => {
         if (service.categoryId) {
           counts[service.categoryId] = (counts[service.categoryId] || 0) + 1;
         }
       });
-      
+
       return {
         counts,
-        total: services.length
+        total: services.length,
       };
     },
     staleTime: 30 * 1000, // 30 seconds
@@ -116,8 +119,8 @@ export function useServiceCounts() {
 }
 
 // Combined hook for both services and categories
-export function useServicesData(params?: { 
-  page?: number; 
+export function useServicesData(params?: {
+  page?: number;
   limit?: number;
   searchTerm?: string;
   categoryId?: string;
@@ -137,8 +140,12 @@ export function useServicesData(params?: {
     serviceCounts: countsQuery.data?.counts ?? {},
     totalServices: countsQuery.data?.total ?? services.length,
     meta,
-    isLoading: servicesQuery.isLoading || categoriesQuery.isLoading || countsQuery.isLoading,
-    isError: servicesQuery.isError || categoriesQuery.isError || countsQuery.isError,
+    isLoading:
+      servicesQuery.isLoading ||
+      categoriesQuery.isLoading ||
+      countsQuery.isLoading,
+    isError:
+      servicesQuery.isError || categoriesQuery.isError || countsQuery.isError,
     error: servicesQuery.error || categoriesQuery.error || countsQuery.error,
     refetch: () => {
       servicesQuery.refetch();
@@ -156,21 +163,21 @@ export function useCreateService() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateServiceRequest) =>
-      apiClient.createService(data),
+    mutationFn: (data: CreateServiceRequest) => apiClient.createService(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
       queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       toast({
-        title: 'Success',
-        description: 'Service created successfully',
+        title: "Success",
+        description: "Service created successfully",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to create service',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to create service",
+        variant: "destructive",
       });
     },
   });
@@ -186,8 +193,8 @@ export function useUpdateService() {
       const payload: UpdateServiceRequest = { ...data };
       if (
         !payload.idempotencyKey &&
-        typeof crypto !== 'undefined' &&
-        typeof crypto.randomUUID === 'function'
+        typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
       ) {
         payload.idempotencyKey = crypto.randomUUID();
       }
@@ -198,15 +205,16 @@ export function useUpdateService() {
       queryClient.invalidateQueries({ queryKey: servicesKeys.service(id) });
       queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       toast({
-        title: 'Success',
-        description: 'Service updated successfully',
+        title: "Success",
+        description: "Service updated successfully",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to update service',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to update service",
+        variant: "destructive",
       });
     },
   });
@@ -224,17 +232,18 @@ export function useDeleteService(options?: { suppressToast?: boolean }) {
       queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
       if (!options?.suppressToast) {
         toast({
-          title: 'Success',
-          description: 'Service deleted successfully',
+          title: "Success",
+          description: "Service deleted successfully",
         });
       }
     },
     onError: (error: any) => {
       if (!options?.suppressToast) {
         toast({
-          title: 'Error',
-          description: error.response?.data?.message || 'Failed to delete service',
-          variant: 'destructive',
+          title: "Error",
+          description:
+            error.response?.data?.message || "Failed to delete service",
+          variant: "destructive",
         });
       }
     },
@@ -247,21 +256,23 @@ export function useCreateCategory() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateCategoryRequest) =>
-      apiClient.createCategory(data),
+    mutationFn: (data: CreateCategoryRequest) => apiClient.createCategory(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+      await queryClient.invalidateQueries({
+        queryKey: servicesKeys.categories(),
+      });
       queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
       toast({
-        title: 'Success',
-        description: 'Category created successfully',
+        title: "Success",
+        description: "Category created successfully",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to create category',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to create category",
+        variant: "destructive",
       });
     },
   });
@@ -276,18 +287,21 @@ export function useUpdateCategory() {
     mutationFn: ({ id, data }: { id: string; data: UpdateCategoryRequest }) =>
       apiClient.updateCategory(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
+      await queryClient.invalidateQueries({
+        queryKey: servicesKeys.categories(),
+      });
       queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
       toast({
-        title: 'Success',
-        description: 'Category updated successfully',
+        title: "Success",
+        description: "Category updated successfully",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to update category',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to update category",
+        variant: "destructive",
       });
     },
   });
@@ -302,23 +316,28 @@ export function useDeleteCategory() {
     mutationFn: (id: string) => apiClient.deleteCategory(id),
     onSuccess: async () => {
       // Invalidate and refetch to ensure immediate update
-      await queryClient.invalidateQueries({ queryKey: servicesKeys.categories() });
-      await queryClient.invalidateQueries({ queryKey: servicesKeys.services() });
+      await queryClient.invalidateQueries({
+        queryKey: servicesKeys.categories(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: servicesKeys.services(),
+      });
       await queryClient.invalidateQueries({ queryKey: servicesKeys.counts() }); // Invalidate counts
-      
+
       // Force refetch categories to ensure immediate UI update
       queryClient.refetchQueries({ queryKey: servicesKeys.categories() });
-      
+
       toast({
-        title: 'Success',
-        description: 'Category deleted successfully',
+        title: "Success",
+        description: "Category deleted successfully",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to delete category',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to delete category",
+        variant: "destructive",
       });
     },
   });

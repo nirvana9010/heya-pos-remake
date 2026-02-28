@@ -7,11 +7,13 @@ This guide outlines our API versioning strategy for the Heya POS API. We use URL
 ## Versioning Strategy
 
 ### URL-Based Versioning
+
 - Format: `/api/v{version}/{resource}`
 - Example: `/api/v1/bookings`, `/api/v2/bookings`
 - Default version: `v1` (for backward compatibility)
 
 ### Why URL Versioning?
+
 1. **Explicit and Clear**: Version is visible in logs, browser history, and analytics
 2. **Simple for Consumers**: Easy to test with browsers, curl, and non-technical stakeholders
 3. **Cache-Friendly**: Different versions have distinct URLs for HTTP caches
@@ -49,12 +51,12 @@ src/
 ```typescript
 // v1 Controller
 @Controller({
-  path: 'bookings',
-  version: '1', // Explicitly set version
+  path: "bookings",
+  version: "1", // Explicitly set version
 })
 export class BookingsV1Controller {
   constructor(private readonly bookingsService: BookingsService) {}
-  
+
   @Get()
   async findAll() {
     // v1 implementation
@@ -63,12 +65,12 @@ export class BookingsV1Controller {
 
 // v2 Controller
 @Controller({
-  path: 'bookings',
-  version: '2',
+  path: "bookings",
+  version: "2",
 })
 export class BookingsV2Controller {
   constructor(private readonly bookingsService: BookingsService) {}
-  
+
   @Get()
   async findAll() {
     // v2 implementation with enhanced features
@@ -85,10 +87,10 @@ Each version should have its own DTOs to maintain type safety and clear document
 export class CreateBookingV1Dto {
   @IsString()
   customerId: string;
-  
+
   @IsString()
   serviceId: string;
-  
+
   @IsDateString()
   startTime: string;
 }
@@ -112,12 +114,12 @@ export class BookingsService {
   async findAll(filters: BookingFilters) {
     return this.bookingRepository.findMany(filters);
   }
-  
+
   // Version-specific methods when needed
   async createV1(dto: CreateBookingV1Dto) {
     // v1 logic
   }
-  
+
   async createV2(dto: CreateBookingV2Dto) {
     // v2 logic with additional features
   }
@@ -144,21 +146,25 @@ export class BookingsModule {}
 ## Version Lifecycle
 
 ### 1. Active Development (v1)
+
 - Current stable version
 - Receives bug fixes and non-breaking improvements
 - All new consumers should use this version
 
 ### 2. Feature Development (v2)
+
 - Next version under development
 - May contain breaking changes
 - Available for early adopters and testing
 
 ### 3. Deprecated (v0)
+
 - Marked for removal
 - Returns deprecation headers
 - Documentation updated with migration guide
 
 ### 4. Sunset
+
 - Version removed after deprecation period
 - Returns 410 Gone status
 - Clients must upgrade
@@ -166,6 +172,7 @@ export class BookingsModule {}
 ## Breaking vs Non-Breaking Changes
 
 ### Non-Breaking Changes (No Version Bump)
+
 - Adding optional fields to responses
 - Adding new endpoints
 - Adding optional query parameters
@@ -173,6 +180,7 @@ export class BookingsModule {}
 - Bug fixes
 
 ### Breaking Changes (Requires New Version)
+
 - Removing or renaming fields
 - Changing field types
 - Changing required fields
@@ -190,16 +198,19 @@ When introducing a new version, create a migration guide:
 ## Breaking Changes
 
 ### 1. Field Renamed: `startTime` → `scheduledAt`
+
 **v1**: `{ "startTime": "2024-01-01T10:00:00Z" }`
 **v2**: `{ "scheduledAt": "2024-01-01T10:00:00Z" }`
 
 ### 2. New Required Field: `locationId`
+
 **v1**: Not required
 **v2**: `{ "locationId": "uuid" }` - Must specify booking location
 
 ## New Features
 
 ### 1. Reminder System
+
 - Optional `sendReminder` field
 - Automatic SMS/email notifications
 
@@ -217,30 +228,30 @@ When introducing a new version, create a migration guide:
 ### Integration Tests
 
 ```typescript
-describe('Bookings API Versioning', () => {
-  it('should handle v1 request format', async () => {
+describe("Bookings API Versioning", () => {
+  it("should handle v1 request format", async () => {
     const response = await request(app.getHttpServer())
-      .post('/api/v1/bookings')
+      .post("/api/v1/bookings")
       .send(v1BookingData)
       .expect(201);
-      
+
     expect(response.body).toMatchV1Schema();
   });
-  
-  it('should handle v2 request format', async () => {
+
+  it("should handle v2 request format", async () => {
     const response = await request(app.getHttpServer())
-      .post('/api/v2/bookings')
+      .post("/api/v2/bookings")
       .send(v2BookingData)
       .expect(201);
-      
+
     expect(response.body).toMatchV2Schema();
   });
-  
-  it('should use v1 as default version', async () => {
+
+  it("should use v1 as default version", async () => {
     const response = await request(app.getHttpServer())
-      .get('/api/bookings') // No version specified
+      .get("/api/bookings") // No version specified
       .expect(200);
-      
+
     expect(response.body).toMatchV1Schema();
   });
 });
@@ -254,14 +265,14 @@ When a version is deprecated, include headers:
 
 ```typescript
 @Controller({
-  path: 'bookings',
-  version: '0', // Deprecated version
+  path: "bookings",
+  version: "0", // Deprecated version
 })
 export class BookingsV0Controller {
   @Get()
-  @Header('Sunset', 'Sat, 1 June 2024 00:00:00 GMT')
-  @Header('Deprecation', 'true')
-  @Header('Link', '</api/v1/bookings>; rel="successor-version"')
+  @Header("Sunset", "Sat, 1 June 2024 00:00:00 GMT")
+  @Header("Deprecation", "true")
+  @Header("Link", '</api/v1/bookings>; rel="successor-version"')
   async findAll() {
     // Legacy implementation
   }
@@ -273,17 +284,17 @@ export class BookingsV0Controller {
 Provide an endpoint for version discovery:
 
 ```typescript
-@Controller('versions')
+@Controller("versions")
 @Public()
 export class VersionsController {
   @Get()
   getVersions() {
     return {
-      current: 'v1',
-      supported: ['v1', 'v2'],
-      deprecated: ['v0'],
+      current: "v1",
+      supported: ["v1", "v2"],
+      deprecated: ["v0"],
       sunset: {
-        v0: '2024-06-01T00:00:00Z',
+        v0: "2024-06-01T00:00:00Z",
       },
     };
   }
@@ -310,15 +321,15 @@ Track version usage to make informed decisions:
 export class VersioningInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
     const request = context.switchToHttp().getRequest();
-    const version = request.version || '1';
-    
+    const version = request.version || "1";
+
     // Log version usage
-    this.analytics.track('api.version.used', {
+    this.analytics.track("api.version.used", {
       version,
       endpoint: request.url,
       method: request.method,
     });
-    
+
     return next.handle();
   }
 }

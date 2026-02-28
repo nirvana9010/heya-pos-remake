@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../api-client';
-import { notificationKeys } from './use-bookings';
-import React from 'react';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../../api-client";
+import { notificationKeys } from "./use-bookings";
+import React from "react";
 
 /**
  * Hook to fetch merchant notifications
@@ -14,17 +14,18 @@ export function useNotifications(params?: {
   // PERFORMANCE FIX: Increased interval from 10s to 60s to reduce server load
   // This still provides timely updates while dramatically reducing API calls
   const pollingInterval = 60 * 1000; // 60 seconds (was 10 seconds)
-  
+
   // Track if tab is visible
   const [isTabVisible, setIsTabVisible] = React.useState(!document.hidden);
-  
+
   React.useEffect(() => {
     const handleVisibilityChange = () => {
       setIsTabVisible(!document.hidden);
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   const queryInfo = useQuery({
@@ -34,9 +35,10 @@ export function useNotifications(params?: {
         ...params,
         take: params?.take || 50, // Fetch last 50 notifications by default
       };
-      
-      const result = await apiClient.notifications.getNotifications(fetchParams);
-      
+
+      const result =
+        await apiClient.notifications.getNotifications(fetchParams);
+
       return result;
     },
     staleTime: 0, // Always consider data stale to force fresh fetches
@@ -44,7 +46,7 @@ export function useNotifications(params?: {
     refetchInterval: isTabVisible ? pollingInterval : false, // CRITICAL FIX: Only poll when tab is visible
     refetchIntervalInBackground: false, // CRITICAL FIX: Disabled background polling to reduce server load
     refetchOnWindowFocus: true, // Refetch when tab becomes active
-    refetchOnMount: 'always', // Always refetch on mount
+    refetchOnMount: "always", // Always refetch on mount
     retry: 1,
     retryDelay: 5000,
     structuralSharing: false, // Disable structural sharing to force new object references
@@ -61,7 +63,7 @@ export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (notificationId: string) => 
+    mutationFn: (notificationId: string) =>
       apiClient.notifications.markAsRead(notificationId),
     onSuccess: () => {
       // Invalidate notifications to refetch
@@ -92,7 +94,7 @@ export function useDeleteNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (notificationId: string) => 
+    mutationFn: (notificationId: string) =>
       apiClient.notifications.deleteNotification(notificationId),
     onSuccess: () => {
       // Invalidate notifications to refetch

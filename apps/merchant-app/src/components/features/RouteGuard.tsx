@@ -1,13 +1,16 @@
-import React, { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useFeatures } from '../../lib/features/feature-service';
+import React, { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useFeatures } from "../../lib/features/feature-service";
 
 interface RouteGuardProps {
   children: React.ReactNode;
   fallbackRoute?: string;
 }
 
-export function RouteGuard({ children, fallbackRoute = '/check-in' }: RouteGuardProps) {
+export function RouteGuard({
+  children,
+  fallbackRoute = "/check-in",
+}: RouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { canAccessRoute, loading, features } = useFeatures();

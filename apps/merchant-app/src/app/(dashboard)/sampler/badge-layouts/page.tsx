@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { cn } from '@heya-pos/ui';
-import { Heart, Globe2, Check, Shield } from 'lucide-react';
+import React from "react";
+import { cn } from "@heya-pos/ui";
+import { Heart, Globe2, Check, Shield } from "lucide-react";
 
-type BadgeLayoutVariant = 'stacked' | 'row' | 'rowWrap' | 'iconOnly' | 'split';
+type BadgeLayoutVariant = "stacked" | "row" | "rowWrap" | "iconOnly" | "split";
 
 interface MockTileConfig {
   id: string;
@@ -15,50 +15,51 @@ interface MockTileConfig {
 
 const TILE_VARIANTS: MockTileConfig[] = [
   {
-    id: 'stacked',
-    title: 'Current – Vertical Stack',
-    description: 'Badges sit in a column on the right. Highest vertical cost.',
-    variant: 'stacked',
+    id: "stacked",
+    title: "Current – Vertical Stack",
+    description: "Badges sit in a column on the right. Highest vertical cost.",
+    variant: "stacked",
   },
   {
-    id: 'row',
-    title: 'Horizontal Row',
-    description: 'All badges collapse into a single right-aligned row.',
-    variant: 'row',
+    id: "row",
+    title: "Horizontal Row",
+    description: "All badges collapse into a single right-aligned row.",
+    variant: "row",
   },
   {
-    id: 'rowWrap',
-    title: 'Row w/ Wrap',
-    description: 'Row layout that allows wrapping on very narrow tiles.',
-    variant: 'rowWrap',
+    id: "rowWrap",
+    title: "Row w/ Wrap",
+    description: "Row layout that allows wrapping on very narrow tiles.",
+    variant: "rowWrap",
   },
   {
-    id: 'iconOnly',
-    title: 'Icon‑Only',
-    description: 'Use icons (heart / globe) only; no text labels.',
-    variant: 'iconOnly',
+    id: "iconOnly",
+    title: "Icon‑Only",
+    description: "Use icons (heart / globe) only; no text labels.",
+    variant: "iconOnly",
   },
   {
-    id: 'split',
-    title: 'Split Corners',
-    description: 'Source badge bottom-right, status bottom-left, heart top-right.',
-    variant: 'split',
+    id: "split",
+    title: "Split Corners",
+    description:
+      "Source badge bottom-right, status bottom-left, heart top-right.",
+    variant: "split",
   },
 ];
 
 const TILE_HEIGHTS = [
-  { label: 'Short (70px)', height: 70 },
-  { label: 'Medium (120px)', height: 120 },
-  { label: 'Tall (180px)', height: 180 },
+  { label: "Short (70px)", height: 70 },
+  { label: "Medium (120px)", height: 120 },
+  { label: "Tall (180px)", height: 180 },
 ];
 
 const SAMPLE_BOOKING = {
-  time: '10:45 AM',
+  time: "10:45 AM",
   duration: 45,
-  customer: 'Charlotte Nguyen',
-  service: 'Balayage & Gloss Refresh',
-  staff: 'Liam Harper',
-  notes: 'Prefers a warmer tone; mentioned mild scalp sensitivity.',
+  customer: "Charlotte Nguyen",
+  service: "Balayage & Gloss Refresh",
+  staff: "Liam Harper",
+  notes: "Prefers a warmer tone; mentioned mild scalp sensitivity.",
 };
 
 export default function BadgeLayoutsPage(): JSX.Element {
@@ -67,8 +68,9 @@ export default function BadgeLayoutsPage(): JSX.Element {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold">Badge Layout Mockups</h1>
         <p className="text-sm text-muted-foreground">
-          Each row shows the same badge arrangement rendered on tiles with different heights.
-          Use this playground to compare the information density we reclaim with each approach.
+          Each row shows the same badge arrangement rendered on tiles with
+          different heights. Use this playground to compare the information
+          density we reclaim with each approach.
         </p>
       </header>
 
@@ -77,14 +79,21 @@ export default function BadgeLayoutsPage(): JSX.Element {
           <section key={variant.id} className="space-y-4">
             <div>
               <h2 className="text-xl font-semibold">{variant.title}</h2>
-              <p className="text-sm text-muted-foreground">{variant.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {variant.description}
+              </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               {TILE_HEIGHTS.map(({ label, height }) => (
                 <article key={label} className="flex flex-col gap-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-                  <MockBookingTile layout={variant.variant} minHeight={height} />
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {label}
+                  </p>
+                  <MockBookingTile
+                    layout={variant.variant}
+                    minHeight={height}
+                  />
                 </article>
               ))}
             </div>
@@ -108,17 +117,23 @@ function MockBookingTile({ layout, minHeight }: MockBookingTileProps) {
       <p className="text-xs font-semibold leading-snug text-white truncate">
         {SAMPLE_BOOKING.customer}
       </p>
-      <p className="text-[11px] text-white/75 truncate">{SAMPLE_BOOKING.service}</p>
+      <p className="text-[11px] text-white/75 truncate">
+        {SAMPLE_BOOKING.service}
+      </p>
     </div>
   ) : (
     <div className="space-y-1.5 pr-6">
       <time className="text-xs font-medium tracking-wide text-slate-200/80">
         {SAMPLE_BOOKING.time} • {SAMPLE_BOOKING.duration}m
       </time>
-      <p className="text-sm font-semibold leading-snug">{SAMPLE_BOOKING.customer}</p>
+      <p className="text-sm font-semibold leading-snug">
+        {SAMPLE_BOOKING.customer}
+      </p>
       <p className="text-xs text-slate-200/80">{SAMPLE_BOOKING.service}</p>
       <p className="text-xs text-slate-200/60">{SAMPLE_BOOKING.staff}</p>
-      <p className="text-xs text-slate-200/50 line-clamp-2">{SAMPLE_BOOKING.notes}</p>
+      <p className="text-xs text-slate-200/50 line-clamp-2">
+        {SAMPLE_BOOKING.notes}
+      </p>
     </div>
   );
 
@@ -151,8 +166,8 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
       <span
         key="preferred"
         className={cn(
-          'inline-flex items-center justify-center rounded-full bg-rose-500 text-white shadow',
-          compact ? 'h-5 w-5' : 'h-6 w-6'
+          "inline-flex items-center justify-center rounded-full bg-rose-500 text-white shadow",
+          compact ? "h-5 w-5" : "h-6 w-6",
         )}
       >
         <Heart className="h-3 w-3" strokeWidth={2.2} fill="currentColor" />
@@ -162,8 +177,8 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
       <span
         key="source"
         className={cn(
-          'inline-flex items-center whitespace-nowrap rounded-full bg-sky-100 text-[10px] font-semibold uppercase tracking-wide text-sky-700 shadow',
-          compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'
+          "inline-flex items-center whitespace-nowrap rounded-full bg-sky-100 text-[10px] font-semibold uppercase tracking-wide text-sky-700 shadow",
+          compact ? "px-1.5 py-0.5" : "px-2 py-0.5",
         )}
       >
         <Globe2 className="mr-1 h-3 w-3" />
@@ -182,7 +197,7 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
   };
 
   switch (layout) {
-    case 'stacked':
+    case "stacked":
       return (
         <div className="absolute bottom-2 right-2 flex flex-col items-end gap-1">
           {badges.preferred}
@@ -191,7 +206,7 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
         </div>
       );
 
-    case 'row':
+    case "row":
       return (
         <div className="absolute bottom-2 right-2 flex flex-row-reverse items-center gap-1">
           {badges.preferred}
@@ -200,7 +215,7 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
         </div>
       );
 
-    case 'rowWrap':
+    case "rowWrap":
       return (
         <div className="absolute bottom-2 right-2 flex max-w-[140px] flex-row-reverse flex-wrap items-center gap-1">
           {badges.preferred}
@@ -209,7 +224,7 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
         </div>
       );
 
-    case 'iconOnly':
+    case "iconOnly":
       return (
         <div className="absolute bottom-2 right-2 flex flex-row-reverse items-center gap-1">
           {badges.preferred}
@@ -219,7 +234,7 @@ function renderBadgeCluster(layout: BadgeLayoutVariant, compact: boolean) {
         </div>
       );
 
-    case 'split':
+    case "split":
     default:
       return (
         <>

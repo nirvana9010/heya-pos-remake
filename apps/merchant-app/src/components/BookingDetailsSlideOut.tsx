@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, memo, useRef, useCallback } from "react";
-import { useNotifications } from '@/contexts/notifications-context';
-import { 
+import { useNotifications } from "@/contexts/notifications-context";
+import {
   X,
-  Clock, 
+  Clock,
   Phone,
   Mail,
   DollarSign,
@@ -23,12 +23,18 @@ import {
   Loader2,
   Plus,
   Minus,
-  Heart
+  Heart,
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Textarea } from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Separator } from "@heya-pos/ui";
@@ -44,19 +50,19 @@ import { usePermissions } from "@/lib/auth/auth-provider";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
-import { getBookingSourcePresentation } from '@/components/calendar/refactored/booking-source';
-import type { BookingSourceCategory } from '@/lib/booking-source';
-import type { Customer } from '@/components/customers';
-import { WALK_IN_CUSTOMER_ID } from '@/lib/constants/customer';
+import { getBookingSourcePresentation } from "@/components/calendar/refactored/booking-source";
+import type { BookingSourceCategory } from "@/lib/booking-source";
+import type { Customer } from "@/components/customers";
+import { WALK_IN_CUSTOMER_ID } from "@/lib/constants/customer";
 
 // Format phone number for display - converts +61 to Australian local format
 const formatPhoneNumber = (value: string | undefined | null): string => {
   if (!value) {
-    return '';
+    return "";
   }
 
   const trimmed = value.trim();
-  const digits = trimmed.replace(/\D/g, '');
+  const digits = trimmed.replace(/\D/g, "");
 
   if (!digits) {
     return trimmed;
@@ -65,26 +71,26 @@ const formatPhoneNumber = (value: string | undefined | null): string => {
   let normalized = digits;
 
   // Convert +61 format to local format
-  if (digits.startsWith('61') && digits.length >= 9) {
+  if (digits.startsWith("61") && digits.length >= 9) {
     const withoutCountryCode = digits.slice(2);
-    normalized = withoutCountryCode.startsWith('0')
+    normalized = withoutCountryCode.startsWith("0")
       ? withoutCountryCode
       : `0${withoutCountryCode}`;
   }
 
   // Format mobile numbers (04xx xxx xxx)
-  if (normalized.length === 10 && normalized.startsWith('04')) {
-    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+  if (normalized.length === 10 && normalized.startsWith("04")) {
+    return normalized.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3");
   }
 
   // Format landline numbers (0x xxxx xxxx)
   if (normalized.length === 10 && /^0[2378]/.test(normalized)) {
-    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3');
+    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, "$1 $2 $3");
   }
 
   // Keep +61 format but add spacing
-  if (trimmed.startsWith('+61')) {
-    const localPortion = trimmed.slice(3).replace(/\s+/g, '');
+  if (trimmed.startsWith("+61")) {
+    const localPortion = trimmed.slice(3).replace(/\s+/g, "");
     if (localPortion.length >= 3) {
       return `+61 ${localPortion}`;
     }
@@ -117,7 +123,14 @@ interface BookingDetailsSlideOutProps {
     staffId: string;
     startTime: Date;
     endTime: Date;
-    status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "no-show" | "deleted";
+    status:
+      | "pending"
+      | "confirmed"
+      | "in-progress"
+      | "completed"
+      | "cancelled"
+      | "no-show"
+      | "deleted";
     isPaid: boolean;
     totalPrice: number;
     paidAmount?: number; // Actual amount paid (may differ from totalPrice due to adjustments)
@@ -129,12 +142,28 @@ interface BookingDetailsSlideOutProps {
     customerRequestedStaff?: boolean;
   };
   staff: Array<{ id: string; name: string; color: string }>;
-  services?: Array<{ id: string; name: string; price: number; duration: number; categoryName?: string }>;
-  customers?: Array<{ id: string; name: string; phone: string; mobile?: string; email?: string }>;
+  services?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+    categoryName?: string;
+  }>;
+  customers?: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    mobile?: string;
+    email?: string;
+  }>;
   onSave: (booking: any) => void;
   onDelete: (bookingId: string) => void;
   onStatusChange: (bookingId: string, status: string) => void;
-  onPaymentStatusChange: (bookingId: string, isPaid: boolean, paidAmount?: number) => void;
+  onPaymentStatusChange: (
+    bookingId: string,
+    isPaid: boolean,
+    paidAmount?: number,
+  ) => void;
 }
 
 interface EditedCustomer {
@@ -155,14 +184,14 @@ function BookingDetailsSlideOutComponent({
   onSave,
   onDelete,
   onStatusChange,
-  onPaymentStatusChange
+  onPaymentStatusChange,
 }: BookingDetailsSlideOutProps) {
   const { can } = usePermissions();
   // Track booking prop changes
   useEffect(() => {
     if (booking) {
       const servicesCount = booking.services?.length || 0;
-      const hasMultiServiceName = booking.serviceName?.includes(' + ');
+      const hasMultiServiceName = booking.serviceName?.includes(" + ");
 
       if (servicesCount === 1 && hasMultiServiceName) {
         // Potential prop mismatch: Multi-service name but only one service
@@ -176,36 +205,44 @@ function BookingDetailsSlideOutComponent({
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any>(null);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] =
+    useState<any>(null);
   const [associatedOrder, setAssociatedOrder] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [orderRefetchTrigger, setOrderRefetchTrigger] = useState(0);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const sourcePresentation = getBookingSourcePresentation(booking.source, booking.customerSource);
+  const sourcePresentation = getBookingSourcePresentation(
+    booking.source,
+    booking.customerSource,
+  );
   const SourceIcon = sourcePresentation.icon;
   const [editedCustomer, setEditedCustomer] = useState<EditedCustomer>(() => ({
-    id: booking.customerId || '',
+    id: booking.customerId || "",
     name: booking.customerName,
     phone: booking.customerPhone,
     email: booking.customerEmail,
-    isWalkIn: booking.customerSource === 'WALK_IN',
+    isWalkIn: booking.customerSource === "WALK_IN",
   }));
-  const showSourceBadge = sourcePresentation.category !== 'unknown';
+  const showSourceBadge = sourcePresentation.category !== "unknown";
   const customerChanged =
-    editedCustomer.id !== (booking.customerId || '') ||
+    editedCustomer.id !== (booking.customerId || "") ||
     (editedCustomer.isWalkIn && booking.customerId !== WALK_IN_CUSTOMER_ID);
-  const displayedCustomerName = isEditing ? editedCustomer.name : booking.customerName;
-  const [editedFirstName, ...editedLastParts] = (editedCustomer.name || '').trim().split(' ');
+  const displayedCustomerName = isEditing
+    ? editedCustomer.name
+    : booking.customerName;
+  const [editedFirstName, ...editedLastParts] = (editedCustomer.name || "")
+    .trim()
+    .split(" ");
   const currentCustomerForSelection: Customer | null =
     editedCustomer.id && editedCustomer.id !== WALK_IN_CUSTOMER_ID
       ? {
           id: editedCustomer.id,
           firstName: editedFirstName || editedCustomer.name,
-          lastName: editedLastParts.join(' '),
+          lastName: editedLastParts.join(" "),
           name: editedCustomer.name,
-          phone: editedCustomer.phone || '',
-          mobile: editedCustomer.phone || '',
-          email: editedCustomer.email || '',
+          phone: editedCustomer.phone || "",
+          mobile: editedCustomer.phone || "",
+          email: editedCustomer.email || "",
         }
       : null;
 
@@ -228,7 +265,7 @@ function BookingDetailsSlideOutComponent({
     setIsServiceSlideoutOpen(false);
     setIsCustomerSlideoutOpen(false);
   }, []);
-  
+
   // Ensure child slideouts are closed when booking details slideout opens
   useEffect(() => {
     if (isOpen) {
@@ -239,30 +276,30 @@ function BookingDetailsSlideOutComponent({
   useEffect(() => {
     if (!isEditing) {
       setEditedCustomer({
-        id: booking.customerId || '',
+        id: booking.customerId || "",
         name: booking.customerName,
         phone: booking.customerPhone,
         email: booking.customerEmail,
-        isWalkIn: booking.customerSource === 'WALK_IN',
+        isWalkIn: booking.customerSource === "WALK_IN",
       });
     }
   }, [booking, isEditing]);
-  
+
   // Initialize form data with separate date and time objects
   const initializeFormData = (booking: any) => {
     // Create separate Date objects to avoid shared reference issues
     const startDate = new Date(booking.startTime);
     const startTime = new Date(booking.startTime);
-    
+
     return {
       staffId: booking.staffId,
       date: startDate,
       time: startTime,
       notes: booking.notes || "",
-      customerRequestedStaff: Boolean(booking.customerRequestedStaff)
+      customerRequestedStaff: Boolean(booking.customerRequestedStaff),
     };
   };
-  
+
   const [formData, setFormData] = useState(() => initializeFormData(booking));
   const lastInitializedServicesSignature = useRef<string | null>(null);
 
@@ -273,94 +310,129 @@ function BookingDetailsSlideOutComponent({
       setFormData(initializeFormData(booking));
     }
   }, [booking, isEditing]);
-  
+
   // Initialize services whenever the booking payload changes and we're not editing
   useEffect(() => {
     // Don't re-initialize if we're in the middle of editing
     if (isEditing) {
       return;
     }
-    
+
     // Ensure service/customer slideouts are closed when booking changes
     closeAllSlideouts();
-    
+
     // Initialize selected services from booking
     let bookingServices = [];
-    
+
     // Check for service count mismatch
-    if (booking.services?.length === 1 && booking.serviceName?.includes(' + ')) {
+    if (
+      booking.services?.length === 1 &&
+      booking.serviceName?.includes(" + ")
+    ) {
       // Multi-service name but only 1 service in array - potential data issue
     }
-    
+
     if (booking.services && booking.services.length > 0) {
       // New format with services array
       bookingServices = booking.services.map((s) => {
         // CRITICAL FIX: Handle calendar state where id === serviceId (wrong structure)
         // If id and serviceId are the same, it means we have the service ID in both fields
         const hasProperStructure = s.id !== s.serviceId;
-        
+
         const mapped = {
-          id: hasProperStructure ? (s.id || s.serviceId || '') : s.id,  // BookingService record ID
-          serviceId: s.serviceId || s.id || '',  // Always use the actual Service ID
-          name: s.name || '',
+          id: hasProperStructure ? s.id || s.serviceId || "" : s.id, // BookingService record ID
+          serviceId: s.serviceId || s.id || "", // Always use the actual Service ID
+          name: s.name || "",
           duration: s.duration || booking.duration || 60,
           price: Number(s.price || (s as any).adjustedPrice || 0),
-          staffId: s.staffId
+          staffId: s.staffId,
         };
         return mapped;
       });
     } else if (booking.serviceName) {
       // Old format with single service
       // Calculate duration from start/end times if not provided
-      const duration = booking.duration || 
-        (booking.endTime && booking.startTime ? 
-          Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / (1000 * 60)) : 
-          60);
-      
+      const duration =
+        booking.duration ||
+        (booking.endTime && booking.startTime
+          ? Math.round(
+              (new Date(booking.endTime).getTime() -
+                new Date(booking.startTime).getTime()) /
+                (1000 * 60),
+            )
+          : 60);
+
       // Try to find the service ID from the services list if not provided
-      let serviceId = booking.serviceId || '';
+      let serviceId = booking.serviceId || "";
       if (!serviceId && services && services.length > 0) {
-        const matchingService = services.find(s => s.name === booking.serviceName);
+        const matchingService = services.find(
+          (s) => s.name === booking.serviceName,
+        );
         if (matchingService) {
           serviceId = matchingService.id;
         }
       }
-          
-      bookingServices = [{
-        id: serviceId,
-        name: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 'Service not selected' : booking.serviceName,
-        duration: (booking.serviceName === 'Service' || booking.serviceName === 'Service not selected') && booking.totalPrice === 0 ? 15 : duration,
-        price: Number(booking.totalPrice || booking.price || 0)
-      }];
+
+      bookingServices = [
+        {
+          id: serviceId,
+          name:
+            (booking.serviceName === "Service" ||
+              booking.serviceName === "Service not selected") &&
+            booking.totalPrice === 0
+              ? "Service not selected"
+              : booking.serviceName,
+          duration:
+            (booking.serviceName === "Service" ||
+              booking.serviceName === "Service not selected") &&
+            booking.totalPrice === 0
+              ? 15
+              : duration,
+          price: Number(booking.totalPrice || booking.price || 0),
+        },
+      ];
     }
-      
-    
+
     const initializedServices = bookingServices.map((service, index) => {
-      const serviceId = service.serviceId || service.id || booking.serviceId || '';
-      const catalogService = services.find(s => s.id === serviceId);
-      const catalogPrice = catalogService ? Number(catalogService.price ?? 0) : undefined;
-      
-      
+      const serviceId =
+        service.serviceId || service.id || booking.serviceId || "";
+      const catalogService = services.find((s) => s.id === serviceId);
+      const catalogPrice = catalogService
+        ? Number(catalogService.price ?? 0)
+        : undefined;
+
       const initialized = {
         // Use a stable ID based on serviceId or BookingService ID, not timestamp
         id: service.id || serviceId || `service-${index}`,
-        serviceId: serviceId,  // Already extracted correctly above
-        name: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 'Service not selected' : service.name,
-        duration: (service.name === 'Service' || service.name === 'Service not selected') && Number(service.price || 0) === 0 ? 15 : service.duration,
+        serviceId: serviceId, // Already extracted correctly above
+        name:
+          (service.name === "Service" ||
+            service.name === "Service not selected") &&
+          Number(service.price || 0) === 0
+            ? "Service not selected"
+            : service.name,
+        duration:
+          (service.name === "Service" ||
+            service.name === "Service not selected") &&
+          Number(service.price || 0) === 0
+            ? 15
+            : service.duration,
         basePrice: catalogPrice ?? Number(service.price || 0),
-        adjustedPrice: Number(service.price || 0)
+        adjustedPrice: Number(service.price || 0),
         // Removed staffId - we'll use the main staff selection from formData
       };
-      
+
       return initialized;
     });
 
-    const signature = JSON.stringify(initializedServices.map(s => ({
-      id: s.id,
-      serviceId: s.serviceId,
-      price: s.adjustedPrice,
-      duration: s.duration
-    })));
+    const signature = JSON.stringify(
+      initializedServices.map((s) => ({
+        id: s.id,
+        serviceId: s.serviceId,
+        price: s.adjustedPrice,
+        duration: s.duration,
+      })),
+    );
 
     if (lastInitializedServicesSignature.current !== signature) {
       lastInitializedServicesSignature.current = signature;
@@ -368,37 +440,41 @@ function BookingDetailsSlideOutComponent({
     }
   }, [booking, services, isEditing, closeAllSlideouts]);
 
-
   // Fetch associated order for the booking
   useEffect(() => {
     const fetchOrder = async () => {
       if (!booking.id || !isOpen) return;
-      
+
       setIsLoadingOrder(true);
       try {
         // Skip fetching order for unpaid bookings - it's normal for them not to have an order yet
         if (!booking.isPaid) {
           return;
         }
-        
+
         // Try to get the order for this booking
         // First try the optimized prepareOrderForPayment endpoint
         const paymentData = await apiClient.prepareOrderForPayment({
-          bookingId: booking.id
+          bookingId: booking.id,
         });
-        
+
         if (paymentData?.order) {
           setAssociatedOrder(paymentData.order);
         }
       } catch (error: any) {
-        
         // Check if it's a "order already exists" error - if so, we need to fetch it differently
-        if (error?.message?.includes('already exists') || error?.code === 'DUPLICATE_RESOURCE') {
+        if (
+          error?.message?.includes("already exists") ||
+          error?.code === "DUPLICATE_RESOURCE"
+        ) {
           // Don't set null here - we'll get the order when processing payment
-        } else if (error?.status === 404 || error?.code === 'NOT_FOUND') {
+        } else if (error?.status === 404 || error?.code === "NOT_FOUND") {
           // Order doesn't exist yet - this is normal for new bookings
           setAssociatedOrder(null);
-        } else if (error?.message?.includes('connection pool') || error?.code === 'CONNECTION_ERROR') {
+        } else if (
+          error?.message?.includes("connection pool") ||
+          error?.code === "CONNECTION_ERROR"
+        ) {
           // Database connection issue
           setAssociatedOrder(null);
         } else {
@@ -414,51 +490,74 @@ function BookingDetailsSlideOutComponent({
     if (booking.isPaid || selectedOrderForPayment || orderRefetchTrigger > 0) {
       fetchOrder();
     }
-  }, [booking.id, isOpen, booking.isPaid, selectedOrderForPayment, orderRefetchTrigger, booking.totalPrice]); // Re-fetch when payment status or price changes
+  }, [
+    booking.id,
+    isOpen,
+    booking.isPaid,
+    selectedOrderForPayment,
+    orderRefetchTrigger,
+    booking.totalPrice,
+  ]); // Re-fetch when payment status or price changes
 
-  const duration = Math.round((booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60));
-  const selectedStaff = staff.find(s => s.id === formData.staffId);
-  
+  const duration = Math.round(
+    (booking.endTime.getTime() - booking.startTime.getTime()) / (1000 * 60),
+  );
+  const selectedStaff = staff.find((s) => s.id === formData.staffId);
+
   // Calculate progress for in-progress bookings
   const getBookingProgress = () => {
     if (booking.status !== "in-progress") return 0;
-    
+
     const now = new Date();
     const start = new Date(booking.startTime);
     const end = new Date(booking.endTime);
-    
+
     if (now < start) return 0;
     if (now > end) return 100;
-    
+
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
-    
+
     return Math.round((elapsed / totalDuration) * 100);
   };
-  
+
   const progress = getBookingProgress();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "pending": return <Clock className="h-4 w-4" />;
-      case "confirmed": return <CheckCircle className="h-4 w-4" />;
-      case "in-progress": return <PlayCircle className="h-4 w-4" />;
-      case "completed": return <CheckCircle className="h-4 w-4" />;
-      case "cancelled": return <XCircle className="h-4 w-4" />;
-      case "no-show": return <AlertCircle className="h-4 w-4" />;
-      default: return <AlertCircle className="h-4 w-4" />;
+      case "pending":
+        return <Clock className="h-4 w-4" />;
+      case "confirmed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "in-progress":
+        return <PlayCircle className="h-4 w-4" />;
+      case "completed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "cancelled":
+        return <XCircle className="h-4 w-4" />;
+      case "no-show":
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <AlertCircle className="h-4 w-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "confirmed": return "bg-teal-100 text-teal-800";
-      case "in-progress": return "bg-teal-100 text-teal-800";
-      case "completed": return "bg-green-100 text-green-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      case "no-show": return "bg-orange-100 text-orange-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "confirmed":
+        return "bg-teal-100 text-teal-800";
+      case "in-progress":
+        return "bg-teal-100 text-teal-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      case "no-show":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -466,108 +565,129 @@ function BookingDetailsSlideOutComponent({
   const handleAddService = (service: any) => {
     const newService = {
       id: `service-${Date.now()}-${Math.random()}`,
-      serviceId: service.id || service.serviceId,  // Ensure we're using the actual database ID
+      serviceId: service.id || service.serviceId, // Ensure we're using the actual database ID
       name: service.name,
       duration: service.duration,
       basePrice: service.price,
       adjustedPrice: service.price,
-      staffId: formData.staffId
+      staffId: formData.staffId,
     };
-    
+
     const updatedServices = [...selectedServices, newService];
     setSelectedServices(updatedServices);
     setIsServiceSlideoutOpen(false);
   };
-  
+
   const handleRemoveService = (serviceId: string) => {
-    const updatedServices = selectedServices.filter(s => s.id !== serviceId);
+    const updatedServices = selectedServices.filter((s) => s.id !== serviceId);
     setSelectedServices(updatedServices);
   };
-  
+
   const handleServicePriceChange = (serviceId: string, price: number) => {
-    setSelectedServices(selectedServices.map(s => 
-      s.id === serviceId ? { ...s, adjustedPrice: price } : s
-    ));
+    setSelectedServices(
+      selectedServices.map((s) =>
+        s.id === serviceId ? { ...s, adjustedPrice: price } : s,
+      ),
+    );
   };
 
-  const handleCustomerSelect = (customer: Customer | null, isWalkIn: boolean) => {
+  const handleCustomerSelect = (
+    customer: Customer | null,
+    isWalkIn: boolean,
+  ) => {
     if (isWalkIn) {
       setEditedCustomer({
         id: WALK_IN_CUSTOMER_ID,
-        name: 'Walk-in Customer',
-        phone: '',
-        email: '',
+        name: "Walk-in Customer",
+        phone: "",
+        email: "",
         isWalkIn: true,
       });
     } else if (customer) {
-      const displayName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown Customer';
+      const displayName =
+        customer.name ||
+        `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
+        "Unknown Customer";
       setEditedCustomer({
         id: customer.id,
         name: displayName,
-        phone: customer.mobile || customer.phone || '',
-        email: customer.email || '',
+        phone: customer.mobile || customer.phone || "",
+        email: customer.email || "",
         isWalkIn: false,
       });
     }
     setIsCustomerSlideoutOpen(false);
   };
-  
-  
+
   // Calculate totals
   const calculateTotals = () => {
-    const subtotal = selectedServices.reduce((sum, s) => sum + s.adjustedPrice, 0);
-    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
-    
+    const subtotal = selectedServices.reduce(
+      (sum, s) => sum + s.adjustedPrice,
+      0,
+    );
+    const totalDuration = selectedServices.reduce(
+      (sum, s) => sum + s.duration,
+      0,
+    );
+
     return { subtotal, total: subtotal, totalDuration };
   };
 
   const handleSave = () => {
     // Exit edit mode immediately for better UX
     setIsEditing(false);
-    
+
     const { status, ...bookingWithoutStatus } = booking;
     const { totalDuration } = calculateTotals();
-    const startTimeISO = formData.time instanceof Date ? formData.time.toISOString() : formData.time;
-    const endTimeISO = new Date(formData.time.getTime() + totalDuration * 60000).toISOString();
-    
-    const servicesToSend = selectedServices.map(s => ({
-      serviceId: s.serviceId,  // API expects 'serviceId', not 'id'
-      staffId: formData.staffId,  // Always use the single staff selection
+    const startTimeISO =
+      formData.time instanceof Date
+        ? formData.time.toISOString()
+        : formData.time;
+    const endTimeISO = new Date(
+      formData.time.getTime() + totalDuration * 60000,
+    ).toISOString();
+
+    const servicesToSend = selectedServices.map((s) => ({
+      serviceId: s.serviceId, // API expects 'serviceId', not 'id'
+      staffId: formData.staffId, // Always use the single staff selection
       price: s.adjustedPrice,
       duration: s.duration,
-      name: s.name  // Include name for display purposes
+      name: s.name, // Include name for display purposes
     }));
-    
+
     // Validate that all services have valid IDs
-    const invalidServices = servicesToSend.filter(s => !s.serviceId);
+    const invalidServices = servicesToSend.filter((s) => !s.serviceId);
     if (invalidServices.length > 0) {
       toast({
         title: "Error",
-        description: "Some services are missing IDs. Please re-select the services.",
-        variant: "destructive"
+        description:
+          "Some services are missing IDs. Please re-select the services.",
+        variant: "destructive",
       });
       return;
     }
-    
+
     // Add to calendar activity log
     if (window.dispatchEvent) {
-      window.dispatchEvent(new CustomEvent('calendar-activity-log', {
-        detail: {
-          type: 'booking-update',
-          message: `Updating booking ${booking.id} with ${servicesToSend.length} services`,
-          data: {
-            bookingId: booking.id,
-            services: servicesToSend.map(s => ({
-              serviceId: s.serviceId,
-              name: s.name,
-              staffId: s.staffId
-            }))
+      window.dispatchEvent(
+        new CustomEvent("calendar-activity-log", {
+          detail: {
+            type: "booking-update",
+            message: `Updating booking ${booking.id} with ${servicesToSend.length} services`,
+            data: {
+              bookingId: booking.id,
+              services: servicesToSend.map((s) => ({
+                serviceId: s.serviceId,
+                name: s.name,
+                staffId: s.staffId,
+              })),
+            },
+            timestamp: new Date().toISOString(),
           },
-          timestamp: new Date().toISOString()
-        }
-      }));
+        }),
+      );
     }
-    
+
     // Fire and forget - don't await
     const updatePayload: Record<string, any> = {
       ...bookingWithoutStatus,
@@ -576,27 +696,29 @@ function BookingDetailsSlideOutComponent({
       endTime: endTimeISO,
       notes: formData.notes,
       services: servicesToSend,
-      customerRequestedStaff: formData.customerRequestedStaff
+      customerRequestedStaff: formData.customerRequestedStaff,
     };
 
     if (editedCustomer?.id) {
       updatePayload.customerId = editedCustomer.id;
       updatePayload.customerName = editedCustomer.name;
-      updatePayload.customerPhone = editedCustomer.phone || '';
-      updatePayload.customerEmail = editedCustomer.email || '';
+      updatePayload.customerPhone = editedCustomer.phone || "";
+      updatePayload.customerEmail = editedCustomer.email || "";
     }
-    
-    onSave(updatePayload).then(async (response) => {
-      // Success handled - BookingsManager shows the success toast
-      // Trigger notification refresh after a delay to ensure backend processing
-      setTimeout(() => {
-        refreshNotifications();
-      }, 2000);
-    }).catch(error => {
-      // If save fails, re-enter edit mode
-      setIsEditing(true);
-      // BookingsManager already shows the error toast
-    });
+
+    onSave(updatePayload)
+      .then(async (response) => {
+        // Success handled - BookingsManager shows the success toast
+        // Trigger notification refresh after a delay to ensure backend processing
+        setTimeout(() => {
+          refreshNotifications();
+        }, 2000);
+      })
+      .catch((error) => {
+        // If save fails, re-enter edit mode
+        setIsEditing(true);
+        // BookingsManager already shows the error toast
+      });
   };
 
   const handleDelete = () => {
@@ -608,16 +730,16 @@ function BookingDetailsSlideOutComponent({
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     // Don't show "Updating..." for optimistic updates - the status will change immediately
     // Only close slideout for in-progress or completed status
-    if (newStatus === 'in-progress' || newStatus === 'completed') {
+    if (newStatus === "in-progress" || newStatus === "completed") {
       setTimeout(() => {
         onClose();
       }, 1000);
     }
-    
+
     try {
       // Status update happens in background
       await onStatusChange(bookingId, newStatus);
-      
+
       // Refresh notifications after a delay to allow backend processing
       // Increased to 2 seconds to ensure outbox events are processed
       setTimeout(() => {
@@ -640,41 +762,41 @@ function BookingDetailsSlideOutComponent({
 
   const handleProcessPayment = async (bookingId: string) => {
     setIsProcessingPayment(true);
-    
+
     // Set a timeout to open the modal within 1000ms regardless of order status
     const timeoutId = setTimeout(() => {
       // If order isn't ready yet, open with a loading state
       if (!selectedOrderForPayment) {
-        setSelectedOrderForPayment({ 
-          id: `loading-${bookingId}`, 
+        setSelectedOrderForPayment({
+          id: `loading-${bookingId}`,
           isLoading: true,
           totalAmount: booking.totalPrice || 0,
           paidAmount: 0,
-          items: []
+          items: [],
         });
       }
       setPaymentDialogOpen(true);
     }, 1000);
-    
+
     try {
       // Use the optimized prepareOrderForPayment endpoint
       // This endpoint creates order if needed and returns all payment data in one call
       const paymentData = await apiClient.prepareOrderForPayment({
-        bookingId: bookingId
+        bookingId: bookingId,
       });
-      
+
       // Clear the timeout if we got data before 1000ms
       clearTimeout(timeoutId);
-      
+
       if (!paymentData || !paymentData.order) {
-        throw new Error('No order data received from payment preparation');
+        throw new Error("No order data received from payment preparation");
       }
-      
+
       // Don't lock the order here - let the payment dialog handle it after applying modifiers
       // Just update with real order data
       setAssociatedOrder(paymentData.order);
       setSelectedOrderForPayment(paymentData.order);
-      
+
       // Show the payment dialog immediately if not already open
       if (!paymentDialogOpen) {
         setPaymentDialogOpen(true);
@@ -682,16 +804,16 @@ function BookingDetailsSlideOutComponent({
     } catch (error: any) {
       // Clear the timeout on error
       clearTimeout(timeoutId);
-      
+
       // Check if booking might not be synced yet
-      if (error?.status === 404 || error?.message?.includes('not found')) {
+      if (error?.status === 404 || error?.message?.includes("not found")) {
         // Retry after a short delay
         setTimeout(async () => {
           try {
             const paymentData = await apiClient.prepareOrderForPayment({
-              bookingId: bookingId
+              bookingId: bookingId,
             });
-            
+
             if (paymentData?.order) {
               // Don't lock the order here - let the payment dialog handle it
               setAssociatedOrder(paymentData.order);
@@ -701,26 +823,30 @@ function BookingDetailsSlideOutComponent({
           } catch (retryError: any) {
             // Still failed after retry
             setPaymentDialogOpen(false);
-            
+
             toast({
               title: "Unable to process payment",
-              description: "The booking may still be processing. Please wait a moment and try again.",
+              description:
+                "The booking may still be processing. Please wait a moment and try again.",
               variant: "destructive",
             });
           } finally {
             setIsProcessingPayment(false);
           }
         }, 1500); // Wait 1.5 seconds before retry
-        
+
         return; // Exit early, don't set processing to false yet
       }
-      
+
       // Close dialog on other errors
       setPaymentDialogOpen(false);
-      
+
       // Show more specific error message
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to prepare order for payment.';
-      
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to prepare order for payment.";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -731,14 +857,13 @@ function BookingDetailsSlideOutComponent({
   };
 
   const handlePaymentComplete = async (updatedOrder: any) => {
-
     // Close the payment dialog
     setPaymentDialogOpen(false);
     setSelectedOrderForPayment(null);
 
     // Notify lock screen of completed payment
-    window.dispatchEvent(new CustomEvent('payment:completed'));
-    
+    window.dispatchEvent(new CustomEvent("payment:completed"));
+
     // Show success toast immediately
     toast({
       title: "Payment processed",
@@ -747,21 +872,24 @@ function BookingDetailsSlideOutComponent({
       className: "bg-green-50 border-green-200",
       duration: 5000,
     });
-    
+
     // Close the booking slideout immediately (no delay)
     onClose();
-    
+
     // Process everything else in the background
     // Update the associated order state
     setAssociatedOrder(updatedOrder);
-    
+
     // Update the booking's payment status in background with the actual paid amount
-    const actualPaidAmount = updatedOrder?.totalAmount || updatedOrder?.paidAmount || booking.totalPrice;
+    const actualPaidAmount =
+      updatedOrder?.totalAmount ||
+      updatedOrder?.paidAmount ||
+      booking.totalPrice;
     onPaymentStatusChange(booking.id, true, actualPaidAmount);
-    
+
     // Force refetch the order to ensure we have latest data
-    setOrderRefetchTrigger(prev => prev + 1);
-    
+    setOrderRefetchTrigger((prev) => prev + 1);
+
     // Refresh notifications after a delay
     setTimeout(() => {
       refreshNotifications();
@@ -771,30 +899,35 @@ function BookingDetailsSlideOutComponent({
   return (
     <SlideOutPanel isOpen={isOpen} onClose={onClose} title="Booking Details">
       <div className="flex flex-col h-full relative">
-        
         {/* Progress bar for in-progress bookings */}
         {booking.status === "in-progress" && (
           <div className="absolute inset-x-0 top-0 h-1 z-10">
             <div className="h-1 bg-gray-200">
-              <div 
+              <div
                 className="h-full bg-teal-600 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
         )}
-        
+
         {/* Header */}
         <div className="px-6 py-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">{displayedCustomerName}</h2>
               <p className="text-sm text-gray-600">
-                {booking.services?.length > 0
-                  ? booking.services.map(s => s.name).join(' + ')
-                  : ((booking.serviceName === "Service not selected" || booking.serviceName === "Service") && booking.totalPrice === 0
-                      ? <span className="italic text-orange-600">Service not selected - Click Edit to add</span>
-                      : booking.serviceName)}
+                {booking.services?.length > 0 ? (
+                  booking.services.map((s) => s.name).join(" + ")
+                ) : (booking.serviceName === "Service not selected" ||
+                    booking.serviceName === "Service") &&
+                  booking.totalPrice === 0 ? (
+                  <span className="italic text-orange-600">
+                    Service not selected - Click Edit to add
+                  </span>
+                ) : (
+                  booking.serviceName
+                )}
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 {booking.bookingNumber || `ID: ${booking.id.slice(-8)}`}
@@ -802,13 +935,23 @@ function BookingDetailsSlideOutComponent({
               {showSourceBadge && (
                 <div className="mt-2">
                   <span className={sourcePresentation.badgeClassName}>
-                    <SourceIcon className={cn('h-3.5 w-3.5', sourcePresentation.iconClassName)} />
+                    <SourceIcon
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        sourcePresentation.iconClassName,
+                      )}
+                    />
                     <span>{sourcePresentation.label}</span>
                   </span>
                 </div>
               )}
             </div>
-            <Badge className={cn("flex items-center gap-1", getStatusColor(booking.status))}>
+            <Badge
+              className={cn(
+                "flex items-center gap-1",
+                getStatusColor(booking.status),
+              )}
+            >
               {isStatusUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -819,8 +962,10 @@ function BookingDetailsSlideOutComponent({
                   {booking.status === "in-progress" && (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
-                  {booking.status !== "in-progress" && getStatusIcon(booking.status)}
-                  {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1).replace('-', ' ') || 'Unknown'}
+                  {booking.status !== "in-progress" &&
+                    getStatusIcon(booking.status)}
+                  {booking.status?.charAt(0).toUpperCase() +
+                    booking.status?.slice(1).replace("-", " ") || "Unknown"}
                 </>
               )}
             </Badge>
@@ -833,7 +978,7 @@ function BookingDetailsSlideOutComponent({
               isPaid: booking.isPaid,
               totalPrice: booking.totalPrice,
               customerPhone: booking.customerPhone,
-              customerEmail: booking.customerEmail
+              customerEmail: booking.customerEmail,
             }}
             size="sm"
             variant="inline"
@@ -857,22 +1002,31 @@ function BookingDetailsSlideOutComponent({
                 <div className="flex items-center justify-between">
                   <Label>Customer</Label>
                   {customerChanged && (
-                    <Badge variant="outline" className="text-teal-700 border-teal-200 bg-teal-50">
+                    <Badge
+                      variant="outline"
+                      className="text-teal-700 border-teal-200 bg-teal-50"
+                    >
                       Updated
                     </Badge>
                   )}
                 </div>
                 <div className="mt-1 flex items-start justify-between rounded-md border border-gray-200 bg-white p-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{editedCustomer.name}</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {editedCustomer.name}
+                    </p>
                     {(editedCustomer.phone || editedCustomer.email) && (
                       <div className="mt-1 space-y-1 text-xs text-gray-500">
-                        {editedCustomer.phone && <p>{formatPhoneNumber(editedCustomer.phone)}</p>}
+                        {editedCustomer.phone && (
+                          <p>{formatPhoneNumber(editedCustomer.phone)}</p>
+                        )}
                         {editedCustomer.email && <p>{editedCustomer.email}</p>}
                       </div>
                     )}
                     {!editedCustomer.phone && !editedCustomer.email && (
-                      <p className="mt-1 text-xs italic text-gray-400">No contact details on file</p>
+                      <p className="mt-1 text-xs italic text-gray-400">
+                        No contact details on file
+                      </p>
                     )}
                   </div>
                   <Button
@@ -892,43 +1046,68 @@ function BookingDetailsSlideOutComponent({
                 <div className="mt-1 flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, customerRequestedStaff: !formData.customerRequestedStaff })}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        customerRequestedStaff:
+                          !formData.customerRequestedStaff,
+                      })
+                    }
                     className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-md border transition-colors",
                       formData.customerRequestedStaff
                         ? "border-teal-500 bg-teal-50 text-teal-600"
-                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+                        : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600",
                     )}
                     aria-pressed={formData.customerRequestedStaff}
-                    aria-label={formData.customerRequestedStaff ? "Unmark preferred staff" : "Mark staff as preferred"}
-                    title={formData.customerRequestedStaff ? "Preferred staff selected" : "Mark this staff as preferred"}
+                    aria-label={
+                      formData.customerRequestedStaff
+                        ? "Unmark preferred staff"
+                        : "Mark staff as preferred"
+                    }
+                    title={
+                      formData.customerRequestedStaff
+                        ? "Preferred staff selected"
+                        : "Mark this staff as preferred"
+                    }
                   >
                     <Heart
                       className="h-4 w-4"
                       strokeWidth={2.2}
-                      fill={formData.customerRequestedStaff ? "currentColor" : "none"}
+                      fill={
+                        formData.customerRequestedStaff
+                          ? "currentColor"
+                          : "none"
+                      }
                     />
                   </button>
                   <Select
                     value={formData.staffId}
-                    onValueChange={(value) => setFormData({ ...formData, staffId: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, staffId: value })
+                    }
                   >
                     <SelectTrigger className="w-full">
-                      {formData.staffId && (() => {
-                        const selected = staff.find(s => s.id === formData.staffId);
-                        return selected ? (
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: selected.color }}
-                            />
-                            <span>{selected.name}</span>
-                          </div>
-                        ) : (
-                          <SelectValue placeholder="Select staff member" />
-                        );
-                      })()}
-                      {!formData.staffId && <SelectValue placeholder="Select staff member" />}
+                      {formData.staffId &&
+                        (() => {
+                          const selected = staff.find(
+                            (s) => s.id === formData.staffId,
+                          );
+                          return selected ? (
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: selected.color }}
+                              />
+                              <span>{selected.name}</span>
+                            </div>
+                          ) : (
+                            <SelectValue placeholder="Select staff member" />
+                          );
+                        })()}
+                      {!formData.staffId && (
+                        <SelectValue placeholder="Select staff member" />
+                      )}
                     </SelectTrigger>
                     <SelectContent>
                       {staff.map((member) => (
@@ -957,11 +1136,15 @@ function BookingDetailsSlideOutComponent({
                       const newDate = new Date(e.target.value);
                       // Create a new time object with the new date but keeping the same time
                       const updatedTime = new Date(formData.time);
-                      updatedTime.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
-                      setFormData({ 
-                        ...formData, 
-                        date: newDate, 
-                        time: updatedTime 
+                      updatedTime.setFullYear(
+                        newDate.getFullYear(),
+                        newDate.getMonth(),
+                        newDate.getDate(),
+                      );
+                      setFormData({
+                        ...formData,
+                        date: newDate,
+                        time: updatedTime,
                       });
                     }}
                     className="mt-1"
@@ -974,9 +1157,14 @@ function BookingDetailsSlideOutComponent({
                     className="mt-1"
                     value={format(formData.time, "HH:mm")}
                     onChange={(timeValue) => {
-                      const [hours, minutes] = timeValue.split(':');
+                      const [hours, minutes] = timeValue.split(":");
                       const newTime = new Date(formData.date.getTime());
-                      newTime.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10), 0, 0);
+                      newTime.setHours(
+                        Number.parseInt(hours, 10),
+                        Number.parseInt(minutes, 10),
+                        0,
+                        0,
+                      );
                       setFormData({ ...formData, time: newTime });
                     }}
                   />
@@ -998,19 +1186,22 @@ function BookingDetailsSlideOutComponent({
                     Add Service
                   </Button>
                 </div>
-                
-                
+
                 {selectedServices.length === 0 ? (
                   <p className="text-sm text-gray-500">No services selected</p>
                 ) : (
                   <div className="space-y-3">
                     {selectedServices.map((service) => (
-                      <div key={service.id} className="p-3 border rounded-lg space-y-2">
+                      <div
+                        key={service.id}
+                        className="p-3 border rounded-lg space-y-2"
+                      >
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="font-medium">{service.name}</div>
                             <div className="text-sm text-gray-600">
-                              {service.duration} min • Base: ${service.basePrice}
+                              {service.duration} min • Base: $
+                              {service.basePrice}
                             </div>
                           </div>
                           <Button
@@ -1022,16 +1213,23 @@ function BookingDetailsSlideOutComponent({
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
                             <Label className="text-xs">Price</Label>
                             <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                                $
+                              </span>
                               <Input
                                 type="number"
                                 value={service.adjustedPrice}
-                                onChange={(e) => handleServicePriceChange(service.id, parseFloat(e.target.value) || 0)}
+                                onChange={(e) =>
+                                  handleServicePriceChange(
+                                    service.id,
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
                                 className="h-9 pl-6"
                                 step="0.01"
                                 min="0"
@@ -1041,15 +1239,18 @@ function BookingDetailsSlideOutComponent({
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Total Summary */}
                     {(() => {
-                      const { subtotal, total, totalDuration } = calculateTotals();
+                      const { subtotal, total, totalDuration } =
+                        calculateTotals();
                       return (
                         <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
                           <div className="space-y-2">
                             <div className="flex justify-between font-medium">
-                              <span>Total ({selectedServices.length} services)</span>
+                              <span>
+                                Total ({selectedServices.length} services)
+                              </span>
                               <div className="text-right">
                                 <div>${total.toFixed(2)}</div>
                                 <div className="text-xs font-normal text-teal-700">
@@ -1071,7 +1272,9 @@ function BookingDetailsSlideOutComponent({
                 <Label>Notes</Label>
                 <Textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   rows={3}
                   className="mt-1"
                 />
@@ -1082,7 +1285,9 @@ function BookingDetailsSlideOutComponent({
             <div className="space-y-6">
               {/* Date & Time */}
               <div>
-                <h3 className="font-medium text-sm text-gray-700 mb-2">Date & Time</h3>
+                <h3 className="font-medium text-sm text-gray-700 mb-2">
+                  Date & Time
+                </h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-gray-400" />
@@ -1090,8 +1295,13 @@ function BookingDetailsSlideOutComponent({
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-gray-400" />
-                    <span>{displayFormats.time(booking.startTime)} - {displayFormats.time(booking.endTime)}</span>
-                    <Badge variant="secondary" className="text-xs">{duration} min</Badge>
+                    <span>
+                      {displayFormats.time(booking.startTime)} -{" "}
+                      {displayFormats.time(booking.endTime)}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {duration} min
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -1100,7 +1310,9 @@ function BookingDetailsSlideOutComponent({
 
               {/* Customer Info */}
               <div>
-                <h3 className="font-medium text-sm text-gray-700 mb-2">Customer</h3>
+                <h3 className="font-medium text-sm text-gray-700 mb-2">
+                  Customer
+                </h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-4 w-4 text-gray-400" />
@@ -1109,7 +1321,10 @@ function BookingDetailsSlideOutComponent({
                   {booking.customerPhone && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-gray-400" />
-                      <a href={`tel:${booking.customerPhone}`} className="text-blue-600 hover:underline">
+                      <a
+                        href={`tel:${booking.customerPhone}`}
+                        className="text-blue-600 hover:underline"
+                      >
                         {formatPhoneNumber(booking.customerPhone)}
                       </a>
                     </div>
@@ -1117,13 +1332,18 @@ function BookingDetailsSlideOutComponent({
                   {booking.customerEmail && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-gray-400" />
-                      <a href={`mailto:${booking.customerEmail}`} className="text-blue-600 hover:underline">
+                      <a
+                        href={`mailto:${booking.customerEmail}`}
+                        className="text-blue-600 hover:underline"
+                      >
                         {booking.customerEmail}
                       </a>
                     </div>
                   )}
                   {!booking.customerPhone && !booking.customerEmail && (
-                    <p className="text-sm italic text-gray-400">No contact details on file</p>
+                    <p className="text-sm italic text-gray-400">
+                      No contact details on file
+                    </p>
                   )}
                 </div>
               </div>
@@ -1132,40 +1352,59 @@ function BookingDetailsSlideOutComponent({
 
               {/* Service & Staff */}
               <div>
-                <h3 className="font-medium text-sm text-gray-700 mb-2">Service Details</h3>
+                <h3 className="font-medium text-sm text-gray-700 mb-2">
+                  Service Details
+                </h3>
                 <div className="space-y-2">
                   {booking.services?.length > 0 ? (
                     <>
                       {booking.services.map((service, index) => {
-                        const serviceId = service.serviceId || service.id || '';
+                        const serviceId = service.serviceId || service.id || "";
                         const displayPrice = Number(
-                          service.price ??
-                          (service as any).adjustedPrice ??
-                          0
+                          service.price ?? (service as any).adjustedPrice ?? 0,
                         );
-                        const catalogService = services.find((s) => s.id === serviceId);
-                        const basePrice = catalogService ? Number(catalogService.price ?? 0) : undefined;
-                        const priceDifference = basePrice !== undefined ? displayPrice - basePrice : 0;
-                        const hasAdjustment = basePrice !== undefined && Math.abs(priceDifference) > 0.009;
+                        const catalogService = services.find(
+                          (s) => s.id === serviceId,
+                        );
+                        const basePrice = catalogService
+                          ? Number(catalogService.price ?? 0)
+                          : undefined;
+                        const priceDifference =
+                          basePrice !== undefined
+                            ? displayPrice - basePrice
+                            : 0;
+                        const hasAdjustment =
+                          basePrice !== undefined &&
+                          Math.abs(priceDifference) > 0.009;
                         const formattedDifference = hasAdjustment
                           ? Math.abs(priceDifference).toFixed(2)
                           : null;
-                        
+
                         return (
                           <div
-                            key={service.id || `${serviceId || 'service'}-${index}`}
+                            key={
+                              service.id || `${serviceId || "service"}-${index}`
+                            }
                             className="flex items-center justify-between text-sm"
                           >
                             <div className="flex items-center gap-2">
                               <Scissors className="h-4 w-4 text-gray-400" />
                               <span>{service.name}</span>
-                              <span className="text-gray-500">({service.duration}min)</span>
+                              <span className="text-gray-500">
+                                ({service.duration}min)
+                              </span>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium">${displayPrice.toFixed(2)}</span>
+                              <span className="font-medium">
+                                ${displayPrice.toFixed(2)}
+                              </span>
                               {hasAdjustment && formattedDifference && (
                                 <div className="text-xs text-orange-600">
-                                  Adjusted {priceDifference > 0 ? `+$${formattedDifference}` : `-$${formattedDifference}`} from ${basePrice!.toFixed(2)}
+                                  Adjusted{" "}
+                                  {priceDifference > 0
+                                    ? `+$${formattedDifference}`
+                                    : `-$${formattedDifference}`}{" "}
+                                  from ${basePrice!.toFixed(2)}
                                 </div>
                               )}
                             </div>
@@ -1186,20 +1425,23 @@ function BookingDetailsSlideOutComponent({
                       <div className="flex items-center gap-2">
                         <Scissors className="h-4 w-4 text-gray-400" />
                         <span>
-                          {booking.serviceName === 'Service' && booking.totalPrice === 0
-                            ? 'Service not selected'
+                          {booking.serviceName === "Service" &&
+                          booking.totalPrice === 0
+                            ? "Service not selected"
                             : booking.serviceName}
                         </span>
                       </div>
-                      <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ${booking.totalPrice.toFixed(2)}
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm mt-3">
                     <User className="h-4 w-4 text-gray-400" />
                     <span>with {booking.staffName}</span>
                     {selectedStaff && (
-                      <div 
-                        className="w-3 h-3 rounded-full" 
+                      <div
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: selectedStaff.color }}
                       />
                     )}
@@ -1212,11 +1454,16 @@ function BookingDetailsSlideOutComponent({
                           // First check if booking has paidAmount field (from payment completion)
                           if (booking.paidAmount && booking.paidAmount > 0) {
                             const displayAmount = booking.paidAmount;
-                            const originalAmount = booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || booking.totalPrice;
+                            const originalAmount =
+                              booking.services?.reduce(
+                                (sum: number, s: any) => sum + (s.price || 0),
+                                0,
+                              ) || booking.totalPrice;
                             return (
                               <span className="text-green-600 font-medium">
                                 Paid ${displayAmount.toFixed(2)}
-                                {Math.abs(displayAmount - originalAmount) > 0.01 && (
+                                {Math.abs(displayAmount - originalAmount) >
+                                  0.01 && (
                                   <span className="text-xs text-gray-500 ml-1">
                                     (was ${originalAmount.toFixed(2)})
                                   </span>
@@ -1226,12 +1473,20 @@ function BookingDetailsSlideOutComponent({
                           }
                           // Then check if we have order data
                           else if (associatedOrder) {
-                            const displayAmount = Number(associatedOrder.totalAmount) || Number(associatedOrder.paidAmount) || booking.totalPrice;
-                            const originalAmount = booking.services?.reduce((sum: number, s: any) => sum + (s.price || 0), 0) || booking.totalPrice;
+                            const displayAmount =
+                              Number(associatedOrder.totalAmount) ||
+                              Number(associatedOrder.paidAmount) ||
+                              booking.totalPrice;
+                            const originalAmount =
+                              booking.services?.reduce(
+                                (sum: number, s: any) => sum + (s.price || 0),
+                                0,
+                              ) || booking.totalPrice;
                             return (
                               <span className="text-green-600 font-medium">
                                 Paid ${displayAmount.toFixed(2)}
-                                {Math.abs(displayAmount - originalAmount) > 0.01 && (
+                                {Math.abs(displayAmount - originalAmount) >
+                                  0.01 && (
                                   <span className="text-xs text-gray-500 ml-1">
                                     (was ${originalAmount.toFixed(2)})
                                   </span>
@@ -1240,10 +1495,18 @@ function BookingDetailsSlideOutComponent({
                             );
                           } else {
                             // Fallback to totalPrice
-                            return <span className="text-green-600 font-medium">Paid ${booking.totalPrice.toFixed(2)}</span>;
+                            return (
+                              <span className="text-green-600 font-medium">
+                                Paid ${booking.totalPrice.toFixed(2)}
+                              </span>
+                            );
                           }
                         } else {
-                          return <span className="font-medium">${booking.totalPrice.toFixed(2)}</span>;
+                          return (
+                            <span className="font-medium">
+                              ${booking.totalPrice.toFixed(2)}
+                            </span>
+                          );
                         }
                       })()}
                     </div>
@@ -1255,9 +1518,11 @@ function BookingDetailsSlideOutComponent({
                 <>
                   <Separator />
                   <div>
-                    <h3 className="font-medium text-sm text-gray-700 mb-2">Notes</h3>
+                    <h3 className="font-medium text-sm text-gray-700 mb-2">
+                      Notes
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      {booking.notes || 'No additional notes'}
+                      {booking.notes || "No additional notes"}
                     </p>
                   </div>
                 </>
@@ -1279,7 +1544,7 @@ function BookingDetailsSlideOutComponent({
             </div>
           ) : (
             <div className="flex gap-2">
-              {can('booking.update') && (
+              {can("booking.update") && (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1288,12 +1553,12 @@ function BookingDetailsSlideOutComponent({
                     if (selectedServices.length === 1) {
                       const service = selectedServices[0];
                       const isBlankService =
-                        (service.name === 'Service not selected' ||
-                         service.name === 'Service' ||
-                         !service.name) &&
-                        (Number(service.price || 0) === 0 &&
-                         Number(service.basePrice || 0) === 0 &&
-                         Number(service.adjustedPrice || 0) === 0);
+                        (service.name === "Service not selected" ||
+                          service.name === "Service" ||
+                          !service.name) &&
+                        Number(service.price || 0) === 0 &&
+                        Number(service.basePrice || 0) === 0 &&
+                        Number(service.adjustedPrice || 0) === 0;
 
                       if (isBlankService) {
                         setSelectedServices([]);
@@ -1307,7 +1572,7 @@ function BookingDetailsSlideOutComponent({
                   Edit
                 </Button>
               )}
-              {can('booking.delete') && (
+              {can("booking.delete") && (
                 <Button
                   variant="outline"
                   onClick={handleDelete}
@@ -1328,14 +1593,17 @@ function BookingDetailsSlideOutComponent({
         order={selectedOrderForPayment}
         onPaymentComplete={handlePaymentComplete}
         enableTips={false}
-        customer={booking.customerId && customers.find(c => c.id === booking.customerId)}
+        customer={
+          booking.customerId &&
+          customers.find((c) => c.id === booking.customerId)
+        }
         onOrderUpdate={(updatedOrder) => {
           // Update the selected order when modifications are made
           setSelectedOrderForPayment(updatedOrder);
           setAssociatedOrder(updatedOrder);
         }}
       />
-      
+
       {/* Service Selection Slideout */}
       <ServiceSelectionSlideout
         isOpen={isServiceSlideoutOpen}
@@ -1358,17 +1626,17 @@ function BookingDetailsSlideOutComponent({
 // Memoize the component to prevent unnecessary re-renders when payment dialog state changes
 const getServiceSignature = (services?: BookingService[] | any[]): string => {
   if (!services || services.length === 0) {
-    return '';
+    return "";
   }
 
   return services
     .map((service) => {
-      const id = service.id ?? service.serviceId ?? '';
+      const id = service.id ?? service.serviceId ?? "";
       const price = Number(service.price ?? service.adjustedPrice ?? 0);
       const duration = Number(service.duration ?? 0);
       return `${id}:${price}:${duration}`;
     })
-    .join('|');
+    .join("|");
 };
 
 export const BookingDetailsSlideOut = memo(
@@ -1378,9 +1646,15 @@ export const BookingDetailsSlideOut = memo(
     if (prevProps.booking?.id !== nextProps.booking?.id) return false;
     if (prevProps.booking?.status !== nextProps.booking?.status) return false;
     if (prevProps.booking?.isPaid !== nextProps.booking?.isPaid) return false;
-    if (prevProps.booking?.totalPrice !== nextProps.booking?.totalPrice) return false;
-    if (prevProps.booking?.paidAmount !== nextProps.booking?.paidAmount) return false;
-    if (prevProps.booking?.customerRequestedStaff !== nextProps.booking?.customerRequestedStaff) return false;
+    if (prevProps.booking?.totalPrice !== nextProps.booking?.totalPrice)
+      return false;
+    if (prevProps.booking?.paidAmount !== nextProps.booking?.paidAmount)
+      return false;
+    if (
+      prevProps.booking?.customerRequestedStaff !==
+      nextProps.booking?.customerRequestedStaff
+    )
+      return false;
     if (
       getServiceSignature(prevProps.booking?.services) !==
       getServiceSignature(nextProps.booking?.services)
@@ -1390,5 +1664,5 @@ export const BookingDetailsSlideOut = memo(
     if (prevProps.staff !== nextProps.staff) return false;
     if (prevProps.services !== nextProps.services) return false;
     return true;
-  }
+  },
 );

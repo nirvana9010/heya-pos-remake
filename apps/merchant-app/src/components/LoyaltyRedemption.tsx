@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Gift, Star, ChevronDown, Check } from 'lucide-react';
-import { Button } from '@heya-pos/ui';
-import { apiClient } from '../lib/api-client';
-import type { Customer } from './customers';
-import type { LoyaltyCheckResponse } from '../lib/clients/loyalty-client';
-import { cn } from '@heya-pos/ui';
-import { isWalkInCustomer } from '../lib/constants/customer';
+import React, { useState, useEffect } from "react";
+import { Gift, Star, ChevronDown, Check } from "lucide-react";
+import { Button } from "@heya-pos/ui";
+import { apiClient } from "../lib/api-client";
+import type { Customer } from "./customers";
+import type { LoyaltyCheckResponse } from "../lib/clients/loyalty-client";
+import { cn } from "@heya-pos/ui";
+import { isWalkInCustomer } from "../lib/constants/customer";
 
 interface LoyaltyRedemptionProps {
   customer: Customer | null;
@@ -33,9 +33,9 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
       setExpanded(false);
       return;
     }
-    
+
     // Skip loyalty check for walk-in customers
-    if (isWalkInCustomer(customer.id) || customer.source === 'WALK_IN') {
+    if (isWalkInCustomer(customer.id) || customer.source === "WALK_IN") {
       setLoyalty(null);
       setExpanded(false);
       return;
@@ -51,7 +51,7 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
           setExpanded(true);
         }
       } catch (error) {
-        console.error('Failed to check loyalty:', error);
+        console.error("Failed to check loyalty:", error);
         setLoyalty(null);
       } finally {
         setLoading(false);
@@ -62,98 +62,117 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
   }, [customer?.id]);
 
   const handleRedeemVisit = async () => {
-    if (!customer || !loyalty || loyalty.type !== 'VISITS') return;
+    if (!customer || !loyalty || loyalty.type !== "VISITS") return;
 
     setRedeeming(true);
     try {
       // First, refresh loyalty status to ensure we have current data
       const currentLoyalty = await apiClient.loyalty.check(customer.id);
       setLoyalty(currentLoyalty);
-      
+
       // Check if reward is actually available with fresh data
       if (!currentLoyalty.rewardAvailable) {
-        alert(`Not enough visits. You have ${currentLoyalty.currentVisits}/${currentLoyalty.visitsRequired} visits.`);
+        alert(
+          `Not enough visits. You have ${currentLoyalty.currentVisits}/${currentLoyalty.visitsRequired} visits.`,
+        );
         setRedeeming(false);
         return;
       }
-      
+
       // DO NOT actually redeem yet - just prepare the discount
       // The actual redemption will happen after successful payment
-      
+
       // Calculate discount based on reward type
       let discountAmount = 0;
-      let description = '';
-      
-      if (currentLoyalty.rewardType === 'FREE') {
+      let description = "";
+
+      if (currentLoyalty.rewardType === "FREE") {
         // For free service, apply 100% discount
         discountAmount = 100; // 100% off
-        description = '100% Off - Free Service (Loyalty Reward)';
-      } else if (currentLoyalty.rewardType === 'PERCENTAGE') {
+        description = "100% Off - Free Service (Loyalty Reward)";
+      } else if (currentLoyalty.rewardType === "PERCENTAGE") {
         // Percentage discount
         discountAmount = currentLoyalty.rewardValue || 0; // This is a percentage
         description = `${currentLoyalty.rewardValue}% Off (Loyalty Reward)`;
       }
-      
+
       // Pass the discount info without actually redeeming
       onRedemption(discountAmount, description);
-      
+
       // Don't update loyalty status - keep showing as available
       // The UI will show it as "Applied" based on currentDiscount prop
     } catch (error: any) {
-      console.error('Failed to prepare loyalty discount:', error);
-      alert('Failed to apply loyalty discount. Please try again.');
+      console.error("Failed to prepare loyalty discount:", error);
+      alert("Failed to apply loyalty discount. Please try again.");
     } finally {
       setRedeeming(false);
     }
   };
 
   const handleRedeemPoints = async () => {
-    if (!customer || !loyalty || loyalty.type !== 'POINTS' || pointsToRedeem <= 0) return;
+    if (
+      !customer ||
+      !loyalty ||
+      loyalty.type !== "POINTS" ||
+      pointsToRedeem <= 0
+    )
+      return;
 
     setRedeeming(true);
     try {
       // DO NOT actually redeem yet - just prepare the discount
       // The actual redemption will happen after successful payment
-      
+
       // Calculate dollar value based on points
-      const dollarValue = (pointsToRedeem / (loyalty.currentPoints || 1)) * (loyalty.dollarValue || 0);
-      
+      const dollarValue =
+        (pointsToRedeem / (loyalty.currentPoints || 1)) *
+        (loyalty.dollarValue || 0);
+
       // Apply dollar value discount
-      onRedemption(dollarValue, `$${dollarValue.toFixed(2)} Loyalty Points Redemption (${pointsToRedeem} points)`);
-      
+      onRedemption(
+        dollarValue,
+        `$${dollarValue.toFixed(2)} Loyalty Points Redemption (${pointsToRedeem} points)`,
+      );
+
       // Don't update loyalty status - keep showing current points
       // Don't reset pointsToRedeem so user can adjust if needed
     } catch (error) {
-      console.error('Failed to prepare points discount:', error);
-      alert('Failed to apply points discount. Please try again.');
+      console.error("Failed to prepare points discount:", error);
+      alert("Failed to apply points discount. Please try again.");
     } finally {
       setRedeeming(false);
     }
   };
 
   // Don't show loyalty for walk-in customers
-  if (!customer || isWalkInCustomer(customer.id) || customer.source === 'WALK_IN') {
+  if (
+    !customer ||
+    isWalkInCustomer(customer.id) ||
+    customer.source === "WALK_IN"
+  ) {
     return null;
   }
-  
+
   if (loading || !loyalty?.hasProgram) {
     return null;
   }
 
   const hasAppliedDiscount = currentDiscount > 0;
-  
+
   // Check if customer has any loyalty benefits to show
-  const hasLoyaltyBenefits = loyalty && (
+  const hasLoyaltyBenefits =
+    loyalty &&
     // Has reward available
-    loyalty.rewardAvailable ||
-    // Has applied discount
-    hasAppliedDiscount ||
-    // For visit-based: has some visits
-    (loyalty.type === 'VISITS' && loyalty.currentVisits > 0) ||
-    // For points-based: has points or dollar value
-    (loyalty.type === 'POINTS' && (loyalty.currentPoints > 0 || (loyalty.dollarValue && loyalty.dollarValue > 0)))
-  );
-  
+    (loyalty.rewardAvailable ||
+      // Has applied discount
+      hasAppliedDiscount ||
+      // For visit-based: has some visits
+      (loyalty.type === "VISITS" && loyalty.currentVisits > 0) ||
+      // For points-based: has points or dollar value
+      (loyalty.type === "POINTS" &&
+        (loyalty.currentPoints > 0 ||
+          (loyalty.dollarValue && loyalty.dollarValue > 0))));
+
   // Don't render anything if no benefits available
   if (!hasLoyaltyBenefits) {
     return null;
@@ -168,7 +187,7 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
           disabled={hasAppliedDiscount}
         >
           <div className="flex items-center gap-2">
-            {loyalty.type === 'VISITS' ? (
+            {loyalty.type === "VISITS" ? (
               <Gift className="h-5 w-5 text-yellow-600" />
             ) : (
               <Star className="h-5 w-5 text-yellow-600" />
@@ -186,10 +205,12 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
               </span>
             )}
           </div>
-          <ChevronDown className={cn(
-            "h-4 w-4 transition-transform",
-            expanded ? "rotate-180" : ""
-          )} />
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform",
+              expanded ? "rotate-180" : "",
+            )}
+          />
         </button>
         {hasAppliedDiscount && onRemoveDiscount && (
           <button
@@ -203,7 +224,7 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
 
       {expanded && (
         <div className="p-4 bg-white border-t">
-          {loyalty.type === 'VISITS' ? (
+          {loyalty.type === "VISITS" ? (
             // Visit-based rewards
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -212,15 +233,17 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
                   {loyalty.currentVisits} / {loyalty.visitsRequired}
                 </span>
               </div>
-              
+
               {/* Progress bar */}
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-yellow-500 transition-all duration-300"
                   style={{
                     width: `${Math.min(
-                      ((loyalty.currentVisits || 0) / (loyalty.visitsRequired || 1)) * 100,
-                      100
+                      ((loyalty.currentVisits || 0) /
+                        (loyalty.visitsRequired || 1)) *
+                        100,
+                      100,
                     )}%`,
                   }}
                 />
@@ -229,7 +252,10 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
               {loyalty.rewardAvailable && !hasAppliedDiscount && (
                 <div className="pt-2">
                   <p className="text-sm text-gray-600 mb-2">
-                    Reward: {loyalty.rewardType === 'FREE' ? 'Free Service' : `${loyalty.rewardValue}% Off`}
+                    Reward:{" "}
+                    {loyalty.rewardType === "FREE"
+                      ? "Free Service"
+                      : `${loyalty.rewardValue}% Off`}
                   </p>
                   <Button
                     onClick={handleRedeemVisit}
@@ -237,7 +263,7 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
                     className="w-full"
                     variant="primary"
                   >
-                    {redeeming ? 'Redeeming...' : 'Redeem Reward'}
+                    {redeeming ? "Redeeming..." : "Redeem Reward"}
                   </Button>
                 </div>
               )}
@@ -265,9 +291,11 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Available Points</span>
-                <span className="font-medium">{loyalty.currentPoints || 0}</span>
+                <span className="font-medium">
+                  {loyalty.currentPoints || 0}
+                </span>
               </div>
-              
+
               {loyalty.dollarValue && loyalty.dollarValue > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Point Value</span>
@@ -277,39 +305,49 @@ export const LoyaltyRedemption: React.FC<LoyaltyRedemptionProps> = ({
                 </div>
               )}
 
-              {loyalty.dollarValue && loyalty.dollarValue > 0 && !hasAppliedDiscount && (
-                <div className="pt-2">
-                  <label className="text-sm text-gray-600 block mb-2">
-                    Points to Redeem (max: {loyalty.currentPoints})
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max={loyalty.currentPoints || 0}
-                      value={pointsToRedeem}
-                      onChange={(e) => setPointsToRedeem(Math.min(
-                        parseInt(e.target.value) || 0,
-                        loyalty.currentPoints || 0
-                      ))}
-                      className="flex-1 px-3 py-2 border rounded-md"
-                      placeholder="Enter points"
-                    />
-                    <Button
-                      onClick={handleRedeemPoints}
-                      disabled={redeeming || pointsToRedeem <= 0}
-                      variant="primary"
-                    >
-                      {redeeming ? 'Redeeming...' : 'Redeem'}
-                    </Button>
+              {loyalty.dollarValue &&
+                loyalty.dollarValue > 0 &&
+                !hasAppliedDiscount && (
+                  <div className="pt-2">
+                    <label className="text-sm text-gray-600 block mb-2">
+                      Points to Redeem (max: {loyalty.currentPoints})
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max={loyalty.currentPoints || 0}
+                        value={pointsToRedeem}
+                        onChange={(e) =>
+                          setPointsToRedeem(
+                            Math.min(
+                              parseInt(e.target.value) || 0,
+                              loyalty.currentPoints || 0,
+                            ),
+                          )
+                        }
+                        className="flex-1 px-3 py-2 border rounded-md"
+                        placeholder="Enter points"
+                      />
+                      <Button
+                        onClick={handleRedeemPoints}
+                        disabled={redeeming || pointsToRedeem <= 0}
+                        variant="primary"
+                      >
+                        {redeeming ? "Redeeming..." : "Redeem"}
+                      </Button>
+                    </div>
+                    {pointsToRedeem > 0 && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Value: $
+                        {(
+                          (pointsToRedeem / (loyalty.currentPoints || 1)) *
+                          (loyalty.dollarValue || 0)
+                        ).toFixed(2)}
+                      </p>
+                    )}
                   </div>
-                  {pointsToRedeem > 0 && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      Value: ${((pointsToRedeem / (loyalty.currentPoints || 1)) * (loyalty.dollarValue || 0)).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-              )}
+                )}
 
               {hasAppliedDiscount && (
                 <div className="text-center space-y-2">

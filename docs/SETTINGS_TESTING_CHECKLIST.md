@@ -12,19 +12,23 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 🔧 Business Information Tab
 
 ### Business Details
+
 - [ ] **Business Name**
+
   - Change the business name
   - Save and refresh the page
   - ✅ Verify: Name persists after refresh
   - ✅ Verify: Name appears in page header/navigation
 
 - [ ] **ABN**
+
   - Update ABN number
   - Save changes
   - ✅ Verify: ABN format validation works
   - ✅ Verify: ABN appears on invoices/receipts
 
 - [ ] **Business Email**
+
   - Change email address
   - ✅ Verify: Email validation works
   - ✅ Verify: System emails come from this address
@@ -35,7 +39,9 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Phone appears on customer communications
 
 ### Location Settings
+
 - [ ] **Timezone**
+
   - Change from Sydney to Perth timezone
   - Save changes
   - ✅ Verify: All booking times adjust by 2-3 hours
@@ -49,6 +55,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Payment processing uses correct currency
 
 ### Business Hours
+
 - [ ] **Daily Hours**
   - Change Monday hours from 9-5 to 10-6
   - Toggle Sunday to closed
@@ -60,7 +67,9 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 📅 Booking Settings Tab
 
 ### Booking Rules
+
 - [ ] **Advance Booking Hours**
+
   - Set to 24 hours
   - Try to book an appointment for tomorrow
   - ✅ Verify: Can book 24+ hours ahead
@@ -68,6 +77,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - Change to 72 hours and test again
 
 - [ ] **Cancellation Notice**
+
   - Set to 48 hours
   - Create a booking for 3 days from now
   - Try to cancel it
@@ -76,12 +86,14 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ❌ Verify: Cannot cancel (or requires PIN)
 
 - [ ] **Online Bookings Toggle**
+
   - Turn off online bookings
   - ✅ Verify: Booking widget shows "closed" message
   - ✅ Verify: API rejects online booking attempts
   - Turn back on
 
 - [ ] **Auto-confirm Bookings**
+
   - Turn off auto-confirm
   - Create a new booking
   - ✅ Verify: Booking status is "pending"
@@ -95,7 +107,9 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Calendar shows buffer time as unavailable
 
 ### Payment Settings
+
 - [ ] **Deposit Requirements**
+
   - Enable deposit requirement
   - Set to 30%
   - Create a $100 booking
@@ -114,7 +128,9 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 🔒 Security Tab
 
 ### PIN Requirements
+
 - [ ] **PIN for Refunds**
+
   - Enable PIN requirement
   - Process a refund
   - ✅ Verify: PIN prompt appears
@@ -122,6 +138,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - Disable and verify no PIN required
 
 - [ ] **PIN for Cancellations**
+
   - Enable PIN requirement
   - Cancel a booking
   - ✅ Verify: PIN prompt appears for late cancellations
@@ -129,6 +146,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - Disable and verify no PIN required
 
 - [ ] **PIN for Reports**
+
   - Enable PIN requirement
   - Navigate to Reports page
   - ✅ Verify: PIN prompt appears
@@ -143,24 +161,26 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - Set to preferred timeout
 
 ### Access Levels
+
 - [ ] **Role Permissions**
+
   - Login as Employee role
   - ❌ Verify: Cannot access Settings
   - ❌ Verify: Cannot see all bookings
   - ✅ Verify: Can process payments
-  
   - Login as Manager role
   - ✅ Verify: Can access reports
   - ✅ Verify: Can manage schedules
   - ❌ Verify: Cannot change business settings
-  
   - Login as Owner role
   - ✅ Verify: Full access to all features
 
 ## 🎁 Loyalty Program Tab
 
 ### Loyalty Configuration
+
 - [ ] **Loyalty Type - Visit Based**
+
   - Set to "Points per Visit"
   - Set to 10 points per visit
   - Complete a booking
@@ -168,6 +188,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Points show in customer profile
 
 - [ ] **Loyalty Type - Spend Based**
+
   - Switch to "Points per Dollar"
   - Set to 1 point per dollar
   - Complete a $50 booking
@@ -181,13 +202,16 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Points deducted correctly
 
 ### Loyalty Features
+
 - [ ] **Enable/Disable Program**
+
   - Disable loyalty program
   - Complete a booking
   - ❌ Verify: No points awarded
   - Enable and verify points accrue
 
 - [ ] **Birthday Rewards**
+
   - Enable birthday rewards
   - Set customer birthday to today
   - ✅ Verify: Birthday reward triggered
@@ -202,7 +226,9 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 🔔 Notifications Tab
 
 ### Customer Notifications
+
 - [ ] **Booking Confirmations**
+
   - Enable email confirmations
   - Create a booking
   - ✅ Verify: Confirmation email sent
@@ -210,6 +236,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - Disable and verify no email sent
 
 - [ ] **Appointment Reminders**
+
   - Enable SMS reminders
   - Set reminder to 24 hours
   - ✅ Verify: SMS sent 24 hours before appointment
@@ -223,13 +250,16 @@ This document provides a foolproof way to test every setting in the Heya POS Set
   - ✅ Verify: Points balance included
 
 ### Staff Notifications
+
 - [ ] **New Bookings**
+
   - Enable new booking alerts
   - Create a booking for a staff member
   - ✅ Verify: Staff receives notification
   - ✅ Verify: Can view booking details
 
 - [ ] **Cancellations**
+
   - Enable cancellation alerts
   - Cancel a booking
   - ✅ Verify: Assigned staff notified
@@ -244,19 +274,23 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 🧪 Integration Testing
 
 ### Cross-Feature Validation
+
 - [ ] **Timezone + Bookings**
+
   - Book appointment in one timezone
   - Change timezone setting
   - ✅ Verify: Booking time adjusts correctly
   - ✅ Verify: No double-bookings created
 
 - [ ] **Business Hours + Online Booking**
+
   - Set specific business hours
   - Try online booking outside hours
   - ❌ Verify: Cannot book outside hours
   - ✅ Verify: Available slots match business hours
 
 - [ ] **Deposits + Cancellations**
+
   - Book with deposit
   - Cancel within notice period
   - ✅ Verify: Deposit refunded
@@ -272,6 +306,7 @@ This document provides a foolproof way to test every setting in the Heya POS Set
 ## 📊 Verification Methods
 
 ### API Testing
+
 ```bash
 # Test settings endpoint
 curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/v1/merchant/settings
@@ -284,6 +319,7 @@ curl -X PUT -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Database Verification
+
 ```sql
 -- Check merchant settings
 SELECT * FROM merchant_settings WHERE merchant_id = 'YOUR_MERCHANT_ID';
@@ -295,6 +331,7 @@ FROM bookings LIMIT 1;
 ```
 
 ### UI Verification
+
 1. Open Developer Tools > Application > Local Storage
 2. Check for cached settings
 3. Clear cache and verify settings reload from API
@@ -303,16 +340,19 @@ FROM bookings LIMIT 1;
 ## 🚨 Common Issues to Check
 
 1. **Settings Not Persisting**
+
    - Check API returns 200 status
    - Verify database write permissions
    - Check for JavaScript errors
 
 2. **Timezone Issues**
+
    - Verify server timezone configuration
    - Check date serialization format
    - Ensure consistent timezone handling
 
 3. **Permission Errors**
+
    - Verify user role has settings permission
    - Check JWT token includes correct role
    - Verify API endpoint authorization
@@ -339,6 +379,7 @@ Notes: [Any additional observations]
 ## 🎯 Success Criteria
 
 A setting is considered fully functional when:
+
 1. ✅ Value can be changed through UI
 2. ✅ Change persists after page refresh
 3. ✅ Change persists after logout/login
@@ -350,6 +391,7 @@ A setting is considered fully functional when:
 ## 🔄 Regression Testing
 
 After any code changes, re-test:
+
 1. Critical settings (timezone, business hours, payment)
 2. Security settings (PINs, permissions)
 3. Integration points (booking rules, notifications)

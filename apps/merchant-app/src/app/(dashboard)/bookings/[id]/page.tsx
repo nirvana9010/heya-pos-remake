@@ -1,15 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Button } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
-import { ArrowLeft, Calendar, Clock, User, DollarSign, Phone, Mail, MessageSquare, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { type Booking } from '@heya-pos/shared';
-import { apiClient } from '@/lib/api-client';
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  User,
+  DollarSign,
+  Phone,
+  Mail,
+  MessageSquare,
+  Loader2,
+} from "lucide-react";
+import { format } from "date-fns";
+import { type Booking } from "@heya-pos/shared";
+import { apiClient } from "@/lib/api-client";
 
 export default function BookingDetailPage() {
   const params = useParams();
@@ -36,11 +46,16 @@ export default function BookingDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "confirmed":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -48,24 +63,29 @@ export default function BookingDetailPage() {
     setIsUpdating(true);
     try {
       switch (newStatus) {
-        case 'IN_PROGRESS':
+        case "IN_PROGRESS":
           await apiClient.startBooking(params.id as string);
           break;
-        case 'COMPLETED':
+        case "COMPLETED":
           await apiClient.completeBooking(params.id as string);
           break;
-        case 'CANCELLED':
-          await apiClient.cancelBooking(params.id as string, 'Cancelled by user');
+        case "CANCELLED":
+          await apiClient.cancelBooking(
+            params.id as string,
+            "Cancelled by user",
+          );
           break;
         default:
           // For other statuses like 'CONFIRMED', 'NO_SHOW', use updateBooking
-          await apiClient.updateBooking(params.id as string, { status: newStatus });
+          await apiClient.updateBooking(params.id as string, {
+            status: newStatus,
+          });
       }
       await loadBooking();
-      
+
       toast({
         title: "Status updated",
-        description: `Booking marked as ${newStatus.toLowerCase().replace('_', ' ')}`,
+        description: `Booking marked as ${newStatus.toLowerCase().replace("_", " ")}`,
         variant: "default",
         className: "bg-green-50 border-green-200",
       });
@@ -102,7 +122,7 @@ export default function BookingDetailPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.push('/bookings')}
+          onClick={() => router.push("/bookings")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -121,12 +141,12 @@ export default function BookingDetailPage() {
                 {booking.status}
               </Badge>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-gray-400" />
               <span className="text-gray-600">Date:</span>
               <span className="font-medium">
-                {format(new Date(booking.date), 'MMMM dd, yyyy')}
+                {format(new Date(booking.date), "MMMM dd, yyyy")}
               </span>
             </div>
 
@@ -141,7 +161,9 @@ export default function BookingDetailPage() {
             <div className="flex items-center space-x-2">
               <DollarSign className="h-4 w-4 text-gray-400" />
               <span className="text-gray-600">Total Price:</span>
-              <span className="font-medium">${(booking.totalAmount || booking.price || 0).toFixed(2)}</span>
+              <span className="font-medium">
+                ${(booking.totalAmount || booking.price || 0).toFixed(2)}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -160,13 +182,17 @@ export default function BookingDetailPage() {
             <div className="flex items-center space-x-2">
               <Phone className="h-4 w-4 text-gray-400" />
               <span className="text-gray-600">Phone:</span>
-              <span className="font-medium">{booking.customerPhone || 'Not provided'}</span>
+              <span className="font-medium">
+                {booking.customerPhone || "Not provided"}
+              </span>
             </div>
 
             <div className="flex items-center space-x-2">
               <Mail className="h-4 w-4 text-gray-400" />
               <span className="text-gray-600">Email:</span>
-              <span className="font-medium">{booking.customerEmail || 'Not provided'}</span>
+              <span className="font-medium">
+                {booking.customerEmail || "Not provided"}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -178,7 +204,10 @@ export default function BookingDetailPage() {
           <CardContent className="space-y-4">
             {booking.services && booking.services.length > 0 ? (
               booking.services.map((service: any, index: number) => (
-                <div key={service.id} className={index > 0 ? "border-t pt-4" : ""}>
+                <div
+                  key={service.id}
+                  className={index > 0 ? "border-t pt-4" : ""}
+                >
                   <div className="space-y-2">
                     <div>
                       <span className="text-gray-600">Service:</span>
@@ -188,11 +217,15 @@ export default function BookingDetailPage() {
                     <div className="flex space-x-4">
                       <div>
                         <span className="text-gray-600">Duration:</span>
-                        <p className="font-medium">{service.duration} minutes</p>
+                        <p className="font-medium">
+                          {service.duration} minutes
+                        </p>
                       </div>
                       <div>
                         <span className="text-gray-600">Price:</span>
-                        <p className="font-medium">${service.price.toFixed(2)}</p>
+                        <p className="font-medium">
+                          ${service.price.toFixed(2)}
+                        </p>
                       </div>
                     </div>
 
@@ -240,7 +273,7 @@ export default function BookingDetailPage() {
             <div className="flex items-start space-x-2">
               <MessageSquare className="h-4 w-4 text-gray-400 mt-1" />
               <p className="text-gray-600">
-                {booking.notes || 'No notes for this booking'}
+                {booking.notes || "No notes for this booking"}
               </p>
             </div>
           </CardContent>
@@ -253,50 +286,50 @@ export default function BookingDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="flex space-x-4">
-            {booking.status === 'pending' && (
+            {booking.status === "pending" && (
               <>
-                <Button 
-                  onClick={() => handleStatusChange('CONFIRMED')}
+                <Button
+                  onClick={() => handleStatusChange("CONFIRMED")}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   Confirm Booking
                 </Button>
-                <Button 
+                <Button
                   variant="destructive"
-                  onClick={() => handleStatusChange('CANCELLED')}
-                >
-                  Cancel Booking
-                </Button>
-              </>
-            )}
-            
-            {booking.status === 'confirmed' && (
-              <>
-                <Button 
-                  onClick={() => handleStatusChange('COMPLETED')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Mark as Completed
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={() => handleStatusChange('CANCELLED')}
+                  onClick={() => handleStatusChange("CANCELLED")}
                 >
                   Cancel Booking
                 </Button>
               </>
             )}
 
-            {booking.status === 'completed' && (
-              <Button 
+            {booking.status === "confirmed" && (
+              <>
+                <Button
+                  onClick={() => handleStatusChange("COMPLETED")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Mark as Completed
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleStatusChange("CANCELLED")}
+                >
+                  Cancel Booking
+                </Button>
+              </>
+            )}
+
+            {booking.status === "completed" && (
+              <Button
                 variant="outline"
-                onClick={() => router.push('/bookings/new')}
+                onClick={() => router.push("/bookings/new")}
               >
                 Book Again
               </Button>
             )}
 
-            <Button 
+            <Button
               variant="outline"
               onClick={() => router.push(`/bookings/${booking.id}/edit`)}
             >

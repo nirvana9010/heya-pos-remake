@@ -15,12 +15,15 @@
 ## 🎯 Business Context
 
 ### Why This Feature Exists
+
 [Explain the business problem this solves]
 
 ### User Story
+
 As a [user type], I want to [action] so that [benefit].
 
 ### Success Metrics
+
 - [ ] [How do we measure if this is successful?]
 - [ ] [What user behavior indicates this is working?]
 - [ ] [What business metric does this improve?]
@@ -28,9 +31,11 @@ As a [user type], I want to [action] so that [benefit].
 ## 🏗️ Technical Implementation
 
 ### Architecture Decision
+
 [Brief explanation of the approach taken and why]
 
 ### Files Modified/Created
+
 ```
 CREATED:
 - [filepath] - [Purpose of this file]
@@ -44,12 +49,14 @@ MODIFIED:
 ```
 
 ### Database Changes
+
 ```sql
 -- Document any schema changes, migrations, or new indexes
 -- Include both the change and the rollback if needed
 ```
 
 ### API Changes
+
 ```typescript
 // Document new or modified endpoints
 [METHOD] [endpoint]
@@ -59,6 +66,7 @@ MODIFIED:
 ```
 
 ### Key Components/Functions
+
 ```typescript
 // List the main components or functions created
 [Component/Function Name]
@@ -70,28 +78,35 @@ MODIFIED:
 ## 🔗 Integration Points
 
 ### Upstream Dependencies
+
 [What this feature needs to work - be specific]
+
 - [ ] [System/Component] - [How it's used]
 - [ ] [System/Component] - [How it's used]
 
 ### Downstream Impact
+
 [What other features/systems are affected by this]
+
 - [ ] [System/Component] - [How it's affected]
 - [ ] [System/Component] - [How it's affected]
 
 ### Critical Paths
+
 [List the main user flows that use this feature]
+
 1. [User flow description]
 2. [User flow description]
 
 ## 🧪 Testing
 
 ### Automated Tests
+
 ```bash
 # Unit tests
 [test command]
 
-# Integration tests  
+# Integration tests
 [test command]
 
 # E2E tests
@@ -99,6 +114,7 @@ MODIFIED:
 ```
 
 ### Manual Testing Checklist
+
 - [ ] [Step 1 to verify feature works]
 - [ ] [Step 2 - include specific values/scenarios]
 - [ ] [Edge case to test]
@@ -107,14 +123,17 @@ MODIFIED:
 ## ⚠️ Edge Cases & Gotchas
 
 ### Handled Edge Cases
+
 - ✅ [Edge case] - [How it's handled]
 - ✅ [Edge case] - [How it's handled]
 
 ### Known Limitations
+
 - ⚠️ [Limitation] - [Why it exists, impact]
 - ⚠️ [Limitation] - [Potential workaround]
 
 ### Performance Notes
+
 [Any performance implications or optimizations made]
 
 ## 🐛 Debugging Guide
@@ -122,15 +141,18 @@ MODIFIED:
 ### Common Issues
 
 **Issue**: [Description of problem user might see]
+
 - Check: [First thing to verify]
 - Check: [Second thing to check]
 - Fix: [How to resolve]
 
 **Issue**: [Another common problem]
+
 - Check: [Diagnostic step]
 - Fix: [Solution]
 
 ### Debug Commands
+
 ```bash
 # Helpful commands for debugging this feature
 [command] - [what it shows]
@@ -138,6 +160,7 @@ MODIFIED:
 ```
 
 ### Key Log Entries
+
 ```
 [LOG_PREFIX] [What to look for in logs]
 [LOG_PREFIX] [Another important log pattern]
@@ -146,24 +169,29 @@ MODIFIED:
 ## 🔄 Maintenance Notes
 
 ### Safe to Modify
+
 - ✅ [What can be changed without risk]
 - ✅ [Another safe modification]
 
 ### Modify with Caution
+
 - ⚠️ [What requires careful testing]
 - ⚠️ [Another risky area]
 
 ### Do NOT Modify Without Full Understanding
+
 - ❌ [Critical code that could break everything]
 - ❌ [Another danger zone]
 
 ## 📊 Monitoring
 
 ### Metrics to Track
+
 - [Metric name] - [Why it matters]
 - [Metric name] - [Expected range]
 
 ### Alerts to Configure
+
 - [Condition] - [Why this indicates a problem]
 - [Condition] - [Severity and response]
 
@@ -182,7 +210,7 @@ MODIFIED:
 **Last Updated**: [DATE]  
 **Next Review Date**: [DATE + 3 months]
 
-<!-- 
+<!--
 Template Usage Notes:
 - Fill in all sections, even if briefly
 - Use specific examples rather than vague descriptions

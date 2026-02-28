@@ -1,7 +1,9 @@
 # Heya POS Booking App - Comprehensive Feature Audit
-*Complete documentation of every feature, button, input, and capability in the customer-facing booking application*
+
+_Complete documentation of every feature, button, input, and capability in the customer-facing booking application_
 
 ## Table of Contents
+
 1. [System Architecture](#system-architecture)
 2. [Multi-Tenant Configuration](#multi-tenant-configuration)
 3. [Landing & Home Page](#landing--home-page)
@@ -25,6 +27,7 @@
 ## System Architecture
 
 ### Core Technology Stack
+
 - **Framework**: Next.js 14 with App Router
 - **UI Library**: Tailwind CSS + Custom components
 - **State Management**: React hooks + URL state
@@ -33,6 +36,7 @@
 - **Browser Support**: Modern browsers with responsive design
 
 ### Key Features
+
 - **Multi-tenant Support**: Dynamic merchant configuration via subdomain
 - **Progressive Enhancement**: Works without JavaScript (SSR)
 - **Mobile-First Design**: Touch-optimized interface
@@ -45,13 +49,16 @@
 ## Multi-Tenant Configuration
 
 ### Merchant Detection
-- **Subdomain-Based Routing**: 
+
+- **Subdomain-Based Routing**:
   - `hamilton-beauty.booking.app` → Hamilton Beauty Spa
   - `zen-wellness.booking.app` → Zen Wellness Center
   - Dynamic merchant loading based on subdomain
 
 ### Merchant-Specific Features
+
 - **Custom Branding**:
+
   - Business name display
   - Logo placement (when available)
   - Color scheme customization
@@ -65,8 +72,9 @@
   - Payment requirements
 
 ### Merchant Header Component
+
 - **Business Name Display**: Prominent merchant name
-- **Navigation Bar**: 
+- **Navigation Bar**:
   - Home link
   - Services link
   - About link
@@ -79,13 +87,16 @@
 ## Landing & Home Page
 
 ### Hero Section
+
 - **Welcome Message**: "Welcome to [Merchant Name]"
 - **Tagline**: "Experience luxury and relaxation"
 - **Primary CTA Button**: "Book Your Appointment" (large, prominent)
 - **Hero Image**: Business-appropriate background
 
 ### Quick Info Section
+
 - **Business Hours Display**:
+
   - Today's hours highlighted
   - Full week schedule
   - Open/Closed status indicator
@@ -98,6 +109,7 @@
   - Map link (opens in Google Maps)
 
 ### Featured Services Section
+
 - **Service Cards Grid**:
   - Service name
   - Brief description
@@ -107,6 +119,7 @@
   - Category tags
 
 ### Why Choose Us Section
+
 - **Value Propositions**:
   - Professional staff highlight
   - Quality products mention
@@ -114,6 +127,7 @@
   - Customer satisfaction focus
 
 ### Call-to-Action Section
+
 - **Booking Encouragement**:
   - "Ready to book?" heading
   - Descriptive text
@@ -121,6 +135,7 @@
   - Contact alternative option
 
 ### Footer
+
 - **Business Information**:
   - Copyright notice
   - Quick links
@@ -133,15 +148,18 @@
 ## Complete Booking Flow
 
 ### Booking Flow Overview (6 Steps)
+
 1. **Service Selection** → 2. **Staff Selection** → 3. **Date Selection** → 4. **Time Selection** → 5. **Customer Info** → 6. **Confirmation**
 
 ### Flow Navigation
+
 - **Progress Indicator**: Visual step counter (1 of 6, 2 of 6, etc.)
 - **Back Button**: Return to previous step
 - **Next Button**: Proceed to next step (disabled until requirements met)
 - **Cancel Option**: Exit booking flow with confirmation
 
 ### State Management
+
 - **URL-Based State**: Booking state preserved in URL parameters
 - **Form Persistence**: Data retained when navigating between steps
 - **Session Recovery**: Can resume booking if interrupted
@@ -153,11 +171,13 @@
 ### Service Selection Page (`Step 1`)
 
 #### Page Header
+
 - **Title**: "Select Your Service"
 - **Subtitle**: "Choose from our range of treatments"
 - **Progress**: "Step 1 of 6"
 
 #### Category Filter
+
 - **Category Buttons**:
   - "All Services" (default selected)
   - Dynamic category buttons (e.g., "Hair", "Nails", "Facial", "Massage")
@@ -165,13 +185,16 @@
   - Count badge per category
 
 #### Service Display Options
+
 - **View Toggle**:
   - Grid view (default - cards layout)
   - List view (compact layout)
   - User preference remembered
 
 #### Service Cards (Grid View)
+
 - **Card Content**:
+
   - Service name (prominent)
   - Service description
   - Duration badge (e.g., "60 min")
@@ -186,6 +209,7 @@
   - Disabled state (if unavailable)
 
 #### Service List (List View)
+
 - **List Item Content**:
   - Service name
   - Brief description (truncated)
@@ -194,6 +218,7 @@
   - Expandable details arrow
 
 #### Multi-Service Selection
+
 - **Multiple Selection Enabled**:
   - Checkbox per service
   - "Add another service" button
@@ -202,6 +227,7 @@
   - Combined price display
 
 #### Service Details Modal
+
 - **Triggered by**: Info icon or "View details" link
 - **Modal Content**:
   - Full service description
@@ -211,6 +237,7 @@
   - Related services
 
 #### Selection Summary
+
 - **Bottom Bar** (sticky):
   - Selected service(s) list
   - Total duration
@@ -225,6 +252,7 @@
 ### Staff Selection Page (`Step 2`)
 
 #### Page Header
+
 - **Title**: "Choose Your Preferred Staff"
 - **Subtitle**: "Select a specific staff member or any available"
 - **Progress**: "Step 2 of 6"
@@ -232,6 +260,7 @@
 #### Staff Selection Options
 
 ##### Any Available Option
+
 - **Card Design**:
   - "Any Available Staff" title
   - Icon representation (multiple people)
@@ -241,7 +270,9 @@
   - Select button (primary style)
 
 ##### Individual Staff Cards
+
 - **Card Layout** (Grid):
+
   - Staff photo/avatar
   - Full name
   - Title/Role (e.g., "Senior Stylist")
@@ -258,6 +289,7 @@
   - Certifications badges
 
 #### Staff Filtering
+
 - **Filter Options**:
   - By specialty
   - By availability
@@ -265,6 +297,7 @@
   - By experience level
 
 #### Staff Profile Modal
+
 - **Triggered by**: "View profile" link
 - **Modal Content**:
   - Full bio
@@ -274,6 +307,7 @@
   - Gallery (if available)
 
 #### Selection Confirmation
+
 - **Selected Staff Display**:
   - Staff name or "Any Available"
   - Change selection link
@@ -286,18 +320,22 @@
 ### Date Selection Page (`Step 3`)
 
 #### Page Header
+
 - **Title**: "Select Date"
 - **Subtitle**: "Choose your preferred appointment date"
 - **Progress**: "Step 3 of 6"
 
 #### Horizontal Date Picker Component
+
 - **Scrollable Date Strip**:
+
   - 30-60 days of availability
   - Smooth horizontal scrolling
   - Touch-enabled swipe on mobile
   - Keyboard navigation support
 
 - **Date Cards**:
+
   - Day of week (Mon, Tue, etc.)
   - Date number
   - Month (if different from current)
@@ -312,6 +350,7 @@
 - **Navigation Arrows**: Previous/Next for scrolling
 
 #### Calendar View Alternative
+
 - **Month View Toggle**: Switch to traditional calendar
 - **Calendar Features**:
   - Month navigation
@@ -320,6 +359,7 @@
   - Business hours overlay
 
 #### Date Selection Rules
+
 - **Booking Window**:
   - Minimum notice (e.g., 24 hours)
   - Maximum advance booking (e.g., 60 days)
@@ -329,18 +369,22 @@
 ### Time Selection Page (`Step 4`)
 
 #### Page Header
+
 - **Title**: "Select Time"
 - **Subtitle**: "Available times for [selected date]"
 - **Progress**: "Step 4 of 6"
 - **Date Display**: Selected date shown prominently
 
 #### Time Period Grouping
+
 - **Morning** (6 AM - 12 PM):
+
   - Time slot grid
   - "Morning" header
   - Slots in 15/30-minute intervals
 
 - **Afternoon** (12 PM - 5 PM):
+
   - Time slot grid
   - "Afternoon" header
   - Popular times indicator
@@ -351,7 +395,9 @@
   - Limited availability notice
 
 #### Time Slot Display
+
 - **Slot Button Design**:
+
   - Time display (e.g., "10:00 AM")
   - Duration fit indicator
   - Available/Unavailable state
@@ -365,12 +411,14 @@
   - Partial conflict (yellow, with tooltip)
 
 #### Availability Features
+
 - **Real-time Updates**: Live availability checking
 - **Conflict Detection**: Service duration validation
 - **Buffer Time**: Automatic buffer calculation
 - **Staff Breaks**: Lunch/break time handling
 
 #### Time Zone Display
+
 - **Timezone Indicator**: Business timezone shown
 - **Conversion Helper**: "This is X:XX in your timezone"
 
@@ -381,17 +429,20 @@
 ### Customer Identification (`Step 5 - Part A`)
 
 #### Progressive Customer Flow
+
 - **Identification First**: Check existing customer before form
 - **Page Title**: "Let's Get Your Details"
 - **Subtitle**: "New here? We'll need some information"
 
 #### Identification Methods
+
 - **Toggle Selector**:
   - Email option (default)
   - Phone option
   - Visual toggle switch
 
 ##### Email Identification
+
 - **Input Field**:
   - Email address input
   - Validation on blur
@@ -399,6 +450,7 @@
   - "Continue" button
 
 ##### Phone Identification
+
 - **Input Fields**:
   - Country code selector
   - Phone number input
@@ -406,6 +458,7 @@
   - SMS verification option
 
 #### Existing Customer Flow
+
 - **Recognition Message**: "Welcome back, [Name]!"
 - **Quick Booking**: Pre-filled information
 - **Update Option**: "Not you?" link
@@ -413,18 +466,19 @@
 ### Customer Details Form (`Step 5 - Part B`)
 
 #### Personal Information Section
+
 - **Required Fields**:
   - First name input
   - Last name input
   - Email address (if not provided)
   - Phone number (required)
-  
 - **Optional Fields**:
   - Date of birth (for birthday offers)
   - Preferred name
   - Gender selection
 
 #### Contact Preferences
+
 - **Communication Options**:
   - Email reminders checkbox
   - SMS reminders checkbox
@@ -432,7 +486,9 @@
   - Preferred contact method radio
 
 #### Additional Information
+
 - **Special Requests**:
+
   - Large text area
   - Character limit (500)
   - Placeholder suggestions
@@ -445,6 +501,7 @@
   - Consent checkboxes
 
 #### Account Creation (Optional)
+
 - **Create Account Option**:
   - Password field
   - Confirm password
@@ -458,6 +515,7 @@
 ### Payment Step (`Step 6` - if required)
 
 #### Payment Requirement Display
+
 - **Payment Summary**:
   - Service total
   - Tax calculation
@@ -466,7 +524,9 @@
   - Balance due at appointment
 
 #### Payment Options
+
 - **Deposit Only**:
+
   - Deposit amount highlighted
   - "Pay deposit" button
   - Full payment option available
@@ -477,7 +537,9 @@
   - "Pay full amount" button
 
 ### Mock Payment Form
+
 - **Card Details Section**:
+
   - Card number input (with formatting)
   - Expiry date (MM/YY)
   - CVV input
@@ -491,6 +553,7 @@
   - Security badges display
 
 #### Billing Address
+
 - **Address Fields**:
   - Street address
   - City
@@ -500,6 +563,7 @@
   - "Same as contact" checkbox
 
 #### Payment Security
+
 - **Trust Indicators**:
   - SSL badge
   - "Secure payment" messaging
@@ -507,6 +571,7 @@
   - Privacy assurance
 
 #### Payment Processing
+
 - **Submit Button**: "Complete Booking"
 - **Processing State**:
   - Loading spinner
@@ -514,6 +579,7 @@
   - Don't close warning
 
 #### Payment Confirmation
+
 - **Success Message**: "Payment successful!"
 - **Receipt Option**: Email receipt checkbox
 - **Transaction ID**: Reference number display
@@ -525,6 +591,7 @@
 ### Confirmation Page (Final Step)
 
 #### Success Message
+
 - **Hero Section**:
   - Large checkmark animation
   - "Booking Confirmed!" heading
@@ -532,6 +599,7 @@
   - Booking reference number (large, copyable)
 
 #### Appointment Details Card
+
 - **Booking Information**:
   - Service name(s)
   - Staff member name
@@ -542,6 +610,7 @@
   - Payment status
 
 #### Calendar Integration
+
 - **Add to Calendar Options**:
   - Google Calendar button
   - Apple Calendar button
@@ -549,13 +618,16 @@
   - Download ICS file link
 
 #### Confirmation Actions
+
 - **Email Confirmation**: "Confirmation sent to [email]"
 - **SMS Confirmation**: "Text sent to [phone]" (if enabled)
 - **Print Option**: Print-friendly version button
 - **Share Option**: Share appointment details
 
 #### Important Reminders
+
 - **Cancellation Policy**:
+
   - Cancellation deadline
   - How to cancel/reschedule
   - Refund policy
@@ -567,6 +639,7 @@
   - Special instructions
 
 #### Next Steps
+
 - **Action Buttons**:
   - "Book Another Appointment"
   - "View My Appointments"
@@ -580,12 +653,14 @@
 ### Check-in Landing Page (`/checkin`)
 
 #### Kiosk Mode Features
+
 - **Full-Screen Display**: Optimized for tablet/kiosk
 - **Auto-Reset**: Returns to start after inactivity
 - **Large Touch Targets**: Accessibility for all users
 - **Simple Navigation**: Minimal options
 
 #### Welcome Screen
+
 - **Greeting Message**: "Welcome to [Merchant Name]"
 - **Current Time Display**: Live clock
 - **Two Primary Options**:
@@ -595,6 +670,7 @@
 ### Appointment Check-in Flow
 
 #### Customer Identification
+
 - **Search Methods**:
   - Phone number pad (numeric keypad)
   - Email keyboard
@@ -602,6 +678,7 @@
   - Name search (last name)
 
 #### Appointment Selection
+
 - **Today's Appointments List**:
   - Time slot
   - Service name
@@ -610,6 +687,7 @@
   - "This is me" button per appointment
 
 #### Check-in Confirmation
+
 - **Success Screen**:
   - "You're checked in!" message
   - Appointment details summary
@@ -620,6 +698,7 @@
 ### Walk-in Registration Flow
 
 #### Service Selection (Simplified)
+
 - **Quick Service Grid**:
   - Popular services only
   - Large touch buttons
@@ -627,18 +706,21 @@
   - Estimated wait times
 
 #### Customer Information (Minimal)
+
 - **Required Only**:
   - First name
   - Phone number
   - Service selection confirmation
 
 #### Walk-in Confirmation
+
 - **Queue Position**: "You're #3 in line"
 - **Estimated Wait**: "Approximately 30 minutes"
 - **SMS Updates**: Option to receive text updates
 - **Waiting Area**: Directions display
 
 ### Kiosk Management Features
+
 - **Staff Override**: Hidden admin button
 - **Language Selection**: Multi-language support
 - **Accessibility Mode**: High contrast option
@@ -651,12 +733,14 @@
 ### Services Page (`/services`)
 
 #### Page Layout
+
 - **Hero Section**:
   - "Our Services" heading
   - Introduction paragraph
   - Service categories overview
 
 #### Service Categories Display
+
 - **Category Sections**:
   - Category name as section header
   - Category description
@@ -664,6 +748,7 @@
   - "Book Now" CTA per category
 
 #### Individual Service Display
+
 - **Service Card Expanded**:
   - Service name
   - Detailed description
@@ -674,6 +759,7 @@
   - "Learn More" expandable section
 
 #### Service Filtering
+
 - **Filter Sidebar**:
   - Category checkboxes
   - Price range slider
@@ -681,6 +767,7 @@
   - Sort options (price, popularity, name)
 
 #### Service Search
+
 - **Search Bar**:
   - Instant search
   - Suggestion dropdown
@@ -694,6 +781,7 @@
 ### About Page (`/about`)
 
 #### Business Story Section
+
 - **Our Story**:
   - Business history
   - Mission statement
@@ -701,6 +789,7 @@
   - Founder message (if applicable)
 
 #### Team Section
+
 - **Meet Our Team**:
   - Team member cards
   - Photos
@@ -709,6 +798,7 @@
   - Specialties
 
 #### Facility Showcase
+
 - **Gallery Section**:
   - Interior photos
   - Treatment rooms
@@ -716,6 +806,7 @@
   - Amenities
 
 #### Awards & Certifications
+
 - **Credentials Display**:
   - Industry awards
   - Certifications
@@ -723,6 +814,7 @@
   - Press mentions
 
 #### Testimonials
+
 - **Customer Reviews**:
   - Review cards
   - Star ratings
@@ -737,6 +829,7 @@
 ### Contact Page (`/contact`)
 
 #### Contact Information
+
 - **Business Details**:
   - Full address
   - Phone number(s)
@@ -745,6 +838,7 @@
   - Holiday schedule
 
 #### Location Map
+
 - **Interactive Map**:
   - Google Maps embed
   - Directions link
@@ -752,6 +846,7 @@
   - Public transport options
 
 #### Contact Form
+
 - **Inquiry Form**:
   - Name field
   - Email field
@@ -762,6 +857,7 @@
   - Success/error messages
 
 #### Quick Actions
+
 - **CTA Buttons**:
   - "Call Us" (click-to-call)
   - "Email Us" (mailto)
@@ -769,6 +865,7 @@
   - "Book Appointment"
 
 #### FAQ Section
+
 - **Common Questions**:
   - Expandable FAQ items
   - Categories
@@ -782,6 +879,7 @@
 ### Global Components
 
 #### Loading States
+
 - **Page Loading**:
   - Skeleton screens
   - Progressive loading
@@ -789,6 +887,7 @@
   - Loading messages
 
 #### Error Handling
+
 - **Error Messages**:
   - Inline validation errors
   - Toast notifications
@@ -796,6 +895,7 @@
   - Retry mechanisms
 
 #### Success Feedback
+
 - **Success Indicators**:
   - Checkmark animations
   - Success toasts
@@ -805,6 +905,7 @@
 ### Form Components
 
 #### Input Fields
+
 - **Text Inputs**:
   - Floating labels
   - Placeholder text
@@ -814,7 +915,9 @@
   - Character counters
 
 #### Selection Controls
+
 - **Buttons**:
+
   - Primary (booking actions)
   - Secondary (navigation)
   - Ghost (subtle actions)
@@ -829,6 +932,7 @@
   - Selection feedback
 
 #### Date/Time Pickers
+
 - **Custom Pickers**:
   - Horizontal scroll
   - Calendar grid
@@ -839,6 +943,7 @@
 ### Navigation Components
 
 #### Progress Indicators
+
 - **Booking Progress**:
   - Step counter
   - Progress bar
@@ -846,6 +951,7 @@
   - Completion states
 
 #### Breadcrumbs
+
 - **Navigation Trail**:
   - Clickable steps
   - Current page highlight
@@ -854,6 +960,7 @@
 ### Responsive Behaviors
 
 #### Mobile Optimizations
+
 - **Touch Interactions**:
   - Swipe gestures
   - Pull to refresh
@@ -861,6 +968,7 @@
   - Touch feedback
 
 #### Breakpoints
+
 - **Responsive Design**:
   - Mobile: < 640px
   - Tablet: 640px - 1024px
@@ -873,6 +981,7 @@
 ### Accessibility Features
 
 #### WCAG Compliance
+
 - **Level AA Compliance**:
   - Color contrast ratios
   - Focus indicators
@@ -881,6 +990,7 @@
   - ARIA labels
 
 #### Keyboard Navigation
+
 - **Full Keyboard Support**:
   - Tab navigation
   - Enter/Space activation
@@ -888,6 +998,7 @@
   - Arrow key navigation
 
 #### Screen Reader Support
+
 - **Announcements**:
   - Live regions
   - Status updates
@@ -897,6 +1008,7 @@
 ### Mobile-Specific Features
 
 #### Touch Optimizations
+
 - **Mobile UI**:
   - Large tap targets
   - Swipe gestures
@@ -904,6 +1016,7 @@
   - Native inputs
 
 #### Performance
+
 - **Optimizations**:
   - Lazy loading
   - Image optimization
@@ -911,6 +1024,7 @@
   - Service worker
 
 #### Native Integrations
+
 - **Device Features**:
   - Click-to-call
   - Map apps
@@ -924,6 +1038,7 @@
 ### Form Validation
 
 #### Real-time Validation
+
 - **Field-Level**:
   - Email format
   - Phone format
@@ -932,6 +1047,7 @@
   - Custom rules
 
 #### Error Messages
+
 - **User-Friendly Errors**:
   - Clear descriptions
   - How to fix
@@ -941,6 +1057,7 @@
 ### System Errors
 
 #### API Errors
+
 - **Error Handling**:
   - Retry mechanisms
   - Fallback content
@@ -948,6 +1065,7 @@
   - Support contact
 
 #### Network Issues
+
 - **Offline Handling**:
   - Offline message
   - Retry button
@@ -957,6 +1075,7 @@
 ### Booking Conflicts
 
 #### Availability Errors
+
 - **Conflict Resolution**:
   - Alternative suggestions
   - Waitlist option
@@ -964,6 +1083,7 @@
   - Different staff
 
 #### Business Rules
+
 - **Validation Rules**:
   - Minimum notice
   - Maximum advance
@@ -977,6 +1097,7 @@
 ### Smart Booking Features
 
 #### Intelligent Defaults
+
 - **Smart Suggestions**:
   - Popular time slots
   - Preferred staff
@@ -984,6 +1105,7 @@
   - Quick rebooking
 
 #### Booking Optimization
+
 - **Efficiency Features**:
   - Multi-service booking
   - Group bookings
@@ -993,6 +1115,7 @@
 ### Customer Experience
 
 #### Personalization
+
 - **Returning Customers**:
   - Booking history
   - Preferences saved
@@ -1000,6 +1123,7 @@
   - Loyalty benefits
 
 #### Communication
+
 - **Automated Messages**:
   - Confirmation emails
   - SMS reminders
@@ -1009,6 +1133,7 @@
 ### Business Integration
 
 #### Analytics Tracking
+
 - **Conversion Tracking**:
   - Funnel analysis
   - Drop-off points
@@ -1016,6 +1141,7 @@
   - Service popularity
 
 #### Marketing Integration
+
 - **Campaign Support**:
   - UTM parameters
   - Referral tracking
@@ -1029,6 +1155,7 @@
 ### Merchant Settings
 
 #### Booking Rules
+
 - **Configurable Rules**:
   - Booking window
   - Cancellation policy
@@ -1036,6 +1163,7 @@
   - Service restrictions
 
 #### Display Options
+
 - **Customization**:
   - Theme colors
   - Logo upload
@@ -1045,6 +1173,7 @@
 ### Feature Flags
 
 #### Optional Features
+
 - **Toggle Features**:
   - Online payments
   - Deposits
@@ -1059,6 +1188,7 @@
 ### Test Pages
 
 #### Booking Test Page (`/booking-test`)
+
 - **Test Scenarios**:
   - Mock data
   - Edge cases
@@ -1066,6 +1196,7 @@
   - Performance testing
 
 ### Debug Information
+
 - **Developer Tools**:
   - Console logging
   - State inspection
@@ -1074,4 +1205,4 @@
 
 ---
 
-*This comprehensive audit documents every accessible feature, button, input, and capability within the Heya POS Booking App as of the current version.*
+_This comprehensive audit documents every accessible feature, button, input, and capability within the Heya POS Booking App as of the current version._

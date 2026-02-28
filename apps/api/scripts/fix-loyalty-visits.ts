@@ -1,30 +1,34 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function fixLoyaltyVisits() {
   try {
-    console.log('Analyzing loyalty visits data...\n');
-    
+    console.log("Analyzing loyalty visits data...\n");
+
     // Get all active visit-based loyalty programs
     const visitPrograms = await prisma.loyaltyProgram.findMany({
       where: {
         isActive: true,
-        type: 'VISITS'
+        type: "VISITS",
       },
       include: {
-        merchant: true
-      }
+        merchant: true,
+      },
     });
-    
-    console.log(`Found ${visitPrograms.length} active visit-based loyalty programs\n`);
-    
+
+    console.log(
+      `Found ${visitPrograms.length} active visit-based loyalty programs\n`,
+    );
+
     for (const program of visitPrograms) {
       console.log(`\n========================================`);
       console.log(`Merchant: ${program.merchant.name}`);
-      console.log(`Program: ${program.name} - ${program.visitsRequired} visits required`);
+      console.log(
+        `Program: ${program.name} - ${program.visitsRequired} visits required`,
+      );
       console.log(`========================================\n`);
-      
+
       // Get all customers with completed bookings for this merchant
       const customersWithBookings = await prisma.$queryRaw`
         SELECT 
@@ -50,29 +54,41 @@ async function fixLoyaltyVisits() {
         ORDER BY COUNT(DISTINCT b.id) DESC
         LIMIT 20
       `;
-      
-      console.log('Customer Analysis:');
-      console.log('Name | Visit Count | Loyalty Visits | Lifetime Visits | Completed Bookings | Loyalty Transactions');
-      console.log('-----|-------------|----------------|-----------------|-------------------|--------------------');
-      
+
+      console.log("Customer Analysis:");
+      console.log(
+        "Name | Visit Count | Loyalty Visits | Lifetime Visits | Completed Bookings | Loyalty Transactions",
+      );
+      console.log(
+        "-----|-------------|----------------|-----------------|-------------------|--------------------",
+      );
+
       const customersToFix = [];
-      
+
       for (const customer of customersWithBookings as any[]) {
-        const name = `${customer.firstName} ${customer.lastName || ''}`.trim();
+        const name = `${customer.firstName} ${customer.lastName || ""}`.trim();
         console.log(
-          `${name.padEnd(20)} | ${String(customer.visitCount).padEnd(11)} | ${String(customer.loyaltyVisits).padEnd(14)} | ${String(customer.lifetimeVisits).padEnd(15)} | ${String(customer.completed_bookings).padEnd(17)} | ${customer.loyalty_transactions}`
+          `${name.padEnd(20)} | ${String(customer.visitCount).padEnd(11)} | ${String(customer.loyaltyVisits).padEnd(14)} | ${String(customer.lifetimeVisits).padEnd(15)} | ${String(customer.completed_bookings).padEnd(17)} | ${customer.loyalty_transactions}`,
         );
-        
+
         // If customer has completed bookings but no loyalty visits/transactions
-        if (Number(customer.completed_bookings) > 0 && Number(customer.loyaltyVisits) === 0 && Number(customer.loyalty_transactions) === 0) {
+        if (
+          Number(customer.completed_bookings) > 0 &&
+          Number(customer.loyaltyVisits) === 0 &&
+          Number(customer.loyalty_transactions) === 0
+        ) {
           customersToFix.push(customer);
         }
       }
-      
+
       if (customersToFix.length > 0) {
-        console.log(`\n\nFound ${customersToFix.length} customers who need loyalty visits added`);
-        console.log('These customers have completed bookings but no loyalty visits recorded.\n');
-        
+        console.log(
+          `\n\nFound ${customersToFix.length} customers who need loyalty visits added`,
+        );
+        console.log(
+          "These customers have completed bookings but no loyalty visits recorded.\n",
+        );
+
         // Process each customer
         for (const customer of customersToFix) {
           // Get their completed bookings
@@ -80,27 +96,30 @@ async function fixLoyaltyVisits() {
             where: {
               customerId: customer.id,
               merchantId: program.merchantId,
-              status: { in: ['COMPLETED', 'CHECKED_IN'] }
+              status: { in: ["COMPLETED", "CHECKED_IN"] },
             },
             orderBy: {
-              completedAt: 'asc'
-            }
+              completedAt: "asc",
+            },
           });
-          
-          console.log(`\nProcessing ${customer.firstName} ${customer.lastName || ''} - ${bookings.length} bookings`);
-          
+
+          console.log(
+            `\nProcessing ${customer.firstName} ${customer.lastName || ""} - ${bookings.length} bookings`,
+          );
+
           let visitsToAdd = 0;
-          
+
           for (const booking of bookings) {
             // Check if this booking already has a loyalty transaction
-            const existingTransaction = await prisma.loyaltyTransaction.findFirst({
-              where: {
-                bookingId: booking.id,
-                type: 'EARNED',
-                visitsDelta: { gt: 0 }
-              }
-            });
-            
+            const existingTransaction =
+              await prisma.loyaltyTransaction.findFirst({
+                where: {
+                  bookingId: booking.id,
+                  type: "EARNED",
+                  visitsDelta: { gt: 0 },
+                },
+              });
+
             if (!existingTransaction) {
               // Create loyalty transaction
               await prisma.loyaltyTransaction.create({
@@ -108,37 +127,43 @@ async function fixLoyaltyVisits() {
                   customerId: customer.id,
                   merchantId: program.merchantId,
                   bookingId: booking.id,
-                  type: 'EARNED',
+                  type: "EARNED",
                   visitsDelta: 1,
-                  description: 'Visit earned from booking (retroactive sync)',
-                  createdByStaffId: booking.createdById
-                }
+                  description: "Visit earned from booking (retroactive sync)",
+                  createdByStaffId: booking.createdById,
+                },
               });
-              
+
               visitsToAdd++;
-              console.log(`  ✓ Added loyalty transaction for booking ${booking.bookingNumber}`);
+              console.log(
+                `  ✓ Added loyalty transaction for booking ${booking.bookingNumber}`,
+              );
             } else {
-              console.log(`  - Booking ${booking.bookingNumber} already has loyalty transaction`);
+              console.log(
+                `  - Booking ${booking.bookingNumber} already has loyalty transaction`,
+              );
             }
           }
-          
+
           if (visitsToAdd > 0) {
             // Update customer loyalty visits
             const updatedCustomer = await prisma.customer.update({
               where: { id: customer.id },
               data: {
-                loyaltyVisits: { increment: visitsToAdd }
-              }
+                loyaltyVisits: { increment: visitsToAdd },
+              },
             });
-            
-            console.log(`  → Updated ${customer.firstName}'s loyalty visits: ${customer.loyaltyVisits} → ${updatedCustomer.loyaltyVisits}`);
+
+            console.log(
+              `  → Updated ${customer.firstName}'s loyalty visits: ${customer.loyaltyVisits} → ${updatedCustomer.loyaltyVisits}`,
+            );
           }
         }
       }
-      
+
       // Also fix visitCount mismatches
-      console.log('\n\nChecking for visitCount mismatches...');
-      
+      console.log("\n\nChecking for visitCount mismatches...");
+
       const mismatchedCustomers = await prisma.$queryRaw`
         SELECT 
           c.id,
@@ -155,29 +180,35 @@ async function fixLoyaltyVisits() {
         GROUP BY c.id, c."firstName", c."lastName", c."visitCount"
         HAVING COUNT(DISTINCT b.id) != c."visitCount"
       `;
-      
-      if (Array.isArray(mismatchedCustomers) && mismatchedCustomers.length > 0) {
-        console.log(`Found ${mismatchedCustomers.length} customers with incorrect visitCount`);
-        
+
+      if (
+        Array.isArray(mismatchedCustomers) &&
+        mismatchedCustomers.length > 0
+      ) {
+        console.log(
+          `Found ${mismatchedCustomers.length} customers with incorrect visitCount`,
+        );
+
         for (const customer of mismatchedCustomers as any[]) {
           const actualCount = Number(customer.actual_bookings);
           await prisma.customer.update({
             where: { id: customer.id },
-            data: { 
+            data: {
               visitCount: actualCount,
-              lifetimeVisits: actualCount
-            }
+              lifetimeVisits: actualCount,
+            },
           });
-          
-          console.log(`✓ Fixed ${customer.firstName} ${customer.lastName || ''}: visitCount ${customer.visitCount} → ${actualCount}`);
+
+          console.log(
+            `✓ Fixed ${customer.firstName} ${customer.lastName || ""}: visitCount ${customer.visitCount} → ${actualCount}`,
+          );
         }
       }
     }
-    
-    console.log('\n\n✅ Loyalty visits sync complete!');
-    
+
+    console.log("\n\n✅ Loyalty visits sync complete!");
   } catch (error) {
-    console.error('Error during loyalty sync:', error);
+    console.error("Error during loyalty sync:", error);
   } finally {
     await prisma.$disconnect();
   }

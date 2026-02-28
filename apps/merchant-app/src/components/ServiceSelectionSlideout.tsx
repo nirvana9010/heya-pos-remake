@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { X, Search, Clock, DollarSign, Plus, ChevronLeft } from 'lucide-react';
-import { Button, Input, Badge } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
+import React, { useState, useMemo, useEffect } from "react";
+import { X, Search, Clock, DollarSign, Plus, ChevronLeft } from "lucide-react";
+import { Button, Input, Badge } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
 
 interface ServiceSelectionSlideoutProps {
   isOpen: boolean;
@@ -10,14 +10,11 @@ interface ServiceSelectionSlideoutProps {
   onSelectService: (service: any) => void;
 }
 
-export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> = ({
-  isOpen,
-  onClose,
-  services,
-  onSelectService,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+export const ServiceSelectionSlideout: React.FC<
+  ServiceSelectionSlideoutProps
+> = ({ isOpen, onClose, services, onSelectService }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
 
@@ -41,7 +38,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
   // Extract unique categories from services
   const categories = useMemo(() => {
     const uniqueCategories = new Map();
-    services.forEach(service => {
+    services.forEach((service) => {
       if (service.categoryId && service.categoryName) {
         uniqueCategories.set(service.categoryId, service.categoryName);
       }
@@ -51,22 +48,26 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
 
   // Filter services based on search and category
   const filteredServices = useMemo(() => {
-    return services.filter(service => {
-      const matchesSearch = searchQuery === '' || 
+    return services.filter((service) => {
+      const matchesSearch =
+        searchQuery === "" ||
         service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesCategory = selectedCategory === 'all' || 
-        service.categoryId === selectedCategory;
-      
-      return matchesSearch && matchesCategory && (service.isActive !== false);
+        (service.description &&
+          service.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()));
+
+      const matchesCategory =
+        selectedCategory === "all" || service.categoryId === selectedCategory;
+
+      return matchesSearch && matchesCategory && service.isActive !== false;
     });
   }, [services, searchQuery, selectedCategory]);
 
   const handleSelectService = (service: any) => {
     onSelectService(service);
     // Reset search after selection for better UX
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   if (!shouldRender) return null;
@@ -74,19 +75,21 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className={cn(
           "fixed inset-0 bg-gray-900 transition-opacity z-50",
-          isVisible ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none"
+          isVisible ? "bg-opacity-50" : "bg-opacity-0 pointer-events-none",
         )}
         onClick={onClose}
       />
-      
+
       {/* Slideout */}
-      <div className={cn(
-        "fixed inset-y-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
-        isVisible ? "translate-x-0" : "translate-x-full"
-      )}>
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
+          isVisible ? "translate-x-0" : "translate-x-full",
+        )}
+      >
         <div className="relative w-screen max-w-md">
           <div className="flex h-full flex-col bg-white shadow-2xl">
             {/* Header */}
@@ -114,7 +117,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -126,30 +129,33 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
                   autoFocus
                 />
               </div>
-              
+
               {/* Category filters */}
               <div className="mt-3 flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
                 <Badge
-                  variant={selectedCategory === 'all' ? 'default' : 'secondary'}
+                  variant={selectedCategory === "all" ? "default" : "secondary"}
                   className={cn(
                     "cursor-pointer whitespace-nowrap",
-                    selectedCategory === 'all' 
-                      ? 'bg-teal-600 text-white hover:bg-teal-700' 
-                      : 'hover:bg-gray-200'
+                    selectedCategory === "all"
+                      ? "bg-teal-600 text-white hover:bg-teal-700"
+                      : "hover:bg-gray-200",
                   )}
-                  onClick={() => setSelectedCategory('all')}
+                  onClick={() => setSelectedCategory("all")}
                 >
-                  All Services ({services.filter(s => s.isActive !== false).length})
+                  All Services (
+                  {services.filter((s) => s.isActive !== false).length})
                 </Badge>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <Badge
                     key={cat.id}
-                    variant={selectedCategory === cat.id ? 'default' : 'secondary'}
+                    variant={
+                      selectedCategory === cat.id ? "default" : "secondary"
+                    }
                     className={cn(
                       "cursor-pointer whitespace-nowrap",
-                      selectedCategory === cat.id 
-                        ? 'bg-teal-600 text-white hover:bg-teal-700' 
-                        : 'hover:bg-gray-200'
+                      selectedCategory === cat.id
+                        ? "bg-teal-600 text-white hover:bg-teal-700"
+                        : "hover:bg-gray-200",
                     )}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
@@ -169,7 +175,7 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSearchQuery('')}
+                      onClick={() => setSearchQuery("")}
                       className="mt-2"
                     >
                       Clear search
@@ -197,7 +203,9 @@ export const ServiceSelectionSlideout: React.FC<ServiceSelectionSlideoutProps> =
                             )}
                           </div>
                           {service.description && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description}</p>
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              {service.description}
+                            </p>
                           )}
                           <div className="flex items-center gap-4 mt-2 text-sm">
                             <span className="flex items-center gap-1 text-gray-700 font-medium">

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -20,70 +20,71 @@ const prisma = new PrismaClient();
  */
 const SYSTEM_ROLES = [
   {
-    name: 'Owner',
-    description: 'Full access to all features and settings',
-    permissions: ['*'],
+    name: "Owner",
+    description: "Full access to all features and settings",
+    permissions: ["*"],
     isSystem: true,
   },
   {
-    name: 'Manager',
-    description: 'Manage daily operations, bookings, customers, payments, and view reports',
+    name: "Manager",
+    description:
+      "Manage daily operations, bookings, customers, payments, and view reports",
     permissions: [
       // Bookings
-      'booking.read',
-      'booking.create',
-      'booking.update',
-      'booking.cancel',
+      "booking.read",
+      "booking.create",
+      "booking.update",
+      "booking.cancel",
       // Customers
-      'customers.read',
-      'customers.create',
-      'customers.update',
+      "customers.read",
+      "customers.create",
+      "customers.update",
       // Staff (view only)
-      'staff.view',
+      "staff.view",
       // Services (view only)
-      'service.view',
+      "service.view",
       // Payments (including refunds)
-      'payment.view',
-      'payment.create',
-      'payment.process',
-      'payment.refund',
+      "payment.view",
+      "payment.create",
+      "payment.process",
+      "payment.refund",
       // Reports (view only)
-      'reports.view',
+      "reports.view",
       // Settings (view only)
-      'settings.view',
+      "settings.view",
     ],
     isSystem: true,
   },
   {
-    name: 'Staff',
-    description: 'Handle bookings, customers, and process payments',
+    name: "Staff",
+    description: "Handle bookings, customers, and process payments",
     permissions: [
       // Bookings (including cancel)
-      'booking.read',
-      'booking.create',
-      'booking.update',
-      'booking.cancel',
+      "booking.read",
+      "booking.create",
+      "booking.update",
+      "booking.cancel",
       // Customers
-      'customers.read',
-      'customers.create',
+      "customers.read",
+      "customers.create",
       // Staff (view only - needed for calendar)
-      'staff.view',
+      "staff.view",
       // Services (view only)
-      'service.view',
+      "service.view",
       // Payments (no refunds)
-      'payment.view',
-      'payment.create',
-      'payment.process',
+      "payment.view",
+      "payment.create",
+      "payment.process",
     ],
     isSystem: true,
   },
 ];
 
 // Roles to deprecate (will be hidden from UI by setting isSystem=false)
-const DEPRECATED_ROLES = ['Admin', 'Receptionist', 'View Only'];
+const DEPRECATED_ROLES = ["Admin", "Receptionist", "View Only"];
 
 async function seedSystemRoles() {
-  console.log('🔑 Seeding system roles...');
+  console.log("🔑 Seeding system roles...");
 
   for (const role of SYSTEM_ROLES) {
     // Find existing system role by name (where merchantId is null)
@@ -121,7 +122,7 @@ async function seedSystemRoles() {
   }
 
   // Deprecate old roles by setting isSystem=false (hides from UI)
-  console.log('\n🧹 Deprecating unused roles...');
+  console.log("\n🧹 Deprecating unused roles...");
   for (const roleName of DEPRECATED_ROLES) {
     const role = await prisma.merchantRole.findFirst({
       where: {
@@ -138,7 +139,9 @@ async function seedSystemRoles() {
       });
 
       if (userCount > 0) {
-        console.log(`  ⚠ ${roleName} role has ${userCount} user(s) - keeping active`);
+        console.log(
+          `  ⚠ ${roleName} role has ${userCount} user(s) - keeping active`,
+        );
       } else {
         await prisma.merchantRole.update({
           where: { id: role.id },
@@ -149,7 +152,7 @@ async function seedSystemRoles() {
     }
   }
 
-  console.log('\n✅ System roles seeded successfully');
+  console.log("\n✅ System roles seeded successfully");
 }
 
 async function main() {
@@ -158,7 +161,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('Error seeding system roles:', e);
+    console.error("Error seeding system roles:", e);
     process.exit(1);
   })
   .finally(async () => {

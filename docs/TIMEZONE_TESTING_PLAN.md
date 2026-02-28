@@ -1,6 +1,7 @@
 # Timezone Testing Plan
 
 ## Overview
+
 This document outlines comprehensive tests to ensure timezone settings flow correctly through all aspects of the merchant and booking applications.
 
 ## Test Scenarios
@@ -8,14 +9,16 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ### 1. Location Timezone Configuration Tests
 
 #### 1.1 Update Location Timezone
+
 - **Setup**: Login as merchant with location in Sydney timezone
 - **Test**: Update location timezone to Brisbane (no DST)
-- **Verify**: 
+- **Verify**:
   - API returns success
   - New timezone is saved in database
   - Timezone validation works (reject invalid timezones)
 
 #### 1.2 Multiple Locations with Different Timezones
+
 - **Setup**: Merchant with locations in Sydney, Brisbane, Perth
 - **Test**: Each location operates independently
 - **Verify**: Each location shows correct local time
@@ -23,6 +26,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ### 2. Booking App Tests
 
 #### 2.1 Availability Display
+
 - **Setup**: Location in Brisbane (UTC+10)
 - **Test**: Check availability for a specific date
 - **Verify**:
@@ -31,7 +35,8 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - No "24:00" times appear (should be "00:00")
 
 #### 2.2 Booking Creation Across Timezones
-- **Setup**: 
+
+- **Setup**:
   - Location in Perth (UTC+8)
   - Customer in Sydney (UTC+10/11)
 - **Test**: Customer books 2pm Perth time
@@ -41,6 +46,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - Customer sees tooltip with their local time (4pm Sydney)
 
 #### 2.3 DST Transition Tests
+
 - **Setup**: Location in Sydney
 - **Test**: Book appointments around DST transitions
   - Last Sunday in March (DST ends)
@@ -50,6 +56,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - Existing bookings maintain correct times
 
 #### 2.4 Edge Case: Midnight Bookings
+
 - **Setup**: Location with late hours (open until midnight)
 - **Test**: Book appointment at 11:30pm
 - **Verify**:
@@ -59,6 +66,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ### 3. Merchant App Tests
 
 #### 3.1 Dashboard Time Display
+
 - **Setup**: Location in Adelaide (UTC+9.5/10.5)
 - **Test**: View today's bookings
 - **Verify**:
@@ -67,8 +75,9 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - Timezone indicator shows "ACDT" or "ACST"
 
 #### 3.2 Booking Management
+
 - **Setup**: Location in Brisbane
-- **Test**: 
+- **Test**:
   - Create manual booking
   - Modify existing booking time
   - View calendar
@@ -78,6 +87,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - No timezone conversion errors
 
 #### 3.3 Reports and Analytics
+
 - **Setup**: Location in Perth
 - **Test**: Generate daily/weekly reports
 - **Verify**:
@@ -88,7 +98,8 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ### 4. Cross-Timezone Scenarios
 
 #### 4.1 Multi-Location Business
-- **Setup**: 
+
+- **Setup**:
   - Location A in Sydney
   - Location B in Perth (2-3 hours behind)
 - **Test**: View consolidated reports
@@ -98,6 +109,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - Staff can switch between locations seamlessly
 
 #### 4.2 International Customers
+
 - **Setup**: Location in Sydney, customer from NZ (Auckland)
 - **Test**: Customer books appointment
 - **Verify**:
@@ -108,6 +120,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ### 5. API Integration Tests
 
 #### 5.1 Third-Party Integrations
+
 - **Test**: API calls include timezone information
 - **Verify**:
   - Webhooks send times with timezone
@@ -115,6 +128,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
   - No ambiguous time representations
 
 #### 5.2 Data Export/Import
+
 - **Test**: Export bookings, change timezone, import
 - **Verify**:
   - Times maintain correctness
@@ -124,6 +138,7 @@ This document outlines comprehensive tests to ensure timezone settings flow corr
 ## Test Implementation Scripts
 
 ### Script 1: Basic Timezone Flow Test
+
 ```javascript
 // test-timezone-flow.js
 async function testTimezoneFlow() {
@@ -138,6 +153,7 @@ async function testTimezoneFlow() {
 ```
 
 ### Script 2: Edge Case Test
+
 ```javascript
 // test-timezone-edges.js
 async function testTimezoneEdges() {
@@ -149,6 +165,7 @@ async function testTimezoneEdges() {
 ```
 
 ### Script 3: Multi-Location Test
+
 ```javascript
 // test-multi-location-timezone.js
 async function testMultiLocationTimezone() {
@@ -161,6 +178,7 @@ async function testMultiLocationTimezone() {
 ## Manual Testing Checklist
 
 ### Booking App
+
 - [ ] Timezone indicator visible
 - [ ] Available slots show in merchant timezone
 - [ ] Time selection works correctly
@@ -169,6 +187,7 @@ async function testMultiLocationTimezone() {
 - [ ] Tooltip shows user's local time (if different)
 
 ### Merchant App
+
 - [ ] Dashboard shows correct "today"
 - [ ] Calendar aligns with location timezone
 - [ ] Time pickers default to correct timezone
@@ -177,6 +196,7 @@ async function testMultiLocationTimezone() {
 - [ ] No "Invalid Date" errors
 
 ### Settings & Configuration
+
 - [ ] Can update timezone successfully
 - [ ] Invalid timezones are rejected
 - [ ] Changes take effect immediately
@@ -186,18 +206,22 @@ async function testMultiLocationTimezone() {
 ## Common Issues to Watch For
 
 1. **"24:00" Display Bug**
+
    - Should show as "00:00"
    - Check time formatting functions
 
 2. **Day of Week Mismatch**
+
    - Monday in Sydney might be Sunday in UTC
    - Verify business hours apply correctly
 
 3. **DST Confusion**
+
    - Some zones have DST, others don't
    - Test around transition dates
 
 4. **Booking Conflicts**
+
    - Ensure overlap detection works across timezones
    - UTC comparison must be correct
 
@@ -208,20 +232,20 @@ async function testMultiLocationTimezone() {
 ## Automated Test Framework
 
 ```typescript
-describe('Timezone Functionality', () => {
-  it('should display times in location timezone', async () => {
+describe("Timezone Functionality", () => {
+  it("should display times in location timezone", async () => {
     // Test implementation
   });
 
-  it('should handle DST transitions correctly', async () => {
+  it("should handle DST transitions correctly", async () => {
     // Test implementation
   });
 
-  it('should store all times in UTC', async () => {
+  it("should store all times in UTC", async () => {
     // Test implementation
   });
 
-  it('should validate timezone updates', async () => {
+  it("should validate timezone updates", async () => {
     // Test implementation
   });
 });

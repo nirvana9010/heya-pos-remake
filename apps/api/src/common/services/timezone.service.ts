@@ -41,10 +41,7 @@ export class TimezoneService {
         ? DateTime.fromISO(date, { zone: tz })
         : DateTime.fromJSDate(new Date(date)).setZone(tz);
 
-    return dateTime
-      .startOf("day")
-      .toUTC()
-      .toJSDate();
+    return dateTime.startOf("day").toUTC().toJSDate();
   }
 
   /**
@@ -57,10 +54,7 @@ export class TimezoneService {
         ? DateTime.fromISO(date, { zone: tz })
         : DateTime.fromJSDate(new Date(date)).setZone(tz);
 
-    return dateTime
-      .endOf("day")
-      .toUTC()
-      .toJSDate();
+    return dateTime.endOf("day").toUTC().toJSDate();
   }
 
   /**

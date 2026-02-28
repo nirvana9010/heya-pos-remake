@@ -1,51 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { 
-  Search, 
-  Calendar, 
-  User, 
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import { ErrorBoundary } from "@/components/error-boundary";
+import {
+  Search,
+  Calendar,
+  User,
   Phone,
   Check,
   X,
   Loader2,
-  RefreshCw
-} from 'lucide-react';
-import { 
-  format, 
-  isToday,
-  startOfDay,
-  parseISO
-} from 'date-fns';
-import { type Booking } from '@heya-pos/shared';
-import { apiClient } from '@/lib/api-client';
-import { invalidateBookingsCache } from '@/lib/cache-config';
+  RefreshCw,
+} from "lucide-react";
+import { format, isToday, startOfDay, parseISO } from "date-fns";
+import { type Booking } from "@heya-pos/shared";
+import { apiClient } from "@/lib/api-client";
+import { invalidateBookingsCache } from "@/lib/cache-config";
 
 export default function CheckInsManager() {
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [processingBookings, setProcessingBookings] = useState<Set<string>>(new Set());
+  const [processingBookings, setProcessingBookings] = useState<Set<string>>(
+    new Set(),
+  );
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const mountedRef = useRef(true);
   const previousBookingIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     if (!token) {
       // No access token found
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
@@ -67,7 +64,7 @@ export default function CheckInsManager() {
     if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
       return;
     }
-    
+
     try {
       setLoading(true);
       // Get today's date range
@@ -76,54 +73,59 @@ export default function CheckInsManager() {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       // Loading bookings for date range
-      
+
       // Fetch today's bookings - include ALL statuses
       const params = {
         startDate: startOfDay.toISOString(),
         endDate: endOfDay.toISOString(),
         // Don't filter by status - we want to see all bookings including COMPLETED ones
       };
-      
+
       // Fetching bookings with params
       const bookingsData = await apiClient.getBookings(params);
-      
+
       // Bookings data received
-      
+
       if (bookingsData && bookingsData.length > 0) {
         // First booking details available for debugging
       }
-      
+
       if (!mountedRef.current) return;
-      
+
       // Check for new check-ins
       const newBookings = bookingsData || [];
-      const currentIds = new Set(newBookings.map(b => b.id));
-      const newCheckIns = newBookings.filter(b => !previousBookingIds.current.has(b.id));
-      
+      const currentIds = new Set(newBookings.map((b) => b.id));
+      const newCheckIns = newBookings.filter(
+        (b) => !previousBookingIds.current.has(b.id),
+      );
+
       // New check-ins detected
-      
+
       // Show toast for new check-ins (only after initial load)
       if (!loading && newCheckIns.length > 0) {
-        newCheckIns.forEach(booking => {
+        newCheckIns.forEach((booking) => {
           toast({
-            title: 'New Check-In!',
+            title: "New Check-In!",
             description: `${booking.customerName} has checked in`,
           });
         });
       }
-      
+
       previousBookingIds.current = currentIds;
       setBookings(newBookings);
       setLastUpdated(new Date());
     } catch (error: any) {
-      if (error?.message !== 'UNAUTHORIZED_REDIRECT' && error?.response?.status !== 401) {
+      if (
+        error?.message !== "UNAUTHORIZED_REDIRECT" &&
+        error?.response?.status !== 401
+      ) {
         // Failed to load bookings
         toast({
-          title: 'Error',
-          description: 'Failed to load bookings',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to load bookings",
+          variant: "destructive",
         });
       }
     } finally {
@@ -133,15 +135,18 @@ export default function CheckInsManager() {
 
   const filterBookings = () => {
     const query = searchQuery.toLowerCase();
-    
+
     // Filtering bookings
-    
-    const filtered = bookings.filter(booking => {
+
+    const filtered = bookings.filter((booking) => {
       // Search filter - only customer name and phone
-      if (searchQuery && !(
-        booking.customerName.toLowerCase().includes(query) ||
-        booking.customerPhone.includes(searchQuery)
-      )) {
+      if (
+        searchQuery &&
+        !(
+          booking.customerName.toLowerCase().includes(query) ||
+          booking.customerPhone.includes(searchQuery)
+        )
+      ) {
         return false;
       }
 
@@ -153,31 +158,31 @@ export default function CheckInsManager() {
   };
 
   const handleComplete = async (bookingId: string) => {
-    setProcessingBookings(prev => new Set(prev).add(bookingId));
-    
+    setProcessingBookings((prev) => new Set(prev).add(bookingId));
+
     try {
       // Mark as completed and paid
-      await apiClient.updateBooking(bookingId, { 
-        status: 'completed',
-        paidAmount: bookings.find(b => b.id === bookingId)?.totalAmount || 0
+      await apiClient.updateBooking(bookingId, {
+        status: "completed",
+        paidAmount: bookings.find((b) => b.id === bookingId)?.totalAmount || 0,
       });
-      
+
       toast({
-        title: 'Success',
-        description: 'Check-in completed',
+        title: "Success",
+        description: "Check-in completed",
       });
-      
+
       invalidateBookingsCache();
       await loadBookings();
     } catch (error) {
-      console.error('Failed to complete booking:', error);
+      console.error("Failed to complete booking:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to complete check-in',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to complete check-in",
+        variant: "destructive",
       });
     } finally {
-      setProcessingBookings(prev => {
+      setProcessingBookings((prev) => {
         const newSet = new Set(prev);
         newSet.delete(bookingId);
         return newSet;
@@ -186,31 +191,31 @@ export default function CheckInsManager() {
   };
 
   const handleCancel = async (bookingId: string) => {
-    if (!confirm('Are you sure you want to cancel this booking?')) {
+    if (!confirm("Are you sure you want to cancel this booking?")) {
       return;
     }
 
-    setProcessingBookings(prev => new Set(prev).add(bookingId));
-    
+    setProcessingBookings((prev) => new Set(prev).add(bookingId));
+
     try {
-      await apiClient.updateBooking(bookingId, { status: 'cancelled' });
-      
+      await apiClient.updateBooking(bookingId, { status: "cancelled" });
+
       toast({
-        title: 'Success',
-        description: 'Booking cancelled',
+        title: "Success",
+        description: "Booking cancelled",
       });
-      
+
       invalidateBookingsCache();
       await loadBookings();
     } catch (error) {
-      console.error('Failed to cancel booking:', error);
+      console.error("Failed to cancel booking:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to cancel booking',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to cancel booking",
+        variant: "destructive",
       });
     } finally {
-      setProcessingBookings(prev => {
+      setProcessingBookings((prev) => {
         const newSet = new Set(prev);
         newSet.delete(bookingId);
         return newSet;
@@ -233,7 +238,7 @@ export default function CheckInsManager() {
           <h1 className="text-3xl font-bold">Check-In</h1>
           <div className="flex items-center gap-3">
             {/* Debug button - remove after testing */}
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === "development" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -250,7 +255,7 @@ export default function CheckInsManager() {
               <span>Updates every 5 seconds</span>
             </div>
             <Badge variant="outline">
-              {format(new Date(), 'EEEE, MMMM d')}
+              {format(new Date(), "EEEE, MMMM d")}
             </Badge>
           </div>
         </div>
@@ -288,10 +293,10 @@ export default function CheckInsManager() {
               <div className="space-y-4">
                 {sortedBookings.map((booking) => {
                   const isProcessing = processingBookings.has(booking.id);
-                  const checkInTime = booking.startTime ? 
-                    format(parseISO(booking.startTime), 'h:mm a') : 
-                    'Walk-in';
-                  
+                  const checkInTime = booking.startTime
+                    ? format(parseISO(booking.startTime), "h:mm a")
+                    : "Walk-in";
+
                   return (
                     <div
                       key={booking.id}
@@ -302,12 +307,16 @@ export default function CheckInsManager() {
                         <div className="flex items-center gap-6">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium">{booking.customerName}</span>
+                            <span className="font-medium">
+                              {booking.customerName}
+                            </span>
                           </div>
                           {booking.customerPhone && (
                             <div className="flex items-center gap-2">
                               <Phone className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-600">{booking.customerPhone}</span>
+                              <span className="text-gray-600">
+                                {booking.customerPhone}
+                              </span>
                             </div>
                           )}
                           <div className="flex items-center gap-2">
@@ -319,7 +328,7 @@ export default function CheckInsManager() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2">
-                        {booking.status === 'completed' ? (
+                        {booking.status === "completed" ? (
                           <Badge variant="default" className="bg-green-500">
                             <Check className="h-4 w-4 mr-1" />
                             Completed
@@ -345,7 +354,11 @@ export default function CheckInsManager() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleCancel(booking.id)}
-                          disabled={isProcessing || booking.status === 'cancelled' || booking.status === 'completed'}
+                          disabled={
+                            isProcessing ||
+                            booking.status === "cancelled" ||
+                            booking.status === "completed"
+                          }
                         >
                           <X className="h-4 w-4 mr-1" />
                           Cancel

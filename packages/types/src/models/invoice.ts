@@ -42,13 +42,13 @@ export interface InvoiceItem {
 }
 
 export enum InvoiceStatus {
-  DRAFT = 'DRAFT',
-  SENT = 'SENT',
-  PAID = 'PAID',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  OVERDUE = 'OVERDUE',
-  VOIDED = 'VOIDED',
-  REFUNDED = 'REFUNDED'
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  PAID = "PAID",
+  PARTIALLY_PAID = "PARTIALLY_PAID",
+  OVERDUE = "OVERDUE",
+  VOIDED = "VOIDED",
+  REFUNDED = "REFUNDED",
 }
 
-import type { Customer, Booking, Staff, Payment } from './';
+import type { Customer, Booking, Staff, Payment } from "./";

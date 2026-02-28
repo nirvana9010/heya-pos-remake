@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -10,28 +10,31 @@ async function checkDatabase() {
     const staff = await prisma.staff.findMany();
     const customers = await prisma.customer.findMany();
     const bookings = await prisma.booking.findMany();
-    
-    console.log('Database Contents:');
-    console.log('==================');
+
+    console.log("Database Contents:");
+    console.log("==================");
     console.log(`Merchants: ${merchants.length}`);
-    merchants.forEach(m => console.log(`  - ${m.name} (ID: ${m.id})`));
-    
+    merchants.forEach((m) => console.log(`  - ${m.name} (ID: ${m.id})`));
+
     console.log(`\nLocations: ${locations.length}`);
-    locations.forEach(l => console.log(`  - ${l.name} (${l.merchantId})`));
-    
+    locations.forEach((l) => console.log(`  - ${l.name} (${l.merchantId})`));
+
     console.log(`\nServices: ${services.length}`);
-    services.forEach(s => console.log(`  - ${s.name} (${s.merchantId})`));
-    
+    services.forEach((s) => console.log(`  - ${s.name} (${s.merchantId})`));
+
     console.log(`\nStaff: ${staff.length}`);
-    staff.forEach(s => console.log(`  - ${s.firstName} ${s.lastName} (${s.merchantId})`));
-    
+    staff.forEach((s) =>
+      console.log(`  - ${s.firstName} ${s.lastName} (${s.merchantId})`),
+    );
+
     console.log(`\nCustomers: ${customers.length}`);
-    customers.forEach(c => console.log(`  - ${c.firstName} ${c.lastName} (${c.merchantId})`));
-    
+    customers.forEach((c) =>
+      console.log(`  - ${c.firstName} ${c.lastName} (${c.merchantId})`),
+    );
+
     console.log(`\nBookings: ${bookings.length}`);
-    
   } catch (error) {
-    console.error('Error checking database:', error);
+    console.error("Error checking database:", error);
   } finally {
     await prisma.$disconnect();
   }

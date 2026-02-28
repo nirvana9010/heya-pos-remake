@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Card } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Gift, Star, TrendingUp, CheckCircle } from 'lucide-react';
-import { api } from '@/lib/api-wrapper';
-import { cn } from '@heya-pos/ui';
+import { useEffect, useState } from "react";
+import { Card } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Gift, Star, TrendingUp, CheckCircle } from "lucide-react";
+import { api } from "@/lib/api-wrapper";
+import { cn } from "@heya-pos/ui";
 
 interface LoyaltyProgram {
-  type: 'VISITS' | 'POINTS';
+  type: "VISITS" | "POINTS";
   name: string;
   isActive: boolean;
   visitsRequired?: number;
-  visitRewardType?: 'FREE' | 'PERCENTAGE';
+  visitRewardType?: "FREE" | "PERCENTAGE";
   visitRewardValue?: number;
   pointsPerDollar?: number;
   pointsValue?: number;
@@ -28,7 +28,7 @@ interface CustomerLoyalty {
   nearReward?: boolean;
   visitsUntilReward?: number;
   availableRedemption?: {
-    type: 'VISITS' | 'POINTS';
+    type: "VISITS" | "POINTS";
     value: number;
     description: string;
   };
@@ -41,11 +41,11 @@ interface LoyaltyStatusDisplayProps {
   showActions?: boolean;
 }
 
-export function LoyaltyStatusDisplay({ 
-  customerId, 
+export function LoyaltyStatusDisplay({
+  customerId,
   compact = false,
   onRedeem,
-  showActions = true
+  showActions = true,
 }: LoyaltyStatusDisplayProps) {
   const [loading, setLoading] = useState(true);
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);
@@ -61,14 +61,14 @@ export function LoyaltyStatusDisplay({
     try {
       setLoading(true);
       const [programData, loyaltyData] = await Promise.all([
-        api.get('/loyalty/program'),
-        api.get(`/loyalty/customers/${customerId}`)
+        api.get("/loyalty/program"),
+        api.get(`/loyalty/customers/${customerId}`),
       ]);
-      
+
       setProgram(programData);
       setLoyalty(loyaltyData);
     } catch (error) {
-      console.error('Failed to load loyalty data:', error);
+      console.error("Failed to load loyalty data:", error);
     } finally {
       setLoading(false);
     }
@@ -78,8 +78,8 @@ export function LoyaltyStatusDisplay({
     return null;
   }
 
-  const isVisitsBased = program.type === 'VISITS';
-  const progress = isVisitsBased 
+  const isVisitsBased = program.type === "VISITS";
+  const progress = isVisitsBased
     ? (loyalty.currentVisits / (program.visitsRequired || 10)) * 100
     : 0;
 
@@ -147,7 +147,7 @@ export function LoyaltyStatusDisplay({
                 <div
                   className={cn(
                     "h-2 rounded-full transition-all",
-                    loyalty.canRedeem ? "bg-green-600" : "bg-teal-600"
+                    loyalty.canRedeem ? "bg-green-600" : "bg-teal-600",
                   )}
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />
@@ -160,8 +160,8 @@ export function LoyaltyStatusDisplay({
                   <CheckCircle className="h-5 w-5" />
                   <div>
                     <p className="font-medium">
-                      {program.visitRewardType === 'FREE' 
-                        ? 'Free service earned!' 
+                      {program.visitRewardType === "FREE"
+                        ? "Free service earned!"
                         : `${program.visitRewardValue}% discount earned!`}
                     </p>
                     <p className="text-sm text-green-600">
@@ -173,7 +173,9 @@ export function LoyaltyStatusDisplay({
             ) : loyalty.nearReward ? (
               <p className="text-sm text-gray-600">
                 <TrendingUp className="inline h-4 w-4 mr-1" />
-                Only {loyalty.visitsUntilReward} more {loyalty.visitsUntilReward === 1 ? 'visit' : 'visits'} until reward!
+                Only {loyalty.visitsUntilReward} more{" "}
+                {loyalty.visitsUntilReward === 1 ? "visit" : "visits"} until
+                reward!
               </p>
             ) : null}
           </>
@@ -182,12 +184,17 @@ export function LoyaltyStatusDisplay({
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Available Points</span>
-                <span className="text-lg font-semibold">{loyalty.currentPoints}</span>
+                <span className="text-lg font-semibold">
+                  {loyalty.currentPoints}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Point Value</span>
                 <span className="text-sm font-medium">
-                  ${(loyalty.currentPoints * (program.pointsValue || 0.01)).toFixed(2)}
+                  $
+                  {(
+                    loyalty.currentPoints * (program.pointsValue || 0.01)
+                  ).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -203,8 +210,8 @@ export function LoyaltyStatusDisplay({
 
         {showActions && (
           <div className="pt-2 border-t text-xs text-gray-500">
-            Lifetime: {loyalty.lifetimeVisits} visits • 
-            {isVisitsBased 
+            Lifetime: {loyalty.lifetimeVisits} visits •
+            {isVisitsBased
               ? ` ${Math.floor(loyalty.lifetimeVisits / (program.visitsRequired || 10))} rewards earned`
               : ` ${loyalty.lifetimePoints} points earned`}
           </div>

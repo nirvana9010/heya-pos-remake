@@ -1,22 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@heya-pos/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@heya-pos/ui';
-import { Label } from '@heya-pos/ui';
-import { Textarea } from '@heya-pos/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@heya-pos/ui';
-import { 
-  Plus, 
-  Search, 
-  User, 
-  Phone, 
-  Mail, 
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@heya-pos/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@heya-pos/ui";
+import { Label } from "@heya-pos/ui";
+import { Textarea } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
+import {
+  Plus,
+  Search,
+  User,
+  Phone,
+  Mail,
   Calendar,
   Users,
   TrendingUp,
@@ -35,24 +48,29 @@ import {
   Copy,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
-import { format, startOfMonth, differenceInDays, isSameMonth } from 'date-fns';
-import { apiClient } from '@/lib/api-client';
-import { useToast } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@heya-pos/ui';
+  ChevronRight,
+} from "lucide-react";
+import { format, startOfMonth, differenceInDays, isSameMonth } from "date-fns";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@heya-pos/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@heya-pos/ui';
-import { Skeleton } from '@heya-pos/ui';
-import { LoyaltyDialog } from '@/components/loyalty/LoyaltyDialog';
-import { CustomerDetailsDialog } from '@/components/CustomerDetailsDialog';
-import React from 'react';
+} from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
+import { LoyaltyDialog } from "@/components/loyalty/LoyaltyDialog";
+import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
+import React from "react";
 
 interface Customer {
   id: string;
@@ -87,20 +105,20 @@ const stringToColor = (str: string) => {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   const colors = [
-    'bg-indigo-500',
-    'bg-blue-500',
-    'bg-green-500',
-    'bg-yellow-500',
-    'bg-red-500',
-    'bg-indigo-500',
-    'bg-pink-500',
-    'bg-teal-500',
-    'bg-orange-500',
-    'bg-cyan-500'
+    "bg-indigo-500",
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-red-500",
+    "bg-indigo-500",
+    "bg-pink-500",
+    "bg-teal-500",
+    "bg-orange-500",
+    "bg-cyan-500",
   ];
-  
+
   return colors[Math.abs(hash) % colors.length];
 };
 
@@ -115,21 +133,22 @@ export default function CustomersPage() {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
-  const [selectedSegment, setSelectedSegment] = useState('all');
-  const [sortBy, setSortBy] = useState('recent');
+  const [selectedSegment, setSelectedSegment] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    notes: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    notes: "",
   });
-  const [loyaltyDialogCustomer, setLoyaltyDialogCustomer] = useState<Customer | null>(null);
+  const [loyaltyDialogCustomer, setLoyaltyDialogCustomer] =
+    useState<Customer | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -150,105 +169,121 @@ export default function CustomersPage() {
       // Fetch customers first
       const customersResponse = await apiClient.getCustomers();
       const customersData = customersResponse.data || [];
-      
+
       // For bookings, we need to handle pagination properly
       // Try to get more bookings with a higher limit
       let bookingsData = [];
       try {
         // First try with a high limit
-        bookingsData = await apiClient.getBookings({ 
-          limit: 1000,  // Get up to 1000 bookings
+        bookingsData = await apiClient.getBookings({
+          limit: 1000, // Get up to 1000 bookings
           includeAll: true,
           // Include future bookings
-          startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days ago
-          endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days future
+          startDate: new Date(
+            Date.now() - 90 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 90 days ago
+          endDate: new Date(
+            Date.now() + 90 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 90 days future
         });
       } catch (error) {
-        console.error('Failed to get bookings with pagination, falling back:', error);
+        console.error(
+          "Failed to get bookings with pagination, falling back:",
+          error,
+        );
         // Fallback to simple call
         bookingsData = await apiClient.getBookings({ includeAll: true });
       }
-      
-      console.log('API Data received:', {
+
+      console.log("API Data received:", {
         customers: customersData.length,
         bookings: bookingsData.length,
-        bookingDates: bookingsData.slice(0, 5).map(b => ({
+        bookingDates: bookingsData.slice(0, 5).map((b) => ({
           customer: b.customerName,
           date: b.startTime || b.date,
-          status: b.status
-        }))
+          status: b.status,
+        })),
       });
-      
+
       // Calculate customer stats from bookings
       const customerStats = new Map();
-      
+
       // Log booking structure to debug
       if (bookingsData.length > 0) {
-        console.log('Sample booking structure:', bookingsData[0]);
+        console.log("Sample booking structure:", bookingsData[0]);
       }
-      
+
       // Debug: Find Lucas Brown's customer ID first
-      const lucasBrown = customersData.find(c => c.firstName === 'Lucas' && c.lastName === 'Brown');
+      const lucasBrown = customersData.find(
+        (c) => c.firstName === "Lucas" && c.lastName === "Brown",
+      );
       if (lucasBrown) {
-        console.log('Lucas Brown customer ID:', lucasBrown.id);
-        
+        console.log("Lucas Brown customer ID:", lucasBrown.id);
+
         // Check both ways bookings might reference customers
-        const lucasBookings = bookingsData.filter(b => {
-          const matchById = b.customerId === lucasBrown.id || b.customer?.id === lucasBrown.id;
-          const matchByName = b.customerName === 'Lucas Brown';
-          
+        const lucasBookings = bookingsData.filter((b) => {
+          const matchById =
+            b.customerId === lucasBrown.id || b.customer?.id === lucasBrown.id;
+          const matchByName = b.customerName === "Lucas Brown";
+
           if (matchByName && !matchById) {
-            console.warn('Found Lucas Brown booking by name but not by ID:', {
+            console.warn("Found Lucas Brown booking by name but not by ID:", {
               bookingCustomerId: b.customerId,
               bookingCustomerObjId: b.customer?.id,
               lucasId: lucasBrown.id,
-              bookingDate: b.startTime || b.date
+              bookingDate: b.startTime || b.date,
             });
           }
-          
+
           return matchById || matchByName;
         });
-        
-        console.log('Lucas Brown bookings found:', {
+
+        console.log("Lucas Brown bookings found:", {
           count: lucasBookings.length,
-          bookings: lucasBookings
+          bookings: lucasBookings,
         });
-        
+
         // Also search for any booking with Lucas Brown in the name
-        const anyLucasBookings = bookingsData.filter(b => 
-          b.customerName && b.customerName.toLowerCase().includes('lucas')
+        const anyLucasBookings = bookingsData.filter(
+          (b) =>
+            b.customerName && b.customerName.toLowerCase().includes("lucas"),
         );
         if (anyLucasBookings.length > 0) {
           console.log('All bookings with "Lucas" in name:', anyLucasBookings);
         }
       }
-      
+
       // Create a map of customer names to IDs for fallback matching
       const customerNameToId = new Map();
-      customersData.forEach(customer => {
+      customersData.forEach((customer) => {
         const fullName = `${customer.firstName} ${customer.lastName}`;
         customerNameToId.set(fullName, customer.id);
       });
-      
-      bookingsData.forEach(booking => {
+
+      bookingsData.forEach((booking) => {
         // Try to match by customerId or by customer object id
         let customerId = booking.customerId || booking.customer?.id;
-        
+
         // If we have a customer name, check if the ID matches
-        if (booking.customerName && customerNameToId.has(booking.customerName)) {
+        if (
+          booking.customerName &&
+          customerNameToId.has(booking.customerName)
+        ) {
           const correctCustomerId = customerNameToId.get(booking.customerName);
           if (customerId && correctCustomerId !== customerId) {
-            console.warn(`Customer ID mismatch for ${booking.customerName}: booking has ${customerId}, customer record has ${correctCustomerId}`);
+            console.warn(
+              `Customer ID mismatch for ${booking.customerName}: booking has ${customerId}, customer record has ${correctCustomerId}`,
+            );
           }
           // Always use the ID from the customer record for consistency
           customerId = correctCustomerId;
         }
-        
+
         if (!customerId) {
-          console.warn('Booking without customer ID:', booking);
+          console.warn("Booking without customer ID:", booking);
           return;
         }
-        
+
         if (!customerStats.has(customerId)) {
           customerStats.set(customerId, {
             totalVisits: 0,
@@ -257,60 +292,74 @@ export default function CustomersPage() {
             services: new Map(),
             nextAppointment: null,
             upcomingBookings: 0,
-            pendingRevenue: 0
+            pendingRevenue: 0,
           });
         }
-        
+
         const stats = customerStats.get(customerId);
-        
+
         // Only count COMPLETED bookings for visits and revenue
-        if (['COMPLETED', 'completed'].includes(booking.status)) {
+        if (["COMPLETED", "completed"].includes(booking.status)) {
           stats.totalVisits++;
-          
+
           // For completed bookings, if paidAmount is not set, assume the booking was paid in full
-          const paidAmount = booking.paidAmount !== undefined ? booking.paidAmount : (booking.totalAmount || booking.price || 0);
+          const paidAmount =
+            booking.paidAmount !== undefined
+              ? booking.paidAmount
+              : booking.totalAmount || booking.price || 0;
           stats.totalSpent += paidAmount;
-          
+
           // Debug log
           if (stats.totalVisits === 1) {
             console.log(`First visit recorded for customer ${customerId}:`, {
               status: booking.status,
               amount: booking.totalAmount || booking.price,
-              customerName: booking.customerName
+              customerName: booking.customerName,
             });
           }
-          
+
           // Track last visit
           const bookingDate = new Date(booking.startTime || booking.date);
           if (!stats.lastVisit || bookingDate > stats.lastVisit) {
             stats.lastVisit = bookingDate;
           }
-          
+
           // Track services
-          const serviceName = booking.serviceName || 'Service';
-          stats.services.set(serviceName, (stats.services.get(serviceName) || 0) + 1);
+          const serviceName = booking.serviceName || "Service";
+          stats.services.set(
+            serviceName,
+            (stats.services.get(serviceName) || 0) + 1,
+          );
         }
-        
+
         // Track upcoming bookings and pending revenue
         const bookingDate = new Date(booking.startTime || booking.date);
         const now = new Date();
-        
-        if (bookingDate > now && !['CANCELLED', 'NO_SHOW', 'cancelled', 'no_show'].includes(booking.status)) {
+
+        if (
+          bookingDate > now &&
+          !["CANCELLED", "NO_SHOW", "cancelled", "no_show"].includes(
+            booking.status,
+          )
+        ) {
           stats.upcomingBookings++;
           stats.pendingRevenue += booking.totalAmount || booking.price || 0;
-          
+
           // Track next appointment
-          if (!stats.nextAppointment || bookingDate < new Date(stats.nextAppointment.date)) {
+          if (
+            !stats.nextAppointment ||
+            bookingDate < new Date(stats.nextAppointment.date)
+          ) {
             stats.nextAppointment = {
               date: booking.startTime || booking.date,
-              service: booking.serviceName || 'Service'
+              service: booking.serviceName || "Service",
             };
           }
         }
       });
-      
+
       // Enrich customers with calculated stats
-      const enrichedCustomers = customersData.map(customer => {
+      const enrichedCustomers = customersData.map((customer) => {
         const stats = customerStats.get(customer.id) || {
           totalVisits: 0,
           totalSpent: 0,
@@ -318,46 +367,48 @@ export default function CustomersPage() {
           services: new Map(),
           nextAppointment: null,
           upcomingBookings: 0,
-          pendingRevenue: 0
+          pendingRevenue: 0,
         };
-        
+
         // Convert services map to sorted array of top services
         const topServices = Array.from(stats.services.entries())
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 2);
-        
+
         return {
           ...customer,
           totalVisits: stats.totalVisits,
           totalSpent: stats.totalSpent,
-          updatedAt: stats.lastVisit ? stats.lastVisit.toISOString() : customer.updatedAt,
+          updatedAt: stats.lastVisit
+            ? stats.lastVisit.toISOString()
+            : customer.updatedAt,
           topServices,
           nextAppointment: stats.nextAppointment,
           upcomingBookings: stats.upcomingBookings,
-          pendingRevenue: stats.pendingRevenue
+          pendingRevenue: stats.pendingRevenue,
         };
       });
-      
-      console.log('Customer stats calculation:', {
+
+      console.log("Customer stats calculation:", {
         totalCustomers: customersData.length,
         totalBookings: bookingsData.length,
         customersWithStats: customerStats.size,
-        sampleStats: Array.from(customerStats.entries()).slice(0, 3)
+        sampleStats: Array.from(customerStats.entries()).slice(0, 3),
       });
-      
+
       // Debug Lucas Brown's final stats
       if (lucasBrown) {
         const lucasStats = customerStats.get(lucasBrown.id);
-        console.log('Lucas Brown final stats:', {
+        console.log("Lucas Brown final stats:", {
           customerId: lucasBrown.id,
           stats: lucasStats,
-          hasStats: customerStats.has(lucasBrown.id)
+          hasStats: customerStats.has(lucasBrown.id),
         });
       }
       setCustomers(enrichedCustomers);
     } catch (error) {
-      console.error('Failed to load customers:', error);
+      console.error("Failed to load customers:", error);
       toast({
         title: "Error",
         description: "Failed to load customers",
@@ -373,32 +424,41 @@ export default function CustomersPage() {
 
     // Apply search filter
     if (searchQuery) {
-      filtered = filtered.filter(customer => {
-        const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.toLowerCase();
-        const email = (customer.email || '').toLowerCase();
-        const phone = customer.phone || '';
+      filtered = filtered.filter((customer) => {
+        const fullName =
+          `${customer.firstName || ""} ${customer.lastName || ""}`.toLowerCase();
+        const email = (customer.email || "").toLowerCase();
+        const phone = customer.phone || "";
         const query = searchQuery.toLowerCase();
-        
-        return fullName.includes(query) ||
+
+        return (
+          fullName.includes(query) ||
           email.includes(query) ||
-          phone.includes(searchQuery);
+          phone.includes(searchQuery)
+        );
       });
     }
 
     // Apply segment filter
-    if (selectedSegment !== 'all') {
+    if (selectedSegment !== "all") {
       const now = new Date();
-      filtered = filtered.filter(customer => {
+      filtered = filtered.filter((customer) => {
         switch (selectedSegment) {
-          case 'vip':
-            return (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
-          case 'regular':
-            return (customer.totalVisits || 0) >= 3 && (customer.totalVisits || 0) <= 10;
-          case 'new':
+          case "vip":
+            return (
+              (customer.totalSpent || 0) > 1000 ||
+              (customer.totalVisits || 0) > 10
+            );
+          case "regular":
+            return (
+              (customer.totalVisits || 0) >= 3 &&
+              (customer.totalVisits || 0) <= 10
+            );
+          case "new":
             const createdDate = new Date(customer.createdAt);
             const daysSinceCreation = differenceInDays(now, createdDate);
             return daysSinceCreation <= 30;
-          case 'inactive':
+          case "inactive":
             const lastVisit = new Date(customer.updatedAt);
             const daysSinceVisit = differenceInDays(now, lastVisit);
             return daysSinceVisit > 90;
@@ -411,15 +471,17 @@ export default function CustomersPage() {
     // Apply sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'recent':
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-        case 'name':
+        case "recent":
+          return (
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          );
+        case "name":
           const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
           const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
           return nameA.localeCompare(nameB);
-        case 'spent':
+        case "spent":
           return (b.totalSpent || 0) - (a.totalSpent || 0);
-        case 'visits':
+        case "visits":
           return (b.totalVisits || 0) - (a.totalVisits || 0);
         default:
           return 0;
@@ -431,11 +493,11 @@ export default function CustomersPage() {
 
   const resetForm = () => {
     setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      notes: ''
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      notes: "",
     });
   };
 
@@ -459,7 +521,7 @@ export default function CustomersPage() {
       setEditingCustomer(null);
       await loadCustomers();
     } catch (error) {
-      console.error('Failed to save customer:', error);
+      console.error("Failed to save customer:", error);
       toast({
         title: "Error",
         description: "Failed to save customer",
@@ -475,7 +537,7 @@ export default function CustomersPage() {
       lastName: customer.lastName,
       email: customer.email,
       phone: customer.phone,
-      notes: customer.notes || ''
+      notes: customer.notes || "",
     });
     setIsAddDialogOpen(true);
   };
@@ -487,7 +549,7 @@ export default function CustomersPage() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: 'Copied!',
+      title: "Copied!",
       description: `${label} copied to clipboard`,
     });
   };
@@ -496,34 +558,34 @@ export default function CustomersPage() {
   const stats = useMemo(() => {
     const now = new Date();
     const monthStart = startOfMonth(now);
-    
-    const newThisMonth = customers.filter(c => 
-      new Date(c.createdAt) >= monthStart
+
+    const newThisMonth = customers.filter(
+      (c) => new Date(c.createdAt) >= monthStart,
     ).length;
-    
-    const birthdaysThisMonth = customers.filter(c => {
+
+    const birthdaysThisMonth = customers.filter((c) => {
       if (!c.dateOfBirth) return false;
       const birthDate = new Date(c.dateOfBirth);
       return isSameMonth(birthDate, now);
     }).length;
-    
-    const vipCustomers = customers.filter(c => 
-      (c.totalSpent || 0) > 1000 || (c.totalVisits || 0) > 10
+
+    const vipCustomers = customers.filter(
+      (c) => (c.totalSpent || 0) > 1000 || (c.totalVisits || 0) > 10,
     ).length;
-    
-    const activeCustomers = customers.filter(c => {
+
+    const activeCustomers = customers.filter((c) => {
       if (!c.updatedAt) return false;
       const lastVisit = new Date(c.updatedAt);
       const daysSinceVisit = differenceInDays(now, lastVisit);
       return daysSinceVisit <= 90; // Active if visited in last 90 days
     }).length;
-    
+
     return {
       total: customers.length,
       newThisMonth,
       birthdaysThisMonth,
       vipCustomers,
-      activeCustomers
+      activeCustomers,
     };
   }, [customers]);
 
@@ -539,7 +601,7 @@ export default function CustomersPage() {
             <Skeleton className="h-10 w-36" />
           </div>
         </div>
-        
+
         {/* Stats skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -552,7 +614,7 @@ export default function CustomersPage() {
             </Card>
           ))}
         </div>
-        
+
         {/* Table skeleton */}
         <Card>
           <CardHeader>
@@ -595,11 +657,21 @@ export default function CustomersPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Customers</h1>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => {/* TODO: Export customers */}}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              /* TODO: Export customers */
+            }}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button variant="outline" onClick={() => {/* TODO: Import customers */}}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              /* TODO: Import customers */
+            }}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
@@ -616,9 +688,13 @@ export default function CustomersPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Customers
+                </p>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-green-600">+{stats.newThisMonth} this month</p>
+                <p className="text-sm text-green-600">
+                  +{stats.newThisMonth} this month
+                </p>
               </div>
               <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
                 <Users className="h-6 w-6 text-indigo-600" />
@@ -631,7 +707,9 @@ export default function CustomersPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Customers</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Customers
+                </p>
                 <p className="text-2xl font-bold">{stats.activeCustomers}</p>
                 <p className="text-sm text-gray-500">Last 90 days</p>
               </div>
@@ -646,7 +724,9 @@ export default function CustomersPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">VIP Customers</p>
+                <p className="text-sm font-medium text-gray-600">
+                  VIP Customers
+                </p>
                 <p className="text-2xl font-bold">{stats.vipCustomers}</p>
                 <p className="text-sm text-yellow-600">High value</p>
               </div>
@@ -676,7 +756,9 @@ export default function CustomersPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">New This Month</p>
+                <p className="text-sm font-medium text-gray-600">
+                  New This Month
+                </p>
                 <p className="text-2xl font-bold">{stats.newThisMonth}</p>
                 <p className="text-sm text-indigo-600">First-time visitors</p>
               </div>
@@ -699,7 +781,7 @@ export default function CustomersPage() {
               </Button>
             </div>
           </div>
-          
+
           {/* Search and filters */}
           <div className="space-y-4">
             <div className="flex gap-3">
@@ -712,7 +794,10 @@ export default function CustomersPage() {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedSegment} onValueChange={setSelectedSegment}>
+              <Select
+                value={selectedSegment}
+                onValueChange={setSelectedSegment}
+              >
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="All Segments" />
                 </SelectTrigger>
@@ -764,17 +849,18 @@ export default function CustomersPage() {
                 <Users className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchQuery || selectedSegment !== 'all' ? 'No customers found' : 'No customers yet'}
+                {searchQuery || selectedSegment !== "all"
+                  ? "No customers found"
+                  : "No customers yet"}
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchQuery ? 
-                  'Try adjusting your search or filters' : 
-                  selectedSegment !== 'all' ? 
-                    `No ${selectedSegment} customers found` :
-                    'Start by adding your first customer'
-                }
+                {searchQuery
+                  ? "Try adjusting your search or filters"
+                  : selectedSegment !== "all"
+                    ? `No ${selectedSegment} customers found`
+                    : "Start by adding your first customer"}
               </p>
-              {!searchQuery && selectedSegment === 'all' && (
+              {!searchQuery && selectedSegment === "all" && (
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add First Customer
@@ -783,345 +869,505 @@ export default function CustomersPage() {
             </div>
           ) : (
             <>
-            <div className="grid gap-4">
-              {filteredCustomers
-                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                .map((customer) => {
-                const isVIP = (customer.totalSpent || 0) > 1000 || (customer.totalVisits || 0) > 10;
-                const lastVisit = customer.updatedAt ? new Date(customer.updatedAt) : null;
-                const daysSinceVisit = lastVisit ? differenceInDays(new Date(), lastVisit) : null;
-                const isInactive = daysSinceVisit && daysSinceVisit > 90;
-                const hasBirthday = customer.dateOfBirth && isSameMonth(new Date(customer.dateOfBirth), new Date());
-                
-                return (
-                  <TooltipProvider key={customer.id}>
-                    <Tooltip delayDuration={200}>
-                      <TooltipTrigger asChild>
-                  <Card
-                    className={cn(
-                      "transition-all relative overflow-hidden cursor-pointer",
-                      "hover:translate-y-[-2px] hover:shadow-lg",
-                      isVIP && "ring-1 ring-yellow-400",
-                      isInactive && "opacity-75"
-                    )}
-                  >
-                    {isVIP && (
-                      <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-400 to-transparent w-32 h-full opacity-10" />
-                    )}
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1" onClick={() => openViewDialog(customer)}>
-                          <div className="flex items-start gap-4">
-                            {/* Avatar with initials */}
-                            <div className="relative">
-                              <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold",
-                                stringToColor(`${customer.firstName} ${customer.lastName}`)
-                              )}>
-                                {getInitials(customer.firstName, customer.lastName)}
-                              </div>
+              <div className="grid gap-4">
+                {filteredCustomers
+                  .slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage,
+                  )
+                  .map((customer) => {
+                    const isVIP =
+                      (customer.totalSpent || 0) > 1000 ||
+                      (customer.totalVisits || 0) > 10;
+                    const lastVisit = customer.updatedAt
+                      ? new Date(customer.updatedAt)
+                      : null;
+                    const daysSinceVisit = lastVisit
+                      ? differenceInDays(new Date(), lastVisit)
+                      : null;
+                    const isInactive = daysSinceVisit && daysSinceVisit > 90;
+                    const hasBirthday =
+                      customer.dateOfBirth &&
+                      isSameMonth(new Date(customer.dateOfBirth), new Date());
+
+                    return (
+                      <TooltipProvider key={customer.id}>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Card
+                              className={cn(
+                                "transition-all relative overflow-hidden cursor-pointer",
+                                "hover:translate-y-[-2px] hover:shadow-lg",
+                                isVIP && "ring-1 ring-yellow-400",
+                                isInactive && "opacity-75",
+                              )}
+                            >
                               {isVIP && (
-                                <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                                  <Crown className="h-4 w-4 text-yellow-600" />
-                                </div>
+                                <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-400 to-transparent w-32 h-full opacity-10" />
                               )}
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold flex items-center gap-1.5">
-                                  {customer.firstName} {customer.lastName}
-                                  {/* Status icons next to name */}
-                                  {isVIP && (
-                                    <Crown className="h-4 w-4 text-yellow-600" title="VIP Customer" />
-                                  )}
-                                  {differenceInDays(new Date(), new Date(customer.createdAt)) <= 30 && (
-                                    <Star className="h-4 w-4 text-indigo-600" title="New Customer" />
-                                  )}
-                                  {hasBirthday && (
-                                    <Cake className="h-4 w-4 text-pink-600" title="Birthday this month" />
-                                  )}
-                                </h3>
-                              </div>
-                              
-                              <div className="flex items-center gap-4 text-sm text-gray-600">
-                                <div className="flex items-center gap-1 group">
-                                  <Mail className="h-4 w-4" />
-                                  <span>{customer.email}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      copyToClipboard(customer.email, 'Email');
-                                    }}
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div
+                                    className="flex-1"
+                                    onClick={() => openViewDialog(customer)}
                                   >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <div className="flex items-center gap-1 group">
-                                  <Phone className="h-4 w-4" />
-                                  <span>{customer.mobile || customer.phone}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      copyToClipboard(customer.mobile || customer.phone, 'Phone');
-                                    }}
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              {/* Tag chips for categorization */}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {/* Customer type tags */}
-                                {isVIP && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                                    VIP Customer
-                                  </span>
-                                )}
-                                {(customer.totalVisits || 0) >= 3 && (customer.totalVisits || 0) <= 10 && !isVIP && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                                    Regular
-                                  </span>
-                                )}
-                                {(customer.totalVisits || 0) === 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                    New Customer
-                                  </span>
-                                )}
-                                {isInactive && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
-                                    Inactive {daysSinceVisit}+ days
-                                  </span>
-                                )}
-                                {hasBirthday && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-50 text-pink-700 border border-pink-200">
-                                    Birthday this month
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {(customer.totalVisits || 0) > 0 ? (
-                                <div className="flex items-center gap-6 text-sm">
-                                  <span className="text-gray-600">
-                                    {customer.totalVisits || 0} completed {(customer.totalVisits || 0) === 1 ? 'visit' : 'visits'}
-                                    {(customer.totalSpent || 0) > 0 && ` • $${(customer.totalSpent || 0).toFixed(0)} paid`}
-                                  </span>
-                                  {lastVisit && (
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4 text-gray-400" />
-                                      <span className="text-gray-500">
-                                        Last visit {daysSinceVisit === 0 ? 'today' : 
-                                          daysSinceVisit === 1 ? 'yesterday' : 
-                                          `${daysSinceVisit} days ago`}
-                                      </span>
+                                    <div className="flex items-start gap-4">
+                                      {/* Avatar with initials */}
+                                      <div className="relative">
+                                        <div
+                                          className={cn(
+                                            "w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold",
+                                            stringToColor(
+                                              `${customer.firstName} ${customer.lastName}`,
+                                            ),
+                                          )}
+                                        >
+                                          {getInitials(
+                                            customer.firstName,
+                                            customer.lastName,
+                                          )}
+                                        </div>
+                                        {isVIP && (
+                                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                                            <Crown className="h-4 w-4 text-yellow-600" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                          <h3 className="text-lg font-semibold flex items-center gap-1.5">
+                                            {customer.firstName}{" "}
+                                            {customer.lastName}
+                                            {/* Status icons next to name */}
+                                            {isVIP && (
+                                              <Crown
+                                                className="h-4 w-4 text-yellow-600"
+                                                title="VIP Customer"
+                                              />
+                                            )}
+                                            {differenceInDays(
+                                              new Date(),
+                                              new Date(customer.createdAt),
+                                            ) <= 30 && (
+                                              <Star
+                                                className="h-4 w-4 text-indigo-600"
+                                                title="New Customer"
+                                              />
+                                            )}
+                                            {hasBirthday && (
+                                              <Cake
+                                                className="h-4 w-4 text-pink-600"
+                                                title="Birthday this month"
+                                              />
+                                            )}
+                                          </h3>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                                          <div className="flex items-center gap-1 group">
+                                            <Mail className="h-4 w-4" />
+                                            <span>{customer.email}</span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                copyToClipboard(
+                                                  customer.email,
+                                                  "Email",
+                                                );
+                                              }}
+                                            >
+                                              <Copy className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                          <div className="flex items-center gap-1 group">
+                                            <Phone className="h-4 w-4" />
+                                            <span>
+                                              {customer.mobile ||
+                                                customer.phone}
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                copyToClipboard(
+                                                  customer.mobile ||
+                                                    customer.phone,
+                                                  "Phone",
+                                                );
+                                              }}
+                                            >
+                                              <Copy className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+
+                                        {/* Tag chips for categorization */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {/* Customer type tags */}
+                                          {isVIP && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                              VIP Customer
+                                            </span>
+                                          )}
+                                          {(customer.totalVisits || 0) >= 3 &&
+                                            (customer.totalVisits || 0) <= 10 &&
+                                            !isVIP && (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                                Regular
+                                              </span>
+                                            )}
+                                          {(customer.totalVisits || 0) ===
+                                            0 && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                              New Customer
+                                            </span>
+                                          )}
+                                          {isInactive && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                                              Inactive {daysSinceVisit}+ days
+                                            </span>
+                                          )}
+                                          {hasBirthday && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-50 text-pink-700 border border-pink-200">
+                                              Birthday this month
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {(customer.totalVisits || 0) > 0 ? (
+                                          <div className="flex items-center gap-6 text-sm">
+                                            <span className="text-gray-600">
+                                              {customer.totalVisits || 0}{" "}
+                                              completed{" "}
+                                              {(customer.totalVisits || 0) === 1
+                                                ? "visit"
+                                                : "visits"}
+                                              {(customer.totalSpent || 0) > 0 &&
+                                                ` • $${(customer.totalSpent || 0).toFixed(0)} paid`}
+                                            </span>
+                                            {lastVisit && (
+                                              <div className="flex items-center gap-1">
+                                                <Clock className="h-4 w-4 text-gray-400" />
+                                                <span className="text-gray-500">
+                                                  Last visit{" "}
+                                                  {daysSinceVisit === 0
+                                                    ? "today"
+                                                    : daysSinceVisit === 1
+                                                      ? "yesterday"
+                                                      : `${daysSinceVisit} days ago`}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : customer.upcomingBookings > 0 ? (
+                                          <div className="text-sm text-gray-600">
+                                            <span className="font-medium">
+                                              No visits yet
+                                            </span>{" "}
+                                            •
+                                            <span className="text-indigo-600">
+                                              {customer.upcomingBookings}{" "}
+                                              upcoming{" "}
+                                              {customer.upcomingBookings === 1
+                                                ? "booking"
+                                                : "bookings"}
+                                            </span>
+                                            {customer.pendingRevenue > 0 && (
+                                              <span className="text-gray-500">
+                                                {" "}
+                                                • ${
+                                                  customer.pendingRevenue
+                                                }{" "}
+                                                pending
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="text-sm text-gray-500">
+                                            Joined{" "}
+                                            {format(
+                                              new Date(customer.createdAt),
+                                              "MMM d, yyyy",
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Additional customer insights */}
+                                        <div className="space-y-1.5 mt-2">
+                                          {/* Loyalty display - prominently shown */}
+                                          {(Number(customer.loyaltyPoints) >
+                                            0 ||
+                                            Number(customer.loyaltyVisits) >
+                                              0) && (
+                                            <div className="flex items-center gap-1.5">
+                                              {Number(customer.loyaltyVisits) >
+                                              0 ? (
+                                                <>
+                                                  <Gift className="h-5 w-5 text-indigo-600" />
+                                                  <span className="text-base font-semibold text-indigo-600">
+                                                    {customer.loyaltyVisits}{" "}
+                                                    loyalty visits
+                                                  </span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Star className="h-5 w-5 text-yellow-600 fill-yellow-600" />
+                                                  <span className="text-base font-semibold text-yellow-600">
+                                                    {customer.loyaltyPoints}{" "}
+                                                    points
+                                                  </span>
+                                                </>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {/* Top services */}
+                                          {customer.topServices &&
+                                            customer.topServices.length > 0 && (
+                                              <div className="text-sm text-gray-600">
+                                                <span className="font-medium">
+                                                  Usually books:
+                                                </span>{" "}
+                                                {customer.topServices
+                                                  .slice(0, 2)
+                                                  .map((s) => s.name)
+                                                  .join(", ")}
+                                              </div>
+                                            )}
+
+                                          {/* Next appointment */}
+                                          {customer.nextAppointment && (
+                                            <div className="text-sm text-green-600 font-medium">
+                                              Next visit:{" "}
+                                              {format(
+                                                new Date(
+                                                  customer.nextAppointment.date,
+                                                ),
+                                                "MMM d",
+                                              )}{" "}
+                                              -{" "}
+                                              {customer.nextAppointment.service}
+                                            </div>
+                                          )}
+
+                                          {/* Customer notes preview */}
+                                          {customer.notes && (
+                                            <div className="flex items-start gap-1.5 text-sm text-gray-500">
+                                              <span className="text-base">
+                                                💭
+                                              </span>
+                                              <span className="italic">
+                                                "
+                                                {customer.notes.substring(
+                                                  0,
+                                                  50,
+                                                )}
+                                                {customer.notes.length > 50
+                                                  ? "..."
+                                                  : ""}
+                                                "
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  )}
+                                  </div>
+
+                                  {/* Quick actions */}
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(
+                                          `/bookings/new?customerId=${customer.id}`,
+                                        );
+                                      }}
+                                    >
+                                      <Calendar className="h-4 w-4 mr-1" />
+                                      Book
+                                    </Button>
+
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            openViewDialog(customer)
+                                          }
+                                        >
+                                          Quick View
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            router.push(
+                                              `/customers/${customer.id}`,
+                                            )
+                                          }
+                                        >
+                                          <ExternalLink className="h-4 w-4 mr-2" />
+                                          View Full Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            openEditDialog(customer)
+                                          }
+                                        >
+                                          Edit Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            /* TODO: Send message */
+                                          }}
+                                        >
+                                          <MessageSquare className="h-4 w-4 mr-2" />
+                                          Send Message
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            /* TODO: Add note */
+                                          }}
+                                        >
+                                          Add Note
+                                        </DropdownMenuItem>
+                                        {(customer.loyaltyPoints ||
+                                          customer.loyaltyVisits) && (
+                                          <DropdownMenuItem
+                                            onClick={() =>
+                                              setLoyaltyDialogCustomer(customer)
+                                            }
+                                          >
+                                            <Gift className="h-4 w-4 mr-2" />
+                                            Manage Loyalty
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
                                 </div>
-                              ) : customer.upcomingBookings > 0 ? (
-                                <div className="text-sm text-gray-600">
-                                  <span className="font-medium">No visits yet</span> • 
-                                  <span className="text-indigo-600">
-                                    {customer.upcomingBookings} upcoming {customer.upcomingBookings === 1 ? 'booking' : 'bookings'}
-                                  </span>
-                                  {customer.pendingRevenue > 0 && (
-                                    <span className="text-gray-500"> • ${customer.pendingRevenue} pending</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-gray-500">
-                                  Joined {format(new Date(customer.createdAt), 'MMM d, yyyy')}
-                                </div>
-                              )}
-                              
-                              {/* Additional customer insights */}
-                              <div className="space-y-1.5 mt-2">
-                                {/* Loyalty display - prominently shown */}
-                                {(Number(customer.loyaltyPoints) > 0 || Number(customer.loyaltyVisits) > 0) && (
-                                  <div className="flex items-center gap-1.5">
-                                    {Number(customer.loyaltyVisits) > 0 ? (
-                                      <>
-                                        <Gift className="h-5 w-5 text-indigo-600" />
-                                        <span className="text-base font-semibold text-indigo-600">
-                                          {customer.loyaltyVisits} loyalty visits
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Star className="h-5 w-5 text-yellow-600 fill-yellow-600" />
-                                        <span className="text-base font-semibold text-yellow-600">
-                                          {customer.loyaltyPoints} points
-                                        </span>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {/* Top services */}
-                                {customer.topServices && customer.topServices.length > 0 && (
-                                  <div className="text-sm text-gray-600">
-                                    <span className="font-medium">Usually books:</span> {customer.topServices.slice(0, 2).map(s => s.name).join(', ')}
-                                  </div>
-                                )}
-                                
-                                {/* Next appointment */}
-                                {customer.nextAppointment && (
-                                  <div className="text-sm text-green-600 font-medium">
-                                    Next visit: {format(new Date(customer.nextAppointment.date), 'MMM d')} - {customer.nextAppointment.service}
-                                  </div>
-                                )}
-                                
-                                {/* Customer notes preview */}
-                                {customer.notes && (
-                                  <div className="flex items-start gap-1.5 text-sm text-gray-500">
-                                    <span className="text-base">💭</span>
-                                    <span className="italic">"{customer.notes.substring(0, 50)}{customer.notes.length > 50 ? '...' : ''}"</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Quick actions */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/bookings/new?customerId=${customer.id}`);
-                            }}
-                          >
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Book
-                          </Button>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={(e) => e.stopPropagation()}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openViewDialog(customer)}>
-                                Quick View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/customers/${customer.id}`)}>
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                View Full Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditDialog(customer)}>
-                                Edit Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => {/* TODO: Send message */}}>
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Send Message
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {/* TODO: Add note */}}>
-                                Add Note
-                              </DropdownMenuItem>
-                              {(customer.loyaltyPoints || customer.loyaltyVisits) && (
-                                <DropdownMenuItem onClick={() => setLoyaltyDialogCustomer(customer)}>
-                                  <Gift className="h-4 w-4 mr-2" />
-                                  Manage Loyalty
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>Click for quick view</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-              })}
-            </div>
-            
-            {/* Pagination */}
-            {filteredCustomers.length > itemsPerPage && (
-              <div className="flex items-center justify-between border-t pt-4 mt-4">
-                <div className="flex items-center gap-4">
-                  <p className="text-sm text-gray-600">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                    {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of{' '}
-                    {filteredCustomers.length} customers
-                  </p>
-                  <Select value={itemsPerPage.toString()} onValueChange={(value) => {
-                    setItemsPerPage(Number(value));
-                    setCurrentPage(1);
-                  }}>
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
-                      <SelectItem value="100">100 / page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  
-                  {/* Page numbers */}
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.ceil(filteredCustomers.length / itemsPerPage) }, (_, i) => i + 1)
-                      .filter(page => {
-                        const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-                        return page === 1 || 
-                               page === totalPages || 
-                               (page >= currentPage - 1 && page <= currentPage + 1);
-                      })
-                      .map((page, index, array) => (
-                        <React.Fragment key={page}>
-                          {index > 0 && array[index - 1] !== page - 1 && (
-                            <span className="px-1 text-gray-400">...</span>
-                          )}
-                          <Button
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </Button>
-                        </React.Fragment>
-                      ))}
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === Math.ceil(filteredCustomers.length / itemsPerPage)}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+                              </CardContent>
+                            </Card>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Click for quick view</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
               </div>
-            )}
+
+              {/* Pagination */}
+              {filteredCustomers.length > itemsPerPage && (
+                <div className="flex items-center justify-between border-t pt-4 mt-4">
+                  <div className="flex items-center gap-4">
+                    <p className="text-sm text-gray-600">
+                      Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        filteredCustomers.length,
+                      )}{" "}
+                      of {filteredCustomers.length} customers
+                    </p>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 / page</SelectItem>
+                        <SelectItem value="20">20 / page</SelectItem>
+                        <SelectItem value="50">50 / page</SelectItem>
+                        <SelectItem value="100">100 / page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from(
+                        {
+                          length: Math.ceil(
+                            filteredCustomers.length / itemsPerPage,
+                          ),
+                        },
+                        (_, i) => i + 1,
+                      )
+                        .filter((page) => {
+                          const totalPages = Math.ceil(
+                            filteredCustomers.length / itemsPerPage,
+                          );
+                          return (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          );
+                        })
+                        .map((page, index, array) => (
+                          <React.Fragment key={page}>
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <span className="px-1 text-gray-400">...</span>
+                            )}
+                            <Button
+                              variant={
+                                currentPage === page ? "default" : "outline"
+                              }
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => setCurrentPage(page)}
+                            >
+                              {page}
+                            </Button>
+                          </React.Fragment>
+                        ))}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={
+                        currentPage ===
+                        Math.ceil(filteredCustomers.length / itemsPerPage)
+                      }
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>
@@ -1132,10 +1378,12 @@ export default function CustomersPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingCustomer ? 'Edit Customer' : 'New Customer'}
+              {editingCustomer ? "Edit Customer" : "New Customer"}
             </DialogTitle>
             <DialogDescription>
-              {editingCustomer ? 'Update customer information' : 'Add a new customer to your database'}
+              {editingCustomer
+                ? "Update customer information"
+                : "Add a new customer to your database"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1145,7 +1393,9 @@ export default function CustomersPage() {
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
                   placeholder="John"
                 />
               </div>
@@ -1154,7 +1404,9 @@ export default function CustomersPage() {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
                   placeholder="Doe"
                 />
               </div>
@@ -1165,7 +1417,9 @@ export default function CustomersPage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -1175,7 +1429,13 @@ export default function CustomersPage() {
                 id="phone"
                 type="tel"
                 value={formData.mobile || formData.phone}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    mobile: e.target.value,
+                    phone: e.target.value,
+                  })
+                }
                 placeholder="+61 400 000 000"
               />
             </div>
@@ -1184,7 +1444,9 @@ export default function CustomersPage() {
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 placeholder="Any special notes about this customer..."
                 rows={3}
               />
@@ -1195,7 +1457,7 @@ export default function CustomersPage() {
               Cancel
             </Button>
             <Button onClick={handleSaveCustomer}>
-              {editingCustomer ? 'Update' : 'Create'} Customer
+              {editingCustomer ? "Update" : "Create"} Customer
             </Button>
           </DialogFooter>
         </DialogContent>

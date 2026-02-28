@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useMerchant } from '@/contexts/merchant-context';
-import { Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { useMerchant } from "@/contexts/merchant-context";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export function MerchantGuard({ children }: { children: React.ReactNode }) {
   const { merchant, loading, error } = useMerchant();
@@ -26,25 +26,26 @@ export function MerchantGuard({ children }: { children: React.ReactNode }) {
             Business Not Found
           </h1>
           <p className="text-lg text-muted-foreground mb-6">
-            {error || 'The business you are looking for could not be found.'}
+            {error || "The business you are looking for could not be found."}
           </p>
           <p className="text-sm text-muted-foreground">
-            Please check the URL and try again, or contact the business directly.
+            Please check the URL and try again, or contact the business
+            directly.
           </p>
-          
-          {process.env.NODE_ENV === 'development' && (
+
+          {process.env.NODE_ENV === "development" && (
             <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm font-semibold text-yellow-800 mb-2">
                 Development Mode - Test Merchants:
               </p>
               <div className="flex flex-col gap-2">
-                <Link 
+                <Link
                   href="/hamilton"
                   className="text-blue-600 hover:underline"
                 >
                   Hamilton Beauty (hamilton)
                 </Link>
-                <Link 
+                <Link
                   href="/wellness-spa"
                   className="text-blue-600 hover:underline"
                 >

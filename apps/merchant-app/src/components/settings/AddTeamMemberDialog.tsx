@@ -49,7 +49,9 @@ export function AddTeamMemberDialog({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [roleId, setRoleId] = useState("");
-  const [locationAccess, setLocationAccess] = useState<"all" | "specific">("all");
+  const [locationAccess, setLocationAccess] = useState<"all" | "specific">(
+    "all",
+  );
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
   // Reset form when dialog opens/closes
@@ -71,7 +73,10 @@ export function AddTeamMemberDialog({
     if (roles.length > 0 && !roleId) {
       // Default to Staff role, or first non-owner role
       const staffRole = roles.find((r) => r.name === "Staff");
-      const defaultRole = staffRole || roles.find((r) => !r.permissions.includes("*")) || roles[0];
+      const defaultRole =
+        staffRole ||
+        roles.find((r) => !r.permissions.includes("*")) ||
+        roles[0];
       if (defaultRole) {
         setRoleId(defaultRole.id);
       }
@@ -95,7 +100,8 @@ export function AddTeamMemberDialog({
       onSuccess();
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.message || "Failed to create team member";
+      const message =
+        error?.response?.data?.message || "Failed to create team member";
       toast({
         title: "Error",
         description: message,
@@ -159,7 +165,8 @@ export function AddTeamMemberDialog({
       email: email.trim().toLowerCase(),
       password,
       roleId,
-      locationIds: locationAccess === "specific" ? selectedLocations : undefined,
+      locationIds:
+        locationAccess === "specific" ? selectedLocations : undefined,
     });
   };
 
@@ -167,7 +174,7 @@ export function AddTeamMemberDialog({
     setSelectedLocations((prev) =>
       prev.includes(locationId)
         ? prev.filter((id) => id !== locationId)
-        : [...prev, locationId]
+        : [...prev, locationId],
     );
   };
 
@@ -239,7 +246,11 @@ export function AddTeamMemberDialog({
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>

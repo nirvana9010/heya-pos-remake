@@ -66,9 +66,7 @@ export class AdminController {
     const adminPass = process.env.ADMIN_PASSWORD;
 
     if (!adminUser || !adminPass) {
-      throw new UnauthorizedException(
-        "Admin login is not configured",
-      );
+      throw new UnauthorizedException("Admin login is not configured");
     }
 
     if (dto.username === adminUser && dto.password === adminPass) {

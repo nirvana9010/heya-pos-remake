@@ -3,6 +3,7 @@
 ## ✅ What We've Built
 
 ### 1. Multi-Tenant Booking System
+
 - Each merchant has their own unique booking URL
 - Complete data isolation between merchants
 - Dynamic merchant detection from URL
@@ -10,30 +11,36 @@
 ### 2. Test Merchants Created
 
 #### Hamilton Beauty Spa
+
 - **Subdomain**: `hamilton`
 - **URL**: http://localhost:3001/hamilton
 - **Login**: Username: `HAMILTON`, Password: `demo123`
 - **Theme**: Beauty & wellness services
 
 #### Zen Wellness Spa
+
 - **Subdomain**: `zen-wellness`
 - **URL**: http://localhost:3001/zen-wellness
 - **Login**: Username: `ZENWELLNESS`, Password: `demo456`
 - **Theme**: Holistic wellness & yoga
 
 ### 3. Admin API Endpoints
+
 - **List Merchants**: `GET /api/v1/admin/merchants`
 - **Create Merchant**: `POST /api/v1/admin/merchants`
 
 ## 🧪 Testing Multi-Tenancy
 
 ### Step 1: Visit Different Merchant URLs
+
 1. Open http://localhost:3001/hamilton
+
    - Should show "Hamilton Beauty Spa"
    - Pink/purple theme
    - Beauty services (facials, massages, etc.)
 
 2. Open http://localhost:3001/zen-wellness
+
    - Should show "Zen Wellness Spa"
    - Green/teal theme
    - Wellness services (yoga, meditation, etc.)
@@ -42,9 +49,11 @@
    - Should show error page with helpful message
 
 ### Step 2: Test Merchant Selector
+
 Visit http://localhost:3001/merchant-selector to see both merchants side-by-side
 
 ### Step 3: Verify Data Isolation
+
 ```bash
 # Check Hamilton services
 curl "http://localhost:3000/api/v1/public/services?subdomain=hamilton" | grep name
@@ -56,6 +65,7 @@ curl "http://localhost:3000/api/v1/public/services?subdomain=zen-wellness" | gre
 ```
 
 ### Step 4: Create New Merchant via API
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/admin/merchants \
   -H "Content-Type: application/json" \
@@ -72,7 +82,9 @@ curl -X POST http://localhost:3000/api/v1/admin/merchants \
 ## 📊 Verify Complete Isolation
 
 ### Database Level
+
 Each merchant has separate:
+
 - Services
 - Staff members
 - Customers
@@ -80,12 +92,15 @@ Each merchant has separate:
 - Settings
 
 ### API Level
+
 All public endpoints require merchant subdomain:
+
 - `/api/v1/public/merchant-info?subdomain=hamilton`
 - `/api/v1/public/services?subdomain=hamilton`
 - `/api/v1/public/staff?subdomain=hamilton`
 
 ### Frontend Level
+
 - Merchant context loaded based on URL
 - All API calls automatically include merchant context
 - UI shows merchant-specific branding
@@ -93,14 +108,17 @@ All public endpoints require merchant subdomain:
 ## 🔧 How It Works
 
 1. **URL Detection**
+
    - Middleware detects merchant from URL path
    - Example: `/hamilton` → merchant subdomain = "hamilton"
 
 2. **Merchant Context**
+
    - React context provider fetches merchant data
    - All components receive merchant info
 
 3. **API Integration**
+
    - API client automatically adds merchant subdomain
    - Backend validates and scopes all queries
 
@@ -111,11 +129,14 @@ All public endpoints require merchant subdomain:
 ## 🚀 Production Considerations
 
 ### For Production Deployment:
+
 1. Switch to subdomain-based routing:
+
    - `hamilton.bookings.yoursite.com`
    - Set `NEXT_PUBLIC_MERCHANT_DETECTION_MODE=subdomain`
 
 2. Configure DNS:
+
    - Wildcard subdomain: `*.bookings.yoursite.com`
    - Point to booking app server
 

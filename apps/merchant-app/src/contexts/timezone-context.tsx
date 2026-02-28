@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
-import { TimezoneUtils } from '@heya-pos/utils';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiClient } from "@/lib/api-client";
+import { TimezoneUtils } from "@heya-pos/utils";
 
 interface TimezoneContextType {
   merchantTimezone: string;
@@ -10,27 +10,34 @@ interface TimezoneContextType {
   userTimezone: string;
   loading: boolean;
   updateMerchantTimezone: (timezone: string) => Promise<void>;
-  updateLocationTimezone: (locationId: string, timezone: string) => Promise<void>;
+  updateLocationTimezone: (
+    locationId: string,
+    timezone: string,
+  ) => Promise<void>;
   formatInMerchantTz: (date: Date | string, format?: string) => string;
   formatInUserTz: (date: Date | string, format?: string) => string;
   getTimezoneOffset: (timezone: string) => string;
   getCurrentTimezoneAbbr: (timezone: string) => string;
 }
 
-const TimezoneContext = createContext<TimezoneContextType | undefined>(undefined);
+const TimezoneContext = createContext<TimezoneContextType | undefined>(
+  undefined,
+);
 
 export const useTimezone = () => {
   const context = useContext(TimezoneContext);
   if (!context) {
-    throw new Error('useTimezone must be used within a TimezoneProvider');
+    throw new Error("useTimezone must be used within a TimezoneProvider");
   }
   return context;
 };
 
-export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [merchantTimezone, setMerchantTimezone] = useState('Australia/Sydney');
+export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [merchantTimezone, setMerchantTimezone] = useState("Australia/Sydney");
   const [locationTimezone, setLocationTimezone] = useState<string | null>(null);
-  const [userTimezone, setUserTimezone] = useState('Australia/Sydney');
+  const [userTimezone, setUserTimezone] = useState("Australia/Sydney");
   const [loading, setLoading] = useState(true);
 
   // Load merchant and location timezone on mount
@@ -45,7 +52,7 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         // Try to get merchant settings
         try {
-          const settings = await apiClient.get('/merchant/settings');
+          const settings = await apiClient.get("/merchant/settings");
           if (settings?.timezone) {
             setMerchantTimezone(settings.timezone);
           }
@@ -73,11 +80,14 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const updateMerchantTimezone = async (timezone: string) => {
-    await apiClient.put('/merchant/settings', { timezone });
+    await apiClient.put("/merchant/settings", { timezone });
     setMerchantTimezone(timezone);
   };
 
-  const updateLocationTimezone = async (locationId: string, timezone: string) => {
+  const updateLocationTimezone = async (
+    locationId: string,
+    timezone: string,
+  ) => {
     await apiClient.updateLocationTimezone(locationId, timezone);
     setLocationTimezone(timezone);
   };
@@ -93,12 +103,13 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getTimezoneOffset = (timezone: string) => {
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
-      timeZoneName: 'short'
+      timeZoneName: "short",
     });
     const parts = formatter.formatToParts(now);
-    const tzName = parts.find(part => part.type === 'timeZoneName')?.value || '';
+    const tzName =
+      parts.find((part) => part.type === "timeZoneName")?.value || "";
     return tzName;
   };
 

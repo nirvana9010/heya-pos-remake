@@ -1,33 +1,45 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api-wrapper';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { Label } from '@heya-pos/ui';
-import { Switch } from '@heya-pos/ui';
-import { RadioGroup, RadioGroupItem } from '@heya-pos/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@heya-pos/ui';
-import { Textarea } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
-import { CreditCard, Gift, Loader2, Save } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api-wrapper";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { Label } from "@heya-pos/ui";
+import { Switch } from "@heya-pos/ui";
+import { RadioGroup, RadioGroupItem } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
+import { Textarea } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import { CreditCard, Gift, Loader2, Save } from "lucide-react";
 
 interface LoyaltyProgram {
   id: string;
-  type: 'VISITS' | 'POINTS';
+  type: "VISITS" | "POINTS";
   name?: string | null;
   description?: string | null;
   isActive: boolean;
   visitsRequired?: number | null;
-  visitRewardType?: 'FREE' | 'PERCENTAGE' | null;
+  visitRewardType?: "FREE" | "PERCENTAGE" | null;
   visitRewardValue?: number | null;
   pointsPerDollar?: number | null;
   pointsValue?: number | null;
 }
 
-type ProgramType = 'VISITS' | 'POINTS';
-type VisitRewardType = 'FREE' | 'PERCENTAGE';
+type ProgramType = "VISITS" | "POINTS";
+type VisitRewardType = "FREE" | "PERCENTAGE";
 
 interface LoyaltyFormState {
   type: ProgramType;
@@ -49,27 +61,27 @@ interface LoyaltyReminderTouchpoint {
 }
 
 const defaultNameForType = (type: ProgramType) =>
-  type === 'VISITS' ? 'Punch Card Rewards' : 'Points Rewards';
+  type === "VISITS" ? "Punch Card Rewards" : "Points Rewards";
 
 const buildDefaultDescription = (state: LoyaltyFormState) => {
-  if (state.type === 'VISITS') {
+  if (state.type === "VISITS") {
     const rewardText =
-      state.visitRewardType === 'FREE'
-        ? 'a free reward'
+      state.visitRewardType === "FREE"
+        ? "a free reward"
         : `${state.visitRewardValue}% off`;
     return `Get ${rewardText} every ${state.visitsRequired} visits.`;
   }
 
   const pointsValue = Number(state.pointsValue || 0);
-  const formattedValue = pointsValue > 0 ? pointsValue.toFixed(2) : '0.00';
+  const formattedValue = pointsValue > 0 ? pointsValue.toFixed(2) : "0.00";
   return `Earn ${state.pointsPerDollar} point(s) per $1 spent. Each point is worth $${formattedValue}.`;
 };
 
 const initialFormState: LoyaltyFormState = {
-  type: 'VISITS',
+  type: "VISITS",
   isActive: true,
   visitsRequired: 10,
-  visitRewardType: 'FREE',
+  visitRewardType: "FREE",
   visitRewardValue: 100,
   pointsPerDollar: 1,
   pointsValue: 0.01,
@@ -79,25 +91,25 @@ const defaultReminders: LoyaltyReminderTouchpoint[] = [
   {
     sequence: 1,
     thresholdValue: 1,
-    emailSubject: '',
-    emailBody: '',
-    smsBody: '',
+    emailSubject: "",
+    emailBody: "",
+    smsBody: "",
     isEnabled: true,
   },
   {
     sequence: 2,
     thresholdValue: 5,
-    emailSubject: '',
-    emailBody: '',
-    smsBody: '',
+    emailSubject: "",
+    emailBody: "",
+    smsBody: "",
     isEnabled: true,
   },
   {
     sequence: 3,
     thresholdValue: 10,
-    emailSubject: '',
-    emailBody: '',
-    smsBody: '',
+    emailSubject: "",
+    emailBody: "",
+    smsBody: "",
     isEnabled: false,
   },
 ];
@@ -111,7 +123,8 @@ export default function LoyaltyPage() {
     name: defaultNameForType(initialFormState.type),
     description: buildDefaultDescription(initialFormState),
   });
-  const [reminders, setReminders] = useState<LoyaltyReminderTouchpoint[]>(defaultReminders);
+  const [reminders, setReminders] =
+    useState<LoyaltyReminderTouchpoint[]>(defaultReminders);
   const [loadingReminders, setLoadingReminders] = useState(true);
   const [savingReminders, setSavingReminders] = useState(false);
 
@@ -123,27 +136,27 @@ export default function LoyaltyPage() {
   const loadReminders = async () => {
     try {
       setLoadingReminders(true);
-      const data = await api.get('/loyalty/reminders');
+      const data = await api.get("/loyalty/reminders");
 
       const mapped = new Map<number, LoyaltyReminderTouchpoint>();
       (data || []).forEach((tp: any) => {
         mapped.set(tp.sequence, {
           sequence: tp.sequence,
           thresholdValue: Number(tp.thresholdValue ?? 0),
-          emailSubject: tp.emailSubject ?? '',
-          emailBody: tp.emailBody ?? '',
-          smsBody: tp.smsBody ?? '',
+          emailSubject: tp.emailSubject ?? "",
+          emailBody: tp.emailBody ?? "",
+          smsBody: tp.smsBody ?? "",
           isEnabled: tp.isEnabled ?? true,
         });
       });
 
       setReminders((prev) =>
-        defaultReminders.map((defaults) =>
-          mapped.get(defaults.sequence) ?? defaults,
+        defaultReminders.map(
+          (defaults) => mapped.get(defaults.sequence) ?? defaults,
         ),
       );
     } catch (error) {
-      console.error('Failed to load loyalty reminders:', error);
+      console.error("Failed to load loyalty reminders:", error);
     } finally {
       setLoadingReminders(false);
     }
@@ -151,13 +164,13 @@ export default function LoyaltyPage() {
 
   const loadProgram = async () => {
     try {
-      const data = await api.get('/loyalty/program');
+      const data = await api.get("/loyalty/program");
       if (data) {
         const nextForm: LoyaltyFormState = {
           type: data.type,
           isActive: data.isActive,
           visitsRequired: data.visitsRequired ?? 10,
-          visitRewardType: (data.visitRewardType as VisitRewardType) ?? 'FREE',
+          visitRewardType: (data.visitRewardType as VisitRewardType) ?? "FREE",
           visitRewardValue: data.visitRewardValue ?? 100,
           pointsPerDollar: data.pointsPerDollar ?? 1,
           pointsValue: data.pointsValue ?? 0.01,
@@ -165,9 +178,10 @@ export default function LoyaltyPage() {
 
         setFormData(nextForm);
         setProgramMeta({
-          name: (data.name ?? '').trim() || defaultNameForType(nextForm.type),
+          name: (data.name ?? "").trim() || defaultNameForType(nextForm.type),
           description:
-            (data.description ?? '').trim() || buildDefaultDescription(nextForm),
+            (data.description ?? "").trim() ||
+            buildDefaultDescription(nextForm),
         });
       } else {
         setFormData(initialFormState);
@@ -177,7 +191,7 @@ export default function LoyaltyPage() {
         });
       }
     } catch (error) {
-      console.error('Failed to load loyalty program:', error);
+      console.error("Failed to load loyalty program:", error);
     } finally {
       setLoading(false);
     }
@@ -196,11 +210,12 @@ export default function LoyaltyPage() {
 
   const handleReminderFieldChange = (
     sequence: number,
-    field: keyof Omit<LoyaltyReminderTouchpoint, 'sequence'>,
+    field: keyof Omit<LoyaltyReminderTouchpoint, "sequence">,
     value: string | number | boolean,
   ) => {
-    if (field === 'thresholdValue') {
-      const numericValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+    if (field === "thresholdValue") {
+      const numericValue =
+        typeof value === "number" ? value : parseFloat(String(value)) || 0;
       updateReminder(sequence, { thresholdValue: numericValue });
       return;
     }
@@ -227,29 +242,31 @@ export default function LoyaltyPage() {
         isEnabled: tp.isEnabled,
       }));
 
-      const hasInvalidThreshold = payload.some((tp) => !tp.thresholdValue || tp.thresholdValue <= 0);
+      const hasInvalidThreshold = payload.some(
+        (tp) => !tp.thresholdValue || tp.thresholdValue <= 0,
+      );
 
       if (hasInvalidThreshold) {
         toast({
-          title: 'Invalid threshold',
-          description: 'Threshold values must be greater than 0.',
-          variant: 'destructive',
+          title: "Invalid threshold",
+          description: "Threshold values must be greater than 0.",
+          variant: "destructive",
         });
         return;
       }
 
-      await api.post('/loyalty/reminders', { touchpoints: payload });
+      await api.post("/loyalty/reminders", { touchpoints: payload });
       toast({
-        title: 'Reminders saved',
-        description: 'Loyalty reminder touchpoints updated successfully.',
+        title: "Reminders saved",
+        description: "Loyalty reminder touchpoints updated successfully.",
       });
       await loadReminders();
     } catch (error: any) {
-      console.error('Failed to save loyalty reminders:', error);
+      console.error("Failed to save loyalty reminders:", error);
       toast({
-        title: 'Error',
-        description: error?.message || 'Failed to save loyalty reminders.',
-        variant: 'destructive',
+        title: "Error",
+        description: error?.message || "Failed to save loyalty reminders.",
+        variant: "destructive",
       });
     } finally {
       setSavingReminders(false);
@@ -273,7 +290,7 @@ export default function LoyaltyPage() {
         isActive: formData.isActive,
       };
 
-      if (formData.type === 'VISITS') {
+      if (formData.type === "VISITS") {
         payload.visitsRequired = formData.visitsRequired;
         payload.visitRewardType = formData.visitRewardType;
         payload.visitRewardValue = formData.visitRewardValue;
@@ -282,18 +299,18 @@ export default function LoyaltyPage() {
         payload.pointsValue = formData.pointsValue;
       }
 
-      await api.post('/loyalty/program', payload);
+      await api.post("/loyalty/program", payload);
       toast({
-        title: 'Success',
-        description: 'Loyalty program updated successfully',
+        title: "Success",
+        description: "Loyalty program updated successfully",
       });
       await loadProgram();
     } catch (error: any) {
-      console.error('Failed to update loyalty program:', error);
+      console.error("Failed to update loyalty program:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update loyalty program',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to update loyalty program",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -320,7 +337,8 @@ export default function LoyaltyPage() {
           <CardHeader>
             <CardTitle>Program Settings</CardTitle>
             <CardDescription>
-              Choose between a simple punch card system or a points-based rewards program
+              Choose between a simple punch card system or a points-based
+              rewards program
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -344,11 +362,13 @@ export default function LoyaltyPage() {
                     const next: LoyaltyFormState = { ...prev, type: value };
                     setProgramMeta((meta) => {
                       const prevDefaultName = defaultNameForType(prev.type);
-                      const prevDefaultDescription = buildDefaultDescription(prev);
+                      const prevDefaultDescription =
+                        buildDefaultDescription(prev);
                       const shouldUpdateName =
                         !meta.name || meta.name === prevDefaultName;
                       const shouldUpdateDescription =
-                        !meta.description || meta.description === prevDefaultDescription;
+                        !meta.description ||
+                        meta.description === prevDefaultDescription;
                       return {
                         name: shouldUpdateName
                           ? defaultNameForType(next.type)
@@ -368,9 +388,12 @@ export default function LoyaltyPage() {
                     <div className="flex items-center gap-2">
                       <Gift className="h-5 w-5" />
                       <div>
-                        <div className="font-medium">Punch Card (Visits-based)</div>
+                        <div className="font-medium">
+                          Punch Card (Visits-based)
+                        </div>
                         <div className="text-sm text-gray-600">
-                          Customers earn rewards after a certain number of visits
+                          Customers earn rewards after a certain number of
+                          visits
                         </div>
                       </div>
                     </div>
@@ -405,10 +428,12 @@ export default function LoyaltyPage() {
               </div>
             </div>
 
-            {formData.type === 'VISITS' ? (
+            {formData.type === "VISITS" ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="visitsRequired">Visits Required for Reward</Label>
+                  <Label htmlFor="visitsRequired">
+                    Visits Required for Reward
+                  </Label>
                   <Input
                     id="visitsRequired"
                     type="number"
@@ -417,11 +442,15 @@ export default function LoyaltyPage() {
                     onChange={(e) => {
                       const value = Math.max(1, parseInt(e.target.value) || 1);
                       setFormData((prev) => {
-                        const next: LoyaltyFormState = { ...prev, visitsRequired: value };
+                        const next: LoyaltyFormState = {
+                          ...prev,
+                          visitsRequired: value,
+                        };
                         setProgramMeta((meta) => {
                           const prevDefault = buildDefaultDescription(prev);
                           const shouldUpdate =
-                            !meta.description || meta.description === prevDefault;
+                            !meta.description ||
+                            meta.description === prevDefault;
                           return shouldUpdate
                             ? {
                                 ...meta,
@@ -435,7 +464,8 @@ export default function LoyaltyPage() {
                     required
                   />
                   <p className="text-sm text-gray-600">
-                    After this many visits, customers receive the configured reward.
+                    After this many visits, customers receive the configured
+                    reward.
                   </p>
                 </div>
 
@@ -445,11 +475,15 @@ export default function LoyaltyPage() {
                     value={formData.visitRewardType}
                     onValueChange={(value: VisitRewardType) => {
                       setFormData((prev) => {
-                        const next: LoyaltyFormState = { ...prev, visitRewardType: value };
+                        const next: LoyaltyFormState = {
+                          ...prev,
+                          visitRewardType: value,
+                        };
                         setProgramMeta((meta) => {
                           const prevDefault = buildDefaultDescription(prev);
                           const shouldUpdate =
-                            !meta.description || meta.description === prevDefault;
+                            !meta.description ||
+                            meta.description === prevDefault;
                           return shouldUpdate
                             ? {
                                 ...meta,
@@ -471,9 +505,11 @@ export default function LoyaltyPage() {
                   </Select>
                 </div>
 
-                {formData.visitRewardType === 'PERCENTAGE' && (
+                {formData.visitRewardType === "PERCENTAGE" && (
                   <div className="space-y-2">
-                    <Label htmlFor="visitRewardValue">Discount Percentage</Label>
+                    <Label htmlFor="visitRewardValue">
+                      Discount Percentage
+                    </Label>
                     <Input
                       id="visitRewardValue"
                       type="number"
@@ -493,7 +529,8 @@ export default function LoyaltyPage() {
                           setProgramMeta((meta) => {
                             const prevDefault = buildDefaultDescription(prev);
                             const shouldUpdate =
-                              !meta.description || meta.description === prevDefault;
+                              !meta.description ||
+                              meta.description === prevDefault;
                             return shouldUpdate
                               ? {
                                   ...meta,
@@ -523,7 +560,10 @@ export default function LoyaltyPage() {
                     step="0.1"
                     value={formData.pointsPerDollar}
                     onChange={(e) => {
-                      const value = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+                      const value = Math.max(
+                        0.1,
+                        parseFloat(e.target.value) || 0.1,
+                      );
                       setFormData((prev) => {
                         const next: LoyaltyFormState = {
                           ...prev,
@@ -532,7 +572,8 @@ export default function LoyaltyPage() {
                         setProgramMeta((meta) => {
                           const prevDefault = buildDefaultDescription(prev);
                           const shouldUpdate =
-                            !meta.description || meta.description === prevDefault;
+                            !meta.description ||
+                            meta.description === prevDefault;
                           return shouldUpdate
                             ? {
                                 ...meta,
@@ -556,13 +597,20 @@ export default function LoyaltyPage() {
                     step="0.01"
                     value={formData.pointsValue}
                     onChange={(e) => {
-                      const value = Math.max(0.01, parseFloat(e.target.value) || 0.01);
+                      const value = Math.max(
+                        0.01,
+                        parseFloat(e.target.value) || 0.01,
+                      );
                       setFormData((prev) => {
-                        const next: LoyaltyFormState = { ...prev, pointsValue: value };
+                        const next: LoyaltyFormState = {
+                          ...prev,
+                          pointsValue: value,
+                        };
                         setProgramMeta((meta) => {
                           const prevDefault = buildDefaultDescription(prev);
                           const shouldUpdate =
-                            !meta.description || meta.description === prevDefault;
+                            !meta.description ||
+                            meta.description === prevDefault;
                           return shouldUpdate
                             ? {
                                 ...meta,
@@ -606,7 +654,8 @@ export default function LoyaltyPage() {
           <CardHeader>
             <CardTitle>Loyalty Reminder Touchpoints</CardTitle>
             <CardDescription>
-              Configure up to three automated reminders that send when a customer reaches a visit or point threshold.
+              Configure up to three automated reminders that send when a
+              customer reaches a visit or point threshold.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -656,13 +705,14 @@ export default function LoyaltyPage() {
                           onChange={(e) =>
                             handleReminderFieldChange(
                               touchpoint.sequence,
-                              'thresholdValue',
+                              "thresholdValue",
                               parseFloat(e.target.value),
                             )
                           }
                         />
                         <p className="mt-1 text-xs text-gray-500">
-                          Applies to visits when the loyalty program is visit-based, or points when points are enabled.
+                          Applies to visits when the loyalty program is
+                          visit-based, or points when points are enabled.
                         </p>
                       </div>
                       <div>
@@ -676,7 +726,7 @@ export default function LoyaltyPage() {
                           onChange={(e) =>
                             handleReminderFieldChange(
                               touchpoint.sequence,
-                              'emailSubject',
+                              "emailSubject",
                               e.target.value,
                             )
                           }
@@ -695,7 +745,7 @@ export default function LoyaltyPage() {
                           onChange={(e) =>
                             handleReminderFieldChange(
                               touchpoint.sequence,
-                              'emailBody',
+                              "emailBody",
                               e.target.value,
                             )
                           }
@@ -714,7 +764,7 @@ export default function LoyaltyPage() {
                           onChange={(e) =>
                             handleReminderFieldChange(
                               touchpoint.sequence,
-                              'smsBody',
+                              "smsBody",
                               e.target.value,
                             )
                           }
@@ -723,7 +773,8 @@ export default function LoyaltyPage() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Leave the email or SMS template blank to skip that channel for this touchpoint.
+                      Leave the email or SMS template blank to skip that channel
+                      for this touchpoint.
                     </p>
                   </div>
                 ))}

@@ -772,5 +772,4 @@ export class BookingCreationService {
     const timestamp = Date.now().toString(36).substr(-6).toUpperCase();
     return timestamp.padStart(6, "X");
   }
-
 }

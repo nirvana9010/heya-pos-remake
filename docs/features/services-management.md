@@ -9,6 +9,7 @@ The services management system provides comprehensive functionality for creating
 ### Recent Improvements (2025)
 
 1. **Sidebar Navigation**
+
    - Replaced horizontal scrolling category pills with vertical sidebar
    - Collapsible design for better space utilization
    - Inline edit/delete actions on hover
@@ -16,12 +17,14 @@ The services management system provides comprehensive functionality for creating
    - Responsive design for mobile devices
 
 2. **Search Enhancement**
+
    - Case-insensitive search across all fields
    - Searches name, description, category, and category model
    - 500ms debounce for better performance
    - Visual search spinner feedback
 
 3. **URL State Management**
+
    - Filter persistence in URL parameters
    - Maintains state across page refreshes
    - Shareable filtered views
@@ -38,23 +41,27 @@ The services management system provides comprehensive functionality for creating
 ### Key Components
 
 1. **ServicesPageContent** (`/app/(dashboard)/services/ServicesPageContent.tsx`)
+
    - Main service management interface
    - Server-side pagination and filtering
    - Inline editing capabilities
    - Bulk operations support
 
 2. **ServiceFormDialog** (`/components/services/ServiceFormDialog.tsx`)
+
    - Service creation and editing
    - Comprehensive form validation
    - Category management integration
 
 3. **ServiceImportDialog** (`/components/services/ServiceImportDialog.tsx`)
+
    - Multi-step CSV import wizard
    - Flexible column mapping
    - Preview and validation
    - Duplicate handling strategies
 
 4. **ServicesClient** (`/lib/clients/services-client.ts`)
+
    - API client for service operations
    - TypeScript-first with full type safety
    - Pagination and filtering support
@@ -70,6 +77,7 @@ The services management system provides comprehensive functionality for creating
 ### CRUD Operations
 
 1. **Create Service**
+
    - Name, description, and category
    - Duration in flexible formats (minutes, hours)
    - Price with currency support
@@ -79,6 +87,7 @@ The services management system provides comprehensive functionality for creating
    - Active/inactive status
 
 2. **Read/List Services**
+
    - Server-side pagination with configurable page size
    - Case-insensitive search across name, description, and category
    - Real-time search with 500ms debouncing
@@ -89,6 +98,7 @@ The services management system provides comprehensive functionality for creating
    - URL parameter persistence for filters
 
 3. **Update Service**
+
    - Inline editing for price and duration with visual feedback
    - Success/error states with checkmarks and animations
    - Full edit dialog for all properties
@@ -104,11 +114,13 @@ The services management system provides comprehensive functionality for creating
 ### Advanced Features
 
 1. **Display Order Management**
+
    - Drag-and-drop reordering (planned)
    - Manual order adjustment
    - Category-based grouping
 
 2. **Bulk Operations**
+
    - Select multiple services
    - Bulk delete with confirmation
    - Bulk status updates (activate/deactivate)
@@ -124,6 +136,7 @@ The services management system provides comprehensive functionality for creating
 ### Category Features
 
 1. **Category CRUD**
+
    - Create categories with custom colors
    - Icon support for visual identification
    - Sort order management
@@ -132,6 +145,7 @@ The services management system provides comprehensive functionality for creating
    - Validation prevents deletion of categories with services
 
 2. **Category Navigation**
+
    - Vertical sidebar navigation replacing horizontal pills
    - Collapsible sidebar with toggle button
    - Real-time service counts per category
@@ -150,17 +164,20 @@ The services management system provides comprehensive functionality for creating
 ### CSV Import Features
 
 1. **Flexible Column Mapping**
+
    - Auto-detect column headers
    - Support multiple naming conventions
    - Map any CSV structure
    - Required vs optional fields
 
 2. **Multi-Step Import Workflow**
+
    ```
    Upload CSV → Map Columns → Preview & Validate → Execute Import
    ```
 
 3. **Import Intelligence**
+
    - **Service ID Support**: Maintain consistent IDs across imports
    - **Auto ID Generation**: Generate IDs for manually created services
    - **Duration Parsing**: Supports "60", "1h", "1h30m" formats
@@ -168,6 +185,7 @@ The services management system provides comprehensive functionality for creating
    - **Smart Defaults**: Use merchant settings for missing values
 
 4. **Duplicate Handling Strategies**
+
    - **Skip**: Ignore duplicate entries
    - **Update**: Modify existing services
    - **Create New**: Add with category-based naming (default)
@@ -181,6 +199,7 @@ The services management system provides comprehensive functionality for creating
 ### CSV Export Features
 
 1. **Export Formats**
+
    - Full service details
    - Filtered exports
    - Category-grouped exports
@@ -235,21 +254,21 @@ interface Service {
   categoryId?: string;
   name: string;
   description?: string;
-  duration: number;        // Minutes
+  duration: number; // Minutes
   price: number;
   currency: string;
-  taxRate: number;        // GST inclusive
+  taxRate: number; // GST inclusive
   isActive: boolean;
   requiresDeposit: boolean;
   depositAmount?: number;
-  maxAdvanceBooking?: number;  // Days
-  minAdvanceBooking?: number;  // Hours
+  maxAdvanceBooking?: number; // Days
+  minAdvanceBooking?: number; // Hours
   displayOrder: number;
   metadata?: {
-    importId?: string;    // For import tracking
+    importId?: string; // For import tracking
   };
-  paddingBefore?: number;  // Minutes
-  paddingAfter?: number;   // Minutes
+  paddingBefore?: number; // Minutes
+  paddingAfter?: number; // Minutes
   createdAt: Date;
   updatedAt: Date;
 }
@@ -277,11 +296,13 @@ interface ServiceCategory {
 ### Booking System Integration
 
 1. **Service Selection**
+
    - Available in booking creation flow
    - Price/duration snapshot at booking time
    - Service details preserved in booking history
 
 2. **Availability Checking**
+
    - Service duration affects slot availability
    - Padding time considerations
    - Staff assignment requirements
@@ -294,6 +315,7 @@ interface ServiceCategory {
 ### Order System Integration
 
 1. **Service as Order Items**
+
    - Add services to orders
    - Apply service-specific pricing
    - Track service delivery status
@@ -306,6 +328,7 @@ interface ServiceCategory {
 ### Staff Management Integration
 
 1. **Staff Assignment** (Planned)
+
    - Link services to qualified staff
    - Staff availability per service
    - Skill-based routing
@@ -320,11 +343,13 @@ interface ServiceCategory {
 ### Service Configuration
 
 1. **Naming Conventions**
+
    - Clear, customer-friendly names
    - Consistent formatting
    - Category-based organization
 
 2. **Duration Settings**
+
    - Include setup/cleanup time
    - Consider padding requirements
    - Realistic time estimates
@@ -337,11 +362,13 @@ interface ServiceCategory {
 ### Import Management
 
 1. **Data Preparation**
+
    - Consistent CSV formatting
    - Include service IDs for updates
    - Validate data before import
 
 2. **Import Strategy**
+
    - Test with small batches
    - Use preview to verify
    - Backup before major imports
@@ -354,11 +381,13 @@ interface ServiceCategory {
 ## Performance Considerations
 
 1. **Pagination**
+
    - Server-side pagination for large catalogs
    - Configurable page sizes
    - Efficient query optimization
 
 2. **Search Optimization**
+
    - Debounced search input
    - Indexed search fields
    - Category-based filtering
@@ -371,11 +400,13 @@ interface ServiceCategory {
 ## Security Considerations
 
 1. **Access Control**
+
    - Merchant-scoped data access
    - Role-based permissions
    - Audit trail for changes
 
 2. **Data Validation**
+
    - Input sanitization
    - Price range validation
    - Required field enforcement
@@ -390,21 +421,25 @@ interface ServiceCategory {
 ### Common Issues
 
 1. **Category Deletion Fails**
+
    - **Error**: "Cannot delete category with existing services"
    - **Solution**: Delete or reassign all services in the category first
    - **Note**: Backend validates all services, not just visible ones
 
 2. **Search Not Finding Services**
+
    - **Issue**: Case sensitivity in older versions
    - **Fix**: Updated to case-insensitive search with `mode: 'insensitive'`
    - **Affected fields**: name, description, category, categoryModel.name
 
 3. **Category Counts Show Zero**
+
    - **Issue**: Counts calculated from filtered results
    - **Fix**: Separate query fetches all services for accurate counts
    - **Implementation**: `useServiceCounts()` hook
 
 4. **Filters Lost on Refresh**
+
    - **Issue**: State not persisted
    - **Fix**: URL parameters store all filter states
    - **Parameters**: `page`, `pageSize`, `search`, `category`
@@ -417,21 +452,25 @@ interface ServiceCategory {
 ## Future Enhancements
 
 1. **Service Packages**
+
    - Bundle multiple services
    - Package pricing
    - Dependency management
 
 2. **Advanced Scheduling**
+
    - Service-specific availability
    - Seasonal pricing
    - Dynamic duration
 
 3. **Analytics Integration**
+
    - Service popularity metrics
    - Revenue analysis
    - Utilization reports
 
 4. **Multi-location Support**
+
    - Location-specific services
    - Centralized catalog management
    - Location-based pricing

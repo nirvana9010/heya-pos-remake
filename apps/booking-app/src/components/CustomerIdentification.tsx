@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@heya-pos/ui';
-import { Search, Mail, Phone } from 'lucide-react';
-import { bookingApi } from '../lib/booking-api';
-import { useMerchant } from '../contexts/merchant-context';
+import { useState, useEffect } from "react";
+import { Button } from "@heya-pos/ui";
+import { Search, Mail, Phone } from "lucide-react";
+import { bookingApi } from "../lib/booking-api";
+import { useMerchant } from "../contexts/merchant-context";
 
 interface CustomerIdentificationProps {
   onCustomerFound: (customer: {
@@ -22,18 +22,22 @@ export function CustomerIdentification({
   onNewCustomer,
 }: CustomerIdentificationProps) {
   const { merchantSubdomain } = useMerchant();
-  const [identificationMethod, setIdentificationMethod] = useState<'email' | 'phone'>('email');
-  const [identifier, setIdentifier] = useState('');
+  const [identificationMethod, setIdentificationMethod] = useState<
+    "email" | "phone"
+  >("email");
+  const [identifier, setIdentifier] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showSavedCustomer, setShowSavedCustomer] = useState(false);
 
   // Check for saved customer email on mount - merchant specific
   useEffect(() => {
-    if (typeof window !== 'undefined' && merchantSubdomain) {
-      const savedEmail = localStorage.getItem(`bookingCustomerEmail_${merchantSubdomain}`);
+    if (typeof window !== "undefined" && merchantSubdomain) {
+      const savedEmail = localStorage.getItem(
+        `bookingCustomerEmail_${merchantSubdomain}`,
+      );
       // Clean up any "null" values that might have been saved
-      if (savedEmail === 'null') {
+      if (savedEmail === "null") {
         localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
       } else if (savedEmail) {
         // Only use saved email if it exists and is not the string "null"
@@ -45,30 +49,30 @@ export function CustomerIdentification({
 
   const handleSearch = async () => {
     if (!identifier.trim()) {
-      setError('Please enter your email or phone number');
+      setError("Please enter your email or phone number");
       return;
     }
 
     // Validate email format if email is selected
-    if (identificationMethod === 'email') {
+    if (identificationMethod === "email") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(identifier.trim())) {
-        setError('Please enter a valid email address');
+        setError("Please enter a valid email address");
         return;
       }
     }
 
     // Validate phone format if phone is selected
-    if (identificationMethod === 'phone') {
+    if (identificationMethod === "phone") {
       const phoneRegex = /^[\+]?[\d\s\-\(\)]+$/;
       if (!phoneRegex.test(identifier.trim()) || identifier.trim().length < 8) {
-        setError('Please enter a valid phone number');
+        setError("Please enter a valid phone number");
         return;
       }
     }
 
     setIsSearching(true);
-    setError('');
+    setError("");
 
     try {
       const data = await bookingApi.lookupCustomer({
@@ -77,34 +81,40 @@ export function CustomerIdentification({
 
       if (data.found && data.customer) {
         // Store in localStorage for future visits (with consent) - merchant specific
-        if (typeof window !== 'undefined' && merchantSubdomain) {
-          localStorage.setItem(`bookingCustomerId_${merchantSubdomain}`, data.customer.id);
+        if (typeof window !== "undefined" && merchantSubdomain) {
+          localStorage.setItem(
+            `bookingCustomerId_${merchantSubdomain}`,
+            data.customer.id,
+          );
           // Only save email if it exists and is not null
-          if (data.customer.email && data.customer.email !== 'null') {
-            localStorage.setItem(`bookingCustomerEmail_${merchantSubdomain}`, data.customer.email);
+          if (data.customer.email && data.customer.email !== "null") {
+            localStorage.setItem(
+              `bookingCustomerEmail_${merchantSubdomain}`,
+              data.customer.email,
+            );
           }
         }
         onCustomerFound(data.customer);
       } else {
         // Don't show an error - just clear the saved state and proceed as new customer
-        if (typeof window !== 'undefined' && merchantSubdomain) {
+        if (typeof window !== "undefined" && merchantSubdomain) {
           localStorage.removeItem(`bookingCustomerId_${merchantSubdomain}`);
           localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
         }
         setShowSavedCustomer(false);
-        setIdentifier('');
+        setIdentifier("");
         // Automatically proceed as new customer
         onNewCustomer();
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -123,7 +133,8 @@ export function CustomerIdentification({
         {showSavedCustomer && identifier && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-blue-800">
-              We remember you used <strong>{identifier}</strong> before. Is this still your email?
+              We remember you used <strong>{identifier}</strong> before. Is this
+              still your email?
             </p>
             <div className="flex gap-3 mt-2">
               <button
@@ -135,9 +146,11 @@ export function CustomerIdentification({
               <button
                 onClick={() => {
                   setShowSavedCustomer(false);
-                  setIdentifier('');
-                  if (typeof window !== 'undefined' && merchantSubdomain) {
-                    localStorage.removeItem(`bookingCustomerEmail_${merchantSubdomain}`);
+                  setIdentifier("");
+                  if (typeof window !== "undefined" && merchantSubdomain) {
+                    localStorage.removeItem(
+                      `bookingCustomerEmail_${merchantSubdomain}`,
+                    );
                   }
                 }}
                 className="text-sm text-blue-600 hover:text-blue-800 underline"
@@ -153,14 +166,14 @@ export function CustomerIdentification({
           <button
             type="button"
             onClick={() => {
-              setIdentificationMethod('email');
-              if (!showSavedCustomer) setIdentifier('');
-              setError('');
+              setIdentificationMethod("email");
+              if (!showSavedCustomer) setIdentifier("");
+              setError("");
             }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors ${
-              identificationMethod === 'email'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+              identificationMethod === "email"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <Mail className="h-4 w-4" />
@@ -169,15 +182,15 @@ export function CustomerIdentification({
           <button
             type="button"
             onClick={() => {
-              setIdentificationMethod('phone');
-              setIdentifier('');
-              setError('');
+              setIdentificationMethod("phone");
+              setIdentifier("");
+              setError("");
               setShowSavedCustomer(false);
             }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors ${
-              identificationMethod === 'phone'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+              identificationMethod === "phone"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <Phone className="h-4 w-4" />
@@ -188,14 +201,20 @@ export function CustomerIdentification({
         {/* Input Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {identificationMethod === 'email' ? 'Email Address' : 'Phone Number'}
+            {identificationMethod === "email"
+              ? "Email Address"
+              : "Phone Number"}
           </label>
           <input
-            type={identificationMethod === 'email' ? 'email' : 'tel'}
+            type={identificationMethod === "email" ? "email" : "tel"}
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={identificationMethod === 'email' ? 'your@email.com' : '0400 000 000'}
+            placeholder={
+              identificationMethod === "email"
+                ? "your@email.com"
+                : "0400 000 000"
+            }
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
             autoFocus
           />
@@ -237,19 +256,15 @@ export function CustomerIdentification({
             </div>
           </div>
 
-          <Button
-            onClick={onNewCustomer}
-            variant="outline"
-            className="w-full"
-          >
+          <Button onClick={onNewCustomer} variant="outline" className="w-full">
             I&apos;m a New Customer
           </Button>
         </div>
 
         {/* Privacy Note */}
         <p className="text-xs text-gray-500 text-center">
-          We use your information only to find your booking history and provide a better experience.
-          Your data is secure and never shared.
+          We use your information only to find your booking history and provide
+          a better experience. Your data is secure and never shared.
         </p>
       </div>
     </div>

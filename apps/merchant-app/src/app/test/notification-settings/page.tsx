@@ -5,7 +5,13 @@ import { Bell, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
 import { Switch } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -15,22 +21,34 @@ export default function TestNotificationSettingsPage() {
   const { merchant } = useAuth();
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [testingReminder, setTestingReminder] = useState<"24s" | "2s" | "confirmation" | "newbooking" | "cancellation" | null>(null);
-  
+  const [testingReminder, setTestingReminder] = useState<
+    "24s" | "2s" | "confirmation" | "newbooking" | "cancellation" | null
+  >(null);
+
   // Notification settings - same as real settings page
-  const [bookingConfirmationEmail, setBookingConfirmationEmail] = useState(true);
+  const [bookingConfirmationEmail, setBookingConfirmationEmail] =
+    useState(true);
   const [bookingConfirmationSms, setBookingConfirmationSms] = useState(false); // SMS disabled - no credits
-  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] = useState(true);
-  const [appointmentReminder24hSms, setAppointmentReminder24hSms] = useState(false); // SMS disabled - no credits
-  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] = useState(true);
-  const [appointmentReminder2hSms, setAppointmentReminder2hSms] = useState(false); // SMS disabled - no credits
+  const [appointmentReminder24hEmail, setAppointmentReminder24hEmail] =
+    useState(true);
+  const [appointmentReminder24hSms, setAppointmentReminder24hSms] =
+    useState(false); // SMS disabled - no credits
+  const [appointmentReminder2hEmail, setAppointmentReminder2hEmail] =
+    useState(true);
+  const [appointmentReminder2hSms, setAppointmentReminder2hSms] =
+    useState(false); // SMS disabled - no credits
   const [newBookingNotification, setNewBookingNotification] = useState(true);
-  const [newBookingNotificationEmail, setNewBookingNotificationEmail] = useState(true);
-  const [newBookingNotificationSms, setNewBookingNotificationSms] = useState(false); // SMS disabled - no credits
-  const [cancellationNotification, setCancellationNotification] = useState(true);
-  const [cancellationNotificationEmail, setCancellationNotificationEmail] = useState(true);
-  const [cancellationNotificationSms, setCancellationNotificationSms] = useState(false); // SMS disabled - no credits
-  
+  const [newBookingNotificationEmail, setNewBookingNotificationEmail] =
+    useState(true);
+  const [newBookingNotificationSms, setNewBookingNotificationSms] =
+    useState(false); // SMS disabled - no credits
+  const [cancellationNotification, setCancellationNotification] =
+    useState(true);
+  const [cancellationNotificationEmail, setCancellationNotificationEmail] =
+    useState(true);
+  const [cancellationNotificationSms, setCancellationNotificationSms] =
+    useState(false); // SMS disabled - no credits
+
   // Test results
   const [testResults, setTestResults] = useState<{
     [key: string]: { success: boolean; message: string; timestamp: Date };
@@ -46,18 +64,38 @@ export default function TestNotificationSettingsPage() {
       const response = await apiClient.get("/merchant/settings");
       if (response) {
         // Load notification settings
-        setBookingConfirmationEmail(response.bookingConfirmationEmail !== false);
+        setBookingConfirmationEmail(
+          response.bookingConfirmationEmail !== false,
+        );
         setBookingConfirmationSms(response.bookingConfirmationSms !== false);
-        setAppointmentReminder24hEmail(response.appointmentReminder24hEmail !== false);
-        setAppointmentReminder24hSms(response.appointmentReminder24hSms !== false);
-        setAppointmentReminder2hEmail(response.appointmentReminder2hEmail !== false);
-        setAppointmentReminder2hSms(response.appointmentReminder2hSms !== false);
+        setAppointmentReminder24hEmail(
+          response.appointmentReminder24hEmail !== false,
+        );
+        setAppointmentReminder24hSms(
+          response.appointmentReminder24hSms !== false,
+        );
+        setAppointmentReminder2hEmail(
+          response.appointmentReminder2hEmail !== false,
+        );
+        setAppointmentReminder2hSms(
+          response.appointmentReminder2hSms !== false,
+        );
         setNewBookingNotification(response.newBookingNotification !== false);
-        setNewBookingNotificationEmail(response.newBookingNotificationEmail !== false);
-        setNewBookingNotificationSms(response.newBookingNotificationSms !== false);
-        setCancellationNotification(response.cancellationNotification !== false);
-        setCancellationNotificationEmail(response.cancellationNotificationEmail !== false);
-        setCancellationNotificationSms(response.cancellationNotificationSms !== false);
+        setNewBookingNotificationEmail(
+          response.newBookingNotificationEmail !== false,
+        );
+        setNewBookingNotificationSms(
+          response.newBookingNotificationSms !== false,
+        );
+        setCancellationNotification(
+          response.cancellationNotification !== false,
+        );
+        setCancellationNotificationEmail(
+          response.cancellationNotificationEmail !== false,
+        );
+        setCancellationNotificationSms(
+          response.cancellationNotificationSms !== false,
+        );
       }
     } catch (error) {
       console.error("Failed to load merchant settings:", error);
@@ -86,7 +124,7 @@ export default function TestNotificationSettingsPage() {
         cancellationNotificationEmail,
         cancellationNotificationSms: false, // SMS disabled until credits available
       });
-      
+
       toast({
         title: "Success",
         description: "Notification settings saved successfully",
@@ -105,7 +143,7 @@ export default function TestNotificationSettingsPage() {
   const testReminder = async (type: "24s" | "2s") => {
     setTestingReminder(type);
     const resultKey = type === "24s" ? "24s_reminder" : "2s_reminder";
-    
+
     try {
       // First, check what settings are enabled
       const settings = {
@@ -120,7 +158,7 @@ export default function TestNotificationSettingsPage() {
       };
 
       if (!settings[type].email && !settings[type].sms) {
-        setTestResults(prev => ({
+        setTestResults((prev) => ({
           ...prev,
           [resultKey]: {
             success: false,
@@ -133,29 +171,36 @@ export default function TestNotificationSettingsPage() {
       }
 
       // Send test reminder
-      const response = await apiClient.post("/test/notifications/test-reminder/" + (type === "24s" ? "24h" : "2h"), {
-        customerEmail: "lukas.tn90@gmail.com",
-        customerName: "Test Customer",
-        customerPhone: "+61422627624",
-        merchantId: merchant?.id,
-      });
+      const response = await apiClient.post(
+        "/test/notifications/test-reminder/" + (type === "24s" ? "24h" : "2h"),
+        {
+          customerEmail: "lukas.tn90@gmail.com",
+          customerName: "Test Customer",
+          customerPhone: "+61422627624",
+          merchantId: merchant?.id,
+        },
+      );
 
       const emailSent = response.results?.email?.success || false;
       const smsSent = response.results?.sms?.success || false;
-      
+
       let message = "";
       if (settings[type].email && settings[type].sms) {
         message = `Email: ${emailSent ? "✓ Sent" : "✗ Failed"}, SMS: ${smsSent ? "✓ Sent" : "✗ Failed"}`;
       } else if (settings[type].email) {
-        message = emailSent ? "✓ Email sent successfully" : "✗ Email failed to send";
+        message = emailSent
+          ? "✓ Email sent successfully"
+          : "✗ Email failed to send";
       } else if (settings[type].sms) {
         message = smsSent ? "✓ SMS sent successfully" : "✗ SMS failed to send";
       }
 
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
-          success: (settings[type].email ? emailSent : true) && (settings[type].sms ? smsSent : true),
+          success:
+            (settings[type].email ? emailSent : true) &&
+            (settings[type].sms ? smsSent : true),
           message,
           timestamp: new Date(),
         },
@@ -168,8 +213,8 @@ export default function TestNotificationSettingsPage() {
           title: `⏰ ${type === "24s" ? "24-second" : "2-second"} Reminder Triggered!`,
           description: `This simulates the reminder that would be sent ${type === "24s" ? "24 hours" : "2 hours"} before appointment`,
         });
-        
-        setTestResults(prev => ({
+
+        setTestResults((prev) => ({
           ...prev,
           [`${resultKey}_triggered`]: {
             success: true,
@@ -178,9 +223,8 @@ export default function TestNotificationSettingsPage() {
           },
         }));
       }, timeoutMs);
-
     } catch (error: any) {
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: false,
@@ -196,15 +240,16 @@ export default function TestNotificationSettingsPage() {
   const testBookingConfirmation = async () => {
     setTestingReminder("confirmation");
     const resultKey = "booking_confirmation";
-    
+
     try {
       // Check what settings are enabled
       if (!bookingConfirmationEmail && !bookingConfirmationSms) {
-        setTestResults(prev => ({
+        setTestResults((prev) => ({
           ...prev,
           [resultKey]: {
             success: false,
-            message: "Both email and SMS are disabled for booking confirmations",
+            message:
+              "Both email and SMS are disabled for booking confirmations",
             timestamp: new Date(),
           },
         }));
@@ -215,8 +260,12 @@ export default function TestNotificationSettingsPage() {
       // Send test booking confirmation
       const response = await apiClient.post("/test/notifications/send-test", {
         type: "booking_confirmation",
-        channel: bookingConfirmationEmail && bookingConfirmationSms ? "both" : 
-                bookingConfirmationEmail ? "email" : "sms",
+        channel:
+          bookingConfirmationEmail && bookingConfirmationSms
+            ? "both"
+            : bookingConfirmationEmail
+              ? "email"
+              : "sms",
         customerEmail: "lukas.tn90@gmail.com",
         customerName: "Test Customer",
         customerPhone: "+61422627624",
@@ -224,20 +273,24 @@ export default function TestNotificationSettingsPage() {
 
       const emailSent = response.results?.email?.success || false;
       const smsSent = response.results?.sms?.success || false;
-      
+
       let message = "";
       if (bookingConfirmationEmail && bookingConfirmationSms) {
         message = `Email: ${emailSent ? "✓ Sent" : "✗ Failed"}, SMS: ${smsSent ? "✓ Sent" : "✗ Failed"}`;
       } else if (bookingConfirmationEmail) {
-        message = emailSent ? "✓ Email sent successfully" : "✗ Email failed to send";
+        message = emailSent
+          ? "✓ Email sent successfully"
+          : "✗ Email failed to send";
       } else if (bookingConfirmationSms) {
         message = smsSent ? "✓ SMS sent successfully" : "✗ SMS failed to send";
       }
 
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
-          success: (bookingConfirmationEmail ? emailSent : true) && (bookingConfirmationSms ? smsSent : true),
+          success:
+            (bookingConfirmationEmail ? emailSent : true) &&
+            (bookingConfirmationSms ? smsSent : true),
           message,
           timestamp: new Date(),
         },
@@ -247,9 +300,8 @@ export default function TestNotificationSettingsPage() {
         title: "📧 Booking Confirmation Sent!",
         description: "Check email/SMS for the booking confirmation",
       });
-
     } catch (error: any) {
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: false,
@@ -265,11 +317,11 @@ export default function TestNotificationSettingsPage() {
   const testNewBookingNotification = async () => {
     setTestingReminder("newbooking");
     const resultKey = "new_booking_notification";
-    
+
     try {
       // Check if new booking notifications are enabled
       if (!newBookingNotification) {
-        setTestResults(prev => ({
+        setTestResults((prev) => ({
           ...prev,
           [resultKey]: {
             success: false,
@@ -282,14 +334,17 @@ export default function TestNotificationSettingsPage() {
       }
 
       // Send test new booking notification
-      const response = await apiClient.post("/test/notifications/staff-notification", {
-        type: "new_booking",
-        merchantId: merchant?.id,
-      });
+      const response = await apiClient.post(
+        "/test/notifications/staff-notification",
+        {
+          type: "new_booking",
+          merchantId: merchant?.id,
+        },
+      );
 
       const results = response.results || {};
       let message = "";
-      
+
       if (results.panel?.success) {
         message += "Panel: ✓ ";
       }
@@ -303,8 +358,8 @@ export default function TestNotificationSettingsPage() {
       } else if (newBookingNotificationSms) {
         message += "SMS: ✗ ";
       }
-      
-      setTestResults(prev => ({
+
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: true,
@@ -317,9 +372,8 @@ export default function TestNotificationSettingsPage() {
         title: "🔔 New Booking Notification Sent!",
         description: "Check the merchant app for the notification",
       });
-
     } catch (error: any) {
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: false,
@@ -335,11 +389,11 @@ export default function TestNotificationSettingsPage() {
   const testCancellationNotification = async () => {
     setTestingReminder("cancellation");
     const resultKey = "cancellation_notification";
-    
+
     try {
       // Check if cancellation notifications are enabled
       if (!cancellationNotification) {
-        setTestResults(prev => ({
+        setTestResults((prev) => ({
           ...prev,
           [resultKey]: {
             success: false,
@@ -352,14 +406,17 @@ export default function TestNotificationSettingsPage() {
       }
 
       // Send test cancellation notification
-      const response = await apiClient.post("/test/notifications/staff-notification", {
-        type: "cancellation",
-        merchantId: merchant?.id,
-      });
+      const response = await apiClient.post(
+        "/test/notifications/staff-notification",
+        {
+          type: "cancellation",
+          merchantId: merchant?.id,
+        },
+      );
 
       const results = response.results || {};
       let message = "";
-      
+
       if (results.panel?.success) {
         message += "Panel: ✓ ";
       }
@@ -373,8 +430,8 @@ export default function TestNotificationSettingsPage() {
       } else if (cancellationNotificationSms) {
         message += "SMS: ✗ ";
       }
-      
-      setTestResults(prev => ({
+
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: true,
@@ -387,9 +444,8 @@ export default function TestNotificationSettingsPage() {
         title: "❌ Cancellation Notification Sent!",
         description: "Check the merchant app for the notification",
       });
-
     } catch (error: any) {
-      setTestResults(prev => ({
+      setTestResults((prev) => ({
         ...prev,
         [resultKey]: {
           success: false,
@@ -405,18 +461,24 @@ export default function TestNotificationSettingsPage() {
   return (
     <div className="container max-w-4xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Test Notification Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Test Notification Settings
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Test notification settings with seconds instead of hours for faster validation
+          Test notification settings with seconds instead of hours for faster
+          validation
         </p>
       </div>
 
       <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
         <CardHeader>
-          <CardTitle className="text-amber-900 dark:text-amber-100">⚡ Test Mode</CardTitle>
+          <CardTitle className="text-amber-900 dark:text-amber-100">
+            ⚡ Test Mode
+          </CardTitle>
           <CardDescription className="text-amber-800 dark:text-amber-200">
-            This page uses the same endpoints as the real settings page but tests with 24 seconds and 2 seconds 
-            instead of 24 hours and 2 hours. If the seconds-based timers work, the hours-based ones should too.
+            This page uses the same endpoints as the real settings page but
+            tests with 24 seconds and 2 seconds instead of 24 hours and 2 hours.
+            If the seconds-based timers work, the hours-based ones should too.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -428,12 +490,15 @@ export default function TestNotificationSettingsPage() {
             Notification Settings (Same as Real Settings)
           </CardTitle>
           <CardDescription>
-            These settings use the exact same API endpoints as the real settings page
+            These settings use the exact same API endpoints as the real settings
+            page
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Customer Notifications</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Customer Notifications
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -443,13 +508,13 @@ export default function TestNotificationSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={bookingConfirmationEmail} 
-                    onCheckedChange={setBookingConfirmationEmail} 
+                  <Switch
+                    checked={bookingConfirmationEmail}
+                    onCheckedChange={setBookingConfirmationEmail}
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
-                  <Switch 
-                    checked={false} 
+                  <Switch
+                    checked={false}
                     onCheckedChange={() => {
                       toast({
                         title: "SMS Not Available",
@@ -460,10 +525,12 @@ export default function TestNotificationSettingsPage() {
                     disabled={true}
                     className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">
+                    SMS
+                  </span>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>24-Second Reminders (Testing 24-Hour)</Label>
@@ -472,13 +539,13 @@ export default function TestNotificationSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={appointmentReminder24hEmail} 
-                    onCheckedChange={setAppointmentReminder24hEmail} 
+                  <Switch
+                    checked={appointmentReminder24hEmail}
+                    onCheckedChange={setAppointmentReminder24hEmail}
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
-                  <Switch 
-                    checked={false} 
+                  <Switch
+                    checked={false}
                     onCheckedChange={() => {
                       toast({
                         title: "SMS Not Available",
@@ -489,10 +556,12 @@ export default function TestNotificationSettingsPage() {
                     disabled={true}
                     className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">
+                    SMS
+                  </span>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>2-Second Reminders (Testing 2-Hour)</Label>
@@ -501,13 +570,13 @@ export default function TestNotificationSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={appointmentReminder2hEmail} 
-                    onCheckedChange={setAppointmentReminder2hEmail} 
+                  <Switch
+                    checked={appointmentReminder2hEmail}
+                    onCheckedChange={setAppointmentReminder2hEmail}
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
-                  <Switch 
-                    checked={false} 
+                  <Switch
+                    checked={false}
                     onCheckedChange={() => {
                       toast({
                         title: "SMS Not Available",
@@ -518,7 +587,9 @@ export default function TestNotificationSettingsPage() {
                     disabled={true}
                     className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">
+                    SMS
+                  </span>
                 </div>
               </div>
             </div>
@@ -535,18 +606,18 @@ export default function TestNotificationSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={newBookingNotification} 
-                    onCheckedChange={setNewBookingNotification} 
+                  <Switch
+                    checked={newBookingNotification}
+                    onCheckedChange={setNewBookingNotification}
                   />
                   <span className="text-sm text-muted-foreground">Panel</span>
-                  <Switch 
-                    checked={newBookingNotificationEmail} 
-                    onCheckedChange={setNewBookingNotificationEmail} 
+                  <Switch
+                    checked={newBookingNotificationEmail}
+                    onCheckedChange={setNewBookingNotificationEmail}
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
-                  <Switch 
-                    checked={false} 
+                  <Switch
+                    checked={false}
                     onCheckedChange={() => {
                       toast({
                         title: "SMS Not Available",
@@ -557,7 +628,9 @@ export default function TestNotificationSettingsPage() {
                     disabled={true}
                     className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">
+                    SMS
+                  </span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -568,18 +641,18 @@ export default function TestNotificationSettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={cancellationNotification} 
-                    onCheckedChange={setCancellationNotification} 
+                  <Switch
+                    checked={cancellationNotification}
+                    onCheckedChange={setCancellationNotification}
                   />
                   <span className="text-sm text-muted-foreground">Panel</span>
-                  <Switch 
-                    checked={cancellationNotificationEmail} 
-                    onCheckedChange={setCancellationNotificationEmail} 
+                  <Switch
+                    checked={cancellationNotificationEmail}
+                    onCheckedChange={setCancellationNotificationEmail}
                   />
                   <span className="text-sm text-muted-foreground">Email</span>
-                  <Switch 
-                    checked={false} 
+                  <Switch
+                    checked={false}
                     onCheckedChange={() => {
                       toast({
                         title: "SMS Not Available",
@@ -590,7 +663,9 @@ export default function TestNotificationSettingsPage() {
                     disabled={true}
                     className="opacity-50"
                   />
-                  <span className="text-sm text-muted-foreground opacity-50">SMS</span>
+                  <span className="text-sm text-muted-foreground opacity-50">
+                    SMS
+                  </span>
                 </div>
               </div>
             </div>
@@ -611,14 +686,15 @@ export default function TestNotificationSettingsPage() {
             Test Reminders
           </CardTitle>
           <CardDescription>
-            Click to send test reminders that will trigger after the specified seconds
+            Click to send test reminders that will trigger after the specified
+            seconds
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <h4 className="font-medium mb-3">Booking Confirmation</h4>
-            <Button 
-              onClick={testBookingConfirmation} 
+            <Button
+              onClick={testBookingConfirmation}
               disabled={testingReminder === "confirmation"}
               className="w-full"
               variant="default"
@@ -641,8 +717,8 @@ export default function TestNotificationSettingsPage() {
             <h4 className="font-medium mb-3">Appointment Reminders</h4>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Button 
-                  onClick={() => testReminder("24s")} 
+                <Button
+                  onClick={() => testReminder("24s")}
                   disabled={testingReminder === "24s"}
                   className="w-full"
                   variant="outline"
@@ -660,10 +736,10 @@ export default function TestNotificationSettingsPage() {
                   Simulates 24-hour reminder
                 </p>
               </div>
-              
+
               <div className="space-y-2">
-                <Button 
-                  onClick={() => testReminder("2s")} 
+                <Button
+                  onClick={() => testReminder("2s")}
                   disabled={testingReminder === "2s"}
                   className="w-full"
                   variant="outline"
@@ -688,8 +764,8 @@ export default function TestNotificationSettingsPage() {
             <h4 className="font-medium mb-3">Staff Notifications</h4>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Button 
-                  onClick={testNewBookingNotification} 
+                <Button
+                  onClick={testNewBookingNotification}
                   disabled={testingReminder === "newbooking"}
                   className="w-full"
                   variant="outline"
@@ -707,10 +783,10 @@ export default function TestNotificationSettingsPage() {
                   Simulates a new booking from booking app
                 </p>
               </div>
-              
+
               <div className="space-y-2">
-                <Button 
-                  onClick={testCancellationNotification} 
+                <Button
+                  onClick={testCancellationNotification}
                   disabled={testingReminder === "cancellation"}
                   className="w-full"
                   variant="outline"
@@ -737,10 +813,13 @@ export default function TestNotificationSettingsPage() {
               <h4 className="font-medium">Test Results:</h4>
               <div className="space-y-2">
                 {Object.entries(testResults)
-                  .sort(([, a], [, b]) => b.timestamp.getTime() - a.timestamp.getTime())
+                  .sort(
+                    ([, a], [, b]) =>
+                      b.timestamp.getTime() - a.timestamp.getTime(),
+                  )
                   .map(([key, result]) => (
-                    <div 
-                      key={key} 
+                    <div
+                      key={key}
                       className="flex items-start gap-2 p-2 rounded-lg bg-muted"
                     >
                       {result.success ? (
@@ -764,12 +843,28 @@ export default function TestNotificationSettingsPage() {
             <h4 className="font-medium">How this test works:</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li>• Saves settings to the same merchant settings endpoint</li>
-              <li>• Sends immediate test notifications based on enabled settings</li>
-              <li>• Shows a toast notification after X seconds to simulate the reminder</li>
-              <li>• If seconds-based reminders work, hours-based ones will too</li>
-              <li>• Customer notifications - Email: lukas.tn90@gmail.com, SMS: +61422627624</li>
-              <li>• Staff notifications - Email: lukas.tn90@gmail.com, SMS: +61422627624</li>
-              <li>• Panel notifications appear in the merchant app notification panel</li>
+              <li>
+                • Sends immediate test notifications based on enabled settings
+              </li>
+              <li>
+                • Shows a toast notification after X seconds to simulate the
+                reminder
+              </li>
+              <li>
+                • If seconds-based reminders work, hours-based ones will too
+              </li>
+              <li>
+                • Customer notifications - Email: lukas.tn90@gmail.com, SMS:
+                +61422627624
+              </li>
+              <li>
+                • Staff notifications - Email: lukas.tn90@gmail.com, SMS:
+                +61422627624
+              </li>
+              <li>
+                • Panel notifications appear in the merchant app notification
+                panel
+              </li>
             </ul>
           </div>
         </CardContent>
@@ -784,7 +879,8 @@ export default function TestNotificationSettingsPage() {
             Testing as: <strong>{merchant?.name || "Zen Wellness"}</strong>
           </p>
           <p className="text-sm text-muted-foreground">
-            Merchant ID: <code className="text-xs">{merchant?.id || "Loading..."}</code>
+            Merchant ID:{" "}
+            <code className="text-xs">{merchant?.id || "Loading..."}</code>
           </p>
         </CardContent>
       </Card>

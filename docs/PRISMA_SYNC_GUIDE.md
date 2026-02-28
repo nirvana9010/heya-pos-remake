@@ -7,7 +7,9 @@ When adding new fields or modifying the database schema, follow this workflow to
 ## Development Workflow
 
 ### 1. **Make Schema Changes**
+
 Edit `apps/api/prisma/schema.prisma`:
+
 ```prisma
 model Customer {
   // ... existing fields
@@ -16,6 +18,7 @@ model Customer {
 ```
 
 ### 2. **Create and Apply Migration**
+
 ```bash
 cd apps/api
 npx prisma migrate dev --name add_email_notifications
@@ -28,6 +31,7 @@ npx prisma migrate dev --name add_email_notifications
 ```
 
 ### 3. **Verify Changes**
+
 ```bash
 # Check migration was applied
 npx prisma migrate status
@@ -41,6 +45,7 @@ npm run prisma:studio
 ### Before Deploying to Production:
 
 1. **Ensure all migrations are committed**:
+
    ```bash
    git add prisma/migrations/
    git commit -m "Add email notifications migration"
@@ -53,6 +58,7 @@ npm run prisma:studio
 ## Common Scenarios
 
 ### Adding a New Field
+
 ```bash
 # 1. Edit schema.prisma
 # 2. Create migration
@@ -63,6 +69,7 @@ npx prisma migrate dev --name add_field_name
 ```
 
 ### Modifying Existing Field
+
 ```bash
 # CAREFUL: Can cause data loss
 npx prisma migrate dev --name modify_field_name
@@ -71,6 +78,7 @@ npx prisma migrate dev --name modify_field_name
 ```
 
 ### Quick Development Changes (Use Sparingly)
+
 ```bash
 # For rapid prototyping only - NOT for production
 npx prisma db push
@@ -82,6 +90,7 @@ npx prisma db push
 ## Troubleshooting
 
 ### "Column does not exist" Error
+
 ```bash
 # You probably forgot to run migrations
 cd apps/api
@@ -89,6 +98,7 @@ npx prisma migrate dev
 ```
 
 ### "Migration failed to apply"
+
 ```bash
 # Check migration status
 npx prisma migrate status
@@ -98,6 +108,7 @@ npx prisma migrate reset
 ```
 
 ### Out of Sync After Git Pull
+
 ```bash
 # Other devs added migrations
 cd apps/api
@@ -107,18 +118,21 @@ npx prisma migrate dev
 ## Team Development Best Practices
 
 1. **Always commit migration files**
+
    - Located in `prisma/migrations/`
    - These track schema history
 
 2. **Communicate schema changes**
+
    - Notify team when adding migrations
    - Document why changes were made
 
 3. **Use descriptive migration names**
+
    ```bash
    # Good
    npx prisma migrate dev --name add_customer_email_preferences
-   
+
    # Bad
    npx prisma migrate dev --name update
    ```
@@ -148,10 +162,12 @@ npm run prisma:reset     # ⚠️ Reset database completely
 ## Environment-Specific Notes
 
 ### Local Development
+
 - Uses `.env` or `.env.development`
 - Migrations applied automatically with `migrate dev`
 
 ### Staging/Production
+
 - Uses environment variables from hosting platform
 - Run `npx prisma migrate deploy` (not `dev`)
 - Never use `db push` in production

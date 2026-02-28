@@ -20,6 +20,7 @@ This guide documents the migration from custom SSE implementation to Supabase Re
 ## Prerequisites
 
 1. **Get Supabase Keys**
+
    - Go to [Supabase Dashboard](https://app.supabase.com/project/hpvnmqvdgkfeykekosrh/settings/api)
    - Copy the `anon` key and `service_role` key
    - Add to `/apps/api/.env`:
@@ -40,22 +41,25 @@ This guide documents the migration from custom SSE implementation to Supabase Re
 **Note: Supabase is now enabled by default!**
 
 To disable Supabase and use SSE instead:
+
 ```javascript
 // In browser console on merchant app:
-localStorage.setItem('feature_supabaseRealtime', 'false');
+localStorage.setItem("feature_supabaseRealtime", "false");
 // Then refresh the page
 ```
 
 To re-enable Supabase (default):
+
 ```javascript
 // Remove the override
-localStorage.removeItem('feature_supabaseRealtime');
+localStorage.removeItem("feature_supabaseRealtime");
 // Then refresh the page
 ```
 
 ### 2. Check Connection
 
 Open browser console and look for:
+
 ```
 [NotificationsContext] Using Supabase Realtime
 [Supabase] Client initialized
@@ -77,26 +81,30 @@ Open browser console and look for:
 ## Gradual Rollout Plan
 
 ### Phase 1: Internal Testing
+
 - Enable for development environment only
 - Test with team members
 - Monitor for issues
 
 ### Phase 2: Beta Merchants
+
 ```javascript
 // In feature-flags.ts, add merchant IDs:
 const enabledMerchants = [
-  'merchant-uuid-1', // Beta merchant 1
-  'merchant-uuid-2', // Beta merchant 2
+  "merchant-uuid-1", // Beta merchant 1
+  "merchant-uuid-2", // Beta merchant 2
 ];
 ```
 
 ### Phase 3: Full Rollout
+
 ```javascript
 // Set environment variable:
-NEXT_PUBLIC_ENABLE_SUPABASE_REALTIME=true
+NEXT_PUBLIC_ENABLE_SUPABASE_REALTIME = true;
 ```
 
 ### Phase 4: Cleanup
+
 - Remove SSE implementation
 - Remove feature flag
 - Update documentation
@@ -104,18 +112,21 @@ NEXT_PUBLIC_ENABLE_SUPABASE_REALTIME=true
 ## Monitoring
 
 ### Check Supabase Connection Count
+
 ```sql
 -- In Supabase SQL Editor
-SELECT count(*) 
-FROM pg_stat_activity 
+SELECT count(*)
+FROM pg_stat_activity
 WHERE application_name = 'Supabase Realtime';
 ```
 
 ### Check Active Subscriptions
+
 Look in browser console for active channels:
+
 ```javascript
 // Number of active channels
-console.log('[Supabase] Active channels:', supabaseRealtime.channels.size);
+console.log("[Supabase] Active channels:", supabaseRealtime.channels.size);
 ```
 
 ## Rollback Plan
@@ -123,9 +134,10 @@ console.log('[Supabase] Active channels:', supabaseRealtime.channels.size);
 If issues occur:
 
 1. **Immediate Rollback**
+
    ```javascript
    // Disable feature flag
-   localStorage.setItem('feature_supabaseRealtime', 'false');
+   localStorage.setItem("feature_supabaseRealtime", "false");
    ```
 
 2. **Full Rollback**
@@ -136,10 +148,12 @@ If issues occur:
 ## Known Limitations
 
 1. **Supabase Keys Required**
+
    - Cannot test without proper keys from dashboard
    - Service key needed for custom JWT generation
 
 2. **Connection Limits**
+
    - Supabase has connection limits per project
    - Monitor usage in production
 

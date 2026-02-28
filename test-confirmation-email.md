@@ -3,39 +3,45 @@
 ## Steps to Test
 
 1. **Monitor the API logs**:
+
    ```bash
    pm2 logs api --nostream --lines 200 | grep -E "CONFIRMATION|confirmed|📧|📮|✉️|🎯|📨|🔔|✅"
    ```
 
 2. **Create a PENDING booking** (use the public booking page):
+
    - Go to http://localhost:3001/orange-nails-beauty/booking
    - Create a booking for Lukas Nguyen
    - This will create a PENDING booking (since Orange Nails Beauty has autoConfirmBookings: false)
 
 3. **Log in to merchant dashboard**:
+
    - Go to http://localhost:3002
    - Login with Orange Nails Beauty credentials
 
 4. **Find the pending booking**:
+
    - Go to Calendar view
    - Look for the PENDING booking (yellow status)
 
 5. **Confirm the booking**:
+
    - Click on the booking to open details
    - Change status from PENDING to CONFIRMED
    - Save
 
 6. **Check the logs** for the following sequence:
+
    ```
    [BookingUpdateService] ======= CONFIRMATION FLOW DEBUG =======
    [BookingUpdateService] Booking xxx status changed: PENDING → CONFIRMED
    [BookingUpdateService] ✓ Outbox event saved to database
-   
+
    [OutboxPublisherService] 📧 Found 1 BOOKING CONFIRMATION events!
    [OutboxPublisherService] 🔔 PROCESSING CONFIRMATION EVENT
    [OutboxPublisherService] 📨 EMITTING CONFIRMATION EVENT
    [OutboxPublisherService] ✓ Event 'booking.confirmed' emitted to EventEmitter2
-   
+
    [NotificationEventHandler] 🎯 RECEIVED booking.confirmed event!
    [NotificationEventHandler] 📧 ====== CONFIRMATION EMAIL DECISION ======
    [NotificationEventHandler] 📤 SENDING CONFIRMATION NOTIFICATION...
@@ -63,9 +69,10 @@ If you don't see all these logs:
 ## Direct Database Check
 
 You can also check the OutboxEvent table directly:
+
 ```sql
-SELECT * FROM "OutboxEvent" 
-WHERE "eventType" = 'confirmed' 
+SELECT * FROM "OutboxEvent"
+WHERE "eventType" = 'confirmed'
 AND "processedAt" IS NULL
 ORDER BY "createdAt" DESC;
 ```

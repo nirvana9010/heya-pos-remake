@@ -1,5 +1,5 @@
-import type { Payment, PaymentMethod, PaymentStatus } from '../models';
-import type { PaginationParams } from '../common';
+import type { Payment, PaymentMethod, PaymentStatus } from "../models";
+import type { PaginationParams } from "../common";
 
 export interface ProcessPaymentRequest {
   invoiceId: string;

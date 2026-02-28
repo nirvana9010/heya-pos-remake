@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useTyro } from '../../hooks/useTyro';
+import React, { useState } from "react";
+import { useTyro } from "../../hooks/useTyro";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Input } from '@heya-pos/ui';
-import { Label } from '@heya-pos/ui';
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+} from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Input } from "@heya-pos/ui";
+import { Label } from "@heya-pos/ui";
+import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 
 interface TyroPairingDialogProps {
   isOpen: boolean;
@@ -27,49 +27,49 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
   isOpen,
   onClose,
   onPaired,
-  defaultMerchantId = '',
-  defaultTerminalId = '',
+  defaultMerchantId = "",
+  defaultTerminalId = "",
 }) => {
   const merchantId = defaultMerchantId;
   const terminalId = defaultTerminalId;
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   const { pairTerminal, isAvailable } = useTyro();
 
   const handlePair = () => {
     if (!merchantId.trim() || !terminalId.trim()) {
-      setError('Please enter both Merchant ID and Terminal ID');
+      setError("Please enter both Merchant ID and Terminal ID");
       return;
     }
 
     if (!isAvailable()) {
-      setError('Tyro SDK is not available. Please ensure the SDK is loaded.');
+      setError("Tyro SDK is not available. Please ensure the SDK is loaded.");
       return;
     }
 
     setLoading(true);
-    setError('');
-    setStatus('Initiating pairing...');
-    
+    setError("");
+    setStatus("Initiating pairing...");
+
     pairTerminal(merchantId.trim(), terminalId.trim(), (response) => {
       setLoading(false);
-      setStatus(response.message || '');
-      
-      if (response.status === 'success') {
+      setStatus(response.message || "");
+
+      if (response.status === "success") {
         setSuccess(true);
-        setError('');
+        setError("");
         setTimeout(() => {
           onPaired?.(terminalId.trim());
           onClose();
           // Reset state
           setSuccess(false);
-          setStatus('');
+          setStatus("");
         }, 2000);
-      } else if (response.status === 'error' || response.status === 'failure') {
-        setError(response.message || 'Pairing failed');
+      } else if (response.status === "error" || response.status === "failure") {
+        setError(response.message || "Pairing failed");
         setSuccess(false);
       }
     });
@@ -79,8 +79,8 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
     if (!loading) {
       onClose();
       // Reset state when closing
-      setStatus('');
-      setError('');
+      setStatus("");
+      setError("");
       setSuccess(false);
     }
   };
@@ -93,8 +93,9 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Pair Tyro Terminal</DialogTitle>
           <DialogDescription>
-            Click the button below to initiate pairing with your Tyro EFTPOS terminal.
-            You'll need to confirm the pairing on your physical terminal within 60 seconds.
+            Click the button below to initiate pairing with your Tyro EFTPOS
+            terminal. You'll need to confirm the pairing on your physical
+            terminal within 60 seconds.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,11 +104,15 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
             <div className="rounded-lg bg-gray-50 p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Merchant ID:</span>
-                <span className="text-sm text-gray-600">{merchantId || 'Not configured'}</span>
+                <span className="text-sm text-gray-600">
+                  {merchantId || "Not configured"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Terminal ID:</span>
-                <span className="text-sm text-gray-600">{terminalId || 'Not configured'}</span>
+                <span className="text-sm text-gray-600">
+                  {terminalId || "Not configured"}
+                </span>
               </div>
             </div>
 
@@ -116,20 +121,24 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
                   <span className="text-sm text-yellow-800">
-                    Please configure your Merchant ID and Terminal ID in Settings first.
+                    Please configure your Merchant ID and Terminal ID in
+                    Settings first.
                   </span>
                 </div>
               </div>
-            )}</div>
+            )}
+          </div>
 
           {(status || error) && (
-            <div className={`flex items-center gap-2 p-3 rounded-md ${
-              success 
-                ? 'bg-green-50 border border-green-200 text-green-800' 
-                : error
-                ? 'bg-red-50 border border-red-200 text-red-800'
-                : 'bg-blue-50 border border-blue-200 text-blue-800'
-            }`}>
+            <div
+              className={`flex items-center gap-2 p-3 rounded-md ${
+                success
+                  ? "bg-green-50 border border-green-200 text-green-800"
+                  : error
+                    ? "bg-red-50 border border-red-200 text-red-800"
+                    : "bg-blue-50 border border-blue-200 text-blue-800"
+              }`}
+            >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {StatusIcon && <StatusIcon className="h-4 w-4" />}
               <span className="text-sm">{error || status}</span>
@@ -141,7 +150,8 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-yellow-600" />
                 <span className="text-sm text-yellow-800">
-                  Tyro SDK not detected. Please ensure the Tyro SDK is properly loaded.
+                  Tyro SDK not detected. Please ensure the Tyro SDK is properly
+                  loaded.
                 </span>
               </div>
             </div>
@@ -149,15 +159,11 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
         </div>
 
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handlePair} 
+          <Button
+            onClick={handlePair}
             disabled={loading || !isAvailable() || !merchantId || !terminalId}
           >
             {loading ? (
@@ -166,7 +172,7 @@ export const TyroPairingDialog: React.FC<TyroPairingDialogProps> = ({
                 Pairing...
               </>
             ) : (
-              'Pair Terminal'
+              "Pair Terminal"
             )}
           </Button>
         </DialogFooter>

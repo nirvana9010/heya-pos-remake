@@ -121,7 +121,9 @@ export class AuthService {
       return merchantUserResult;
     }
 
-    console.log(`[AUTH DEBUG] MerchantUser auth failed for: ${dto.email}, trying owner...`);
+    console.log(
+      `[AUTH DEBUG] MerchantUser auth failed for: ${dto.email}, trying owner...`,
+    );
 
     // If MerchantUser auth fails, try owner (MerchantAuth)
     try {

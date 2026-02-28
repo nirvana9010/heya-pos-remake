@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import { api } from '@/lib/api-wrapper';
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { api } from "@/lib/api-wrapper";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@heya-pos/ui';
+} from "@heya-pos/ui";
 import {
   Table,
   TableBody,
@@ -17,17 +17,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@heya-pos/ui';
-import { Badge } from '@heya-pos/ui';
+} from "@heya-pos/ui";
+import { Badge } from "@heya-pos/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@heya-pos/ui';
-import { Switch } from '@heya-pos/ui';
-import { Loader2 } from 'lucide-react';
+} from "@heya-pos/ui";
+import { Switch } from "@heya-pos/ui";
+import { Loader2 } from "lucide-react";
 
 interface NotificationLog {
   id: string;
@@ -35,9 +35,9 @@ interface NotificationLog {
   customerId: string;
   bookingId?: string | null;
   type: string;
-  channel: 'email' | 'sms';
+  channel: "email" | "sms";
   recipient: string;
-  status: 'sent' | 'failed';
+  status: "sent" | "failed";
   messageId?: string | null;
   error?: string | null;
   sentAt: string;
@@ -50,8 +50,8 @@ interface NotificationLog {
 export default function NotificationHistoryPage() {
   const [logs, setLogs] = useState<NotificationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms'>(
-    'all',
+  const [channelFilter, setChannelFilter] = useState<"all" | "email" | "sms">(
+    "all",
   );
   const [loyaltyOnly, setLoyaltyOnly] = useState(true);
 
@@ -63,21 +63,21 @@ export default function NotificationHistoryPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      params.set('limit', '200');
-      if (channelFilter !== 'all') {
-        params.set('channel', channelFilter);
+      params.set("limit", "200");
+      if (channelFilter !== "all") {
+        params.set("channel", channelFilter);
       }
 
       const data = await api.get(`/notifications/history?${params.toString()}`);
 
       const filtered = (Array.isArray(data) ? data : []).filter(
         (entry: NotificationLog) =>
-          loyaltyOnly ? entry.type?.includes('loyalty_touchpoint') : true,
+          loyaltyOnly ? entry.type?.includes("loyalty_touchpoint") : true,
       );
 
       setLogs(filtered);
     } catch (error) {
-      console.error('Failed to load notification history:', error);
+      console.error("Failed to load notification history:", error);
       setLogs([]);
     } finally {
       setLoading(false);
@@ -85,23 +85,23 @@ export default function NotificationHistoryPage() {
   };
 
   const renderStatus = (status: string) => {
-    const isSuccess = status === 'sent';
+    const isSuccess = status === "sent";
     return (
-      <Badge variant={isSuccess ? 'default' : 'destructive'}>
-        {isSuccess ? 'Sent' : 'Failed'}
+      <Badge variant={isSuccess ? "default" : "destructive"}>
+        {isSuccess ? "Sent" : "Failed"}
       </Badge>
     );
   };
 
   const renderChannel = (channel: string) => {
-    return channel === 'email' ? 'Email' : 'SMS';
+    return channel === "email" ? "Email" : "SMS";
   };
 
   const renderCustomerName = (log: NotificationLog) => {
     if (log.customer && (log.customer.firstName || log.customer.lastName)) {
-      return `${log.customer.firstName || ''} ${log.customer.lastName || ''}`.trim();
+      return `${log.customer.firstName || ""} ${log.customer.lastName || ""}`.trim();
     }
-    return '—';
+    return "—";
   };
 
   return (
@@ -126,7 +126,7 @@ export default function NotificationHistoryPage() {
             <span className="text-sm font-medium text-gray-600">Channel</span>
             <Select
               value={channelFilter}
-              onValueChange={(value: 'all' | 'email' | 'sms') =>
+              onValueChange={(value: "all" | "email" | "sms") =>
                 setChannelFilter(value)
               }
             >
@@ -189,10 +189,10 @@ export default function NotificationHistoryPage() {
                 {logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(log.sentAt), 'PP p')}
+                      {format(new Date(log.sentAt), "PP p")}
                     </TableCell>
                     <TableCell className="capitalize">
-                      {log.type?.replace(/_/g, ' ') || '—'}
+                      {log.type?.replace(/_/g, " ") || "—"}
                     </TableCell>
                     <TableCell>{renderCustomerName(log)}</TableCell>
                     <TableCell>{renderChannel(log.channel)}</TableCell>
@@ -201,10 +201,10 @@ export default function NotificationHistoryPage() {
                     </TableCell>
                     <TableCell>{renderStatus(log.status)}</TableCell>
                     <TableCell className="font-mono text-xs">
-                      {log.messageId || '—'}
+                      {log.messageId || "—"}
                     </TableCell>
                     <TableCell className="text-xs text-red-600">
-                      {log.error || '—'}
+                      {log.error || "—"}
                     </TableCell>
                   </TableRow>
                 ))}

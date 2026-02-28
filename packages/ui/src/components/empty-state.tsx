@@ -1,11 +1,11 @@
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
-  icon?: React.ReactNode
-  title: string
-  description?: string
-  action?: React.ReactNode
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
 }
 
 const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
@@ -15,7 +15,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         ref={ref}
         className={cn(
           "flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center animate-in fade-in-50",
-          className
+          className,
         )}
         {...props}
       >
@@ -32,10 +32,10 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         )}
         {action && <div className="mt-6">{action}</div>}
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-EmptyState.displayName = "EmptyState"
+EmptyState.displayName = "EmptyState";
 
-export { EmptyState }
+export { EmptyState };

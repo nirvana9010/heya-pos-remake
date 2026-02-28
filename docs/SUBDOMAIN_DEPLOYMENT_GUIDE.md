@@ -5,6 +5,7 @@ This guide explains how to deploy the Heya POS booking app with subdomain-based 
 ## Overview
 
 The booking app supports three merchant detection modes:
+
 - **subdomain**: `hamilton.bookings.example.com` (production)
 - **path**: `bookings.example.com/hamilton` (development)
 - **query**: `bookings.example.com?merchant=hamilton` (testing)
@@ -42,6 +43,7 @@ bookings.heya-pos.com    A    192.0.2.1  # Your hosting IP
 ```
 
 For Vercel/Netlify, use CNAME records instead:
+
 ```
 bookings.heya-pos.com     CNAME  your-app.vercel.app
 *.bookings.heya-pos.com   CNAME  your-app.vercel.app
@@ -52,10 +54,12 @@ bookings.heya-pos.com     CNAME  your-app.vercel.app
 #### Vercel
 
 1. Add domain in Vercel dashboard:
+
    - `bookings.heya-pos.com`
    - `*.bookings.heya-pos.com`
 
 2. In `vercel.json`:
+
 ```json
 {
   "rewrites": [
@@ -77,6 +81,7 @@ bookings.heya-pos.com     CNAME  your-app.vercel.app
 
 1. Add custom domain in Railway dashboard
 2. Configure wildcard subdomain support via Railway CLI:
+
 ```bash
 railway domain add *.bookings.heya-pos.com
 ```
@@ -84,12 +89,14 @@ railway domain add *.bookings.heya-pos.com
 ### 4. SSL/TLS Certificates
 
 Most platforms automatically provision SSL certificates for wildcard domains. Ensure:
+
 - Certificate covers `*.bookings.heya-pos.com`
 - Force HTTPS redirect is enabled
 
 ### 5. Testing
 
 After deployment, test with different merchants:
+
 - `hamilton.bookings.heya-pos.com`
 - `zen-wellness.bookings.heya-pos.com`
 
@@ -98,6 +105,7 @@ After deployment, test with different merchants:
 To migrate existing bookings:
 
 1. Set up redirects from old URLs to new:
+
    ```
    /hamilton/* → hamilton.bookings.heya-pos.com/*
    ```
@@ -146,10 +154,13 @@ Update your API to accept requests from wildcard subdomains:
 app.enableCors({
   origin: (origin, callback) => {
     // Allow all subdomains of bookings.heya-pos.com
-    if (!origin || origin.match(/^https?:\/\/([a-z0-9-]+\.)?bookings\.heya-pos\.com$/)) {
+    if (
+      !origin ||
+      origin.match(/^https?:\/\/([a-z0-9-]+\.)?bookings\.heya-pos\.com$/)
+    ) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
@@ -159,6 +170,7 @@ app.enableCors({
 ## Monitoring
 
 Set up monitoring for:
+
 1. Subdomain resolution time
 2. SSL certificate expiration
 3. 404 errors for invalid subdomains
@@ -167,6 +179,7 @@ Set up monitoring for:
 ## Rollback Plan
 
 If issues arise:
+
 1. Switch `NEXT_PUBLIC_MERCHANT_DETECTION_MODE` back to `path`
 2. Deploy immediately (no code changes needed)
 3. Users can continue with path-based URLs

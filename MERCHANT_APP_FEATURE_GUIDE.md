@@ -1,6 +1,7 @@
 # Heya POS Merchant App - Complete Feature Guide & Test Cases
 
 ## 🎯 Executive Summary
+
 Heya POS is a comprehensive business management platform for service-based businesses (spas, salons, wellness centers). The merchant app provides staff with tools for appointment scheduling, customer management, payment processing, and business analytics.
 
 ---
@@ -8,12 +9,14 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 📱 Module 1: Authentication & Access Control
 
 ### Features
+
 - **Multi-tenant Architecture**: Each business operates in isolation
 - **Role-Based Access**: Employee, Manager, Owner permission levels
 - **JWT Authentication**: Secure token-based authentication with refresh tokens
 - **PIN Protection**: Additional security layer for sensitive operations
 
 ### Test Cases
+
 ```
 ✅ BASIC AUTHENTICATION
 □ Login with valid email/password (lukas.tn90@gmail.com / demo456)
@@ -36,12 +39,14 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🏠 Module 2: Dashboard & Home
 
 ### Features
+
 - **Real-time Statistics**: Today's bookings, revenue, new customers, pending items
 - **Quick Actions**: One-click access to common tasks
 - **Today's Schedule**: Live view of upcoming appointments
 - **Performance Indicators**: Growth metrics and trend visualization
 
 ### Test Cases
+
 ```
 ✅ DASHBOARD METRICS
 □ Today's bookings count matches actual bookings list
@@ -69,6 +74,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 📅 Module 3: Booking Management
 
 ### Features
+
 - **Multi-Service Bookings**: Add multiple services to single appointment
 - **Drag-Drop Calendar**: Visual scheduling with conflict prevention
 - **Status Workflow**: Pending → Confirmed → In Progress → Completed → Paid
@@ -76,6 +82,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Advanced Filtering**: By status, date, staff, payment, customer
 
 ### Test Cases
+
 ```
 ✅ BOOKING CREATION
 □ Create single-service booking with all required fields
@@ -116,6 +123,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## ✅ Module 4: Check-Ins & Walk-Ins
 
 ### Features
+
 - **QR Code Check-in**: Customers scan to check in
 - **Manual Check-in**: Search and check in customers
 - **Walk-in Creation**: Create blank bookings for walk-in customers
@@ -123,6 +131,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Real-time Updates**: Live check-in status updates
 
 ### Test Cases
+
 ```
 ✅ CHECK-IN PROCESS
 □ QR code check-in updates booking status
@@ -151,6 +160,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 👥 Module 5: Customer Management
 
 ### Features
+
 - **Customer Profiles**: Complete contact and preference management
 - **Booking History**: Full appointment and service history
 - **Loyalty Program**: Points accumulation and redemption
@@ -159,6 +169,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Import/Export**: Bulk customer data management
 
 ### Test Cases
+
 ```
 ✅ CUSTOMER CREATION
 □ Add new customer with all fields
@@ -197,6 +208,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 👨‍💼 Module 6: Staff Management
 
 ### Features
+
 - **Staff Profiles**: Complete employee information management
 - **Role Assignment**: Employee, Manager, Owner permissions
 - **PIN Security**: Individual PINs for secure operations
@@ -205,6 +217,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Color Coding**: Visual identification in calendar
 
 ### Test Cases
+
 ```
 ✅ STAFF CREATION
 □ Add staff with all required fields
@@ -242,6 +255,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🛍️ Module 7: Service Management
 
 ### Features
+
 - **Service Catalog**: Complete service offerings management
 - **Category Organization**: Logical service groupings
 - **Pricing Control**: Flexible pricing and duration settings
@@ -250,6 +264,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Description Management**: Detailed service information
 
 ### Test Cases
+
 ```
 ✅ SERVICE CREATION
 □ Add service with name, price, duration
@@ -287,6 +302,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 💳 Module 8: Payment Processing
 
 ### Features
+
 - **Multiple Payment Methods**: Cash, card (Tyro), split payments
 - **Loyalty Integration**: Points redemption during payment
 - **Discounts & Surcharges**: Flexible pricing adjustments
@@ -295,6 +311,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Refund Processing**: Authorized refund management
 
 ### Test Cases
+
 ```
 ✅ PAYMENT METHODS
 □ Process full cash payment with change
@@ -334,6 +351,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 📊 Module 9: Reports & Analytics
 
 ### Features
+
 - **Executive Dashboard**: Modern visualization with KPIs
 - **Classic Reports**: Traditional detailed reporting
 - **Time Range Analysis**: Daily, weekly, monthly, yearly
@@ -342,6 +360,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Service Analytics**: Service popularity and revenue
 
 ### Test Cases
+
 ```
 ✅ REPORT GENERATION
 □ Daily sales summary accurate
@@ -377,6 +396,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## ⚙️ Module 10: Settings & Configuration
 
 ### Features
+
 - **Business Settings**: Operating hours, timezone, information
 - **Booking Rules**: Policies and restrictions
 - **Security Configuration**: PIN requirements and permissions
@@ -385,6 +405,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Import Tools**: Bulk data import capabilities
 
 ### Test Cases
+
 ```
 ✅ BUSINESS CONFIGURATION
 □ Update operating hours per day
@@ -420,6 +441,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🔄 Module 11: Quick Sale (POS)
 
 ### Features
+
 - **Rapid Transactions**: Streamlined service sales
 - **No Appointment Required**: Direct service purchase
 - **Multi-Service Sales**: Add multiple services to sale
@@ -427,6 +449,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Instant Payment**: Immediate payment processing
 
 ### Test Cases
+
 ```
 ✅ QUICK SALE FLOW
 □ Add single service to sale
@@ -449,6 +472,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🧪 Comprehensive Testing Scenarios
 
 ### Scenario 1: Full Day Operations
+
 ```
 1. Morning Setup
    □ Staff clock in with PIN
@@ -475,6 +499,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ```
 
 ### Scenario 2: Problem Resolution
+
 ```
 □ Double-booking conflict (reschedule one)
 □ Customer claims missing booking (check history)
@@ -485,6 +510,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ```
 
 ### Scenario 3: Peak Performance Testing
+
 ```
 □ Create 50 bookings in one day
 □ Process 10 simultaneous check-ins
@@ -499,6 +525,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🚨 Critical Test Points
 
 ### Data Integrity
+
 - Payments always match bookings
 - No orphaned transactions
 - Customer data consistency
@@ -506,6 +533,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - Timezone handling
 
 ### Security
+
 - PIN protection enforced
 - Role restrictions work
 - Session timeout functions
@@ -513,6 +541,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - Data encryption active
 
 ### Performance
+
 - Page loads < 3 seconds
 - Search returns < 1 second
 - Reports generate < 5 seconds
@@ -520,6 +549,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - Smooth scrolling/navigation
 
 ### User Experience
+
 - Error messages are helpful
 - Loading states shown
 - Confirmations for destructive actions
@@ -531,6 +561,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 📋 Onboarding Checklist for New Team Members
 
 ### Week 1: Foundation
+
 - [ ] Complete authentication module testing
 - [ ] Familiarize with dashboard navigation
 - [ ] Create test bookings (single and multi-service)
@@ -538,6 +569,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - [ ] Complete basic payment transactions
 
 ### Week 2: Advanced Features
+
 - [ ] Master customer management and loyalty
 - [ ] Configure staff profiles and permissions
 - [ ] Manage service catalog
@@ -545,6 +577,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 - [ ] Configure system settings
 
 ### Week 3: Real-World Scenarios
+
 - [ ] Complete full day operation scenario
 - [ ] Handle problem resolution cases
 - [ ] Test edge cases and error handling
@@ -556,6 +589,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🔑 Key Information
 
 ### Test Account Credentials
+
 - **Merchant**: Zen Wellness
 - **Email**: lukas.tn90@gmail.com
 - **Password**: demo456
@@ -563,12 +597,14 @@ Heya POS is a comprehensive business management platform for service-based busin
 - **Customer Booking**: http://localhost:3001/zen-wellness
 
 ### Support Resources
+
 - Report issues at: https://github.com/anthropics/claude-code/issues
 - API Documentation: Available in `/docs` directory
 - Database Schema: Check Prisma schema files
 - Logs: Use PM2 for monitoring (`pm2 logs api`)
 
 ### Important Notes
+
 - Always test in development environment first
 - Use test data, never production customer data
 - Document all issues with screenshots when possible
@@ -580,6 +616,7 @@ Heya POS is a comprehensive business management platform for service-based busin
 ## 🎯 Success Metrics
 
 Your onboarding is complete when you can:
+
 1. Navigate all modules confidently
 2. Create and manage complete customer journeys
 3. Identify and report bugs effectively
@@ -589,5 +626,5 @@ Your onboarding is complete when you can:
 
 ---
 
-*Last Updated: 2025-09-09*
-*Version: 1.0*
+_Last Updated: 2025-09-09_
+_Version: 1.0_

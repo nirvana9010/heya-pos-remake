@@ -1,25 +1,29 @@
 # Persistent Login Implementation Guide
 
 ## Overview
+
 This guide explains how the safe persistent login system works in Heya POS after fixing the memory leak issues.
 
 ## What Was Implemented
 
 ### 1. **Automatic Token Refresh**
+
 - Access tokens expire in 15 minutes (configurable via `JWT_EXPIRES_IN`)
 - Refresh tokens expire in 7-30 days depending on "Remember Me" option
 - API client automatically refreshes tokens when they expire
 - Proactive refresh occurs 5 minutes before token expiry
 
 ### 2. **Remember Me Feature**
+
 - Checkbox on login page allows users to stay logged in longer
 - When checked: Refresh tokens last 30 days
 - When unchecked: Refresh tokens last 7 days
 - Preference stored in localStorage
 
 ### 3. **Memory Leak Fixes**
+
 - **Session timeout reduced**: From 365 days to 24 hours
-- **Session limits added**: 
+- **Session limits added**:
   - Max 10,000 total sessions
   - Max 10 sessions per user
   - Automatic cleanup of oldest sessions
@@ -28,12 +32,14 @@ This guide explains how the safe persistent login system works in Heya POS after
 ### 4. **How It Works**
 
 #### Login Flow:
+
 1. User logs in with username/password
 2. If "Remember Me" is checked, longer refresh token issued
 3. Both access and refresh tokens stored in localStorage
 4. Proactive refresh scheduled based on token expiry
 
 #### Token Refresh Flow:
+
 1. When API call gets 401 error:
    - Interceptor catches the error
    - Attempts to refresh using refresh token
@@ -42,6 +48,7 @@ This guide explains how the safe persistent login system works in Heya POS after
 3. Failed refresh redirects to login
 
 #### Security Features:
+
 - Short-lived access tokens (15 minutes)
 - Refresh token rotation on each refresh
 - Automatic session cleanup
@@ -50,6 +57,7 @@ This guide explains how the safe persistent login system works in Heya POS after
 ## Configuration
 
 ### Environment Variables
+
 ```env
 # Token expiry settings
 JWT_EXPIRES_IN=15m                    # Access token expiry
@@ -63,6 +71,7 @@ MAX_SESSIONS_PER_USER=10              # Maximum sessions per user
 ```
 
 ### Frontend Usage
+
 ```typescript
 // Login with Remember Me
 const response = await apiClient.login(username, password, rememberMe);
@@ -74,14 +83,17 @@ const data = await apiClient.getBookings(); // Will refresh if needed
 ## Best Practices
 
 1. **Never store sensitive data in localStorage**
+
    - Only store tokens and non-sensitive user info
    - Consider using httpOnly cookies in production
 
 2. **Monitor memory usage**
+
    - Run `npm run start:heap-profile` to monitor memory
    - Check heap snapshots if memory grows
 
 3. **Regular token rotation**
+
    - Tokens are rotated on each refresh
    - Old tokens become invalid immediately
 
@@ -93,6 +105,7 @@ const data = await apiClient.getBookings(); // Will refresh if needed
 ## Testing
 
 ### Test persistent login:
+
 ```bash
 # 1. Start API with memory monitoring
 cd heya-pos/apps/api
@@ -105,6 +118,7 @@ npm run start:no-watch
 ```
 
 ### Test memory usage:
+
 ```bash
 # Run memory test
 cd heya-pos/apps/api
@@ -117,10 +131,12 @@ NODE_OPTIONS='--expose-gc' ts-node test-memory-leak.ts
 ## Security Considerations
 
 1. **Token Storage**: Currently using localStorage (vulnerable to XSS)
+
    - Consider httpOnly cookies for production
    - Add CSRF protection if using cookies
 
-2. **Refresh Token Security**: 
+2. **Refresh Token Security**:
+
    - Not yet stored in database (still using JWT)
    - Consider database storage for ability to revoke
 
@@ -131,11 +147,13 @@ NODE_OPTIONS='--expose-gc' ts-node test-memory-leak.ts
 ## Future Improvements
 
 1. **Database Storage for Refresh Tokens**
+
    - Track devices/sessions
    - Allow users to see active sessions
    - Revoke specific sessions
 
 2. **Better Token Storage**
+
    - Implement secure httpOnly cookies
    - Add CSRF protection
    - Consider encrypted localStorage

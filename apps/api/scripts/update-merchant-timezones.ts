@@ -5,12 +5,12 @@
  * This ensures all merchants have proper timezone configuration
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌍 Updating merchant timezone settings...');
+  console.log("🌍 Updating merchant timezone settings...");
 
   try {
     // Get all merchants
@@ -24,16 +24,18 @@ async function main() {
 
     for (const merchant of merchants) {
       // Get current settings
-      const currentSettings = merchant.settings as any || {};
+      const currentSettings = (merchant.settings as any) || {};
 
       // Check if timezone is already set
       if (currentSettings.timezone) {
-        console.log(`✓ Merchant ${merchant.name} already has timezone: ${currentSettings.timezone}`);
+        console.log(
+          `✓ Merchant ${merchant.name} already has timezone: ${currentSettings.timezone}`,
+        );
         continue;
       }
 
       // Determine timezone from first location or default to Sydney
-      let timezone = 'Australia/Sydney';
+      let timezone = "Australia/Sydney";
       if (merchant.locations.length > 0 && merchant.locations[0].timezone) {
         timezone = merchant.locations[0].timezone;
         console.log(`  Using timezone from location: ${timezone}`);
@@ -44,14 +46,15 @@ async function main() {
         ...currentSettings,
         timezone,
         // Ensure other important settings have defaults
-        currency: currentSettings.currency || 'AUD',
-        dateFormat: currentSettings.dateFormat || 'DD/MM/YYYY',
-        timeFormat: currentSettings.timeFormat || '12h',
+        currency: currentSettings.currency || "AUD",
+        dateFormat: currentSettings.dateFormat || "DD/MM/YYYY",
+        timeFormat: currentSettings.timeFormat || "12h",
         bookingAdvanceHours: currentSettings.bookingAdvanceHours || 48,
         cancellationHours: currentSettings.cancellationHours ?? 24,
         requirePinForRefunds: currentSettings.requirePinForRefunds ?? true,
-        requirePinForCancellations: currentSettings.requirePinForCancellations ?? true,
-        loyaltyType: currentSettings.loyaltyType || 'visit',
+        requirePinForCancellations:
+          currentSettings.requirePinForCancellations ?? true,
+        loyaltyType: currentSettings.loyaltyType || "visit",
         loyaltyRate: currentSettings.loyaltyRate || 1,
         requireDeposit: currentSettings.requireDeposit ?? false,
         depositPercentage: currentSettings.depositPercentage || 30,
@@ -64,10 +67,12 @@ async function main() {
         },
       });
 
-      console.log(`✓ Updated merchant ${merchant.name} with timezone: ${timezone}`);
+      console.log(
+        `✓ Updated merchant ${merchant.name} with timezone: ${timezone}`,
+      );
     }
 
-    console.log('\n✅ All merchants updated successfully!');
+    console.log("\n✅ All merchants updated successfully!");
 
     // Display summary
     const updatedMerchants = await prisma.merchant.findMany({
@@ -77,14 +82,15 @@ async function main() {
       },
     });
 
-    console.log('\n📊 Summary:');
+    console.log("\n📊 Summary:");
     updatedMerchants.forEach((merchant) => {
       const settings = merchant.settings as any;
-      console.log(`  ${merchant.name}: ${settings.timezone || 'No timezone set'}`);
+      console.log(
+        `  ${merchant.name}: ${settings.timezone || "No timezone set"}`,
+      );
     });
-
   } catch (error) {
-    console.error('❌ Error updating merchants:', error);
+    console.error("❌ Error updating merchants:", error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -93,6 +99,6 @@ async function main() {
 
 // Run the script
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });

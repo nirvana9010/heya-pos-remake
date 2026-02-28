@@ -4,7 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'owner' | 'manager' | 'staff';
+  role: "owner" | "manager" | "staff";
   accessLevel: number;
   avatar?: string;
 }
@@ -16,10 +16,10 @@ export interface Merchant {
   email: string;
   phone: string;
   address: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: "active" | "inactive" | "suspended";
   createdAt: Date;
   updatedAt: Date;
-  subscriptionPlan?: 'basic' | 'premium' | 'enterprise';
+  subscriptionPlan?: "basic" | "premium" | "enterprise";
   logo?: string;
 }
 
@@ -36,7 +36,7 @@ export interface Service {
   staffIds?: string[];
   maxAdvanceBooking?: number;
   minAdvanceBooking?: number;
-  advanceBookingMode?: 'merchant_default' | 'custom';
+  advanceBookingMode?: "merchant_default" | "custom";
 }
 
 export interface ServiceCategory {
@@ -59,7 +59,7 @@ export interface Customer {
   totalSpent: number;
   lastVisit?: Date;
   createdAt: Date;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   avatar?: string;
 }
 
@@ -89,7 +89,13 @@ export interface Booking {
   duration: number; // Total duration for all services
   price: number; // Deprecated - use totalAmount
   totalAmount?: number; // Total price for all services
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+  status:
+    | "pending"
+    | "confirmed"
+    | "in-progress"
+    | "completed"
+    | "cancelled"
+    | "no-show";
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -105,8 +111,8 @@ export interface Payment {
   customerId: string;
   customerName: string;
   amount: number;
-  method: 'cash' | 'card' | 'bank_transfer' | 'other';
-  status: 'pending' | 'completed' | 'refunded' | 'failed';
+  method: "cash" | "card" | "bank_transfer" | "other";
+  status: "pending" | "completed" | "refunded" | "failed";
   transactionId?: string;
   notes?: string;
   createdAt: Date;
@@ -119,7 +125,7 @@ export interface Staff {
   name: string;
   email: string;
   phone: string;
-  role: 'owner' | 'manager' | 'staff';
+  role: "owner" | "manager" | "staff";
   pin?: string;
   isActive: boolean;
   workingHours?: WorkingHours;
@@ -157,7 +163,7 @@ export interface DashboardStats {
 
 export interface Report {
   id: string;
-  type: 'revenue' | 'bookings' | 'customers' | 'services' | 'staff';
+  type: "revenue" | "bookings" | "customers" | "services" | "staff";
   title: string;
   dateRange: {
     start: Date;

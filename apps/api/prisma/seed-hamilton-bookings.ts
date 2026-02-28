@@ -1,38 +1,43 @@
-import { PrismaClient } from '@prisma/client';
-import { addDays, addHours, startOfToday } from 'date-fns';
+import { PrismaClient } from "@prisma/client";
+import { addDays, addHours, startOfToday } from "date-fns";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Creating bookings for Hamilton Beauty Spa...');
+  console.log("Creating bookings for Hamilton Beauty Spa...");
 
   // Find first merchant
   const merchant = await prisma.merchant.findFirst();
 
   if (!merchant) {
-    throw new Error('No merchant found in database');
+    throw new Error("No merchant found in database");
   }
 
   console.log(`Found merchant: ${merchant.name} (${merchant.id})`);
 
   const location = await prisma.location.findFirst({
-    where: { merchantId: merchant.id }
+    where: { merchantId: merchant.id },
   });
 
   const staff = await prisma.staff.findMany({
-    where: { merchantId: merchant.id }
+    where: { merchantId: merchant.id },
   });
 
   const services = await prisma.service.findMany({
-    where: { merchantId: merchant.id }
+    where: { merchantId: merchant.id },
   });
 
   const customers = await prisma.customer.findMany({
-    where: { merchantId: merchant.id }
+    where: { merchantId: merchant.id },
   });
 
-  if (!location || staff.length === 0 || services.length === 0 || customers.length === 0) {
-    throw new Error('Missing required data for creating bookings');
+  if (
+    !location ||
+    staff.length === 0 ||
+    services.length === 0 ||
+    customers.length === 0
+  ) {
+    throw new Error("Missing required data for creating bookings");
   }
 
   const today = startOfToday();
@@ -52,12 +57,12 @@ async function main() {
       customerId: customer.id,
       providerId: staffMember.id,
       bookingNumber: `BK${Date.now()}${i}`,
-      status: i === 0 ? 'COMPLETED' : 'CONFIRMED',
+      status: i === 0 ? "COMPLETED" : "CONFIRMED",
       startTime,
       endTime,
       totalAmount: service.price,
       depositAmount: 0,
-      source: 'MANUAL',
+      source: "MANUAL",
       createdById: staffMember.id,
       notes: `${service.name} with ${staffMember.firstName}`,
     });
@@ -77,12 +82,12 @@ async function main() {
       customerId: customer.id,
       providerId: staffMember.id,
       bookingNumber: `BK${Date.now()}${i + 3}`,
-      status: 'CONFIRMED',
+      status: "CONFIRMED",
       startTime,
       endTime,
       totalAmount: service.price,
       depositAmount: 0,
-      source: 'ONLINE',
+      source: "ONLINE",
       createdById: staffMember.id,
       notes: `${service.name} appointment`,
     });
@@ -102,12 +107,12 @@ async function main() {
       customerId: customer.id,
       providerId: staffMember.id,
       bookingNumber: `BK${Date.now()}${i + 7}`,
-      status: 'PENDING',
+      status: "PENDING",
       startTime,
       endTime,
       totalAmount: service.price,
       depositAmount: 0,
-      source: 'PHONE',
+      source: "PHONE",
       createdById: staffMember.id,
     });
   }
@@ -122,7 +127,9 @@ async function main() {
     await prisma.bookingService.create({
       data: {
         bookingId: created.id,
-        serviceId: services.find(s => s.price.equals(booking.totalAmount))?.id || services[0].id,
+        serviceId:
+          services.find((s) => s.price.equals(booking.totalAmount))?.id ||
+          services[0].id,
         price: booking.totalAmount,
         duration: 60,
         staffId: booking.providerId,

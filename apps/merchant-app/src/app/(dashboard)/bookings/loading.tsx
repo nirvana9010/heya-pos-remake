@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader } from '@heya-pos/ui'
-import { Skeleton } from '@heya-pos/ui'
+import { Card, CardContent, CardHeader } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
 
 export default function BookingsLoading() {
   return (
@@ -51,5 +51,5 @@ export default function BookingsLoading() {
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -3,6 +3,7 @@
 1. Open browser Developer Tools (F12)
 2. Go to the Console tab
 3. Run this command:
+
 ```javascript
 // Clear all React Query caches
 window.localStorage.clear();
@@ -10,6 +11,7 @@ window.sessionStorage.clear();
 ```
 
 4. Then do a hard refresh:
+
    - Windows/Linux: Ctrl + Shift + R
    - Mac: Cmd + Shift + R
 

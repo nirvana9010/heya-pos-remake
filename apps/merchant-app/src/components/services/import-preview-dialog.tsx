@@ -1,6 +1,20 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@heya-pos/ui";
 import { Button } from "@heya-pos/ui";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@heya-pos/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { ImportPreview } from "@/lib/clients/services-client";
@@ -18,7 +32,7 @@ export function ImportPreviewDialog({
   onClose,
   preview,
   onConfirm,
-  importing
+  importing,
 }: ImportPreviewDialogProps) {
   if (!preview) return null;
 
@@ -30,7 +44,8 @@ export function ImportPreviewDialog({
         <DialogHeader>
           <DialogTitle>Service Import Preview</DialogTitle>
           <DialogDescription>
-            Review the services to be imported. Fix any errors before proceeding.
+            Review the services to be imported. Fix any errors before
+            proceeding.
           </DialogDescription>
         </DialogHeader>
 
@@ -87,24 +102,31 @@ export function ImportPreviewDialog({
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{row.data.name}</TableCell>
-                  <TableCell>{row.data.category || '-'}</TableCell>
+                  <TableCell>{row.data.category || "-"}</TableCell>
                   <TableCell>{row.data.duration}</TableCell>
                   <TableCell>${row.data.price}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       {row.validation.errors.map((error, i) => (
-                        <div key={i} className="text-xs text-red-600 flex items-center gap-1">
+                        <div
+                          key={i}
+                          className="text-xs text-red-600 flex items-center gap-1"
+                        >
                           <AlertCircle className="h-3 w-3" />
                           {error}
                         </div>
                       ))}
                       {row.validation.warnings.map((warning, i) => {
-                        const isAutoDuration = warning.toLowerCase().includes('duration will be calculated');
+                        const isAutoDuration = warning
+                          .toLowerCase()
+                          .includes("duration will be calculated");
                         return (
-                          <div 
-                            key={i} 
+                          <div
+                            key={i}
                             className={`text-xs flex items-center gap-1 ${
-                              isAutoDuration ? 'text-green-600' : 'text-orange-600'
+                              isAutoDuration
+                                ? "text-green-600"
+                                : "text-orange-600"
                             }`}
                           >
                             {isAutoDuration ? (
@@ -119,11 +141,15 @@ export function ImportPreviewDialog({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={
-                      row.action === 'create' ? 'default' :
-                      row.action === 'update' ? 'secondary' :
-                      'outline'
-                    }>
+                    <Badge
+                      variant={
+                        row.action === "create"
+                          ? "default"
+                          : row.action === "update"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
                       {row.action}
                     </Badge>
                   </TableCell>
@@ -143,11 +169,13 @@ export function ImportPreviewDialog({
           <Button variant="outline" onClick={onClose} disabled={importing}>
             Cancel
           </Button>
-          <Button 
-            onClick={onConfirm} 
+          <Button
+            onClick={onConfirm}
             disabled={importing || summary.valid === 0}
           >
-            {importing ? "Importing..." : `Import ${summary.toCreate + summary.toUpdate} Services`}
+            {importing
+              ? "Importing..."
+              : `Import ${summary.toCreate + summary.toUpdate} Services`}
           </Button>
         </DialogFooter>
       </DialogContent>

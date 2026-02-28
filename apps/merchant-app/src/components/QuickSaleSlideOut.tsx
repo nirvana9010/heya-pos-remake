@@ -1,20 +1,35 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  X, Plus, Trash2, Search, Clock, DollarSign, 
-  UserPlus, ChevronDown, ChevronUp, Users, CreditCard,
-  Minus, Percent, User
-} from 'lucide-react';
-import { apiClient } from '../lib/api-client';
-import type { Customer } from './customers';
-import { Button, Input, Badge, Label, Spinner } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
-import { toast } from '@heya-pos/ui';
-import { debounce } from 'lodash';
-import { useAuth } from '../lib/auth/auth-provider';
-import { PaymentDialogPortal } from './PaymentDialogPortal';
-import { WALK_IN_CUSTOMER_ID, WALK_IN_CUSTOMER, isWalkInCustomer } from '../lib/constants/customer';
-import { ServiceSelectionSlideout } from './ServiceSelectionSlideout';
-import { CustomerSelectionSlideout } from './CustomerSelectionSlideout';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  X,
+  Plus,
+  Trash2,
+  Search,
+  Clock,
+  DollarSign,
+  UserPlus,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  CreditCard,
+  Minus,
+  Percent,
+  User,
+} from "lucide-react";
+import { apiClient } from "../lib/api-client";
+import type { Customer } from "./customers";
+import { Button, Input, Badge, Label, Spinner } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import { toast } from "@heya-pos/ui";
+import { debounce } from "lodash";
+import { useAuth } from "../lib/auth/auth-provider";
+import { PaymentDialogPortal } from "./PaymentDialogPortal";
+import {
+  WALK_IN_CUSTOMER_ID,
+  WALK_IN_CUSTOMER,
+  isWalkInCustomer,
+} from "../lib/constants/customer";
+import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
+import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 
 interface QuickSaleSlideOutProps {
   isOpen: boolean;
@@ -33,17 +48,23 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
 }) => {
   const { merchant } = useAuth();
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [itemAdjustments, setItemAdjustments] = useState<Record<number, number>>({});
-  const [orderAdjustment, setOrderAdjustment] = useState({ amount: 0, reason: '' });
+  const [itemAdjustments, setItemAdjustments] = useState<
+    Record<number, number>
+  >({});
+  const [orderAdjustment, setOrderAdjustment] = useState({
+    amount: 0,
+    reason: "",
+  });
   const [showOrderAdjustment, setShowOrderAdjustment] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-
 
   // Reset when opening
   useEffect(() => {
@@ -54,17 +75,20 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       setIsWalkIn(false);
       setPaymentDialogOpen(false);
       setItemAdjustments({});
-      setOrderAdjustment({ amount: 0, reason: '' });
+      setOrderAdjustment({ amount: 0, reason: "" });
       setShowOrderAdjustment(false);
     }
   }, [isOpen]);
 
   const handleAddService = (service: any) => {
-    setSelectedServices([...selectedServices, {
-      ...service,
-      quantity: 1,
-      staffId: staff[0]?.id // Default to first staff
-    }]);
+    setSelectedServices([
+      ...selectedServices,
+      {
+        ...service,
+        quantity: 1,
+        staffId: staff[0]?.id, // Default to first staff
+      },
+    ]);
     setShowServiceModal(false);
   };
 
@@ -94,27 +118,26 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     let subtotal = 0;
     selectedServices.forEach((service, index) => {
       // Convert price from Decimal object if needed
-      const price = typeof service.price === 'object' && service.price.toNumber 
-        ? service.price.toNumber() 
-        : Number(service.price || 0);
+      const price =
+        typeof service.price === "object" && service.price.toNumber
+          ? service.price.toNumber()
+          : Number(service.price || 0);
       const originalPrice = price * service.quantity;
       const adjustedPrice = itemAdjustments[index] ?? originalPrice;
       subtotal += adjustedPrice;
     });
-    
+
     // Add order-level adjustment if any
     if (showOrderAdjustment && orderAdjustment.amount !== 0) {
       subtotal += orderAdjustment.amount;
     }
-    
+
     return subtotal;
   }, [selectedServices, itemAdjustments, showOrderAdjustment, orderAdjustment]);
 
-
-
   const handleCreateOrder = async () => {
     if (!selectedServices.length) return;
-    
+
     // Open payment dialog immediately - it will handle order creation
     setPaymentDialogOpen(true);
   };
@@ -124,33 +147,33 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setPaymentDialogOpen(false);
 
     // Notify lock screen of completed payment
-    window.dispatchEvent(new CustomEvent('payment:completed'));
-    
+    window.dispatchEvent(new CustomEvent("payment:completed"));
+
     // Show confirmation toast with customer name and total
-    const customerName = isWalkIn ? 'Walk-in Customer' : (
-      selectedCustomer?.name || 
-      `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim() ||
-      'Customer'
-    );
-    
+    const customerName = isWalkIn
+      ? "Walk-in Customer"
+      : selectedCustomer?.name ||
+        `${selectedCustomer?.firstName || ""} ${selectedCustomer?.lastName || ""}`.trim() ||
+        "Customer";
+
     const totalAmount = updatedOrder?.totalAmount || total;
-    
+
     toast({
       title: "Quick sale complete",
       description: `Quick sale complete for ${customerName} for $${totalAmount.toFixed(2)}`,
       duration: 2500,
     });
-    
+
     onSaleComplete();
     onClose();
-    
+
     // Reset state
     setSelectedServices([]);
     setSelectedCustomer(null);
     setOrder(null);
     setIsWalkIn(false);
     setItemAdjustments({});
-    setOrderAdjustment({ amount: 0, reason: '' });
+    setOrderAdjustment({ amount: 0, reason: "" });
     setShowOrderAdjustment(false);
   };
 
@@ -158,7 +181,9 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     <div className="space-y-6">
       {/* Customer Section */}
       <div>
-        <Label className="text-sm font-medium text-gray-700 mb-2 block">Customer</Label>
+        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+          Customer
+        </Label>
         {selectedCustomer || isWalkIn ? (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -171,13 +196,15 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
               </div>
               <div>
                 <p className="font-medium text-gray-900">
-                  {isWalkIn ? 'Walk-in Customer' : (
-                    selectedCustomer?.name || 
-                    `${selectedCustomer?.firstName || ''} ${selectedCustomer?.lastName || ''}`.trim()
-                  )}
+                  {isWalkIn
+                    ? "Walk-in Customer"
+                    : selectedCustomer?.name ||
+                      `${selectedCustomer?.firstName || ""} ${selectedCustomer?.lastName || ""}`.trim()}
                 </p>
                 {!isWalkIn && selectedCustomer?.phone && (
-                  <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedCustomer.phone}
+                  </p>
                 )}
               </div>
             </div>
@@ -204,9 +231,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       {/* Services Section */}
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-2 block">
-          Services {selectedServices.length > 0 && `(${selectedServices.length})`}
+          Services{" "}
+          {selectedServices.length > 0 && `(${selectedServices.length})`}
         </Label>
-        
+
         {/* Selected services list */}
         {selectedServices.length === 0 ? (
           <Button
@@ -219,154 +247,185 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
           </Button>
         ) : (
           <div className="space-y-3">
-          <div className="space-y-2">
-            {selectedServices.map((service, index) => {
-              const price = typeof service.price === 'object' && service.price.toNumber 
-                ? service.price.toNumber() 
-                : Number(service.price || 0);
-              const originalPrice = price * service.quantity;
-              const adjustedPrice = itemAdjustments[index] ?? originalPrice;
-              const difference = adjustedPrice - originalPrice;
-              
-              return (
-                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-                  {/* Service Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{service.name}</h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        ${price.toFixed(2)} × {service.quantity} = ${originalPrice.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-gray-900">
-                          ${adjustedPrice.toFixed(2)}
-                        </div>
-                        {difference !== 0 && (
-                          <div className={cn(
-                            "text-xs",
-                            difference < 0 ? "text-green-600" : "text-red-600"
-                          )}>
-                            {difference < 0 ? '-' : '+'}${Math.abs(difference).toFixed(2)}
-                          </div>
-                        )}
+            <div className="space-y-2">
+              {selectedServices.map((service, index) => {
+                const price =
+                  typeof service.price === "object" && service.price.toNumber
+                    ? service.price.toNumber()
+                    : Number(service.price || 0);
+                const originalPrice = price * service.quantity;
+                const adjustedPrice = itemAdjustments[index] ?? originalPrice;
+                const difference = adjustedPrice - originalPrice;
+
+                return (
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-lg p-4 space-y-3"
+                  >
+                    {/* Service Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {service.name}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          ${price.toFixed(2)} × {service.quantity} = $
+                          {originalPrice.toFixed(2)}
+                        </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRemoveService(index)}
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="text-lg font-semibold text-gray-900">
+                            ${adjustedPrice.toFixed(2)}
+                          </div>
+                          {difference !== 0 && (
+                            <div
+                              className={cn(
+                                "text-xs",
+                                difference < 0
+                                  ? "text-green-600"
+                                  : "text-red-600",
+                              )}
+                            >
+                              {difference < 0 ? "-" : "+"}$
+                              {Math.abs(difference).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRemoveService(index)}
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Controls Row */}
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            handleQuantityChange(
+                              index,
+                              Math.max(1, service.quantity - 1),
+                            )
+                          }
+                          className="h-7 w-7 p-0"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">
+                          {service.quantity}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            handleQuantityChange(index, service.quantity + 1)
+                          }
+                          className="h-7 w-7 p-0"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Staff Selector */}
+                      <select
+                        value={service.staffId}
+                        onChange={(e) =>
+                          handleStaffChange(index, e.target.value)
+                        }
+                        className="text-sm px-2 py-1.5 border rounded-md bg-white"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        {staff.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Price Adjustments */}
+                      <div className="flex items-center gap-1 ml-auto">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments((prev) => ({
+                              ...prev,
+                              [index]: Math.max(
+                                0,
+                                (prev[index] || originalPrice) - 5,
+                              ),
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          -$5
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments((prev) => ({
+                              ...prev,
+                              [index]: Math.max(
+                                0,
+                                (prev[index] || originalPrice) - 1,
+                              ),
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          -$1
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments((prev) => ({
+                              ...prev,
+                              [index]: (prev[index] || originalPrice) + 1,
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          +$1
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setItemAdjustments((prev) => ({
+                              ...prev,
+                              [index]: (prev[index] || originalPrice) + 5,
+                            }));
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          +$5
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Controls Row */}
-                  <div className="flex items-center gap-2 pt-2 border-t">
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleQuantityChange(index, Math.max(1, service.quantity - 1))}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm font-medium">{service.quantity}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleQuantityChange(index, service.quantity + 1)}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Staff Selector */}
-                    <select
-                      value={service.staffId}
-                      onChange={(e) => handleStaffChange(index, e.target.value)}
-                      className="text-sm px-2 py-1.5 border rounded-md bg-white"
-                    >
-                      {staff.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                    
-                    {/* Price Adjustments */}
-                    <div className="flex items-center gap-1 ml-auto">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setItemAdjustments(prev => ({
-                            ...prev,
-                            [index]: Math.max(0, (prev[index] || originalPrice) - 5)
-                          }));
-                        }}
-                        className="h-7 px-2 text-xs"
-                      >
-                        -$5
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setItemAdjustments(prev => ({
-                            ...prev,
-                            [index]: Math.max(0, (prev[index] || originalPrice) - 1)
-                          }));
-                        }}
-                        className="h-7 px-2 text-xs"
-                      >
-                        -$1
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setItemAdjustments(prev => ({
-                            ...prev,
-                            [index]: (prev[index] || originalPrice) + 1
-                          }));
-                        }}
-                        className="h-7 px-2 text-xs"
-                      >
-                        +$1
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setItemAdjustments(prev => ({
-                            ...prev,
-                            [index]: (prev[index] || originalPrice) + 5
-                          }));
-                        }}
-                        className="h-7 px-2 text-xs"
-                      >
-                        +$5
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Add More Services Button */}
-          <Button
-            onClick={() => setShowServiceModal(true)}
-            variant="outline"
-            className="w-full"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Service
-          </Button>
+                );
+              })}
+            </div>
+
+            {/* Add More Services Button */}
+            <Button
+              onClick={() => setShowServiceModal(true)}
+              variant="outline"
+              className="w-full"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Service
+            </Button>
           </div>
         )}
       </div>
@@ -374,28 +433,42 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       {/* Order Adjustments */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-sm font-medium text-gray-700">Order Adjustment</Label>
+          <Label className="text-sm font-medium text-gray-700">
+            Order Adjustment
+          </Label>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setShowOrderAdjustment(!showOrderAdjustment)}
             className="h-8 px-2"
           >
-            {showOrderAdjustment ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showOrderAdjustment ? (
+              <Minus className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
           </Button>
         </div>
-        
+
         {showOrderAdjustment && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <Label htmlFor="order-adjustment-amount" className="text-sm text-gray-600 w-16">
+              <Label
+                htmlFor="order-adjustment-amount"
+                className="text-sm text-gray-600 w-16"
+              >
                 Amount:
               </Label>
               <div className="flex items-center gap-1 flex-1">
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 5 }))}
+                  onClick={() =>
+                    setOrderAdjustment((prev) => ({
+                      ...prev,
+                      amount: prev.amount - 5,
+                    }))
+                  }
                   className="h-7 px-2 text-xs"
                 >
                   -$5
@@ -403,7 +476,12 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount - 1 }))}
+                  onClick={() =>
+                    setOrderAdjustment((prev) => ({
+                      ...prev,
+                      amount: prev.amount - 1,
+                    }))
+                  }
                   className="h-7 px-2 text-xs"
                 >
                   -$1
@@ -414,10 +492,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                     id="order-adjustment-amount"
                     type="number"
                     step="0.01"
-                    value={orderAdjustment.amount || ''}
+                    value={orderAdjustment.amount || ""}
                     onChange={(e) => {
                       const amount = parseFloat(e.target.value) || 0;
-                      setOrderAdjustment(prev => ({ ...prev, amount }));
+                      setOrderAdjustment((prev) => ({ ...prev, amount }));
                     }}
                     placeholder="0.00"
                     className="h-8 text-sm"
@@ -426,7 +504,12 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 1 }))}
+                  onClick={() =>
+                    setOrderAdjustment((prev) => ({
+                      ...prev,
+                      amount: prev.amount + 1,
+                    }))
+                  }
                   className="h-7 px-2 text-xs"
                 >
                   +$1
@@ -434,7 +517,12 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setOrderAdjustment(prev => ({ ...prev, amount: prev.amount + 5 }))}
+                  onClick={() =>
+                    setOrderAdjustment((prev) => ({
+                      ...prev,
+                      amount: prev.amount + 5,
+                    }))
+                  }
                   className="h-7 px-2 text-xs"
                 >
                   +$5
@@ -442,24 +530,37 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Label htmlFor="order-adjustment-reason" className="text-sm text-gray-600 w-16">
+              <Label
+                htmlFor="order-adjustment-reason"
+                className="text-sm text-gray-600 w-16"
+              >
                 Reason:
               </Label>
               <Input
                 id="order-adjustment-reason"
                 type="text"
                 value={orderAdjustment.reason}
-                onChange={(e) => setOrderAdjustment(prev => ({ ...prev, reason: e.target.value }))}
+                onChange={(e) =>
+                  setOrderAdjustment((prev) => ({
+                    ...prev,
+                    reason: e.target.value,
+                  }))
+                }
                 placeholder="e.g., Loyalty discount, First-time customer..."
                 className="h-8 text-sm flex-1"
               />
             </div>
             {orderAdjustment.amount !== 0 && (
-              <div className={cn(
-                "text-sm text-center",
-                orderAdjustment.amount < 0 ? "text-green-600" : "text-red-600"
-              )}>
-                {orderAdjustment.amount < 0 ? 'Discount' : 'Surcharge'}: ${Math.abs(orderAdjustment.amount).toFixed(2)}
+              <div
+                className={cn(
+                  "text-sm text-center",
+                  orderAdjustment.amount < 0
+                    ? "text-green-600"
+                    : "text-red-600",
+                )}
+              >
+                {orderAdjustment.amount < 0 ? "Discount" : "Surcharge"}: $
+                {Math.abs(orderAdjustment.amount).toFixed(2)}
               </div>
             )}
           </div>
@@ -468,23 +569,24 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     </div>
   );
 
-
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className={cn(
           "fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )} 
-        onClick={onClose} 
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+        )}
+        onClick={onClose}
       />
-      
+
       {/* Slideout */}
-      <div className={cn(
-        "fixed inset-y-0 right-0 flex max-w-full pl-10 transform transition-transform z-50",
-        isOpen ? "translate-x-0" : "translate-x-full"
-      )}>
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 flex max-w-full pl-10 transform transition-transform z-50",
+          isOpen ? "translate-x-0" : "translate-x-full",
+        )}
+      >
         <div className="pointer-events-auto relative w-screen max-w-lg">
           <div className="flex h-full flex-col bg-white shadow-xl">
             {/* Header */}
@@ -517,11 +619,15 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                   <span className="font-semibold">Total</span>
                   <span className="font-bold">${total.toFixed(2)}</span>
                 </div>
-                
+
                 {/* Action Button */}
                 <Button
                   onClick={handleCreateOrder}
-                  disabled={loading || selectedServices.length === 0 || (!selectedCustomer && !isWalkIn)}
+                  disabled={
+                    loading ||
+                    selectedServices.length === 0 ||
+                    (!selectedCustomer && !isWalkIn)
+                  }
                   className="w-full bg-teal-600 hover:bg-teal-700"
                   size="lg"
                 >
@@ -531,7 +637,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
                       Creating...
                     </>
                   ) : (
-                    'Create Order & Pay'
+                    "Create Order & Pay"
                   )}
                 </Button>
               </div>

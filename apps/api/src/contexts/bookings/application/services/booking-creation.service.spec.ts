@@ -210,8 +210,8 @@ describe("BookingCreationService", () => {
         firstName: "John",
         lastName: "Doe",
       });
-        mockTransaction.staff.findMany.mockResolvedValue([]);
-        mockTransaction.scheduleOverride.findMany.mockResolvedValue([]);
+      mockTransaction.staff.findMany.mockResolvedValue([]);
+      mockTransaction.scheduleOverride.findMany.mockResolvedValue([]);
       mockTransaction.merchantHoliday.findFirst.mockResolvedValue(null);
       mockTransaction.$queryRaw.mockResolvedValue(undefined);
 
@@ -232,11 +232,11 @@ describe("BookingCreationService", () => {
 
       const startTime = createDateTime(11, 0); // 11:00 AM Monday
 
-        const result = await service.createBooking({
-          merchantId,
-          staffId,
-          customerId,
-          serviceId,
+      const result = await service.createBooking({
+        merchantId,
+        staffId,
+        customerId,
+        serviceId,
         startTime,
         source: "MERCHANT_APP",
         createdById,
@@ -614,7 +614,9 @@ describe("BookingCreationService", () => {
             source: "ONLINE",
             createdById,
           }),
-        ).rejects.toThrow("No unassigned capacity remaining for this time slot.");
+        ).rejects.toThrow(
+          "No unassigned capacity remaining for this time slot.",
+        );
 
         expect(bookingRepository.save).not.toHaveBeenCalled();
       });

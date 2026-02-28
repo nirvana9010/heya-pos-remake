@@ -1,13 +1,15 @@
 # System Fragility Analysis - Heya POS
 
 ## Executive Summary
+
 The application is experiencing critical stability issues where almost every feature update results in errors. This document analyzes the root causes and provides a comprehensive refactoring plan.
 
 ## 🚨 Critical Issues Identified
 
 ### 1. **Authentication & Session Management**
+
 - **Problem**: Token expiration, refresh logic, and authentication state are fragile
-- **Symptoms**: 
+- **Symptoms**:
   - Random 401 errors
   - Token refresh failures
   - Lost authentication state on page refresh
@@ -19,6 +21,7 @@ The application is experiencing critical stability issues where almost every fea
   - No proper session persistence
 
 ### 2. **Type Safety & API Contract Mismatches**
+
 - **Problem**: Frontend and backend types don't match
 - **Symptoms**:
   - Runtime errors accessing undefined properties
@@ -30,6 +33,7 @@ The application is experiencing critical stability issues where almost every fea
   - PostgreSQL type conversions not handled consistently
 
 ### 3. **Error Handling**
+
 - **Problem**: Errors cascade instead of being contained
 - **Symptoms**:
   - One small error crashes entire pages
@@ -42,6 +46,7 @@ The application is experiencing critical stability issues where almost every fea
   - Console.error instead of user-friendly messages
 
 ### 4. **Build & Development Environment**
+
 - **Problem**: Webpack errors, chunk loading failures
 - **Symptoms**:
   - ChunkLoadError on page loads
@@ -54,6 +59,7 @@ The application is experiencing critical stability issues where almost every fea
   - Inconsistent build configurations
 
 ### 5. **State Management**
+
 - **Problem**: Component state is fragile and inconsistent
 - **Symptoms**:
   - "Loading data..." that never resolves
@@ -66,6 +72,7 @@ The application is experiencing critical stability issues where almost every fea
   - Multiple sources of truth
 
 ### 6. **API Client Issues**
+
 - **Problem**: API client is overly complex and brittle
 - **Symptoms**:
   - Version prefix confusion (v1/v2)
@@ -78,6 +85,7 @@ The application is experiencing critical stability issues where almost every fea
   - Version management logic is fragile
 
 ### 7. **Component Architecture**
+
 - **Problem**: Components are tightly coupled and have poor boundaries
 - **Symptoms**:
   - Parent and child components both checking same conditions
@@ -90,6 +98,7 @@ The application is experiencing critical stability issues where almost every fea
   - Business logic mixed with presentation
 
 ### 8. **Database & ORM Issues**
+
 - **Problem**: Prisma queries and data models cause runtime errors
 - **Symptoms**:
   - Payment vs OrderPayment confusion
@@ -106,6 +115,7 @@ The application is experiencing critical stability issues where almost every fea
 ### Phase 1: Stabilize Core Infrastructure (Week 1)
 
 #### 1.1 Error Handling System
+
 ```typescript
 // Create global error boundary
 // apps/merchant-app/src/components/error-boundary.tsx
@@ -121,6 +131,7 @@ export function handleApiError(error: any): UserFriendlyError {
 ```
 
 #### 1.2 Shared Type System
+
 ```typescript
 // packages/shared/src/types/api.ts
 // Generate types from Prisma schema
@@ -128,30 +139,34 @@ export function handleApiError(error: any): UserFriendlyError {
 ```
 
 #### 1.3 Centralized Auth Provider
+
 ```typescript
 // packages/shared/src/auth/auth-provider.tsx
 export const AuthProvider: FC = ({ children }) => {
   // Single source of truth for auth
   // Handle token refresh automatically
   // Persist session properly
-}
+};
 ```
 
 ### Phase 2: Fix Data Flow (Week 2)
 
 #### 2.1 API Client Refactor
+
 - Split into smaller, focused modules
 - Remove debug logging to non-existent endpoints
 - Simplify version management
 - Add request/response validation
 
 #### 2.2 State Management
+
 - Implement proper data fetching patterns
 - Add loading and error states consistently
 - Use React Query or SWR for server state
 - Add proper cleanup in useEffect
 
 #### 2.3 Component Refactor
+
 - Create proper component boundaries
 - Remove over-defensive checks
 - Implement proper prop types
@@ -160,12 +175,14 @@ export const AuthProvider: FC = ({ children }) => {
 ### Phase 3: Build System Improvements (Week 3)
 
 #### 3.1 Development Environment
+
 - Standardize Node/npm versions
 - Fix webpack configurations
 - Add proper environment variables
 - Create development setup script
 
 #### 3.2 Testing Infrastructure
+
 - Add unit tests for critical paths
 - Integration tests for API endpoints
 - E2E tests for user flows
@@ -174,12 +191,14 @@ export const AuthProvider: FC = ({ children }) => {
 ### Phase 4: Database & Backend (Week 4)
 
 #### 4.1 Database Layer
+
 - Add validation at database level
 - Fix type conversions
 - Add proper migrations
 - Create seed data that works
 
 #### 4.2 API Improvements
+
 - Add request validation
 - Standardize error responses
 - Add API documentation
@@ -188,30 +207,35 @@ export const AuthProvider: FC = ({ children }) => {
 ## 📋 Implementation Checklist
 
 ### Immediate Actions (Today)
+
 - [ ] Add error boundaries to all pages
 - [ ] Fix authentication token management
 - [ ] Create shared types package
 - [ ] Remove debug API calls
 
 ### Short Term (This Week)
+
 - [ ] Implement centralized auth provider
 - [ ] Add proper error handling
 - [ ] Fix type mismatches
 - [ ] Stabilize build system
 
 ### Medium Term (Next 2 Weeks)
+
 - [ ] Refactor API client
 - [ ] Implement state management
 - [ ] Add testing infrastructure
 - [ ] Fix component architecture
 
 ### Long Term (Month)
+
 - [ ] Complete database refactor
 - [ ] Add monitoring/logging
 - [ ] Performance optimization
 - [ ] Production deployment prep
 
 ## 🎯 Success Metrics
+
 - Zero runtime errors in normal usage
 - All API calls have proper error handling
 - Authentication works reliably
@@ -220,6 +244,7 @@ export const AuthProvider: FC = ({ children }) => {
 - 90%+ uptime in production
 
 ## 🚀 Next Steps
+
 1. Start with error boundaries (highest impact, lowest effort)
 2. Fix authentication (critical for user experience)
 3. Add type safety (prevents future issues)

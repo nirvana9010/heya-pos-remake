@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 interface UsePageDataOptions<T> {
   loadFn: () => Promise<T>;
@@ -6,7 +6,11 @@ interface UsePageDataOptions<T> {
   delay?: number;
 }
 
-export function usePageData<T>({ loadFn, deps = [], delay = 0 }: UsePageDataOptions<T>) {
+export function usePageData<T>({
+  loadFn,
+  deps = [],
+  delay = 0,
+}: UsePageDataOptions<T>) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -16,16 +20,16 @@ export function usePageData<T>({ loadFn, deps = [], delay = 0 }: UsePageDataOpti
     try {
       setLoading(true);
       setError(null);
-      
+
       // Add artificial delay to prevent flash of loading state
       if (delay > 0 && isInitialLoad) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-      
+
       const result = await loadFn();
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load data'));
+      setError(err instanceof Error ? err : new Error("Failed to load data"));
     } finally {
       setLoading(false);
       setIsInitialLoad(false);

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { TimezoneUtils } from '@heya-pos/utils';
-import { useMerchant } from './merchant-context';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { TimezoneUtils } from "@heya-pos/utils";
+import { useMerchant } from "./merchant-context";
 
 interface TimezoneContextType {
   merchantTimezone: string;
@@ -14,20 +14,24 @@ interface TimezoneContextType {
   getCurrentTimezoneAbbr: (timezone: string) => string;
 }
 
-const TimezoneContext = createContext<TimezoneContextType | undefined>(undefined);
+const TimezoneContext = createContext<TimezoneContextType | undefined>(
+  undefined,
+);
 
 export const useTimezone = () => {
   const context = useContext(TimezoneContext);
   if (!context) {
-    throw new Error('useTimezone must be used within a TimezoneProvider');
+    throw new Error("useTimezone must be used within a TimezoneProvider");
   }
   return context;
 };
 
-export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { merchant } = useMerchant();
-  const [merchantTimezone, setMerchantTimezone] = useState('Australia/Sydney');
-  const [userTimezone, setUserTimezone] = useState('Australia/Sydney');
+  const [merchantTimezone, setMerchantTimezone] = useState("Australia/Sydney");
+  const [userTimezone, setUserTimezone] = useState("Australia/Sydney");
   const [loading, setLoading] = useState(true);
 
   // Load timezone from merchant context
@@ -42,7 +46,7 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (userTz) {
       setUserTimezone(userTz);
     }
-    
+
     setLoading(false);
   }, [merchant]);
 
@@ -56,12 +60,13 @@ export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getTimezoneOffset = (timezone: string) => {
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
-      timeZoneName: 'short'
+      timeZoneName: "short",
     });
     const parts = formatter.formatToParts(now);
-    const tzName = parts.find(part => part.type === 'timeZoneName')?.value || '';
+    const tzName =
+      parts.find((part) => part.type === "timeZoneName")?.value || "";
     return tzName;
   };
 

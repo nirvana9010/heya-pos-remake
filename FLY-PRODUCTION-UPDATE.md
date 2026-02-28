@@ -3,9 +3,9 @@
 ## ✅ Migration Status
 
 1. **Fly.io PostgreSQL Created**: `heya-pos-db` in Sydney region
-2. **Data Migrated**: 
+2. **Data Migrated**:
    - 3 Packages
-   - 8 Merchants  
+   - 8 Merchants
    - 188 Customers
    - 44 Staff
    - 373 Outbox Events
@@ -73,6 +73,7 @@ curl https://heya-pos-api.fly.dev/api/v1/auth/health
 ## 🔄 Rollback Plan (if needed)
 
 If you need to rollback to DigitalOcean:
+
 ```bash
 /home/lukas/.fly/bin/flyctl secrets set DATABASE_URL='postgresql://[DIGITALOCEAN-USER]:[DIGITALOCEAN-PASSWORD]@[DIGITALOCEAN-HOST]:25060/defaultdb?sslmode=require' -a heya-pos-api
 ```

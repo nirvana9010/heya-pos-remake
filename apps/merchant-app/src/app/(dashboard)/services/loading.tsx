@@ -1,4 +1,4 @@
-import { Skeleton, TableSkeleton } from '@heya-pos/ui'
+import { Skeleton, TableSkeleton } from "@heya-pos/ui";
 
 export default function ServicesLoading() {
   return (
@@ -24,5 +24,5 @@ export default function ServicesLoading() {
         </div>
       </div>
     </div>
-  )
+  );
 }

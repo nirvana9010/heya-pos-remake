@@ -91,7 +91,8 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
+      const customerPhone =
+        booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -331,7 +332,8 @@ export class NotificationEventHandler {
     const shouldSendSms = merchantSettings?.bookingConfirmationSms !== false;
 
     if (booking.status === "CONFIRMED" && (shouldSendEmail || shouldSendSms)) {
-      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
+      const customerPhone =
+        booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -455,7 +457,8 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
+      const customerPhone =
+        booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -707,7 +710,8 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
+      const customerPhone =
+        booking.customer?.mobile || booking.customer?.phone || "";
       const context = {
         booking: {
           id: booking.id,
@@ -913,7 +917,8 @@ export class NotificationEventHandler {
           ? `${booking.customer.firstName} ${booking.customer.lastName}`.trim()
           : booking.customer.firstName || booking.customer.email || "Customer"
         : "Customer";
-      const customerPhone = booking.customer?.mobile || booking.customer?.phone || "";
+      const customerPhone =
+        booking.customer?.mobile || booking.customer?.phone || "";
 
       const merchantSettings = booking.merchant.settings as any;
 

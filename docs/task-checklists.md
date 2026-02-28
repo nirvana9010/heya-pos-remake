@@ -3,15 +3,18 @@
 ## 🔥🔥🔥 CATASTROPHIC: DUPLICATE AUTH SYSTEM CHECK - DO THIS FIRST WHEN DEBUGGING
 
 ### ⚠️ SYMPTOMS: Changes Not Appearing Despite Successful Compilation
+
 If you experience ANY of these symptoms, CHECK FOR DUPLICATE AUTH IMMEDIATELY:
+
 - ✅ Changes work on test pages
-- ❌ Same changes don't appear on production pages  
+- ❌ Same changes don't appear on production pages
 - ✅ Code compiles successfully
 - ❌ Browser shows old version
 - ✅ Console logs work in test environment
 - ❌ Console logs missing in production
 
 ### IMMEDIATE DEBUGGING CHECKLIST:
+
 ```bash
 # 1. CHECK FOR DUPLICATE AUTH SYSTEMS - DO THIS FIRST!
 echo "=== Checking for duplicate auth systems ==="
@@ -31,19 +34,23 @@ grep -n "useAuth" apps/merchant-app/src/components/BookingSlideOut.tsx
 ```
 
 ### THE GOLDEN RULE:
+
 **THERE CAN BE ONLY ONE AUTH SYSTEM**
+
 - Location: `/apps/merchant-app/src/lib/auth/auth-provider.tsx`
 - NEVER create auth in `/hooks` directory
 - NEVER create duplicate auth "for testing"
 - If component needs auth, import from the ONE TRUE AUTH
 
 ### Why This Is CATASTROPHIC:
+
 - Creates separate React component trees
 - Test pages and production pages can't communicate
 - No amount of cache clearing will fix it
 - User will waste HOURS debugging the wrong thing
 
 ### User Quote from The Incident:
+
 > "why did you create a new fucking auth when we already have one"
 
 This single mistake caused an entire day of wasted debugging.
@@ -51,16 +58,19 @@ This single mistake caused an entire day of wasted debugging.
 ## 🔥 CRITICAL: BEFORE MODIFYING ANY API CLIENT
 
 ### ⚠️ API Base URL Check (PREVENTS BREAKING LOGIN)
+
 **File**: `/apps/merchant-app/src/lib/clients/base-client.ts`
 
 ```typescript
 // ALWAYS verify this line FIRST:
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 //                                                                            ^^^^
 //                                                         MUST include /api path!
 ```
 
 ### Test BEFORE Making Changes:
+
 ```bash
 # 1. Test current login works
 curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
@@ -72,6 +82,7 @@ curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
 ```
 
 ### Common Mistakes That Break Everything:
+
 - ❌ Removing `/api` from base URL
 - ❌ Adding version to base URL (like `/api/v1`)
 - ❌ Changing URL structure without testing
@@ -80,14 +91,17 @@ curl -X POST http://localhost:3000/api/v1/auth/merchant/login \
 ## 🚀 SERVICE MANAGEMENT: Starting/Restarting Services
 
 ### API Service (Port 3000)
+
 **CRITICAL**: `npm run start:dev` runs in watch mode - it NEVER exits!
 
 #### ❌ WRONG Way (Wastes 2 minutes):
+
 ```bash
 cd apps/api && npm run start:dev  # Will timeout waiting for exit
 ```
 
 #### ✅ CORRECT Way:
+
 ```bash
 # 1. Kill existing process (if any)
 pkill -f "nest start" || true
@@ -103,6 +117,7 @@ curl http://localhost:3000/api/v1/health
 ```
 
 ### Merchant App (Port 3002)
+
 ```bash
 pkill -f "next dev.*3002" || true
 cd apps/merchant-app && npm run dev > /tmp/merchant.log 2>&1 &
@@ -111,6 +126,7 @@ curl http://localhost:3002
 ```
 
 ### When to Restart Services:
+
 - ✅ After installing new npm packages
 - ✅ After changing .env files
 - ✅ After modifying Prisma schema
@@ -118,6 +134,7 @@ curl http://localhost:3002
 - ❌ NOT for adding endpoints (auto-reloads)
 
 ### Check What's Running:
+
 ```bash
 # See all Node.js processes
 ps aux | grep -E "node|nest|next" | grep -v grep
@@ -130,6 +147,7 @@ lsof -i :3002  # Merchant app
 ## 🚨 QUICK FIX: Common Prisma Database Errors
 
 ### "Column does not exist" Error
+
 ```bash
 # This means schema.prisma and database are out of sync
 cd apps/api
@@ -139,6 +157,7 @@ npx prisma migrate dev --name fix_missing_columns  # Proper fix with migration
 ```
 
 ### "Table does not exist" Error
+
 ```bash
 # Database is missing tables entirely
 cd apps/api
@@ -148,6 +167,7 @@ npx prisma migrate reset  # ⚠️ DELETES ALL DATA
 ```
 
 ### After ANY schema.prisma change:
+
 1. `npx prisma generate` - Update TypeScript types
 2. `npx prisma migrate dev --name what_changed` - Update database
 3. Restart API if needed
@@ -158,8 +178,9 @@ Before doing ANYTHING else:
 
 1. **READ** the task/request carefully
 2. **IDENTIFY** which checklist(s) apply:
+
    - New Feature → NEW FEATURE CHECKLIST
-   - Something broken → DEBUGGING/FIXING CHECKLIST  
+   - Something broken → DEBUGGING/FIXING CHECKLIST
    - Test something → TESTING CHECKLIST
    - Improve code → REFACTORING CHECKLIST
    - Import data → DATA MIGRATION/IMPORT CHECKLIST
@@ -168,8 +189,9 @@ Before doing ANYTHING else:
    - Multiple issues → EMERGENCY CHECKLIST
 
 3. **CONFIRM** your approach:
+
    ```
-   "I'll use the [CHECKLIST NAME] for this task. 
+   "I'll use the [CHECKLIST NAME] for this task.
    The first phase is [PHASE 1 NAME] where I'll [brief description]."
    ```
 
@@ -180,6 +202,7 @@ Before doing ANYTHING else:
 ### For Complex Tasks Requiring Multiple Checklists:
 
 If a task requires multiple checklists, state the order:
+
 ```
 "This task requires multiple checklists:
 1. First: DEBUGGING CHECKLIST to understand the current issue
@@ -192,11 +215,12 @@ Starting with the DEBUGGING CHECKLIST, Phase 1: Understand the Problem..."
 **IMPORTANT**: You MUST complete each checklist item IN ORDER before proceeding. Check off each item as you complete it.
 
 ### Example Response:
+
 ```
 User: "The booking calendar isn't showing staff availability correctly"
 
 Claude Code: "I'll use the DEBUGGING/FIXING CHECKLIST for this task.
-The first phase is 'Understand the Problem' where I'll read error messages, 
+The first phase is 'Understand the Problem' where I'll read error messages,
 check running services, and investigate the issue systematically.
 
 Before making ANY changes, I'll:
@@ -206,7 +230,7 @@ Before making ANY changes, I'll:
 
 Phase 1 checklist:
 - Read the complete error message
-- Identify error type  
+- Identify error type
 - Check if services are running
 - Note exact file and line number
 
@@ -216,6 +240,7 @@ Shall I proceed?"
 ## 🚨 CRITICAL SAFETY RULES
 
 ### Before EVERY Code Change:
+
 1. **FIND DEPENDENCIES**: `grep -r "WhatYoureChanging" --include="*.ts" --include="*.tsx"`
 2. **TEST BEFORE**: Verify current functionality works
 3. **CHANGE SMALL**: One file, one method at a time
@@ -223,6 +248,7 @@ Shall I proceed?"
 5. **CHECK WIDELY**: If changing shared code, test 3+ features that use it
 
 ### RED FLAGS - STOP and RECONSIDER:
+
 - About to change a model/schema used by multiple services
 - Modifying a base class or shared utility
 - Changing authentication/authorization logic
@@ -231,6 +257,7 @@ Shall I proceed?"
 - Modifying anything with 10+ imports
 
 ### When You See These Patterns:
+
 ```typescript
 // If you see this in a file:
 export class BaseService { }  // STOP - this affects ALL services
@@ -269,13 +296,14 @@ interface UserV2 extends User {
 return { user: userData } → return { data: userData }
 
 // ✅ GOOD: Support both during transition
-return { 
+return {
   user: userData,  // Keep for backward compatibility
   data: userData   // New format
 }
 ```
 
 ### Before ANY Model/Schema Change:
+
 1. Count usages: `grep -r "ModelName" --include="*.ts" | wc -l`
 2. If > 5 usages, create new version instead
 3. Run ALL tests, not just related ones
@@ -286,6 +314,7 @@ return {
 ### If Unsure Which Checklist:
 
 If the task doesn't clearly fit one checklist:
+
 1. **ASK**: "This task could use [Checklist A] or [Checklist B]. Which would you prefer?"
 2. **DEFAULT**: When truly ambiguous, start with DEBUGGING CHECKLIST to understand current state
 3. **COMBINE**: State if multiple checklists are needed and in what order
@@ -298,6 +327,7 @@ When asked to implement a new feature:
 
 ```markdown
 ### PHASE 1: INVESTIGATION (No coding yet!)
+
 - [ ] Search for similar existing features: `grep -r "similar_feature" --include="*.ts"`
 - [ ] Identify the pattern used: Controller → Service → Repository/Database
 - [ ] Find the database models involved: `grep "model ModelName" prisma/schema.prisma`
@@ -305,11 +335,13 @@ When asked to implement a new feature:
 - [ ] Note authentication method used: Look for `@UseGuards()` decorators
 
 ### PHASE 2: PLANNING
+
 - [ ] Write out the data flow: Request → Auth → Validation → Business Logic → Response
 - [ ] List all files you'll need to create/modify
 - [ ] Identify potential conflicts or dependencies
 
 ### PHASE 3: IMPLEMENTATION
+
 - [ ] Before ANY change, identify what depends on this code: `grep -r "ClassName\|methodName" --include="*.ts"`
 - [ ] Create/modify database schema if needed
 - [ ] **Run `npx prisma generate` after schema changes**
@@ -326,6 +358,7 @@ When asked to implement a new feature:
 - [ ] Run one more test of existing functionality to ensure nothing broke
 
 ### PHASE 4: VERIFICATION
+
 - [ ] Test happy path
 - [ ] Test error cases
 - [ ] Check logs for warnings: `tail -50 logs/api.log | grep -i "warn\|error"`
@@ -336,21 +369,23 @@ When asked to implement a new feature:
 
 When something isn't working:
 
-```markdown
+````markdown
 ### ⚠️ STOP! BEFORE YOU WRITE ANY CODE:
+
 1. **Open Browser DevTools → Network Tab**
 2. **Reproduce the error**
 3. **Look at the actual request payload**
 4. **This takes 30 seconds and solves 50% of issues**
 
 ### PHASE 1: UNDERSTAND THE PROBLEM
+
 - [ ] Read the COMPLETE error message (not just the first line)
 - [ ] **LOG THE ACTUAL VALUES** - Error messages can be misleading!
   - [ ] If error says "must be X", log what's actually being passed
   - [ ] Example: "status: must be one of..." but status contained a UUID
   - [ ] Toast messages often reveal the real value: "Booking marked as [UUID]"
 - [ ] Identify error type: Compilation? Runtime? Logic? Network?
-- [ ] **CHECK BROWSER DEVTOOLS NETWORK TAB FIRST!** 
+- [ ] **CHECK BROWSER DEVTOOLS NETWORK TAB FIRST!**
   - [ ] Look at the actual URL being called
   - [ ] Check request headers and payload
   - [ ] **VERIFY PAYLOAD DATA TYPES** - Is each field the right type?
@@ -368,6 +403,7 @@ When something isn't working:
   - [ ] Don't fix files that aren't being loaded!
 
 ### PHASE 2: INVESTIGATE
+
 - [ ] Check recent changes: `git status` and `git diff`
 - [ ] **CHECK PARAMETER SIGNATURES MATCH**
   - [ ] Compare how caller invokes vs how handler expects params
@@ -395,6 +431,7 @@ When something isn't working:
 - [ ] Document what currently works vs what's broken
 
 ### PHASE 3: MINIMAL FIX
+
 - [ ] Identify ALL places that use the code you're about to change
 - [ ] Fix ONLY the immediate issue (no refactoring yet)
 - [ ] Test the specific failing case
@@ -405,16 +442,20 @@ When something isn't working:
 - [ ] If still broken after 2 attempts, try different approach
 
 ### PHASE 4: VERIFY & CLEANUP
+
 - [ ] Run the original failing operation
 - [ ] Test related functionality
 - [ ] Clean up any debug code
 - [ ] Document the fix if non-obvious
 
 ### 🚨 PROCESS MANAGEMENT (AVOID 2-HOUR DEBUGGING SESSIONS)
+
 - [ ] **CHECK WHAT'S ACTUALLY RUNNING FIRST**:
   ```bash
   ps aux | grep -E "node|next|nest" | grep -v grep
   ```
+````
+
 - [ ] **IDENTIFY SPECIFIC PROCESSES BY PORT**:
   ```bash
   lsof -ti:3000  # API
@@ -444,6 +485,7 @@ When something isn't working:
   - Don't try to restart while another is still starting
 
 ### 🔧 ENVIRONMENT VARIABLE DEBUGGING
+
 - [ ] **CHECK .env FILES BEFORE CHANGING CODE**:
   ```bash
   # Check all env files in the app
@@ -460,7 +502,8 @@ When something isn't working:
   1. Check if env variable overrides the code default
   2. Test with hardcoded value temporarily
   3. If that works, it's definitely an env issue
-```
+
+````
 
 ## 🧪 TESTING CHECKLIST
 
@@ -489,7 +532,7 @@ When asked to test functionality:
 - [ ] Include clear console output
 - [ ] Make it idempotent (can run multiple times)
 - [ ] Add to scripts/ directory
-```
+````
 
 ## 🔄 REFACTORING CHECKLIST
 
@@ -497,17 +540,20 @@ When improving existing code:
 
 ```markdown
 ### PHASE 1: ENSURE WORKING STATE
+
 - [ ] Verify current functionality works
 - [ ] Create simple test to verify behavior
 - [ ] Commit current working state: `git add . && git commit -m "Before refactor"`
 
 ### PHASE 2: INCREMENTAL CHANGES
+
 - [ ] Change one small thing
 - [ ] Run test to verify still works
 - [ ] Repeat for each change
 - [ ] Never change multiple things at once
 
 ### PHASE 3: CLEANUP
+
 - [ ] Remove old code
 - [ ] Update related documentation
 - [ ] Run full test suite
@@ -520,18 +566,21 @@ When importing or migrating data:
 
 ```markdown
 ### PHASE 1: UNDERSTAND DATA
+
 - [ ] Examine source data structure (first 5 rows)
 - [ ] Identify target database schema
 - [ ] Map fields from source to target
 - [ ] Note required transformations
 
 ### PHASE 2: VALIDATION SCRIPT
+
 - [ ] Create script that validates data WITHOUT importing
 - [ ] Check for required fields
 - [ ] Validate data types and formats
 - [ ] Report issues clearly
 
 ### PHASE 3: IMPORT PROCESS
+
 - [ ] Import 1 record first
 - [ ] Verify in database
 - [ ] Import 10 records
@@ -540,6 +589,7 @@ When importing or migrating data:
 - [ ] Log progress and errors
 
 ### PHASE 4: VERIFICATION
+
 - [ ] Count imported records
 - [ ] Spot check random samples
 - [ ] Test functionality with imported data
@@ -550,8 +600,9 @@ When importing or migrating data:
 
 When integrating with external or internal APIs:
 
-```markdown
+````markdown
 ### PHASE 1: API DISCOVERY
+
 - [ ] **INVESTIGATE FIRST - DO NOT ASSUME ENDPOINTS!**
   - [ ] Search for ACTUAL endpoint usage in codebase: `grep -r "endpoint_name" --include="*.ts"`
   - [ ] Check API client files for exact paths
@@ -563,40 +614,48 @@ When integrating with external or internal APIs:
 - [ ] Check for rate limits or restrictions
 
 ### PHASE 2: VERIFY BEFORE CODING
+
 - [ ] **TEST THE EXACT ENDPOINT YOU FOUND**:
   ```bash
   # Example: Don't assume /services/categories, verify it's actually /service-categories
   curl -X GET http://localhost:3000/api/v1/[ACTUAL_ENDPOINT] -H "Authorization: Bearer [token]"
   ```
+````
+
 - [ ] Confirm response structure matches expectations
 - [ ] Note any version prefix (v1, v2) requirements
 - [ ] Check if endpoint requires specific headers
 
 ### PHASE 3: MINIMAL INTEGRATION
+
 - [ ] Use the VERIFIED endpoint path from your investigation
 - [ ] Create simple service method
 - [ ] Handle basic errors (network, auth)
 - [ ] Log requests and responses
 
 ### PHASE 4: ROBUST INTEGRATION
+
 - [ ] Add proper error handling
 - [ ] Implement retry logic if appropriate
 - [ ] Add request/response typing
 - [ ] Cache responses if applicable
 
 ### PHASE 5: TESTING
+
 - [ ] Test success cases
 - [ ] Test failure cases (wrong auth, 404, 500)
 - [ ] Test timeout handling
 - [ ] Verify no sensitive data in logs
 
 ### 🚨 COMMON ENDPOINT MISTAKES TO AVOID:
+
 - ❌ Assuming plural when it's singular: `/services/categories` vs `/service-categories`
 - ❌ Missing version prefix: `/categories` vs `/v1/categories`
 - ❌ Wrong HTTP method: GET vs POST
 - ❌ Missing required headers or auth tokens
 - ✅ ALWAYS verify with actual API calls before coding!
-```
+
+````
 
 ## ⚡ PERFORMANCE ISSUE CHECKLIST
 
@@ -626,39 +685,44 @@ When addressing performance problems:
 - [ ] Test with realistic data volume
 - [ ] Check memory usage
 - [ ] Document optimization made
-```
+````
 
 ## 🔄 PARAMETER MISMATCH CHECKLIST
 
 When errors don't match reality (e.g., validation error but value seems correct):
 
-```markdown
+````markdown
 ### SIGNS OF PARAMETER MISMATCH
+
 - [ ] Error message doesn't match what you think you're sending
 - [ ] Validation says "must be X" but you're sending X
 - [ ] UUID or ID appears where string expected
 - [ ] Number appears where boolean expected
 
 ### DEBUGGING STEPS
+
 1. **LOG ACTUAL VALUES AT EVERY LAYER**
+
    ```typescript
    // In the component calling the handler
    console.log('Calling handler with:', param1, param2);
    onClick={() => handler(param1, param2)}
-   
+
    // In the handler itself
    const handler = (receivedParam1, receivedParam2) => {
      console.log('Handler received:', receivedParam1, receivedParam2);
    }
    ```
+````
 
 2. **CHECK SIGNATURES MATCH**
+
    ```typescript
    // BAD: Mismatch in parameters
    // Caller: onStatusChange(bookingId, status)
    // Handler: const handleStatusChange = (status) => {}
    // Result: bookingId gets passed as status!
-   
+
    // GOOD: Parameters match
    // Caller: onStatusChange(bookingId, status)
    // Handler: const handleStatusChange = (bookingId, status) => {}
@@ -671,22 +735,24 @@ When errors don't match reality (e.g., validation error but value seems correct)
    - Array methods passing index as second parameter
 
 ### REAL EXAMPLE FROM CODEBASE
+
 ```typescript
 // BookingActions called:
-onStatusChange(booking.id, "in-progress")
+onStatusChange(booking.id, "in-progress");
 
 // But BookingDetailsSlideOut had:
 const handleStatusChange = async (newStatus: string) => {
   // booking.id was received as newStatus!
   await onStatusChange(booking.id, newStatus);
-}
+};
 
 // Fix: Match the signature
 const handleStatusChange = async (bookingId: string, newStatus: string) => {
   await onStatusChange(bookingId, newStatus);
-}
+};
 ```
-```
+
+````
 
 ## ⚛️ REACT INFINITE LOOP CHECKLIST
 
@@ -709,12 +775,13 @@ When encountering "Maximum update depth exceeded" or performance issues:
   const handleClick = useCallback(() => {
     // handler logic
   }, [dependencies]);
-  ```
+````
+
 - [ ] Memoize derived data with `useMemo`:
   ```typescript
-  const processedData = useMemo(() => 
-    data.map(item => ({ ...item, processed: true })),
-    [data]
+  const processedData = useMemo(
+    () => data.map((item) => ({ ...item, processed: true })),
+    [data],
   );
   ```
 - [ ] Move default values outside component or use `useState`:
@@ -724,11 +791,13 @@ When encountering "Maximum update depth exceeded" or performance issues:
   ```
 
 ### PHASE 3: VERIFY THE FIX
+
 - [ ] Test the exact scenario that caused the error
 - [ ] Check React DevTools Profiler for excessive renders
 - [ ] Ensure no new performance issues introduced
 - [ ] Test related functionality still works
-```
+
+````
 
 ## 🚨 EMERGENCY CHECKLIST
 
@@ -746,33 +815,37 @@ When everything is broken:
 - [ ] Test basic functionality
 - [ ] Proceed with debugging checklist
 - [ ] Document what went wrong
-```
+````
 
 ## 🏃 QUICK DEBUGGING WINS (DO THESE FIRST!)
 
 Before diving into complex debugging:
 
 ### 1. **BROWSER DEVTOOLS NETWORK TAB** (Solves 50% of API issues)
-   - Open DevTools → Network tab
-   - Try the failing operation
-   - Look at the ACTUAL request URL (not what you think it is)
-   - Check response status and body
-   - **Example**: Would have shown `/v1/auth/merchant/login` instead of `/api/v1/auth/merchant/login` immediately
+
+- Open DevTools → Network tab
+- Try the failing operation
+- Look at the ACTUAL request URL (not what you think it is)
+- Check response status and body
+- **Example**: Would have shown `/v1/auth/merchant/login` instead of `/api/v1/auth/merchant/login` immediately
 
 ### 2. **CHECK WHAT'S ACTUALLY RUNNING**
-   ```bash
-   ps aux | grep -E "node|nest|next" | grep -v grep
-   ```
+
+```bash
+ps aux | grep -E "node|nest|next" | grep -v grep
+```
 
 ### 3. **CHECK ENV VARIABLES**
-   ```bash
-   cat apps/merchant-app/.env.local | grep API
-   ```
+
+```bash
+cat apps/merchant-app/.env.local | grep API
+```
 
 ### 4. **CHECK RECENT CHANGES**
-   ```bash
-   git status && git diff
-   ```
+
+```bash
+git status && git diff
+```
 
 These 4 steps would have solved the 2-hour debugging session in 2 minutes!
 

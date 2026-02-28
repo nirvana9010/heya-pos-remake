@@ -1,4 +1,4 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient } from "./base-client";
 
 export interface MerchantFeatures {
   enabledFeatures: string[];
@@ -24,10 +24,10 @@ export interface FeatureModule {
 
 export class FeaturesClient extends BaseApiClient {
   async getFeatures(): Promise<MerchantFeatures> {
-    return await this.get<MerchantFeatures>('/v1/features');
+    return await this.get<MerchantFeatures>("/v1/features");
   }
 
   async getFeatureModules(): Promise<FeatureModule[]> {
-    return await this.get<FeatureModule[]>('/v1/features/modules');
+    return await this.get<FeatureModule[]>("/v1/features/modules");
   }
 }

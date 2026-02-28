@@ -1,35 +1,35 @@
 // Export all client types and interfaces
-export * from './base-client';
-export * from './auth-client';
-export * from './bookings-client';
-export * from './customers-client';
-export * from './services-client';
-export * from './staff-client';
-export * from './payments-client';
-export * from './reports-client';
-export * from './notifications-client';
-export * from './loyalty-client';
-export * from './features-client';
-export * from './holidays-client';
-export * from './merchant-users-client';
+export * from "./base-client";
+export * from "./auth-client";
+export * from "./bookings-client";
+export * from "./customers-client";
+export * from "./services-client";
+export * from "./staff-client";
+export * from "./payments-client";
+export * from "./reports-client";
+export * from "./notifications-client";
+export * from "./loyalty-client";
+export * from "./features-client";
+export * from "./holidays-client";
+export * from "./merchant-users-client";
 
 // Import client classes
-import { AuthClient } from './auth-client';
-import { BookingsClient } from './bookings-client';
-import { CustomersClient } from './customers-client';
-import { ServicesClient } from './services-client';
-import { StaffClient } from './staff-client';
-import { PaymentsClient } from './payments-client';
-import { ReportsClient } from './reports-client';
-import { NotificationsClient } from './notifications-client';
-import { LoyaltyClient } from './loyalty-client';
-import { FeaturesClient } from './features-client';
-import { HolidaysClient } from './holidays-client';
-import { MerchantUsersClient } from './merchant-users-client';
+import { AuthClient } from "./auth-client";
+import { BookingsClient } from "./bookings-client";
+import { CustomersClient } from "./customers-client";
+import { ServicesClient } from "./services-client";
+import { StaffClient } from "./staff-client";
+import { PaymentsClient } from "./payments-client";
+import { ReportsClient } from "./reports-client";
+import { NotificationsClient } from "./notifications-client";
+import { LoyaltyClient } from "./loyalty-client";
+import { FeaturesClient } from "./features-client";
+import { HolidaysClient } from "./holidays-client";
+import { MerchantUsersClient } from "./merchant-users-client";
 
 /**
  * Unified API Client - Composition of focused domain clients
- * 
+ *
  * This replaces the monolithic api-client.ts with a cleaner, more maintainable structure.
  * Each domain (auth, bookings, etc.) has its own focused client with proper typing.
  */
@@ -76,9 +76,9 @@ export class ApiClient {
     return this.auth.refreshToken(refreshToken);
   }
 
-  async getServices(params?: { 
-    limit?: number; 
-    offset?: number; 
+  async getServices(params?: {
+    limit?: number;
+    offset?: number;
     page?: number;
     searchTerm?: string;
     categoryId?: string;
@@ -140,7 +140,10 @@ export class ApiClient {
   }
 
   async createBooking(data: any) {
-    console.log('📡 [ApiClient] createBooking called with:', JSON.stringify(data, null, 2));
+    console.log(
+      "📡 [ApiClient] createBooking called with:",
+      JSON.stringify(data, null, 2),
+    );
     return this.bookings.createBooking(data);
   }
 
@@ -148,7 +151,10 @@ export class ApiClient {
     return this.bookings.updateBooking(id, data);
   }
 
-  async rescheduleBooking(id: string, data: { startTime: string; staffId?: string }) {
+  async rescheduleBooking(
+    id: string,
+    data: { startTime: string; staffId?: string },
+  ) {
     return this.bookings.rescheduleBooking(id, data);
   }
 
@@ -168,25 +174,27 @@ export class ApiClient {
     return this.bookings.deleteBooking(id);
   }
 
-  async markBookingAsPaid(id: string, paymentMethod: string = 'CASH') {
+  async markBookingAsPaid(id: string, paymentMethod: string = "CASH") {
     return this.bookings.markBookingAsPaid(id, paymentMethod);
   }
 
   async updateBookingStatus(id: string, status: string) {
     // Map to specific V2 endpoints
     switch (status.toUpperCase()) {
-      case 'CONFIRMED':
+      case "CONFIRMED":
         // Use the generic update endpoint for confirming pending bookings
         // This triggers the outbox event for sending confirmation emails
-        return this.bookings.updateBooking(id, { status: 'CONFIRMED' });
-      case 'IN_PROGRESS':
+        return this.bookings.updateBooking(id, { status: "CONFIRMED" });
+      case "IN_PROGRESS":
         return this.bookings.startBooking(id);
-      case 'COMPLETED':
+      case "COMPLETED":
         return this.bookings.completeBooking(id);
-      case 'CANCELLED':
-        return this.bookings.cancelBooking(id, 'Status update');
+      case "CANCELLED":
+        return this.bookings.cancelBooking(id, "Status update");
       default:
-        throw new Error(`Status "${status}" update not supported. Use specific methods.`);
+        throw new Error(
+          `Status "${status}" update not supported. Use specific methods.`,
+        );
     }
   }
 
@@ -196,7 +204,13 @@ export class ApiClient {
 
   async createStaffBlock(
     staffId: string,
-    data: { startTime: string; endTime: string; locationId?: string; reason?: string; suppressWarnings?: boolean },
+    data: {
+      startTime: string;
+      endTime: string;
+      locationId?: string;
+      reason?: string;
+      suppressWarnings?: boolean;
+    },
   ) {
     return this.bookings.createStaffBlock(staffId, data);
   }
@@ -233,7 +247,11 @@ export class ApiClient {
   }
 
   // Payment methods
-  async createOrder(data: { customerId?: string; bookingId?: string; locationId?: string }) {
+  async createOrder(data: {
+    customerId?: string;
+    bookingId?: string;
+    locationId?: string;
+  }) {
     return this.payments.createOrder(data);
   }
 
@@ -281,32 +299,39 @@ export class ApiClient {
     return this.payments.voidPayment(paymentId);
   }
 
-  async getPayments(params?: { page?: number; limit?: number; locationId?: string }) {
+  async getPayments(params?: {
+    page?: number;
+    limit?: number;
+    locationId?: string;
+  }) {
     return this.payments.getPayments(params);
   }
 
   async getMerchantSettings() {
-    const response = await this.auth.get('/merchant/settings');
+    const response = await this.auth.get("/merchant/settings");
     return response.data || response;
   }
 
   async getMerchantProfile() {
-    const response = await this.auth.get('/merchant/profile');
+    const response = await this.auth.get("/merchant/profile");
     return response.data || response;
   }
 
   async updateMerchantSettings(settings: any) {
-    const response = await this.auth.put('/merchant/settings', settings);
+    const response = await this.auth.put("/merchant/settings", settings);
     return response.data || response;
   }
 
   async updateMerchantProfile(profileData: any) {
-    const response = await this.auth.put('/merchant/profile', profileData);
+    const response = await this.auth.put("/merchant/profile", profileData);
     return response.data || response;
   }
 
   async updateLocation(locationData: any) {
-    const response = await this.auth.put('/merchant/location/primary', locationData);
+    const response = await this.auth.put(
+      "/merchant/location/primary",
+      locationData,
+    );
     return response.data || response;
   }
 
@@ -340,27 +365,37 @@ export class ApiClient {
 
   // Generic HTTP methods (deprecated - use domain clients directly)
   async get(url: string, config?: any) {
-    console.warn('Generic get() method is deprecated. Use domain-specific clients instead.');
+    console.warn(
+      "Generic get() method is deprecated. Use domain-specific clients instead.",
+    );
     return this.auth.get(url, config);
   }
 
   async post(url: string, data?: any, config?: any) {
-    console.warn('Generic post() method is deprecated. Use domain-specific clients instead.');
+    console.warn(
+      "Generic post() method is deprecated. Use domain-specific clients instead.",
+    );
     return this.auth.post(url, data, config);
   }
 
   async put(url: string, data?: any, config?: any) {
-    console.warn('Generic put() method is deprecated. Use domain-specific clients instead.');
+    console.warn(
+      "Generic put() method is deprecated. Use domain-specific clients instead.",
+    );
     return this.auth.put(url, data, config);
   }
 
   async patch(url: string, data?: any, config?: any) {
-    console.warn('Generic patch() method is deprecated. Use domain-specific clients instead.');
+    console.warn(
+      "Generic patch() method is deprecated. Use domain-specific clients instead.",
+    );
     return this.auth.patch(url, data, config);
   }
 
   async delete(url: string, config?: any) {
-    console.warn('Generic delete() method is deprecated. Use domain-specific clients instead.');
+    console.warn(
+      "Generic delete() method is deprecated. Use domain-specific clients instead.",
+    );
     return this.auth.delete(url, config);
   }
 
@@ -375,37 +410,39 @@ export class ApiClient {
 export const apiClient = new ApiClient();
 
 // Initialize token management on module load (deferred)
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   // Use requestIdleCallback if available, otherwise setTimeout
   const scheduleTokenCheck = (callback: () => void) => {
-    if ('requestIdleCallback' in window) {
+    if ("requestIdleCallback" in window) {
       window.requestIdleCallback(callback);
     } else {
       setTimeout(callback, 1);
     }
   };
-  
+
   scheduleTokenCheck(() => {
-    const token = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    
+    const token = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+
     if (token && refreshToken) {
       // Check if token is about to expire
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payload = JSON.parse(atob(token.split(".")[1]));
         const expiresAt = new Date(payload.exp * 1000);
         const now = new Date();
         const timeUntilExpiry = expiresAt.getTime() - now.getTime();
-        
+
         // If token expires in less than 10 minutes, refresh immediately
         if (timeUntilExpiry < 10 * 60 * 1000) {
-          console.log('[API Client] Token expiring soon, refreshing on load...');
-          apiClient.auth.refreshToken(refreshToken).catch(error => {
-            console.error('[API Client] Initial token refresh failed:', error);
+          console.log(
+            "[API Client] Token expiring soon, refreshing on load...",
+          );
+          apiClient.auth.refreshToken(refreshToken).catch((error) => {
+            console.error("[API Client] Initial token refresh failed:", error);
           });
         }
       } catch (error) {
-        console.error('[API Client] Failed to parse token:', error);
+        console.error("[API Client] Failed to parse token:", error);
       }
     }
   });

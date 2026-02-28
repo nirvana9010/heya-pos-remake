@@ -1,7 +1,9 @@
 # Heya POS Merchant App - Comprehensive Feature Audit
-*Complete documentation of every feature, button, input, and capability*
+
+_Complete documentation of every feature, button, input, and capability_
 
 ## Table of Contents
+
 1. [System Architecture](#system-architecture)
 2. [Authentication & Access Control](#authentication--access-control)
 3. [Dashboard Features](#dashboard-features)
@@ -23,6 +25,7 @@
 ## System Architecture
 
 ### Core Technology Stack
+
 - **Framework**: Next.js 14 with App Router
 - **UI Library**: Custom `@heya-pos/ui` design system
 - **State Management**: React Query (TanStack Query) + Context API
@@ -32,6 +35,7 @@
 - **Deployment**: Fly.io (API + Database co-located in Sydney)
 
 ### Performance Optimizations
+
 - **Prefetch Manager**: Proactive data loading
 - **Memory Cache**: In-memory caching with TTL
 - **Optimistic Updates**: Immediate UI feedback
@@ -43,6 +47,7 @@
 ## Authentication & Access Control
 
 ### Login System (`/login`)
+
 - **Email/Password Authentication**
   - Email input field with validation
   - Password input with show/hide toggle
@@ -52,6 +57,7 @@
   - Error messages for invalid credentials
 
 ### Session Management
+
 - **JWT Token System**
   - Access token (15-minute expiry)
   - Refresh token (7-day expiry)
@@ -60,12 +66,14 @@
   - Secure logout with token cleanup
 
 ### Role-Based Access Control
+
 - **Three Access Levels**:
   1. **Employee (Level 1)**: Basic booking and customer operations
   2. **Manager (Level 2)**: Reports, staff management, advanced features
   3. **Owner (Level 3)**: Full system access, settings, security configuration
 
 ### PIN Protection System
+
 - **PIN-Protected Operations**:
   - Refunds processing
   - Booking cancellations
@@ -82,36 +90,37 @@
 ### Main Dashboard (`/dashboard`)
 
 #### Quick Stats Cards
+
 - **Today's Bookings**
   - Current count display
   - Percentage change from yesterday
   - Trend indicator (up/down arrow)
   - Color-coded performance (green/red)
-  
 - **Today's Revenue**
   - Dollar amount display
   - Percentage change from yesterday
   - Currency formatting
   - Trend visualization
-  
 - **New Customers**
   - Count of new registrations
   - Growth percentage
   - Historical comparison
-  
 - **Pending Bookings**
   - Count of unconfirmed bookings
   - Orange warning indicator
   - Click to view pending list
 
 #### Quick Actions Panel
+
 - **New Booking Button**: Opens booking creation flow
 - **View Calendar Button**: Navigate to calendar view
 - **Customers Button**: Access customer database
 - **Reports Button**: Open analytics dashboard
 
 #### Today's Schedule Section
+
 - **Booking List Display**:
+
   - Customer avatar with initials
   - Customer name (clickable)
   - Service name
@@ -131,6 +140,7 @@
 ### Bookings List Page (`/bookings`)
 
 #### Search & Filter Bar
+
 - **Search Input**:
   - Search by customer name
   - Search by phone number
@@ -140,7 +150,9 @@
   - Clear search button
 
 #### Filter Controls
+
 - **Status Filter Dropdown**:
+
   - All statuses
   - Confirmed
   - Pending
@@ -150,11 +162,13 @@
   - No Show
 
 - **Staff Filter Dropdown**:
+
   - All staff
   - Individual staff members
   - Unassigned bookings
 
 - **Payment Status Toggle**:
+
   - All payments
   - Paid only
   - Unpaid only
@@ -166,7 +180,9 @@
   - Custom date range picker
 
 #### Booking Statistics Dashboard
+
 - **Today's Stats**:
+
   - Total bookings count
   - Completed count
   - In-progress indicator
@@ -178,7 +194,9 @@
   - Average wait time
 
 #### Booking Actions
+
 - **Bulk Operations** (when multiple selected):
+
   - Select all checkbox
   - Send bulk reminders
   - Export selected to CSV
@@ -198,6 +216,7 @@
     - Print receipt
 
 #### Booking Display
+
 - **Booking Card Information**:
   - Time slot display
   - Customer name and phone
@@ -209,18 +228,22 @@
   - Time alerts (starting soon)
 
 ### New Booking Page (`/bookings/new`)
+
 - **Customer Selection**:
+
   - Search existing customers
   - Create new customer inline
   - Recent customers list
 
 - **Service Selection**:
+
   - Category-based service list
   - Multi-service selection
   - Duration calculation
   - Price display
 
 - **Date & Time Selection**:
+
   - Calendar date picker
   - Available time slots
   - Staff availability check
@@ -231,28 +254,34 @@
   - Staff preference setting
 
 ### Booking Details SlideOut
+
 - **Header Section**:
+
   - Booking ID display
   - Status badge
   - Close button
 
 - **Customer Information**:
+
   - Name and contact
   - Loyalty points
   - Visit history link
 
 - **Service Details**:
+
   - Service list with prices
   - Add/remove services
   - Duration adjustment
   - Discount application
 
 - **Scheduling**:
+
   - Date/time modification
   - Staff reassignment
   - Availability check
 
 - **Payment Section**:
+
   - Payment status
   - Process payment button
   - Payment method selection
@@ -271,12 +300,15 @@
 ### Calendar Page (`/calendar`)
 
 #### View Controls
+
 - **View Toggle Buttons**:
+
   - Day view
   - Week view
   - Month view
 
 - **Navigation**:
+
   - Previous/Next buttons
   - Today button
   - Date picker dropdown
@@ -287,13 +319,16 @@
   - Time grid start/end adjustment
 
 #### Calendar Grid
+
 - **Staff Columns**:
+
   - Individual column per staff member
   - Staff name header
   - Working hours indicator
   - Break time blocks
 
 - **Time Slots**:
+
   - 15-minute increments
   - Configurable start/end hours
   - Current time indicator line
@@ -306,7 +341,9 @@
   - Status indicator
 
 #### Drag & Drop Features
+
 - **Booking Manipulation**:
+
   - Drag to reschedule
   - Resize to adjust duration
   - Drop zones highlighted
@@ -320,7 +357,9 @@
   - Ghost preview
 
 #### Booking Interactions
+
 - **Click Actions**:
+
   - Single click: View details
   - Double click: Edit booking
   - Right click: Context menu
@@ -339,7 +378,9 @@
 ### Customers List Page (`/customers`)
 
 #### Search & Management
+
 - **Search Bar**:
+
   - Name search
   - Email search
   - Phone search
@@ -348,7 +389,9 @@
 - **Add Customer Button**: Opens creation form
 
 #### Customer Table
+
 - **Column Headers** (sortable):
+
   - Customer name
   - Email address
   - Phone number
@@ -367,8 +410,10 @@
 ### Customer Profile Page (`/customers/[id]`)
 
 #### Profile Header
+
 - **Customer Avatar**: Initials or photo
 - **Basic Information**:
+
   - Full name
   - Email address
   - Phone numbers
@@ -381,13 +426,16 @@
   - Edit profile
 
 #### Customer Statistics
+
 - **Visit Metrics**:
+
   - Total visits
   - Frequency chart
   - No-show rate
   - Cancellation rate
 
 - **Financial Metrics**:
+
   - Total spent
   - Average transaction
   - Payment methods used
@@ -400,7 +448,9 @@
   - Tier status
 
 #### Booking History Tab
+
 - **Historical Bookings List**:
+
   - Date and time
   - Service received
   - Staff member
@@ -415,7 +465,9 @@
   - Status
 
 #### Notes & Tags Tab
+
 - **Customer Notes**:
+
   - Add note button
   - Note history
   - Staff attribution
@@ -428,7 +480,9 @@
   - Tag filtering
 
 #### Preferences Tab
+
 - **Communication Preferences**:
+
   - Email notifications toggle
   - SMS notifications toggle
   - Marketing consent
@@ -441,7 +495,9 @@
   - Special requirements
 
 ### Customer Creation/Edit Form
+
 - **Personal Information**:
+
   - First name (required)
   - Last name (required)
   - Email (required, validated)
@@ -450,6 +506,7 @@
   - Date of birth
 
 - **Address Information**:
+
   - Street address
   - City
   - State/Province
@@ -469,11 +526,14 @@
 ### Staff List Page (`/staff`)
 
 #### Staff Overview
+
 - **Add Staff Button**: Opens creation form
 - **Active/Inactive Toggle**: Filter by status
 
 #### Staff Table
+
 - **Columns**:
+
   - Staff name
   - Role (Employee/Manager/Owner)
   - Email
@@ -490,13 +550,16 @@
   - Delete (with confirmation)
 
 ### Staff Profile Management
+
 - **Basic Information**:
+
   - Full name
   - Email address
   - Phone number
   - Emergency contact
 
 - **Employment Details**:
+
   - Role assignment
   - Hire date
   - Employee ID
@@ -508,7 +571,9 @@
   - Permissions
 
 ### Staff Schedule Management
+
 - **Weekly Schedule**:
+
   - Monday-Sunday grid
   - Start/end times per day
   - Break times
@@ -526,12 +591,15 @@
 ### Services List Page (`/services`)
 
 #### Service Catalog
+
 - **Add Service Button**: Opens creation form
 - **Import Services Button**: CSV upload
 - **Category Filter**: Filter by category
 
 #### Services Table
+
 - **Columns**:
+
   - Service name
   - Category
   - Duration
@@ -548,12 +616,15 @@
   - Delete
 
 ### Service Creation/Edit Form
+
 - **Basic Information**:
+
   - Service name (required)
   - Category selection/creation
   - Description
 
 - **Pricing & Duration**:
+
   - Price (required)
   - Duration in minutes
   - Tax rate percentage
@@ -567,12 +638,15 @@
   - Online booking availability
 
 ### Service Import Feature
+
 - **CSV Upload**:
+
   - Download template button
   - File selection
   - Drag & drop support
 
 - **Column Mapping Dialog**:
+
   - Auto-detection
   - Manual mapping
   - Preview first 5 rows
@@ -587,18 +661,22 @@
 ## Payment & POS System
 
 ### Quick Sale SlideOut
+
 - **Customer Selection**:
+
   - Search bar
   - Recent customers
   - Walk-in option
 
 - **Service Selection**:
+
   - Category tabs
   - Service list
   - Custom amount input
   - Multi-select support
 
 - **Cart Management**:
+
   - Service list with prices
   - Quantity adjustment
   - Discount application
@@ -612,19 +690,23 @@
   - Split payment option
 
 ### Payment Dialog
+
 - **Payment Methods**:
+
   - Cash button
   - Card button
   - EFTPOS button
   - Other methods
 
 - **Tyro Integration**:
+
   - Terminal selection
   - Amount display
   - Process payment button
   - Status indicators
 
 - **Cash Handling**:
+
   - Amount tendered input
   - Change calculation
   - Quick amount buttons
@@ -635,7 +717,9 @@
   - No receipt
 
 ### Payment History (`/payments`)
+
 - **Transaction List**:
+
   - Date/time
   - Customer name
   - Amount
@@ -644,6 +728,7 @@
   - Receipt link
 
 - **Filters**:
+
   - Date range
   - Payment method
   - Staff member
@@ -661,11 +746,14 @@
 ### Reports Dashboard (`/reports`)
 
 #### View Modes
+
 - **Executive Mode Toggle**: Simplified KPI view
 - **Classic Mode Toggle**: Detailed analytics
 
 #### Executive Dashboard Mode
+
 - **Key Performance Indicators**:
+
   - Revenue (with trend)
   - Bookings (with trend)
   - New customers (with trend)
@@ -678,7 +766,9 @@
   - Staff performance comparison
 
 #### Classic Analytics Mode
+
 - **Time Range Selector**:
+
   - Today
   - This week
   - This month
@@ -686,18 +776,21 @@
   - Custom range
 
 - **Revenue Analytics**:
+
   - Total revenue
   - Daily average
   - Payment method breakdown
   - Service revenue ranking
 
 - **Booking Analytics**:
+
   - Total bookings
   - Completion rate
   - No-show rate
   - Average duration
 
 - **Customer Analytics**:
+
   - New vs returning
   - Customer lifetime value
   - Retention rate
@@ -710,6 +803,7 @@
   - Customer satisfaction
 
 #### Export Features
+
 - **Export Button**: Download CSV
 - **Export Options**:
   - Current view
@@ -723,13 +817,16 @@
 ### Settings Page (`/settings`)
 
 #### Business Tab
+
 - **Business Information**:
+
   - Business name (read-only)
   - ABN/Tax ID (read-only)
   - Contact information (read-only)
   - "Edit in Profile" link
 
 - **Location Settings**:
+
   - Timezone selector
   - Business hours grid:
     - Day checkboxes (open/closed)
@@ -745,13 +842,16 @@
   - QR code generation
 
 #### Booking Tab
+
 - **Booking Rules**:
+
   - Advance booking limit (24-168 hours dropdown)
   - Cancellation notice (12-72 hours dropdown)
   - Minimum notice (0-24 hours dropdown)
   - Buffer time between bookings
 
 - **Calendar Display**:
+
   - Start hour selector (6 AM - 12 PM)
   - End hour selector (5 PM - 11 PM)
   - Time slot duration (15/30/60 min)
@@ -765,7 +865,9 @@
   - Online booking toggle
 
 #### Security Tab
+
 - **PIN Requirements**:
+
   - Refunds checkbox
   - Cancellations checkbox
   - Reports access checkbox
@@ -773,6 +875,7 @@
   - Settings changes checkbox
 
 - **Access Level Configuration**:
+
   - Employee permissions list
   - Manager permissions list
   - Owner permissions list
@@ -783,7 +886,9 @@
   - Multi-device login toggle
 
 #### Notifications Tab
+
 - **Customer Notifications**:
+
   - Booking confirmation email toggle
   - 24-hour reminder email toggle
   - 2-hour reminder email toggle
@@ -791,6 +896,7 @@
   - Cancellation notices toggle
 
 - **Staff Notifications**:
+
   - New booking alert toggle
   - Cancellation alert toggle
   - Customer arrival toggle
@@ -802,7 +908,9 @@
   - Push notifications (coming soon)
 
 #### Import Tab
+
 - **Customer Import Section**:
+
   - Download template button
   - Upload CSV button
   - Field mapping table:
@@ -815,6 +923,7 @@
     - Loyalty points mapping
 
 - **Service Import Section**:
+
   - Download template button
   - Upload CSV button
   - Column mapping interface
@@ -831,11 +940,14 @@
 ## Notifications System
 
 ### Notifications Dropdown
-- **Notification Bell Icon**: 
+
+- **Notification Bell Icon**:
+
   - Badge with unread count
   - Click to open dropdown
 
 - **Dropdown Content**:
+
   - Unread notifications section
   - Read notifications section
   - Mark all as read button
@@ -848,7 +960,9 @@
   - System messages
 
 ### Notifications Page (`/notifications`)
+
 - **Notification List**:
+
   - Time grouping (Today, Yesterday, This Week)
   - Notification cards with:
     - Icon indicator
@@ -858,6 +972,7 @@
     - Mark as read toggle
 
 - **Filters**:
+
   - All notifications
   - Unread only
   - By type
@@ -870,7 +985,9 @@
 ## Special Features
 
 ### Check-ins Page (`/check-ins`)
+
 - **Today's Arrivals Dashboard**:
+
   - Expected arrivals count
   - Checked-in count
   - No-show count
@@ -885,7 +1002,9 @@
   - Mark no-show button
 
 ### Loyalty System (`/loyalty`)
+
 - **Program Overview**:
+
   - Active members count
   - Points issued today
   - Points redeemed today
@@ -898,7 +1017,9 @@
   - History viewing
 
 ### Roster Management (`/roster`)
+
 - **Weekly Roster View**:
+
   - Staff rows
   - Day columns
   - Shift blocks
@@ -911,7 +1032,9 @@
   - Publish roster
 
 ### Profile Page (`/profile`)
+
 - **Business Profile**:
+
   - Business name edit
   - Contact information
   - Address details
@@ -928,13 +1051,16 @@
 ## Developer & Debug Tools
 
 ### Debug Pages
+
 - **Auth Debug** (`/debug-auth`):
+
   - Token display
   - User context
   - Refresh testing
   - Logout testing
 
 - **WebSocket Test** (`/websocket-test`):
+
   - Connection status
   - Message testing
   - Event monitoring
@@ -946,7 +1072,9 @@
   - Responsive testing
 
 ### Test Pages
+
 - **Slideout Test** (`/test/slideout-test`):
+
   - SlideOut component testing
   - Animation testing
   - Z-index verification
@@ -961,13 +1089,16 @@
 ## UI Components & Interactions
 
 ### Global Components
+
 - **Top Loading Bar**: Page transition indicator
 - **Error Boundaries**: Graceful error handling
 - **Connection Status**: Online/offline indicator
 - **Toast Notifications**: Success/error/info messages
 
 ### Interactive Elements
+
 - **Buttons**:
+
   - Primary (blue)
   - Secondary (gray)
   - Danger (red)
@@ -978,6 +1109,7 @@
   - Disabled states
 
 - **Form Controls**:
+
   - Text inputs with validation
   - Textareas with character count
   - Select dropdowns
@@ -1001,7 +1133,9 @@
   - Popovers
 
 ### Navigation Components
+
 - **Sidebar**:
+
   - Collapsible design
   - Icon + label display
   - Active state indication
@@ -1014,13 +1148,16 @@
 - **Search**: Global and contextual
 
 ### Modals & Overlays
+
 - **Standard Modals**:
+
   - Header, body, footer structure
   - Close button
   - Backdrop click to close
   - ESC key to close
 
 - **SlideOut Panels**:
+
   - Right-side entry
   - Full height
   - Overlay backdrop
@@ -1033,18 +1170,22 @@
   - Custom content dialogs
 
 ### Feedback Mechanisms
+
 - **Loading States**:
+
   - Spinners
   - Skeleton screens
   - Progress indicators
   - Shimmer effects
 
 - **Empty States**:
+
   - Illustrative icons
   - Descriptive text
   - Action buttons
 
 - **Error States**:
+
   - Error messages
   - Retry buttons
   - Help links
@@ -1059,12 +1200,14 @@
 ## Keyboard Shortcuts
 
 ### Global Shortcuts
+
 - `Ctrl/Cmd + K`: Open global search
 - `Ctrl/Cmd + N`: New booking
 - `Ctrl/Cmd + /`: Toggle sidebar
 - `ESC`: Close modals/overlays
 
 ### Page-Specific Shortcuts
+
 - **Calendar**: Arrow keys for navigation
 - **Bookings**: Space to select, Enter to open
 - **Forms**: Tab navigation, Enter to submit
@@ -1074,6 +1217,7 @@
 ## Performance Features
 
 ### Optimization Techniques
+
 - **Code Splitting**: Dynamic imports
 - **Lazy Loading**: Component-level splitting
 - **Image Optimization**: Next.js Image component
@@ -1081,12 +1225,14 @@
 - **Bundle Analysis**: Webpack bundle analyzer
 
 ### Caching Strategies
+
 - **Memory Cache**: TTL-based in-memory cache
 - **Browser Cache**: Service worker caching
 - **API Response Cache**: React Query caching
 - **Static Asset Cache**: CDN caching
 
 ### Monitoring
+
 - **Performance Monitor**: Dev-only performance tracking
 - **Error Reporting**: Sentry integration ready
 - **Analytics**: Event tracking ready
@@ -1096,6 +1242,7 @@
 ## Accessibility Features
 
 ### WCAG Compliance
+
 - **Semantic HTML**: Proper element usage
 - **ARIA Labels**: Screen reader support
 - **Keyboard Navigation**: Full keyboard access
@@ -1103,6 +1250,7 @@
 - **Color Contrast**: WCAG AA compliance
 
 ### User Preferences
+
 - **Theme Support**: Light/dark mode (planned)
 - **Font Size**: Adjustable text size (planned)
 - **Reduced Motion**: Animation preferences (planned)
@@ -1112,7 +1260,9 @@
 ## Mobile Responsiveness
 
 ### Responsive Design
+
 - **Breakpoints**:
+
   - Mobile: < 640px
   - Tablet: 640px - 1024px
   - Desktop: > 1024px
@@ -1129,6 +1279,7 @@
 ## Integration Capabilities
 
 ### Payment Integrations
+
 - **Tyro EFTPOS**:
   - Terminal pairing
   - Transaction processing
@@ -1136,6 +1287,7 @@
   - Status monitoring
 
 ### External Services
+
 - **Email Service**: SMTP configuration
 - **SMS Service**: Placeholder for SMS provider
 - **Calendar Sync**: iCal export ready
@@ -1146,7 +1298,9 @@
 ## Data Management
 
 ### Import/Export
+
 - **Supported Formats**:
+
   - CSV import/export
   - Excel export (via CSV)
   - PDF receipts
@@ -1159,6 +1313,7 @@
   - Reports
 
 ### Backup & Recovery
+
 - **Automatic Backups**: Database level
 - **Export Backups**: Manual data export
 - **Audit Trail**: Activity logging
@@ -1168,18 +1323,21 @@
 ## Security Measures
 
 ### Authentication Security
+
 - **Password Requirements**: Minimum 6 characters
 - **Token Security**: HTTPOnly cookies (planned)
 - **Session Management**: Automatic timeout
 - **Multi-factor Auth**: Planned feature
 
 ### Data Security
+
 - **Encryption**: HTTPS only
 - **Input Validation**: Client and server-side
 - **SQL Injection Prevention**: Parameterized queries
 - **XSS Prevention**: Input sanitization
 
 ### Compliance
+
 - **GDPR Ready**: Data export/deletion
 - **PCI Compliance**: Via payment providers
 - **Privacy Controls**: Customer data management
@@ -1187,7 +1345,8 @@
 ---
 
 ## Future/Planned Features
-*Features visible in code but not yet active*
+
+_Features visible in code but not yet active_
 
 - SMS notifications
 - Push notifications
@@ -1207,4 +1366,4 @@
 
 ---
 
-*This comprehensive audit documents every accessible feature, button, input, and capability within the Heya POS Merchant App as of the current version.*
+_This comprehensive audit documents every accessible feature, button, input, and capability within the Heya POS Merchant App as of the current version._

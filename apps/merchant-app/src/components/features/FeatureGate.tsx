@@ -1,5 +1,5 @@
-import React from 'react';
-import { useFeatures } from '../../lib/features/feature-service';
+import React from "react";
+import { useFeatures } from "../../lib/features/feature-service";
 
 interface FeatureGateProps {
   feature: string;
@@ -8,20 +8,20 @@ interface FeatureGateProps {
   dependencies?: string[];
 }
 
-export function FeatureGate({ 
-  feature, 
-  children, 
+export function FeatureGate({
+  feature,
+  children,
   fallback = null,
-  dependencies = []
+  dependencies = [],
 }: FeatureGateProps) {
   const { hasFeature } = useFeatures();
 
   // Check main feature
   const hasMainFeature = hasFeature(feature);
-  
+
   // Check all dependencies
-  const hasDependencies = dependencies.length === 0 || 
-    dependencies.every(dep => hasFeature(dep));
+  const hasDependencies =
+    dependencies.length === 0 || dependencies.every((dep) => hasFeature(dep));
 
   if (hasMainFeature && hasDependencies) {
     return <>{children}</>;
@@ -33,10 +33,10 @@ export function FeatureGate({
 // Hook for conditional feature logic
 export function useFeatureGate(feature: string, dependencies: string[] = []) {
   const { hasFeature } = useFeatures();
-  
+
   const hasMainFeature = hasFeature(feature);
-  const hasDependencies = dependencies.length === 0 || 
-    dependencies.every(dep => hasFeature(dep));
+  const hasDependencies =
+    dependencies.length === 0 || dependencies.every((dep) => hasFeature(dep));
 
   return hasMainFeature && hasDependencies;
 }

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
-import { PaymentDialogEnhanced } from './PaymentDialogEnhanced';
+import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom";
+import { PaymentDialogEnhanced } from "./PaymentDialogEnhanced";
 
 interface PaymentDialogPortalProps {
   open: boolean;
@@ -31,18 +31,17 @@ export function PaymentDialogPortal(props: PaymentDialogPortalProps) {
     return () => setMounted(false);
   }, []);
 
-
   if (!mounted) {
     return null;
   }
 
-  const portalElement = document.getElementById('modal-portal');
+  const portalElement = document.getElementById("modal-portal");
   if (!portalElement) {
     return null;
   }
 
   return ReactDOM.createPortal(
     <PaymentDialogEnhanced {...props} />,
-    portalElement
+    portalElement,
   );
 }

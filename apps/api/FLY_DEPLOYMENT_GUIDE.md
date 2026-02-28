@@ -3,11 +3,13 @@
 ## Prerequisites
 
 1. Install Fly CLI:
+
 ```bash
 curl -L https://fly.io/install.sh | sh
 ```
 
 2. Create Fly.io account and login:
+
 ```bash
 fly auth login
 ```
@@ -55,11 +57,13 @@ fly redis create --name heya-pos-redis --region syd --no-replicas
 ```
 
 Get the Redis URL:
+
 ```bash
 fly redis status heya-pos-redis
 ```
 
 Set it as a secret:
+
 ```bash
 fly secrets set REDIS_URL="redis://default:password@heya-pos-redis.internal:6379"
 ```
@@ -73,27 +77,32 @@ fly deploy
 ## Deployment Commands
 
 ### Deploy
+
 ```bash
 cd apps/api
 fly deploy
 ```
 
 ### View logs
+
 ```bash
 fly logs
 ```
 
 ### SSH into container
+
 ```bash
 fly ssh console
 ```
 
 ### View app status
+
 ```bash
 fly status
 ```
 
 ### Scale up/down
+
 ```bash
 # Scale to 2 instances
 fly scale count 2
@@ -108,6 +117,7 @@ fly regions set syd
 ## Database Migrations
 
 Run migrations after deployment:
+
 ```bash
 fly ssh console -C "cd /app/apps/api && npx prisma migrate deploy"
 ```
@@ -115,11 +125,13 @@ fly ssh console -C "cd /app/apps/api && npx prisma migrate deploy"
 ## Monitoring
 
 ### View metrics
+
 ```bash
 fly dashboard
 ```
 
 ### Check health
+
 ```bash
 curl https://heya-pos-api.fly.dev/health
 ```
@@ -127,12 +139,15 @@ curl https://heya-pos-api.fly.dev/health
 ## Troubleshooting
 
 ### Connection timeouts
+
 If you see connection timeouts, ensure:
+
 1. Database allows connections from Fly.io IPs
 2. Secrets are set correctly
 3. Region is set to Sydney
 
 ### Memory issues
+
 ```bash
 # Check memory usage
 fly status
@@ -144,6 +159,7 @@ fly scale memory 512
 ## GitHub Actions Setup
 
 1. Get your Fly API token:
+
 ```bash
 fly auth token
 ```
@@ -155,6 +171,7 @@ fly auth token
 ## Performance Expectations
 
 After migration to Sydney:
+
 - Database queries: 10-50ms (was 700ms+)
 - API response time: 100-200ms (was 1500ms+)
 - Payment processing: <1 second (was 10+ seconds)
@@ -162,6 +179,7 @@ After migration to Sydney:
 ## Rollback
 
 If needed, you can quickly rollback:
+
 ```bash
 fly releases
 fly deploy -i <previous-release-id>

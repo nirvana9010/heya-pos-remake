@@ -70,7 +70,9 @@ const PERMISSION_LABELS: Record<string, { label: string; category: string }> = {
 };
 
 // Group permissions by category for display
-function groupPermissionsByCategory(permissions: string[]): Record<string, string[]> {
+function groupPermissionsByCategory(
+  permissions: string[],
+): Record<string, string[]> {
   const grouped: Record<string, string[]> = {};
 
   for (const perm of permissions) {
@@ -104,7 +106,11 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { can, isOwner: isCurrentUserOwner, isMerchantOwner } = usePermissions();
+  const {
+    can,
+    isOwner: isCurrentUserOwner,
+    isMerchantOwner,
+  } = usePermissions();
 
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<MerchantUser | null>(null);
@@ -131,24 +137,33 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
   // Create a combined list that includes the merchant owner
   const allMembers = useMemo(() => {
     const ownerRole = roles.find(
-      (role) => role.isSystem && role.permissions.includes("*")
+      (role) => role.isSystem && role.permissions.includes("*"),
     );
 
     // Always create a virtual "owner" entry for the merchant/business account
     // This represents the primary business login (MerchantAuth), not a MerchantUser
-    const ownerEntry: MerchantUser | null = merchant ? {
-      id: "merchant-owner",
-      merchantId: merchant.id,
-      email: merchant.email || "",
-      firstName: merchant.name,
-      lastName: "",
-      status: "ACTIVE" as const,
-      roleId: ownerRole?.id || "",
-      role: ownerRole || { id: "", name: "Owner", permissions: ["*"], isSystem: true, description: "Full access", merchantId: null },
-      locations: [],
-      createdAt: "",
-      updatedAt: "",
-    } : null;
+    const ownerEntry: MerchantUser | null = merchant
+      ? {
+          id: "merchant-owner",
+          merchantId: merchant.id,
+          email: merchant.email || "",
+          firstName: merchant.name,
+          lastName: "",
+          status: "ACTIVE" as const,
+          roleId: ownerRole?.id || "",
+          role: ownerRole || {
+            id: "",
+            name: "Owner",
+            permissions: ["*"],
+            isSystem: true,
+            description: "Full access",
+            merchantId: null,
+          },
+          locations: [],
+          createdAt: "",
+          updatedAt: "",
+        }
+      : null;
 
     // Always prepend owner entry at top
     if (ownerEntry) {
@@ -170,7 +185,8 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
     },
     onError: (error: any) => {
       const errorCode = error?.response?.data?.error;
-      let message = error?.response?.data?.message || "Failed to remove team member";
+      let message =
+        error?.response?.data?.message || "Failed to remove team member";
 
       if (errorCode === "LAST_OWNER_DELETE") {
         message = "Cannot delete the last owner. Assign another owner first.";
@@ -187,14 +203,14 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
   // Owner detection helpers
   const ownerRole = useMemo(() => {
     return roles.find(
-      (role) => role.isSystem && role.permissions.includes("*")
+      (role) => role.isSystem && role.permissions.includes("*"),
     );
   }, [roles]);
 
   const activeOwnerCount = useMemo(() => {
     if (!ownerRole) return 0;
     return members.filter(
-      (m) => m.roleId === ownerRole.id && m.status === "ACTIVE"
+      (m) => m.roleId === ownerRole.id && m.status === "ACTIVE",
     ).length;
   }, [members, ownerRole]);
 
@@ -203,7 +219,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
       if (!ownerRole) return false;
       return member.roleId === ownerRole.id && activeOwnerCount === 1;
     },
-    [ownerRole, activeOwnerCount]
+    [ownerRole, activeOwnerCount],
   );
 
   const isSelf = useCallback(
@@ -218,7 +234,7 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
       }
       return member.email === user?.email;
     },
-    [user, isMerchantOwner]
+    [user, isMerchantOwner],
   );
 
   const isVirtualOwner = useCallback((member: MerchantUser) => {
@@ -256,13 +272,13 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
 
       if (
         window.confirm(
-          `Are you sure you want to remove ${member.firstName} ${member.lastName || ""}?`
+          `Are you sure you want to remove ${member.firstName} ${member.lastName || ""}?`,
         )
       ) {
         deleteMutation.mutate(member.id);
       }
     },
-    [isSelf, isLastOwner, isVirtualOwner, deleteMutation, toast]
+    [isSelf, isLastOwner, isVirtualOwner, deleteMutation, toast],
   );
 
   const handleInviteSuccess = useCallback(() => {
@@ -486,16 +502,17 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                           System
                         </Badge>
                       )}
-                      {can("settings.update") && !role.permissions.includes("*") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingRole(role)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                      )}
+                      {can("settings.update") &&
+                        !role.permissions.includes("*") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingRole(role)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        )}
                     </div>
                   </div>
                   {role.description && (
@@ -509,24 +526,26 @@ export function TeamTabContent({ merchant }: TeamTabContentProps) {
                         Full Access
                       </Badge>
                     ) : groupedPermissions ? (
-                      Object.entries(groupedPermissions).map(([category, perms]) => (
-                        <div key={category}>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {category}:
-                          </span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {perms.map((perm) => (
-                              <Badge
-                                key={perm}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {perm}
-                              </Badge>
-                            ))}
+                      Object.entries(groupedPermissions).map(
+                        ([category, perms]) => (
+                          <div key={category}>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {category}:
+                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {perms.map((perm) => (
+                                <Badge
+                                  key={perm}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {perm}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ),
+                      )
                     ) : null}
                   </div>
                 </div>

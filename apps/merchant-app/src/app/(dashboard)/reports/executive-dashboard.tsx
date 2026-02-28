@@ -11,7 +11,13 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Skeleton } from "@heya-pos/ui";
 import { Alert, AlertDescription } from "@heya-pos/ui";
@@ -31,10 +37,10 @@ import { format, addDays, subDays, isToday } from "date-fns";
 import { cn } from "@heya-pos/ui";
 
 const METHOD_COLORS: Record<string, string> = {
-  cash: "#10b981",       // green
-  card: "#3b82f6",       // blue
-  deposits: "#f59e0b",   // yellow
-  unpaid: "#ef4444",     // red
+  cash: "#10b981", // green
+  card: "#3b82f6", // blue
+  deposits: "#f59e0b", // yellow
+  unpaid: "#ef4444", // red
   incomplete: "#94a3b8", // grey
 };
 
@@ -46,7 +52,13 @@ const METHOD_LABELS: Record<string, string> = {
   incomplete: "Incomplete",
 };
 
-const METHOD_ORDER = ["cash", "card", "deposits", "unpaid", "incomplete"] as const;
+const METHOD_ORDER = [
+  "cash",
+  "card",
+  "deposits",
+  "unpaid",
+  "incomplete",
+] as const;
 
 const EMPTY_REVENUE_BY_METHOD: Record<(typeof METHOD_ORDER)[number], number> = {
   cash: 0,
@@ -60,7 +72,9 @@ function WeekTick({ x, y, payload }: any) {
   return (
     <g transform={`translate(${x},${y})`}>
       <text x={0} y={0} textAnchor="middle" fill="#6b7280" fontSize={12}>
-        <tspan x={0} dy="0.71em">{payload?.payload?.day ?? payload?.value}</tspan>
+        <tspan x={0} dy="0.71em">
+          {payload?.payload?.day ?? payload?.value}
+        </tspan>
         <tspan x={0} dy="1.2em" fill="#9ca3af" fontSize={11}>
           {payload?.payload?.date ?? ""}
         </tspan>
@@ -179,29 +193,34 @@ export function ExecutiveDashboard() {
   }
 
   // Process week rhythm data (last 7 days)
-  const revenueTrend = Array.isArray(reportData.revenueTrend) ? reportData.revenueTrend : [];
-  const weekData = revenueTrend.length > 0
-    ? revenueTrend.slice(-7).map((item, index) => {
-        const date = new Date(item.date);
-        const dayName = format(date, "EEE");
-        const isLast = index === revenueTrend.slice(-7).length - 1;
-        return {
-          day: dayName,
-          revenue: item.value || 0,
-          isToday: isLast,
-          date: format(date, "MMM d"),
-        };
-      })
+  const revenueTrend = Array.isArray(reportData.revenueTrend)
+    ? reportData.revenueTrend
     : [];
+  const weekData =
+    revenueTrend.length > 0
+      ? revenueTrend.slice(-7).map((item, index) => {
+          const date = new Date(item.date);
+          const dayName = format(date, "EEE");
+          const isLast = index === revenueTrend.slice(-7).length - 1;
+          return {
+            day: dayName,
+            revenue: item.value || 0,
+            isToday: isLast,
+            date: format(date, "MMM d"),
+          };
+        })
+      : [];
 
   // Staff leaderboard (date-aware; fallback to overview only for today)
-  const staffPerformance = dailySummary?.staffPerformance
-    ?? (isSelectedToday ? (reportData.staffPerformance || []) : []);
+  const staffPerformance =
+    dailySummary?.staffPerformance ??
+    (isSelectedToday ? reportData.staffPerformance || [] : []);
 
   // Daily summary data
-  const rawRevenueByMethod = dailySummary?.revenueByMethod
-    ?? (isSelectedToday ? reportData.revenueByMethod : undefined)
-    ?? EMPTY_REVENUE_BY_METHOD;
+  const rawRevenueByMethod =
+    dailySummary?.revenueByMethod ??
+    (isSelectedToday ? reportData.revenueByMethod : undefined) ??
+    EMPTY_REVENUE_BY_METHOD;
 
   const revenueByMethod = METHOD_ORDER.reduce(
     (acc, key) => {
@@ -212,15 +231,18 @@ export function ExecutiveDashboard() {
   );
 
   const methodTotal = METHOD_ORDER.reduce((s, k) => s + revenueByMethod[k], 0);
-  const donutSegments = METHOD_ORDER
-    .filter((k) => revenueByMethod[k] > 0)
-    .map((k) => ({ key: k, value: revenueByMethod[k], color: METHOD_COLORS[k] }));
+  const donutSegments = METHOD_ORDER.filter((k) => revenueByMethod[k] > 0).map(
+    (k) => ({ key: k, value: revenueByMethod[k], color: METHOD_COLORS[k] }),
+  );
 
-  const dayBookings = dailySummary?.bookings?.total ?? reportData.bookings?.daily ?? 0;
+  const dayBookings =
+    dailySummary?.bookings?.total ?? reportData.bookings?.daily ?? 0;
   const dayTopServices = dailySummary?.topServices ?? [];
-  const dayServiceLineItems = dailySummary?.serviceLineItems
-    ?? dayTopServices.reduce(
-      (sum, service) => sum + (service.serviceLineItems ?? service.bookings ?? 0),
+  const dayServiceLineItems =
+    dailySummary?.serviceLineItems ??
+    dayTopServices.reduce(
+      (sum, service) =>
+        sum + (service.serviceLineItems ?? service.bookings ?? 0),
       0,
     );
   const displayedTopServices = dayTopServices.slice(0, 10);
@@ -232,28 +254,45 @@ export function ExecutiveDashboard() {
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Executive Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Executive Dashboard
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Your business at a glance &bull; {format(new Date(), "EEEE, MMMM d, yyyy")}
+          Your business at a glance &bull;{" "}
+          {format(new Date(), "EEEE, MMMM d, yyyy")}
         </p>
       </div>
 
       {/* Date Navigator */}
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={() => setSelectedDate((d) => subDays(d, 1))}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSelectedDate((d) => subDays(d, 1))}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="text-center min-w-[180px]">
           <div className="text-lg font-semibold">
             {isSelectedToday ? "Today" : format(selectedDate, "EEEE")}
           </div>
-          <div className="text-sm text-muted-foreground">{format(selectedDate, "MMMM d, yyyy")}</div>
+          <div className="text-sm text-muted-foreground">
+            {format(selectedDate, "MMMM d, yyyy")}
+          </div>
         </div>
-        <Button variant="outline" size="icon" onClick={() => setSelectedDate((d) => addDays(d, 1))}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSelectedDate((d) => addDays(d, 1))}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
         {!isSelectedToday && (
-          <Button variant="ghost" size="sm" onClick={() => setSelectedDate(new Date())}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedDate(new Date())}
+          >
             Today
           </Button>
         )}
@@ -266,7 +305,8 @@ export function ExecutiveDashboard() {
           <CardHeader>
             <CardTitle>Daily Revenue Breakdown</CardTitle>
             <CardDescription>
-              {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")} revenue by payment method
+              {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")}{" "}
+              revenue by payment method
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -277,7 +317,9 @@ export function ExecutiveDashboard() {
             ) : dailyError && !dailySummary ? (
               <div className="h-[280px] flex flex-col items-center justify-center text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Unable to load this day</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Unable to load this day
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Please try changing date or refreshing
                 </p>
@@ -295,10 +337,13 @@ export function ExecutiveDashboard() {
                           style={{ backgroundColor: METHOD_COLORS[key] }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium">{METHOD_LABELS[key]}</div>
+                          <div className="text-sm font-medium">
+                            {METHOD_LABELS[key]}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             ${value.toLocaleString()}
-                            {methodTotal > 0 && ` (${((value / methodTotal) * 100).toFixed(0)}%)`}
+                            {methodTotal > 0 &&
+                              ` (${((value / methodTotal) * 100).toFixed(0)}%)`}
                           </div>
                         </div>
                       </div>
@@ -309,7 +354,9 @@ export function ExecutiveDashboard() {
             ) : (
               <div className="h-[280px] flex flex-col items-center justify-center text-center">
                 <DollarSign className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No bookings this day</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No bookings this day
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Data will appear as bookings are scheduled
                 </p>
@@ -326,7 +373,8 @@ export function ExecutiveDashboard() {
               Staff Leaderboard
             </CardTitle>
             <CardDescription>
-              {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")} top performers by revenue
+              {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")} top
+              performers by revenue
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -336,20 +384,32 @@ export function ExecutiveDashboard() {
                   const maxRevenue = staffPerformance[0]?.revenue || 1;
                   const barWidth = (staff.revenue / maxRevenue) * 100;
                   return (
-                    <div key={staff.staffId} className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
-                        index === 0 && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                        index === 1 && "bg-slate-200 text-slate-700 dark:bg-slate-700/60 dark:text-slate-200",
-                        index === 2 && "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-                        index > 2 && "bg-muted text-muted-foreground",
-                      )}>
+                    <div
+                      key={staff.staffId}
+                      className="flex items-center gap-3"
+                    >
+                      <div
+                        className={cn(
+                          "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
+                          index === 0 &&
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+                          index === 1 &&
+                            "bg-slate-200 text-slate-700 dark:bg-slate-700/60 dark:text-slate-200",
+                          index === 2 &&
+                            "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+                          index > 2 && "bg-muted text-muted-foreground",
+                        )}
+                      >
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium truncate">{staff.name}</span>
-                          <span className="text-sm font-semibold ml-2">${staff.revenue.toLocaleString()}</span>
+                          <span className="text-sm font-medium truncate">
+                            {staff.name}
+                          </span>
+                          <span className="text-sm font-semibold ml-2">
+                            ${staff.revenue.toLocaleString()}
+                          </span>
                         </div>
                         <div className="w-full bg-secondary rounded-full h-1.5">
                           <div
@@ -374,7 +434,9 @@ export function ExecutiveDashboard() {
             ) : (
               <div className="h-[280px] flex flex-col items-center justify-center text-center">
                 <Trophy className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No staff data yet</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No staff data yet
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Staff rankings will appear as bookings are completed
                 </p>
@@ -388,7 +450,8 @@ export function ExecutiveDashboard() {
       <Card className="overflow-hidden border-l-4 border-l-blue-500">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")} Bookings
+            {isSelectedToday ? "Today's" : format(selectedDate, "MMM d")}{" "}
+            Bookings
             {isSelectedToday && (
               <Badge variant="outline" className="font-normal">
                 <Activity className="h-3 w-3 mr-1" />
@@ -400,11 +463,15 @@ export function ExecutiveDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-md bg-muted/40 p-2">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">BOOKINGS</div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                BOOKINGS
+              </div>
               <div className="text-3xl font-bold">{dayBookings}</div>
             </div>
             <div className="rounded-md bg-muted/40 p-2">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">SERVICES</div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                SERVICES
+              </div>
               <div className="text-3xl font-bold">{dayServiceLineItems}</div>
             </div>
           </div>
@@ -423,9 +490,13 @@ export function ExecutiveDashboard() {
               <div className="grid grid-cols-2 gap-x-4 mt-2">
                 <div className="space-y-2">
                   {leftTopServices.map((service, index) => (
-                    <div key={service.serviceId} className="flex items-center justify-between gap-3">
+                    <div
+                      key={service.serviceId}
+                      className="flex items-center justify-between gap-3"
+                    >
                       <span className="text-sm truncate">
-                        {showTopServiceNumber ? `${index + 1}. ` : ""}{service.name}
+                        {showTopServiceNumber ? `${index + 1}. ` : ""}
+                        {service.name}
                       </span>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {service.serviceLineItems ?? service.bookings ?? 0}
@@ -435,9 +506,13 @@ export function ExecutiveDashboard() {
                 </div>
                 <div className="space-y-2">
                   {rightTopServices.map((service, index) => (
-                    <div key={service.serviceId} className="flex items-center justify-between gap-3">
+                    <div
+                      key={service.serviceId}
+                      className="flex items-center justify-between gap-3"
+                    >
                       <span className="text-sm truncate">
-                        {showTopServiceNumber ? `${index + 6}. ` : ""}{service.name}
+                        {showTopServiceNumber ? `${index + 6}. ` : ""}
+                        {service.name}
                       </span>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {service.serviceLineItems ?? service.bookings ?? 0}
@@ -459,7 +534,9 @@ export function ExecutiveDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>This Week's Rhythm</CardTitle>
-          <CardDescription>Scheduled revenue pattern for the last 7 days (including incomplete)</CardDescription>
+          <CardDescription>
+            Scheduled revenue pattern for the last 7 days (including incomplete)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {weekData.length > 0 ? (
@@ -475,7 +552,10 @@ export function ExecutiveDashboard() {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={weekData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
+                <BarChart
+                  data={weekData}
+                  margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="day"
@@ -484,7 +564,12 @@ export function ExecutiveDashboard() {
                     interval={0}
                     height={46}
                   />
-                  <YAxis stroke="#6b7280" fontSize={12} tick={{ fill: "#6b7280" }} tickFormatter={(v) => `$${v}`} />
+                  <YAxis
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tick={{ fill: "#6b7280" }}
+                    tickFormatter={(v) => `$${v}`}
+                  />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
@@ -493,7 +578,10 @@ export function ExecutiveDashboard() {
                           <div className="bg-background border rounded-lg shadow-lg p-3">
                             <p className="text-sm font-medium">{data.date}</p>
                             <p className="text-sm text-muted-foreground">
-                              Revenue: <span className="font-medium text-foreground">${data.revenue.toLocaleString()}</span>
+                              Revenue:{" "}
+                              <span className="font-medium text-foreground">
+                                ${data.revenue.toLocaleString()}
+                              </span>
                             </p>
                           </div>
                         );
@@ -503,12 +591,17 @@ export function ExecutiveDashboard() {
                   />
                   <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
                     {weekData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.isToday ? "#3b82f6" : "#cbd5e1"} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.isToday ? "#3b82f6" : "#cbd5e1"}
+                      />
                     ))}
                     <LabelList
                       dataKey="revenue"
                       position="top"
-                      formatter={(value: number) => `$${Number(value || 0).toLocaleString()}`}
+                      formatter={(value: number) =>
+                        `$${Number(value || 0).toLocaleString()}`
+                      }
                       fill="#6b7280"
                       fontSize={11}
                     />
@@ -519,8 +612,12 @@ export function ExecutiveDashboard() {
           ) : (
             <div className="h-[200px] flex flex-col items-center justify-center text-center">
               <BarChart3 className="h-12 w-12 text-muted-foreground/20 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No revenue data available</p>
-              <p className="text-xs text-muted-foreground mt-1">Revenue data will appear as transactions are recorded</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                No revenue data available
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Revenue data will appear as transactions are recorded
+              </p>
             </div>
           )}
         </CardContent>

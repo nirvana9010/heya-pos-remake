@@ -3,6 +3,7 @@
 ## 🚀 Fly.io (API Backend)
 
 ### Required Variables
+
 ```bash
 # Database - Fly.io PostgreSQL (internal connection)
 DATABASE_URL="postgres://postgres:[YOUR-FLY-POSTGRES-PASSWORD]@heya-pos-db.flycast:5432/postgres?sslmode=disable"
@@ -37,13 +38,14 @@ NODE_OPTIONS=--max-old-space-size=2048  # Adjust based on Fly.io instance
 ```
 
 ### Optional Variables (if using these services)
+
 ```bash
 # Email - SendGrid
 SENDGRID_API_KEY=your-production-sendgrid-key
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
 SENDGRID_FROM_NAME="Heya POS"
 
-# SMS - Twilio  
+# SMS - Twilio
 TWILIO_ACCOUNT_SID=your-production-twilio-sid
 TWILIO_AUTH_TOKEN=your-production-twilio-token
 TWILIO_PHONE_NUMBER=+1234567890
@@ -54,6 +56,7 @@ PAYMENT_MERCHANT_ID=your-tyro-merchant-id
 ```
 
 ### Fly.io Setup Commands
+
 ```bash
 # Set secrets (sensitive values)
 fly secrets set JWT_SECRET="$(openssl rand -base64 32)"
@@ -67,6 +70,7 @@ fly config env -a your-api-app-name
 ## 🌐 Vercel (Frontend Apps)
 
 ### Merchant App Variables
+
 ```bash
 # API Configuration - Point to your Fly.io API
 NEXT_PUBLIC_API_URL=https://your-api.fly.dev/api
@@ -89,6 +93,7 @@ NEXT_PUBLIC_TYRO_ENVIRONMENT=production
 ```
 
 ### Booking App Variables
+
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_URL=https://your-api.fly.dev/api
@@ -101,6 +106,7 @@ NEXT_PUBLIC_ENABLE_DEBUG=false
 ```
 
 ### Admin Dashboard Variables
+
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_URL=https://your-api.fly.dev/api
@@ -112,6 +118,7 @@ NEXT_PUBLIC_ENABLE_DEBUG=false
 ## 🔒 Security Checklist
 
 ### Before Deploying:
+
 - [ ] Generate NEW JWT secrets (don't reuse development secrets)
 - [ ] Remove all development/debug flags
 - [ ] Update CORS URLs to match production domains
@@ -120,11 +127,13 @@ NEXT_PUBLIC_ENABLE_DEBUG=false
 - [ ] Set appropriate LOG_LEVEL (info or warn, not debug)
 
 ### Database Security:
+
 - [ ] Ensure DATABASE_URL uses SSL (`sslmode=require`)
 - [ ] Consider using connection pooling for high traffic
 - [ ] Set appropriate DATABASE_CONNECTION_LIMIT
 
 ### Domain Configuration:
+
 - [ ] Update FRONTEND_URL to production domain
 - [ ] Update FRONTEND_URLS to include all production domains
 - [ ] Configure proper CORS for your domains
@@ -132,6 +141,7 @@ NEXT_PUBLIC_ENABLE_DEBUG=false
 ## 📝 Deployment Order
 
 1. **Deploy API to Fly.io first**
+
    - Set all environment variables
    - Run database migrations: `fly ssh console -C "cd app && npx prisma migrate deploy"`
    - Verify API is accessible
@@ -152,6 +162,7 @@ NEXT_PUBLIC_ENABLE_DEBUG=false
 ## 🔧 Testing Production
 
 After deployment:
+
 1. Test login functionality
 2. Verify database connections
 3. Check CORS is working (no console errors)

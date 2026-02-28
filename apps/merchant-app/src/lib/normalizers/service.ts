@@ -1,24 +1,36 @@
 import type {
   Service as ApiService,
   ServiceCategory as ApiServiceCategory,
-} from '@/lib/clients/services-client';
-import type { Service as SharedService, ServiceCategory as SharedServiceCategory } from '@heya-pos/shared';
+} from "@/lib/clients/services-client";
+import type {
+  Service as SharedService,
+  ServiceCategory as SharedServiceCategory,
+} from "@heya-pos/shared";
 
-type NumericLike = number | string | { toNumber?: () => number } | null | undefined;
+type NumericLike =
+  | number
+  | string
+  | { toNumber?: () => number }
+  | null
+  | undefined;
 
 type MaybeArray<T> = T[] | { data?: T[] | null | undefined } | null | undefined;
 
 const toNumber = (value: NumericLike, fallback = 0): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
-  if (value && typeof value === 'object' && typeof value.toNumber === 'function') {
+  if (
+    value &&
+    typeof value === "object" &&
+    typeof value.toNumber === "function"
+  ) {
     const result = value.toNumber();
     return Number.isFinite(result) ? result : fallback;
   }
@@ -32,7 +44,7 @@ const toPositiveInt = (value: NumericLike, fallback = 0): number => {
 };
 
 const ensureOptionalString = (value: unknown): string | undefined => {
-  if (typeof value === 'string' && value.trim().length > 0) {
+  if (typeof value === "string" && value.trim().length > 0) {
     return value;
   }
   return undefined;
@@ -43,7 +55,9 @@ const ensureStringArray = (value: unknown): string[] | undefined => {
     return undefined;
   }
 
-  const items = value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+  const items = value.filter(
+    (entry): entry is string => typeof entry === "string" && entry.length > 0,
+  );
   return items.length > 0 ? items : undefined;
 };
 
@@ -52,7 +66,11 @@ const unwrapCollection = <T>(input: MaybeArray<T>): T[] => {
     return input;
   }
 
-  if (input && typeof input === 'object' && Array.isArray((input as any).data)) {
+  if (
+    input &&
+    typeof input === "object" &&
+    Array.isArray((input as any).data)
+  ) {
     return (input as { data: T[] }).data;
   }
 
@@ -78,55 +96,68 @@ export interface ServiceCategoryRecord extends SharedServiceCategory {
 
 const deriveCategoryId = (service: ApiService): string => {
   const fromService = service.categoryId;
-  if (typeof fromService === 'string' && fromService.length > 0) {
+  if (typeof fromService === "string" && fromService.length > 0) {
     return fromService;
   }
 
   const fromRelationship = service.category?.id;
-  if (typeof fromRelationship === 'string' && fromRelationship.length > 0) {
+  if (typeof fromRelationship === "string" && fromRelationship.length > 0) {
     return fromRelationship;
   }
 
-  return 'uncategorized';
+  return "uncategorized";
 };
 
 const deriveCategoryName = (service: ApiService): string => {
   const embeddedName = (service as any).categoryName;
-  if (typeof embeddedName === 'string' && embeddedName.trim().length > 0) {
+  if (typeof embeddedName === "string" && embeddedName.trim().length > 0) {
     return embeddedName;
   }
 
   const relationshipName = service.category?.name;
-  if (typeof relationshipName === 'string' && relationshipName.trim().length > 0) {
+  if (
+    typeof relationshipName === "string" &&
+    relationshipName.trim().length > 0
+  ) {
     return relationshipName;
   }
 
-  return 'Uncategorized';
+  return "Uncategorized";
 };
 
 const deriveCategoryColor = (service: ApiService): string | undefined => {
   const fromRelationship = service.category && (service.category as any).color;
-  if (typeof fromRelationship === 'string' && fromRelationship.length > 0) {
+  if (typeof fromRelationship === "string" && fromRelationship.length > 0) {
     return fromRelationship;
   }
 
   const embedded = (service as any).categoryColor;
-  return typeof embedded === 'string' && embedded.length > 0 ? embedded : undefined;
+  return typeof embedded === "string" && embedded.length > 0
+    ? embedded
+    : undefined;
 };
 
-const deriveMetadata = (service: ApiService): Record<string, unknown> | undefined => {
+const deriveMetadata = (
+  service: ApiService,
+): Record<string, unknown> | undefined => {
   const metadataCandidate = (service as any).metadata;
-  return metadataCandidate && typeof metadataCandidate === 'object' ? { ...metadataCandidate } : undefined;
+  return metadataCandidate && typeof metadataCandidate === "object"
+    ? { ...metadataCandidate }
+    : undefined;
 };
 
-const isServiceRecord = (service: ApiService | ServiceRecord): service is ServiceRecord =>
-  'categoryColor' in service || 'metadata' in service;
+const isServiceRecord = (
+  service: ApiService | ServiceRecord,
+): service is ServiceRecord =>
+  "categoryColor" in service || "metadata" in service;
 
 const isServiceCategoryRecord = (
   category: ApiServiceCategory | ServiceCategoryRecord,
-): category is ServiceCategoryRecord => 'order' in category;
+): category is ServiceCategoryRecord => "order" in category;
 
-export const mapApiServiceToRecord = (service: ApiService | ServiceRecord): ServiceRecord => {
+export const mapApiServiceToRecord = (
+  service: ApiService | ServiceRecord,
+): ServiceRecord => {
   if (isServiceRecord(service)) {
     return service;
   }
@@ -152,8 +183,14 @@ export const mapApiServiceToRecord = (service: ApiService | ServiceRecord): Serv
     categoryColor: deriveCategoryColor(service),
     createdAt: service.createdAt,
     updatedAt: service.updatedAt,
-    taxRate: typeof (service as any).taxRate === 'number' ? (service as any).taxRate : undefined,
-    costPrice: typeof (service as any).costPrice === 'number' ? (service as any).costPrice : undefined,
+    taxRate:
+      typeof (service as any).taxRate === "number"
+        ? (service as any).taxRate
+        : undefined,
+    costPrice:
+      typeof (service as any).costPrice === "number"
+        ? (service as any).costPrice
+        : undefined,
     sku: ensureOptionalString((service as any).sku),
     metadata: deriveMetadata(service),
   };
@@ -163,14 +200,16 @@ export const mapApiServicesToRecords = (
   services: MaybeArray<ApiService | ServiceRecord>,
 ): ServiceRecord[] => unwrapCollection(services).map(mapApiServiceToRecord);
 
-const deriveCategoryOrder = (category: ApiServiceCategory | ServiceCategoryRecord): number => {
+const deriveCategoryOrder = (
+  category: ApiServiceCategory | ServiceCategoryRecord,
+): number => {
   const sortOrder = (category as any).sortOrder;
-  if (typeof sortOrder === 'number' && Number.isFinite(sortOrder)) {
+  if (typeof sortOrder === "number" && Number.isFinite(sortOrder)) {
     return sortOrder;
   }
 
   const order = (category as any).order;
-  if (typeof order === 'number' && Number.isFinite(order)) {
+  if (typeof order === "number" && Number.isFinite(order)) {
     return order;
   }
 
@@ -202,10 +241,17 @@ export const mapApiCategoryToRecord = (
 
 export const mapApiCategoriesToRecords = (
   categories: MaybeArray<ApiServiceCategory | ServiceCategoryRecord>,
-): ServiceCategoryRecord[] => unwrapCollection(categories).map(mapApiCategoryToRecord);
+): ServiceCategoryRecord[] =>
+  unwrapCollection(categories).map(mapApiCategoryToRecord);
 
-export const mapServicesResponseToRecords = (response: unknown): ServiceRecord[] =>
+export const mapServicesResponseToRecords = (
+  response: unknown,
+): ServiceRecord[] =>
   mapApiServicesToRecords(response as MaybeArray<ApiService | ServiceRecord>);
 
-export const mapCategoriesResponseToRecords = (response: unknown): ServiceCategoryRecord[] =>
-  mapApiCategoriesToRecords(response as MaybeArray<ApiServiceCategory | ServiceCategoryRecord>);
+export const mapCategoriesResponseToRecords = (
+  response: unknown,
+): ServiceCategoryRecord[] =>
+  mapApiCategoriesToRecords(
+    response as MaybeArray<ApiServiceCategory | ServiceCategoryRecord>,
+  );

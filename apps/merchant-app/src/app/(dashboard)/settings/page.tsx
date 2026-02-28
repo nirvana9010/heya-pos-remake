@@ -108,7 +108,9 @@ export default function SettingsPage() {
   const [staffPinLockEnabled, setStaffPinLockEnabled] = useState(
     merchantSettings.staffPinLockEnabled ?? false,
   );
-  const [staffPinLockError, setStaffPinLockError] = useState<string | null>(null);
+  const [staffPinLockError, setStaffPinLockError] = useState<string | null>(
+    null,
+  );
   const [selectedTimezone, setSelectedTimezone] = useState(
     merchantSettings.timezone || "Australia/Sydney",
   );
@@ -222,7 +224,7 @@ export default function SettingsPage() {
   };
 
   const [businessHours, setBusinessHours] = useState<any>(() => {
-  if (merchantSettings.businessHours) {
+    if (merchantSettings.businessHours) {
       const formattedHours: any = {};
       Object.entries(merchantSettings.businessHours).forEach(
         ([day, hours]: [string, any]) => {
@@ -247,21 +249,21 @@ export default function SettingsPage() {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingUpdatesRef = useRef<Partial<MerchantSettings>>({});
-  const lastSavedSettingsRef = useRef<Partial<MerchantSettings>>(merchantSettings);
+  const lastSavedSettingsRef =
+    useRef<Partial<MerchantSettings>>(merchantSettings);
   const hasLoadedSettingsRef = useRef(false);
   const shouldSkipNextAutoSaveRef = useRef(true);
   const isUnmountedRef = useRef(false);
-  const queueAutoSaveRef = useRef<
-    (
-      updates: Partial<MerchantSettings>,
-      options?: { force?: boolean; skipDebounce?: boolean },
-    ) => void
-  >();
+  const queueAutoSaveRef =
+    useRef<
+      (
+        updates: Partial<MerchantSettings>,
+        options?: { force?: boolean; skipDebounce?: boolean },
+      ) => void
+    >();
 
-  const hasOwnPending = (
-    snapshot: Partial<MerchantSettings>,
-    key: string,
-  ) => Object.prototype.hasOwnProperty.call(snapshot, key);
+  const hasOwnPending = (snapshot: Partial<MerchantSettings>, key: string) =>
+    Object.prototype.hasOwnProperty.call(snapshot, key);
 
   const deepEqual = (a: unknown, b: unknown): boolean => {
     if (Object.is(a, b)) {
@@ -420,9 +422,7 @@ export default function SettingsPage() {
         }`;
       }
 
-      return `${minNoticeMinutes} minute${
-        minNoticeMinutes === 1 ? "" : "s"
-      }`;
+      return `${minNoticeMinutes} minute${minNoticeMinutes === 1 ? "" : "s"}`;
     })();
 
     return {
@@ -558,46 +558,164 @@ export default function SettingsPage() {
           }
         };
 
-        hydrate("bookingAdvanceHours", setBookingAdvanceHours, response.bookingAdvanceHours?.toString() || "48");
-        hydrate("cancellationHours", setCancellationHours, response.cancellationHours?.toString() || "24");
-        hydrate("minimumBookingNotice", setMinimumBookingNotice, response.minimumBookingNotice?.toString() || "0");
-        hydrate("requirePinForRefunds", setRequirePinForRefunds, response.requirePinForRefunds ?? true);
-        hydrate("requirePinForCancellations", setRequirePinForCancellations, response.requirePinForCancellations ?? true);
-        hydrate("requirePinForReports", setRequirePinForReports, response.requirePinForReports ?? true);
-        hydrate("requirePinForStaff", setRequirePinForStaff, response.requirePinForStaff ?? true);
-        hydrate("staffPinLockEnabled", setStaffPinLockEnabled, response.staffPinLockEnabled ?? false);
-        hydrate("requireDeposit", setRequireDeposit, response.requireDeposit ?? false);
-        hydrate("depositPercentage", setDepositPercentage, response.depositPercentage?.toString() || "30");
+        hydrate(
+          "bookingAdvanceHours",
+          setBookingAdvanceHours,
+          response.bookingAdvanceHours?.toString() || "48",
+        );
+        hydrate(
+          "cancellationHours",
+          setCancellationHours,
+          response.cancellationHours?.toString() || "24",
+        );
+        hydrate(
+          "minimumBookingNotice",
+          setMinimumBookingNotice,
+          response.minimumBookingNotice?.toString() || "0",
+        );
+        hydrate(
+          "requirePinForRefunds",
+          setRequirePinForRefunds,
+          response.requirePinForRefunds ?? true,
+        );
+        hydrate(
+          "requirePinForCancellations",
+          setRequirePinForCancellations,
+          response.requirePinForCancellations ?? true,
+        );
+        hydrate(
+          "requirePinForReports",
+          setRequirePinForReports,
+          response.requirePinForReports ?? true,
+        );
+        hydrate(
+          "requirePinForStaff",
+          setRequirePinForStaff,
+          response.requirePinForStaff ?? true,
+        );
+        hydrate(
+          "staffPinLockEnabled",
+          setStaffPinLockEnabled,
+          response.staffPinLockEnabled ?? false,
+        );
+        hydrate(
+          "requireDeposit",
+          setRequireDeposit,
+          response.requireDeposit ?? false,
+        );
+        hydrate(
+          "depositPercentage",
+          setDepositPercentage,
+          response.depositPercentage?.toString() || "30",
+        );
         hydrate("enableTips", setEnableTips, response.enableTips ?? false);
-        hydrate("defaultTipPercentages", setDefaultTipPercentages, response.defaultTipPercentages || [10, 15, 20]);
-        hydrate("allowCustomTipAmount", setAllowCustomTipAmount, response.allowCustomTipAmount ?? true);
-        hydrate("allowOnlineBookings", setAllowOnlineBookings, response.allowOnlineBookings ?? true);
-        hydrate("allowUnassignedBookings", setAllowUnassignedBookings, response.allowUnassignedBookings ?? true);
-        hydrate("autoConfirmBookings", setAutoConfirmBookings, response.autoConfirmBookings ?? true);
-        hydrate("calendarStartHour", setCalendarStartHour, response.calendarStartHour ?? 6);
-        hydrate("calendarEndHour", setCalendarEndHour, response.calendarEndHour ?? 23);
-        hydrate("showOnlyRosteredStaffDefault", setShowOnlyRosteredStaffDefault, response.showOnlyRosteredStaffDefault ?? true);
-        hydrate("enableCalendarBlocks", setEnableCalendarBlocks, response.enableCalendarBlocks ?? true);
-        hydrate("includeUnscheduledStaff", setIncludeUnscheduledStaff, response.includeUnscheduledStaff ?? false);
-        hydrate("priceToDurationRatio", setPriceToDurationRatio, response.priceToDurationRatio?.toString() || "1.0");
+        hydrate(
+          "defaultTipPercentages",
+          setDefaultTipPercentages,
+          response.defaultTipPercentages || [10, 15, 20],
+        );
+        hydrate(
+          "allowCustomTipAmount",
+          setAllowCustomTipAmount,
+          response.allowCustomTipAmount ?? true,
+        );
+        hydrate(
+          "allowOnlineBookings",
+          setAllowOnlineBookings,
+          response.allowOnlineBookings ?? true,
+        );
+        hydrate(
+          "allowUnassignedBookings",
+          setAllowUnassignedBookings,
+          response.allowUnassignedBookings ?? true,
+        );
+        hydrate(
+          "autoConfirmBookings",
+          setAutoConfirmBookings,
+          response.autoConfirmBookings ?? true,
+        );
+        hydrate(
+          "calendarStartHour",
+          setCalendarStartHour,
+          response.calendarStartHour ?? 6,
+        );
+        hydrate(
+          "calendarEndHour",
+          setCalendarEndHour,
+          response.calendarEndHour ?? 23,
+        );
+        hydrate(
+          "showOnlyRosteredStaffDefault",
+          setShowOnlyRosteredStaffDefault,
+          response.showOnlyRosteredStaffDefault ?? true,
+        );
+        hydrate(
+          "enableCalendarBlocks",
+          setEnableCalendarBlocks,
+          response.enableCalendarBlocks ?? true,
+        );
+        hydrate(
+          "includeUnscheduledStaff",
+          setIncludeUnscheduledStaff,
+          response.includeUnscheduledStaff ?? false,
+        );
+        hydrate(
+          "priceToDurationRatio",
+          setPriceToDurationRatio,
+          response.priceToDurationRatio?.toString() || "1.0",
+        );
         hydrate("tyroEnabled", setTyroEnabled, response.tyroEnabled ?? false);
-        hydrate("tyroTerminalId", setTyroTerminalId, response.tyroTerminalId ?? "");
+        hydrate(
+          "tyroTerminalId",
+          setTyroTerminalId,
+          response.tyroTerminalId ?? "",
+        );
         hydrate(
           "tyroMerchantId",
           setTyroMerchantId,
-          (response.tyroMerchantId ?? process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) || "",
+          (response.tyroMerchantId ??
+            process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) ||
+            "",
         );
         if (response.timezone) {
           hydrate("timezone", setSelectedTimezone, response.timezone);
         }
         setSmsEnabled(!!response.smsEnabled);
-        hydrate("bookingConfirmationEmail", setBookingConfirmationEmail, response.bookingConfirmationEmail !== false);
-        hydrate("bookingConfirmationSms", setBookingConfirmationSms, response.bookingConfirmationSms !== false);
-        hydrate("appointmentReminder24hEmail", setAppointmentReminder24hEmail, response.appointmentReminder24hEmail !== false);
-        hydrate("appointmentReminder24hSms", setAppointmentReminder24hSms, response.appointmentReminder24hSms !== false);
-        hydrate("appointmentReminder2hEmail", setAppointmentReminder2hEmail, response.appointmentReminder2hEmail !== false);
-        hydrate("appointmentReminder2hSms", setAppointmentReminder2hSms, response.appointmentReminder2hSms !== false);
-        hydrate("newBookingNotification", setNewBookingNotification, response.newBookingNotification !== false);
+        hydrate(
+          "bookingConfirmationEmail",
+          setBookingConfirmationEmail,
+          response.bookingConfirmationEmail !== false,
+        );
+        hydrate(
+          "bookingConfirmationSms",
+          setBookingConfirmationSms,
+          response.bookingConfirmationSms !== false,
+        );
+        hydrate(
+          "appointmentReminder24hEmail",
+          setAppointmentReminder24hEmail,
+          response.appointmentReminder24hEmail !== false,
+        );
+        hydrate(
+          "appointmentReminder24hSms",
+          setAppointmentReminder24hSms,
+          response.appointmentReminder24hSms !== false,
+        );
+        hydrate(
+          "appointmentReminder2hEmail",
+          setAppointmentReminder2hEmail,
+          response.appointmentReminder2hEmail !== false,
+        );
+        hydrate(
+          "appointmentReminder2hSms",
+          setAppointmentReminder2hSms,
+          response.appointmentReminder2hSms !== false,
+        );
+        hydrate(
+          "newBookingNotification",
+          setNewBookingNotification,
+          response.newBookingNotification !== false,
+        );
         hydrate(
           "newBookingNotificationEmail",
           setNewBookingNotificationEmail,
@@ -752,10 +870,9 @@ export default function SettingsPage() {
       const lastSaved = lastSavedSettingsRef.current ?? {};
 
       const changes: Partial<MerchantSettings> = {};
-      for (const [key, value] of Object.entries(updates) as Array<[
-        keyof MerchantSettings,
-        MerchantSettings[keyof MerchantSettings],
-      ]>) {
+      for (const [key, value] of Object.entries(updates) as Array<
+        [keyof MerchantSettings, MerchantSettings[keyof MerchantSettings]]
+      >) {
         if (hasOwnPending(currentPending, key as string)) {
           changes[key] = value as any;
           continue;
@@ -1058,7 +1175,10 @@ export default function SettingsPage() {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
       }
-      if (pendingUpdatesRef.current && Object.keys(pendingUpdatesRef.current).length > 0) {
+      if (
+        pendingUpdatesRef.current &&
+        Object.keys(pendingUpdatesRef.current).length > 0
+      ) {
         void flushAutoSave();
       }
     };
@@ -1910,7 +2030,6 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
-
             </CardContent>
           </Card>
           <HolidayManager
@@ -2167,8 +2286,8 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">
                       When customers choose "Any Available" staff: ON = Creates
                       unassigned bookings for manual assignment later, OFF =
-                      Automatically assigns the next available staff member.
-                      The calendar will always display the "Unassigned" column
+                      Automatically assigns the next available staff member. The
+                      calendar will always display the "Unassigned" column
                       whenever this is enabled.
                     </p>
                   </div>
@@ -2275,28 +2394,29 @@ export default function SettingsPage() {
                             who don't have weekly schedules defined
                           </p>
                         </div>
+                        <Switch
+                          checked={includeUnscheduledStaff}
+                          onCheckedChange={handleIncludeUnscheduledStaffChange}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <Separator className="my-4" />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable Calendar Blocks</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Allow staff break blocks to be painted on the calendar
+                        and enforced in availability
+                      </p>
+                    </div>
                     <Switch
-                      checked={includeUnscheduledStaff}
-                      onCheckedChange={handleIncludeUnscheduledStaffChange}
+                      checked={enableCalendarBlocks}
+                      onCheckedChange={handleEnableCalendarBlocksChange}
                     />
                   </div>
-                </>
-              )}
-
-              <Separator className="my-4" />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Calendar Blocks</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow staff break blocks to be painted on the calendar and enforced in availability
-                  </p>
-                </div>
-                <Switch
-                  checked={enableCalendarBlocks}
-                  onCheckedChange={handleEnableCalendarBlocksChange}
-                />
-              </div>
                 </div>
               </div>
 
@@ -2481,7 +2601,6 @@ export default function SettingsPage() {
                   */}
                 </div>
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>
@@ -2555,13 +2674,16 @@ export default function SettingsPage() {
                   <div className="space-y-0.5">
                     <Label>Staff PIN Lock Screen</Label>
                     <p className="text-sm text-muted-foreground">
-                      Require staff to identify with their PIN before using the app on shared devices.
+                      Require staff to identify with their PIN before using the
+                      app on shared devices.
                       {staffPinLockEnabled
                         ? " Screen auto-locks after 60 seconds of inactivity."
                         : " Only applies to team member accounts (not owner login)."}
                     </p>
                     {staffPinLockError && (
-                      <p className="text-sm text-red-500 mt-1">{staffPinLockError}</p>
+                      <p className="text-sm text-red-500 mt-1">
+                        {staffPinLockError}
+                      </p>
                     )}
                   </div>
                   <Switch
@@ -2570,13 +2692,18 @@ export default function SettingsPage() {
                       setStaffPinLockError(null);
                       if (checked) {
                         try {
-                          const status = await apiClient.auth.getStaffPinStatus();
+                          const status =
+                            await apiClient.auth.getStaffPinStatus();
                           if (status.hasDuplicates) {
-                            setStaffPinLockError("Resolve duplicate PINs in Staff settings before enabling.");
+                            setStaffPinLockError(
+                              "Resolve duplicate PINs in Staff settings before enabling.",
+                            );
                             return;
                           }
                           if (!status.hasPins) {
-                            setStaffPinLockError("No staff have PINs set. Configure PINs in Staff settings first.");
+                            setStaffPinLockError(
+                              "No staff have PINs set. Configure PINs in Staff settings first.",
+                            );
                             return;
                           }
                           setStaffPinLockEnabled(true);
@@ -2585,7 +2712,9 @@ export default function SettingsPage() {
                             { force: true },
                           );
                         } catch {
-                          setStaffPinLockError("Failed to check staff PIN status. Please try again.");
+                          setStaffPinLockError(
+                            "Failed to check staff PIN status. Please try again.",
+                          );
                         }
                       } else {
                         setStaffPinLockEnabled(false);
@@ -2642,7 +2771,6 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-
           </div>
         </TabsContent>
         <TabsContent value="notifications">
@@ -2659,7 +2787,8 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               {!smsEnabled && (
                 <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
-                  SMS is not enabled on this account. Please contact the service provider.
+                  SMS is not enabled on this account. Please contact the service
+                  provider.
                 </div>
               )}
               <div>
@@ -2808,7 +2937,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>
@@ -3124,7 +3252,6 @@ export default function SettingsPage() {
                     </ul>
                   </div>
                 </div>
-
               </CardContent>
             </Card>
           </div>
@@ -3177,11 +3304,19 @@ export default function SettingsPage() {
                     <div className="grid gap-3">
                       {modules?.map((module) => {
                         // Handle both API response formats (enabled/enabledFeatures)
-                        const enabledList = (features as any)?.enabled || (features as any)?.enabledFeatures || [];
-                        const disabledList = (features as any)?.disabled || (features as any)?.disabledFeatures || [];
+                        const enabledList =
+                          (features as any)?.enabled ||
+                          (features as any)?.enabledFeatures ||
+                          [];
+                        const disabledList =
+                          (features as any)?.disabled ||
+                          (features as any)?.disabledFeatures ||
+                          [];
                         const isEnabled = enabledList.includes(module.id);
                         const isDisabled = disabledList.includes(module.id);
-                        const inPackage = features?.packageFeatures?.includes(module.id);
+                        const inPackage = features?.packageFeatures?.includes(
+                          module.id,
+                        );
 
                         return (
                           <div
@@ -3194,7 +3329,9 @@ export default function SettingsPage() {
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium">{module.name}</span>
+                                <span className="font-medium">
+                                  {module.name}
+                                </span>
                                 {inPackage && (
                                   <Badge variant="outline" className="text-xs">
                                     In Package
@@ -3238,7 +3375,11 @@ export default function SettingsPage() {
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {permissions?.map((perm) => (
-                            <Badge key={perm} variant="outline" className="text-xs">
+                            <Badge
+                              key={perm}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {perm}
                             </Badge>
                           ))}

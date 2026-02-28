@@ -3,6 +3,7 @@
 ## Problem Statement
 
 When users add additional services to an existing booking:
+
 1. **Frontend** correctly sends an array of services to the backend
 2. **Backend V2 controller** accepts the services array in the DTO
 3. **BUT** the controller only uses the first service (`dto.services[0].serviceId`)
@@ -10,8 +11,10 @@ When users add additional services to an existing booking:
 5. **Result**: UI shows optimistic updates that don't persist after refresh
 
 ### Current Code Issue Location
+
 File: `/apps/api/src/contexts/bookings/infrastructure/controllers/bookings.v2.controller.ts`
 Lines 314-317:
+
 ```typescript
 if (dto.services && dto.services.length > 0) {
   // For now, handle single service update
@@ -22,6 +25,7 @@ if (dto.services && dto.services.length > 0) {
 ## Database Schema Context
 
 The database properly supports multi-service bookings through:
+
 - **Booking** table: Main booking record
 - **BookingService** table: Join table linking bookings to services with individual pricing/duration
 - **Service** table: Service definitions
@@ -50,13 +54,15 @@ model BookingService {
 #### 1.1 Update the UpdateBookingData Interface
 
 Add services array to the interface (around line 20):
+
 ```typescript
 interface UpdateBookingData {
   bookingId: string;
   merchantId: string;
   staffId?: string;
-  serviceId?: string;  // Keep for backward compatibility
-  services?: Array<{    // NEW: Add services array
+  serviceId?: string; // Keep for backward compatibility
+  services?: Array<{
+    // NEW: Add services array
     serviceId: string;
     staffId?: string;
     price?: number;
@@ -74,59 +80,61 @@ interface UpdateBookingData {
 #### 1.2 Handle Services in updateBooking Method
 
 In the transaction (after line 123 where `directUpdates` are handled):
+
 ```typescript
 // Handle multi-service updates
 if (data.services && data.services.length > 0) {
   // Delete existing BookingService records
   await tx.bookingService.deleteMany({
-    where: { bookingId: data.bookingId }
+    where: { bookingId: data.bookingId },
   });
-  
+
   // Calculate total amount and duration
   let totalAmount = 0;
   let totalDuration = 0;
-  
+
   // Create new BookingService records
   const bookingServices = [];
   for (const service of data.services) {
     // Fetch service details if price/duration not provided
     const serviceDetails = await tx.service.findUnique({
       where: { id: service.serviceId },
-      select: { price: true, duration: true }
+      select: { price: true, duration: true },
     });
-    
+
     if (!serviceDetails) {
       throw new BadRequestException(`Service not found: ${service.serviceId}`);
     }
-    
+
     const servicePrice = service.price ?? serviceDetails.price;
     const serviceDuration = service.duration ?? serviceDetails.duration;
-    
+
     bookingServices.push({
       bookingId: data.bookingId,
       serviceId: service.serviceId,
       staffId: service.staffId || data.staffId || booking.staffId,
       price: servicePrice,
-      duration: serviceDuration
+      duration: serviceDuration,
     });
-    
+
     totalAmount += Number(servicePrice);
     totalDuration += serviceDuration;
   }
-  
+
   // Create all BookingService records
   await tx.bookingService.createMany({
-    data: bookingServices
+    data: bookingServices,
   });
-  
+
   // Update main booking fields
   directUpdates.serviceId = data.services[0].serviceId; // Keep first service for backward compat
   directUpdates.totalAmount = totalAmount;
-  
+
   // Recalculate endTime based on new total duration
   if (!data.endTime && totalDuration > 0) {
     const newEndTime = new Date(
-      (data.startTime || booking.timeSlot.start).getTime() + totalDuration * 60000
+      (data.startTime || booking.timeSlot.start).getTime() +
+        totalDuration * 60000,
     );
     directUpdates.endTime = newEndTime;
   }
@@ -136,6 +144,7 @@ if (data.services && data.services.length > 0) {
 #### 1.3 Update the Return Statement
 
 Ensure the updated booking includes services (around line 200):
+
 ```typescript
 // After update, fetch the complete booking with services
 const updatedBooking = await tx.booking.findUnique({
@@ -144,13 +153,13 @@ const updatedBooking = await tx.booking.findUnique({
     services: {
       include: {
         service: true,
-        staff: true
-      }
+        staff: true,
+      },
     },
     customer: true,
     provider: true,
-    location: true
-  }
+    location: true,
+  },
 });
 ```
 
@@ -161,14 +170,15 @@ const updatedBooking = await tx.booking.findUnique({
 #### 2.1 Fix the Update Method
 
 Replace lines 314-317 with:
+
 ```typescript
 if (dto.services && dto.services.length > 0) {
   // Pass full services array to update service
-  updateData.services = dto.services.map(s => ({
+  updateData.services = dto.services.map((s) => ({
     serviceId: s.serviceId,
     staffId: s.staffId,
     price: s.price,
-    duration: s.duration
+    duration: s.duration,
   }));
 }
 ```
@@ -176,6 +186,7 @@ if (dto.services && dto.services.length > 0) {
 #### 2.2 Ensure Response Includes Services
 
 After the update (around line 325):
+
 ```typescript
 // For all updates, return the full booking with services
 const query = new GetBookingByIdQuery({
@@ -194,13 +205,14 @@ return updatedBooking;
 #### 3.1 Verify Update Method Includes Services
 
 The `update` method should return services (around line 220):
+
 ```typescript
 async update(
   booking: Booking,
   tx: Prisma.TransactionClient = this.prisma,
 ): Promise<Booking> {
   const updateData = BookingMapper.toPersistence(booking);
-  
+
   const updated = await tx.booking.update({
     where: {
       id: booking.id,
@@ -231,30 +243,33 @@ async update(
 #### 4.1 Include Services in Outbox Event
 
 In the outbox event creation (around line 250):
+
 ```typescript
 // Create outbox event for booking update
 const outboxEvent = OutboxEvent.create({
   aggregateId: updatedBooking.id,
-  aggregateType: 'booking',
-  eventType: 'updated',
+  aggregateType: "booking",
+  eventType: "updated",
   eventData: {
     bookingId: updatedBooking.id,
     bookingNumber: updatedBooking.bookingNumber,
     customerId: updatedBooking.customerId,
     staffId: updatedBooking.providerId,
-    serviceIds: updatedBooking.services?.map(s => s.serviceId) || [updatedBooking.serviceId],
-    services: updatedBooking.services?.map(s => ({
+    serviceIds: updatedBooking.services?.map((s) => s.serviceId) || [
+      updatedBooking.serviceId,
+    ],
+    services: updatedBooking.services?.map((s) => ({
       serviceId: s.serviceId,
       staffId: s.staffId,
       price: Number(s.price),
-      duration: s.duration
+      duration: s.duration,
     })),
     locationId: updatedBooking.locationId,
     startTime: updatedBooking.startTime,
     endTime: updatedBooking.endTime,
     status: updatedBooking.status,
     totalAmount: Number(updatedBooking.totalAmount),
-    notes: updatedBooking.notes
+    notes: updatedBooking.notes,
   },
   eventVersion: 1,
   merchantId: updatedBooking.merchantId,
@@ -268,29 +283,30 @@ const outboxEvent = OutboxEvent.create({
 #### 5.1 Verify updateBooking Method
 
 Ensure it properly sends services (line 165):
+
 ```typescript
 async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
   // Log multi-service updates for debugging
   if (data.services && data.services.length > 1) {
     console.log(`[BookingsClient] Updating booking ${id} with ${data.services.length} services`);
   }
-  
+
   const booking = await this.patch(
-    `/bookings/${id}`, 
-    data, 
-    undefined, 
+    `/bookings/${id}`,
+    data,
+    undefined,
     'v2',
     requestSchemas.updateBooking,
     responseSchemas.booking
   );
-  
+
   const transformedBooking = this.transformBooking(booking);
-  
+
   // Verify services are included in response
   if (booking.services && booking.services.length > 1) {
     console.log(`[BookingsClient] Received ${booking.services.length} services in response`);
   }
-  
+
   return transformedBooking;
 }
 ```
@@ -298,6 +314,7 @@ async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
 #### 5.2 Verify transformBooking Method
 
 Ensure it preserves services array (line 326):
+
 ```typescript
 services: booking.services, // IMPORTANT: Preserve the services array for multi-service bookings
 ```
@@ -307,6 +324,7 @@ services: booking.services, // IMPORTANT: Preserve the services array for multi-
 #### 6.1 Unit Tests to Add
 
 1. **BookingUpdateService Tests**
+
    - Test updating single service to multiple services
    - Test updating multiple services
    - Test removing services (empty array)
@@ -321,6 +339,7 @@ services: booking.services, // IMPORTANT: Preserve the services array for multi-
 #### 6.2 Manual Testing Scenarios
 
 1. **Add Service to Existing Booking**
+
    - Open booking with 1 service
    - Add 2nd service
    - Save and verify:
@@ -330,12 +349,14 @@ services: booking.services, // IMPORTANT: Preserve the services array for multi-
      - End time is adjusted
 
 2. **Modify Services**
+
    - Change service prices
    - Change service durations
    - Change staff per service
    - Verify all changes persist
 
 3. **Remove Services**
+
    - Start with multi-service booking
    - Remove one service
    - Verify removed service is deleted from DB
@@ -350,19 +371,19 @@ services: booking.services, // IMPORTANT: Preserve the services array for multi-
 
 ```sql
 -- Check BookingService records for a booking
-SELECT bs.*, s.name as service_name 
+SELECT bs.*, s.name as service_name
 FROM "BookingService" bs
 JOIN "Service" s ON bs."serviceId" = s.id
 WHERE bs."bookingId" = '<booking-id>';
 
 -- Verify no orphaned BookingService records
-SELECT bs.* 
+SELECT bs.*
 FROM "BookingService" bs
 LEFT JOIN "Booking" b ON bs."bookingId" = b.id
 WHERE b.id IS NULL;
 
 -- Check total amounts match
-SELECT 
+SELECT
   b.id,
   b."totalAmount" as booking_total,
   SUM(bs.price) as services_total
@@ -377,18 +398,20 @@ HAVING b."totalAmount" != SUM(bs.price);
 If issues arise after deployment:
 
 1. **Immediate Rollback**
+
    ```bash
    git revert <commit-hash>
    pm2 restart api
    ```
 
 2. **Database Cleanup** (if needed)
+
    ```sql
    -- Remove duplicate BookingService records
-   DELETE FROM "BookingService" 
+   DELETE FROM "BookingService"
    WHERE id NOT IN (
-     SELECT MIN(id) 
-     FROM "BookingService" 
+     SELECT MIN(id)
+     FROM "BookingService"
      GROUP BY "bookingId", "serviceId"
    );
    ```
@@ -400,12 +423,14 @@ If issues arise after deployment:
 ## Success Metrics
 
 1. **Functional Success**
+
    - [ ] Multi-service updates persist to database
    - [ ] Refresh shows all services
    - [ ] Total amounts are correct
    - [ ] Durations and end times are correct
 
 2. **Performance Metrics**
+
    - [ ] Update response time < 500ms
    - [ ] No N+1 queries
    - [ ] Transaction completes < 1 second
@@ -418,11 +443,13 @@ If issues arise after deployment:
 ## Implementation Order
 
 1. **Day 1**: Backend Changes
+
    - [ ] Update BookingUpdateService
    - [ ] Update V2 Controller
    - [ ] Test with Postman/curl
 
 2. **Day 2**: Frontend Verification
+
    - [ ] Verify frontend handling
    - [ ] Add console logging
    - [ ] Manual testing
@@ -435,11 +462,13 @@ If issues arise after deployment:
 ## Notes and Considerations
 
 1. **Backward Compatibility**
+
    - Keep `serviceId` field for single-service bookings
    - Support both single service and services array in API
    - Ensure existing bookings continue to work
 
 2. **Performance Considerations**
+
    - Use `createMany` for bulk insert of BookingService records
    - Include services in single query with booking
    - Consider adding index on BookingService.bookingId

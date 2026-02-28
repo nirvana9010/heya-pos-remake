@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader } from '@heya-pos/ui'
-import { Skeleton } from '@heya-pos/ui'
+import { Card, CardContent, CardHeader } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
 
 export default function CustomersLoading() {
   return (
@@ -39,7 +39,10 @@ export default function CustomersLoading() {
       <Card>
         <div className="p-6">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center justify-between py-4 border-b last:border-0">
+            <div
+              key={i}
+              className="flex items-center justify-between py-4 border-b last:border-0"
+            >
               <div className="flex items-center gap-4">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div>
@@ -57,5 +60,5 @@ export default function CustomersLoading() {
         </div>
       </Card>
     </div>
-  )
+  );
 }

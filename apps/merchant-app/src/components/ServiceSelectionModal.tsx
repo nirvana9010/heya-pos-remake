@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Clock, DollarSign, Plus } from 'lucide-react';
-import { Button, Input, Badge } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
+import React, { useState, useMemo } from "react";
+import { X, Search, Clock, DollarSign, Plus } from "lucide-react";
+import { Button, Input, Badge } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
 
 interface ServiceSelectionModalProps {
   isOpen: boolean;
@@ -16,13 +16,13 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
   services,
   onSelectService,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Extract unique categories from services
   const categories = useMemo(() => {
     const uniqueCategories = new Map();
-    services.forEach(service => {
+    services.forEach((service) => {
       if (service.categoryId && service.categoryName) {
         uniqueCategories.set(service.categoryId, service.categoryName);
       }
@@ -32,14 +32,18 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
 
   // Filter services based on search and category
   const filteredServices = useMemo(() => {
-    return services.filter(service => {
-      const matchesSearch = searchQuery === '' || 
+    return services.filter((service) => {
+      const matchesSearch =
+        searchQuery === "" ||
         service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesCategory = selectedCategory === 'all' || 
-        service.categoryId === selectedCategory;
-      
+        (service.description &&
+          service.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()));
+
+      const matchesCategory =
+        selectedCategory === "all" || service.categoryId === selectedCategory;
+
       return matchesSearch && matchesCategory && service.isActive;
     });
   }, [services, searchQuery, selectedCategory]);
@@ -47,7 +51,7 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
   const handleSelectService = (service: any) => {
     onSelectService(service);
     // Reset search after selection for better UX
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   if (!isOpen) return null;
@@ -55,11 +59,11 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="bg-white w-full sm:max-w-2xl h-full sm:h-[80vh] sm:rounded-lg shadow-xl flex flex-col animate-slide-up sm:animate-fade-in">
@@ -78,7 +82,7 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            
+
             {/* Search */}
             <div className="mt-3">
               <div className="relative">
@@ -92,30 +96,32 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
                 />
               </div>
             </div>
-            
+
             {/* Category filters */}
             <div className="mt-3 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
               <Badge
-                variant={selectedCategory === 'all' ? 'default' : 'secondary'}
+                variant={selectedCategory === "all" ? "default" : "secondary"}
                 className={cn(
                   "cursor-pointer whitespace-nowrap",
-                  selectedCategory === 'all' 
-                    ? 'bg-teal-600 text-white hover:bg-teal-700' 
-                    : 'hover:bg-gray-200'
+                  selectedCategory === "all"
+                    ? "bg-teal-600 text-white hover:bg-teal-700"
+                    : "hover:bg-gray-200",
                 )}
-                onClick={() => setSelectedCategory('all')}
+                onClick={() => setSelectedCategory("all")}
               >
-                All Services ({services.filter(s => s.isActive).length})
+                All Services ({services.filter((s) => s.isActive).length})
               </Badge>
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <Badge
                   key={cat.id}
-                  variant={selectedCategory === cat.id ? 'default' : 'secondary'}
+                  variant={
+                    selectedCategory === cat.id ? "default" : "secondary"
+                  }
                   className={cn(
                     "cursor-pointer whitespace-nowrap",
-                    selectedCategory === cat.id 
-                      ? 'bg-teal-600 text-white hover:bg-teal-700' 
-                      : 'hover:bg-gray-200'
+                    selectedCategory === cat.id
+                      ? "bg-teal-600 text-white hover:bg-teal-700"
+                      : "hover:bg-gray-200",
                   )}
                   onClick={() => setSelectedCategory(cat.id)}
                 >
@@ -135,7 +141,7 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setSearchQuery("")}
                     className="mt-2"
                   >
                     Clear search
@@ -163,7 +169,9 @@ export const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
                           )}
                         </div>
                         {service.description && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description}</p>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            {service.description}
+                          </p>
                         )}
                         <div className="flex items-center gap-4 mt-2 text-sm">
                           <span className="flex items-center gap-1 text-gray-700 font-medium">

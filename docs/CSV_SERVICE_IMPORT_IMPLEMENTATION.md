@@ -1,16 +1,19 @@
 # CSV Service Import System Implementation Guide
 
 ## Overview
+
 This document outlines the implementation plan for a CSV import system for services in the Heya POS system. The system will allow merchants to bulk import services via CSV files with validation, preview, and error handling capabilities.
 
 ## Service Data Model Reference
 
 ### Required Fields
+
 - `name` (string) - Service name, must be unique per merchant
 - `duration` (number) - Duration in minutes
 - `price` (number) - Price amount
 
 ### Optional Fields
+
 - `description` (string) - Service description
 - `category` (string) - Category name (will create if doesn't exist)
 - `categoryId` (string) - Category UUID (alternative to category name)
@@ -26,11 +29,13 @@ This document outlines the implementation plan for a CSV import system for servi
 ## 1. CSV Format Specification
 
 ### Headers
+
 ```csv
 name,category,description,duration,price,deposit_required,deposit_amount,tax_rate,min_advance_hours,max_advance_days,active
 ```
 
 ### Example CSV Content
+
 ```csv
 name,category,description,duration,price,deposit_required,deposit_amount,tax_rate,min_advance_hours,max_advance_days,active
 "Classic Facial","Facials","Deep cleansing facial with extractions",60,120,false,,0.1,0,90,true
@@ -40,7 +45,9 @@ name,category,description,duration,price,deposit_required,deposit_amount,tax_rat
 ```
 
 ### Duration Format Support
+
 The system should accept multiple duration formats:
+
 - Minutes: `60`, `90`, `120`
 - Hours: `1h`, `1.5h`, `2h`
 - Hours and minutes: `1h30m`, `2h15m`
@@ -49,6 +56,7 @@ The system should accept multiple duration formats:
 ## 2. Frontend Implementation
 
 ### 2.1 Import Dialog Component
+
 **Location**: `/apps/merchant-app/src/components/services/ImportServicesDialog.tsx`
 
 ```tsx
@@ -67,6 +75,7 @@ interface ImportServicesDialogProps {
 ```
 
 ### 2.2 CSV Template Download
+
 **Location**: `/apps/merchant-app/src/components/services/DownloadCsvTemplate.tsx`
 
 ```tsx
@@ -78,6 +87,7 @@ interface ImportServicesDialogProps {
 ```
 
 ### 2.3 Import Preview Table
+
 ```tsx
 interface ImportPreviewRow {
   rowNumber: number;
@@ -87,13 +97,14 @@ interface ImportPreviewRow {
     errors: string[];
     warnings: string[];
   };
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
 }
 ```
 
 ## 3. Backend Implementation
 
 ### 3.1 CSV Parser Service
+
 **Location**: `/apps/api/src/services/csv-import.service.ts`
 
 ```typescript
@@ -114,7 +125,10 @@ interface ImportError {
 }
 
 class CsvImportService {
-  async parseCsv(file: Buffer, options: ImportOptions): Promise<CsvImportResult> {
+  async parseCsv(
+    file: Buffer,
+    options: ImportOptions,
+  ): Promise<CsvImportResult> {
     // 1. Parse CSV with encoding detection
     // 2. Validate headers
     // 3. Process each row
@@ -124,7 +138,7 @@ class CsvImportService {
   async importServices(
     merchantId: string,
     rows: ImportPreviewRow[],
-    options: ImportOptions
+    options: ImportOptions,
   ): Promise<ImportResult> {
     // 1. Begin transaction
     // 2. Process categories (create if needed)
@@ -136,6 +150,7 @@ class CsvImportService {
 ```
 
 ### 3.2 Import Controller Endpoint
+
 **Location**: `/apps/api/src/services/services.controller.ts`
 
 ```typescript
@@ -160,34 +175,36 @@ async downloadTemplate(@Res() response: Response) {
 ```
 
 ### 3.3 Validation Rules
+
 ```typescript
 const validationRules = {
   name: {
     required: true,
     maxLength: 100,
-    unique: true // per merchant
+    unique: true, // per merchant
   },
   duration: {
     required: true,
     min: 0,
-    parser: parseDuration // handles various formats
+    parser: parseDuration, // handles various formats
   },
   price: {
     required: true,
     min: 0,
-    type: 'decimal'
+    type: "decimal",
   },
   taxRate: {
     min: 0,
     max: 1,
-    default: 0.1
-  }
+    default: 0.1,
+  },
 };
 ```
 
 ## 4. Import Flow
 
 ### 4.1 Upload & Preview Flow
+
 1. User uploads CSV file
 2. System parses and validates
 3. Shows preview with validation status
@@ -195,23 +212,26 @@ const validationRules = {
 5. System imports valid rows
 
 ### 4.2 Error Handling
+
 - Row-level validation with specific error messages
 - Option to skip invalid rows
 - Download error report as CSV
 - Inline editing for quick fixes
 
 ### 4.3 Duplicate Handling Options
+
 ```typescript
 enum DuplicateAction {
-  SKIP = 'skip',
-  UPDATE = 'update', 
-  CREATE_NEW = 'create_new' // adds suffix to name
+  SKIP = "skip",
+  UPDATE = "update",
+  CREATE_NEW = "create_new", // adds suffix to name
 }
 ```
 
 ## 5. API Endpoints
 
 ### Preview Import
+
 ```
 POST /api/v1/services/import/csv/preview
 Content-Type: multipart/form-data
@@ -238,6 +258,7 @@ Response:
 ```
 
 ### Execute Import
+
 ```
 POST /api/v1/services/import/csv/execute
 Content-Type: application/json
@@ -259,6 +280,7 @@ Response:
 ## 6. Database Considerations
 
 ### Import Tracking
+
 ```prisma
 model ServiceImport {
   id          String   @id @default(uuid())
@@ -272,12 +294,13 @@ model ServiceImport {
   status      String   // 'pending', 'completed', 'failed'
   createdAt   DateTime @default(now())
   completedAt DateTime?
-  
+
   services    Service[] // Track which services were imported
 }
 ```
 
 ### Category Auto-Creation
+
 - Check if category exists (case-insensitive)
 - Create if doesn't exist
 - Maintain category order
@@ -286,6 +309,7 @@ model ServiceImport {
 ## 7. UI Mockups
 
 ### Import Dialog States
+
 1. **Initial**: Drag & drop zone
 2. **Uploading**: Progress indicator
 3. **Preview**: Validation table with actions
@@ -293,6 +317,7 @@ model ServiceImport {
 5. **Complete**: Summary with next actions
 
 ### Validation Preview Table
+
 ```
 | Row | Status | Name | Category | Duration | Price | Errors/Warnings | Action |
 |-----|--------|------|----------|----------|-------|----------------|---------|
@@ -304,12 +329,14 @@ model ServiceImport {
 ## 8. Testing Scenarios
 
 ### Valid Import Cases
+
 - All required fields present
 - Various duration formats
 - New and existing categories
 - Different decimal formats for prices
 
 ### Error Cases
+
 - Missing required fields
 - Invalid data types
 - Duplicate names
@@ -318,6 +345,7 @@ model ServiceImport {
 - File size limits
 
 ### Edge Cases
+
 - Empty CSV
 - Only headers
 - Special characters in names
@@ -345,6 +373,7 @@ model ServiceImport {
 ## 11. Implementation Priority
 
 ### Phase 1 (MVP)
+
 1. Basic CSV parser
 2. Simple validation
 3. Import endpoint
@@ -352,6 +381,7 @@ model ServiceImport {
 5. Error reporting
 
 ### Phase 2 (Enhanced)
+
 1. Advanced validation
 2. Preview & editing
 3. Template download
@@ -359,6 +389,7 @@ model ServiceImport {
 5. Progress tracking
 
 ### Phase 3 (Advanced)
+
 1. Import history
 2. Undo capability
 3. Bulk operations

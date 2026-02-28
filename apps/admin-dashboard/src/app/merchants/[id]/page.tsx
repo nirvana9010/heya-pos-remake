@@ -2,9 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Edit, Trash2, AlertCircle, Building2, Users, Calendar, DollarSign, MapPin, Globe } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Edit,
+  Trash2,
+  AlertCircle,
+  Building2,
+  Users,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Globe,
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
@@ -42,13 +60,13 @@ function MerchantDetailPage() {
       const data = await adminApi.getMerchant(merchantId);
       setMerchant(data);
     } catch (error) {
-      console.error('Failed to load merchant:', error);
+      console.error("Failed to load merchant:", error);
       toast({
         title: "Error",
         description: "Failed to load merchant details",
         variant: "destructive",
       });
-      router.push('/merchants');
+      router.push("/merchants");
     } finally {
       setLoading(false);
     }
@@ -62,9 +80,9 @@ function MerchantDetailPage() {
         title: "Success",
         description: "Merchant deleted successfully",
       });
-      router.push('/merchants');
+      router.push("/merchants");
     } catch (error: any) {
-      console.error('Failed to delete merchant:', error);
+      console.error("Failed to delete merchant:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete merchant",
@@ -102,7 +120,7 @@ function MerchantDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/merchants')}
+            onClick={() => router.push("/merchants")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Merchants
@@ -134,7 +152,10 @@ function MerchantDetailPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{merchant.email}</p>
         </div>
-        <Badge variant={merchant.isActive ? "default" : "secondary"} className="text-sm">
+        <Badge
+          variant={merchant.isActive ? "default" : "secondary"}
+          className="text-sm"
+        >
           {merchant.isActive ? "Active" : "Inactive"}
         </Badge>
       </div>
@@ -147,17 +168,25 @@ function MerchantDetailPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{merchant._count?.staff || 0}</div>
-            <p className="text-xs text-muted-foreground">Active staff accounts</p>
+            <div className="text-2xl font-bold">
+              {merchant._count?.staff || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Active staff accounts
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Bookings
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{merchant._count?.bookings || 0}</div>
+            <div className="text-2xl font-bold">
+              {merchant._count?.bookings || 0}
+            </div>
             <p className="text-xs text-muted-foreground">All time bookings</p>
           </CardContent>
         </Card>
@@ -167,7 +196,9 @@ function MerchantDetailPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{merchant._count?.services || 0}</div>
+            <div className="text-2xl font-bold">
+              {merchant._count?.services || 0}
+            </div>
             <p className="text-xs text-muted-foreground">Available services</p>
           </CardContent>
         </Card>
@@ -177,8 +208,12 @@ function MerchantDetailPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{merchant._count?.customers || 0}</div>
-            <p className="text-xs text-muted-foreground">Registered customers</p>
+            <div className="text-2xl font-bold">
+              {merchant._count?.customers || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Registered customers
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -194,36 +229,54 @@ function MerchantDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Business Information</CardTitle>
-              <CardDescription>Basic information about the merchant</CardDescription>
+              <CardDescription>
+                Basic information about the merchant
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Business Name</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Business Name
+                  </p>
                   <p className="text-lg">{merchant.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Email
+                  </p>
                   <p className="text-lg">{merchant.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Phone
+                  </p>
                   <p className="text-lg">{merchant.phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">ABN</p>
-                  <p className="text-lg">{merchant.abn || 'Not provided'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    ABN
+                  </p>
+                  <p className="text-lg">{merchant.abn || "Not provided"}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Subdomain</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Subdomain
+                  </p>
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <code className="text-lg">{merchant.subdomain}.heya-pos.com</code>
+                    <code className="text-lg">
+                      {merchant.subdomain}.heya-pos.com
+                    </code>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Created</p>
-                  <p className="text-lg">{new Date(merchant.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Created
+                  </p>
+                  <p className="text-lg">
+                    {new Date(merchant.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -236,13 +289,17 @@ function MerchantDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Production URL</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Production URL
+                </p>
                 <code className="text-sm bg-muted px-2 py-1 rounded">
                   https://bookings.heya-pos.com/{merchant.subdomain}
                 </code>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Development URL</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Development URL
+                </p>
                 <code className="text-sm bg-muted px-2 py-1 rounded">
                   http://localhost:3001/{merchant.subdomain}
                 </code>
@@ -255,35 +312,55 @@ function MerchantDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Subscription Details</CardTitle>
-              <CardDescription>Current package and billing information</CardDescription>
+              <CardDescription>
+                Current package and billing information
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {merchant.subscription ? (
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Package</p>
-                      <p className="text-lg font-semibold">{merchant.subscription.package.name}</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Package
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {merchant.subscription.package.name}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Status</p>
-                      <Badge variant="default">{merchant.subscription.status}</Badge>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Status
+                      </p>
+                      <Badge variant="default">
+                        {merchant.subscription.status}
+                      </Badge>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Monthly Price</p>
-                      <p className="text-lg">${merchant.subscription.package.monthlyPrice}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Expires</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Monthly Price
+                      </p>
                       <p className="text-lg">
-                        {merchant.subscription.endDate 
-                          ? new Date(merchant.subscription.endDate).toLocaleDateString()
-                          : 'No expiry'}
+                        ${merchant.subscription.package.monthlyPrice}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Expires
+                      </p>
+                      <p className="text-lg">
+                        {merchant.subscription.endDate
+                          ? new Date(
+                              merchant.subscription.endDate,
+                            ).toLocaleDateString()
+                          : "No expiry"}
                       </p>
                     </div>
                   </div>
                   <div className="border-t pt-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Package Limits</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Package Limits
+                    </p>
                     <div className="grid gap-2 text-sm">
                       <div className="flex justify-between">
                         <span>Max Staff</span>
@@ -295,7 +372,9 @@ function MerchantDetailPage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Max Bookings/Month</span>
-                        <span>{merchant.subscription.package.maxBookingsPerMonth}</span>
+                        <span>
+                          {merchant.subscription.package.maxBookingsPerMonth}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -311,19 +390,28 @@ function MerchantDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Locations</CardTitle>
-              <CardDescription>Business locations for this merchant</CardDescription>
+              <CardDescription>
+                Business locations for this merchant
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {merchant.locations && merchant.locations.length > 0 ? (
                 <div className="space-y-4">
                   {merchant.locations.map((location) => (
-                    <div key={location.id} className="flex items-start gap-3 p-4 border rounded-lg">
+                    <div
+                      key={location.id}
+                      className="flex items-start gap-3 p-4 border rounded-lg"
+                    >
                       <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div className="flex-1">
                         <p className="font-medium">{location.name}</p>
-                        <p className="text-sm text-muted-foreground">{location.address}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {location.address}
+                        </p>
                       </div>
-                      <Badge variant={location.isActive ? "default" : "secondary"}>
+                      <Badge
+                        variant={location.isActive ? "default" : "secondary"}
+                      >
                         {location.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
@@ -342,8 +430,8 @@ function MerchantDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the merchant "{merchant.name}". 
-              This action cannot be undone.
+              This will permanently delete the merchant "{merchant.name}". This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

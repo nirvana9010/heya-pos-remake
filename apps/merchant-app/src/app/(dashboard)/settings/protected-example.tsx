@@ -3,10 +3,14 @@
 import { PinProtected } from "@/components/PinProtected";
 
 // Example: Protecting sensitive settings sections
-export function ProtectedSettingsSection({ children }: { children: React.ReactNode }) {
+export function ProtectedSettingsSection({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <PinProtected 
-      feature="settings" 
+    <PinProtected
+      feature="settings"
       title="Settings Access Required"
       description="Enter your PIN to modify system settings"
     >
@@ -18,7 +22,7 @@ export function ProtectedSettingsSection({ children }: { children: React.ReactNo
 // Example: Protecting specific settings tabs
 export function SecuritySettingsTab() {
   return (
-    <PinProtected 
+    <PinProtected
       feature="settings"
       title="Security Settings"
       description="PIN required to access security configuration"
@@ -34,7 +38,7 @@ export function SecuritySettingsTab() {
 // Example: Protecting staff management
 export function StaffManagementSection() {
   return (
-    <PinProtected 
+    <PinProtected
       feature="staff"
       title="Staff Management"
       description="PIN required to manage staff accounts"
@@ -50,7 +54,7 @@ export function StaffManagementSection() {
 // Example: Protecting discount overrides
 export function DiscountOverrideForm() {
   return (
-    <PinProtected 
+    <PinProtected
       feature="discounts"
       title="Discount Override"
       description="PIN required to apply special discounts"

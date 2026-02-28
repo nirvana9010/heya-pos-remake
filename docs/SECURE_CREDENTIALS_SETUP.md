@@ -3,6 +3,7 @@
 ## ⚠️ IMPORTANT: Never Share API Keys
 
 API keys are like passwords - they give full access to your services and can result in:
+
 - Unauthorized charges on your account
 - Spam sent from your domain
 - Account suspension
@@ -13,12 +14,14 @@ API keys are like passwords - they give full access to your services and can res
 ### Local Development
 
 1. Create a `.env.development` file in `apps/api/`:
+
    ```bash
    cd apps/api
    touch .env.development
    ```
 
 2. Add your credentials to this file:
+
    ```env
    # SendGrid
    SENDGRID_API_KEY=SG.your-new-key-here
@@ -52,11 +55,14 @@ API keys are like passwords - they give full access to your services and can res
 ## Testing Your Setup
 
 1. Check if credentials are loaded:
+
    ```bash
    cd apps/api
    npm run start:dev
    ```
+
    Look for logs like:
+
    - "SendGrid email service initialized"
    - "Twilio SMS service initialized"
 
@@ -84,6 +90,7 @@ API keys are like passwords - they give full access to your services and can res
 ## SendGrid Specific Setup
 
 1. **Domain Authentication**:
+
    - Go to Settings → Sender Authentication
    - Add your domain
    - Add DNS records as instructed
@@ -96,10 +103,12 @@ API keys are like passwords - they give full access to your services and can res
 ## Twilio Specific Setup
 
 1. **Verify Phone Numbers** (for testing):
+
    - Phone Numbers → Manage → Verified Caller IDs
    - Add numbers you'll test with
 
 2. **Set Geographic Permissions**:
+
    - Settings → Geo Permissions
    - Only enable countries you'll send to
 
@@ -108,8 +117,9 @@ API keys are like passwords - they give full access to your services and can res
    - Add `TWILIO_STATUS_CALLBACK_URL` to environment
 
 Remember: Treat API keys like passwords. Never share them in:
+
 - Chat messages
-- Code commits  
+- Code commits
 - Public forums
 - Unencrypted files
 - Client-side code

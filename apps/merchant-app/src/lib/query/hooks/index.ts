@@ -1,20 +1,20 @@
 /**
  * Query Hooks - Phase 2 State Management
- * 
+ *
  * Centralized exports for all React Query hooks
  */
 
 // Bookings hooks
-export * from './use-bookings';
+export * from "./use-bookings";
 
-// Customers hooks  
-export * from './use-customers';
+// Customers hooks
+export * from "./use-customers";
 
 // Reports hooks
-export * from './use-reports';
+export * from "./use-reports";
 
 // Notifications hooks
-export * from './use-notifications';
+export * from "./use-notifications";
 
 // TODO: Add other domain hooks as needed:
 // export * from './use-services';

@@ -7,12 +7,15 @@ Advance booking hours and cancellation notice are **critical business rules** th
 ## 🚀 Quick Test Methods
 
 ### 1. Automated UI Test
+
 Navigate to: `/settings/test-booking-rules`
+
 - Visual test interface
 - Real-time results
 - Tests all edge cases automatically
 
 ### 2. Command Line Test
+
 ```bash
 # Get auth token
 AUTH_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/merchant/login \
@@ -24,6 +27,7 @@ AUTH_TOKEN=$AUTH_TOKEN node scripts/test-booking-rules.js
 ```
 
 ### 3. Manual Testing
+
 Follow the step-by-step guide below
 
 ---
@@ -31,11 +35,13 @@ Follow the step-by-step guide below
 ## 📏 Understanding the Rules
 
 ### Advance Booking Hours
+
 - **Purpose**: Prevents last-minute bookings that staff can't prepare for
 - **Example**: If set to 48 hours, customers cannot book for today or tomorrow
 - **Business Impact**: Ensures adequate preparation time
 
-### Cancellation Notice Hours  
+### Cancellation Notice Hours
+
 - **Purpose**: Prevents revenue loss from last-minute cancellations
 - **Example**: If set to 24 hours, customers cannot cancel bookings starting within 24 hours
 - **Business Impact**: May require deposits or fees for late cancellations
@@ -47,6 +53,7 @@ Follow the step-by-step guide below
 ### Test 1: Advance Booking Enforcement
 
 #### Setup
+
 1. Go to Settings → Booking tab
 2. Set "Advance Booking Hours" to **24**
 3. Save settings
@@ -54,6 +61,7 @@ Follow the step-by-step guide below
 #### Test Cases
 
 **Case 1.1: Block Same-Day Booking**
+
 ```
 1. Go to booking page/calendar
 2. Try to book for TODAY at 3pm
@@ -62,6 +70,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 1.2: Block Next-Day Morning**
+
 ```
 1. Current time: Today 2pm
 2. Try to book: Tomorrow 10am (20 hours ahead)
@@ -70,6 +79,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 1.3: Allow Exactly 24 Hours**
+
 ```
 1. Current time: Today 2pm
 2. Try to book: Tomorrow 2pm (exactly 24 hours)
@@ -78,6 +88,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 1.4: Allow Beyond Limit**
+
 ```
 1. Current time: Today 2pm
 2. Try to book: Tomorrow 3pm (25 hours)
@@ -88,6 +99,7 @@ Follow the step-by-step guide below
 ### Test 2: Cancellation Notice Enforcement
 
 #### Setup
+
 1. Set "Cancellation Notice Hours" to **48**
 2. Save settings
 3. Create test bookings at various times
@@ -95,6 +107,7 @@ Follow the step-by-step guide below
 #### Test Cases
 
 **Case 2.1: Block Immediate Cancellation**
+
 ```
 1. Booking time: Today 3pm (current time: 2:30pm)
 2. Try to cancel
@@ -103,6 +116,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 2.2: Block Within Notice Period**
+
 ```
 1. Booking time: Tomorrow 3pm (24 hours away)
 2. Try to cancel
@@ -111,6 +125,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 2.3: Allow At Limit**
+
 ```
 1. Booking time: Day after tomorrow 2pm (48 hours)
 2. Try to cancel
@@ -119,6 +134,7 @@ Follow the step-by-step guide below
 ```
 
 **Case 2.4: PIN Override (if enabled)**
+
 ```
 1. Booking within notice period
 2. Try to cancel
@@ -133,6 +149,7 @@ Follow the step-by-step guide below
 ## 🔄 Edge Case Testing
 
 ### Time Zone Considerations
+
 ```
 1. Set timezone to Perth (UTC+8)
 2. Create booking for "tomorrow 10am Perth time"
@@ -142,12 +159,14 @@ Follow the step-by-step guide below
 ```
 
 ### Daylight Saving Transitions
+
 ```
 1. Test bookings that cross DST boundaries
 2. Ensure 24h means 24 actual hours, not "same time tomorrow"
 ```
 
 ### Concurrent Updates
+
 ```
 1. Admin A: Set advance hours to 24
 2. Admin B: Try to book 12 hours ahead (should fail)
@@ -162,17 +181,20 @@ Follow the step-by-step guide below
 Test that rules are enforced across ALL booking channels:
 
 ### 1. Admin/Staff Portal
+
 - [ ] Calendar drag-and-drop
 - [ ] New booking form
 - [ ] Quick booking button
 - [ ] Modify existing booking
 
 ### 2. Customer Portal (if enabled)
+
 - [ ] Online booking widget
 - [ ] Mobile booking app
 - [ ] Phone booking (staff enters)
 
 ### 3. API/Integrations
+
 - [ ] Direct API calls
 - [ ] Third-party integrations
 - [ ] Import tools
@@ -182,22 +204,28 @@ Test that rules are enforced across ALL booking channels:
 ## 🚨 Common Issues & Solutions
 
 ### Issue 1: Rules Not Enforcing
+
 **Symptoms**: Can book/cancel without restrictions
 **Check**:
+
 - Settings actually saved? (refresh and check)
 - Using correct API version? (v2 for bookings)
 - Client-side validation disabled?
 
 ### Issue 2: Wrong Time Calculations
+
 **Symptoms**: Blocks valid bookings, allows invalid ones
 **Check**:
+
 - Server timezone matches setting timezone?
 - Client sending UTC timestamps?
 - DST handling correct?
 
 ### Issue 3: Inconsistent Enforcement
+
 **Symptoms**: Works in calendar but not booking form
 **Check**:
+
 - All UI components reading from same settings?
 - Validation in both frontend AND backend?
 - Cache invalidation after settings change?
@@ -220,7 +248,7 @@ Settings Tested:
 
 Results Summary:
 - Advance Booking Tests: ___/4 passed
-- Cancellation Tests: ___/4 passed  
+- Cancellation Tests: ___/4 passed
 - Edge Cases: ___/3 passed
 - Multi-Channel: ___/3 passed
 
@@ -239,18 +267,22 @@ _______________________
 The booking rules are working correctly when:
 
 1. **Consistent Enforcement**
+
    - Same rules apply everywhere
    - No way to bypass via different screens
 
 2. **Clear Messaging**
+
    - Error messages state the exact requirement
    - Shows when booking will be allowed
 
 3. **Accurate Calculations**
+
    - Time math is correct across timezones
    - Edge cases (DST, exactly at limit) work
 
 4. **Business Logic**
+
    - Managers can override with PIN (if enabled)
    - Audit trail shows overrides
    - Rules apply to modifications too
@@ -265,19 +297,21 @@ The booking rules are working correctly when:
 ## 🔧 Troubleshooting Commands
 
 ### Check Current Settings
+
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   http://localhost:3000/api/v1/merchant/settings | jq '.bookingAdvanceHours, .cancellationHours'
 ```
 
 ### Test Booking Creation
+
 ```bash
 # Try to book 1 hour ahead (should fail if limit > 1)
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "customerId": "test-id",
-    "serviceId": "test-id", 
+    "serviceId": "test-id",
     "staffId": "test-id",
     "startTime": "'$(date -u -d '+1 hour' -Iseconds)'"
   }' \
@@ -285,6 +319,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Monitor Validation Logs
+
 ```bash
 # Watch API logs for validation messages
 tail -f logs/api.log | grep -E "(advance|cancel|notice|hours)"

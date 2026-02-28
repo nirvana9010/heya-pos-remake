@@ -3,6 +3,7 @@
 ## 🧪 Manual Testing Steps
 
 ### Prerequisites
+
 - [ ] API is running on http://localhost:3000
 - [ ] Booking app is running on http://localhost:3001
 - [ ] No JavaScript errors in browser console
@@ -10,6 +11,7 @@
 ### Test Flow
 
 #### 1. Service Selection (Step 1)
+
 - [ ] Navigate to http://localhost:3001/booking
 - [ ] Page loads without errors
 - [ ] Services are displayed in a grid
@@ -23,6 +25,7 @@
 - [ ] Continue button is enabled when at least one service is selected
 
 #### 2. Staff Selection (Step 2)
+
 - [ ] Staff options are displayed
 - [ ] "No Preference" option is available
 - [ ] Staff cards show availability for selected services
@@ -30,6 +33,7 @@
 - [ ] Continue button works
 
 #### 3. Date & Time Selection (Step 3)
+
 - [ ] Calendar is displayed
 - [ ] Can select a date
 - [ ] Time slots appear after date selection
@@ -38,12 +42,14 @@
 - [ ] Continue button works after selecting time
 
 #### 4. Customer Identification (Step 4)
+
 - [ ] Email/phone input field appears
 - [ ] Can enter email or phone
 - [ ] "Continue as New Customer" button works
 - [ ] If returning customer, shows customer info
 
 #### 5. Customer Details (Step 5)
+
 - [ ] Form shows with fields:
   - [ ] First Name
   - [ ] Last Name
@@ -54,6 +60,7 @@
 - [ ] Continue button enabled when required fields filled
 
 #### 6. Payment (Step 6)
+
 - [ ] Payment options displayed
 - [ ] Shows booking summary with all services
 - [ ] Total price is correct
@@ -61,6 +68,7 @@
 - [ ] Can proceed to confirmation
 
 #### 7. Confirmation (Step 7)
+
 - [ ] Booking number displayed
 - [ ] All selected services listed with:
   - [ ] Service name
@@ -74,18 +82,22 @@
 - [ ] "Book Another" button available
 
 ### API Verification
+
 Run the test script to verify API functionality:
+
 ```bash
 ./test-booking-api.sh
 ```
 
 Expected results:
+
 - ✅ All public endpoints return data
 - ✅ Multi-service availability check works
 - ✅ Multi-service booking creation succeeds
 - ✅ Total price calculated correctly
 
 ### Known Issues Fixed
+
 - [x] `selectedService is not defined` error on booking page
 - [x] `service is not defined` error on staff selection
 - [x] Multi-service selection UI implemented
@@ -93,6 +105,7 @@ Expected results:
 - [x] Availability checking accounts for total duration
 
 ## 🎉 Success Criteria
+
 - User can select multiple services
 - Total price and duration calculated correctly
 - Booking created with all selected services

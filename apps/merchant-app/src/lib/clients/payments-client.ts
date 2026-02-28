@@ -1,4 +1,4 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient } from "./base-client";
 
 export interface Payment {
   id: string;
@@ -98,12 +98,12 @@ export interface PaymentInitResponse {
 export interface PrepareOrderRequest {
   // For existing orders
   orderId?: string;
-  
+
   // For new orders
   customerId?: string;
   isWalkIn?: boolean;
   bookingId?: string;
-  
+
   // Items to add
   items?: Array<{
     itemType: string;
@@ -115,10 +115,10 @@ export interface PrepareOrderRequest {
     staffId?: string;
     metadata?: any;
   }>;
-  
+
   // Order-level adjustment
   orderModifier?: {
-    type: 'DISCOUNT' | 'SURCHARGE';
+    type: "DISCOUNT" | "SURCHARGE";
     amount: number;
     description: string;
   };
@@ -127,57 +127,85 @@ export interface PrepareOrderRequest {
 export class PaymentsClient extends BaseApiClient {
   // Orders
   async createOrder(data: CreateOrderRequest): Promise<Order> {
-    return this.post('/payments/orders', data, undefined, 'v1');
+    return this.post("/payments/orders", data, undefined, "v1");
   }
 
   async createOrderFromBooking(bookingId: string): Promise<Order> {
-    return this.post(`/payments/orders/from-booking/${bookingId}`, undefined, undefined, 'v1');
+    return this.post(
+      `/payments/orders/from-booking/${bookingId}`,
+      undefined,
+      undefined,
+      "v1",
+    );
   }
 
   async getOrder(orderId: string): Promise<Order> {
-    return this.get(`/payments/orders/${orderId}`, undefined, 'v1');
+    return this.get(`/payments/orders/${orderId}`, undefined, "v1");
   }
 
   async addOrderItems(orderId: string, items: OrderItem[]): Promise<Order> {
-    return this.post(`/payments/orders/${orderId}/items`, { items }, undefined, 'v1');
+    return this.post(
+      `/payments/orders/${orderId}/items`,
+      { items },
+      undefined,
+      "v1",
+    );
   }
 
   async addOrderModifier(orderId: string, modifier: any): Promise<Order> {
-    return this.post(`/payments/orders/${orderId}/modifiers`, modifier, undefined, 'v1');
+    return this.post(
+      `/payments/orders/${orderId}/modifiers`,
+      modifier,
+      undefined,
+      "v1",
+    );
   }
 
   async updateOrderState(orderId: string, state: string): Promise<Order> {
-    return this.post(`/payments/orders/${orderId}/state`, { state }, undefined, 'v1');
+    return this.post(
+      `/payments/orders/${orderId}/state`,
+      { state },
+      undefined,
+      "v1",
+    );
   }
 
   // Payment Initialization - Optimized endpoint for faster modal loading
-  async initializePayment(data: PaymentInitRequest): Promise<PaymentInitResponse> {
-    return this.post('/payments/init', data, undefined, 'v1');
+  async initializePayment(
+    data: PaymentInitRequest,
+  ): Promise<PaymentInitResponse> {
+    return this.post("/payments/init", data, undefined, "v1");
   }
 
   // Prepare order for payment - single endpoint for all order preparation
-  async prepareOrderForPayment(data: PrepareOrderRequest): Promise<PaymentInitResponse> {
-    return this.post('/payments/prepare-order', data, undefined, 'v1');
+  async prepareOrderForPayment(
+    data: PrepareOrderRequest,
+  ): Promise<PaymentInitResponse> {
+    return this.post("/payments/prepare-order", data, undefined, "v1");
   }
 
   // Payments
   async processPayment(data: ProcessPaymentRequest): Promise<Payment> {
-    return this.post('/payments/process', data, undefined, 'v1');
+    return this.post("/payments/process", data, undefined, "v1");
   }
 
   async processSplitPayment(data: any): Promise<Payment> {
-    return this.post('/payments/split', data, undefined, 'v1');
+    return this.post("/payments/split", data, undefined, "v1");
   }
 
   async refundPayment(request: RefundPaymentRequest): Promise<Payment> {
-    return this.post('/payments/refund', request, undefined, 'v1');
+    return this.post("/payments/refund", request, undefined, "v1");
   }
 
   async voidPayment(paymentId: string): Promise<Payment> {
-    return this.post(`/payments/void/${paymentId}`, undefined, undefined, 'v1');
+    return this.post(`/payments/void/${paymentId}`, undefined, undefined, "v1");
   }
 
-  async getPayments(params?: { page?: number; limit?: number; locationId?: string }): Promise<{ payments: any[]; pagination: any }> {
-    return this.get('/payments', { params }, 'v1');
+  async getPayments(params?: {
+    page?: number;
+    limit?: number;
+    locationId?: string;
+  }): Promise<{ payments: any[]; pagination: any }> {
+    return this.get("/payments", { params }, "v1");
   }
 }

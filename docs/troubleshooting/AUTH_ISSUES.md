@@ -7,10 +7,12 @@
 **Symptom**: All API endpoints return 403 with "User not authenticated"
 
 **Root Cause**: Guard execution order problem
+
 - Global guards run BEFORE controller guards
 - PermissionsGuard was global and ran before JwtAuthGuard
 
 **Solution**:
+
 ```typescript
 // ❌ WRONG - Don't use global PermissionsGuard
 @Module({
@@ -30,11 +32,13 @@
 **Symptom**: 404 errors with doubled API prefix
 
 **Root Cause**: Controllers had 'api' in their path
+
 ```typescript
 @Controller('api/customers')  // ❌ Wrong - causes /api/api/customers
 ```
 
 **Solution**:
+
 ```typescript
 @Controller('customers')  // ✅ Correct - results in /api/customers
 ```
@@ -44,6 +48,7 @@
 **Symptom**: Redirected to PIN page after merchant login
 
 **Solution**: Remove PIN checks from frontend routing
+
 ```typescript
 // In page.tsx and dashboard/page.tsx
 // Remove: if (!pinVerified) router.push('/pin')
@@ -52,13 +57,16 @@
 ## Testing Authentication
 
 ### Quick Test Command
+
 ```bash
 # Get token and test endpoint
 curl -H "Authorization: Bearer $(curl -X POST http://localhost:3000/api/auth/merchant/login -H "Content-Type: application/json" -d '{"username": "luxeadmin", "password": "testpassword123"}' -s | jq -r .token)" http://localhost:3000/api/auth/me
 ```
 
 ### Debug Endpoint
+
 Added `/api/debug/auth` to check if user is attached:
+
 ```typescript
 @Get('debug/auth')
 @UseGuards(JwtAuthGuard)

@@ -3,6 +3,7 @@
 ## Implementation Status
 
 ✅ **Completed:**
+
 1. Database schema updated with loyalty fields and models
 2. Core loyalty service implemented with business logic
 3. Loyalty controller with all required endpoints
@@ -12,11 +13,13 @@
 ## Testing Challenges
 
 ### Authentication Issues
+
 - JWT authentication on loyalty endpoints caused testing delays
 - Temporarily disabled auth guards for testing (need to re-enable)
 - User object not available when auth is disabled, causing crashes
 
 ### Key Findings
+
 1. Database successfully migrated with all loyalty tables
 2. Existing loyalty program found (Beauty Rewards - points based)
 3. Successfully updated to visits-based punch card system
@@ -24,6 +27,7 @@
 5. Booking integration hooked up correctly
 
 ## Test Data
+
 - Merchant: HAMILTON (id: cmbcxfd6s0003vopjw80c3qpe)
 - Test Customer: John Doe (id: cmbgdvybl0001vo8wdyow8n0f)
 - Location: Hamilton Beauty Spa (id: cmbcxfd9z0007vopjy4jj9igu)
@@ -36,10 +40,11 @@ The loyalty controller needs merchant ID hardcoded for testing when auth is disa
 
 ```typescript
 // In all endpoints that use user.merchantId:
-const merchantId = user?.merchantId || 'cmbcxfd6s0003vopjw80c3qpe';
+const merchantId = user?.merchantId || "cmbcxfd6s0003vopjw80c3qpe";
 ```
 
 ## Next Steps
+
 1. Fix the auth/user object issue in loyalty controller
 2. Complete end-to-end testing of visits earning
 3. Test redemption flows
@@ -74,10 +79,12 @@ curl -X POST http://localhost:3000/api/loyalty/program \
 ```
 
 ## Documentation Created
+
 - `/docs/LOYALTY_SYSTEM_DOCUMENTATION.md` - Complete system documentation
 - `/apps/api/test/test-loyalty-system.ts` - Comprehensive test script
 
 ## Important Notes
+
 - Phone numbers must be in international format (+61...)
 - Booking must be COMPLETED to earn loyalty
 - Each booking can only earn once (tracked by bookingId)

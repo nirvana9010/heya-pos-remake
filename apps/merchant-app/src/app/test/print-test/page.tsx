@@ -1,58 +1,78 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@heya-pos/ui';
-import { Button } from '@heya-pos/ui';
-import { Textarea } from '@heya-pos/ui';
-import { useToast } from '@heya-pos/ui';
-import { Printer, DollarSign, Receipt, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@heya-pos/ui";
+import { Button } from "@heya-pos/ui";
+import { Textarea } from "@heya-pos/ui";
+import { useToast } from "@heya-pos/ui";
+import {
+  Printer,
+  DollarSign,
+  Receipt,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 
-const PRINT_SERVER_URL = 'http://127.0.0.1:9100';
+const PRINT_SERVER_URL = "http://127.0.0.1:9100";
 
 // Helper to create a print line
-function line(text: string, align: 'left' | 'center' | 'right' = 'left', bold = false) {
+function line(
+  text: string,
+  align: "left" | "center" | "right" = "left",
+  bold = false,
+) {
   return { text, align, bold };
 }
 
 // Helper to create a separator line
 function separator() {
-  return line('--------------------------------', 'center');
+  return line("--------------------------------", "center");
 }
 
 // Sample receipt payload for thermal printer
 function createSampleReceipt() {
   const now = new Date();
-  const date = now.toLocaleDateString('en-AU');
-  const time = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  const date = now.toLocaleDateString("en-AU");
+  const time = now.toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const txnId = `TXN${Date.now().toString().slice(-8)}`;
 
   return {
     lines: [
-      line('HEYA BEAUTY SALON', 'center', true),
-      line('123 Main Street', 'center'),
-      line('Sydney NSW 2000', 'center'),
-      line('(02) 9876 5432', 'center'),
+      line("HEYA BEAUTY SALON", "center", true),
+      line("123 Main Street", "center"),
+      line("Sydney NSW 2000", "center"),
+      line("(02) 9876 5432", "center"),
       separator(),
-      line(`Date: ${date}  Time: ${time}`, 'left'),
-      line(`Transaction: ${txnId}`, 'left'),
-      line('Customer: Jane Smith', 'left'),
+      line(`Date: ${date}  Time: ${time}`, "left"),
+      line(`Transaction: ${txnId}`, "left"),
+      line("Customer: Jane Smith", "left"),
       separator(),
-      line('Hair Cut & Style', 'left'),
-      line('  1 x $85.00', 'right'),
-      line('Hair Colour - Full', 'left'),
-      line('  1 x $150.00', 'right'),
-      line('Deep Conditioning', 'left'),
-      line('  1 x $45.00', 'right'),
+      line("Hair Cut & Style", "left"),
+      line("  1 x $85.00", "right"),
+      line("Hair Colour - Full", "left"),
+      line("  1 x $150.00", "right"),
+      line("Deep Conditioning", "left"),
+      line("  1 x $45.00", "right"),
       separator(),
-      line('Subtotal:          $280.00', 'right'),
-      line('GST (10%):          $28.00', 'right'),
+      line("Subtotal:          $280.00", "right"),
+      line("GST (10%):          $28.00", "right"),
       separator(),
-      line('TOTAL:             $280.00', 'right', true),
-      line('Paid by Card:      $280.00', 'right'),
+      line("TOTAL:             $280.00", "right", true),
+      line("Paid by Card:      $280.00", "right"),
       separator(),
-      line('Thank you for visiting!', 'center'),
-      line('book.heyapos.com/heya-beauty', 'center'),
-      line('', 'left'),
+      line("Thank you for visiting!", "center"),
+      line("book.heyapos.com/heya-beauty", "center"),
+      line("", "left"),
     ],
     cut: true,
   };
@@ -62,12 +82,12 @@ function createSampleReceipt() {
 function createMinimalReceipt() {
   return {
     lines: [
-      line('TEST PRINT', 'center', true),
+      line("TEST PRINT", "center", true),
       separator(),
-      line(new Date().toLocaleString('en-AU'), 'center'),
+      line(new Date().toLocaleString("en-AU"), "center"),
       separator(),
-      line('Printer connected!', 'center'),
-      line('', 'left'),
+      line("Printer connected!", "center"),
+      line("", "left"),
     ],
     cut: true,
   };
@@ -75,20 +95,20 @@ function createMinimalReceipt() {
 
 async function printReceipt(receipt: object) {
   const res = await fetch(`${PRINT_SERVER_URL}/print`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(receipt),
   });
 
   const text = await res.text();
-  console.log('Print response:', res.status, text);
+  console.log("Print response:", res.status, text);
   if (!res.ok) throw new Error(text);
 
   // Check if response indicates failure
   try {
     const json = JSON.parse(text);
     if (json.ok === false) {
-      throw new Error(json.error || json.message || 'Print failed');
+      throw new Error(json.error || json.message || "Print failed");
     }
   } catch (e) {
     // If not JSON, just return the text
@@ -102,8 +122,8 @@ async function printReceipt(receipt: object) {
 
 async function openCashDrawer() {
   const res = await fetch(`${PRINT_SERVER_URL}/drawer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
   });
 
   const text = await res.text();
@@ -113,7 +133,7 @@ async function openCashDrawer() {
 
 async function checkPrinterStatus() {
   const res = await fetch(`${PRINT_SERVER_URL}/status`, {
-    method: 'GET',
+    method: "GET",
   });
 
   const text = await res.text();
@@ -124,33 +144,35 @@ async function checkPrinterStatus() {
 export default function PrintTestPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
-  const [lastResponse, setLastResponse] = useState<string>('');
+  const [lastResponse, setLastResponse] = useState<string>("");
   const [customPayload, setCustomPayload] = useState(
-    JSON.stringify(createSampleReceipt(), null, 2)
+    JSON.stringify(createSampleReceipt(), null, 2),
   );
-  const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  const [connectionStatus, setConnectionStatus] = useState<
+    "unknown" | "connected" | "disconnected"
+  >("unknown");
 
   const handleAction = async (
     action: () => Promise<string>,
-    actionName: string
+    actionName: string,
   ) => {
     setLoading(actionName);
     try {
       const response = await action();
       setLastResponse(response);
-      setConnectionStatus('connected');
+      setConnectionStatus("connected");
       toast({
-        title: 'Success',
+        title: "Success",
         description: `${actionName} completed successfully`,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : "Unknown error";
       setLastResponse(`Error: ${message}`);
-      setConnectionStatus('disconnected');
+      setConnectionStatus("disconnected");
       toast({
-        title: 'Error',
+        title: "Error",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(null);
@@ -168,7 +190,8 @@ export default function PrintTestPage() {
           <div>
             <h1 className="text-3xl font-bold">Printer Test</h1>
             <p className="text-muted-foreground">
-              Test thermal printer and cash drawer connection via Android print server
+              Test thermal printer and cash drawer connection via Android print
+              server
             </p>
           </div>
         </div>
@@ -176,13 +199,15 @@ export default function PrintTestPage() {
         {/* Connection Status */}
         <div className="flex items-center gap-2 mt-4">
           <span className="text-sm text-muted-foreground">Print Server:</span>
-          <code className="text-sm bg-muted px-2 py-1 rounded">{PRINT_SERVER_URL}</code>
-          {connectionStatus === 'connected' && (
+          <code className="text-sm bg-muted px-2 py-1 rounded">
+            {PRINT_SERVER_URL}
+          </code>
+          {connectionStatus === "connected" && (
             <span className="flex items-center gap-1 text-sm text-green-600">
               <CheckCircle2 className="h-4 w-4" /> Connected
             </span>
           )}
-          {connectionStatus === 'disconnected' && (
+          {connectionStatus === "disconnected" && (
             <span className="flex items-center gap-1 text-sm text-red-600">
               <XCircle className="h-4 w-4" /> Disconnected
             </span>
@@ -208,12 +233,12 @@ export default function PrintTestPage() {
               onClick={() =>
                 handleAction(
                   () => printReceipt(createMinimalReceipt()),
-                  'Test Print'
+                  "Test Print",
                 )
               }
               disabled={loading !== null}
             >
-              {loading === 'Test Print' ? (
+              {loading === "Test Print" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Printer className="h-4 w-4 mr-2" />
@@ -240,12 +265,12 @@ export default function PrintTestPage() {
               onClick={() =>
                 handleAction(
                   () => printReceipt(createSampleReceipt()),
-                  'Sample Receipt'
+                  "Sample Receipt",
                 )
               }
               disabled={loading !== null}
             >
-              {loading === 'Sample Receipt' ? (
+              {loading === "Sample Receipt" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Receipt className="h-4 w-4 mr-2" />
@@ -269,10 +294,10 @@ export default function PrintTestPage() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => handleAction(openCashDrawer, 'Open Drawer')}
+              onClick={() => handleAction(openCashDrawer, "Open Drawer")}
               disabled={loading !== null}
             >
-              {loading === 'Open Drawer' ? (
+              {loading === "Open Drawer" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <DollarSign className="h-4 w-4 mr-2" />
@@ -303,18 +328,18 @@ export default function PrintTestPage() {
               onClick={() => {
                 try {
                   const payload = JSON.parse(customPayload);
-                  handleAction(() => printReceipt(payload), 'Custom Print');
+                  handleAction(() => printReceipt(payload), "Custom Print");
                 } catch {
                   toast({
-                    title: 'Invalid JSON',
-                    description: 'Please check your JSON syntax',
-                    variant: 'destructive',
+                    title: "Invalid JSON",
+                    description: "Please check your JSON syntax",
+                    variant: "destructive",
                   });
                 }
               }}
               disabled={loading !== null}
             >
-              {loading === 'Custom Print' ? (
+              {loading === "Custom Print" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Printer className="h-4 w-4 mr-2" />
@@ -332,7 +357,9 @@ export default function PrintTestPage() {
             <Button
               variant="outline"
               onClick={() =>
-                setCustomPayload(JSON.stringify(createMinimalReceipt(), null, 2))
+                setCustomPayload(
+                  JSON.stringify(createMinimalReceipt(), null, 2),
+                )
               }
             >
               Reset to Minimal
@@ -364,16 +391,27 @@ export default function PrintTestPage() {
           <li>Start the print server - it will listen on port 9100</li>
           <li>Ensure Android device is on the same network as this browser</li>
           <li>
-            If testing locally, use{' '}
-            <code className="bg-muted px-1 py-0.5 rounded">adb reverse tcp:9100 tcp:9100</code>
+            If testing locally, use{" "}
+            <code className="bg-muted px-1 py-0.5 rounded">
+              adb reverse tcp:9100 tcp:9100
+            </code>
           </li>
         </ol>
 
         <h4 className="font-semibold mt-4 mb-2">API Endpoints</h4>
         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-          <li><code className="bg-muted px-1 py-0.5 rounded">POST /print</code> - Print receipt (JSON body)</li>
-          <li><code className="bg-muted px-1 py-0.5 rounded">POST /drawer</code> - Open cash drawer</li>
-          <li><code className="bg-muted px-1 py-0.5 rounded">GET /status</code> - Check printer status</li>
+          <li>
+            <code className="bg-muted px-1 py-0.5 rounded">POST /print</code> -
+            Print receipt (JSON body)
+          </li>
+          <li>
+            <code className="bg-muted px-1 py-0.5 rounded">POST /drawer</code> -
+            Open cash drawer
+          </li>
+          <li>
+            <code className="bg-muted px-1 py-0.5 rounded">GET /status</code> -
+            Check printer status
+          </li>
         </ul>
       </div>
     </div>

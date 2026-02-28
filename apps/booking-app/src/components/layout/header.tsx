@@ -1,24 +1,31 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { Phone, MapPin, Clock } from 'lucide-react'
-import { Button } from '@heya-pos/ui'
-import { useMerchant } from '@/contexts/merchant-context'
+import Link from "next/link";
+import { Phone, MapPin, Clock } from "lucide-react";
+import { Button } from "@heya-pos/ui";
+import { useMerchant } from "@/contexts/merchant-context";
 
 export function Header() {
   const { merchant, merchantSubdomain } = useMerchant();
-  
+
   // Format address helper
-  const formatAddress = (address?: string, suburb?: string, state?: string, postalCode?: string) => {
+  const formatAddress = (
+    address?: string,
+    suburb?: string,
+    state?: string,
+    postalCode?: string,
+  ) => {
     const parts = [address, suburb, state, postalCode].filter(Boolean);
-    return parts.join(', ');
+    return parts.join(", ");
   };
   return (
     <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link href={`/${merchantSubdomain}`} className="flex items-center">
-            <h1 className="text-2xl font-bold text-gray-900">{merchant?.name || 'Loading...'}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {merchant?.name || "Loading..."}
+            </h1>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -60,7 +67,12 @@ export function Header() {
             {(merchant?.address || merchant?.suburb) && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {formatAddress(merchant.address, merchant.suburb, merchant.state, merchant.postalCode)}
+                {formatAddress(
+                  merchant.address,
+                  merchant.suburb,
+                  merchant.state,
+                  merchant.postalCode,
+                )}
               </span>
             )}
             {merchant?.settings?.businessHours && (
@@ -73,5 +85,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }

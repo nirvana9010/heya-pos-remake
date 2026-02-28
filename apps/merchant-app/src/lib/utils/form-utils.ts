@@ -21,7 +21,7 @@ export interface SafeLoyaltyFormData {
  * This prevents React input warnings about null values
  */
 export function safeString(value: string | null | undefined): string {
-  return value ?? '';
+  return value ?? "";
 }
 
 /**
@@ -58,8 +58,10 @@ export function safeLoyaltyFormData(customer: any): SafeLoyaltyFormData {
  * Trims optional string inputs and returns undefined when empty.
  * Use this when omitting a field should leave the existing value unchanged.
  */
-export function sanitizeOptionalField(value?: string | null): string | undefined {
-  const trimmed = value?.trim() ?? '';
+export function sanitizeOptionalField(
+  value?: string | null,
+): string | undefined {
+  const trimmed = value?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
@@ -68,6 +70,6 @@ export function sanitizeOptionalField(value?: string | null): string | undefined
  * Use this when the caller needs to explicitly clear a persisted field.
  */
 export function sanitizeNullableField(value?: string | null): string | null {
-  const trimmed = value?.trim() ?? '';
+  const trimmed = value?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : null;
 }

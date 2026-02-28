@@ -1,6 +1,7 @@
 # Deploy Admin Dashboard to Production
 
 ## Prerequisites
+
 - API is already deployed at `https://heya-pos-api.fly.dev/api`
 - Admin dashboard is working locally on port 3003
 - Vercel account with appropriate permissions
@@ -68,6 +69,7 @@ The API needs to allow requests from the admin dashboard domain:
 ## Security Considerations
 
 ⚠️ **Important**: The admin dashboard will now have access to production data:
+
 - Only deploy with proper authentication in place
 - Consider IP allowlisting for admin access
 - Ensure admin user accounts are properly secured
@@ -84,6 +86,7 @@ For a custom domain like `admin.heya-pos.com`:
 ## Rollback Plan
 
 If issues occur:
+
 1. Remove admin dashboard URL from FRONTEND_URLS
 2. Delete Vercel deployment
 3. Admin functionality returns to local-only access

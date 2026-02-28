@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@heya-pos/ui'
-import { Skeleton } from '@heya-pos/ui'
+import { Card, CardContent } from "@heya-pos/ui";
+import { Skeleton } from "@heya-pos/ui";
 
 export default function StaffLoading() {
   return (
@@ -38,5 +38,5 @@ export default function StaffLoading() {
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 function Skeleton({
   className,
@@ -12,15 +12,21 @@ function Skeleton({
         "before:absolute before:inset-0 before:-translate-x-full",
         "before:animate-[shimmer_2s_infinite]",
         "before:bg-gradient-to-r before:from-transparent before:via-gray-50 before:to-transparent",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 // Table skeleton for services, customers, etc.
-function TableSkeleton({ rows = 5, columns = 6 }: { rows?: number; columns?: number }) {
+function TableSkeleton({
+  rows = 5,
+  columns = 6,
+}: {
+  rows?: number;
+  columns?: number;
+}) {
   return (
     <div className="w-full">
       {/* Header */}
@@ -40,7 +46,11 @@ function TableSkeleton({ rows = 5, columns = 6 }: { rows?: number; columns?: num
                 key={colIndex}
                 className={cn(
                   "h-4",
-                  colIndex === 0 ? "w-32" : colIndex === columns - 1 ? "w-16" : "w-24"
+                  colIndex === 0
+                    ? "w-32"
+                    : colIndex === columns - 1
+                      ? "w-16"
+                      : "w-24",
                 )}
               />
             ))}
@@ -48,7 +58,7 @@ function TableSkeleton({ rows = 5, columns = 6 }: { rows?: number; columns?: num
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // Card skeleton for dashboard stats
@@ -63,7 +73,7 @@ function CardSkeleton() {
         <Skeleton className="h-12 w-12 rounded-lg" />
       </div>
     </div>
-  )
+  );
 }
 
 // Calendar skeleton
@@ -100,7 +110,7 @@ function CalendarSkeleton() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-export { Skeleton, TableSkeleton, CardSkeleton, CalendarSkeleton }
+export { Skeleton, TableSkeleton, CardSkeleton, CalendarSkeleton };

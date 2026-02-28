@@ -20,8 +20,9 @@ The user reported only seeing bookings up to May 11, 2025, despite the current d
 ### 1. API Improvements (Backend)
 
 - **Added date filtering options** to bookings endpoint:
+
   - `date`: Filter for specific date
-  - `startDate` & `endDate`: Date range filtering  
+  - `startDate` & `endDate`: Date range filtering
   - `includeAll`: Boolean to fetch all bookings (past and future)
   - Default behavior: Show today and future bookings only
 
@@ -31,6 +32,7 @@ The user reported only seeing bookings up to May 11, 2025, despite the current d
 ### 2. Frontend Updates (Merchant App)
 
 - **Added date filter dropdown** to bookings page with options:
+
   - "Upcoming" (default): Today and future bookings
   - "All Bookings": All bookings regardless of date
   - "Past Only": Historical bookings only
@@ -41,17 +43,20 @@ The user reported only seeing bookings up to May 11, 2025, despite the current d
 ## File Changes
 
 ### Backend Files Modified:
+
 - `/apps/api/src/bookings/bookings.service.ts` - Updated findAll method with better date filtering
 - `/apps/api/src/bookings/bookings.controller.ts` - Added QueryBookingsDto validation
 - `/apps/api/src/bookings/dto/query-bookings.dto.ts` - New DTO for query parameters
 
 ### Frontend Files Modified:
+
 - `/apps/merchant-app/src/app/bookings/page.tsx` - Added date filter UI and state management
 - `/apps/merchant-app/src/lib/api-client.ts` - Updated getBookings to accept flexible parameters
 
 ## Testing
 
 Created test scripts to verify the fix:
+
 - `test/check-booking-dates.ts` - Analyzes booking date distribution
 - `test/test-booking-api.ts` - Tests various API query combinations
 - `test/test-all-bookings.ts` - Fetches all bookings with pagination
@@ -66,6 +71,7 @@ Created test scripts to verify the fix:
 ## Usage
 
 Users can now:
+
 1. Select "Upcoming" to see today's and future bookings (default)
 2. Select "All Bookings" to see the complete history
 3. Select "Past Only" to see only historical bookings

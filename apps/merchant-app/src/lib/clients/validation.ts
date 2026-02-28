@@ -1,6 +1,6 @@
 /**
  * API Request/Response Validation Utilities
- * 
+ *
  * Provides runtime validation for API requests and responses to catch
  * type mismatches and malformed data early.
  */
@@ -14,25 +14,27 @@ export interface ValidationError {
 export class ApiValidationError extends Error {
   constructor(
     public errors: ValidationError[],
-    public context: string = 'API Validation'
+    public context: string = "API Validation",
   ) {
-    super(`${context}: ${errors.map(e => `${e.field}: ${e.message}`).join(', ')}`);
-    this.name = 'ApiValidationError';
+    super(
+      `${context}: ${errors.map((e) => `${e.field}: ${e.message}`).join(", ")}`,
+    );
+    this.name = "ApiValidationError";
   }
 }
 
 // Basic type validators
 export const validators = {
   string: (value: any, field: string): ValidationError | null => {
-    if (typeof value !== 'string') {
-      return { field, message: 'must be a string', value };
+    if (typeof value !== "string") {
+      return { field, message: "must be a string", value };
     }
     return null;
   },
 
   number: (value: any, field: string): ValidationError | null => {
-    if (typeof value !== 'number' || isNaN(value)) {
-      return { field, message: 'must be a valid number', value };
+    if (typeof value !== "number" || isNaN(value)) {
+      return { field, message: "must be a valid number", value };
     }
     return null;
   },
@@ -40,9 +42,9 @@ export const validators = {
   positiveNumber: (value: any, field: string): ValidationError | null => {
     const numberError = validators.number(value, field);
     if (numberError) return numberError;
-    
+
     if (value <= 0) {
-      return { field, message: 'must be a positive number', value };
+      return { field, message: "must be a positive number", value };
     }
     return null;
   },
@@ -53,19 +55,21 @@ export const validators = {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      return { field, message: 'must be a valid email address', value };
+      return { field, message: "must be a valid email address", value };
     }
     return null;
   },
 
   required: (value: any, field: string): ValidationError | null => {
-    if (value === null || value === undefined || value === '') {
-      return { field, message: 'is required', value };
+    if (value === null || value === undefined || value === "") {
+      return { field, message: "is required", value };
     }
     return null;
   },
 
-  optional: (validator: (value: any, field: string) => ValidationError | null) => {
+  optional: (
+    validator: (value: any, field: string) => ValidationError | null,
+  ) => {
     return (value: any, field: string): ValidationError | null => {
       if (value === null || value === undefined) {
         return null; // Optional field can be null/undefined
@@ -76,14 +80,14 @@ export const validators = {
 
   array: (value: any, field: string): ValidationError | null => {
     if (!Array.isArray(value)) {
-      return { field, message: 'must be an array', value };
+      return { field, message: "must be an array", value };
     }
     return null;
   },
 
   object: (value: any, field: string): ValidationError | null => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      return { field, message: 'must be an object', value };
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return { field, message: "must be an object", value };
     }
     return null;
   },
@@ -91,10 +95,10 @@ export const validators = {
   enum: (allowedValues: string[]) => {
     return (value: any, field: string): ValidationError | null => {
       if (!allowedValues.includes(value)) {
-        return { 
-          field, 
-          message: `must be one of: ${allowedValues.join(', ')}`, 
-          value 
+        return {
+          field,
+          message: `must be one of: ${allowedValues.join(", ")}`,
+          value,
         };
       }
       return null;
@@ -107,17 +111,17 @@ export const validators = {
 
     const date = new Date(value);
     if (isNaN(date.getTime())) {
-      return { field, message: 'must be a valid ISO date string', value };
+      return { field, message: "must be a valid ISO date string", value };
     }
     return null;
-  }
+  },
 };
 
 // Schema validation function
 export function validateSchema(
-  data: any, 
+  data: any,
   schema: Record<string, (value: any, field: string) => ValidationError | null>,
-  context: string = 'Data validation'
+  context: string = "Data validation",
 ): void {
   const errors: ValidationError[] = [];
 
@@ -130,16 +134,18 @@ export function validateSchema(
   }
 
   // Check for unexpected fields (in development mode)
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     const allowedFields = Object.keys(schema);
     const providedFields = Object.keys(data || {});
-    const unexpectedFields = providedFields.filter(field => !allowedFields.includes(field));
-    
+    const unexpectedFields = providedFields.filter(
+      (field) => !allowedFields.includes(field),
+    );
+
     for (const field of unexpectedFields) {
       errors.push({
         field,
-        message: 'unexpected field',
-        value: data[field]
+        message: "unexpected field",
+        value: data[field],
       });
     }
   }
@@ -159,18 +165,18 @@ export const requestSchemas = {
     startTime: validators.isoDate,
     notes: validators.optional(validators.string),
     isOverride: validators.optional((value: any, field: string) => {
-      if (typeof value !== 'boolean') {
-        return { field, message: 'must be a boolean', value };
+      if (typeof value !== "boolean") {
+        return { field, message: "must be a boolean", value };
       }
       return null;
     }),
     source: validators.optional(validators.string),
     customerRequestedStaff: validators.optional((value: any, field: string) => {
-      if (typeof value !== 'boolean') {
-        return { field, message: 'must be a boolean', value };
+      if (typeof value !== "boolean") {
+        return { field, message: "must be a boolean", value };
       }
       return null;
-    })
+    }),
   },
 
   updateBooking: {
@@ -182,12 +188,12 @@ export const requestSchemas = {
     notes: validators.optional(validators.string),
     services: validators.optional(validators.array),
     customerRequestedStaff: validators.optional((value: any, field: string) => {
-      if (typeof value !== 'boolean') {
-        return { field, message: 'must be a boolean', value };
+      if (typeof value !== "boolean") {
+        return { field, message: "must be a boolean", value };
       }
       return null;
     }),
-    customerId: validators.optional(validators.string)
+    customerId: validators.optional(validators.string),
   },
 
   createCustomer: {
@@ -196,7 +202,7 @@ export const requestSchemas = {
     email: validators.optional(validators.email),
     phone: validators.optional(validators.string),
     mobile: validators.optional(validators.string),
-    notes: validators.optional(validators.string)
+    notes: validators.optional(validators.string),
   },
 
   createService: {
@@ -206,19 +212,19 @@ export const requestSchemas = {
     duration: validators.positiveNumber,
     categoryId: validators.optional(validators.string),
     isActive: validators.optional((value: any, field: string) => {
-      if (typeof value !== 'boolean') {
-        return { field, message: 'must be a boolean', value };
+      if (typeof value !== "boolean") {
+        return { field, message: "must be a boolean", value };
       }
       return null;
-    })
+    }),
   },
 
   processPayment: {
     orderId: validators.required,
     amount: validators.positiveNumber,
     method: validators.required,
-    tipAmount: validators.optional(validators.number)
-  }
+    tipAmount: validators.optional(validators.number),
+  },
 };
 
 // Common schemas for API responses
@@ -231,7 +237,7 @@ export const responseSchemas = {
     staffName: validators.string,
     startTime: validators.isoDate,
     status: validators.string,
-    totalAmount: validators.number
+    totalAmount: validators.number,
   },
 
   customer: {
@@ -241,7 +247,7 @@ export const responseSchemas = {
     email: validators.string,
     phone: validators.string,
     createdAt: validators.isoDate,
-    updatedAt: validators.isoDate
+    updatedAt: validators.isoDate,
   },
 
   service: {
@@ -250,21 +256,21 @@ export const responseSchemas = {
     price: validators.number,
     duration: validators.number,
     isActive: (value: any, field: string) => {
-      if (typeof value !== 'boolean') {
-        return { field, message: 'must be a boolean', value };
+      if (typeof value !== "boolean") {
+        return { field, message: "must be a boolean", value };
       }
       return null;
     },
     createdAt: validators.isoDate,
-    updatedAt: validators.isoDate
-  }
+    updatedAt: validators.isoDate,
+  },
 };
 
 // Helper function to validate API responses in development
 export function validateResponse<T>(
-  data: T, 
+  data: T,
   schema: Record<string, (value: any, field: string) => ValidationError | null>,
-  endpoint: string
+  endpoint: string,
 ): T {
   // Temporarily disable validation warnings to improve performance
   // TODO: Fix API response schema mismatch
@@ -273,9 +279,9 @@ export function validateResponse<T>(
 
 // Helper function to validate API requests
 export function validateRequest<T>(
-  data: T, 
+  data: T,
   schema: Record<string, (value: any, field: string) => ValidationError | null>,
-  endpoint: string
+  endpoint: string,
 ): T {
   validateSchema(data, schema, `Request validation for ${endpoint}`);
   return data;

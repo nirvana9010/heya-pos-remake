@@ -9,18 +9,21 @@ The merchant booking system provides comprehensive functionality for creating, m
 ### Key Components
 
 1. **BookingSlideOut** (`/components/BookingSlideOut.tsx`)
+
    - Multi-step booking creation wizard
    - Staff availability checking
    - Walk-in customer support
    - Service and staff selection
 
 2. **BookingDetailsSlideOut** (`/components/BookingDetailsSlideOut.tsx`)
+
    - View and edit booking details
    - Status management
    - Payment tracking
    - Quick actions
 
 3. **BookingActions** (`/components/BookingActions.tsx`)
+
    - Reusable component for booking actions
    - Status transitions
    - Payment processing
@@ -36,11 +39,13 @@ The merchant booking system provides comprehensive functionality for creating, m
 ### Entry Points
 
 1. **Quick Booking Button** (Top Navigation Bar)
+
    - Accessible from anywhere in the app
    - Opens BookingSlideOut with current date/time
    - Managed by BookingContext
 
 2. **Calendar View**
+
    - Click on empty time slots
    - Pre-fills selected time and staff
    - Visual availability checking
@@ -55,6 +60,7 @@ The merchant booking system provides comprehensive functionality for creating, m
 The booking creation follows a 4-step wizard:
 
 #### Step 1: Date & Time
+
 - Staff member selection with availability checking
 - "Next Available" smart assignment
 - Date and time selection
@@ -62,18 +68,21 @@ The booking creation follows a 4-step wizard:
 - Notes field for special requests
 
 #### Step 2: Service Selection
+
 - Service catalog with pricing
 - Duration display
 - Category organization
 - Multi-service support (for bookings with multiple services)
 
 #### Step 3: Customer Selection
+
 - Customer search with autocomplete
 - New customer creation inline
 - Walk-in customer support (if enabled)
 - Contact information capture
 
 #### Step 4: Confirmation
+
 - Booking summary
 - Total price calculation
 - Reminder settings
@@ -82,6 +91,7 @@ The booking creation follows a 4-step wizard:
 ### Walk-in Customers
 
 When merchant settings allow (`allowWalkInBookings`):
+
 - Generate walk-in customer with timestamp
 - Format: "Walk-in MMM-DD-HH:MM[AM/PM]"
 - No phone number or email required
@@ -90,11 +100,13 @@ When merchant settings allow (`allowWalkInBookings`):
 ### Staff Assignment
 
 1. **Next Available Staff**
+
    - Intelligent staff assignment based on availability
    - Shows assigned staff before confirmation
    - Falls back to first available staff
 
 2. **Specific Staff Selection**
+
    - Direct staff assignment
    - Availability indicators
    - Unavailable staff shown but disabled
@@ -108,6 +120,7 @@ When merchant settings allow (`allowWalkInBookings`):
 ### Viewing Bookings
 
 #### Bookings List Page
+
 - Grouped by date (Today, Tomorrow, This Week, etc.)
 - Real-time status indicators
 - Progress bars for in-progress bookings
@@ -115,6 +128,7 @@ When merchant settings allow (`allowWalkInBookings`):
 - Quick actions inline
 
 #### Booking Details
+
 - Customer information
 - Service details with pricing
 - Staff assignment
@@ -125,12 +139,14 @@ When merchant settings allow (`allowWalkInBookings`):
 ### Editing Bookings
 
 #### Quick Edit (BookingDetailsSlideOut)
+
 - Staff reassignment
 - Time/date changes
 - Notes updates
 - Inline editing mode
 
 #### Full Edit Page (`/bookings/[id]/edit`)
+
 - Service changes
 - Complete rescheduling
 - Comprehensive form
@@ -141,20 +157,24 @@ When merchant settings allow (`allowWalkInBookings`):
 #### Status Transitions
 
 1. **Pending → Confirmed**
+
    - Manual confirmation required
    - Sends confirmation notification
 
 2. **Confirmed → In Progress**
+
    - "Start" action
    - Progress tracking begins
    - Real-time progress bar
 
 3. **In Progress → Completed**
+
    - "Complete" action
    - Finalizes booking
    - Updates payment status
 
 4. **Any Status → Cancelled**
+
    - Cancellation with reason
    - Notification sent
    - Frees up time slot
@@ -166,12 +186,15 @@ When merchant settings allow (`allowWalkInBookings`):
 ### Payment Integration
 
 #### Payment Status Tracking
+
 - Visual indicators (green checkmark for paid)
 - Integration with POS system
 - Quick payment marking
 
 #### Payment Actions
+
 1. **Mark as Paid**
+
    - Quick cash payment recording
    - Creates order if needed
    - Updates booking status
@@ -184,6 +207,7 @@ When merchant settings allow (`allowWalkInBookings`):
 ## Calendar Integration
 
 ### Calendar View Features
+
 - Day and week views
 - Staff columns with availability
 - Drag-and-drop rescheduling (planned)
@@ -191,6 +215,7 @@ When merchant settings allow (`allowWalkInBookings`):
 - Real-time updates
 
 ### Creating from Calendar
+
 - Click empty slots to create bookings
 - Pre-filled time and staff
 - Context-aware availability
@@ -199,12 +224,14 @@ When merchant settings allow (`allowWalkInBookings`):
 ## Communication Features
 
 ### Customer Reminders
+
 - SMS reminders (via integrated service)
 - Email reminders
 - Bulk reminder sending
 - Customizable timing
 
 ### Notification System
+
 - Real-time updates via notifications
 - Status change alerts
 - Payment confirmations
@@ -213,12 +240,15 @@ When merchant settings allow (`allowWalkInBookings`):
 ## Bulk Operations
 
 ### Selection System
+
 - Individual booking selection
 - Select all in group
 - Bulk actions menu
 
 ### Available Bulk Actions
+
 1. **Send Reminders**
+
    - Multiple bookings at once
    - Progress tracking
    - Success/failure reporting
@@ -231,6 +261,7 @@ When merchant settings allow (`allowWalkInBookings`):
 ## Search and Filtering
 
 ### Search Capabilities
+
 - Customer name
 - Service name
 - Phone number
@@ -238,18 +269,22 @@ When merchant settings allow (`allowWalkInBookings`):
 - Staff name
 
 ### Filters
+
 1. **Status Filter**
+
    - All statuses
    - Individual status selection
    - Multiple status support
 
 2. **Date Filters**
+
    - Upcoming (default)
    - All dates
    - Past only
    - Custom date range
 
 3. **Staff Filter**
+
    - All staff
    - Individual staff member
    - Active/inactive
@@ -260,6 +295,7 @@ When merchant settings allow (`allowWalkInBookings`):
    - Unpaid only
 
 ### Recent Searches
+
 - Automatic saving
 - Quick access dropdown
 - Clear history option
@@ -303,6 +339,7 @@ POST /api/v2/bookings/:id/mark-paid
 ```
 
 ### Data Transformation
+
 - V1/V2 API compatibility
 - Automatic field mapping
 - Status normalization
@@ -311,6 +348,7 @@ POST /api/v2/bookings/:id/mark-paid
 ## Configuration
 
 ### Merchant Settings
+
 ```typescript
 {
   allowWalkInBookings: boolean,      // Enable walk-in customers
@@ -321,6 +359,7 @@ POST /api/v2/bookings/:id/mark-paid
 ```
 
 ### Availability Rules
+
 - Business hours checking
 - Staff schedule integration
 - Break time handling
@@ -329,12 +368,14 @@ POST /api/v2/bookings/:id/mark-paid
 ## Performance Optimizations
 
 ### Loading States
+
 - Skeleton screens
 - Progressive loading
 - Cached data usage
 - Optimistic updates
 
 ### Real-time Updates
+
 - WebSocket support (when available)
 - Polling fallback
 - Conflict resolution
@@ -343,12 +384,14 @@ POST /api/v2/bookings/:id/mark-paid
 ## Error Handling
 
 ### Validation
+
 - Time slot conflicts
 - Staff availability
 - Service compatibility
 - Customer data validation
 
 ### User Feedback
+
 - Toast notifications
 - Inline error messages
 - Loading indicators
@@ -357,16 +400,19 @@ POST /api/v2/bookings/:id/mark-paid
 ## Future Enhancements
 
 1. **Recurring Bookings**
+
    - Weekly/monthly patterns
    - Series management
    - Exception handling
 
 2. **Advanced Scheduling**
+
    - Buffer time settings
    - Travel time between locations
    - Resource allocation
 
 3. **Customer Portal Integration**
+
    - Self-service rescheduling
    - Cancellation requests
    - Booking history

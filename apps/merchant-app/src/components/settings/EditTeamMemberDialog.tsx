@@ -59,7 +59,7 @@ export function EditTeamMemberDialog({
   const [roleId, setRoleId] = useState("");
   const [status, setStatus] = useState<MerchantUserStatus>("ACTIVE");
   const [locationAccess, setLocationAccess] = useState<"all" | "specific">(
-    "all"
+    "all",
   );
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
@@ -84,8 +84,13 @@ export function EditTeamMemberDialog({
   }, [open, member]);
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateMerchantUserRequest }) =>
-      apiClient.merchantUsers.updateMerchantUser(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateMerchantUserRequest;
+    }) => apiClient.merchantUsers.updateMerchantUser(id, data),
     onSuccess: () => {
       toast({
         title: "Team member updated",
@@ -95,12 +100,15 @@ export function EditTeamMemberDialog({
     },
     onError: (error: any) => {
       const errorCode = error?.response?.data?.error;
-      let message = error?.response?.data?.message || "Failed to update team member";
+      let message =
+        error?.response?.data?.message || "Failed to update team member";
 
       if (errorCode === "LAST_OWNER_ROLE_CHANGE") {
-        message = "Cannot change role of the last owner. Assign another owner first.";
+        message =
+          "Cannot change role of the last owner. Assign another owner first.";
       } else if (errorCode === "LAST_OWNER_STATUS_CHANGE") {
-        message = "Cannot deactivate the last owner. Assign another owner first.";
+        message =
+          "Cannot deactivate the last owner. Assign another owner first.";
       }
 
       toast({
@@ -204,7 +212,7 @@ export function EditTeamMemberDialog({
     setSelectedLocations((prev) =>
       prev.includes(locationId)
         ? prev.filter((id) => id !== locationId)
-        : [...prev, locationId]
+        : [...prev, locationId],
     );
   };
 
@@ -228,7 +236,9 @@ export function EditTeamMemberDialog({
             <DialogDescription>
               Update {member.firstName}&apos;s account details
               {isSelf && " (You cannot change your own role)"}
-              {isLastOwner && !isSelf && " (Last owner - role and status are protected)"}
+              {isLastOwner &&
+                !isSelf &&
+                " (Last owner - role and status are protected)"}
             </DialogDescription>
           </DialogHeader>
 

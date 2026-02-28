@@ -1,13 +1,13 @@
-import React from 'react';
-import { ConnectionStatus as Status } from '@/hooks/useRobustWebSocket';
+import React from "react";
+import { ConnectionStatus as Status } from "@/hooks/useRobustWebSocket";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 interface ConnectionStatusProps {
   status: Status;
@@ -19,39 +19,43 @@ interface ConnectionStatusProps {
  * Visual indicator for WebSocket connection status
  * Shows users exactly what's happening with real-time updates
  */
-export function ConnectionStatus({ status, onReconnect, className = '' }: ConnectionStatusProps) {
+export function ConnectionStatus({
+  status,
+  onReconnect,
+  className = "",
+}: ConnectionStatusProps) {
   const getStatusColor = () => {
     switch (status.state) {
-      case 'CONNECTED':
-        return 'text-green-500';
-      case 'INITIALIZING':
-      case 'RECONNECTING':
-        return 'text-yellow-500';
-      case 'DEGRADED':
-        return 'text-red-500';
+      case "CONNECTED":
+        return "text-green-500";
+      case "INITIALIZING":
+      case "RECONNECTING":
+        return "text-yellow-500";
+      case "DEGRADED":
+        return "text-red-500";
       default:
-        return 'text-gray-500';
+        return "text-gray-500";
     }
   };
-  
+
   const getTooltipContent = () => {
     let content = (
       <div className="space-y-2">
         <div className="font-semibold">{status.message}</div>
-        
-        {status.state === 'CONNECTED' && status.lastHeartbeat && (
+
+        {status.state === "CONNECTED" && status.lastHeartbeat && (
           <div className="text-xs text-gray-400">
             Last verified: {new Date(status.lastHeartbeat).toLocaleTimeString()}
           </div>
         )}
-        
-        {status.state === 'RECONNECTING' && (
+
+        {status.state === "RECONNECTING" && (
           <div className="text-xs">
             Attempt {status.reconnectAttempt} of {status.maxReconnectAttempts}
           </div>
         )}
-        
-        {status.state === 'DEGRADED' && (
+
+        {status.state === "DEGRADED" && (
           <>
             <div className="text-xs text-yellow-400">
               Real-time updates are temporarily unavailable.
@@ -66,18 +70,18 @@ export function ConnectionStatus({ status, onReconnect, className = '' }: Connec
         )}
       </div>
     );
-    
+
     return content;
   };
-  
-  const showReconnectButton = status.state === 'DEGRADED' && onReconnect;
-  
+
+  const showReconnectButton = status.state === "DEGRADED" && onReconnect;
+
   return (
     <TooltipProvider>
       <div className={`flex items-center gap-2 ${className}`}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button 
+            <button
               className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={showReconnectButton ? onReconnect : undefined}
             >
@@ -85,10 +89,10 @@ export function ConnectionStatus({ status, onReconnect, className = '' }: Connec
                 {status.icon}
               </span>
               <span className="text-xs text-gray-600 dark:text-gray-400">
-                {status.state === 'CONNECTED' && 'Live'}
-                {status.state === 'INITIALIZING' && 'Connecting'}
-                {status.state === 'RECONNECTING' && 'Reconnecting'}
-                {status.state === 'DEGRADED' && 'Delayed'}
+                {status.state === "CONNECTED" && "Live"}
+                {status.state === "INITIALIZING" && "Connecting"}
+                {status.state === "RECONNECTING" && "Reconnecting"}
+                {status.state === "DEGRADED" && "Delayed"}
               </span>
             </button>
           </TooltipTrigger>
@@ -96,7 +100,7 @@ export function ConnectionStatus({ status, onReconnect, className = '' }: Connec
             {getTooltipContent()}
           </TooltipContent>
         </Tooltip>
-        
+
         {showReconnectButton && (
           <Button
             variant="ghost"
@@ -119,18 +123,18 @@ export function ConnectionStatus({ status, onReconnect, className = '' }: Connec
 export function ConnectionStatusBadge({ status }: { status: Status }) {
   const getColor = () => {
     switch (status.state) {
-      case 'CONNECTED':
-        return 'bg-green-500';
-      case 'INITIALIZING':
-      case 'RECONNECTING':
-        return 'bg-yellow-500 animate-pulse';
-      case 'DEGRADED':
-        return 'bg-red-500';
+      case "CONNECTED":
+        return "bg-green-500";
+      case "INITIALIZING":
+      case "RECONNECTING":
+        return "bg-yellow-500 animate-pulse";
+      case "DEGRADED":
+        return "bg-red-500";
       default:
-        return 'bg-gray-500';
+        return "bg-gray-500";
     }
   };
-  
+
   return (
     <TooltipProvider>
       <Tooltip>

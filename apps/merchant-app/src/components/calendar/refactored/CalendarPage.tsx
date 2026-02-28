@@ -621,10 +621,7 @@ function CalendarContent() {
   >([]);
   const [isActivityLogMinimized, setIsActivityLogMinimized] =
     React.useState(false);
-  const enableBlocks = useMemo(
-    () => isBlocksEnabledUtil(merchant),
-    [merchant],
-  );
+  const enableBlocks = useMemo(() => isBlocksEnabledUtil(merchant), [merchant]);
 
   const handlePersistStaffOrder = React.useCallback(
     async (orderedIds: string[]) => {
@@ -709,20 +706,17 @@ function CalendarContent() {
   }, [bookingSlideOutData?.date, bookingSlideOutData?.time]);
 
   // Memoize transformed data to prevent infinite renders
-  const memoizedStaff = React.useMemo(
-    () => {
-      const allStaff = state.staff.map((s) => ({
-        id: s.id,
-        name: s.name,
-        color: s.color,
-      }));
-      if (isStaffSessionActive && sessionStaff) {
-        return allStaff.filter((s) => s.id === sessionStaff.id);
-      }
-      return allStaff;
-    },
-    [state.staff, isStaffSessionActive, sessionStaff],
-  );
+  const memoizedStaff = React.useMemo(() => {
+    const allStaff = state.staff.map((s) => ({
+      id: s.id,
+      name: s.name,
+      color: s.color,
+    }));
+    if (isStaffSessionActive && sessionStaff) {
+      return allStaff.filter((s) => s.id === sessionStaff.id);
+    }
+    return allStaff;
+  }, [state.staff, isStaffSessionActive, sessionStaff]);
 
   const memoizedServices = React.useMemo(
     () =>
@@ -837,7 +831,9 @@ function CalendarContent() {
       const slotStart = new Date(
         formatMerchantDateTimeISO(format(date, "yyyy-MM-dd"), time),
       );
-      const slotEnd = new Date(slotStart.getTime() + state.timeInterval * 60000);
+      const slotEnd = new Date(
+        slotStart.getTime() + state.timeInterval * 60000,
+      );
       return state.blocks.some((block) => {
         if (block.staffId !== staffId) return false;
         const blockStart = new Date(block.startTime);
@@ -853,7 +849,7 @@ function CalendarContent() {
     (date: Date, time: string, staffId: string | null) => {
       if (isBlockMode) {
         // Check permission for creating blocks
-        if (!can('staff.update')) {
+        if (!can("staff.update")) {
           toast({
             title: "Permission denied",
             description: "You don't have permission to create time blocks.",
@@ -899,27 +895,51 @@ function CalendarContent() {
             })
             .then((res) => {
               const fallbackId =
-                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                typeof crypto !== "undefined" &&
+                typeof crypto.randomUUID === "function"
                   ? crypto.randomUUID()
                   : `temp-block-${Date.now()}`;
-              const blockPayload = (res as any)?.block || (res as any)?.data?.block;
+              const blockPayload =
+                (res as any)?.block || (res as any)?.data?.block;
               const newBlock = {
-                id: blockPayload?.id || (res as any)?.id || (res as any)?.data?.id || fallbackId,
+                id:
+                  blockPayload?.id ||
+                  (res as any)?.id ||
+                  (res as any)?.data?.id ||
+                  fallbackId,
                 staffId,
-                startTime: blockPayload?.startTime || (res as any)?.startTime || (res as any)?.data?.startTime || startDateTime,
-                endTime: blockPayload?.endTime || (res as any)?.endTime || (res as any)?.data?.endTime || endDateTime,
-                reason: blockPayload?.reason || (res as any)?.reason || (res as any)?.data?.reason,
-                locationId: blockPayload?.locationId || (res as any)?.locationId || (res as any)?.data?.locationId,
+                startTime:
+                  blockPayload?.startTime ||
+                  (res as any)?.startTime ||
+                  (res as any)?.data?.startTime ||
+                  startDateTime,
+                endTime:
+                  blockPayload?.endTime ||
+                  (res as any)?.endTime ||
+                  (res as any)?.data?.endTime ||
+                  endDateTime,
+                reason:
+                  blockPayload?.reason ||
+                  (res as any)?.reason ||
+                  (res as any)?.data?.reason,
+                locationId:
+                  blockPayload?.locationId ||
+                  (res as any)?.locationId ||
+                  (res as any)?.data?.locationId,
               };
               actions.addBlock(newBlock);
-              toast({ title: "Block created", description: `${state.timeInterval}-minute block added.` });
+              toast({
+                title: "Block created",
+                description: `${state.timeInterval}-minute block added.`,
+              });
               setBlockSelection(null);
               // No refresh needed - optimistic update already shows the block
             })
             .catch((error) => {
               toast({
                 title: "Failed to create block",
-                description: error?.response?.data?.message || "Please try again.",
+                description:
+                  error?.response?.data?.message || "Please try again.",
                 variant: "destructive",
               });
               setBlockSelection(null);
@@ -936,7 +956,9 @@ function CalendarContent() {
           return `${newH.toString().padStart(2, "0")}:${newM.toString().padStart(2, "0")}`;
         };
 
-        const isForward = startStr < endStr || (startStr === endStr && blockSelection.time <= time);
+        const isForward =
+          startStr < endStr ||
+          (startStr === endStr && blockSelection.time <= time);
         const startDateTime = isForward
           ? `${startStr}T${blockSelection.time}:00`
           : `${format(date, "yyyy-MM-dd")}T${time}:00`;
@@ -953,10 +975,12 @@ function CalendarContent() {
           .then((res) => {
             // Optimistically add block so the UI reflects the change immediately
             const fallbackId =
-              typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              typeof crypto !== "undefined" &&
+              typeof crypto.randomUUID === "function"
                 ? crypto.randomUUID()
                 : `temp-block-${Date.now()}`;
-            const blockPayload = (res as any)?.block || (res as any)?.data?.block;
+            const blockPayload =
+              (res as any)?.block || (res as any)?.data?.block;
             const newBlock = {
               id:
                 blockPayload?.id ||
@@ -1019,7 +1043,7 @@ function CalendarContent() {
         return;
       }
       // Check permission for creating bookings
-      if (!can('booking.create')) {
+      if (!can("booking.create")) {
         toast({
           title: "Permission denied",
           description: "You don't have permission to create bookings.",
@@ -1036,7 +1060,16 @@ function CalendarContent() {
       setBookingSlideOutData(slideOutData);
       actions.openBookingSlideOut();
     },
-    [actions, isBlockMode, blockSelection, isSlotBlocked, toast, refresh, state.timeInterval, can],
+    [
+      actions,
+      isBlockMode,
+      blockSelection,
+      isSlotBlocked,
+      toast,
+      refresh,
+      state.timeInterval,
+      can,
+    ],
   );
 
   // Memoize booking slide out callbacks to prevent infinite loops
@@ -1210,7 +1243,8 @@ function CalendarContent() {
         const startTime = new Date(bookingData.startTime);
 
         const hasServicesArray =
-          Array.isArray(bookingData.services) && bookingData.services.length > 0;
+          Array.isArray(bookingData.services) &&
+          bookingData.services.length > 0;
 
         // Normalize services so multi-selection renders immediately without refresh
         const normalizedServices = hasServicesArray
@@ -1284,7 +1318,7 @@ function CalendarContent() {
         const serviceName =
           serviceNames.length > 1
             ? serviceNames.join(" + ")
-            : serviceNames[0] ?? bookingData.serviceName ?? "Service";
+            : (serviceNames[0] ?? bookingData.serviceName ?? "Service");
 
         const duration =
           bookingData.totalDuration ??
@@ -1600,7 +1634,8 @@ function CalendarContent() {
         {/* Dev mode timestamp */}
         {process.env.NODE_ENV === "development" && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-xs font-mono border-b border-yellow-300">
-            🚀 FRESH BUILD • Calendar loaded at {new Date().toLocaleTimeString()} • Auto-save toast update active
+            🚀 FRESH BUILD • Calendar loaded at{" "}
+            {new Date().toLocaleTimeString()} • Auto-save toast update active
           </div>
         )}
         {/* Header */}
@@ -1894,81 +1929,81 @@ function CalendarContent() {
 
                     {/* Staff Filter - hidden when staff session is active */}
                     {!isStaffSessionActive && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-sm text-gray-900">
-                          Staff Members
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              const activeStaff = state.staff.filter(
-                                (s) => s.isActive !== false,
-                              );
-                              if (
-                                state.selectedStaffIds.length ===
-                                activeStaff.length
-                              ) {
-                                actions.setStaffFilter([]);
-                              } else {
-                                actions.setStaffFilter(
-                                  activeStaff.map((s) => s.id),
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-sm text-gray-900">
+                            Staff Members
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const activeStaff = state.staff.filter(
+                                  (s) => s.isActive !== false,
                                 );
-                              }
-                            }}
-                            className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                          >
-                            {state.selectedStaffIds.length ===
-                            state.staff.filter((s) => s.isActive !== false)
-                              .length
-                              ? "Clear all"
-                              : "Select all"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFiltersOpen(false);
-                              setReorderDialogOpen(true);
-                            }}
-                            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                          >
-                            <GripVertical className="h-3.5 w-3.5" />
-                            Reorder
-                          </button>
+                                if (
+                                  state.selectedStaffIds.length ===
+                                  activeStaff.length
+                                ) {
+                                  actions.setStaffFilter([]);
+                                } else {
+                                  actions.setStaffFilter(
+                                    activeStaff.map((s) => s.id),
+                                  );
+                                }
+                              }}
+                              className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                            >
+                              {state.selectedStaffIds.length ===
+                              state.staff.filter((s) => s.isActive !== false)
+                                .length
+                                ? "Clear all"
+                                : "Select all"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFiltersOpen(false);
+                                setReorderDialogOpen(true);
+                              }}
+                              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                            >
+                              <GripVertical className="h-3.5 w-3.5" />
+                              Reorder
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {state.staff
+                            .filter((member) => member.isActive !== false)
+                            .map((member) => (
+                              <label
+                                key={member.id}
+                                className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2"
+                              >
+                                <Checkbox
+                                  checked={state.selectedStaffIds.includes(
+                                    member.id,
+                                  )}
+                                  onCheckedChange={(checked) => {
+                                    const newIds = checked
+                                      ? [...state.selectedStaffIds, member.id]
+                                      : state.selectedStaffIds.filter(
+                                          (id) => id !== member.id,
+                                        );
+                                    actions.setStaffFilter(newIds);
+                                  }}
+                                />
+                                <div className="flex items-center gap-2 flex-1">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: member.color }}
+                                  />
+                                  <span>{member.name}</span>
+                                </div>
+                              </label>
+                            ))}
                         </div>
                       </div>
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                        {state.staff
-                          .filter((member) => member.isActive !== false)
-                          .map((member) => (
-                            <label
-                              key={member.id}
-                              className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2"
-                            >
-                              <Checkbox
-                                checked={state.selectedStaffIds.includes(
-                                  member.id,
-                                )}
-                                onCheckedChange={(checked) => {
-                                  const newIds = checked
-                                    ? [...state.selectedStaffIds, member.id]
-                                    : state.selectedStaffIds.filter(
-                                        (id) => id !== member.id,
-                                      );
-                                  actions.setStaffFilter(newIds);
-                                }}
-                              />
-                              <div className="flex items-center gap-2 flex-1">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: member.color }}
-                                />
-                                <span>{member.name}</span>
-                              </div>
-                            </label>
-                          ))}
-                      </div>
-                    </div>
                     )}
                   </div>
                 </PopoverContent>
@@ -1983,7 +2018,7 @@ function CalendarContent() {
               )}
 
               {/* New booking button */}
-              {can('booking.create') && (
+              {can("booking.create") && (
                 <Button
                   className="bg-teal-600 hover:bg-teal-700 text-white"
                   size="sm"
@@ -2065,7 +2100,11 @@ function CalendarContent() {
           onClose={handleBookingSlideOutClose}
           initialDate={bookingSlideOutData?.date}
           initialTime={initialTime}
-          initialStaffId={isStaffSessionActive && sessionStaff ? sessionStaff.id : (bookingSlideOutData?.staffId || null)}
+          initialStaffId={
+            isStaffSessionActive && sessionStaff
+              ? sessionStaff.id
+              : bookingSlideOutData?.staffId || null
+          }
           staff={memoizedStaff}
           services={memoizedServices}
           customers={memoizedCustomers}

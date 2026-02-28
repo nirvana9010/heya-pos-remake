@@ -4,10 +4,10 @@
  */
 
 type BookingEvent = {
-  type: 'booking_created' | 'booking_updated' | 'booking_deleted';
+  type: "booking_created" | "booking_updated" | "booking_deleted";
   bookingId: string;
   timestamp: number;
-  source: 'slideout' | 'external' | 'api';
+  source: "slideout" | "external" | "api";
   originId: string;
 };
 
@@ -18,16 +18,17 @@ class BookingEventsService {
 
   constructor() {
     // Only initialize in browser environment
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      this.originId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2);
-      this.channel = new BroadcastChannel('heya-pos-bookings');
-      
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      this.originId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2);
+      this.channel = new BroadcastChannel("heya-pos-bookings");
+
       this.channel.onmessage = (event) => {
         const bookingEvent = event.data as BookingEvent;
         // Notify all listeners
-        this.listeners.forEach(listener => listener(bookingEvent));
+        this.listeners.forEach((listener) => listener(bookingEvent));
       };
     } else {
       this.originId = Math.random().toString(36).slice(2);
@@ -37,15 +38,17 @@ class BookingEventsService {
   /**
    * Broadcast a booking event to all tabs
    */
-  broadcast(event: Omit<BookingEvent, 'timestamp' | 'originId'> & { originId?: string }) {
+  broadcast(
+    event: Omit<BookingEvent, "timestamp" | "originId"> & { originId?: string },
+  ) {
     if (!this.channel) return;
-    
+
     const fullEvent: BookingEvent = {
       ...event,
       originId: event.originId ?? this.originId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     this.channel.postMessage(fullEvent);
   }
 
@@ -54,7 +57,7 @@ class BookingEventsService {
    */
   subscribe(listener: (event: BookingEvent) => void) {
     this.listeners.add(listener);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);

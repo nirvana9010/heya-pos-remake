@@ -13,6 +13,7 @@ This guide shows how to connect the frontend applications to the real API instea
 ### 1. Environment Variables
 
 Add to each app's `.env.local`:
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
@@ -22,18 +23,19 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 Example: Converting the Merchant App login page
 
 **Before (using mock data):**
+
 ```typescript
-import { mockApi } from '@heya-pos/shared';
+import { mockApi } from "@heya-pos/shared";
 
 const handleSubmit = async (e: React.FormEvent) => {
   try {
     const result = await mockApi.login(
       formData.email,
       formData.password,
-      formData.merchantCode
+      formData.merchantCode,
     );
-    
-    router.push('/pin');
+
+    router.push("/pin");
   } catch (error) {
     toast({
       title: "Login failed",
@@ -45,19 +47,20 @@ const handleSubmit = async (e: React.FormEvent) => {
 ```
 
 **After (using real API):**
+
 ```typescript
-import { apiClient } from '@heya-pos/shared';
+import { apiClient } from "@heya-pos/shared";
 
 const handleSubmit = async (e: React.FormEvent) => {
   try {
     const result = await apiClient.merchantLogin({
       email: formData.email,
       password: formData.password,
-      merchantCode: formData.merchantCode
+      merchantCode: formData.merchantCode,
     });
-    
+
     // Token is automatically stored by apiClient
-    router.push('/pin');
+    router.push("/pin");
   } catch (error) {
     toast({
       title: "Login failed",
@@ -73,12 +76,14 @@ const handleSubmit = async (e: React.FormEvent) => {
 The `apiClient` provides these methods:
 
 #### Authentication
+
 - `merchantLogin(credentials)` - Merchant login
 - `staffPin(credentials)` - Staff PIN verification
 - `logout()` - Logout
 - `getMe()` - Get current user
 
 #### Services
+
 - `getServices(params)` - List services with filters
 - `getService(id)` - Get single service
 - `createService(data)` - Create new service
@@ -86,12 +91,14 @@ The `apiClient` provides these methods:
 - `deleteService(id)` - Delete service
 
 #### Service Categories
+
 - `getServiceCategories()` - List all categories
 - `createServiceCategory(data)` - Create category
 - `updateServiceCategory(id, data)` - Update category
 - `deleteServiceCategory(id)` - Delete category
 
 #### Customers
+
 - `getCustomers(params)` - List customers with search
 - `getCustomer(id)` - Get single customer
 - `createCustomer(data)` - Create customer
@@ -99,6 +106,7 @@ The `apiClient` provides these methods:
 - `deleteCustomer(id)` - Delete customer
 
 #### Bookings
+
 - `getBookings(params)` - List bookings with filters
 - `getBooking(id)` - Get single booking
 - `createBooking(data)` - Create booking
@@ -116,12 +124,12 @@ const [error, setError] = useState<string | null>(null);
 const fetchData = async () => {
   setLoading(true);
   setError(null);
-  
+
   try {
     const response = await apiClient.getServices();
     setServices(response.data);
   } catch (err) {
-    setError(err.message || 'Failed to fetch services');
+    setError(err.message || "Failed to fetch services");
   } finally {
     setLoading(false);
   }
@@ -134,9 +142,9 @@ Create a hook to check authentication:
 
 ```typescript
 // hooks/useAuth.ts
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { apiClient } from '@heya-pos/shared';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiClient } from "@heya-pos/shared";
 
 export function useAuth() {
   const router = useRouter();
@@ -149,7 +157,7 @@ export function useAuth() {
         const response = await apiClient.getMe();
         setUser(response.user);
       } catch {
-        router.push('/login');
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -169,12 +177,14 @@ The API is already configured to accept requests from the frontend apps. If you 
 ## Testing the Integration
 
 1. Start the API server:
+
    ```bash
    cd apps/api
    npm run start:dev
    ```
 
 2. Start the frontend app:
+
    ```bash
    cd apps/merchant-app
    npm run dev
@@ -189,6 +199,7 @@ The API is already configured to accept requests from the frontend apps. If you 
 ## Gradual Migration
 
 You can migrate page by page:
+
 1. Start with authentication pages
 2. Then move to read-only pages (dashboard, lists)
 3. Finally migrate create/update/delete operations

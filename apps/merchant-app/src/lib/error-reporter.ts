@@ -1,6 +1,6 @@
 /**
  * Error Reporter - Phase 3 Build System Improvements
- * 
+ *
  * Captures and reports errors for monitoring and debugging.
  * In production, this would integrate with services like Sentry.
  */
@@ -18,66 +18,69 @@ interface ErrorReport {
 
 class ErrorReporter {
   private queue: ErrorReport[] = [];
-  private isProduction = process.env.NODE_ENV === 'production';
-  
+  private isProduction = process.env.NODE_ENV === "production";
+
   constructor() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       this.setupGlobalHandlers();
     }
   }
-  
+
   private setupGlobalHandlers() {
     // Handle unhandled errors
-    window.addEventListener('error', (event) => {
+    window.addEventListener("error", (event) => {
       this.report({
         message: event.message,
         stack: event.error?.stack,
         source: `${event.filename}:${event.lineno}:${event.colno}`,
         metadata: {
-          type: 'unhandled-error',
+          type: "unhandled-error",
         },
       });
     });
-    
+
     // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
+    window.addEventListener("unhandledrejection", (event) => {
       this.report({
         message: event.reason?.message || String(event.reason),
         stack: event.reason?.stack,
         metadata: {
-          type: 'unhandled-rejection',
+          type: "unhandled-rejection",
           reason: event.reason,
         },
       });
     });
   }
-  
+
   report(error: Partial<ErrorReport>) {
     const report: ErrorReport = {
-      message: error.message || 'Unknown error',
+      message: error.message || "Unknown error",
       stack: error.stack,
       source: error.source,
       timestamp: new Date(),
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
-      url: typeof window !== 'undefined' ? window.location.href : 'server',
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : "server",
+      url: typeof window !== "undefined" ? window.location.href : "server",
       componentStack: error.componentStack,
       metadata: error.metadata,
     };
-    
+
     // In development, log to console
     if (!this.isProduction) {
       // Skip logging empty objects or notification permission errors
-      if (report.message === 'Unknown error' || 
-          (report.metadata && Object.keys(report.metadata).length === 0)) {
+      if (
+        report.message === "Unknown error" ||
+        (report.metadata && Object.keys(report.metadata).length === 0)
+      ) {
         return;
       }
       // console.error('[ErrorReporter]', report);
       return;
     }
-    
+
     // In production, queue for batch sending
     this.queue.push(report);
-    
+
     // Send immediately for critical errors
     if (this.isCriticalError(report)) {
       this.flush();
@@ -86,7 +89,7 @@ class ErrorReporter {
       this.flush();
     }
   }
-  
+
   reportError(error: Error, metadata?: Record<string, any>) {
     this.report({
       message: error.message,
@@ -94,51 +97,51 @@ class ErrorReporter {
       metadata,
     });
   }
-  
+
   reportComponentError(
     error: Error,
     componentStack: string,
-    errorInfo?: React.ErrorInfo
+    errorInfo?: React.ErrorInfo,
   ) {
     this.report({
       message: error.message,
       stack: error.stack,
       componentStack,
       metadata: {
-        type: 'react-error',
+        type: "react-error",
         componentStack: errorInfo?.componentStack,
       },
     });
   }
-  
+
   private isCriticalError(report: ErrorReport): boolean {
     // Determine if error is critical based on patterns
     const criticalPatterns = [
-      'ChunkLoadError',
-      'NetworkError',
-      'SecurityError',
-      'TypeError: Cannot read',
-      'ReferenceError',
+      "ChunkLoadError",
+      "NetworkError",
+      "SecurityError",
+      "TypeError: Cannot read",
+      "ReferenceError",
     ];
-    
-    return criticalPatterns.some(pattern => 
-      report.message.includes(pattern) || 
-      report.stack?.includes(pattern)
+
+    return criticalPatterns.some(
+      (pattern) =>
+        report.message.includes(pattern) || report.stack?.includes(pattern),
     );
   }
-  
+
   private async flush() {
     if (this.queue.length === 0) return;
-    
+
     const reports = [...this.queue];
     this.queue = [];
-    
+
     try {
       // In production, this would send to your error tracking service
       if (this.isProduction) {
-        await fetch('/api/errors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/errors", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reports }),
         });
       }
@@ -147,7 +150,7 @@ class ErrorReporter {
       this.queue.unshift(...reports);
     }
   }
-  
+
   // Performance monitoring
   measurePerformance(name: string, fn: () => void) {
     const start = performance.now();
@@ -159,7 +162,7 @@ class ErrorReporter {
         this.report({
           message: `Slow operation: ${name}`,
           metadata: {
-            type: 'performance',
+            type: "performance",
             operation: name,
             duration,
           },
@@ -167,16 +170,16 @@ class ErrorReporter {
       }
     }
   }
-  
+
   // Build-time error tracking
   trackBuildError(error: any) {
     // This would be called during build process
     this.report({
-      message: error.message || 'Build error',
+      message: error.message || "Build error",
       stack: error.stack,
       metadata: {
-        type: 'build-error',
-        phase: 'build',
+        type: "build-error",
+        phase: "build",
         ...error,
       },
     });
@@ -195,7 +198,7 @@ export function useErrorReporter() {
     reportComponentError: (
       error: Error,
       componentStack: string,
-      errorInfo?: React.ErrorInfo
+      errorInfo?: React.ErrorInfo,
     ) => {
       errorReporter.reportComponentError(error, componentStack, errorInfo);
     },

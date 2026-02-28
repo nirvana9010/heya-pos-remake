@@ -1,44 +1,44 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "../lib/utils"
-import { Button } from "./button"
-import { ScrollArea } from "./scroll-area"
+import * as React from "react";
+import { cn } from "../lib/utils";
+import { Button } from "./button";
+import { ScrollArea } from "./scroll-area";
 
 export interface TimeSlot {
-  id: string
-  time: string
-  available: boolean
-  duration?: number // in minutes
+  id: string;
+  time: string;
+  available: boolean;
+  duration?: number; // in minutes
 }
 
 export interface TimeSlotPickerProps {
-  slots: TimeSlot[]
-  value?: string
-  onChange?: (slotId: string) => void
-  className?: string
-  disabled?: boolean
+  slots: TimeSlot[];
+  value?: string;
+  onChange?: (slotId: string) => void;
+  className?: string;
+  disabled?: boolean;
 }
 
 const TimeSlotPicker = React.forwardRef<HTMLDivElement, TimeSlotPickerProps>(
   ({ slots, value, onChange, className, disabled = false }, ref) => {
     const morningSlots = slots.filter((slot) => {
-      const hour = parseInt(slot.time.split(":")[0])
-      return hour < 12
-    })
+      const hour = parseInt(slot.time.split(":")[0]);
+      return hour < 12;
+    });
 
     const afternoonSlots = slots.filter((slot) => {
-      const hour = parseInt(slot.time.split(":")[0])
-      return hour >= 12 && hour < 17
-    })
+      const hour = parseInt(slot.time.split(":")[0]);
+      return hour >= 12 && hour < 17;
+    });
 
     const eveningSlots = slots.filter((slot) => {
-      const hour = parseInt(slot.time.split(":")[0])
-      return hour >= 17
-    })
+      const hour = parseInt(slot.time.split(":")[0]);
+      return hour >= 17;
+    });
 
     const renderSlotGroup = (title: string, groupSlots: TimeSlot[]) => {
-      if (groupSlots.length === 0) return null
+      if (groupSlots.length === 0) return null;
 
       return (
         <div className="space-y-2">
@@ -51,7 +51,7 @@ const TimeSlotPicker = React.forwardRef<HTMLDivElement, TimeSlotPickerProps>(
                 size="sm"
                 className={cn(
                   "w-full",
-                  !slot.available && "opacity-50 cursor-not-allowed"
+                  !slot.available && "opacity-50 cursor-not-allowed",
                 )}
                 disabled={disabled || !slot.available}
                 onClick={() => onChange?.(slot.id)}
@@ -66,8 +66,8 @@ const TimeSlotPicker = React.forwardRef<HTMLDivElement, TimeSlotPickerProps>(
             ))}
           </div>
         </div>
-      )
-    }
+      );
+    };
 
     return (
       <div ref={ref} className={cn("w-full", className)}>
@@ -79,10 +79,10 @@ const TimeSlotPicker = React.forwardRef<HTMLDivElement, TimeSlotPickerProps>(
           </div>
         </ScrollArea>
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-TimeSlotPicker.displayName = "TimeSlotPicker"
+TimeSlotPicker.displayName = "TimeSlotPicker";
 
-export { TimeSlotPicker }
+export { TimeSlotPicker };

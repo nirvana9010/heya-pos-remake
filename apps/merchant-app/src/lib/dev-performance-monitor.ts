@@ -1,6 +1,6 @@
 /**
  * Development Performance Monitor - Phase 3 Build System Improvements
- * 
+ *
  * This module provides performance monitoring tools for development
  * to help identify bottlenecks and optimize the application.
  */
@@ -15,7 +15,7 @@ interface PerformanceMetric {
 
 class DevPerformanceMonitor {
   private metrics: Map<string, PerformanceMetric> = new Map();
-  private enabled: boolean = process.env.NODE_ENV === 'development';
+  private enabled: boolean = process.env.NODE_ENV === "development";
 
   /**
    * Start measuring a performance metric
@@ -49,7 +49,7 @@ class DevPerformanceMonitor {
     if (metric.duration > 100) {
       console.warn(
         `[DevPerformanceMonitor] Slow operation detected: ${name} took ${metric.duration.toFixed(2)}ms`,
-        metric.metadata
+        metric.metadata,
       );
     }
 
@@ -77,7 +77,9 @@ class DevPerformanceMonitor {
    * Get all metrics
    */
   getMetrics() {
-    return Array.from(this.metrics.values()).filter(m => m.duration !== undefined);
+    return Array.from(this.metrics.values()).filter(
+      (m) => m.duration !== undefined,
+    );
   }
 
   /**
@@ -96,18 +98,18 @@ class DevPerformanceMonitor {
     const metrics = this.getMetrics();
     if (metrics.length === 0) return;
 
-    console.group('[DevPerformanceMonitor] Performance Summary');
-    
+    console.group("[DevPerformanceMonitor] Performance Summary");
+
     // Sort by duration
     metrics.sort((a, b) => (b.duration || 0) - (a.duration || 0));
 
     // Log table
     console.table(
-      metrics.map(m => ({
+      metrics.map((m) => ({
         Operation: m.name,
         Duration: `${m.duration?.toFixed(2)}ms`,
         Metadata: JSON.stringify(m.metadata || {}),
-      }))
+      })),
     );
 
     // Log total time
@@ -123,11 +125,12 @@ export const devPerformance = new DevPerformanceMonitor();
 
 // React hook for component performance monitoring
 export function usePerformanceMonitor(componentName: string) {
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NODE_ENV !== "development") {
     return {
       measureRender: () => {},
       measureEffect: (effectName: string, fn: () => void) => fn(),
-      measureAsync: async (operationName: string, fn: () => Promise<any>) => fn(),
+      measureAsync: async (operationName: string, fn: () => Promise<any>) =>
+        fn(),
     };
   }
 
@@ -151,7 +154,7 @@ export function usePerformanceMonitor(componentName: string) {
 }
 
 // Web Vitals monitoring for development
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   // Monitor long tasks
   const observer = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
@@ -161,7 +164,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     }
   });
 
-  observer.observe({ entryTypes: ['longtask'] });
+  observer.observe({ entryTypes: ["longtask"] });
 
   // Monitor layout shifts
   const layoutShiftObserver = new PerformanceObserver((list) => {
@@ -172,9 +175,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       }
     }
     if (cls > 0.1) {
-      console.warn('[DevPerformanceMonitor] High CLS detected:', cls);
+      console.warn("[DevPerformanceMonitor] High CLS detected:", cls);
     }
   });
 
-  layoutShiftObserver.observe({ entryTypes: ['layout-shift'] });
+  layoutShiftObserver.observe({ entryTypes: ["layout-shift"] });
 }

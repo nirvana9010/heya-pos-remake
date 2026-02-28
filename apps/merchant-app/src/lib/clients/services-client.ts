@@ -1,4 +1,4 @@
-import { BaseApiClient, resolveApiBaseUrl } from './base-client';
+import { BaseApiClient, resolveApiBaseUrl } from "./base-client";
 
 export interface Service {
   id: string;
@@ -35,7 +35,7 @@ export interface CreateServiceRequest {
   isActive?: boolean;
   maxAdvanceBooking?: number;
   minAdvanceBooking?: number;
-  advanceBookingMode?: 'merchant_default' | 'custom';
+  advanceBookingMode?: "merchant_default" | "custom";
 }
 
 export interface UpdateServiceRequest {
@@ -47,7 +47,7 @@ export interface UpdateServiceRequest {
   isActive?: boolean;
   maxAdvanceBooking?: number;
   minAdvanceBooking?: number;
-  advanceBookingMode?: 'merchant_default' | 'custom';
+  advanceBookingMode?: "merchant_default" | "custom";
   idempotencyKey?: string;
 }
 
@@ -65,7 +65,7 @@ export interface UpdateCategoryRequest {
 
 // Import types
 export interface ImportOptions {
-  duplicateAction: 'skip' | 'update' | 'create_new';
+  duplicateAction: "skip" | "update" | "create_new";
   createCategories: boolean;
   skipInvalidRows: boolean;
 }
@@ -78,7 +78,7 @@ export interface ImportPreviewRow {
     errors: string[];
     warnings: string[];
   };
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
   existingServiceId?: string;
 }
 
@@ -109,63 +109,76 @@ export interface ImportResult {
 
 export class ServicesClient extends BaseApiClient {
   // Services
-  async getServices(params?: { 
-    limit?: number; 
-    offset?: number; 
+  async getServices(params?: {
+    limit?: number;
+    offset?: number;
     page?: number;
     searchTerm?: string;
     categoryId?: string;
     isActive?: boolean;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }): Promise<{ data: Service[]; meta: { total: number; page: number; limit: number; totalPages: number } }> {
-    const response = await this.get('/services', { params }, 'v1');
+    sortOrder?: "asc" | "desc";
+  }): Promise<{
+    data: Service[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }> {
+    const response = await this.get("/services", { params }, "v1");
     // Return full paginated response
     return response;
   }
 
   async getService(id: string): Promise<Service> {
-    return this.get(`/services/${id}`, undefined, 'v1');
+    return this.get(`/services/${id}`, undefined, "v1");
   }
 
   async createService(data: CreateServiceRequest): Promise<Service> {
-    return this.post('/services', data, undefined, 'v1');
+    return this.post("/services", data, undefined, "v1");
   }
 
-  async updateService(id: string, data: UpdateServiceRequest): Promise<Service> {
-    return this.patch(`/services/${id}`, data, undefined, 'v1');
+  async updateService(
+    id: string,
+    data: UpdateServiceRequest,
+  ): Promise<Service> {
+    return this.patch(`/services/${id}`, data, undefined, "v1");
   }
 
   async deleteService(id: string): Promise<void> {
-    return this.delete(`/services/${id}`, undefined, 'v1');
+    return this.delete(`/services/${id}`, undefined, "v1");
   }
 
   // Categories
   async getCategories(): Promise<ServiceCategory[]> {
-    return this.get('/service-categories', undefined, 'v1');
+    return this.get("/service-categories", undefined, "v1");
   }
 
   async getCategory(id: string): Promise<ServiceCategory> {
-    return this.get(`/service-categories/${id}`, undefined, 'v1');
+    return this.get(`/service-categories/${id}`, undefined, "v1");
   }
 
   async createCategory(data: CreateCategoryRequest): Promise<ServiceCategory> {
-    return this.post('/service-categories', data, undefined, 'v1');
+    return this.post("/service-categories", data, undefined, "v1");
   }
 
-  async updateCategory(id: string, data: UpdateCategoryRequest): Promise<ServiceCategory> {
-    return this.patch(`/service-categories/${id}`, data, undefined, 'v1');
+  async updateCategory(
+    id: string,
+    data: UpdateCategoryRequest,
+  ): Promise<ServiceCategory> {
+    return this.patch(`/service-categories/${id}`, data, undefined, "v1");
   }
 
   async deleteCategory(id: string): Promise<void> {
-    return this.delete(`/service-categories/${id}`, undefined, 'v1');
+    return this.delete(`/service-categories/${id}`, undefined, "v1");
   }
 
   // Import methods
-  async previewServiceImport(file: File, options: ImportOptions, columnMappings?: Record<string, string>): Promise<ImportPreview> {
+  async previewServiceImport(
+    file: File,
+    options: ImportOptions,
+    columnMappings?: Record<string, string>,
+  ): Promise<ImportPreview> {
     const formData = new FormData();
-    formData.append('file', file);
-    
+    formData.append("file", file);
+
     // Add options to formData
     Object.entries(options).forEach(([key, value]) => {
       formData.append(key, value.toString());
@@ -173,52 +186,63 @@ export class ServicesClient extends BaseApiClient {
 
     // Add column mappings if provided
     if (columnMappings) {
-      formData.append('columnMappings', JSON.stringify(columnMappings));
+      formData.append("columnMappings", JSON.stringify(columnMappings));
     }
 
     const API_BASE_URL = resolveApiBaseUrl();
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
 
     const response = await fetch(`${API_BASE_URL}/v1/services/import/preview`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to preview import');
+      throw new Error(error.message || "Failed to preview import");
     }
 
     return response.json();
   }
 
-  async executeServiceImport(rows: ImportPreviewRow[], options: ImportOptions): Promise<ImportResult> {
-    return this.post('/services/import/execute', { rows, options }, undefined, 'v1');
+  async executeServiceImport(
+    rows: ImportPreviewRow[],
+    options: ImportOptions,
+  ): Promise<ImportResult> {
+    return this.post(
+      "/services/import/execute",
+      { rows, options },
+      undefined,
+      "v1",
+    );
   }
 
   async downloadServiceTemplate(): Promise<void> {
     const API_BASE_URL = resolveApiBaseUrl();
-    const token = localStorage.getItem('access_token');
-    
-    const response = await fetch(`${API_BASE_URL}/v1/services/import/template`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
+    const token = localStorage.getItem("access_token");
+
+    const response = await fetch(
+      `${API_BASE_URL}/v1/services/import/template`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to download template');
+      throw new Error("Failed to download template");
     }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'service-import-template.csv';
+    a.download = "service-import-template.csv";
     a.click();
     window.URL.revokeObjectURL(url);
   }

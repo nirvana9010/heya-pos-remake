@@ -9,14 +9,17 @@ The notification system includes comprehensive test suites and mock implementati
 ## Test Files
 
 ### Unit Tests
+
 - `email.service.spec.ts` - Tests for email service with mocked nodemailer
 - `sms.service.spec.ts` - Tests for SMS service with mocked providers
 - `notifications.service.spec.ts` - Tests for the orchestration service
 
 ### Integration Tests
+
 - `notifications.integration.spec.ts` - End-to-end tests with mock providers
 
 ### Mock Implementations
+
 - `mocks/notification-mocks.ts` - Mock providers for SendGrid, Twilio, and development tools
 
 ## Running Tests
@@ -38,6 +41,7 @@ npm test -- --coverage --testPathPattern=notifications
 ## Mock Provider Features
 
 ### Email (MockSendGridProvider)
+
 - Simulates SendGrid API responses
 - Triggers failures for emails to `fail@*` addresses
 - Simulates bounces for `bounce@*` addresses
@@ -45,6 +49,7 @@ npm test -- --coverage --testPathPattern=notifications
 - Configurable delays for realistic testing
 
 ### SMS (MockTwilioProvider)
+
 - Simulates Twilio API responses
 - Validates phone number formats
 - Triggers failures for numbers containing `00000`
@@ -56,6 +61,7 @@ npm test -- --coverage --testPathPattern=notifications
 When running in development/test mode, the following endpoints are available:
 
 ### Send Test Notification
+
 ```bash
 POST /api/test/notifications/send-test
 {
@@ -68,6 +74,7 @@ POST /api/test/notifications/send-test
 ```
 
 ### Send Booking Notification
+
 ```bash
 POST /api/test/notifications/send-booking/{bookingId}
 {
@@ -76,16 +83,19 @@ POST /api/test/notifications/send-booking/{bookingId}
 ```
 
 ### View Dashboard
+
 ```bash
 GET /api/test/notifications/dashboard
 ```
 
 ### Verify Connections
+
 ```bash
 GET /api/test/notifications/verify-connections
 ```
 
 ### Run Test Scenarios
+
 ```bash
 POST /api/test/notifications/test-scenarios/{scenario}
 
@@ -102,6 +112,7 @@ Available scenarios:
 ## Environment Configuration
 
 ### Development/Test Configuration
+
 ```env
 # Email settings
 EMAIL_PROVIDER=sendgrid
@@ -124,6 +135,7 @@ MOCK_DELAY=false  # Set to true for realistic delays
 ```
 
 ### Production Configuration
+
 ```env
 # Email settings
 EMAIL_PROVIDER=sendgrid
@@ -143,6 +155,7 @@ USE_MOCKS=false
 ## Testing Notification Types
 
 The system supports the following notification types:
+
 - `BOOKING_CONFIRMATION` - Sent when a booking is created
 - `BOOKING_REMINDER_24H` - Sent 24 hours before appointment
 - `BOOKING_REMINDER_2H` - Sent 2 hours before appointment
@@ -152,6 +165,7 @@ The system supports the following notification types:
 ## Mock Dashboard
 
 The notification dashboard provides:
+
 - Total notifications sent
 - Email/SMS breakdown
 - Success/failure rates
@@ -165,15 +179,18 @@ Access at: `GET /api/test/notifications/dashboard`
 When ready to use real providers:
 
 1. **Obtain API Keys**
+
    - SendGrid: Sign up at sendgrid.com and create an API key
    - Twilio: Sign up at twilio.com and get Account SID, Auth Token, and phone number
 
 2. **Update Environment Variables**
+
    - Set real API keys in production environment
    - Set `USE_MOCKS=false`
    - Remove or disable test endpoints
 
 3. **Update Provider Implementation**
+
    - The mock providers in `notification-mocks.ts` show the expected interface
    - Real providers should implement the same methods
    - Use the `NotificationProviderFactory` to return real providers when configured
@@ -186,6 +203,7 @@ When ready to use real providers:
 ## Common Test Scenarios
 
 ### Testing Email Failures
+
 ```javascript
 // Use fail@ prefix to trigger mock failures
 const context = {
@@ -194,6 +212,7 @@ const context = {
 ```
 
 ### Testing SMS Failures
+
 ```javascript
 // Use numbers with 00000 to trigger failures
 const context = {
@@ -202,6 +221,7 @@ const context = {
 ```
 
 ### Testing Long Messages
+
 ```javascript
 // Create context with long service names or descriptions
 const context = {
@@ -212,17 +232,20 @@ const context = {
 ## Troubleshooting
 
 ### Tests Failing
+
 1. Check that mock providers are properly initialized
 2. Verify environment variables are set correctly
 3. Look for typos in notification types
 4. Check that all required context fields are provided
 
 ### Mocks Not Working
+
 1. Ensure `USE_MOCKS=true` in environment
 2. Check that NODE_ENV is not 'production'
 3. Verify mock provider imports are correct
 
 ### Dashboard Not Updating
+
 1. Check that notifications are using mock providers
 2. Verify dashboard singleton is properly initialized
 3. Clear dashboard and retry: `POST /api/test/notifications/dashboard/clear`
@@ -241,6 +264,7 @@ const context = {
 ## Future Enhancements
 
 When implementing real providers, consider:
+
 - Webhook handling for delivery status
 - Template management in provider dashboards
 - Batch sending for reminders

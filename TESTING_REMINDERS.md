@@ -7,6 +7,7 @@ This guide shows you how to test 24h and 2h appointment reminders without actual
 Use these endpoints to send reminder notifications immediately (simulating what would be sent at the scheduled time):
 
 ### Test 24-hour Reminder
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/test/notifications/test-reminder/24h \
   -H "Content-Type: application/json" \
@@ -17,6 +18,7 @@ curl -X POST http://localhost:3000/api/v1/test/notifications/test-reminder/24h \
 ```
 
 ### Test 2-hour Reminder
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/test/notifications/test-reminder/2h \
   -H "Content-Type: application/json" \
@@ -35,6 +37,7 @@ curl -X POST http://localhost:3000/api/v1/test/notifications/force-process-remin
 ```
 
 Then check the logs:
+
 ```bash
 pm2 logs api --nostream --lines 50 | grep -i reminder
 ```
@@ -60,6 +63,7 @@ node test-reminders.js
 ```
 
 This script will:
+
 - Find pending scheduled notifications
 - Update their scheduled times to be in the past
 - Create test bookings with immediate reminders
@@ -105,6 +109,7 @@ Booking reminder sent - Email: true, SMS: true
 ```
 
 If merchant has disabled reminders:
+
 ```
 Skipped scheduled notification {id}: merchant settings disabled
 ```
@@ -117,10 +122,12 @@ Skipped scheduled notification {id}: merchant settings disabled
 ## Troubleshooting
 
 1. **No scheduled notifications found**
+
    - Create a booking first
    - Check that reminders were scheduled: look for "Scheduled 24h reminder" in logs
 
 2. **Reminders not being sent**
+
    - Check merchant settings haven't disabled them
    - Verify customer has email/phone and notification preferences set
    - Check for errors in logs: `pm2 logs api --nostream --lines 100 | grep -i error`

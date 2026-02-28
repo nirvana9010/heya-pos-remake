@@ -1,16 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, MoreVertical, Edit, Trash2, Shield, UserX, UserCheck } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Shield,
+  UserX,
+  UserCheck,
+} from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@heya-pos/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heya-pos/ui";
 import { Badge } from "@heya-pos/ui";
 import { DataTable } from "@heya-pos/ui";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@heya-pos/ui";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@heya-pos/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@heya-pos/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@heya-pos/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@heya-pos/ui";
 import { Avatar, AvatarFallback } from "@heya-pos/ui";
 
 interface User {
@@ -85,7 +118,10 @@ const userColumns = [
       <div className="flex items-center gap-3">
         <Avatar>
           <AvatarFallback>
-            {row.original.name.split(" ").map((n: string) => n[0]).join("")}
+            {row.original.name
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")}
           </AvatarFallback>
         </Avatar>
         <div>
@@ -105,12 +141,16 @@ const userColumns = [
     cell: ({ row }: any) => {
       const role = row.original.role;
       const roleConfig = {
-        superadmin: { label: "Super Admin", icon: Shield, color: "text-teal-600 bg-teal-50" },
+        superadmin: {
+          label: "Super Admin",
+          icon: Shield,
+          color: "text-teal-600 bg-teal-50",
+        },
         admin: { label: "Admin", color: "text-blue-600 bg-blue-50" },
         support: { label: "Support", color: "text-green-600 bg-green-50" },
       };
       const config = roleConfig[role as keyof typeof roleConfig];
-      
+
       return (
         <Badge className={`${config.color} border-0`}>
           {config.icon && <Shield className="mr-1 h-3 w-3" />}
@@ -125,11 +165,17 @@ const userColumns = [
     cell: ({ row }: any) => {
       const status = row.original.status;
       return (
-        <Badge 
+        <Badge
           variant={status === "active" ? "default" : "secondary"}
-          className={status === "active" ? "bg-green-100 text-green-800 border-0" : ""}
+          className={
+            status === "active" ? "bg-green-100 text-green-800 border-0" : ""
+          }
         >
-          {status === "active" ? <UserCheck className="mr-1 h-3 w-3" /> : <UserX className="mr-1 h-3 w-3" />}
+          {status === "active" ? (
+            <UserCheck className="mr-1 h-3 w-3" />
+          ) : (
+            <UserX className="mr-1 h-3 w-3" />
+          )}
           {status}
         </Badge>
       );
@@ -144,7 +190,7 @@ const userColumns = [
       const diff = now.getTime() - date.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(hours / 24);
-      
+
       if (days > 0) {
         return `${days} day${days > 1 ? "s" : ""} ago`;
       } else if (hours > 0) {
@@ -188,17 +234,21 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.merchant.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredUsers = mockUsers.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.merchant.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const platformAdmins = mockUsers.filter(u => u.merchant === "Platform Admin");
-  const activeUsers = mockUsers.filter(u => u.status === "active");
+  const platformAdmins = mockUsers.filter(
+    (u) => u.merchant === "Platform Admin",
+  );
+  const activeUsers = mockUsers.filter((u) => u.status === "active");
 
   const AddUserDialog = () => (
     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -222,7 +272,11 @@ export default function UsersPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="john.smith@heya-pos.com" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="john.smith@heya-pos.com"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
@@ -249,9 +303,7 @@ export default function UsersPage() {
           <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={() => setIsAddDialogOpen(false)}>
-            Create User
-          </Button>
+          <Button onClick={() => setIsAddDialogOpen(false)}>Create User</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -262,9 +314,14 @@ export default function UsersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage platform administrators and user access</p>
+          <p className="text-muted-foreground mt-1">
+            Manage platform administrators and user access
+          </p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+        <Button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-primary hover:bg-primary/90"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add User
         </Button>
@@ -315,7 +372,9 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Users</CardTitle>
-          <CardDescription>Platform administrators and merchant users</CardDescription>
+          <CardDescription>
+            Platform administrators and merchant users
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">

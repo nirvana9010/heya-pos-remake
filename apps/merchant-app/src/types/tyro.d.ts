@@ -13,11 +13,11 @@ export interface TyroProductInfo {
 }
 
 export enum TyroTransactionResult {
-  APPROVED = 'APPROVED',
-  DECLINED = 'DECLINED',
-  REVERSED = 'REVERSED',
-  CANCELLED = 'CANCELLED',
-  SYSTEM_ERROR = 'SYSTEM ERROR',
+  APPROVED = "APPROVED",
+  DECLINED = "DECLINED",
+  REVERSED = "REVERSED",
+  CANCELLED = "CANCELLED",
+  SYSTEM_ERROR = "SYSTEM ERROR",
 }
 
 export interface TyroTransactionResponse {

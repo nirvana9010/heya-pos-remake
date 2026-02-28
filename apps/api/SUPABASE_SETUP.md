@@ -10,11 +10,13 @@
 4. You need TWO connection strings:
 
 #### Direct Connection (for migrations)
+
 - Find under **"Connection string"** section
 - Usually uses port **5432**
 - Example: `postgres://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres`
 
 #### Transaction Pooler (for runtime)
+
 - Find under **"Transaction pooler"** section
 - This is the "Shared Pooler" connection
 - Usually uses port **6543**
@@ -32,6 +34,7 @@ In Supabase Dashboard → Settings → Database:
 ### 3. Security Considerations
 
 1. **Row Level Security (RLS)**
+
    - Currently disabled in migration
    - Consider enabling after migration for added security
    - Will require additional policy setup
@@ -56,6 +59,7 @@ cd apps/api
 ### 1. Update Your .env Files
 
 After migration, your `.env` should contain:
+
 ```env
 # Direct connection for Prisma migrations
 DIRECT_URL="postgres://..."
@@ -70,6 +74,7 @@ JWT_SECRET="your-secret-key-at-least-32-characters-long"
 ### 2. Connection Pool Optimization
 
 For production, add these to your DATABASE_URL:
+
 ```
 ?pgbouncer=true&connection_limit=1&pool_timeout=20
 ```
@@ -77,6 +82,7 @@ For production, add these to your DATABASE_URL:
 ### 3. Monitoring
 
 In Supabase Dashboard:
+
 - Monitor **Database → Reports** for query performance
 - Check **Database → Roles** for connection counts
 - Watch for connection pool exhaustion warnings
@@ -84,19 +90,23 @@ In Supabase Dashboard:
 ## Troubleshooting
 
 ### "Prepared statement does not exist" Error
+
 - You're using transaction pooling for migrations
 - Use the direct connection (port 5432) for migrations
 
 ### Connection Timeout
+
 - Increase `pool_timeout` parameter
 - Check if you're hitting connection limits
 - Consider reducing `connection_limit` for serverless
 
 ### SSL Connection Failed
+
 - Supabase requires SSL, ensure your client supports it
 - Try adding `sslmode=require` to connection string
 
 ### Too Many Connections
+
 - Reduce `connection_limit` in your pooled connection string
 - Default Prisma uses `num_cpus * 2 + 1` connections
 - For serverless, use `connection_limit=1`
@@ -104,16 +114,19 @@ In Supabase Dashboard:
 ## Best Practices
 
 1. **Use Environment Variables**
+
    - Never commit connection strings to git
    - Use `.env.local` for local development
    - Use secure secret management in production
 
 2. **Connection Management**
+
    - Always disconnect Prisma client properly
    - Use connection pooling for all runtime queries
    - Monitor active connections regularly
 
 3. **Performance**
+
    - Add indexes for frequently queried columns
    - Use Supabase's query performance analyzer
    - Consider caching for read-heavy operations

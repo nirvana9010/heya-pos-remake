@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export function TyroSDKLoader() {
   useEffect(() => {
     // Fallback loader for Tyro SDK if Next.js Script component fails
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const checkAndLoadSDK = () => {
       // Check if SDK is already loaded
@@ -16,20 +16,21 @@ export function TyroSDKLoader() {
 
       // Determine which SDK to load based on environment
       const environment = process.env.NEXT_PUBLIC_TYRO_ENVIRONMENT;
-      
+
       // Try multiple possible paths for the SDK
-      const possiblePaths = environment === 'production' 
-        ? [
-            '/js/iclient-with-ui-v1.js',
-            '/_next/static/media/iclient-with-ui-v1.js',
-            '/iclient-with-ui-v1.js',
-            'https://iclient.tyro.com/iclient-with-ui-v1.js' // Fallback to Tyro CDN
-          ]
-        : [
-            '/js/iclient-with-ui-v1.js.simulator',
-            '/_next/static/media/iclient-with-ui-v1.js.simulator',
-            '/iclient-with-ui-v1.js.simulator'
-          ];
+      const possiblePaths =
+        environment === "production"
+          ? [
+              "/js/iclient-with-ui-v1.js",
+              "/_next/static/media/iclient-with-ui-v1.js",
+              "/iclient-with-ui-v1.js",
+              "https://iclient.tyro.com/iclient-with-ui-v1.js", // Fallback to Tyro CDN
+            ]
+          : [
+              "/js/iclient-with-ui-v1.js.simulator",
+              "/_next/static/media/iclient-with-ui-v1.js.simulator",
+              "/iclient-with-ui-v1.js.simulator",
+            ];
 
       // Loading SDK from possible paths
 
@@ -45,15 +46,15 @@ export function TyroSDKLoader() {
         // Attempting to load script
 
         // Create and append script tag
-        const script = document.createElement('script');
+        const script = document.createElement("script");
         script.src = scriptSrc;
         script.async = true;
-        
+
         script.onload = () => {
           // SDK loaded successfully
           if (window.TYRO) {
             // Dispatch custom event to notify other components
-            window.dispatchEvent(new Event('tyro-sdk-loaded'));
+            window.dispatchEvent(new Event("tyro-sdk-loaded"));
           }
         };
 

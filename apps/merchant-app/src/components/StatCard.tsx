@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Card } from '@heya-pos/ui';
-import { cn } from '@heya-pos/ui';
-import { LucideIcon } from 'lucide-react';
-import { TrendBadge } from './TrendBadge';
-import { useTrend, type UseTrendOptions } from '@/lib/hooks/use-trend';
+import { Card } from "@heya-pos/ui";
+import { cn } from "@heya-pos/ui";
+import { LucideIcon } from "lucide-react";
+import { TrendBadge } from "./TrendBadge";
+import { useTrend, type UseTrendOptions } from "@/lib/hooks/use-trend";
 
 export interface StatCardProps {
   title: string;
@@ -24,41 +24,39 @@ export function StatCard({
   value,
   previousValue,
   icon: Icon,
-  iconColor = 'text-primary',
-  iconBgColor = 'bg-primary/10',
+  iconColor = "text-primary",
+  iconBgColor = "bg-primary/10",
   trendOptions = {},
   loading = false,
   className,
-  onClick
+  onClick,
 }: StatCardProps) {
-  const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) : value;
+  const numericValue =
+    typeof value === "string"
+      ? parseFloat(value.replace(/[^0-9.-]/g, ""))
+      : value;
   const trend = useTrend(
     numericValue,
     previousValue || 0,
-    previousValue !== undefined ? trendOptions : undefined
+    previousValue !== undefined ? trendOptions : undefined,
   );
 
-  const displayValue = typeof value === 'string' ? value : trend.displayValue;
+  const displayValue = typeof value === "string" ? value : trend.displayValue;
 
   return (
     <Card
       className={cn(
-        'relative overflow-hidden transition-all duration-200',
-        onClick && 'cursor-pointer hover:shadow-md',
-        className
+        "relative overflow-hidden transition-all duration-200",
+        onClick && "cursor-pointer hover:shadow-md",
+        className,
       )}
       onClick={onClick}
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           {Icon && (
-            <div
-              className={cn(
-                'rounded-lg p-2',
-                iconBgColor
-              )}
-            >
-              <Icon className={cn('h-5 w-5', iconColor)} />
+            <div className={cn("rounded-lg p-2", iconBgColor)}>
+              <Icon className={cn("h-5 w-5", iconColor)} />
             </div>
           )}
           {previousValue !== undefined && !loading && (
