@@ -170,8 +170,13 @@ export class OrdersService {
     return this.prisma.transformResult(order) as OrderWithRelations;
   }
 
-  async findOrder(orderId: string, merchantId: string) {
-    const order = await this.prisma.order.findFirst({
+  async findOrder(
+    orderId: string,
+    merchantId: string,
+    tx?: import("@prisma/client").Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const order = await db.order.findFirst({
       where: { id: orderId, merchantId },
       include: {
         items: {
@@ -336,11 +341,15 @@ export class OrdersService {
     return this.findOrder(orderId, merchantId);
   }
 
-  async recalculateOrderTotals(orderId: string) {
+  async recalculateOrderTotals(
+    orderId: string,
+    tx?: import("@prisma/client").Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
     const startTime = Date.now();
 
     const orderFetchStart = Date.now();
-    const order = await this.prisma.order.findUnique({
+    const order = await db.order.findUnique({
       where: { id: orderId },
       include: {
         items: true,
@@ -375,7 +384,7 @@ export class OrdersService {
 
       // Prepare update for batch execution
       itemUpdates.push(
-        this.prisma.orderItem.update({
+        db.orderItem.update({
           where: { id: item.id },
           data: {
             taxAmount: itemTax,
@@ -408,7 +417,7 @@ export class OrdersService {
 
       // Prepare update for batch execution
       modifierUpdates.push(
-        this.prisma.orderModifier.update({
+        db.orderModifier.update({
           where: { id: modifier.id },
           data: { amount: modifierAmount },
         }),
@@ -427,11 +436,11 @@ export class OrdersService {
 
     console.log(`[PERF] Calculations took ${Date.now() - calcStart}ms`);
 
-    // Execute all updates in parallel
+    // Execute all updates in parallel (within tx if provided, else standalone)
     const allUpdates = [
       ...itemUpdates,
       ...modifierUpdates,
-      this.prisma.order.update({
+      db.order.update({
         where: { id: orderId },
         data: {
           subtotal,

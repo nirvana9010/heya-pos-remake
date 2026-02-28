@@ -1,18 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    // Check for user data (works with both localStorage tokens and httpOnly cookies)
+    const user = localStorage.getItem("user");
 
-    if (!token) {
-      router.push('/login');
+    if (!user) {
+      router.push("/login");
     } else {
-      router.push('/calendar');
+      router.push("/calendar");
     }
   }, [router]);
 
@@ -20,5 +21,5 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center">
       <p className="text-gray-500">Redirecting...</p>
     </div>
-  )
+  );
 }

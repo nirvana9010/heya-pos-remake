@@ -63,11 +63,25 @@ export class NotificationsGateway
 
   async handleConnection(client: Socket) {
     try {
-      // Extract token from various sources
-      const token =
-        client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.split(" ")[1] ||
-        client.handshake.query?.token;
+      // Extract token from various sources (cookies, auth object, headers, query)
+      let token: string | undefined;
+
+      // Try cookies first (httpOnly cookie auth)
+      const cookieHeader = client.handshake.headers?.cookie;
+      if (cookieHeader) {
+        const match = cookieHeader.match(/access_token=([^;]+)/);
+        if (match) {
+          token = match[1];
+        }
+      }
+
+      // Fall back to other sources
+      if (!token) {
+        token =
+          client.handshake.auth?.token ||
+          client.handshake.headers?.authorization?.split(" ")[1] ||
+          (client.handshake.query?.token as string);
+      }
 
       if (!token) {
         this.logger.warn(

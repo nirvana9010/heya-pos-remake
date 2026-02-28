@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Query,
+  Req,
   Res,
   UnauthorizedException,
   Logger,
@@ -44,8 +45,15 @@ export class NotificationsSseController {
 
   @Public() // We'll handle auth manually for SSE
   @Get("stream")
-  async stream(@Query("token") token: string, @Res() res: Response) {
+  async stream(
+    @Query("token") queryToken: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
     try {
+      // Try cookie first, then query param
+      const token = req.cookies?.access_token || queryToken;
+
       // Validate token
       if (!token) {
         throw new BadRequestException("Token is required");

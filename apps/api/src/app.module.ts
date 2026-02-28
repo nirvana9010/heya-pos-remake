@@ -1,6 +1,7 @@
-import { Module, OnModuleInit } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -10,7 +11,6 @@ import { CustomersModule } from "./customers/customers.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { StaffModule } from "./staff/staff.module";
 import { LoyaltyModule } from "./loyalty/loyalty.module";
-import { SessionService } from "./auth/session.service";
 import { PublicModule } from "./public/public.module";
 import { MerchantModule } from "./merchant/merchant.module";
 import { AdminModule } from "./admin/admin.module";
@@ -51,6 +51,13 @@ import { AuditModule } from "./audit/audit.module";
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: "default",
+        ttl: 60000, // 1 minute window
+        limit: 100, // 100 requests per minute default
+      },
+    ]),
     RedisModule, // Global Redis caching module
     CacheModule, // Global cache module
     ValidationModule, // Global validation module
@@ -80,11 +87,4 @@ import { AuditModule } from "./audit/audit.module";
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule implements OnModuleInit {
-  constructor(private sessionService: SessionService) {}
-
-  onModuleInit() {
-    // Start session cleanup interval
-    this.sessionService.startCleanupInterval();
-  }
-}
+export class AppModule {}

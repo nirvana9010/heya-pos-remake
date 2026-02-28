@@ -27,16 +27,18 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     }
 
     const request = context.switchToHttp().getRequest();
-    const token = request.headers.authorization?.replace("Bearer ", "");
+    const token =
+      request.cookies?.access_token ||
+      request.headers.authorization?.replace("Bearer ", "");
 
     if (token) {
-      const session = this.sessionService.getSession(token);
+      const session = await this.sessionService.getSession(token);
       if (!session) {
         return false;
       }
 
       // Extend session activity (keeping session alive during use)
-      this.sessionService.extendSession(token);
+      await this.sessionService.extendSession(token);
 
       // Attach session to request
       request.session = session;

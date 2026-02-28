@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Req,
+  Res,
   UnauthorizedException,
   BadRequestException,
   Headers,
@@ -12,6 +13,9 @@ import {
   HttpStatus,
   Inject,
 } from "@nestjs/common";
+import { Response } from "express";
+import { Throttle } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "../common/guards/custom-throttler.guard";
 import { AuthService } from "./auth.service";
 import { PinAuthService } from "./pin-auth.service";
 import { SessionService } from "./session.service";
@@ -25,6 +29,17 @@ import { CurrentUser } from "./decorators/current-user.decorator";
 import { AuthSession } from "../types";
 import { JwtService } from "@nestjs/jwt";
 
+const isProd = process.env.NODE_ENV === "production";
+const returnTokensInBody = process.env.RETURN_TOKENS_IN_BODY !== "false";
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax" as const,
+  };
+}
+
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -35,26 +50,75 @@ export class AuthController {
   ) {}
 
   @Post("merchant/login")
+  @UseGuards(CustomThrottlerGuard)
+  @Throttle({ default: { ttl: 900000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   async merchantLogin(
     @Body() dto: MerchantLoginDto,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSession> {
     const session = await this.authService.merchantLogin(dto);
 
     // Store session
-    this.sessionService.createSession(session.token, session);
+    await this.sessionService.createSession(session.token, session);
+
+    // Set httpOnly cookies
+    res.cookie("access_token", session.token, {
+      ...cookieOptions(),
+      path: "/",
+    });
+    if (session.refreshToken) {
+      res.cookie("refresh_token", session.refreshToken, {
+        ...cookieOptions(),
+        path: "/api",
+      });
+    }
+
+    // Return tokens in body during rollout (controlled by env var)
+    if (!returnTokensInBody) {
+      const { token, refreshToken, ...sessionWithoutTokens } = session;
+      return sessionWithoutTokens as AuthSession;
+    }
 
     return session;
   }
 
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() dto: RefreshTokenDto): Promise<AuthSession> {
-    const session = await this.authService.refreshToken(dto.refreshToken);
+  async refreshToken(
+    @Body() dto: RefreshTokenDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthSession> {
+    // Accept refresh token from body OR cookie
+    const refreshTokenValue = dto.refreshToken || req.cookies?.refresh_token;
+
+    if (!refreshTokenValue) {
+      throw new BadRequestException("Refresh token is required");
+    }
+
+    const session = await this.authService.refreshToken(refreshTokenValue);
 
     // Store new session
-    this.sessionService.createSession(session.token, session);
+    await this.sessionService.createSession(session.token, session);
+
+    // Set httpOnly cookies
+    res.cookie("access_token", session.token, {
+      ...cookieOptions(),
+      path: "/",
+    });
+    if (session.refreshToken) {
+      res.cookie("refresh_token", session.refreshToken, {
+        ...cookieOptions(),
+        path: "/api",
+      });
+    }
+
+    if (!returnTokensInBody) {
+      const { token, refreshToken, ...sessionWithoutTokens } = session;
+      return sessionWithoutTokens as AuthSession;
+    }
 
     return session;
   }
@@ -66,12 +130,18 @@ export class AuthController {
     @Headers("authorization") authHeader: string,
     @CurrentUser() user: any,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const token = authHeader?.replace("Bearer ", "");
+    const token =
+      req.cookies?.access_token || authHeader?.replace("Bearer ", "");
 
     if (token) {
-      this.sessionService.removeSession(token);
+      await this.sessionService.removeSession(token);
     }
+
+    // Clear httpOnly cookies (path/secure/sameSite must match set options)
+    res.clearCookie("access_token", { ...cookieOptions(), path: "/" });
+    res.clearCookie("refresh_token", { ...cookieOptions(), path: "/api" });
 
     // Log the logout
     const ipAddress = req.ip || req.connection?.remoteAddress;
@@ -92,7 +162,7 @@ export class AuthController {
     return {
       type: user.type || "merchant",
       merchant: user.merchant,
-      permissions: user.type === "merchant" ? ["*"] : (user.permissions || []),
+      permissions: user.type === "merchant" ? ["*"] : user.permissions || [],
       ...(user.type === "merchant_user" && {
         merchantUserId: user.merchantUserId,
         role: user.role,
@@ -178,18 +248,12 @@ export class AuthController {
     }
 
     const ipAddress = req.ip || req.connection?.remoteAddress;
-    return this.pinAuthService.unlockByPin(
-      dto.pin,
-      user.merchantId,
-      ipAddress,
-    );
+    return this.pinAuthService.unlockByPin(dto.pin, user.merchantId, ipAddress);
   }
 
   @Get("staff-pin/status")
   @UseGuards(JwtAuthGuard)
-  async getStaffPinStatus(
-    @CurrentUser() user: any,
-  ): Promise<{
+  async getStaffPinStatus(@CurrentUser() user: any): Promise<{
     hasPins: boolean;
     staffCount: number;
     hasDuplicates: boolean;
@@ -201,14 +265,16 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getSession(
     @Headers("authorization") authHeader: string,
+    @Req() req: any,
   ): Promise<AuthSession | null> {
-    const token = authHeader?.replace("Bearer ", "");
+    const token =
+      req.cookies?.access_token || authHeader?.replace("Bearer ", "");
 
     if (!token) {
       throw new UnauthorizedException("No token provided");
     }
 
-    const session = this.sessionService.getSession(token);
+    const session = await this.sessionService.getSession(token);
 
     if (!session) {
       throw new UnauthorizedException("Session not found or expired");

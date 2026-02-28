@@ -1,21 +1,38 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { transformApiResponse } from '../db-transforms';
-import { validateRequest, validateResponse, ApiValidationError } from './validation';
-import { memoryCache, generateCacheKey, shouldCacheData, getCacheConfig } from '../cache-config';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import { transformApiResponse } from "../db-transforms";
+import {
+  validateRequest,
+  validateResponse,
+  ApiValidationError,
+} from "./validation";
+import {
+  memoryCache,
+  generateCacheKey,
+  shouldCacheData,
+  getCacheConfig,
+} from "../cache-config";
 
 // Dynamic API URL that works with both localhost and hosted environments
 export const resolveApiBaseUrl = () => {
   // Highest priority: explicit env var, works for both SSR and browser
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
   }
 
-  // Server-side rendering: fall back to the internal API host
-  if (typeof window === 'undefined') {
-    return 'http://100.107.58.75:3000/api';
+  // Server-side rendering: use internal API URL if available
+  if (typeof window === "undefined") {
+    if (process.env.INTERNAL_API_URL) {
+      return process.env.INTERNAL_API_URL.replace(/\/$/, "");
+    }
+    return "http://100.107.58.75:3000/api";
   }
 
-  // Browser: use current hostname pointing to the default API port
+  // Browser in production: use same-origin /api proxy (Next.js rewrite)
+  if (process.env.NODE_ENV === "production") {
+    return "/api";
+  }
+
+  // Browser in development: use current hostname pointing to the default API port
   const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:3000/api`;
 };
@@ -38,8 +55,9 @@ export class BaseApiClient {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: getApiBaseUrl(),
+      withCredentials: true,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -47,30 +65,33 @@ export class BaseApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor for auth token
+    // Request interceptor for auth
     this.axiosInstance.interceptors.request.use(
       (config) => {
         // Check if redirect is in progress
         if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
-          const error = new Error('Authentication in progress, please wait...');
-          (error as any).code = 'AUTH_IN_PROGRESS';
+          const error = new Error("Authentication in progress, please wait...");
+          (error as any).code = "AUTH_IN_PROGRESS";
           return Promise.reject(error);
         }
-        
-        const token = localStorage.getItem('access_token');
+
+        // Cookies are sent automatically via withCredentials.
+        // Fallback: if access_token exists in localStorage (rollout period),
+        // include it as Bearer header for backwards compatibility.
+        const token = localStorage.getItem("access_token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
         // Include active staff ID for audit logging (informational only)
-        const activeStaffId = sessionStorage.getItem('active_staff_id');
+        const activeStaffId = sessionStorage.getItem("active_staff_id");
         if (activeStaffId) {
-          config.headers['x-active-staff-id'] = activeStaffId;
+          config.headers["x-active-staff-id"] = activeStaffId;
         }
 
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // Response interceptor for data transformation and auth errors
@@ -87,7 +108,7 @@ export class BaseApiClient {
 
         // Log errors (but not 404s as they're expected)
         const shouldLog = error.response?.status !== 404;
-                         
+
         if (shouldLog) {
           const errorInfo = {
             url: originalRequest?.url,
@@ -96,11 +117,11 @@ export class BaseApiClient {
             message: error.response?.data?.message || error.message,
             errorCode: error.response?.data?.errorCode,
             details: error.response?.data,
-            requestData: originalRequest?.data
+            requestData: originalRequest?.data,
           };
-          
+
           // Log with full details for debugging
-          
+
           // Also log the raw error for additional context
           if (error.response?.data) {
           }
@@ -118,20 +139,24 @@ export class BaseApiClient {
         }
 
         return Promise.reject(this.transformError(error));
-      }
+      },
     );
   }
 
   private async handleAuthError(error: any, originalRequest: any) {
     // Don't attempt refresh for auth endpoints
-    if (originalRequest.url?.includes('/auth/')) {
+    if (originalRequest.url?.includes("/auth/")) {
       this.clearAuthData();
       this.redirectToLogin();
       return Promise.reject(error);
     }
 
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) {
+    // Check for refresh token in localStorage (rollout) or rely on cookie
+    const refreshToken = localStorage.getItem("refresh_token");
+    // If no localStorage token, we still try — the httpOnly cookie may work
+    const hasRefreshSource = !!refreshToken || true;
+
+    if (!hasRefreshSource) {
       this.clearAuthData();
       this.redirectToLogin();
       return Promise.reject(error);
@@ -159,24 +184,42 @@ export class BaseApiClient {
     }
   }
 
-  private async performTokenRefresh(refreshToken: string): Promise<void> {
+  private async performTokenRefresh(
+    refreshToken: string | null,
+  ): Promise<void> {
     try {
       // Create new axios instance to avoid interceptor loops
-      const response = await axios.post(`${resolveApiBaseUrl()}/v1/auth/refresh`, {
-        refreshToken
-      });
+      // Send withCredentials so refresh_token cookie is included
+      const response = await axios.post(
+        `${resolveApiBaseUrl()}/v1/auth/refresh`,
+        { refreshToken: refreshToken || undefined },
+        { withCredentials: true },
+      );
 
-      const { token, refreshToken: newRefreshToken, user, expiresAt } = response.data;
+      const {
+        token,
+        refreshToken: newRefreshToken,
+        user,
+        expiresAt,
+      } = response.data;
 
-      // Update stored tokens
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('refresh_token', newRefreshToken);
+      // Store tokens in localStorage during rollout period.
+      // Once RETURN_TOKENS_IN_BODY=false on the API, these won't be in the response
+      // and cookies will be the sole auth mechanism.
+      if (token) {
+        localStorage.setItem("access_token", token);
+      }
+      if (newRefreshToken) {
+        localStorage.setItem("refresh_token", newRefreshToken);
+      }
       if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('merchant', JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("merchant", JSON.stringify(user));
       }
 
-      this.scheduleTokenRefresh(expiresAt);
+      if (expiresAt) {
+        this.scheduleTokenRefresh(expiresAt);
+      }
     } catch (error) {
       throw error;
     }
@@ -191,62 +234,61 @@ export class BaseApiClient {
     const expiryTime = new Date(expiresAt).getTime();
     const now = Date.now();
     const timeUntilExpiry = expiryTime - now;
-    
+
     // Schedule refresh 5 minutes before expiry
-    const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
-    
+    const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
+
     if (refreshTime > 0) {
-      
       (window as any).tokenRefreshTimeout = setTimeout(async () => {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = localStorage.getItem("refresh_token");
         if (refreshToken) {
           try {
             await this.performTokenRefresh(refreshToken);
-          } catch (error) {
-          }
+          } catch (error) {}
         }
       }, refreshTime);
     }
   }
 
   private clearAuthData() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('merchant');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("merchant");
+    localStorage.removeItem("user");
+
     // CRITICAL: Clear the memory cache to prevent serving stale data
     memoryCache.clear();
-    
+
     // Clear the auth cookie with the same settings used when setting it
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+    document.cookie =
+      "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
   }
 
   private redirectToLogin() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Check if already redirecting
       if ((window as any).__AUTH_REDIRECT_IN_PROGRESS__) {
         // Already handling redirect, just return
         return;
       }
-      
+
       // Don't redirect if already on login page
-      if (window.location.pathname.includes('/login')) {
+      if (window.location.pathname.includes("/login")) {
         // Just return silently - we're already on login page
         return;
       }
-      
+
       // Set a flag to prevent further API calls
       (window as any).__AUTH_REDIRECT_IN_PROGRESS__ = true;
-      
+
       // Emit a custom event that the AuthGuard can listen to
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-      
+      window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+
       // Clear auth data but let AuthGuard handle the redirect
       this.clearAuthData();
-      
+
       // Throw a special error to stop execution
-      const redirectError = new Error('UNAUTHORIZED_REDIRECT');
+      const redirectError = new Error("UNAUTHORIZED_REDIRECT");
       (redirectError as any).isAuthRedirect = true;
       throw redirectError;
     }
@@ -257,7 +299,7 @@ export class BaseApiClient {
     if (error instanceof ApiValidationError) {
       return {
         message: `Validation Error: ${error.message}`,
-        code: 'VALIDATION_ERROR',
+        code: "VALIDATION_ERROR",
       };
     }
 
@@ -267,104 +309,119 @@ export class BaseApiClient {
         status: error.response.status,
         code: error.response.data?.code || error.response.data?.errorCode,
         data: error.response.data,
-        originalError: error
+        originalError: error,
       };
     }
-    
+
     return {
-      message: error.message || 'An unexpected error occurred',
-      originalError: error
+      message: error.message || "An unexpected error occurred",
+      originalError: error,
     };
   }
 
   // Helper method to add version prefix to URLs
-  protected addVersionPrefix(url: string, defaultVersion: 'v1' | 'v2' = 'v1'): string {
+  protected addVersionPrefix(
+    url: string,
+    defaultVersion: "v1" | "v2" = "v1",
+  ): string {
     // Don't add version if already present or if it's an external URL
-    if (url.startsWith('/v1/') || url.startsWith('/v2/') || url.startsWith('http')) {
+    if (
+      url.startsWith("/v1/") ||
+      url.startsWith("/v2/") ||
+      url.startsWith("http")
+    ) {
       return url;
     }
-    
+
     // Ensure URL starts with /
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    
-    // Add version prefix  
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+
+    // Add version prefix
     return `/${defaultVersion}${cleanUrl}`;
   }
 
   // Generic HTTP methods with version handling and optional validation
   protected async get<T = any>(
-    url: string, 
-    config?: AxiosRequestConfig, 
-    version?: 'v1' | 'v2',
-    responseSchema?: Record<string, (value: any, field: string) => any>
+    url: string,
+    config?: AxiosRequestConfig,
+    version?: "v1" | "v2",
+    responseSchema?: Record<string, (value: any, field: string) => any>,
   ): Promise<T> {
     const versionedUrl = this.addVersionPrefix(url, version);
     const cacheKey = generateCacheKey(versionedUrl, config?.params);
-    
+
     // Check cache first
     const cached = memoryCache.get(cacheKey);
     if (cached) {
       if (!cached.isStale) {
         return cached.data;
       }
-      
+
       // Stale-while-revalidate: return stale data and fetch in background
-      this.revalidateInBackground(versionedUrl, config, version, responseSchema, cacheKey);
+      this.revalidateInBackground(
+        versionedUrl,
+        config,
+        version,
+        responseSchema,
+        cacheKey,
+      );
       return cached.data;
     }
-    
+
     try {
       // Fetch from network
       const response = await this.axiosInstance.get(versionedUrl, config);
-      
+
       // Validate response if schema provided
       let data = response.data;
-      if (responseSchema && process.env.NODE_ENV === 'development') {
+      if (responseSchema && process.env.NODE_ENV === "development") {
         data = validateResponse(response.data, responseSchema, url);
       }
-      
+
       // Cache if appropriate
       if (shouldCacheData(url, data)) {
         memoryCache.set(cacheKey, data);
       }
-      
+
       return data;
     } catch (error: any) {
       // Only log actual errors, not expected auth failures
       if (error?.response?.status !== 401) {
         const errorDetails = {
           url: versionedUrl,
-          message: error?.response?.data?.message || error?.message || 'Unknown error',
-          status: error?.response?.status || 'No status',
-          code: error?.response?.data?.code || error?.code || 'No code'
+          message:
+            error?.response?.data?.message || error?.message || "Unknown error",
+          status: error?.response?.status || "No status",
+          code: error?.response?.data?.code || error?.code || "No code",
         };
-        
       }
-      
+
       // If error object is malformed, create a proper error
-      if (!error || typeof error !== 'object') {
+      if (!error || typeof error !== "object") {
         throw new Error(`Request failed: ${versionedUrl}`);
       }
-      
+
       throw error;
     }
   }
-  
+
   private async revalidateInBackground(
     url: string,
     config: AxiosRequestConfig | undefined,
-    version: 'v1' | 'v2' | undefined,
-    responseSchema: Record<string, (value: any, field: string) => any> | undefined,
-    cacheKey: string
+    version: "v1" | "v2" | undefined,
+    responseSchema:
+      | Record<string, (value: any, field: string) => any>
+      | undefined,
+    cacheKey: string,
   ) {
     try {
       const response = await this.axiosInstance.get(url, config);
       let data = response.data;
-      
-      if (responseSchema && process.env.NODE_ENV === 'development') {
+
+      if (responseSchema && process.env.NODE_ENV === "development") {
         data = validateResponse(response.data, responseSchema, url);
       }
-      
+
       if (shouldCacheData(url, data)) {
         memoryCache.set(cacheKey, data);
       }
@@ -374,12 +431,12 @@ export class BaseApiClient {
   }
 
   protected async post<T = any>(
-    url: string, 
-    data?: any, 
-    config?: AxiosRequestConfig, 
-    version?: 'v1' | 'v2',
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+    version?: "v1" | "v2",
     requestSchema?: Record<string, (value: any, field: string) => any>,
-    responseSchema?: Record<string, (value: any, field: string) => any>
+    responseSchema?: Record<string, (value: any, field: string) => any>,
   ): Promise<T> {
     // Validate request if schema provided
     if (requestSchema && data) {
@@ -387,18 +444,22 @@ export class BaseApiClient {
     }
 
     const versionedUrl = this.addVersionPrefix(url, version);
-    
+
     try {
-      const response = await this.axiosInstance.post(versionedUrl, data, config);
-      
+      const response = await this.axiosInstance.post(
+        versionedUrl,
+        data,
+        config,
+      );
+
       // Invalidate related cache on mutations
       this.invalidateCacheForMutation(url);
-      
+
       // Validate response if schema provided
-      if (responseSchema && process.env.NODE_ENV === 'development') {
+      if (responseSchema && process.env.NODE_ENV === "development") {
         return validateResponse(response.data, responseSchema, url);
       }
-      
+
       return response.data;
     } catch (error: any) {
       // Ensure error object is properly logged
@@ -406,56 +467,60 @@ export class BaseApiClient {
       if (error?.response?.status !== 401) {
         const errorDetails = {
           url: versionedUrl,
-          method: 'POST',
-          message: error?.response?.data?.message || error?.message || 'Unknown error',
-          status: error?.response?.status || 'No status',
-          code: error?.response?.data?.code || error?.code || 'No code'
+          method: "POST",
+          message:
+            error?.response?.data?.message || error?.message || "Unknown error",
+          status: error?.response?.status || "No status",
+          code: error?.response?.data?.code || error?.code || "No code",
         };
-        
       }
-      
+
       // If error object is malformed, create a proper error
-      if (!error || typeof error !== 'object') {
+      if (!error || typeof error !== "object") {
         throw new Error(`POST request failed: ${versionedUrl}`);
       }
-      
+
       throw error;
     }
   }
 
   protected async put<T = any>(
-    url: string, 
-    data?: any, 
-    config?: AxiosRequestConfig, 
-    version?: 'v1' | 'v2',
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+    version?: "v1" | "v2",
     requestSchema?: Record<string, (value: any, field: string) => any>,
-    responseSchema?: Record<string, (value: any, field: string) => any>
+    responseSchema?: Record<string, (value: any, field: string) => any>,
   ): Promise<T> {
     // Validate request if schema provided
     if (requestSchema && data) {
       validateRequest(data, requestSchema, url);
     }
 
-    const response = await this.axiosInstance.put(this.addVersionPrefix(url, version), data, config);
-    
+    const response = await this.axiosInstance.put(
+      this.addVersionPrefix(url, version),
+      data,
+      config,
+    );
+
     // Invalidate related cache on mutations
     this.invalidateCacheForMutation(url);
-    
+
     // Validate response if schema provided
-    if (responseSchema && process.env.NODE_ENV === 'development') {
+    if (responseSchema && process.env.NODE_ENV === "development") {
       return validateResponse(response.data, responseSchema, url);
     }
-    
+
     return response.data;
   }
 
   protected async patch<T = any>(
-    url: string, 
-    data?: any, 
-    config?: AxiosRequestConfig, 
-    version?: 'v1' | 'v2',
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+    version?: "v1" | "v2",
     requestSchema?: Record<string, (value: any, field: string) => any>,
-    responseSchema?: Record<string, (value: any, field: string) => any>
+    responseSchema?: Record<string, (value: any, field: string) => any>,
   ): Promise<T> {
     // Validate request if schema provided
     if (requestSchema && data) {
@@ -463,18 +528,22 @@ export class BaseApiClient {
     }
 
     const versionedUrl = this.addVersionPrefix(url, version);
-    
+
     try {
-      const response = await this.axiosInstance.patch(versionedUrl, data, config);
-      
+      const response = await this.axiosInstance.patch(
+        versionedUrl,
+        data,
+        config,
+      );
+
       // Invalidate related cache on mutations
       this.invalidateCacheForMutation(url);
-      
+
       // Validate response if schema provided
-      if (responseSchema && process.env.NODE_ENV === 'development') {
+      if (responseSchema && process.env.NODE_ENV === "development") {
         return validateResponse(response.data, responseSchema, url);
       }
-      
+
       return response.data;
     } catch (error: any) {
       // Ensure error object is properly logged
@@ -482,67 +551,70 @@ export class BaseApiClient {
       if (error?.response?.status !== 401) {
         const errorDetails = {
           url: versionedUrl,
-          method: 'PATCH',
-          message: error?.response?.data?.message || error?.message || 'Unknown error',
-          status: error?.response?.status || 'No status',
-          code: error?.response?.data?.code || error?.code || 'No code'
+          method: "PATCH",
+          message:
+            error?.response?.data?.message || error?.message || "Unknown error",
+          status: error?.response?.status || "No status",
+          code: error?.response?.data?.code || error?.code || "No code",
         };
-        
       }
-      
+
       // If error object is malformed, create a proper error
-      if (!error || typeof error !== 'object') {
+      if (!error || typeof error !== "object") {
         throw new Error(`PATCH request failed: ${versionedUrl}`);
       }
-      
+
       throw error;
     }
   }
 
   protected async delete<T = any>(
-    url: string, 
-    config?: AxiosRequestConfig, 
-    version?: 'v1' | 'v2',
-    responseSchema?: Record<string, (value: any, field: string) => any>
+    url: string,
+    config?: AxiosRequestConfig,
+    version?: "v1" | "v2",
+    responseSchema?: Record<string, (value: any, field: string) => any>,
   ): Promise<T> {
-    const response = await this.axiosInstance.delete(this.addVersionPrefix(url, version), config);
-    
+    const response = await this.axiosInstance.delete(
+      this.addVersionPrefix(url, version),
+      config,
+    );
+
     // Invalidate related cache on mutations
     this.invalidateCacheForMutation(url);
-    
+
     // Validate response if schema provided
-    if (responseSchema && process.env.NODE_ENV === 'development') {
+    if (responseSchema && process.env.NODE_ENV === "development") {
       return validateResponse(response.data, responseSchema, url);
     }
-    
+
     return response.data;
   }
-  
+
   // Cache management methods
   protected invalidateCache(pattern: string) {
     memoryCache.delete(pattern);
   }
-  
+
   protected clearAllCache() {
     memoryCache.clear();
   }
-  
+
   private invalidateCacheForMutation(url: string) {
     // Extract the resource type from URL
-    const segments = url.split('/').filter(Boolean);
+    const segments = url.split("/").filter(Boolean);
     if (segments.length > 0) {
       // Invalidate all cache entries for this resource type
       const resourceType = segments[0];
       this.invalidateCache(resourceType);
-      
+
       // Also invalidate dashboard stats if it's a booking or payment
-      if (['bookings', 'payments'].includes(resourceType)) {
-        this.invalidateCache('dashboard');
-        this.invalidateCache('reports');
+      if (["bookings", "payments"].includes(resourceType)) {
+        this.invalidateCache("dashboard");
+        this.invalidateCache("reports");
       }
-      
+
       // For staff mutations, clear all cache to ensure consistency
-      if (resourceType === 'staff') {
+      if (resourceType === "staff") {
         this.clearAllCache();
       }
     }

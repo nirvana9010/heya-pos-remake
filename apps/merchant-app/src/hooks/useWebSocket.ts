@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import io, { Socket } from 'socket.io-client';
-import { useAuth } from '@/lib/auth/auth-provider';
-import { useToast } from '@heya-pos/ui';
+import { useEffect, useRef, useCallback, useState } from "react";
+import io, { Socket } from "socket.io-client";
+import { useAuth } from "@/lib/auth/auth-provider";
+import { useToast } from "@heya-pos/ui";
 
 interface WebSocketOptions {
   onBookingCreated?: (data: any) => void;
@@ -28,17 +28,20 @@ export function useWebSocket(options: WebSocketOptions = {}) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  const broadcastStatus = useCallback((connected: boolean, notification: Date | null) => {
-    if (typeof window === 'undefined') return;
-    window.dispatchEvent(
-      new CustomEvent('ws-connection-status', {
-        detail: {
-          isConnected: connected,
-          lastNotification: notification ? notification.toISOString() : null,
-        },
-      })
-    );
-  }, []);
+  const broadcastStatus = useCallback(
+    (connected: boolean, notification: Date | null) => {
+      if (typeof window === "undefined") return;
+      window.dispatchEvent(
+        new CustomEvent("ws-connection-status", {
+          detail: {
+            isConnected: connected,
+            lastNotification: notification ? notification.toISOString() : null,
+          },
+        }),
+      );
+    },
+    [],
+  );
 
   // Keep refs in sync when state changes (for internal tracking)
   useEffect(() => {
@@ -54,33 +57,42 @@ export function useWebSocket(options: WebSocketOptions = {}) {
   useEffect(() => {
     let checkTokenInterval: NodeJS.Timeout;
     let mounted = true;
-    
+
     const debug = (message: string, ...args: any[]) => {
       // Only log in development mode or when explicitly enabled
-      if (optionsRef.current.debug || (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && localStorage.getItem('ws_debug') === 'true')) {
+      if (
+        optionsRef.current.debug ||
+        (process.env.NODE_ENV === "development" &&
+          typeof window !== "undefined" &&
+          localStorage.getItem("ws_debug") === "true")
+      ) {
         console.log(`[WebSocket] ${message}`, ...args);
       }
     };
-    
+
     const attemptConnection = () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("access_token")
+          : null;
+
       if (token && !socketRef.current?.connected && mounted) {
-        debug('Token found, connecting to WebSocket...');
-        
+        debug("Token found, connecting to WebSocket...");
+
         // Socket.IO connects to the base URL, not the API prefix
         // Dynamically determine API URL based on current window location for Tailscale/network compatibility
         let baseUrl: string;
         if (process.env.NEXT_PUBLIC_API_URL) {
-          baseUrl = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
+          baseUrl = process.env.NEXT_PUBLIC_API_URL.replace("/api", "");
         } else {
           // Use current window location but with API port (3000)
           baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
         }
-        
+
         const socket = io(`${baseUrl}`, {
           auth: { token },
-          transports: ['websocket', 'polling'],
+          withCredentials: true,
+          transports: ["websocket", "polling"],
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,
@@ -89,34 +101,34 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         });
 
         // Connection events
-        socket.on('connect', () => {
+        socket.on("connect", () => {
           if (mounted) {
-            debug('Connected successfully');
+            debug("Connected successfully");
             isConnectedRef.current = true;
             setIsConnected(true);
             broadcastStatus(true, lastNotificationRef.current);
           }
         });
 
-        socket.on('disconnect', (reason) => {
+        socket.on("disconnect", (reason) => {
           if (mounted) {
-            debug('Disconnected:', reason);
+            debug("Disconnected:", reason);
             isConnectedRef.current = false;
             setIsConnected(false);
             broadcastStatus(false, lastNotificationRef.current);
           }
         });
 
-        socket.on('connect_error', (error) => {
+        socket.on("connect_error", (error) => {
           if (mounted) {
-            debug('Connection error:', error.message);
+            debug("Connection error:", error.message);
           }
         });
 
         // Event handlers
-        socket.on('booking_created', (data) => {
+        socket.on("booking_created", (data) => {
           if (mounted) {
-            debug('Booking created:', data);
+            debug("Booking created:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -125,9 +137,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('booking_updated', (data) => {
+        socket.on("booking_updated", (data) => {
           if (mounted) {
-            debug('Booking updated:', data);
+            debug("Booking updated:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -136,9 +148,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('booking_deleted', (data) => {
+        socket.on("booking_deleted", (data) => {
           if (mounted) {
-            debug('Booking deleted:', data);
+            debug("Booking deleted:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -147,9 +159,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('payment_created', (data) => {
+        socket.on("payment_created", (data) => {
           if (mounted) {
-            debug('Payment created:', data);
+            debug("Payment created:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -158,9 +170,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('payment_updated', (data) => {
+        socket.on("payment_updated", (data) => {
           if (mounted) {
-            debug('Payment updated:', data);
+            debug("Payment updated:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -169,9 +181,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('customer_created', (data) => {
+        socket.on("customer_created", (data) => {
           if (mounted) {
-            debug('Customer created:', data);
+            debug("Customer created:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -180,9 +192,9 @@ export function useWebSocket(options: WebSocketOptions = {}) {
           }
         });
 
-        socket.on('notification', (data) => {
+        socket.on("notification", (data) => {
           if (mounted) {
-            debug('Generic notification:', data);
+            debug("Generic notification:", data);
             const timestamp = new Date();
             setLastNotification(timestamp);
             lastNotificationRef.current = timestamp;
@@ -194,23 +206,23 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         // Ping/pong for connection health
         const pingInterval = setInterval(() => {
           if (socket.connected) {
-            socket.emit('ping');
+            socket.emit("ping");
           }
         }, 30000);
 
-        socket.on('pong', (data) => {
+        socket.on("pong", (data) => {
           // Silently handle pong responses - no need to log
           // debug('Pong received:', data);
         });
 
         // Store socket reference
         socketRef.current = socket;
-        
+
         // Store cleanup for ping interval
-        socket.on('disconnect', () => {
+        socket.on("disconnect", () => {
           clearInterval(pingInterval);
         });
-        
+
         return true;
       } else if (!token) {
         // Silently wait for token
@@ -218,7 +230,7 @@ export function useWebSocket(options: WebSocketOptions = {}) {
       }
       return true; // Already connected
     };
-    
+
     // Try immediate connection
     if (!attemptConnection()) {
       // If no token, check every second until found
@@ -228,7 +240,7 @@ export function useWebSocket(options: WebSocketOptions = {}) {
         }
       }, 1000);
     }
-    
+
     broadcastStatus(false, null);
 
     return () => {
@@ -264,14 +276,14 @@ export function useWebSocket(options: WebSocketOptions = {}) {
   // Subscribe to specific channel
   const subscribe = useCallback((channel: string) => {
     if (socketRef.current?.connected) {
-      socketRef.current.emit('subscribe', { channel });
+      socketRef.current.emit("subscribe", { channel });
     }
   }, []);
 
   // Unsubscribe from specific channel
   const unsubscribe = useCallback((channel: string) => {
     if (socketRef.current?.connected) {
-      socketRef.current.emit('unsubscribe', { channel });
+      socketRef.current.emit("unsubscribe", { channel });
     }
   }, []);
 
@@ -293,30 +305,32 @@ let globalSocket: Socket | null = null;
 
 export function getGlobalWebSocket(): Socket | null {
   // Get token from localStorage
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
   if (!token) return null;
-  
+
   if (!globalSocket || !globalSocket.connected) {
     // Socket.IO connects to the base URL, not the API prefix
     // Dynamically determine API URL based on current window location for Tailscale/network compatibility
     let baseUrl: string;
     if (process.env.NEXT_PUBLIC_API_URL) {
-      baseUrl = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
+      baseUrl = process.env.NEXT_PUBLIC_API_URL.replace("/api", "");
     } else {
       // Use current window location but with API port (3000)
       baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
     }
-    
+
     globalSocket = io(`${baseUrl}`, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
     });
   }
-  
+
   return globalSocket;
 }
 

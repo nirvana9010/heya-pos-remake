@@ -1,4 +1,4 @@
-import { BaseApiClient } from './base-client';
+import { BaseApiClient } from "./base-client";
 
 export interface LoginResponse {
   access_token: string;
@@ -14,55 +14,63 @@ export interface VerifyActionRequest {
 }
 
 export class AuthClient extends BaseApiClient {
-  async login(email: string, password: string, rememberMe: boolean = false): Promise<LoginResponse> {
-    
+  async login(
+    email: string,
+    password: string,
+    rememberMe: boolean = false,
+  ): Promise<LoginResponse> {
     const payload = {
       email,
       password,
     };
-    
+
     try {
-      const response = await this.post('/auth/merchant/login', payload, undefined, 'v1');
-    
-    // Normalize the response to match what the frontend expects
-    // The API now returns the full merchant object with locations
-    const result = {
-      access_token: response.token,
-      refresh_token: response.refreshToken,
-      user: {
-        id: response.user.id,
-        username: response.user.email, // Use email as username
-        role: response.user.role,
-        firstName: response.user.firstName,
-        lastName: response.user.lastName,
-        email: response.user.email,
-        // Include type, permissions, and locations for RBAC
-        type: response.user.type,
-        permissions: response.user.permissions,
-        locations: response.user.locations,
-        merchantUserId: response.user.merchantUserId, // For merchant_user type
-      },
-      merchant: response.merchant || {
-        id: response.merchantId,
-        name: response.user.firstName,
-        email: response.user.email,
-        subdomain: 'hamilton',
-        locations: [] // Empty array if no locations
-      },
-      expiresAt: response.expiresAt
-    };
+      const response = await this.post(
+        "/auth/merchant/login",
+        payload,
+        undefined,
+        "v1",
+      );
 
-    // Store remember me preference
-    if (rememberMe) {
-      localStorage.setItem('remember_me', 'true');
-    } else {
-      sessionStorage.setItem('session_only', 'true');
-    }
+      // Normalize the response to match what the frontend expects
+      // The API now returns the full merchant object with locations
+      const result = {
+        access_token: response.token,
+        refresh_token: response.refreshToken,
+        user: {
+          id: response.user.id,
+          username: response.user.email, // Use email as username
+          role: response.user.role,
+          firstName: response.user.firstName,
+          lastName: response.user.lastName,
+          email: response.user.email,
+          // Include type, permissions, and locations for RBAC
+          type: response.user.type,
+          permissions: response.user.permissions,
+          locations: response.user.locations,
+          merchantUserId: response.user.merchantUserId, // For merchant_user type
+        },
+        merchant: response.merchant || {
+          id: response.merchantId,
+          name: response.user.firstName,
+          email: response.user.email,
+          subdomain: "hamilton",
+          locations: [], // Empty array if no locations
+        },
+        expiresAt: response.expiresAt,
+      };
 
-    // Schedule proactive token refresh
-    this.scheduleTokenRefresh(response.expiresAt);
+      // Store remember me preference
+      if (rememberMe) {
+        localStorage.setItem("remember_me", "true");
+      } else {
+        sessionStorage.setItem("session_only", "true");
+      }
 
-    return result;
+      // Schedule proactive token refresh
+      this.scheduleTokenRefresh(response.expiresAt);
+
+      return result;
     } catch (error: any) {
       // Re-throw the error with proper structure for auth provider
       if (error.response?.data?.message) {
@@ -75,7 +83,7 @@ export class AuthClient extends BaseApiClient {
   }
 
   async verifyAction(pin: string, action: string) {
-    return this.post('/auth/verify-action', { pin, action }, undefined, 'v1');
+    return this.post("/auth/verify-action", { pin, action }, undefined, "v1");
   }
 
   async unlockByPin(pin: string): Promise<{
@@ -88,7 +96,7 @@ export class AuthClient extends BaseApiClient {
       role: string;
     };
   }> {
-    return this.post('/auth/staff-pin/unlock', { pin }, undefined, 'v1');
+    return this.post("/auth/staff-pin/unlock", { pin }, undefined, "v1");
   }
 
   async getStaffPinStatus(): Promise<{
@@ -96,11 +104,19 @@ export class AuthClient extends BaseApiClient {
     staffCount: number;
     hasDuplicates: boolean;
   }> {
-    return this.get('/auth/staff-pin/status', undefined, 'v1');
+    return this.get("/auth/staff-pin/status", undefined, "v1");
   }
 
   async refreshToken(refreshToken: string) {
-    return this.post('/auth/refresh', { refreshToken }, undefined, 'v1');
+    return this.post("/auth/refresh", { refreshToken }, undefined, "v1");
+  }
+
+  async getMe() {
+    return this.get("/auth/me", undefined, "v1");
+  }
+
+  async logout() {
+    return this.post("/auth/logout", {}, undefined, "v1");
   }
 
   // Make scheduleTokenRefresh accessible to auth client
@@ -113,19 +129,17 @@ export class AuthClient extends BaseApiClient {
     const expiryTime = new Date(expiresAt).getTime();
     const now = Date.now();
     const timeUntilExpiry = expiryTime - now;
-    
+
     // Schedule refresh 5 minutes before expiry
-    const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
-    
+    const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
+
     if (refreshTime > 0) {
-      
       (window as any).tokenRefreshTimeout = setTimeout(async () => {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = localStorage.getItem("refresh_token");
         if (refreshToken) {
           try {
             await this.refreshToken(refreshToken);
-          } catch (error) {
-          }
+          } catch (error) {}
         }
       }, refreshTime);
     }

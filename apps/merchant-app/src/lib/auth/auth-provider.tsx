@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { apiClient } from '../api-client';
-import type { LoginResponse } from '../clients/auth-client';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
+import { apiClient } from "../api-client";
+import type { LoginResponse } from "../clients/auth-client";
 
-export type UserType = 'merchant' | 'merchant_user' | 'staff';
+export type UserType = "merchant" | "merchant_user" | "staff";
 
 export interface User {
   id: string;
@@ -54,7 +61,11 @@ export interface AuthState {
 }
 
 export interface AuthActions {
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (
+    username: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   refreshToken: () => Promise<void>;
@@ -73,10 +84,10 @@ export interface AuthProviderProps {
 
 /**
  * Centralized Authentication Provider - Phase 2 Refactoring
- * 
+ *
  * This provider consolidates all authentication logic in one place,
  * replacing the fragmented auth handling throughout the application.
- * 
+ *
  * Features:
  * - Automatic token refresh
  * - Persistent session management
@@ -96,37 +107,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Define clearAuthData early so it can be used in initializeAuth
   const clearAuthData = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('merchant');
-    localStorage.removeItem('remember_me');
-    sessionStorage.removeItem('session_only');
+    // Clear localStorage (tokens kept during rollout, user/merchant always)
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("merchant");
+    localStorage.removeItem("remember_me");
+    sessionStorage.removeItem("session_only");
 
     // CRITICAL: Clear the memory cache to prevent serving stale merchant data
-    if (typeof window !== 'undefined' && (window as any).memoryCache) {
+    if (typeof window !== "undefined" && (window as any).memoryCache) {
       (window as any).memoryCache.clear();
     }
-    
-    // Also clear from imported memoryCache
-    import('@/lib/cache-config').then(({ memoryCache }) => {
-      memoryCache.clear();
-    }).catch(() => {
-      // Ignore errors if module not found
-    });
 
-    // Clear auth cookie
-    // Clear auth cookie with same settings as when setting
-    const isProduction = process.env.NODE_ENV === 'production';
-    const clearCookieOptions = [
-      'authToken=',
-      'path=/',
-      'expires=Thu, 01 Jan 1970 00:00:00 UTC',
-      'SameSite=Lax',
-      isProduction ? 'Secure' : '',
-    ].filter(Boolean).join('; ');
-    
-    document.cookie = clearCookieOptions;
+    import("@/lib/cache-config")
+      .then(({ memoryCache }) => {
+        memoryCache.clear();
+      })
+      .catch(() => {});
+
+    // Note: httpOnly cookies (access_token, refresh_token) are cleared server-side
+    // on logout. We can't clear them from JS.
+    // Clear legacy authToken cookie if it still exists
+    document.cookie =
+      "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
 
     setAuthState({
       user: null,
@@ -146,21 +150,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Listen for unauthorized events from API client
   useEffect(() => {
     const handleUnauthorized = () => {
-      console.log('[AuthProvider] Received unauthorized event, clearing auth');
+      console.log("[AuthProvider] Received unauthorized event, clearing auth");
       clearAuthData();
-      setAuthState(prev => ({
+      setAuthState((prev) => ({
         ...prev,
         isAuthenticated: false,
         user: null,
         merchant: null,
         tokenExpiresAt: null,
-        error: 'Session expired. Please login again.'
+        error: "Session expired. Please login again.",
       }));
     };
 
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
     return () => {
-      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
     };
   }, []);
 
@@ -178,92 +182,100 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const initializeAuth = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const refreshToken = localStorage.getItem('refresh_token');
-      const userStr = localStorage.getItem('user');
-      const merchantStr = localStorage.getItem('merchant');
+      const userStr = localStorage.getItem("user");
+      const merchantStr = localStorage.getItem("merchant");
+      const token = localStorage.getItem("access_token"); // May or may not exist with cookie auth
 
-      if (!token || !refreshToken) {
-        // If no localStorage tokens, also clear any stale cookies to prevent redirect loops
-        const cookiesToClear = ['authToken', 'auth-token'];
-        cookiesToClear.forEach(cookieName => {
-          document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict`;
-        });
-        
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+      // Check if we have stored user data (with cookie auth, tokens may be httpOnly)
+      if (!userStr && !token) {
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
         return;
       }
 
       // Parse stored user and merchant data
       let user = null;
       let merchant = null;
-      
+
       try {
         user = userStr ? JSON.parse(userStr) : null;
         merchant = merchantStr ? JSON.parse(merchantStr) : null;
-        
-        // Validate that we have BOTH user and merchant data
+
+        // Validate that we have user data
         if (!user || !user.id || !user.email) {
-          console.warn('[Auth Provider] Missing or invalid user data, clearing auth');
+          console.warn(
+            "[Auth Provider] Missing or invalid user data, clearing auth",
+          );
           clearAuthData();
           return;
         }
-        
+
         if (!merchant || !merchant.id || !merchant.name) {
-          console.warn('[Auth Provider] Missing or invalid merchant data, clearing auth');
+          console.warn(
+            "[Auth Provider] Missing or invalid merchant data, clearing auth",
+          );
           clearAuthData();
           return;
         }
-        
+
         // If merchant doesn't have settings, try to fetch them
         if (!merchant.settings) {
           try {
-            const fullMerchant = await apiClient.get('/merchant/profile');
+            const fullMerchant = await apiClient.get("/merchant/profile");
             merchant = {
               ...merchant,
-              settings: fullMerchant.settings
+              settings: fullMerchant.settings,
             };
-            // Update localStorage with the full merchant data
-            localStorage.setItem('merchant', JSON.stringify(merchant));
+            localStorage.setItem("merchant", JSON.stringify(merchant));
           } catch (error) {
-            console.warn('[Auth Provider] Failed to fetch merchant settings:', error);
-            // Continue with merchant data without settings
+            console.warn(
+              "[Auth Provider] Failed to fetch merchant settings:",
+              error,
+            );
           }
         }
       } catch (e) {
-        console.error('[Auth Provider] Failed to parse stored auth data', e);
+        console.error("[Auth Provider] Failed to parse stored auth data", e);
         clearAuthData();
         return;
       }
 
-      // Check token expiration
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const expiresAt = new Date(payload.exp * 1000);
-        const now = new Date();
+      // If we have a localStorage token, check its expiration
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const expiresAt = new Date(payload.exp * 1000);
+          const now = new Date();
 
-        // Check if token is already expired
-        if (expiresAt < now) {
-          clearAuthData();
-          return;
-        }
-        
-        // If token expires in less than 5 minutes, refresh it
-        if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-          try {
-            await performTokenRefresh(refreshToken);
-          } catch (error) {
+          if (expiresAt < now) {
+            // Token expired — try refresh (cookie may still work)
+            const refreshToken = localStorage.getItem("refresh_token");
+            if (refreshToken) {
+              try {
+                await performTokenRefresh(refreshToken);
+                return;
+              } catch {
+                clearAuthData();
+                return;
+              }
+            }
             clearAuthData();
             return;
           }
-        } else {
-          // Token is still valid
-          // Ensure cookie is also set for middleware
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + 1); // 1 day default
-          document.cookie = `authToken=${token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
-          
-          setAuthState(prev => ({
+
+          if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
+            const refreshToken = localStorage.getItem("refresh_token");
+            if (refreshToken) {
+              try {
+                await performTokenRefresh(refreshToken);
+                return;
+              } catch {
+                clearAuthData();
+                return;
+              }
+            }
+          }
+
+          setAuthState((prev) => ({
             ...prev,
             user,
             merchant,
@@ -271,253 +283,258 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoading: false,
             tokenExpiresAt: expiresAt,
           }));
+        } catch {
+          clearAuthData();
         }
-      } catch (error) {
-        // Invalid token, clear auth data
-        clearAuthData();
+      } else {
+        // No localStorage token — validate session via /auth/me (httpOnly cookie)
+        try {
+          const meResponse = await apiClient.auth.getMe();
+          if (meResponse) {
+            setAuthState((prev) => ({
+              ...prev,
+              user,
+              merchant,
+              isAuthenticated: true,
+              isLoading: false,
+            }));
+          }
+        } catch {
+          clearAuthData();
+        }
       }
     } catch (error) {
-      setAuthState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: 'Failed to initialize authentication' 
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: "Failed to initialize authentication",
       }));
     }
   };
 
-  const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
-    try {
-      setAuthState(prev => ({ 
-        ...prev, 
-        isLoading: true, 
-        error: null 
-      }));
-
-      const response: LoginResponse = await apiClient.auth.login(email, password, rememberMe);
-
-      // CRITICAL: Clear any existing cached data before setting new auth
-      // This prevents serving stale data from previous logins
-      import('@/lib/cache-config').then(({ memoryCache }) => {
-        memoryCache.clear();
-      }).catch(() => {
-        // Ignore errors if module not found
-      });
-      
-      // Store tokens and user data
-      localStorage.setItem('access_token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      // Fetch full merchant data with settings
+  const login = useCallback(
+    async (email: string, password: string, rememberMe: boolean = false) => {
       try {
-        const fullMerchant = await apiClient.get('/merchant/profile');
-        const merchantWithSettings = {
-          ...response.merchant,
-          settings: fullMerchant.settings
-        };
-        localStorage.setItem('merchant', JSON.stringify(merchantWithSettings));
-        
-        // Also set a cookie for middleware to check (httpOnly would be better but requires server-side)
-        const expiryDays = rememberMe ? 30 : 1;
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + expiryDays);
-        // Set cookie with proper domain for production
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieOptions = [
-          `authToken=${response.access_token}`,
-          'path=/',
-          `expires=${expiryDate.toUTCString()}`,
-          'SameSite=Lax', // Changed from Strict to Lax for better redirect handling
-          isProduction ? 'Secure' : '', // Secure flag for HTTPS in production
-        ].filter(Boolean).join('; ');
-        
-        document.cookie = cookieOptions;
+        setAuthState((prev) => ({
+          ...prev,
+          isLoading: true,
+          error: null,
+        }));
 
-        // Parse token expiration
-        const payload = JSON.parse(atob(response.access_token.split('.')[1]));
-        const expiresAt = new Date(payload.exp * 1000);
+        const response: LoginResponse = await apiClient.auth.login(
+          email,
+          password,
+          rememberMe,
+        );
 
-        // Log user type and permissions for debugging
-        console.log('[Auth] Login successful:', {
+        // CRITICAL: Clear any existing cached data before setting new auth
+        // This prevents serving stale data from previous logins
+        import("@/lib/cache-config")
+          .then(({ memoryCache }) => {
+            memoryCache.clear();
+          })
+          .catch(() => {
+            // Ignore errors if module not found
+          });
+
+        // Store tokens in localStorage during rollout (API also sets httpOnly cookies).
+        // Once RETURN_TOKENS_IN_BODY=false, these fields won't be in the response.
+        if (response.access_token) {
+          localStorage.setItem("access_token", response.access_token);
+        }
+        if (response.refresh_token) {
+          localStorage.setItem("refresh_token", response.refresh_token);
+        }
+        localStorage.setItem("user", JSON.stringify(response.user));
+
+        // Fetch full merchant data with settings
+        let merchantData = response.merchant;
+        try {
+          const fullMerchant = await apiClient.get("/merchant/profile");
+          merchantData = {
+            ...response.merchant,
+            settings: fullMerchant.settings,
+          };
+        } catch (settingsError) {
+          console.error("Failed to fetch merchant settings:", settingsError);
+        }
+        localStorage.setItem("merchant", JSON.stringify(merchantData));
+
+        // Parse token expiration (from localStorage token or response)
+        let expiresAt: Date | null = null;
+        const tokenForExpiry =
+          response.access_token || localStorage.getItem("access_token");
+        if (tokenForExpiry) {
+          try {
+            const payload = JSON.parse(atob(tokenForExpiry.split(".")[1]));
+            expiresAt = new Date(payload.exp * 1000);
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
+        console.log("[Auth] Login successful:", {
           userType: response.user.type,
           permissions: response.user.permissions,
-          isOwner: response.user.type === 'merchant' || response.user.permissions?.includes('*'),
+          isOwner:
+            response.user.type === "merchant" ||
+            response.user.permissions?.includes("*"),
           email: response.user.email,
+          cookieAuth: !response.access_token,
         });
 
-        setAuthState(prev => ({
+        setAuthState((prev) => ({
           ...prev,
           user: response.user,
-          merchant: merchantWithSettings,
+          merchant: merchantData,
           isAuthenticated: true,
           isLoading: false,
           error: null,
           tokenExpiresAt: expiresAt,
         }));
-      } catch (settingsError) {
-        console.error('Failed to fetch merchant settings:', settingsError);
-        // Continue with basic merchant data if settings fetch fails
-        localStorage.setItem('merchant', JSON.stringify(response.merchant));
-        
-        // Also set a cookie for middleware to check
-        const expiryDays = rememberMe ? 30 : 1;
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + expiryDays);
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieOptions = [
-          `authToken=${response.access_token}`,
-          'path=/',
-          `expires=${expiryDate.toUTCString()}`,
-          'SameSite=Lax',
-          isProduction ? 'Secure' : '',
-        ].filter(Boolean).join('; ');
-        
-        document.cookie = cookieOptions;
+      } catch (error: any) {
+        // Extract the actual error message from the API response
+        let errorMessage = "Login failed. Please check your credentials.";
 
-        const payload = JSON.parse(atob(response.access_token.split('.')[1]));
-        const expiresAt = new Date(payload.exp * 1000);
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (
+          error.message &&
+          error.message !== "Request failed with status code 401"
+        ) {
+          errorMessage = error.message;
+        }
 
-        setAuthState(prev => ({
+        setAuthState((prev) => ({
           ...prev,
-          user: response.user,
-          merchant: response.merchant,
-          isAuthenticated: true,
           isLoading: false,
-          error: null,
-          tokenExpiresAt: expiresAt,
+          error: errorMessage,
         }));
+        throw error;
       }
-
-    } catch (error: any) {
-      // Extract the actual error message from the API response
-      let errorMessage = 'Login failed. Please check your credentials.';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message && error.message !== 'Request failed with status code 401') {
-        errorMessage = error.message;
-      }
-      
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage,
-      }));
-      throw error;
-    }
-  }, []);
+    },
+    [],
+  );
 
   // clearAuthData is now defined at the top of the component
 
-  const logout = useCallback(() => {
-    
+  const logout = useCallback(async () => {
     // Clear any scheduled refresh first
     if ((window as any).authTokenRefreshTimeout) {
       clearTimeout((window as any).authTokenRefreshTimeout);
     }
-    
-    // Clear auth data (this updates state and localStorage)
+
+    // Call server logout to clear httpOnly cookies and invalidate session
+    try {
+      await apiClient.auth.logout();
+    } catch {
+      // Proceed with client-side cleanup even if server call fails
+    }
+
+    // Clear client-side auth data (localStorage, state)
     clearAuthData();
-    
-    // Force clear all possible cookie variations to ensure middleware doesn't find them
-    const cookiesToClear = ['authToken', 'auth-token'];
-    const domains = [window.location.hostname, `.${window.location.hostname}`, ''];
-    const paths = ['/', '/apps', '/apps/merchant-app'];
-    
-    cookiesToClear.forEach(cookieName => {
-      domains.forEach(domain => {
-        paths.forEach(path => {
-          // Clear with different combinations
-          document.cookie = `${cookieName}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict${domain ? `; domain=${domain}` : ''}`;
-          document.cookie = `${cookieName}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 UTC${domain ? `; domain=${domain}` : ''}`;
-        });
-      });
-    });
-    
-    // Use router.replace instead of window.location to ensure React state is preserved
-    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      // Small delay to ensure cookies are cleared before navigation
+
+    // Clear legacy cookies
+    document.cookie =
+      "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.includes("/login")
+    ) {
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = "/login";
       }, 100);
     }
   }, [clearAuthData]);
 
   const clearError = useCallback(() => {
-    setAuthState(prev => ({ ...prev, error: null }));
+    setAuthState((prev) => ({ ...prev, error: null }));
   }, []);
 
-  const performTokenRefresh = useCallback(async (refreshTokenStr: string) => {
-    try {
-      
-      const response = await apiClient.auth.refreshToken(refreshTokenStr);
+  const performTokenRefresh = useCallback(
+    async (refreshTokenStr: string | null) => {
+      try {
+        const response = await apiClient.auth.refreshToken(
+          refreshTokenStr || "",
+        );
 
-      // Update stored tokens
-      localStorage.setItem('access_token', response.token);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      
-      // Update auth cookie
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 1); // 1 day default
-      document.cookie = `authToken=${response.token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
-      
-      if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
-      }
-      
-      if (response.merchant) {
-        localStorage.setItem('merchant', JSON.stringify(response.merchant));
-        // Update state with full merchant data including locations
-        setAuthState(prev => ({
+        // Store tokens in localStorage during rollout (API also sets httpOnly cookies)
+        if (response.token) {
+          localStorage.setItem("access_token", response.token);
+        }
+        if (response.refreshToken) {
+          localStorage.setItem("refresh_token", response.refreshToken);
+        }
+
+        if (response.user) {
+          localStorage.setItem("user", JSON.stringify(response.user));
+        }
+
+        if (response.merchant) {
+          localStorage.setItem("merchant", JSON.stringify(response.merchant));
+          setAuthState((prev) => ({
+            ...prev,
+            merchant: response.merchant,
+          }));
+        }
+
+        // Parse new token expiration
+        let expiresAt: Date | null = null;
+        const tokenForExpiry =
+          response.token || localStorage.getItem("access_token");
+        if (tokenForExpiry) {
+          try {
+            const payload = JSON.parse(atob(tokenForExpiry.split(".")[1]));
+            expiresAt = new Date(payload.exp * 1000);
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
+        setAuthState((prev) => ({
           ...prev,
-          merchant: response.merchant,
+          tokenExpiresAt: expiresAt,
+          isLoading: false,
         }));
+
+        return true;
+      } catch (error) {
+        clearAuthData();
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/login")
+        ) {
+          window.location.href = "/login";
+        }
+        throw error;
       }
-
-      // Parse new token expiration
-      const payload = JSON.parse(atob(response.token.split('.')[1]));
-      const expiresAt = new Date(payload.exp * 1000);
-
-      setAuthState(prev => ({
-        ...prev,
-        tokenExpiresAt: expiresAt,
-        isLoading: false,
-      }));
-
-      return true;
-    } catch (error) {
-      // Don't call logout here to avoid circular dependency
-      // Instead, clear auth data and redirect
-      clearAuthData();
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
-      throw error;
-    }
-  }, [clearAuthData]);
+    },
+    [clearAuthData],
+  );
 
   const refreshToken = useCallback(async () => {
-    const refreshTokenStr = localStorage.getItem('refresh_token');
+    const refreshTokenStr = localStorage.getItem("refresh_token");
     if (!refreshTokenStr) {
-      throw new Error('No refresh token available');
+      throw new Error("No refresh token available");
     }
 
     await performTokenRefresh(refreshTokenStr);
   }, [performTokenRefresh]);
-  
+
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
-    const refreshTokenStr = localStorage.getItem('refresh_token');
+    const refreshTokenStr = localStorage.getItem("refresh_token");
     if (!refreshTokenStr) {
-      console.error('[Auth] No refresh token available');
+      console.error("[Auth] No refresh token available");
       return null;
     }
 
     try {
       await performTokenRefresh(refreshTokenStr);
       // Return the new access token
-      return localStorage.getItem('access_token');
+      return localStorage.getItem("access_token");
     } catch (error) {
-      console.error('[Auth] Failed to refresh access token:', error);
+      console.error("[Auth] Failed to refresh access token:", error);
       return null;
     }
   }, [performTokenRefresh]);
@@ -530,83 +547,92 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const now = Date.now();
     const timeUntilExpiry = expiresAt.getTime() - now;
-    
+
     // Determine refresh timing based on token lifetime
     let refreshBeforeExpiry: number;
-    
+
     if (timeUntilExpiry > 24 * 60 * 60 * 1000) {
       // Token expires in more than 24 hours (e.g., 7-day token)
       // Refresh 1 hour before expiry to prevent WebSocket disconnections
       refreshBeforeExpiry = 60 * 60 * 1000; // 1 hour
-      console.log('[Auth] Long-lived token detected, will refresh 1 hour before expiry');
+      console.log(
+        "[Auth] Long-lived token detected, will refresh 1 hour before expiry",
+      );
     } else if (timeUntilExpiry > 60 * 60 * 1000) {
       // Token expires in 1-24 hours
       // Refresh 5 minutes before expiry
       refreshBeforeExpiry = 5 * 60 * 1000; // 5 minutes
-      console.log('[Auth] Medium-lived token detected, will refresh 5 minutes before expiry');
+      console.log(
+        "[Auth] Medium-lived token detected, will refresh 5 minutes before expiry",
+      );
     } else {
       // Token expires in less than 1 hour (e.g., 15-30 minute tokens)
       // Refresh 1 minute before expiry
       refreshBeforeExpiry = 60 * 1000; // 1 minute
-      console.log('[Auth] Short-lived token detected, will refresh 1 minute before expiry');
+      console.log(
+        "[Auth] Short-lived token detected, will refresh 1 minute before expiry",
+      );
     }
-    
+
     const refreshTime = timeUntilExpiry - refreshBeforeExpiry;
-    
+
     if (refreshTime > 0) {
       const refreshDate = new Date(Date.now() + refreshTime);
-      console.log(`[Auth] Token expires at ${expiresAt.toISOString()}, scheduling refresh for ${refreshDate.toISOString()}`);
-      
+      console.log(
+        `[Auth] Token expires at ${expiresAt.toISOString()}, scheduling refresh for ${refreshDate.toISOString()}`,
+      );
+
       (window as any).authTokenRefreshTimeout = setTimeout(async () => {
-        console.log('[Auth] Proactively refreshing token before expiry');
-        const refreshTokenStr = localStorage.getItem('refresh_token');
+        console.log("[Auth] Proactively refreshing token before expiry");
+        const refreshTokenStr = localStorage.getItem("refresh_token");
         if (refreshTokenStr) {
           try {
             await performTokenRefresh(refreshTokenStr);
-            console.log('[Auth] Token refreshed successfully');
-            
+            console.log("[Auth] Token refreshed successfully");
+
             // Emit event so WebSocket can update if needed
-            window.dispatchEvent(new CustomEvent('auth:tokenRefreshed'));
+            window.dispatchEvent(new CustomEvent("auth:tokenRefreshed"));
           } catch (error) {
-            console.error('[Auth] Failed to refresh token:', error);
+            console.error("[Auth] Failed to refresh token:", error);
           }
         }
       }, refreshTime);
     } else {
       // Token is about to expire or already expired, refresh immediately
-      console.log('[Auth] Token expiring soon, refreshing immediately');
-      const refreshTokenStr = localStorage.getItem('refresh_token');
+      console.log("[Auth] Token expiring soon, refreshing immediately");
+      const refreshTokenStr = localStorage.getItem("refresh_token");
       if (refreshTokenStr) {
-        performTokenRefresh(refreshTokenStr).catch(error => {
-          console.error('[Auth] Failed to refresh token:', error);
+        performTokenRefresh(refreshTokenStr).catch((error) => {
+          console.error("[Auth] Failed to refresh token:", error);
         });
       }
     }
   };
 
-
   const verifyAction = useCallback(async (pin: string, action: string) => {
     return apiClient.auth.verifyAction(pin, action);
   }, []);
-  
+
   const refreshMerchantData = useCallback(async () => {
     try {
-      const response = await apiClient.get('/merchant/profile');
+      const response = await apiClient.get("/merchant/profile");
       if (response) {
         // Update both state and localStorage
-        localStorage.setItem('merchant', JSON.stringify(response));
-        setAuthState(prev => ({
+        localStorage.setItem("merchant", JSON.stringify(response));
+        setAuthState((prev) => ({
           ...prev,
           merchant: response,
         }));
-        
+
         // Dispatch custom event for other components
-        window.dispatchEvent(new CustomEvent('merchantDataRefreshed', { 
-          detail: { merchant: response } 
-        }));
+        window.dispatchEvent(
+          new CustomEvent("merchantDataRefreshed", {
+            detail: { merchant: response },
+          }),
+        );
       }
     } catch (error) {
-      console.error('[Auth Provider] Failed to refresh merchant data:', error);
+      console.error("[Auth Provider] Failed to refresh merchant data:", error);
     }
   }, []);
 
@@ -621,13 +647,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshMerchantData,
   };
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -636,13 +664,16 @@ export function useAuth(): AuthContextType {
  * Check if a user has a specific permission.
  * Supports wildcard and hierarchical permission matching.
  */
-function hasPermission(permissions: string[] | undefined, required: string): boolean {
+function hasPermission(
+  permissions: string[] | undefined,
+  required: string,
+): boolean {
   if (!permissions || permissions.length === 0) {
     return false;
   }
 
   // Wildcard grants all permissions
-  if (permissions.includes('*')) {
+  if (permissions.includes("*")) {
     return true;
   }
 
@@ -652,7 +683,7 @@ function hasPermission(permissions: string[] | undefined, required: string): boo
   }
 
   // Check for wildcard matches (e.g., "bookings.*" matches "bookings.view")
-  const [category, action] = required.split('.');
+  const [category, action] = required.split(".");
   if (action) {
     if (permissions.includes(`${category}.*`)) {
       return true;
@@ -674,14 +705,17 @@ export function usePermissions() {
   const permissions = user?.permissions || [];
 
   // Check if user is owner (type=merchant or has wildcard permission)
-  const isOwner = user?.type === 'merchant' || permissions.includes('*');
+  const isOwner = user?.type === "merchant" || permissions.includes("*");
 
   // Helper to check a specific permission
-  const can = useCallback((permission: string): boolean => {
-    if (!user) return false;
-    if (isOwner) return true;
-    return hasPermission(permissions, permission);
-  }, [user, isOwner, permissions]);
+  const can = useCallback(
+    (permission: string): boolean => {
+      if (!user) return false;
+      if (isOwner) return true;
+      return hasPermission(permissions, permission);
+    },
+    [user, isOwner, permissions],
+  );
 
   return {
     // Permission check function - use this for granular checks
@@ -689,30 +723,32 @@ export function usePermissions() {
     hasPermission: can,
 
     // Common permission checks for backward compatibility
-    canManageStaff: can('staff.view') || can('staff.create') || can('staff.update'),
-    canManageServices: can('services.view') || can('services.create') || can('services.update'),
-    canViewReports: can('reports.view'),
-    canExportReports: can('reports.export'),
-    canProcessPayments: can('payments.process'),
-    canRefundPayments: can('payments.refund'),
-    canManageBookings: can('bookings.create') || can('bookings.update'),
-    canCancelBookings: can('bookings.cancel'),
-    canDeleteBookings: can('bookings.delete'),
-    canManageCustomers: can('customers.create') || can('customers.update'),
-    canDeleteCustomers: can('customers.delete'),
-    canExportCustomers: can('customers.export'),
-    canUpdateSettings: can('settings.update'),
-    canAccessBilling: can('settings.billing'),
+    canManageStaff:
+      can("staff.view") || can("staff.create") || can("staff.update"),
+    canManageServices:
+      can("services.view") || can("services.create") || can("services.update"),
+    canViewReports: can("reports.view"),
+    canExportReports: can("reports.export"),
+    canProcessPayments: can("payments.process"),
+    canRefundPayments: can("payments.refund"),
+    canManageBookings: can("bookings.create") || can("bookings.update"),
+    canCancelBookings: can("bookings.cancel"),
+    canDeleteBookings: can("bookings.delete"),
+    canManageCustomers: can("customers.create") || can("customers.update"),
+    canDeleteCustomers: can("customers.delete"),
+    canExportCustomers: can("customers.export"),
+    canUpdateSettings: can("settings.update"),
+    canAccessBilling: can("settings.billing"),
 
     // Role-based checks (Owner, Manager, Staff)
     isOwner,
-    isManager: user?.role === 'Manager' || user?.role === 'manager',
-    isStaff: user?.role === 'Staff' || user?.role === 'staff',
+    isManager: user?.role === "Manager" || user?.role === "manager",
+    isStaff: user?.role === "Staff" || user?.role === "staff",
 
     // User type checks
-    isMerchantOwner: user?.type === 'merchant',
-    isMerchantUser: user?.type === 'merchant_user',
-    isPinStaff: user?.type === 'staff',
+    isMerchantOwner: user?.type === "merchant",
+    isMerchantUser: user?.type === "merchant_user",
+    isPinStaff: user?.type === "staff",
 
     // Raw permissions for custom checks
     permissions,
@@ -722,7 +758,7 @@ export function usePermissions() {
 // Hook for auth-dependent data fetching
 export function useAuthenticatedApi() {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   return {
     isReady: isAuthenticated && !isLoading,
     shouldFetch: isAuthenticated && !isLoading,

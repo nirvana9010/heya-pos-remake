@@ -10,7 +10,10 @@ import {
   HttpStatus,
   BadRequestException,
   ConflictException,
+  UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "../common/guards/custom-throttler.guard";
 import { Public } from "../auth/decorators/public.decorator";
 import { PublicBookingService } from "../contexts/bookings/application/services/public-booking.service";
 import { ServicesService } from "../services/services.service";
@@ -64,6 +67,8 @@ class PublicStaffQueryDto {
 
 @Controller("public")
 @Public()
+@UseGuards(CustomThrottlerGuard)
+@Throttle({ default: { ttl: 60000, limit: 60 } })
 export class PublicBookingController {
   constructor(
     private readonly publicBookingService: PublicBookingService,
@@ -340,6 +345,7 @@ export class PublicBookingController {
   }
 
   @Post("customers/lookup")
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   async lookupCustomer(
     @Body() dto: { email?: string; phone?: string },
@@ -390,6 +396,7 @@ export class PublicBookingController {
   }
 
   @Post("bookings/check-availability")
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @HttpCode(HttpStatus.OK)
   async checkAvailability(
     @Body() dto: CheckAvailabilityDto,
@@ -431,6 +438,7 @@ export class PublicBookingController {
   }
 
   @Post("bookings")
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   async createBooking(
     @Body() dto: PublicCreateBookingDto,
     @Query("subdomain") subdomain?: string,

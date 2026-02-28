@@ -10,6 +10,7 @@ import * as dotenv from "dotenv";
 import compression from "compression";
 import helmet from "helmet";
 import { json, urlencoded } from "express";
+import cookieParser from "cookie-parser";
 import { memoryLogger } from "./utils/memory-logger";
 
 // Ensure crypto is available globally for uuid package
@@ -50,6 +51,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ["error", "warn", "log", "debug", "verbose"],
   });
+
+  // Trust proxy so Express correctly parses x-forwarded-for from Fly.io
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.getInstance().set("trust proxy", true);
+
+  // Parse cookies for httpOnly cookie auth
+  app.use(cookieParser());
 
   // Increase payload limits for large CSV imports
   app.use(json({ limit: "25mb" }));
@@ -112,7 +120,12 @@ async function bootstrap() {
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Merchant-Subdomain", "x-active-staff-id"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Merchant-Subdomain",
+      "x-active-staff-id",
+    ],
   });
 
   // Set global prefix

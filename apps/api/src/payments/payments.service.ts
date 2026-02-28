@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 import { OrdersService } from "./orders.service";
 import { PaymentGatewayService } from "./payment-gateway.service";
 import {
@@ -28,7 +29,9 @@ export class PaymentsService {
   ) {}
 
   /**
-   * Process a single payment for an order
+   * Process a single payment for an order.
+   * Wrapped in a Prisma interactive transaction with SELECT FOR UPDATE
+   * to prevent double-payment race conditions.
    */
   async processPayment(
     dto: ProcessPaymentDto,
@@ -37,96 +40,126 @@ export class PaymentsService {
   ) {
     const startTime = Date.now();
 
-    // Step 1: Get order with minimal data for validation (no heavy includes)
-    const order = await this.prisma.order.findFirst({
-      where: {
-        id: dto.orderId,
-        merchantId,
-      },
-      select: {
-        id: true,
-        state: true,
-        balanceDue: true,
-        subtotal: true,
-        totalAmount: true,
-        paidAmount: true,
-      },
-    });
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        // Step 1: Acquire row lock on the order
+        await tx.$queryRaw`
+          SELECT 1 FROM "Order"
+          WHERE "id" = ${dto.orderId}
+          AND "merchantId" = ${merchantId}
+          FOR UPDATE
+        `;
 
-    if (!order) {
-      throw new BadRequestException("Order not found");
-    }
+        // Step 2: Read order inside transaction (fresh data, not stale)
+        const order = await tx.order.findFirst({
+          where: {
+            id: dto.orderId,
+            merchantId,
+          },
+          select: {
+            id: true,
+            state: true,
+            balanceDue: true,
+            subtotal: true,
+            totalAmount: true,
+            paidAmount: true,
+          },
+        });
 
-    // Validate order state
-    if (
-      order.state !== OrderState.PENDING_PAYMENT &&
-      order.state !== OrderState.PARTIALLY_PAID &&
-      order.state !== OrderState.LOCKED
-    ) {
-      throw new BadRequestException("Order is not ready for payment");
-    }
+        if (!order) {
+          throw new BadRequestException("Order not found");
+        }
 
-    // Check if payment amount is valid
-    const balanceDue =
-      typeof order.balanceDue === "object" && order.balanceDue.toNumber
-        ? order.balanceDue.toNumber()
-        : Number(order.balanceDue);
+        // Validate order state
+        if (
+          order.state !== OrderState.PENDING_PAYMENT &&
+          order.state !== OrderState.PARTIALLY_PAID &&
+          order.state !== OrderState.LOCKED
+        ) {
+          throw new BadRequestException("Order is not ready for payment");
+        }
 
-    if (dto.amount > balanceDue) {
-      throw new BadRequestException("Payment amount exceeds balance due");
-    }
+        // Check if payment amount is valid (guaranteed consistent under lock)
+        const balanceDue =
+          typeof order.balanceDue === "object" && order.balanceDue.toNumber
+            ? order.balanceDue.toNumber()
+            : Number(order.balanceDue);
 
-    console.log(
-      `[ProcessPayment] Validation done in ${Date.now() - startTime}ms`,
-    );
+        if (dto.amount > balanceDue) {
+          throw new BadRequestException("Payment amount exceeds balance due");
+        }
 
-    // Lock the order if it's still in draft state
-    if (order.state === OrderState.LOCKED) {
-      await this.ordersService.updateOrderState(
-        order.id,
-        merchantId,
-        OrderState.PENDING_PAYMENT,
-      );
-    }
-
-    // Process based on payment method
-    let paymentResult;
-    const paymentStartTime = Date.now();
-
-    switch (dto.method) {
-      case PaymentMethod.CASH:
-        paymentResult = await this.processCashPayment(order.id, dto, staffId);
-        break;
-
-      case PaymentMethod.CARD:
-        paymentResult = await this.processCardPayment(order.id, dto, staffId);
-        break;
-
-      default:
-        paymentResult = await this.processGenericPayment(
-          order.id,
-          dto,
-          staffId,
+        console.log(
+          `[ProcessPayment] Validation done in ${Date.now() - startTime}ms`,
         );
-    }
 
-    console.log(
-      `[ProcessPayment] Payment processed in ${Date.now() - paymentStartTime}ms`,
+        // Lock the order if it's still in draft state
+        if (order.state === OrderState.LOCKED) {
+          await this.ordersService.updateOrderState(
+            order.id,
+            merchantId,
+            OrderState.PENDING_PAYMENT,
+          );
+        }
+
+        // Process based on payment method
+        let paymentResult;
+        const paymentStartTime = Date.now();
+
+        switch (dto.method) {
+          case PaymentMethod.CASH:
+            paymentResult = await this.processCashPayment(
+              order.id,
+              dto,
+              staffId,
+              tx,
+            );
+            break;
+
+          case PaymentMethod.CARD:
+            paymentResult = await this.processCardPayment(
+              order.id,
+              dto,
+              staffId,
+              tx,
+            );
+            break;
+
+          default:
+            paymentResult = await this.processGenericPayment(
+              order.id,
+              dto,
+              staffId,
+              tx,
+            );
+        }
+
+        console.log(
+          `[ProcessPayment] Payment processed in ${Date.now() - paymentStartTime}ms`,
+        );
+
+        // Update order state inside the same transaction
+        try {
+          await this.updateOrderPaymentState(order.id, merchantId, tx);
+        } catch (error) {
+          console.error(
+            "[ProcessPayment] Failed to update order state:",
+            error,
+          );
+          // Payment is already recorded — log but don't fail the response
+        }
+
+        return paymentResult;
+      },
+      {
+        maxWait: 5000,
+        timeout: 15000,
+      },
     );
-
-    // Update order state synchronously to prevent double-payment race conditions.
-    // The balance check above reads balanceDue — if we update async, a second
-    // concurrent request could pass the same stale check before the first updates.
-    try {
-      await this.updateOrderPaymentState(order.id, merchantId);
-    } catch (error) {
-      console.error("[ProcessPayment] Failed to update order state:", error);
-      // Payment is already recorded — log but don't fail the response
-    }
 
     console.log(`[ProcessPayment] Total time: ${Date.now() - startTime}ms`);
 
-    return paymentResult;
+    return result;
   }
 
   /**
@@ -175,8 +208,10 @@ export class PaymentsService {
     orderId: string,
     dto: ProcessPaymentDto,
     staffId: string,
+    tx?: Prisma.TransactionClient,
   ) {
-    const payment = await this.prisma.orderPayment.create({
+    const db = tx ?? this.prisma;
+    const payment = await db.orderPayment.create({
       data: {
         orderId,
         paymentMethod: PaymentMethod.CASH,
@@ -217,7 +252,9 @@ export class PaymentsService {
     orderId: string,
     dto: ProcessPaymentDto,
     staffId: string,
+    tx?: Prisma.TransactionClient,
   ) {
+    const db = tx ?? this.prisma;
     // Get or create payment reference
     let reference = dto.reference;
     if (!reference) {
@@ -229,7 +266,7 @@ export class PaymentsService {
     }
 
     // Create pending payment record
-    const payment = await this.prisma.orderPayment.create({
+    const payment = await db.orderPayment.create({
       data: {
         orderId,
         paymentMethod: dto.method,
@@ -248,7 +285,7 @@ export class PaymentsService {
 
       if (gatewayResult.success) {
         // Update payment as completed
-        await this.prisma.orderPayment.update({
+        await db.orderPayment.update({
           where: { id: payment.id },
           data: {
             status: PaymentStatus.COMPLETED,
@@ -267,7 +304,7 @@ export class PaymentsService {
         }
       } else {
         // Update payment as failed
-        await this.prisma.orderPayment.update({
+        await db.orderPayment.update({
           where: { id: payment.id },
           data: {
             status: PaymentStatus.FAILED,
@@ -278,13 +315,13 @@ export class PaymentsService {
         });
       }
 
-      const paymentData = await this.prisma.orderPayment.findUnique({
+      const paymentData = await db.orderPayment.findUnique({
         where: { id: payment.id },
       });
       return { payment: this.prisma.transformResult(paymentData) };
     } catch (error) {
       // Update payment as failed
-      await this.prisma.orderPayment.update({
+      await db.orderPayment.update({
         where: { id: payment.id },
         data: {
           status: PaymentStatus.FAILED,
@@ -303,8 +340,10 @@ export class PaymentsService {
     orderId: string,
     dto: ProcessPaymentDto,
     staffId: string,
+    tx?: Prisma.TransactionClient,
   ) {
-    const payment = await this.prisma.orderPayment.create({
+    const db = tx ?? this.prisma;
+    const payment = await db.orderPayment.create({
       data: {
         orderId,
         paymentMethod: dto.method,
@@ -385,9 +424,13 @@ export class PaymentsService {
   /**
    * Update order payment state
    */
-  private async updateOrderPaymentState(orderId: string, merchantId: string) {
-    await this.ordersService.recalculateOrderTotals(orderId);
-    const order = await this.ordersService.findOrder(orderId, merchantId);
+  private async updateOrderPaymentState(
+    orderId: string,
+    merchantId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    await this.ordersService.recalculateOrderTotals(orderId, tx);
+    const order = await this.ordersService.findOrder(orderId, merchantId, tx);
 
     // Convert to numbers for comparison
     const balanceDue =

@@ -9,7 +9,10 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "../common/guards/custom-throttler.guard";
 import { Public } from "../auth/decorators/public.decorator";
 import { PrismaService } from "../prisma/prisma.service";
 import { TimezoneUtils } from "../utils/shared/timezone";
@@ -62,6 +65,7 @@ class CheckInDto {
 
 @Controller("public")
 @Public()
+@UseGuards(CustomThrottlerGuard)
 export class PublicCheckInController {
   constructor(
     private readonly prisma: PrismaService,
@@ -99,6 +103,7 @@ export class PublicCheckInController {
 
   // Check in endpoint
   @Post("checkin")
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   async checkIn(
     @Body() dto: CheckInDto,
@@ -184,9 +189,7 @@ export class PublicCheckInController {
       } catch (error) {
         console.error("[CHECK-IN] Failed to create blank booking:", error);
         blankBookingError =
-          error instanceof Error
-            ? error.message
-            : "Failed to create booking";
+          error instanceof Error ? error.message : "Failed to create booking";
         // Don't fail the check-in if blank booking creation fails
       }
     }
@@ -290,6 +293,7 @@ export class PublicCheckInController {
   }
 
   @Post("bookings/:bookingId/checkin")
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   async checkInBooking(
     @Param("bookingId") bookingId: string,
