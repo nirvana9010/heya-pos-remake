@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import io, { Socket } from "socket.io-client";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useToast } from "@heya-pos/ui";
+import { resolveWebSocketUrl } from "@/lib/clients/base-client";
 
 interface WebSocketOptions {
   onBookingCreated?: (data: any) => void;
@@ -79,15 +80,7 @@ export function useWebSocket(options: WebSocketOptions = {}) {
       if (token && !socketRef.current?.connected && mounted) {
         debug("Token found, connecting to WebSocket...");
 
-        // Socket.IO connects to the base URL, not the API prefix
-        // Dynamically determine API URL based on current window location for Tailscale/network compatibility
-        let baseUrl: string;
-        if (process.env.NEXT_PUBLIC_API_URL) {
-          baseUrl = process.env.NEXT_PUBLIC_API_URL.replace("/api", "");
-        } else {
-          // Use current window location but with API port (3000)
-          baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-        }
+        const baseUrl = resolveWebSocketUrl();
 
         const socket = io(`${baseUrl}`, {
           auth: { token },
@@ -312,13 +305,7 @@ export function getGlobalWebSocket(): Socket | null {
   if (!globalSocket || !globalSocket.connected) {
     // Socket.IO connects to the base URL, not the API prefix
     // Dynamically determine API URL based on current window location for Tailscale/network compatibility
-    let baseUrl: string;
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      baseUrl = process.env.NEXT_PUBLIC_API_URL.replace("/api", "");
-    } else {
-      // Use current window location but with API port (3000)
-      baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-    }
+    const baseUrl = resolveWebSocketUrl();
 
     globalSocket = io(`${baseUrl}`, {
       auth: { token },

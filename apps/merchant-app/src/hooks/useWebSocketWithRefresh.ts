@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { apiClient } from "@/lib/api-client";
-import { resolveApiBaseUrl } from "@/lib/clients/base-client";
+import { resolveWebSocketUrl } from "@/lib/clients/base-client";
 
 interface WebSocketOptions {
   debug?: boolean;
@@ -59,7 +59,7 @@ export function useWebSocketWithRefresh(options: WebSocketOptions = {}) {
 
       debug("Connecting with token...");
 
-      const baseUrl = resolveApiBaseUrl().replace("/api", "");
+      const baseUrl = resolveWebSocketUrl();
 
       const socket = io(`${baseUrl}/notifications`, {
         auth: { token },
@@ -326,7 +326,7 @@ export function useWebSocketWithRefresh(options: WebSocketOptions = {}) {
     reconnectAttemptsRef.current = 0;
     const token = localStorage.getItem("access_token");
     if (token) {
-      const baseUrl = resolveApiBaseUrl().replace("/api", "");
+      const baseUrl = resolveWebSocketUrl();
       const socket = io(`${baseUrl}/notifications`, {
         auth: { token },
         withCredentials: true,

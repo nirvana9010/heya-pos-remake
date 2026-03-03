@@ -37,6 +37,26 @@ export const resolveApiBaseUrl = () => {
   return `${protocol}//${hostname}:3000/api`;
 };
 
+// Resolve the direct backend URL for WebSocket connections.
+// Vercel rewrites only proxy HTTP — WebSocket needs the real Fly.io URL.
+export const resolveWebSocketUrl = () => {
+  // Explicit WebSocket URL (set in Vercel: NEXT_PUBLIC_WS_URL=https://heya-pos-api.fly.dev)
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL.replace(/\/$/, "");
+  }
+  // Fallback: derive from NEXT_PUBLIC_API_URL if it's a full URL (not /api proxy)
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  if (publicUrl.startsWith("http")) {
+    return publicUrl.replace(/\/api\/?$/, "");
+  }
+  // Development: use current hostname on API port
+  if (typeof window !== "undefined") {
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:3000`;
+  }
+  return "http://100.107.58.75:3000";
+};
+
 // Backwards compatibility alias
 const getApiBaseUrl = () => resolveApiBaseUrl();
 
