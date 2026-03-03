@@ -69,6 +69,13 @@ docker start heya-pos-db heya-pos-redis    # Start local database and Redis
 
 **Production uses Fly.io PostgreSQL** (`heya-pos-db.flycast` internally)
 
+**Redis (not yet provisioned in production)**:
+- Local dev: `docker start heya-pos-redis` (already in docker-compose)
+- Production: Run `fly redis create --region syd` (free Upstash tier — 500K commands/month, 256MB)
+- Then set secrets: `flyctl secrets set REDIS_ENABLED=true REDIS_HOST=<host> REDIS_PORT=6379 REDIS_PASSWORD=<password> --app heya-pos-api`
+- Code already handles `REDIS_ENABLED=false` — falls back to in-memory Map (sessions lost on deploy)
+- Session service: `apps/api/src/auth/session.service.ts` — uses RedisService with automatic fallback
+
 **Key config**:
 
 ```bash
@@ -158,6 +165,15 @@ queueAutoSave({ myNewSetting: value }, { force: true });
 ```
 
 Also ensure the field name is recognized by `isBooleanField()` in `src/lib/db-transforms.ts` (matches prefixes `is*`, `has*`, `allow*`, `require*`, `enable*`, `disable*`, or suffix `*Enabled`), otherwise `null` from the API won't be coerced to `false`.
+
+## Security Hardening (deployed, partially activated)
+
+- **Rate limiting**: Active. `@nestjs/throttler` on public endpoints and login.
+- **Payment locking**: Active. `SELECT FOR UPDATE` prevents double-payment race conditions.
+- **Redis sessions**: Code deployed, but Redis not provisioned yet — using in-memory fallback. See "Database & Environment" section for setup steps.
+- **httpOnly cookies**: Partially deployed. Vercel env vars are set (`NEXT_PUBLIC_API_URL=/api`, `INTERNAL_API_URL=...`, `NEXT_PUBLIC_WS_URL=...`). API sets httpOnly cookies AND returns tokens in body (dual-mode). A JS-readable `access_token` cookie is also set via `document.cookie` for the Next.js middleware.
+  - **DO NOT set `RETURN_TOKENS_IN_BODY=false` yet.** ~30+ files still read `access_token`/`refresh_token` from localStorage (WebSocket hooks, base-client auth header, services-client, customers-client, settings page, BookingsManager, CheckInsManager, etc.). Flipping the switch would break login, WebSocket, token refresh, and SSE.
+  - **To complete rollout (Phase C cleanup)**: Migrate all `localStorage.getItem("access_token")` reads to use cookies or `withCredentials` instead. Key files: `useWebSocket.ts`, `useWebSocketWithRefresh.ts`, `useRobustWebSocket.ts`, `base-client.ts`, `services-client.ts`, `customers-client.ts`, `settings/page.tsx`, `BookingsManager.tsx`, `CheckInsManager.tsx`, `dashboard-enhanced.tsx`, `prefetch.ts`. After cleanup, set `RETURN_TOKENS_IN_BODY=false` on Fly.io and remove the `document.cookie` workaround from `auth-provider.tsx`.
 
 ## Real-time Updates
 
