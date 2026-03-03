@@ -126,9 +126,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
       .catch(() => {});
 
-    // Note: httpOnly cookies (access_token, refresh_token) are cleared server-side
-    // on logout. We can't clear them from JS.
-    // Clear legacy authToken cookie if it still exists
+    // Note: httpOnly cookies are cleared server-side on logout.
+    // Clear the JS-readable middleware cookie and legacy authToken cookie
+    document.cookie =
+      "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
     document.cookie =
       "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
 
@@ -341,6 +342,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Once RETURN_TOKENS_IN_BODY=false, these fields won't be in the response.
         if (response.access_token) {
           localStorage.setItem("access_token", response.access_token);
+          // Set a JS-readable cookie for Next.js middleware (middleware can't read localStorage).
+          // The API also sets an httpOnly cookie for API calls, but the rewrite proxy
+          // may not reliably forward Set-Cookie headers. This ensures middleware works.
+          document.cookie = `access_token=${response.access_token}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
         }
         if (response.refresh_token) {
           localStorage.setItem("refresh_token", response.refresh_token);
@@ -462,6 +467,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Store tokens in localStorage during rollout (API also sets httpOnly cookies)
         if (response.token) {
           localStorage.setItem("access_token", response.token);
+          // Keep middleware cookie in sync
+          document.cookie = `access_token=${response.token}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
         }
         if (response.refreshToken) {
           localStorage.setItem("refresh_token", response.refreshToken);
