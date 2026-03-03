@@ -14,16 +14,18 @@ export const getServerFeatures = cache(
   async (): Promise<MerchantFeatures | null> => {
     try {
       const cookieStore = await cookies();
-      const token = cookieStore.get("authToken")?.value;
+      const token =
+        cookieStore.get("access_token")?.value ||
+        cookieStore.get("authToken")?.value;
 
       if (!token) {
         console.log("[ServerFeatures] No auth token found");
         return null;
       }
 
-      // Make API call from server
+      // Make API call from server (must use absolute URL, not relative /api proxy)
       const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://100.107.58.75:3000/api";
+        process.env.INTERNAL_API_URL || "http://100.107.58.75:3000/api";
       const url = `${apiUrl}/v1/features`;
 
       console.log("[ServerFeatures] Fetching from:", url);

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Server-side route handler — must use absolute URL, not relative /api proxy
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://100.107.58.75:3000";
+  process.env.INTERNAL_API_URL?.replace(/\/api\/?$/, "") ||
+  "http://100.107.58.75:3000";
 
 export async function POST(request: NextRequest) {
   try {
