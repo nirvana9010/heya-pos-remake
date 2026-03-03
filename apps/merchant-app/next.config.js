@@ -240,14 +240,16 @@ const nextConfig = {
   
   // Rewrites for API proxy
   async rewrites() {
-    // In production, proxy API calls to the backend
-    // The env var should already include /api
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://100.107.58.75:3000/api';
-    
+    // Use INTERNAL_API_URL for the rewrite destination (server-side, full URL to Fly.io)
+    // Falls back to NEXT_PUBLIC_API_URL only if it's a full URL (not relative /api)
+    const publicUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const destinationUrl = process.env.INTERNAL_API_URL
+      || (publicUrl.startsWith('http') ? publicUrl : 'http://100.107.58.75:3000/api');
+
     return [
       {
         source: '/api/:path*',
-        destination: `${API_URL}/:path*`,
+        destination: `${destinationUrl}/:path*`,
       },
     ];
   },
