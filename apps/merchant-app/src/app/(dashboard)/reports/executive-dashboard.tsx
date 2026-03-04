@@ -35,6 +35,7 @@ import {
 } from "recharts";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { cn } from "@heya-pos/ui";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const METHOD_COLORS: Record<string, string> = {
   cash: "#10b981", // green
@@ -107,11 +108,13 @@ function DonutChart({
   total,
   size = 200,
   thickness = 40,
+  centerTextClass = "text-2xl",
 }: {
   segments: { key: string; value: number; color: string }[];
   total: number;
   size?: number;
   thickness?: number;
+  centerTextClass?: string;
 }) {
   // Build conic-gradient stops
   const gradientStops = useMemo(() => {
@@ -151,7 +154,7 @@ function DonutChart({
       />
       {/* Center label */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-2xl font-bold">${total.toLocaleString()}</div>
+        <div className={cn(centerTextClass, "font-bold")}>${total.toLocaleString()}</div>
         <div className="text-xs text-muted-foreground">Total</div>
       </div>
     </div>
@@ -162,6 +165,7 @@ export function ExecutiveDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const isSelectedToday = isToday(selectedDate);
+  const isMobile = useIsMobile();
 
   const {
     data: reportData,
@@ -181,7 +185,7 @@ export function ExecutiveDashboard() {
 
   if (overviewError || !reportData) {
     return (
-      <div className="container max-w-7xl mx-auto p-6">
+      <div className={cn("container max-w-7xl mx-auto", isMobile ? "p-3" : "p-6")}>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -251,15 +255,15 @@ export function ExecutiveDashboard() {
   const showTopServiceNumber = displayedTopServices.length === 10;
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
+    <div className={cn("container max-w-7xl mx-auto space-y-6", isMobile ? "p-3 space-y-4" : "p-6")}>
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className={cn("font-bold tracking-tight", isMobile ? "text-2xl" : "text-3xl")}>
           Executive Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
           Your business at a glance &bull;{" "}
-          {format(new Date(), "EEEE, MMMM d, yyyy")}
+          {format(new Date(), isMobile ? "EEE, MMM d, yyyy" : "EEEE, MMMM d, yyyy")}
         </p>
       </div>
 
@@ -272,12 +276,12 @@ export function ExecutiveDashboard() {
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="text-center min-w-[180px]">
-          <div className="text-lg font-semibold">
+        <div className={cn("text-center", isMobile ? "min-w-[140px]" : "min-w-[180px]")}>
+          <div className={cn("font-semibold", isMobile ? "text-base" : "text-lg")}>
             {isSelectedToday ? "Today" : format(selectedDate, "EEEE")}
           </div>
           <div className="text-sm text-muted-foreground">
-            {format(selectedDate, "MMMM d, yyyy")}
+            {format(selectedDate, isMobile ? "MMM d, yyyy" : "MMMM d, yyyy")}
           </div>
         </div>
         <Button
@@ -326,9 +330,15 @@ export function ExecutiveDashboard() {
               </div>
             ) : methodTotal > 0 ? (
               <>
-                <DonutChart segments={donutSegments} total={methodTotal} />
+                <DonutChart
+                  segments={donutSegments}
+                  total={methodTotal}
+                  size={isMobile ? 160 : 200}
+                  thickness={isMobile ? 30 : 40}
+                  centerTextClass={isMobile ? "text-xl" : "text-2xl"}
+                />
                 {/* Legend */}
-                <div className="grid grid-cols-2 gap-3 mt-6">
+                <div className={cn("grid grid-cols-2 mt-6", isMobile ? "gap-2" : "gap-3")}>
                   {donutSegments.map(({ key, value }) => {
                     return (
                       <div key={key} className="flex items-center gap-2">
@@ -487,6 +497,24 @@ export function ExecutiveDashboard() {
                 ))}
               </div>
             ) : displayedTopServices.length > 0 ? (
+              isMobile ? (
+                <div className="space-y-2 mt-2">
+                  {displayedTopServices.map((service, index) => (
+                    <div
+                      key={service.serviceId}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="text-sm truncate">
+                        {showTopServiceNumber ? `${index + 1}. ` : ""}
+                        {service.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {service.serviceLineItems ?? service.bookings ?? 0}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <div className="grid grid-cols-2 gap-x-4 mt-2">
                 <div className="space-y-2">
                   {leftTopServices.map((service, index) => (
@@ -521,6 +549,7 @@ export function ExecutiveDashboard() {
                   ))}
                 </div>
               </div>
+              )
             ) : (
               <div className="text-xs text-muted-foreground mt-2">
                 No services booked
@@ -551,10 +580,10 @@ export function ExecutiveDashboard() {
                   <span>Other days</span>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={230}>
+              <ResponsiveContainer width="100%" height={isMobile ? 180 : 230}>
                 <BarChart
                   data={weekData}
-                  margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
+                  margin={isMobile ? { top: 20, right: 5, left: 0, bottom: 20 } : { top: 20, right: 10, left: 10, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
@@ -563,13 +592,16 @@ export function ExecutiveDashboard() {
                     tick={<WeekTick />}
                     interval={0}
                     height={46}
+                    fontSize={isMobile ? 10 : 12}
                   />
+                  {!isMobile && (
                   <YAxis
                     stroke="#6b7280"
                     fontSize={12}
                     tick={{ fill: "#6b7280" }}
                     tickFormatter={(v) => `$${v}`}
                   />
+                  )}
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
@@ -603,7 +635,7 @@ export function ExecutiveDashboard() {
                         `$${Number(value || 0).toLocaleString()}`
                       }
                       fill="#6b7280"
-                      fontSize={11}
+                      fontSize={isMobile ? 9 : 11}
                     />
                   </Bar>
                 </BarChart>

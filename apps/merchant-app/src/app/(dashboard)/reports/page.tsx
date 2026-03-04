@@ -81,6 +81,8 @@ import {
   calculateCountTrend,
 } from "@heya-pos/utils";
 import { ExecutiveDashboard } from "./executive-dashboard";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { cn } from "@heya-pos/ui";
 
 // Import the type from the client
 import type {
@@ -211,6 +213,7 @@ function ActivityLogTab() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const params = useMemo(
     () => ({
@@ -336,15 +339,15 @@ function ActivityLogTab() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExportCSV}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
+            <Button variant="outline" size={isMobile ? "icon" : "sm"} onClick={handleExportCSV}>
+              <Download className={cn("h-4 w-4", !isMobile && "mr-2")} />
+              {!isMobile && "Export CSV"}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
+      {/* Table / Card list */}
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -373,6 +376,29 @@ function ActivityLogTab() {
               <p className="text-xs text-muted-foreground mt-1">
                 Activity will appear here as actions are logged
               </p>
+            </div>
+          ) : isMobile ? (
+            <div className="divide-y">
+              {activityData.data.map((entry) => {
+                const { label, variant } = getActionLabel(entry.action);
+                return (
+                  <div key={entry.id} className="px-3 py-2.5 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">
+                          {entry.staffFirstName} {entry.staffLastName}
+                        </span>
+                        <Badge variant={variant} className="shrink-0 text-[10px] px-1.5 py-0">
+                          {label}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(entry.timestamp), "dd MMM yyyy, h:mm a")}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Table>
@@ -425,27 +451,28 @@ function ActivityLogTab() {
         {activityData && activityData.meta.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <p className="text-sm text-muted-foreground">
-              Page {activityData.meta.page} of {activityData.meta.totalPages} (
-              {activityData.meta.total} entries)
+              {isMobile
+                ? `${activityData.meta.page}/${activityData.meta.totalPages}`
+                : `Page ${activityData.meta.page} of ${activityData.meta.totalPages} (${activityData.meta.total} entries)`}
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                size={isMobile ? "icon" : "sm"}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                <ChevronLeft className={cn("h-4 w-4", !isMobile && "mr-1")} />
+                {!isMobile && "Previous"}
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size={isMobile ? "icon" : "sm"}
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page >= activityData.meta.totalPages}
               >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                {!isMobile && "Next"}
+                <ChevronRight className={cn("h-4 w-4", !isMobile && "ml-1")} />
               </Button>
             </div>
           </div>
@@ -464,6 +491,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const { isOwner, isManager } = usePermissions();
   const canViewActivityLog = isOwner || isManager;
+  const isMobile = useIsMobile();
 
   // Use React Query for data fetching - backend returns all time ranges at once
   const {
@@ -514,15 +542,17 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="container max-w-7xl mx-auto p-6 space-y-6">
+      <div className={cn("container max-w-7xl mx-auto space-y-6", isMobile ? "p-3" : "p-6")}>
         <div className="space-y-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className={cn("font-bold tracking-tight", isMobile ? "text-2xl" : "text-3xl")}>
               Reports & Analytics
             </h1>
+            {!isMobile && (
             <p className="text-muted-foreground mt-1">
               Track performance, identify trends, and make data-driven decisions
             </p>
+            )}
           </div>
         </div>
         <LoadingSkeleton />
@@ -532,15 +562,17 @@ export default function ReportsPage() {
 
   if (error || !reportData) {
     return (
-      <div className="container max-w-7xl mx-auto p-6 space-y-6">
+      <div className={cn("container max-w-7xl mx-auto space-y-6", isMobile ? "p-3" : "p-6")}>
         <div className="space-y-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className={cn("font-bold tracking-tight", isMobile ? "text-2xl" : "text-3xl")}>
               Reports & Analytics
             </h1>
+            {!isMobile && (
             <p className="text-muted-foreground mt-1">
               Track performance, identify trends, and make data-driven decisions
             </p>
+            )}
           </div>
         </div>
         <Card>
@@ -725,7 +757,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">
+                  <div className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>
                     ${currentRevenue.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
@@ -738,7 +770,7 @@ export default function ReportsPage() {
                     </span>
                   </div>
                 </div>
-                <Sparkline data={sparklineData} color="#3b82f6" />
+                {!isMobile && <Sparkline data={sparklineData} color="#3b82f6" />}
               </div>
             </CardContent>
           </Card>
@@ -758,7 +790,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <div className="text-3xl font-bold">{currentBookings}</div>
+                  <div className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>{currentBookings}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <TrendBadge trend={bookingTrend} size="sm" />
                     <span className="text-xs text-muted-foreground">
@@ -772,10 +804,12 @@ export default function ReportsPage() {
                     </span>
                   </div>
                 </div>
+                {!isMobile && (
                 <Sparkline
                   data={sparklineData.map((_, i) => 140 + Math.random() * 30)}
                   color="#10b981"
                 />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -799,7 +833,7 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="flex items-end justify-between">
                   <div className="flex-1">
-                    <div className="text-3xl font-bold">{totalCustomers}</div>
+                    <div className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>{totalCustomers}</div>
                     <div className="flex items-center gap-2 mt-2">
                       <TrendBadge trend={customerTrend} size="sm" />
                       <span className="text-xs text-muted-foreground">
@@ -807,10 +841,12 @@ export default function ReportsPage() {
                       </span>
                     </div>
                   </div>
+                  {!isMobile && (
                   <Sparkline
                     data={sparklineData.map((_, i) => 500 + i * 2)}
                     color="#8b5cf6"
                   />
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -827,7 +863,7 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="flex items-end justify-between">
                   <div className="flex-1">
-                    <div className="text-3xl font-bold">
+                    <div className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>
                       ${Math.round(avgBookingValue)}
                     </div>
                     <div className="flex items-center gap-2 mt-2">
@@ -862,12 +898,12 @@ export default function ReportsPage() {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+                size={isMobile ? "icon" : "sm"}
                 onClick={() => exportToCSV(chartData, "revenue-trend")}
                 disabled={hasNoTrendData}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Export
+                <Download className={cn("h-4 w-4", !isMobile && "mr-2")} />
+                {!isMobile && "Export"}
               </Button>
             </div>
           </CardHeader>
@@ -883,8 +919,8 @@ export default function ReportsPage() {
                 </p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData}>
+              <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
+                <AreaChart data={chartData} margin={isMobile ? { top: 5, right: 5, left: 0, bottom: 5 } : undefined}>
                   <defs>
                     <linearGradient
                       id="colorRevenue"
@@ -898,12 +934,14 @@ export default function ReportsPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                  <XAxis dataKey="month" stroke="#6b7280" fontSize={isMobile ? 10 : 12} />
+                  {!isMobile && (
                   <YAxis
                     stroke="#6b7280"
                     fontSize={12}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   />
+                  )}
                   <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
@@ -927,17 +965,17 @@ export default function ReportsPage() {
               <CardDescription>Revenue distribution by service</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
                 <PieChart>
                   <Pie
                     data={(reportData.topServices || []).slice(0, 5)}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
+                    labelLine={!isMobile}
+                    label={isMobile ? false : ({ name, percent }) =>
                       `${name}: ${(percent * 100).toFixed(0)}%`
                     }
-                    outerRadius={80}
+                    outerRadius={isMobile ? 70 : 80}
                     fill="#8884d8"
                     dataKey="revenue"
                   >
@@ -988,11 +1026,11 @@ export default function ReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className={cn(isMobile ? "space-y-3" : "space-y-4")}>
                 {(reportData.staffPerformance || [])
                   .slice(0, 4)
                   .map((staff, index) => (
-                    <div key={index} className="space-y-3">
+                    <div key={index} className={cn(isMobile ? "space-y-2" : "space-y-3")}>
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">{staff.name}</p>
@@ -1070,7 +1108,7 @@ export default function ReportsPage() {
       {viewMode === "executive" ? (
         <>
           <ExecutiveDashboard />
-          <div className="container max-w-7xl mx-auto px-6 pb-6 flex flex-wrap gap-2">
+          <div className={cn("container max-w-7xl mx-auto flex flex-wrap gap-2", isMobile ? "px-3 pb-3" : "px-6 pb-6")}>
             <Button
               variant="outline"
               onClick={() => setViewMode("classic")}
@@ -1095,18 +1133,20 @@ export default function ReportsPage() {
           </div>
         </>
       ) : (
-        <div className="container max-w-7xl mx-auto p-6 space-y-6">
+        <div className={cn("container max-w-7xl mx-auto space-y-6", isMobile ? "p-3 space-y-4" : "p-6")}>
           {/* Enhanced Header with View Toggle */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className={cn("font-bold tracking-tight", isMobile ? "text-2xl" : "text-3xl")}>
                   Reports & Analytics
                 </h1>
+                {!isMobile && (
                 <p className="text-muted-foreground mt-1">
                   Track performance, identify trends, and make data-driven
                   decisions
                 </p>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button
@@ -1127,12 +1167,12 @@ export default function ReportsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="overview">
-                <BarChart3 className="mr-2 h-4 w-4" />
+                {!isMobile && <BarChart3 className="mr-2 h-4 w-4" />}
                 Overview
               </TabsTrigger>
               {canViewActivityLog && (
                 <TabsTrigger value="activity-log">
-                  <Activity className="mr-2 h-4 w-4" />
+                  {!isMobile && <Activity className="mr-2 h-4 w-4" />}
                   Activity Log
                 </TabsTrigger>
               )}
@@ -1190,12 +1230,14 @@ export default function ReportsPage() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    {!isMobile && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>Compare to:</span>
                       <Badge variant="secondary">
                         Previous {timeRange.slice(0, -2)}
                       </Badge>
                     </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
