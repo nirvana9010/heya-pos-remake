@@ -51,7 +51,7 @@ export class AuthController {
 
   @Post("merchant/login")
   @UseGuards(CustomThrottlerGuard)
-  @Throttle({ default: { ttl: 900000, limit: 5 } })
+  @Throttle({ default: { ttl: 300000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   async merchantLogin(
     @Body() dto: MerchantLoginDto,
