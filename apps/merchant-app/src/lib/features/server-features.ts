@@ -25,7 +25,7 @@ export const getServerFeatures = cache(
 
       // Make API call from server (must use absolute URL, not relative /api proxy)
       const apiUrl =
-        process.env.INTERNAL_API_URL || "http://100.107.58.75:3000/api";
+        process.env.INTERNAL_API_URL || "http://localhost:3000/api";
       const url = `${apiUrl}/v1/features`;
 
       console.log("[ServerFeatures] Fetching from:", url);

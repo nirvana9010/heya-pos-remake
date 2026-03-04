@@ -18,6 +18,7 @@ import type { Booking } from "../types";
 import { Check, Heart, X } from "lucide-react";
 import { getBookingSourcePresentation } from "../booking-source";
 import { useStaffSession } from "@/contexts/staff-session-context";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface MonthlyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -27,6 +28,7 @@ interface MonthlyViewProps {
 export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
   const { state, filteredBookings: allFilteredBookings } = useCalendar();
   const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+  const isMobile = useIsMobile();
 
   const filteredBookings = useMemo(() => {
     if (isLockScreenEnabled && sessionStaff) {
@@ -68,7 +70,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
 
   return (
     <div
-      className="flex-1 p-4 overflow-auto"
+      className={cn("flex-1 overflow-auto", isMobile ? "p-1" : "p-4")}
       style={{
         maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
       }}
@@ -76,10 +78,13 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
       <div className="bg-white rounded-lg shadow-sm border">
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b bg-gray-50">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+          {(isMobile ? ["S", "M", "T", "W", "T", "F", "S"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]).map((day, i) => (
             <div
-              key={day}
-              className="p-3 text-center text-sm font-medium text-gray-700"
+              key={`${day}-${i}`}
+              className={cn(
+                "text-center font-medium text-gray-700",
+                isMobile ? "p-1.5 text-xs" : "p-3 text-sm",
+              )}
             >
               {day}
             </div>
@@ -135,7 +140,8 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "min-h-[120px] p-2 border-r border-b border-gray-200 cursor-pointer transition-colors",
+                  "border-r border-b border-gray-200 cursor-pointer transition-colors",
+                  isMobile ? "min-h-[70px] p-1" : "min-h-[120px] p-2",
                   !isCurrentMonth && "bg-gray-50 text-gray-400",
                   isCurrentMonth && isWeekend && "bg-gray-50",
                   isToday(day) && "bg-teal-50",
@@ -144,17 +150,17 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                 )}
                 onClick={() => onDayClick(day)}
               >
-                <div className="flex items-start justify-between mb-1">
+                <div className="flex items-start justify-between mb-0.5">
                   <span
                     className={cn(
-                      "text-sm",
+                      isMobile ? "text-xs" : "text-sm",
                       isToday(day) && "font-bold text-teal-600",
                       !isCurrentMonth && "text-gray-400",
                     )}
                   >
                     {format(day, "d")}
                   </span>
-                  {totalRevenue > 0 && (
+                  {totalRevenue > 0 && !isMobile && (
                     <span className="text-xs font-medium text-gray-600">
                       ${totalRevenue}
                     </span>
@@ -183,7 +189,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
 
                     {/* Booking preview - show first few */}
                     <div className="space-y-0.5">
-                      {dayBookings.slice(0, 3).map((booking) => {
+                      {dayBookings.slice(0, isMobile ? 2 : 3).map((booking) => {
                         const staff = state.staff.find(
                           (s) => s.id === booking.staffId,
                         );
@@ -205,7 +211,8 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                           <div
                             key={booking.id}
                             className={cn(
-                              "text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 relative overflow-hidden flex items-center gap-1",
+                              "rounded truncate cursor-pointer hover:opacity-80 relative overflow-hidden flex items-center gap-1",
+                              isMobile ? "text-[10px] px-0.5 py-px" : "text-xs px-1 py-0.5",
                               isCancelled && "cancelled-booking",
                             )}
                             style={{
@@ -298,9 +305,9 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
                           </div>
                         );
                       })}
-                      {dayBookings.length > 3 && (
-                        <div className="text-xs text-gray-500 px-1">
-                          +{dayBookings.length - 3} more
+                      {dayBookings.length > (isMobile ? 2 : 3) && (
+                        <div className={cn("text-gray-500 px-1", isMobile ? "text-[10px]" : "text-xs")}>
+                          +{dayBookings.length - (isMobile ? 2 : 3)} more
                         </div>
                       )}
                     </div>

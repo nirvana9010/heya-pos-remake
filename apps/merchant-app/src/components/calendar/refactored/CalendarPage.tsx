@@ -96,6 +96,7 @@ import { useBooking } from "@/contexts/booking-context";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { isBlocksEnabled as isBlocksEnabledUtil } from "./utils/blocks-enabled";
 import { useStaffSession } from "@/contexts/staff-session-context";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 // Main calendar component that uses the provider
 export function CalendarPage() {
@@ -330,6 +331,7 @@ function CalendarContent() {
     useBooking();
   const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
   const isStaffSessionActive = isLockScreenEnabled && !!sessionStaff;
+  const isMobile = useIsMobile();
   const { refresh, isLoading, isRefreshing } = useCalendarData();
   const {
     navigatePrevious,
@@ -1643,22 +1645,26 @@ function CalendarContent() {
           ref={headerRef}
           className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm"
         >
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-3">
+          <div className={cn(
+            "flex items-center justify-between",
+            isMobile ? "gap-x-2 px-3 py-2" : "flex-wrap gap-x-4 gap-y-3 px-6 py-3",
+          )}>
             {/* Left: View Selector */}
-            <div className="flex flex-1 items-center gap-4 min-w-[260px]">
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className={cn("flex items-center", isMobile ? "gap-1" : "flex-1 gap-4 min-w-[260px]")}>
+              <div className="flex items-center bg-gray-100 rounded-lg p-0.5 md:p-1">
                 {(["day", "week", "month"] as const).map((view) => (
                   <button
                     key={view}
                     onClick={() => setView(view)}
                     className={cn(
-                      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                      "font-medium rounded-md transition-colors",
+                      isMobile ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm",
                       currentView === view
                         ? "bg-white text-gray-900 shadow-sm"
                         : "text-gray-600 hover:text-gray-900",
                     )}
                   >
-                    {view.charAt(0).toUpperCase() + view.slice(1)}
+                    {isMobile ? view.charAt(0).toUpperCase() : view.charAt(0).toUpperCase() + view.slice(1)}
                   </button>
                 ))}
               </div>
@@ -1666,6 +1672,7 @@ function CalendarContent() {
 
             {/* Center: Date Navigation */}
             <div className="flex items-center justify-center bg-gray-100 rounded-lg">
+              {!isMobile ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1681,15 +1688,28 @@ function CalendarContent() {
                   <p>Previous {currentView}</p>
                 </TooltipContent>
               </Tooltip>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 hover:bg-gray-200 rounded-l-lg rounded-r-none"
+                  onClick={navigatePrevious}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
 
               <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="min-w-[240px] h-8 px-4 py-1 hover:bg-gray-200 text-sm font-semibold text-gray-900"
+                    className={cn(
+                      "hover:bg-gray-200 font-semibold text-gray-900",
+                      isMobile ? "h-7 px-2 py-0.5 text-xs min-w-0" : "min-w-[240px] h-8 px-4 py-1 text-sm",
+                    )}
                   >
-                    {navigationLabel}
+                    {isMobile ? format(state.currentDate, "EEE, MMM d") : navigationLabel}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -1744,6 +1764,7 @@ function CalendarContent() {
                 </PopoverContent>
               </Popover>
 
+              {!isMobile ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1759,10 +1780,25 @@ function CalendarContent() {
                   <p>Next {currentView}</p>
                 </TooltipContent>
               </Tooltip>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 hover:bg-gray-200 rounded-r-lg rounded-l-none"
+                  onClick={navigateNext}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Right: Actions */}
-            <div className="flex flex-1 items-center justify-end gap-3 min-w-[280px] flex-wrap md:flex-nowrap">
+            <div className={cn(
+              "flex items-center justify-end",
+              isMobile ? "gap-1.5" : "flex-1 gap-3 min-w-[280px] flex-wrap md:flex-nowrap",
+            )}>
+              {/* Staff count — hidden on mobile */}
+              {!isMobile && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Users className="h-4 w-4 text-gray-500" />
                 <span>
@@ -1779,16 +1815,17 @@ function CalendarContent() {
                     )}
                 </span>
               </div>
+              )}
 
               <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <Button variant="outline" size="sm" className={cn(isMobile ? "h-7 w-7 p-0" : "h-9 gap-2")}>
                     <Filter className="h-4 w-4" />
-                    Filters
+                    {!isMobile && "Filters"}
                     {activeFilterCount > 0 && (
                       <Badge
                         variant="secondary"
-                        className="ml-1 px-1.5 min-w-[20px]"
+                        className={cn("px-1.5 min-w-[20px]", isMobile ? "absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px]" : "ml-1")}
                       >
                         {activeFilterCount}
                       </Badge>
@@ -2010,7 +2047,7 @@ function CalendarContent() {
               </Popover>
 
               {/* Auto-refresh indicator */}
-              {isRefreshing && (
+              {isRefreshing && !isMobile && (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <RefreshCw className="h-3 w-3 animate-spin" />
                   <span>Updating...</span>
@@ -2020,15 +2057,15 @@ function CalendarContent() {
               {/* New booking button */}
               {can("booking.create") && (
                 <Button
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                  className={cn("bg-teal-600 hover:bg-teal-700 text-white", isMobile && "h-7 w-7 p-0")}
                   size="sm"
                   onClick={() => {
                     setBookingSlideOutData(null);
                     actions.openBookingSlideOut();
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  New Booking
+                  <Plus className={cn("h-4 w-4", !isMobile && "mr-1")} />
+                  {!isMobile && "New Booking"}
                 </Button>
               )}
             </div>

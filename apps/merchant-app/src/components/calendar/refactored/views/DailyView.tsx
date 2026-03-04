@@ -64,6 +64,7 @@ import {
   createServiceLookup,
 } from "../BookingServiceLabels";
 import { useStaffSession } from "@/contexts/staff-session-context";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface DailyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -574,6 +575,7 @@ export function DailyView({
   ]);
 
   const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+  const isMobile = useIsMobile();
 
   const visibleStaff =
     isLockScreenEnabled && sessionStaff
@@ -581,6 +583,30 @@ export function DailyView({
       : state.selectedStaffIds.length > 0
         ? rosteredStaff.filter((s) => state.selectedStaffIds.includes(s.id))
         : rosteredStaff;
+
+  // Mobile: show single staff at a time via tabs
+  const [mobileSelectedStaffId, setMobileSelectedStaffId] = useState<
+    string | null
+  >(null);
+
+  // Default to first visible staff when staff list changes
+  useEffect(() => {
+    if (isMobile && visibleStaff.length > 0) {
+      setMobileSelectedStaffId((prev) => {
+        if (prev && visibleStaff.some((s) => s.id === prev)) return prev;
+        return visibleStaff[0].id;
+      });
+    }
+  }, [isMobile, visibleStaff]);
+
+  // On mobile, only show the selected staff member
+  const mobileVisibleStaff = useMemo(() => {
+    if (!isMobile) return visibleStaff;
+    const selected = visibleStaff.find((s) => s.id === mobileSelectedStaffId);
+    return selected ? [selected] : visibleStaff.slice(0, 1);
+  }, [isMobile, visibleStaff, mobileSelectedStaffId]);
+
+  const displayStaff = isMobile ? mobileVisibleStaff : visibleStaff;
 
   const rosteredIntervalsByStaff = useMemo(() => {
     const map = new Map<string, Array<{ start: number; end: number }>>();
@@ -661,11 +687,15 @@ export function DailyView({
 
   // Calculate grid columns
   const gridColumns = useMemo(() => {
+    if (isMobile) {
+      // Single staff column on mobile, narrower time column
+      return "60px 1fr";
+    }
     const columnCount = state.showUnassignedColumn
       ? visibleStaff.length + 1
       : visibleStaff.length;
     return `80px repeat(${columnCount}, minmax(150px, 1fr))`;
-  }, [visibleStaff.length, state.showUnassignedColumn]);
+  }, [visibleStaff.length, state.showUnassignedColumn, isMobile]);
 
   // Group bookings by staff
   const bookingsByStaff = useMemo(() => {
@@ -1063,72 +1093,117 @@ export function DailyView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-        {/* Left: Block Mode toggle */}
-        <div className="flex items-center gap-3">
-          {enableBlocks && onBlockModeToggle && (
-            <button
-              type="button"
-              onClick={onBlockModeToggle}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                isBlockMode
-                  ? "bg-red-600 text-white hover:bg-red-700"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50",
-              )}
-            >
-              <MinusCircle className="h-3.5 w-3.5" />
-              {isBlockMode ? "Block Mode On" : "Block Time"}
-            </button>
-          )}
-          {/* Block selection breadcrumb */}
-          {isBlockMode && blockSelection && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-xs">
-              <span className="font-medium text-amber-800">
-                Start: {blockSelection.time}
-              </span>
-              <span className="text-amber-600">→</span>
-              <span className="text-amber-700">
-                Click end time (or same cell for quick block)
-              </span>
+      {/* Sub-toolbar: hidden on mobile to save vertical space */}
+      {!isMobile && (
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
+          {/* Left: Block Mode toggle */}
+          <div className="flex items-center gap-3">
+            {enableBlocks && onBlockModeToggle && (
+              <button
+                type="button"
+                onClick={onBlockModeToggle}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  isBlockMode
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50",
+                )}
+              >
+                <MinusCircle className="h-3.5 w-3.5" />
+                {isBlockMode ? "Block Mode On" : "Block Time"}
+              </button>
+            )}
+            {/* Block selection breadcrumb */}
+            {isBlockMode && blockSelection && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-xs">
+                <span className="font-medium text-amber-800">
+                  Start: {blockSelection.time}
+                </span>
+                <span className="text-amber-600">→</span>
+                <span className="text-amber-700">
+                  Click end time (or same cell for quick block)
+                </span>
+              </div>
+            )}
+          </div>
+          {/* Right: Badge display toggle */}
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Badge display
             </div>
-          )}
-        </div>
-        {/* Right: Badge display toggle */}
-        <div className="flex items-center gap-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Badge display
-          </div>
-          <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
-            <button
-              type="button"
-              onClick={() => handleBadgeModeToggle("full")}
-              aria-pressed={badgeDisplayMode === "full"}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-colors",
-                badgeDisplayMode === "full"
-                  ? "bg-slate-900 text-white"
-                  : "text-gray-600 hover:bg-gray-100",
-              )}
-            >
-              Full badges
-            </button>
-            <button
-              type="button"
-              onClick={() => handleBadgeModeToggle("icon")}
-              aria-pressed={badgeDisplayMode === "icon"}
-              className={cn(
-                "border-l border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors",
-                badgeDisplayMode === "icon"
-                  ? "bg-slate-900 text-white"
-                  : "text-gray-600 hover:bg-gray-100",
-              )}
-            >
-              Icons only
-            </button>
+            <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+              <button
+                type="button"
+                onClick={() => handleBadgeModeToggle("full")}
+                aria-pressed={badgeDisplayMode === "full"}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  badgeDisplayMode === "full"
+                    ? "bg-slate-900 text-white"
+                    : "text-gray-600 hover:bg-gray-100",
+                )}
+              >
+                Full badges
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBadgeModeToggle("icon")}
+                aria-pressed={badgeDisplayMode === "icon"}
+                className={cn(
+                  "border-l border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors",
+                  badgeDisplayMode === "icon"
+                    ? "bg-slate-900 text-white"
+                    : "text-gray-600 hover:bg-gray-100",
+                )}
+              >
+                Icons only
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Mobile staff tab bar */}
+      {isMobile && visibleStaff.length > 1 && (
+        <div className="flex overflow-x-auto border-b border-gray-200 bg-white px-2 py-1.5 gap-1.5 scrollbar-hide">
+          {visibleStaff.map((staffMember) => {
+            const isActive = mobileSelectedStaffId === staffMember.id;
+            const staffBookingCount = todaysBookings.filter(
+              (b) => b.staffId === staffMember.id,
+            ).length;
+            return (
+              <button
+                key={staffMember.id}
+                type="button"
+                onClick={() => setMobileSelectedStaffId(staffMember.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0",
+                  isActive
+                    ? "bg-gray-900 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                )}
+              >
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: staffMember.color }}
+                />
+                {staffMember.name.split(" ")[0]}
+                {staffBookingCount > 0 && (
+                  <span
+                    className={cn(
+                      "ml-0.5 text-[10px]",
+                      isActive ? "text-gray-300" : "text-gray-400",
+                    )}
+                  >
+                    {staffBookingCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div
         ref={calendarScrollRef}
         className="flex-1 overflow-x-auto overflow-y-auto"
@@ -1136,7 +1211,9 @@ export function DailyView({
           maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
         }}
       >
-        <div className="min-w-[600px]">
+        <div className={isMobile ? "" : "min-w-[600px]"}>
+          {/* Desktop: sticky staff column header */}
+          {!isMobile && (
           <div
             className="grid sticky z-30 bg-white border-b border-gray-200 shadow-sm"
             style={{
@@ -1217,6 +1294,7 @@ export function DailyView({
               );
             })}
           </div>
+          )}
 
           <DndContext
             sensors={sensors}
@@ -1233,19 +1311,19 @@ export function DailyView({
                   style={{ top: `${currentTimeInfo.position}px` }}
                 >
                   <div className="relative">
-                    <div className="absolute left-0 w-20 text-right pr-2">
-                      <span className="text-xs font-bold text-red-600 bg-white px-1.5 py-0.5 rounded shadow-sm">
+                    <div className={cn("absolute left-0 text-right pr-2", isMobile ? "w-[60px]" : "w-20")}>
+                      <span className={cn("font-bold text-red-600 bg-white px-1.5 py-0.5 rounded shadow-sm", isMobile ? "text-[10px]" : "text-xs")}>
                         {currentTimeInfo.time}
                       </span>
                     </div>
-                    <div className="absolute left-20 right-0 h-0.5 bg-red-600 shadow-sm" />
-                    <div className="absolute left-20 w-3 h-3 bg-red-600 rounded-full -mt-[5px] shadow-sm animate-pulse" />
+                    <div className={cn("absolute right-0 h-0.5 bg-red-600 shadow-sm", isMobile ? "left-[60px]" : "left-20")} />
+                    <div className={cn("absolute w-3 h-3 bg-red-600 rounded-full -mt-[5px] shadow-sm animate-pulse", isMobile ? "left-[60px]" : "left-20")} />
                   </div>
                 </div>
               )}
 
               <div
-                className="grid min-w-[600px]"
+                className={cn("grid", !isMobile && "min-w-[600px]")}
                 style={{ gridTemplateColumns: gridColumns }}
               >
                 {/* Time slots column */}
@@ -1300,7 +1378,8 @@ export function DailyView({
                       <div
                         key={slot.time}
                         className={cn(
-                          "h-[40px] text-right pr-3 pt-1 transition-all duration-200",
+                          "h-[40px] text-right pt-1 transition-all duration-200",
+                          isMobile ? "pr-1.5 text-[10px]" : "pr-3",
                           getBorderStyle(),
                           slot.minute === 0 &&
                             "bg-gradient-to-r from-gray-50 to-transparent", // Gradient for hour rows
@@ -1323,8 +1402,8 @@ export function DailyView({
                   })}
                 </div>
 
-                {/* Unassigned column */}
-                {state.showUnassignedColumn && (
+                {/* Unassigned column — hidden on mobile */}
+                {state.showUnassignedColumn && !isMobile && (
                   <div className="border-r border-slate-400/60">
                     {timeSlots.map((slot, slotIndex) => {
                       const slotBookings =
@@ -1806,7 +1885,7 @@ export function DailyView({
                 )}
 
                 {/* Staff columns */}
-                {visibleStaff.map((staff, staffIndex) => {
+                {displayStaff.map((staff, staffIndex) => {
                   // Check if staff has no schedules at all
                   // Only show overlay when:
                   // 1. Staff has no schedules (empty array, not undefined)

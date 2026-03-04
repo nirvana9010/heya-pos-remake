@@ -812,6 +812,15 @@ main {
   display: none; /* Chrome, Safari, and Opera */
 }
 
+/* Generic scrollbar-hide utility */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Smooth page transitions */
 .animate-in {
   animation-fill-mode: both;

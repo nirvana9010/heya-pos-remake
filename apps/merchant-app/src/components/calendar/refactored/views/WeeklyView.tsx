@@ -19,6 +19,7 @@ import {
   createServiceLookup,
 } from "../BookingServiceLabels";
 import { useStaffSession } from "@/contexts/staff-session-context";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WeeklyViewProps {
   onBookingClick: (booking: Booking) => void;
@@ -27,6 +28,7 @@ interface WeeklyViewProps {
 export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
   const { state, filteredBookings: allFilteredBookings } = useCalendar();
   const { isLockScreenEnabled, activeStaff: sessionStaff } = useStaffSession();
+  const isMobile = useIsMobile();
   const badgeDisplayMode = state.badgeDisplayMode;
   const serviceLookup = useMemo(
     () => createServiceLookup(state.services),
@@ -41,7 +43,17 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
   }, [allFilteredBookings, isLockScreenEnabled, sessionStaff]);
 
   const weekStart = startOfWeek(state.currentDate);
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const allWeekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // On mobile, show 3 days centered on the current date
+  const weekDays = useMemo(() => {
+    if (!isMobile) return allWeekDays;
+    // Find the index of the current date in the week, show it + neighbors
+    const currentIdx = allWeekDays.findIndex((d) => isSameDay(d, state.currentDate));
+    const centerIdx = currentIdx >= 0 ? currentIdx : 0;
+    const startIdx = Math.max(0, Math.min(centerIdx - 1, 4)); // Keep within 0..4
+    return allWeekDays.slice(startIdx, startIdx + 3);
+  }, [isMobile, allWeekDays, state.currentDate]);
 
   // Group bookings by day and sort by time
   const bookingsByDay = useMemo(() => {
@@ -82,10 +94,10 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
     <div className="flex flex-col h-full">
       {/* Fixed header row */}
       <div
-        className="h-20 border-b border-gray-200 bg-white overflow-hidden shadow-sm sticky z-30"
+        className={cn("border-b border-gray-200 bg-white overflow-hidden shadow-sm sticky z-30", isMobile ? "h-14" : "h-20")}
         style={{ top: "var(--calendar-sticky-offset, 176px)" }}
       >
-        <div className="flex h-full min-w-[860px]">
+        <div className={cn("flex h-full", !isMobile && "min-w-[860px]")}>
           {weekDays.map((day) => {
             const dayBookings = filteredBookings.filter((b) =>
               isSameDay(parseISO(b.date), day),
@@ -97,13 +109,17 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 border-r border-gray-200 last:border-r-0 px-3 py-2 h-full"
+                className={cn(
+                  "flex-1 border-r border-gray-200 last:border-r-0 h-full",
+                  isMobile ? "px-2 py-1" : "px-3 py-2",
+                )}
               >
                 <div className="flex items-center justify-between h-full">
                   <div>
                     <div
                       className={cn(
-                        "text-xs font-medium uppercase tracking-wider",
+                        "font-medium uppercase tracking-wider",
+                        isMobile ? "text-[10px]" : "text-xs",
                         isToday(day) ? "text-teal-600" : "text-gray-500",
                       )}
                     >
@@ -111,7 +127,8 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
                     </div>
                     <div
                       className={cn(
-                        "text-2xl font-bold mt-0.5",
+                        "font-bold mt-0.5",
+                        isMobile ? "text-lg" : "text-2xl",
                         isToday(day) ? "text-teal-600" : "text-gray-900",
                       )}
                     >
@@ -120,11 +137,11 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
                   </div>
                   {dayBookings.length > 0 && (
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-gray-900">
+                      <div className={cn("font-semibold text-gray-900", isMobile ? "text-sm" : "text-lg")}>
                         ${totalRevenue}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {dayBookings.length} bookings
+                      <div className={cn("text-gray-500", isMobile ? "text-[10px]" : "text-xs")}>
+                        {dayBookings.length}
                       </div>
                     </div>
                   )}
@@ -142,7 +159,7 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
           maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
         }}
       >
-        <div className="flex min-w-[860px]">
+        <div className={cn("flex", !isMobile && "min-w-[860px]")}>
           {/* Days columns with stacked bookings */}
           {weekDays.map((day) => {
             const dayKey = format(day, "yyyy-MM-dd");
@@ -153,7 +170,7 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
                 key={day.toISOString()}
                 className="flex-1 border-r border-gray-200 last:border-r-0 min-h-full overflow-hidden"
               >
-                <div className="p-2 space-y-2">
+                <div className={cn("space-y-2", isMobile ? "p-1" : "p-2")}>
                   {dayBookings.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm py-8">
                       No bookings
