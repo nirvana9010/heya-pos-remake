@@ -112,6 +112,7 @@ export function PaymentDialog({
     paymentMethod: string;
     changeAmount: number;
   } | null>(null);
+  const [tyroProcessing, setTyroProcessing] = useState(false);
 
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
@@ -123,6 +124,7 @@ export function PaymentDialog({
       setShowOrderAdjustment(false);
       setShowSuccess(false);
       setSuccessData(null);
+      setTyroProcessing(false);
       console.log("[PaymentDialog] Dialog opened, order state:", {
         id: order?.id,
         state: order?.state,
@@ -246,20 +248,14 @@ export function PaymentDialog({
         return;
       }
 
-      // Close dialog to avoid z-index conflicts with Tyro UI
-      onOpenChange(false);
+      // Keep dialog open — show "processing on terminal" state, then success screen
+      setTyroProcessing(true);
 
       // Process Tyro payment
       try {
         purchase(totalWithTip, {
           transactionCompleteCallback: async (response) => {
             if (response.result === TyroTransactionResult.APPROVED) {
-              // Payment was successful
-              toast({
-                title: "Payment successful",
-                description: "Card payment processed",
-              });
-
               // Update order optimistically
               const optimisticOrder = {
                 ...order,
@@ -269,7 +265,16 @@ export function PaymentDialog({
               };
 
               onPaymentComplete?.(optimisticOrder);
-              // Dialog already closed before Tyro payment
+
+              // Show success screen
+              setSuccessData({
+                order: optimisticOrder,
+                paymentMethod: "CARD",
+                changeAmount: 0,
+              });
+              setShowSuccess(true);
+              setTyroProcessing(false);
+              setProcessing(false);
 
               // Record payment in background
               try {
@@ -334,17 +339,16 @@ export function PaymentDialog({
                 console.error("[Tyro] Failed to record payment:", error);
               }
             } else {
-              // Payment failed or cancelled
+              // Payment failed or cancelled — back to payment form
+              setTyroProcessing(false);
+              setProcessing(false);
+
               if (response.result === TyroTransactionResult.CANCELLED) {
-                // User cancelled - reopen the dialog
-                onOpenChange(true);
                 toast({
                   title: "Payment cancelled",
                   description: "Transaction was cancelled",
                 });
               } else {
-                // Actual payment failure - reopen dialog
-                onOpenChange(true);
                 const errorMessage =
                   response.result === TyroTransactionResult.DECLINED
                     ? "Payment was declined"
@@ -357,8 +361,6 @@ export function PaymentDialog({
                 });
               }
             }
-
-            setProcessing(false);
           },
           receiptCallback: (receipt) => {
             // Tyro receipt received
@@ -368,8 +370,7 @@ export function PaymentDialog({
         return; // Exit early for Tyro payments
       } catch (error) {
         // Failed to initiate Tyro payment
-        // Reopen dialog on error
-        onOpenChange(true);
+        setTyroProcessing(false);
         toast({
           title: "Payment failed",
           description: "Failed to communicate with payment terminal",
@@ -757,13 +758,19 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
+      // Prevent closing during Tyro terminal processing
+      if (!isOpen && tyroProcessing) return;
       if (!isOpen && showSuccess) {
         handleSuccessDismiss();
         return;
       }
       onOpenChange(isOpen);
     }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] flex flex-col"
+        onPointerDownOutside={tyroProcessing ? (e) => e.preventDefault() : undefined}
+        onEscapeKeyDown={tyroProcessing ? (e) => e.preventDefault() : undefined}
+      >
         {showSuccess && successData ? (
           <>
             <DialogHeader className="flex-shrink-0">
@@ -776,6 +783,17 @@ export function PaymentDialog({
               changeAmount={successData.changeAmount}
               onDismiss={handleSuccessDismiss}
             />
+          </>
+        ) : tyroProcessing ? (
+          <>
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle className="sr-only">Processing Payment</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-12 w-12 animate-spin text-teal-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-1">Processing on terminal...</h3>
+              <p className="text-sm text-muted-foreground">Complete the payment on your Tyro terminal</p>
+            </div>
           </>
         ) : (
         <>
