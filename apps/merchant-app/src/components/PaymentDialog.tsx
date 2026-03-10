@@ -248,6 +248,23 @@ export function PaymentDialog({
         return;
       }
 
+      // Ensure order is locked before Tyro payment
+      try {
+        if (order?.state === "DRAFT") {
+          order = await apiClient.updateOrderState(order.id, "LOCKED");
+          onOrderUpdate?.(order);
+        }
+      } catch (lockError: any) {
+        console.error("[Tyro] Failed to lock order:", lockError);
+        toast({
+          title: "Payment error",
+          description: "Could not prepare order for payment. Please try again.",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
       // Keep dialog open — show "processing on terminal" state, then success screen
       setTyroProcessing(true);
 
