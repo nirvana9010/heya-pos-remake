@@ -84,7 +84,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({
         apiClient
           .getServices({ limit: 500, isActive: true })
           .catch(() => ({ data: [] })),
-        apiClient.getCustomers().catch(() => []),
+        apiClient.getCustomers().catch(() => ({ data: [] as any[] })),
         apiClient.getBookings().catch(() => []),
         apiClient.getMerchantSettings().catch(() => null),
         staffClient.getAllSchedules().catch(() => []),
@@ -149,7 +149,7 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({
 
       setStaff(transformedStaff);
       setServices(servicesData);
-      setCustomers(customersData);
+      setCustomers(customersData.data || []);
       setBookings(bookingsData);
       setMerchantSettings(settingsData);
     } catch (error) {

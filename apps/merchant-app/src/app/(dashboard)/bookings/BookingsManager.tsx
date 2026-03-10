@@ -294,7 +294,7 @@ export default function BookingsManager() {
 
     try {
       const customersData = await apiClient.getCustomers();
-      setCustomers(customersData);
+      setCustomers(customersData.data || []);
     } catch (error: any) {
       // Ignore auth errors as they'll be handled by the interceptor
       if (

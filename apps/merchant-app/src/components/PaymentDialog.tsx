@@ -51,6 +51,7 @@ import { useAuth } from "@/lib/auth/auth-provider";
 import { isWalkInCustomer } from "@/lib/constants/customer";
 import { useTyro } from "@/hooks/useTyro";
 import { TyroTransactionResult } from "@/types/tyro";
+import { PaymentSuccessScreen } from "./PaymentSuccessScreen";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -105,6 +106,12 @@ export function PaymentDialog({
     reason: "",
     isPercentage: false,
   });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    order: any;
+    paymentMethod: string;
+    changeAmount: number;
+  } | null>(null);
 
   // Check if Tyro is enabled
   const isTyroEnabled = merchant?.settings?.tyroEnabled === true;
@@ -114,6 +121,8 @@ export function PaymentDialog({
     if (open) {
       setOrderAdjustment({ amount: 0, reason: "", isPercentage: false });
       setShowOrderAdjustment(false);
+      setShowSuccess(false);
+      setSuccessData(null);
       console.log("[PaymentDialog] Dialog opened, order state:", {
         id: order?.id,
         state: order?.state,
@@ -576,20 +585,16 @@ export function PaymentDialog({
         },
       );
 
-      // Show success toast
-      toast({
-        title: "Payment successful",
-        description:
-          changeAmount > 0 ? `Change: $${changeAmount.toFixed(2)}` : undefined,
-      });
-
-      // Call onPaymentComplete with the successful order BEFORE closing
+      // Call onPaymentComplete with the successful order
       onPaymentComplete?.(successOrder);
 
-      // Close dialog with a small delay to ensure state updates propagate
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 100);
+      // Show success screen instead of closing
+      setSuccessData({
+        order: successOrder,
+        paymentMethod: paymentMethod === PaymentMethod.CARD ? "CARD" : "CASH",
+        changeAmount,
+      });
+      setShowSuccess(true);
 
       // Refresh order data in the background
       const finalOrder = await apiClient.getOrder(order.id);
@@ -672,10 +677,9 @@ export function PaymentDialog({
         }
       }
 
-      // Only update if not already closed by optimistic update
+      // Update with refreshed order data
       if (!isOptimisticPayment) {
         onPaymentComplete?.(finalOrder);
-        onOpenChange(false);
       }
     } catch (error: any) {
       console.error(
@@ -745,9 +749,36 @@ export function PaymentDialog({
     setSplitPayments(updated);
   };
 
+  const handleSuccessDismiss = () => {
+    setShowSuccess(false);
+    setSuccessData(null);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen && showSuccess) {
+        handleSuccessDismiss();
+        return;
+      }
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        {showSuccess && successData ? (
+          <>
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle className="sr-only">Payment Complete</DialogTitle>
+            </DialogHeader>
+            <PaymentSuccessScreen
+              order={successData.order}
+              customer={customer}
+              paymentMethod={successData.paymentMethod}
+              changeAmount={successData.changeAmount}
+              onDismiss={handleSuccessDismiss}
+            />
+          </>
+        ) : (
+        <>
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Process Payment</DialogTitle>
         </DialogHeader>
@@ -1477,6 +1508,8 @@ export function PaymentDialog({
             )}
           </Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -201,6 +201,9 @@ export default function SettingsPage() {
       process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) ||
       "",
   );
+  const [printerIp, setPrinterIp] = useState(
+    merchantSettings.printerIp ?? "",
+  );
   const [showTyroPairingDialog, setShowTyroPairingDialog] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
@@ -677,6 +680,7 @@ export default function SettingsPage() {
             process.env.NEXT_PUBLIC_TYRO_MERCHANT_ID) ||
             "",
         );
+        hydrate("printerIp", setPrinterIp, response.printerIp ?? "");
         if (response.timezone) {
           hydrate("timezone", setSelectedTimezone, response.timezone);
         }
@@ -1073,6 +1077,7 @@ export default function SettingsPage() {
       tyroEnabled,
       tyroTerminalId: tyroTerminalId || undefined,
       tyroMerchantId: tyroMerchantId || undefined,
+      printerIp: printerIp || undefined,
       bookingConfirmationEmail,
       bookingConfirmationSms,
       appointmentReminder24hEmail,
@@ -1127,6 +1132,7 @@ export default function SettingsPage() {
       tyroEnabled,
       tyroMerchantId,
       tyroTerminalId,
+      printerIp,
     ],
   );
 
@@ -2510,6 +2516,21 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
+                  {/* Receipt Printer */}
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="printer-ip">Receipt Printer IP</Label>
+                    <Input
+                      id="printer-ip"
+                      type="text"
+                      value={printerIp}
+                      onChange={(e) => setPrinterIp(e.target.value)}
+                      placeholder="127.0.0.1"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      IP address of your thermal receipt printer. Defaults to 127.0.0.1 if left blank.
+                    </p>
+                  </div>
+
                   {/* Require Deposit setting hidden - not currently functional
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">

@@ -60,6 +60,8 @@ export interface MerchantSettings {
   priceToDurationRatio?: number; // $1 = X minutes (default: 1.0)
   // Payment terminal settings
   tyroEnabled: boolean;
+  // Receipt printer settings
+  printerIp?: string; // IP address of thermal receipt printer (default: 127.0.0.1)
   // Booking site branding
   publicHeroSubtitle?: string;
   // Holiday management

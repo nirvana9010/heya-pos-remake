@@ -75,6 +75,8 @@ export interface MerchantSettings {
   cancellationNotificationSms?: boolean;
   // Payment terminal settings
   tyroEnabled: boolean;
+  // Receipt printer settings
+  printerIp?: string; // IP address of thermal receipt printer (default: 127.0.0.1)
   // Holiday management
   holidayState?: AustralianState | null;
 }
