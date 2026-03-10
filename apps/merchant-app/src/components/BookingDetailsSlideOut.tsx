@@ -856,27 +856,20 @@ function BookingDetailsSlideOutComponent({
     }
   };
 
+  // Track whether payment succeeded so we know to close slideout on dialog dismiss
+  const paymentCompletedRef = useRef(false);
+  // Ref mirrors paymentDialogOpen so stale closures (Tyro callback) read the latest value
+  const paymentDialogOpenRef = useRef(paymentDialogOpen);
+  paymentDialogOpenRef.current = paymentDialogOpen;
+
   const handlePaymentComplete = async (updatedOrder: any) => {
-    // Close the payment dialog
-    setPaymentDialogOpen(false);
-    setSelectedOrderForPayment(null);
+    // Background updates only — do NOT close dialog or null order.
+    // The success screen is shown inside PaymentDialog; closing
+    // happens when the user clicks "Done" (fires onOpenChange(false)).
 
     // Notify lock screen of completed payment
     window.dispatchEvent(new CustomEvent("payment:completed"));
 
-    // Show success toast immediately
-    toast({
-      title: "Payment processed",
-      description: `Payment for ${booking.customerName}'s booking has been processed successfully.`,
-      variant: "default",
-      className: "bg-green-50 border-green-200",
-      duration: 5000,
-    });
-
-    // Close the booking slideout immediately (no delay)
-    onClose();
-
-    // Process everything else in the background
     // Update the associated order state
     setAssociatedOrder(updatedOrder);
 
@@ -894,6 +887,15 @@ function BookingDetailsSlideOutComponent({
     setTimeout(() => {
       refreshNotifications();
     }, 2000);
+
+    // If dialog is already closed (Tyro path closes it before payment),
+    // close the slideout now. Otherwise, mark for close on dialog dismiss.
+    // Use ref instead of state to avoid stale closure in Tyro's async callback.
+    if (!paymentDialogOpenRef.current) {
+      onClose();
+    } else {
+      paymentCompletedRef.current = true;
+    }
   };
 
   return (
@@ -1589,7 +1591,17 @@ function BookingDetailsSlideOutComponent({
       {/* Payment Dialog - Using Portal to prevent parent re-renders */}
       <PaymentDialogPortal
         open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setPaymentDialogOpen(open);
+          if (!open) {
+            setSelectedOrderForPayment(null);
+            // Close the booking slideout after successful payment dismiss
+            if (paymentCompletedRef.current) {
+              paymentCompletedRef.current = false;
+              onClose();
+            }
+          }
+        }}
         order={selectedOrderForPayment}
         onPaymentComplete={handlePaymentComplete}
         enableTips={false}

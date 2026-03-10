@@ -1686,80 +1686,72 @@ export default function BookingsManager() {
           </CardContent>
         </Card>
 
-        {/* Payment Dialog - Using Portal to prevent parent re-renders */}
-        {selectedOrderForPayment && (
-          <PaymentDialogPortal
-            open={paymentDialogOpen}
-            onOpenChange={(open) => {
-              setPaymentDialogOpen(open);
-              // Clear selected order when dialog closes
-              if (!open) {
-                setTimeout(() => {
-                  setSelectedOrderForPayment(null);
-                }, 100);
-              }
-            }}
-            order={selectedOrderForPayment}
-            onOrderUpdate={(updatedOrder) => {
-              // Update the selected order with the latest data
-              setSelectedOrderForPayment(updatedOrder);
-            }}
-            onPaymentComplete={async (updatedOrder) => {
-              setSelectedOrderForPayment(null);
-
-              // Notify lock screen of completed payment
-              window.dispatchEvent(new CustomEvent("payment:completed"));
-
-              // Optimistically update the booking in our local state immediately
-              if (updatedOrder && updatedOrder.bookingId) {
-                // Clear the payment processing state
-                setProcessingOrders((prev) => {
-                  const newSet = new Set(prev);
-                  newSet.delete(updatedOrder.bookingId);
-                  return newSet;
-                });
-
-                setBookings((prevBookings) => {
-                  const updatedBookings = prevBookings.map((booking) => {
-                    if (booking.id === updatedOrder.bookingId) {
-                      const oldPaymentStatus = booking.paymentStatus;
-                      const oldPaidAmount = booking.paidAmount;
-
-                      // Update the booking to show it's paid with the adjusted price
-                      const paidAmount =
-                        updatedOrder.paidAmount || updatedOrder.totalAmount;
-                      const updatedBooking = {
-                        ...booking,
-                        totalAmount: Number(updatedOrder.totalAmount) || 0, // Update total to reflect adjustments
-                        price: Number(updatedOrder.totalAmount) || 0, // Some views use price field
-                        paidAmount: Number(paidAmount) || 0, // Ensure we have a number for the badge check
-                        paymentStatus: "PAID" as const,
-                        isPaid: true,
-                        // Force update the order state to ensure UI refresh
-                        order: undefined,
-                      };
-
-                      return updatedBooking;
-                    }
-                    return booking;
-                  });
-                  return updatedBookings;
-                });
-              } else {
-              }
-
-              // Invalidate the bookings cache before reloading
-              invalidateBookingsCache();
-
-              // Remove the loadBookings call - we've already optimistically updated the UI
-              // The next natural refresh (navigation, user action, etc) will get the latest data
-            }}
-            enableTips={merchantSettings?.settings?.enableTips || false}
-            defaultTipPercentages={
-              merchantSettings?.settings?.defaultTipPercentages
+        {/* Payment Dialog - Always rendered, visibility controlled by open prop */}
+        <PaymentDialogPortal
+          open={paymentDialogOpen}
+          onOpenChange={(open) => {
+            setPaymentDialogOpen(open);
+            // Cleanup only when dialog closes (after user dismisses success screen)
+            if (!open) {
+              setTimeout(() => {
+                setSelectedOrderForPayment(null);
+              }, 100);
             }
-          />
-        )}
+          }}
+          order={selectedOrderForPayment}
+          onOrderUpdate={(updatedOrder) => {
+            // Update the selected order with the latest data
+            setSelectedOrderForPayment(updatedOrder);
+          }}
+          onPaymentComplete={async (updatedOrder) => {
+            // Background updates only — do NOT close dialog or null order.
+            // The success screen is shown inside PaymentDialog; closing
+            // happens when the user clicks "Done" (fires onOpenChange(false)).
+
+            // Notify lock screen of completed payment
+            window.dispatchEvent(new CustomEvent("payment:completed"));
+
+            // Optimistically update the booking in our local state immediately
+            if (updatedOrder && updatedOrder.bookingId) {
+              // Clear the payment processing state
+              setProcessingOrders((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(updatedOrder.bookingId);
+                return newSet;
+              });
+
+              setBookings((prevBookings) => {
+                const updatedBookings = prevBookings.map((booking) => {
+                  if (booking.id === updatedOrder.bookingId) {
+                    // Update the booking to show it's paid with the adjusted price
+                    const paidAmount =
+                      updatedOrder.paidAmount || updatedOrder.totalAmount;
+                    const updatedBooking = {
+                      ...booking,
+                      totalAmount: Number(updatedOrder.totalAmount) || 0,
+                      price: Number(updatedOrder.totalAmount) || 0,
+                      paidAmount: Number(paidAmount) || 0,
+                      paymentStatus: "PAID" as const,
+                      isPaid: true,
+                      order: undefined,
+                    };
+
+                    return updatedBooking;
+                  }
+                  return booking;
+                });
+                return updatedBookings;
+              });
+            }
+
+            // Invalidate the bookings cache before reloading
+            invalidateBookingsCache();
+          }}
+          enableTips={merchantSettings?.settings?.enableTips || false}
+          defaultTipPercentages={
+            merchantSettings?.settings?.defaultTipPercentages
+          }
+        />
 
         {/* Booking Details Slideout */}
         {selectedBookingForDetails && (

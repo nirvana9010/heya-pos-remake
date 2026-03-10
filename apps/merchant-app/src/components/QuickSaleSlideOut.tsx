@@ -142,39 +142,29 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
     setPaymentDialogOpen(true);
   };
 
+  // Track whether payment succeeded so we know to close slideout on dialog dismiss
+  const paymentCompletedRef = React.useRef(false);
+  // Ref mirrors paymentDialogOpen so stale closures (Tyro callback) read the latest value
+  const paymentDialogOpenRef = React.useRef(paymentDialogOpen);
+  paymentDialogOpenRef.current = paymentDialogOpen;
+
   const handlePaymentComplete = async (updatedOrder: any) => {
-    // Payment completed successfully
-    setPaymentDialogOpen(false);
+    // Background updates only — do NOT close dialog.
+    // The success screen is shown inside PaymentDialog; closing
+    // happens when the user clicks "Done" (fires onOpenChange(false)).
 
     // Notify lock screen of completed payment
     window.dispatchEvent(new CustomEvent("payment:completed"));
 
-    // Show confirmation toast with customer name and total
-    const customerName = isWalkIn
-      ? "Walk-in Customer"
-      : selectedCustomer?.name ||
-        `${selectedCustomer?.firstName || ""} ${selectedCustomer?.lastName || ""}`.trim() ||
-        "Customer";
-
-    const totalAmount = updatedOrder?.totalAmount || total;
-
-    toast({
-      title: "Quick sale complete",
-      description: `Quick sale complete for ${customerName} for $${totalAmount.toFixed(2)}`,
-      duration: 2500,
-    });
-
-    onSaleComplete();
-    onClose();
-
-    // Reset state
-    setSelectedServices([]);
-    setSelectedCustomer(null);
-    setOrder(null);
-    setIsWalkIn(false);
-    setItemAdjustments({});
-    setOrderAdjustment({ amount: 0, reason: "" });
-    setShowOrderAdjustment(false);
+    // If dialog is already closed (Tyro path closes it before payment),
+    // close the slideout now. Otherwise, mark for close on dialog dismiss.
+    // Use ref instead of state to avoid stale closure in Tyro's async callback.
+    if (!paymentDialogOpenRef.current) {
+      onSaleComplete();
+      onClose();
+    } else {
+      paymentCompletedRef.current = true;
+    }
   };
 
   const renderMainView = () => (
@@ -649,7 +639,22 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       {/* Payment Dialog - Using Portal to prevent parent re-renders */}
       <PaymentDialogPortal
         open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setPaymentDialogOpen(open);
+          if (!open && paymentCompletedRef.current) {
+            paymentCompletedRef.current = false;
+            onSaleComplete();
+            onClose();
+            // Reset state
+            setSelectedServices([]);
+            setSelectedCustomer(null);
+            setOrder(null);
+            setIsWalkIn(false);
+            setItemAdjustments({});
+            setOrderAdjustment({ amount: 0, reason: "" });
+            setShowOrderAdjustment(false);
+          }
+        }}
         order={order}
         selectedServices={selectedServices}
         customerId={selectedCustomer?.id}
