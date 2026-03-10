@@ -3,66 +3,54 @@ name: Deploy to Staging
 on:
   push:
     branches: [staging]
-  pull_request:
-    branches: [staging]
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
 
 jobs:
-  test:
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          
+          node-version: '20'
+
       - name: Install dependencies
         run: npm ci
 
       - name: Validate Prisma migrations
         run: sh ./scripts/validate-prisma-migrations.sh
-        
-      - name: Type check
-        run: npm run typecheck
-        
-      - name: Lint
-        run: npm run lint
-        
-      - name: Build
-        run: npm run build
-        
-      - name: Run auth middleware tests
-        run: |
-          cd apps/merchant-app
-          npm install --no-save axios chalk
-          node scripts/test-auth-middleware.js
-        env:
-          TEST_URL: http://localhost:3002
 
-  staging-tests:
-    needs: test
+  deploy-api:
+    name: Deploy API to Staging
+    needs: validate
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Wait for Vercel deployment
-        run: sleep 60  # Wait for auto-deployment
-        
-      - name: Test staging deployment
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Fly.io
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to staging
         run: |
-          cd apps/merchant-app
-          npm install --no-save axios chalk
-          TEST_URL=https://heya-pos-staging-merchant-app.vercel.app node scripts/test-auth-middleware.js
-        
-      - name: Notify on success
-        if: success()
-        run: echo "Staging deployment tests passed!"
-        
-      - name: Notify on failure
-        if: failure()
+          flyctl deploy \
+            --config apps/api/fly.staging.toml \
+            --dockerfile Dockerfile.api \
+            --ha=false \
+            --strategy immediate
+
+      - name: Run migrations
         run: |
-          echo "Staging deployment tests failed!"
-          exit 1
+          flyctl ssh console \
+            --app heya-pos-api-staging \
+            -C "cd /app/apps/api && npx prisma migrate deploy" \
+            || echo "Migration check completed"

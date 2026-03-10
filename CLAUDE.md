@@ -67,7 +67,7 @@ Format: `ABC123` (6-char airline-style, 3 letters + 3 numbers)
 docker start heya-pos-db heya-pos-redis    # Start local database and Redis
 ```
 
-**Production uses Fly.io PostgreSQL** (`heya-pos-db.flycast` internally)
+**Production uses Fly.io PostgreSQL** (`heya-pos-prod.flycast` internally)
 
 **Redis (not yet provisioned in production)**:
 - Local dev: `docker start heya-pos-redis` (already in docker-compose)

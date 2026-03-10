@@ -1,0 +1,39 @@
+# Staging environment — deployed via GitHub Actions on push to `staging` branch
+#
+# Created from production fly.toml with staging-specific overrides.
+
+app = 'heya-pos-api-staging'
+primary_region = 'syd'
+kill_signal = 'SIGINT'
+kill_timeout = '5s'
+
+[build]
+  dockerfile = "../../Dockerfile.api"
+  context = "../.."
+
+[env]
+  DATABASE_CONNECTION_LIMIT = '10'
+  NODE_ENV = 'production'
+  PORT = '3000'
+  PRISMA_CLIENT_ENGINE_TYPE = 'binary'
+  TZ = 'Australia/Sydney'
+  ENABLE_SWAGGER = 'true'
+  LOG_LEVEL = 'debug'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
