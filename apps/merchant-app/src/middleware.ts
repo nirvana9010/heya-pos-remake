@@ -92,6 +92,13 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // Redirect root "/" to the correct dashboard page
+    if (pathname === "/") {
+      const destination =
+        payload.hasCheckInOnly === true ? "/check-ins" : "/calendar";
+      return NextResponse.redirect(new URL(destination, request.url));
+    }
+
     // Check if check-in lite user is trying to access calendar
     if (payload.hasCheckInOnly === true && pathname === "/calendar") {
       return NextResponse.redirect(new URL("/check-ins", request.url));
@@ -122,21 +129,7 @@ export async function middleware(request: NextRequest) {
 
         // Only redirect if token is valid and not expired
         if (payload && payload.exp && payload.exp > Date.now() / 1000) {
-          // Check if we're coming from a failed auth redirect
-          const from = request.nextUrl.searchParams.get("from");
-          if (from) {
-            // Don't redirect if we were just sent here
-            return NextResponse.next();
-          }
-
           // Redirect based on package type
-          // Default to calendar unless explicitly on check-in only package
-          console.log("[Middleware] Login redirect:", {
-            merchantId: payload.merchantId,
-            hasCheckInOnly: payload.hasCheckInOnly,
-            redirectTo:
-              payload.hasCheckInOnly === true ? "/check-ins" : "/calendar",
-          });
           const destination =
             payload.hasCheckInOnly === true ? "/check-ins" : "/calendar";
           return NextResponse.redirect(new URL(destination, request.url));
@@ -153,25 +146,6 @@ export async function middleware(request: NextRequest) {
         response.cookies.delete("access_token");
         response.cookies.delete("authToken");
         return response;
-      }
-    }
-  }
-
-  // Handle root redirect for authenticated users
-  if (pathname === "/") {
-    const token =
-      request.cookies.get("access_token")?.value ||
-      request.cookies.get("authToken")?.value;
-
-    if (token) {
-      const payload = await verifyToken(token, request);
-
-      if (payload && payload.exp && payload.exp > Date.now() / 1000) {
-        // Redirect based on package type
-        // Default to calendar unless explicitly on check-in only package
-        const destination =
-          payload.hasCheckInOnly === true ? "/check-ins" : "/calendar";
-        return NextResponse.redirect(new URL(destination, request.url));
       }
     }
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
 import { Label } from "@heya-pos/ui";
@@ -18,13 +18,13 @@ import { useAuth } from "@/lib/auth/auth-provider";
 import { Building2, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const authContext = useAuth();
   const {
     login,
     isAuthenticated,
     isLoading,
+    merchant,
     error: authError,
     clearError,
   } = authContext || {};
@@ -35,6 +35,7 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+  const hasRedirectedRef = useRef(false);
 
   // Clear the redirect flag when login page loads
   useEffect(() => {
@@ -45,7 +46,9 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
+    if (isAuthenticated && !isLoading && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
+
       const from = searchParams.get("from");
       // Validate the 'from' path - must start with '/' and not be '/undefined' or other invalid paths
       const isValidRedirect =
@@ -53,16 +56,25 @@ export default function LoginPage() {
         from.startsWith("/") &&
         !from.startsWith("/undefined") &&
         !from.startsWith("/null") &&
-        from !== "/login"; // Don't redirect back to login
+        from !== "/login" &&
+        from !== "/"; // Don't redirect to root — go directly to the right page
 
-      if (isValidRedirect) {
-        router.push(from);
-      } else {
-        // Let middleware handle the default redirect based on package type
-        router.push("/");
-      }
+      // Determine default destination based on merchant package type
+      const defaultDestination =
+        merchant?.settings?.hasCheckInOnly === true
+          ? "/check-ins"
+          : "/calendar";
+
+      const destination = isValidRedirect ? from : defaultDestination;
+
+      // Use window.location for a hard navigation to guarantee cookies are
+      // included in the request. router.push() does a soft (fetch-based)
+      // navigation and Android WebViews can have cookie-sync delays that
+      // cause the middleware to not see the cookie, redirecting back to
+      // /login and creating an infinite loop.
+      window.location.href = destination;
     }
-  }, [isAuthenticated, isLoading, router, searchParams]);
+  }, [isAuthenticated, isLoading, merchant, searchParams]);
 
   // Clear auth errors when component mounts
   useEffect(() => {
