@@ -573,9 +573,10 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       {/* Slideout */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 flex max-w-full pl-10 transform transition-transform z-50",
+          "fixed top-0 right-0 flex max-w-full pl-10 transform transition-transform z-50",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
+        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
       >
         <div className="pointer-events-auto relative w-screen max-w-lg">
           <div className="flex h-full flex-col bg-white shadow-xl">

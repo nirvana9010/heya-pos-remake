@@ -132,7 +132,10 @@ export function SlideOutPanel({
       )}
 
       {/* Panel Container - prevents shadow overflow */}
-      <div className="fixed inset-y-0 right-0 z-50 overflow-hidden pointer-events-none">
+      <div
+        className="fixed top-0 right-0 z-50 overflow-hidden pointer-events-none"
+        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
+      >
         {/* Panel */}
         <div
           ref={panelRef}

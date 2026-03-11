@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AuthGuard } from "./AuthGuard";
 import { PrefetchManager } from "./PrefetchManager";
@@ -15,6 +16,29 @@ import { TyroSDKLoader } from "./TyroSDKLoader";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // Track visual viewport height for on-screen keyboard awareness.
+  // Sets --visual-viewport-height CSS variable that slideout panels use
+  // so they shrink above the keyboard instead of being covered by it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      document.documentElement.style.setProperty(
+        "--visual-viewport-height",
+        `${vv.height}px`,
+      );
+    };
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
   const isAuthPage = pathname === "/login";
   const isTestPage = pathname.startsWith("/test");
   const needsNotifications = pathname === "/test-notifications";

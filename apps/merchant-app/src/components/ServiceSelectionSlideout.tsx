@@ -86,9 +86,10 @@ export const ServiceSelectionSlideout: React.FC<
       {/* Slideout */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
+          "fixed top-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
           isVisible ? "translate-x-0" : "translate-x-full",
         )}
+        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
       >
         <div className="relative w-screen max-w-md">
           <div className="flex h-full flex-col bg-white shadow-2xl">
