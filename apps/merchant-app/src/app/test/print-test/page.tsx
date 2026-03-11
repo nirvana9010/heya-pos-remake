@@ -93,42 +93,74 @@ function createMinimalReceipt() {
   };
 }
 
-/** All printer calls go through /api/print to avoid browser CORS issues */
-async function printerProxy(endpoint: string, payload?: object): Promise<string> {
-  const res = await fetch("/api/print", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ printerIp: DEFAULT_PRINTER_IP, endpoint, payload }),
-  });
+/**
+ * Submit print data via hidden form POST to bypass CORS.
+ * Form submissions are not subject to CORS preflight restrictions.
+ */
+function submitPrintForm(url: string, payload: object): void {
+  document.getElementById("_print_frame")?.remove();
 
-  const text = await res.text();
-  console.log("Print response:", res.status, text);
+  const iframe = document.createElement("iframe");
+  iframe.id = "_print_frame";
+  iframe.name = "_print_frame";
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
 
-  try {
-    const json = JSON.parse(text);
-    if (!res.ok || json.ok === false) {
-      throw new Error(json.error || json.message || `Print failed (${res.status})`);
-    }
-  } catch (e) {
-    if (e instanceof SyntaxError) {
-      if (!res.ok) throw new Error(text);
-      return text;
-    }
-    throw e;
-  }
-  return text;
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
+  form.target = "_print_frame";
+  form.enctype = "text/plain";
+  form.style.display = "none";
+
+  const json = JSON.stringify(payload);
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = json.slice(0, -1) + ',"_":"';
+  input.value = '"}';
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+
+  setTimeout(() => {
+    form.remove();
+    iframe.remove();
+  }, 10_000);
 }
 
 async function printReceipt(receipt: object) {
-  return printerProxy("/print", receipt);
+  const url = `http://${DEFAULT_PRINTER_IP}:9100/print`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(receipt),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text);
+    return text;
+  } catch (error: any) {
+    const isFetchBlocked =
+      error instanceof TypeError || /failed to fetch/i.test(error?.message);
+    if (!isFetchBlocked) throw error;
+
+    submitPrintForm(url, receipt);
+    return "Sent via form (CORS bypass)";
+  }
 }
 
 async function openCashDrawer() {
-  return printerProxy("/drawer");
+  const url = `http://${DEFAULT_PRINTER_IP}:9100/drawer`;
+  submitPrintForm(url, {});
+  return "Drawer command sent";
 }
 
 async function checkPrinterStatus() {
-  return printerProxy("/status");
+  const res = await fetch(`http://${DEFAULT_PRINTER_IP}:9100/status`);
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+  return text;
 }
 
 export default function PrintTestPage() {

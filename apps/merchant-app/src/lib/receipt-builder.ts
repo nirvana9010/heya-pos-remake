@@ -222,24 +222,81 @@ export function buildReceiptCommands(data: ReceiptData): { commands: Command[] }
   return { commands };
 }
 
-/**
- * Sends receipt to the printer via a server-side API proxy.
- * The browser cannot POST application/json cross-origin to the printer
- * (CORS preflight fails), so we route through /api/print which makes
- * the request from Node.js where there are no browser restrictions.
- */
 export async function printReceipt(printerIp: string, data: ReceiptData): Promise<void> {
   const payload = buildReceiptCommands(data);
+  const url = `http://${printerIp}:9100/print`;
+  const body = JSON.stringify(payload);
 
-  const response = await fetch("/api/print", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ printerIp, payload }),
-  });
+  try {
+    // Try normal fetch (works if printer server returns CORS headers)
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
 
-  const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Print failed: ${response.status} ${text}`);
+    }
 
-  if (!response.ok || (json && json.ok === false)) {
-    throw new Error(json?.error || `Print failed (${response.status})`);
+    const json = await response.json().catch(() => null);
+    if (json && json.ok === false) {
+      throw new Error(json.error || "Printer returned an error");
+    }
+  } catch (error: any) {
+    // CORS or mixed-content blocks fetch → use hidden form POST instead.
+    // Form submissions bypass CORS entirely (no preflight).
+    const isFetchBlocked =
+      error instanceof TypeError || /failed to fetch/i.test(error?.message);
+    if (!isFetchBlocked) throw error;
+
+    submitPrintForm(url, payload);
   }
+}
+
+/**
+ * Submits print data via a hidden HTML form POST.
+ * Form submissions are not subject to CORS restrictions, so this
+ * bypasses the preflight OPTIONS request that blocks fetch().
+ *
+ * With enctype="text/plain", the body is: name=value\r\n
+ * We split the JSON across name/value so the result is valid JSON:
+ *   name = '{"commands":[...],"_":"'
+ *   value = '"}'
+ *   body  = '{"commands":[...],"_":"="}\r\n'  ← valid JSON
+ */
+function submitPrintForm(url: string, payload: object): void {
+  // Clean up any previous print iframe
+  document.getElementById("_print_frame")?.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "_print_frame";
+  iframe.name = "_print_frame";
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
+  form.target = "_print_frame";
+  form.enctype = "text/plain";
+  form.style.display = "none";
+
+  const json = JSON.stringify(payload);
+  const input = document.createElement("input");
+  input.type = "hidden";
+  // Remove trailing "}" and append a dummy key that absorbs the "="
+  input.name = json.slice(0, -1) + ',"_":"';
+  input.value = '"}';
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+
+  // Clean up after printer has had time to process
+  setTimeout(() => {
+    form.remove();
+    iframe.remove();
+  }, 10_000);
 }
