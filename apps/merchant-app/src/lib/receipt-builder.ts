@@ -222,23 +222,24 @@ export function buildReceiptCommands(data: ReceiptData): { commands: Command[] }
   return { commands };
 }
 
+/**
+ * Sends receipt to the printer via a server-side API proxy.
+ * The browser cannot POST application/json cross-origin to the printer
+ * (CORS preflight fails), so we route through /api/print which makes
+ * the request from Node.js where there are no browser restrictions.
+ */
 export async function printReceipt(printerIp: string, data: ReceiptData): Promise<void> {
   const payload = buildReceiptCommands(data);
-  const url = `http://${printerIp}:9100/print`;
 
-  const response = await fetch(url, {
+  const response = await fetch("/api/print", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ printerIp, payload }),
   });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Print failed: ${response.status} ${text}`);
-  }
-
   const json = await response.json().catch(() => null);
-  if (json && json.ok === false) {
-    throw new Error(json.error || "Printer returned an error");
+
+  if (!response.ok || (json && json.ok === false)) {
+    throw new Error(json?.error || `Print failed (${response.status})`);
   }
 }

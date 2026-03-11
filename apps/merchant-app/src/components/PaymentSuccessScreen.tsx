@@ -92,6 +92,8 @@ export function PaymentSuccessScreen({
         description: "Receipt sent to printer",
       });
     } catch (error: any) {
+      // If printReceipt opened the browser print dialog as a fallback,
+      // it returns normally (no throw). If we get here, even that failed.
       console.error("Print failed:", error);
       toast({
         title: "Print failed",

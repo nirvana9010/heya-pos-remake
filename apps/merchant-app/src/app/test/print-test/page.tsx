@@ -20,7 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-const PRINT_SERVER_URL = "http://127.0.0.1:9100";
+const DEFAULT_PRINTER_IP = "127.0.0.1";
 
 // Helper to create a print line
 function line(
@@ -93,26 +93,25 @@ function createMinimalReceipt() {
   };
 }
 
-async function printReceipt(receipt: object) {
-  const res = await fetch(`${PRINT_SERVER_URL}/print`, {
+/** All printer calls go through /api/print to avoid browser CORS issues */
+async function printerProxy(endpoint: string, payload?: object): Promise<string> {
+  const res = await fetch("/api/print", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(receipt),
+    body: JSON.stringify({ printerIp: DEFAULT_PRINTER_IP, endpoint, payload }),
   });
 
   const text = await res.text();
   console.log("Print response:", res.status, text);
-  if (!res.ok) throw new Error(text);
 
-  // Check if response indicates failure
   try {
     const json = JSON.parse(text);
-    if (json.ok === false) {
-      throw new Error(json.error || json.message || "Print failed");
+    if (!res.ok || json.ok === false) {
+      throw new Error(json.error || json.message || `Print failed (${res.status})`);
     }
   } catch (e) {
-    // If not JSON, just return the text
     if (e instanceof SyntaxError) {
+      if (!res.ok) throw new Error(text);
       return text;
     }
     throw e;
@@ -120,25 +119,16 @@ async function printReceipt(receipt: object) {
   return text;
 }
 
-async function openCashDrawer() {
-  const res = await fetch(`${PRINT_SERVER_URL}/drawer`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
+async function printReceipt(receipt: object) {
+  return printerProxy("/print", receipt);
+}
 
-  const text = await res.text();
-  if (!res.ok) throw new Error(text);
-  return text;
+async function openCashDrawer() {
+  return printerProxy("/drawer");
 }
 
 async function checkPrinterStatus() {
-  const res = await fetch(`${PRINT_SERVER_URL}/status`, {
-    method: "GET",
-  });
-
-  const text = await res.text();
-  if (!res.ok) throw new Error(text);
-  return text;
+  return printerProxy("/status");
 }
 
 export default function PrintTestPage() {
@@ -200,7 +190,7 @@ export default function PrintTestPage() {
         <div className="flex items-center gap-2 mt-4">
           <span className="text-sm text-muted-foreground">Print Server:</span>
           <code className="text-sm bg-muted px-2 py-1 rounded">
-            {PRINT_SERVER_URL}
+            {DEFAULT_PRINTER_IP}:9100
           </code>
           {connectionStatus === "connected" && (
             <span className="flex items-center gap-1 text-sm text-green-600">
