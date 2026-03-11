@@ -69,13 +69,16 @@ export function StaffSessionProvider({
   lockStateRef.current = lockState;
 
   // Determine if feature should be active
+  // PIN lock only applies to staff-role logins on shared devices, not managers/owners
   const isOwner = user?.type === "merchant" || user?.permissions?.includes("*");
-  const isMerchantUser = user?.type === "merchant_user";
+  const isStaffRole =
+    user?.type === "merchant_user" &&
+    (user?.role === "Staff" || user?.role === "staff");
   const settingEnabled = merchant?.settings?.staffPinLockEnabled === true;
 
   // Check feature eligibility on mount
   useEffect(() => {
-    if (!settingEnabled || !isMerchantUser || isOwner) {
+    if (!settingEnabled || !isStaffRole || isOwner) {
       setFeatureEnabled(false);
       setFeatureChecked(true);
       return;
@@ -104,7 +107,7 @@ export function StaffSessionProvider({
     return () => {
       cancelled = true;
     };
-  }, [settingEnabled, isMerchantUser, isOwner]);
+  }, [settingEnabled, isStaffRole, isOwner]);
 
   // Restore session from sessionStorage
   useEffect(() => {
