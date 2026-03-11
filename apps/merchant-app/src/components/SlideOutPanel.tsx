@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@heya-pos/ui";
 import { Button } from "@heya-pos/ui";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 
 interface SlideOutPanelProps {
   isOpen: boolean;
@@ -49,6 +50,10 @@ export function SlideOutPanel({
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { isCompact, isKeyboardOpen } = useCompactViewport();
+
+  // Full-screen mode on compact viewports (landscape tablet / POS)
+  const fullScreen = isCompact || isKeyboardOpen;
 
   // Handle opening/closing animations
   useEffect(() => {
@@ -133,8 +138,15 @@ export function SlideOutPanel({
 
       {/* Panel Container - prevents shadow overflow */}
       <div
-        className="fixed top-0 right-0 z-50 overflow-hidden pointer-events-none"
-        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
+        className={cn(
+          "fixed z-50 overflow-hidden pointer-events-none",
+          fullScreen ? "inset-0" : "top-0 right-0",
+        )}
+        style={
+          fullScreen
+            ? { height: "var(--visual-viewport-height, 100dvh)" }
+            : { height: "var(--visual-viewport-height, 100dvh)" }
+        }
       >
         {/* Panel */}
         <div
@@ -143,26 +155,40 @@ export function SlideOutPanel({
             "h-full bg-white shadow-xl flex flex-col pointer-events-auto",
             "transform transition-transform duration-300 ease-out",
             isVisible ? "translate-x-0" : "translate-x-full",
-            widthClasses[width],
-            "w-[90vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw]",
-            width === "narrow" && "max-w-md",
-            width === "medium" && "max-w-2xl",
-            width === "wide" && "max-w-4xl",
-            width === "full" && "max-w-none w-full",
+            fullScreen
+              ? "w-full max-w-none"
+              : cn(
+                  widthClasses[width],
+                  "w-[90vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw]",
+                  width === "narrow" && "max-w-md",
+                  width === "medium" && "max-w-2xl",
+                  width === "wide" && "max-w-4xl",
+                  width === "full" && "max-w-none w-full",
+                ),
             className,
           )}
           style={{ display: shouldRender || preserveState ? "flex" : "none" }}
         >
           {/* Header */}
           {(title || subtitle) && (
-            <div className="flex items-start justify-between p-6 border-b border-gray-200">
+            <div
+              className={cn(
+                "flex items-start justify-between border-b border-gray-200",
+                isKeyboardOpen ? "p-3" : "p-6",
+              )}
+            >
               <div className="flex-1">
                 {title && (
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2
+                    className={cn(
+                      "font-semibold text-gray-900",
+                      isKeyboardOpen ? "text-base" : "text-xl",
+                    )}
+                  >
                     {title}
                   </h2>
                 )}
-                {subtitle && (
+                {!isKeyboardOpen && subtitle && (
                   <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
                 )}
               </div>
@@ -178,12 +204,18 @@ export function SlideOutPanel({
           )}
 
           {/* Content */}
-          <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
+          <div
+            ref={contentRef}
+            className={cn(
+              "flex-1 overflow-y-auto",
+              isKeyboardOpen ? "p-3" : "p-6",
+            )}
+          >
             {children}
           </div>
 
-          {/* Footer */}
-          {footer && (
+          {/* Footer — hidden when keyboard is open to maximize space */}
+          {footer && !isKeyboardOpen && (
             <div className="border-t border-gray-200 p-6 bg-gray-50">
               {footer}
             </div>

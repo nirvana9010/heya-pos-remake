@@ -17,6 +17,7 @@ import { apiClient } from "../lib/api-client";
 import { WALK_IN_CUSTOMER } from "../lib/constants/customer";
 import type { Customer } from "./customers";
 import { cn } from "@heya-pos/ui";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 
 interface CustomerSelectionSlideoutProps {
   isOpen: boolean;
@@ -46,6 +47,10 @@ export const CustomerSelectionSlideout: React.FC<
   const [loyaltyStatus, setLoyaltyStatus] = useState<Record<string, any>>({});
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const { isCompact, isKeyboardOpen } = useCompactViewport();
+
+  // Full-screen mode on compact viewports (landscape tablet / POS)
+  const fullScreen = isCompact || isKeyboardOpen;
 
   // New customer form state
   const [newCustomerName, setNewCustomerName] = useState("");
@@ -235,19 +240,46 @@ export const CustomerSelectionSlideout: React.FC<
         onClick={onClose}
       />
 
-      {/* Slideout */}
+      {/* Slideout — full-screen on compact viewports */}
       <div
         className={cn(
-          "fixed top-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out z-[60]",
-          isVisible ? "translate-x-0" : "translate-x-full",
+          "fixed z-[60]",
+          fullScreen
+            ? cn(
+                "inset-0 transition-opacity duration-200",
+                isVisible ? "opacity-100" : "opacity-0",
+              )
+            : cn(
+                "top-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out",
+                isVisible ? "translate-x-0" : "translate-x-full",
+              ),
         )}
-        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
+        style={
+          fullScreen
+            ? { height: "var(--visual-viewport-height, 100dvh)" }
+            : { height: "var(--visual-viewport-height, 100dvh)" }
+        }
       >
-        <div className="relative w-screen max-w-md">
+        <div
+          className={cn(
+            "relative",
+            fullScreen ? "w-full h-full" : "w-screen max-w-md",
+          )}
+        >
           <div className="flex h-full flex-col bg-white shadow-2xl">
-            {/* Header */}
-            <div className="shrink-0 bg-white border-b px-6 py-4 z-10">
-              <div className="flex items-center justify-between mb-3">
+            {/* Header — compact when keyboard is open */}
+            <div
+              className={cn(
+                "shrink-0 bg-white border-b z-10",
+                isKeyboardOpen ? "px-4 py-2" : "px-6 py-4",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex items-center justify-between",
+                  isKeyboardOpen ? "mb-2" : "mb-3",
+                )}
+              >
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
@@ -259,7 +291,12 @@ export const CustomerSelectionSlideout: React.FC<
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2
+                    className={cn(
+                      "font-semibold text-gray-900",
+                      isKeyboardOpen ? "text-base" : "text-xl",
+                    )}
+                  >
                     {showCreateForm ? "New Customer" : "Select Customer"}
                   </h2>
                 </div>
@@ -282,7 +319,7 @@ export const CustomerSelectionSlideout: React.FC<
                     placeholder="Search by name, email, or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className={cn("pl-10", isKeyboardOpen && "h-9 text-sm")}
                   />
                 </div>
               )}
@@ -291,7 +328,10 @@ export const CustomerSelectionSlideout: React.FC<
             {/* Content */}
             <div
               ref={contentRef}
-              className="flex-1 min-h-0 overflow-y-auto px-6 py-4"
+              className={cn(
+                "flex-1 min-h-0 overflow-y-auto",
+                isKeyboardOpen ? "px-4 py-2" : "px-6 py-4",
+              )}
             >
               {showCreateForm ? (
                 // Create Customer Form
@@ -355,7 +395,8 @@ export const CustomerSelectionSlideout: React.FC<
                   <button
                     onClick={handleSelectWalkIn}
                     className={cn(
-                      "w-full p-4 text-left border rounded-lg transition-all mb-4",
+                      "w-full text-left border rounded-lg transition-all mb-4",
+                      isKeyboardOpen ? "p-3" : "p-4",
                       isCurrentWalkIn
                         ? "bg-teal-50 border-teal-300"
                         : "bg-gray-50 border-gray-200 hover:border-teal-300 hover:bg-teal-50",
@@ -365,13 +406,14 @@ export const CustomerSelectionSlideout: React.FC<
                       <div className="flex items-center gap-3">
                         <div
                           className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center",
+                            "rounded-full flex items-center justify-center",
+                            isKeyboardOpen ? "w-8 h-8" : "w-10 h-10",
                             isCurrentWalkIn ? "bg-teal-600" : "bg-gray-300",
                           )}
                         >
                           <UserPlus
                             className={cn(
-                              "h-5 w-5",
+                              isKeyboardOpen ? "h-4 w-4" : "h-5 w-5",
                               isCurrentWalkIn ? "text-white" : "text-gray-600",
                             )}
                           />
@@ -380,9 +422,11 @@ export const CustomerSelectionSlideout: React.FC<
                           <h4 className="font-medium text-gray-900">
                             Walk-in Customer
                           </h4>
-                          <p className="text-sm text-gray-600">
-                            No customer information required
-                          </p>
+                          {!isKeyboardOpen && (
+                            <p className="text-sm text-gray-600">
+                              No customer information required
+                            </p>
+                          )}
                         </div>
                       </div>
                       {isCurrentWalkIn && (
@@ -441,7 +485,11 @@ export const CustomerSelectionSlideout: React.FC<
 
                   {/* Customer Results */}
                   {!loading && customers.length > 0 && (
-                    <div className="space-y-2">
+                    <div
+                      className={cn(
+                        isKeyboardOpen ? "space-y-1" : "space-y-2",
+                      )}
+                    >
                       {customers.map((customer) => {
                         const isSelected =
                           currentCustomer?.id === customer.id &&
@@ -459,7 +507,8 @@ export const CustomerSelectionSlideout: React.FC<
                             key={customer.id}
                             onClick={() => handleSelectCustomer(customer)}
                             className={cn(
-                              "w-full p-4 text-left border rounded-lg transition-all",
+                              "w-full text-left border rounded-lg transition-all",
+                              isKeyboardOpen ? "p-3" : "p-4",
                               isSelected
                                 ? "bg-teal-50 border-teal-300"
                                 : "bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50",
@@ -467,43 +516,52 @@ export const CustomerSelectionSlideout: React.FC<
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 min-w-0">
-                                <div
-                                  className={cn(
-                                    "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
-                                    isSelected ? "bg-teal-600" : "bg-gray-200",
-                                  )}
-                                >
-                                  <User
+                                {!isKeyboardOpen && (
+                                  <div
                                     className={cn(
-                                      "h-5 w-5",
-                                      isSelected
-                                        ? "text-white"
-                                        : "text-gray-600",
+                                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                                      isSelected ? "bg-teal-600" : "bg-gray-200",
                                     )}
-                                  />
-                                </div>
+                                  >
+                                    <User
+                                      className={cn(
+                                        "h-5 w-5",
+                                        isSelected
+                                          ? "text-white"
+                                          : "text-gray-600",
+                                      )}
+                                    />
+                                  </div>
+                                )}
                                 <div className="min-w-0">
                                   <h4 className="font-medium text-gray-900 truncate">
                                     {displayName}
                                   </h4>
-                                  <div className="flex flex-col gap-1 mt-1">
-                                    {customer.email && (
-                                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                                        <Mail className="h-3 w-3" />
-                                        <span className="truncate">
-                                          {customer.email}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {customer.phone && (
-                                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                                        <Phone className="h-3 w-3" />
-                                        <span>{customer.phone}</span>
-                                      </div>
-                                    )}
-                                  </div>
+                                  {!isKeyboardOpen && (
+                                    <div className="flex flex-col gap-1 mt-1">
+                                      {customer.email && (
+                                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                                          <Mail className="h-3 w-3" />
+                                          <span className="truncate">
+                                            {customer.email}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {customer.phone && (
+                                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                                          <Phone className="h-3 w-3" />
+                                          <span>{customer.phone}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {isKeyboardOpen && (
+                                    <p className="text-xs text-gray-500 truncate">
+                                      {customer.phone || customer.email || ""}
+                                    </p>
+                                  )}
                                   {/* Loyalty Badge */}
-                                  {hasReward && (
+                                  {!isKeyboardOpen && hasReward && (
                                     <div className="flex items-center gap-1 mt-1">
                                       <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
                                         {loyaltyType === "VISITS" ? (

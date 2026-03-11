@@ -28,6 +28,7 @@ import {
   WALK_IN_CUSTOMER,
   isWalkInCustomer,
 } from "../lib/constants/customer";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 
@@ -47,6 +48,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
   onSaleComplete,
 }) => {
   const { merchant } = useAuth();
+  const { isCompact, isKeyboardOpen } = useCompactViewport();
+  const fullScreen = isCompact || isKeyboardOpen;
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,
@@ -570,20 +573,43 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
         onClick={onClose}
       />
 
-      {/* Slideout */}
+      {/* Slideout — full-screen on compact viewports */}
       <div
         className={cn(
-          "fixed top-0 right-0 flex max-w-full pl-10 transform transition-transform z-50",
-          isOpen ? "translate-x-0" : "translate-x-full",
+          "fixed z-50",
+          fullScreen
+            ? cn(
+                "inset-0 transition-opacity duration-200",
+                isOpen ? "opacity-100" : "opacity-0",
+              )
+            : cn(
+                "top-0 right-0 flex max-w-full pl-10 transform transition-transform",
+                isOpen ? "translate-x-0" : "translate-x-full",
+              ),
         )}
         style={{ height: "var(--visual-viewport-height, 100dvh)" }}
       >
-        <div className="pointer-events-auto relative w-screen max-w-lg">
+        <div
+          className={cn(
+            "pointer-events-auto relative",
+            fullScreen ? "w-full h-full" : "w-screen max-w-lg",
+          )}
+        >
           <div className="flex h-full flex-col bg-white shadow-xl">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-white border-b px-6 py-4">
+            <div
+              className={cn(
+                "sticky top-0 z-20 bg-white border-b",
+                isKeyboardOpen ? "px-4 py-2" : "px-6 py-4",
+              )}
+            >
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-900">
+                <h2
+                  className={cn(
+                    "font-semibold text-gray-900",
+                    isKeyboardOpen ? "text-lg" : "text-2xl",
+                  )}
+                >
                   Quick Sale
                 </h2>
                 <Button
