@@ -113,7 +113,7 @@ export default function CategoryDialog({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md animate-slide-up">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md animate-slide-up overflow-y-auto" style={{ maxHeight: "calc(var(--visual-viewport-height, 100dvh) - 2rem)" }}>
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold">
