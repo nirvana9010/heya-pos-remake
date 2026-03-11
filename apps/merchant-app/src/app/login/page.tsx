@@ -119,8 +119,15 @@ export default function LoginPage() {
     );
   }
 
+  // Scroll focused input into view above the on-screen keyboard
+  const scrollIntoView = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  };
+
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gray-50 px-4 py-6 sm:items-center sm:px-6">
+    <div className="min-h-[100dvh] flex items-start justify-center bg-gray-50 px-4 py-6 overflow-y-auto">
       <Card className="w-full max-w-md">
         <CardHeader className="pb-5">
           <div className="flex items-center gap-2 mb-2">
@@ -157,6 +164,7 @@ export default function LoginPage() {
                 autoFocus
                 autoComplete="email"
                 disabled={isSubmitting}
+                onFocus={scrollIntoView}
                 className="text-base sm:text-sm"
               />
             </div>
@@ -175,6 +183,7 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 disabled={isSubmitting}
+                onFocus={scrollIntoView}
                 className="text-base sm:text-sm"
               />
             </div>
