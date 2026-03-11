@@ -12,6 +12,7 @@ import { Badge } from "@heya-pos/ui";
 import { cn } from "@heya-pos/ui";
 import { useToast } from "@heya-pos/ui";
 import { formatName, formatInitials } from "@heya-pos/utils";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import {
   Mail,
   Phone,
@@ -66,6 +67,8 @@ export function CustomerDetailsDialog({
   const { toast } = useToast();
   const router = useRouter();
   const { can } = usePermissions();
+  const { isCompact, isKeyboardOpen } = useCompactViewport();
+  const fullScreen = isCompact || isKeyboardOpen;
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -258,9 +261,21 @@ export function CustomerDetailsDialog({
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-[90vw] max-w-md translate-x-[-50%] translate-y-[-50%] bg-white shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg">
+        <DialogPrimitive.Content
+          className={cn(
+            "fixed z-50 bg-white shadow-lg duration-200 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            fullScreen
+              ? "inset-0"
+              : "left-[50%] top-[50%] w-[90vw] max-w-md translate-x-[-50%] translate-y-[-50%] data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+          )}
+          style={{
+            maxHeight: fullScreen
+              ? "var(--visual-viewport-height, 100dvh)"
+              : "calc(var(--visual-viewport-height, 100dvh) - 2rem)",
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 pb-4">
+          <div className={cn("flex items-center justify-between shrink-0", isKeyboardOpen ? "p-3 pb-2" : "p-6 pb-4")}>
             <div className="flex items-center gap-3">
               <div
                 className={cn(
@@ -316,8 +331,10 @@ export function CustomerDetailsDialog({
             </DialogPrimitive.Close>
           </div>
 
+          {/* Scrollable body */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-3 px-6 pb-4">
+          <div className={cn("grid grid-cols-3 gap-3 pb-4", isKeyboardOpen ? "px-3" : "px-6")}>
             <div className="text-center p-3 bg-teal-50 rounded-lg">
               <Calendar className="h-5 w-5 text-teal-600 mx-auto mb-1" />
               <p className="text-lg font-semibold">{customer.totalVisits}</p>
@@ -344,7 +361,7 @@ export function CustomerDetailsDialog({
           </div>
 
           {/* Contact Info */}
-          <div className="px-6 pb-4 space-y-3">
+          <div className={cn("pb-4 space-y-3", isKeyboardOpen ? "px-3" : "px-6")}>
             <div className="space-y-2">
               <Label className="text-sm">Contact Information</Label>
               {isEditing ? (
@@ -569,8 +586,10 @@ export function CustomerDetailsDialog({
             )}
           </div>
 
+          </div>{/* end scrollable body */}
+
           {/* Actions */}
-          <div className="flex items-center justify-between p-6 pt-4 border-t bg-gray-50">
+          <div className={cn("flex items-center justify-between border-t bg-gray-50 shrink-0", isKeyboardOpen ? "p-3" : "p-6 pt-4")}>
             <Button
               variant="ghost"
               onClick={() => {
