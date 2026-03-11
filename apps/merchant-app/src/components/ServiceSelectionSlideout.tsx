@@ -20,8 +20,9 @@ export const ServiceSelectionSlideout: React.FC<
   const [shouldRender, setShouldRender] = useState(false);
   const { isCompact, isKeyboardOpen } = useCompactViewport();
 
-  // Full-screen mode on compact viewports (landscape tablet / POS)
-  const fullScreen = isCompact || isKeyboardOpen;
+  // Full-screen only on inherently compact viewports — never toggle
+  // layout mode when keyboard opens mid-interaction.
+  const fullScreen = isCompact;
 
   // Handle opening/closing animations
   useEffect(() => {

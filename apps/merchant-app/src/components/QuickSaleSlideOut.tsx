@@ -49,7 +49,9 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
 }) => {
   const { merchant } = useAuth();
   const { isCompact, isKeyboardOpen } = useCompactViewport();
-  const fullScreen = isCompact || isKeyboardOpen;
+  // Full-screen only on inherently compact viewports — never toggle
+  // layout mode when keyboard opens mid-interaction.
+  const fullScreen = isCompact;
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,

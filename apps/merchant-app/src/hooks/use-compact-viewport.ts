@@ -45,7 +45,9 @@ export function useCompactViewport(): CompactViewport {
       const shrinkRatio = 1 - currentHeight / initialHeight;
 
       setState({
-        isCompact: currentHeight < COMPACT_THRESHOLD,
+        // Use initialHeight so isCompact is stable — it reflects
+        // the device form factor, not transient keyboard state.
+        isCompact: initialHeight < COMPACT_THRESHOLD,
         isKeyboardOpen: shrinkRatio > KEYBOARD_SHRINK_RATIO,
         viewportHeight: currentHeight,
       });

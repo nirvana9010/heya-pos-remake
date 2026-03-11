@@ -68,7 +68,7 @@ export function CustomerDetailsDialog({
   const router = useRouter();
   const { can } = usePermissions();
   const { isCompact, isKeyboardOpen } = useCompactViewport();
-  const fullScreen = isCompact || isKeyboardOpen;
+  const fullScreen = isCompact;
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -272,6 +272,9 @@ export function CustomerDetailsDialog({
             maxHeight: fullScreen
               ? "var(--visual-viewport-height, 100dvh)"
               : "calc(var(--visual-viewport-height, 100dvh) - 2rem)",
+            ...(!fullScreen && {
+              top: "calc(var(--visual-viewport-height, 100dvh) / 2)",
+            }),
           }}
         >
           {/* Header */}

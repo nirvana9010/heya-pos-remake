@@ -52,8 +52,10 @@ export function SlideOutPanel({
   const contentRef = useRef<HTMLDivElement>(null);
   const { isCompact, isKeyboardOpen } = useCompactViewport();
 
-  // Full-screen mode on compact viewports (landscape tablet / POS)
-  const fullScreen = isCompact || isKeyboardOpen;
+  // Full-screen mode only on inherently compact viewports (landscape POS
+  // with very limited vertical space). Keyboard state drives content
+  // compaction only — never toggles layout mode mid-interaction.
+  const fullScreen = isCompact;
 
   // Handle opening/closing animations
   useEffect(() => {
