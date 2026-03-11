@@ -129,7 +129,20 @@ export async function middleware(request: NextRequest) {
 
         // Only redirect if token is valid and not expired
         if (payload && payload.exp && payload.exp > Date.now() / 1000) {
-          // Redirect based on package type
+          // If there's a "from" param, it means the AuthGuard sent the user
+          // here — the client-side auth state is broken even though the cookie
+          // is valid (e.g. localStorage cleared). Clear the cookie and let
+          // them reach the login page to re-authenticate cleanly.
+          const from = request.nextUrl.searchParams.get("from");
+          if (from) {
+            const response = NextResponse.next();
+            response.cookies.delete("access_token");
+            response.cookies.delete("authToken");
+            return response;
+          }
+
+          // No "from" param — user navigated to /login directly while
+          // already authenticated. Redirect to the right dashboard page.
           const destination =
             payload.hasCheckInOnly === true ? "/check-ins" : "/calendar";
           return NextResponse.redirect(new URL(destination, request.url));
