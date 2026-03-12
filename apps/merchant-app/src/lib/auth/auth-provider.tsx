@@ -183,6 +183,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const initializeAuth = async () => {
     try {
+      // If we're on /login with a "from" param, the user was redirected here
+      // because server-side auth (middleware) or AuthGuard detected broken auth.
+      // Clear any stale localStorage data to prevent the login page from
+      // seeing isAuthenticated=true and redirecting back — which causes an
+      // infinite loop (middleware clears cookie, but localStorage persists).
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        if (url.pathname === "/login" && url.searchParams.has("from")) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("merchant");
+          document.cookie =
+            "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+          document.cookie =
+            "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+          setAuthState((prev) => ({ ...prev, isLoading: false }));
+          return;
+        }
+      }
+
       const userStr = localStorage.getItem("user");
       const merchantStr = localStorage.getItem("merchant");
       const token = localStorage.getItem("access_token"); // May or may not exist with cookie auth

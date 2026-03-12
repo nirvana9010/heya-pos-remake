@@ -2,14 +2,11 @@
 
 import { useState, useEffect } from "react";
 
-/** Height below which we consider the viewport "compact" (landscape tablet) */
-const COMPACT_THRESHOLD = 500;
-
 /** If viewport shrinks by more than this fraction, the keyboard is open */
 const KEYBOARD_SHRINK_RATIO = 0.3;
 
 interface CompactViewport {
-  /** Landscape tablet or similar — limited vertical space */
+  /** Landscape orientation — width exceeds height */
   isCompact: boolean;
   /** On-screen keyboard is currently visible */
   isKeyboardOpen: boolean;
@@ -18,7 +15,7 @@ interface CompactViewport {
 }
 
 /**
- * Detects compact viewport conditions (landscape tablet, on-screen keyboard).
+ * Detects landscape orientation and on-screen keyboard state.
  * Uses the VisualViewport API which reflects the actual visible area above
  * the keyboard, unlike window.innerHeight / 100vh which don't change.
  */
@@ -32,9 +29,6 @@ export function useCompactViewport(): CompactViewport {
   useEffect(() => {
     const vv = window.visualViewport;
     // Capture the initial height before any keyboard opens.
-    // Use the larger of visualViewport and innerHeight to get the
-    // true "no keyboard" height (visualViewport may already be
-    // smaller if the page loaded with keyboard open on some devices).
     const initialHeight = Math.max(
       vv?.height ?? window.innerHeight,
       window.innerHeight,
@@ -45,9 +39,7 @@ export function useCompactViewport(): CompactViewport {
       const shrinkRatio = 1 - currentHeight / initialHeight;
 
       setState({
-        // Use initialHeight so isCompact is stable — it reflects
-        // the device form factor, not transient keyboard state.
-        isCompact: initialHeight < COMPACT_THRESHOLD,
+        isCompact: window.innerWidth > window.innerHeight,
         isKeyboardOpen: shrinkRatio > KEYBOARD_SHRINK_RATIO,
         viewportHeight: currentHeight,
       });
