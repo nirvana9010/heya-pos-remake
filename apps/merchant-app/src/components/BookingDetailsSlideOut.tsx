@@ -24,6 +24,7 @@ import {
   Plus,
   Minus,
   Heart,
+  Printer,
 } from "lucide-react";
 import { Button } from "@heya-pos/ui";
 import { Input } from "@heya-pos/ui";
@@ -46,7 +47,8 @@ import { BookingActions } from "./BookingActions";
 import { PaymentDialogPortal } from "./PaymentDialogPortal";
 import { displayFormats } from "../lib/date-utils";
 import { apiClient } from "@/lib/api-client";
-import { usePermissions } from "@/lib/auth/auth-provider";
+import { usePermissions, useAuth } from "@/lib/auth/auth-provider";
+import { printReceipt } from "@/lib/receipt-builder";
 import { ServiceSelectionSlideout } from "./ServiceSelectionSlideout";
 import { CustomerSelectionSlideout } from "./CustomerSelectionSlideout";
 import { FifteenMinuteTimeSelect } from "./FifteenMinuteTimeSelect";
@@ -200,8 +202,10 @@ function BookingDetailsSlideOutComponent({
   }, [booking]);
 
   const { toast } = useToast();
+  const { merchant } = useAuth();
   const { refreshNotifications } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -898,6 +902,72 @@ function BookingDetailsSlideOutComponent({
     }
   };
 
+  const handlePrintReceipt = async () => {
+    setIsPrinting(true);
+    try {
+      const printerIp = merchant?.settings?.printerIp || "127.0.0.1";
+
+      let profile: any = null;
+      try {
+        profile = await apiClient.getMerchantProfile();
+      } catch {
+        // Fall back to auth context
+      }
+
+      const location = profile?.locations?.find((l: any) => l.isActive) || profile?.locations?.[0] || merchant?.locations?.[0];
+      const merchantInfo = {
+        name: profile?.name || merchant?.name || "Store",
+        phone: location?.phone || profile?.phone || undefined,
+        abn: profile?.abn || undefined,
+        address: location?.address || undefined,
+        suburb: location?.suburb || undefined,
+        state: location?.state || undefined,
+        postalCode: location?.postalCode || undefined,
+      };
+
+      const paidAmount = booking.paidAmount || associatedOrder?.totalAmount || booking.totalPrice;
+      const items = associatedOrder?.items?.length
+        ? associatedOrder.items.map((item: any) => ({
+            description: item.description || item.name,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            discount: item.discount ? Number(item.discount) : undefined,
+            total: item.total ? Number(item.total) : undefined,
+          }))
+        : (booking.services || []).map((s: any) => ({
+            description: s.name || s.serviceName || booking.serviceName,
+            quantity: 1,
+            unitPrice: Number(s.price || s.adjustedPrice || 0),
+          }));
+
+      const payments = associatedOrder?.payments?.length
+        ? associatedOrder.payments.map((p: any) => ({ method: p.method, amount: Number(p.amount) }))
+        : [{ method: "CARD", amount: paidAmount }];
+
+      await printReceipt(printerIp, {
+        merchant: merchantInfo,
+        items,
+        subtotal: paidAmount,
+        total: paidAmount,
+        payments,
+        bookingNumber: booking.bookingNumber,
+        customerName: booking.customerName,
+        date: new Date(booking.startTime || booking.date),
+      });
+
+      toast({ title: "Receipt printed", description: "Receipt sent to printer" });
+    } catch (error: any) {
+      console.error("Print failed:", error);
+      toast({
+        title: "Print failed",
+        description: error?.message || "Could not connect to printer. Check printer IP in Settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   return (
     <SlideOutPanel isOpen={isOpen} onClose={onClose} title="Booking Details">
       <div className="flex flex-col h-full relative">
@@ -1581,6 +1651,19 @@ function BookingDetailsSlideOutComponent({
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              {booking.isPaid && (
+                <Button
+                  variant="outline"
+                  onClick={handlePrintReceipt}
+                  disabled={isPrinting}
+                >
+                  {isPrinting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Printer className="h-4 w-4" />
+                  )}
                 </Button>
               )}
             </div>

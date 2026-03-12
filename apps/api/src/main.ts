@@ -105,7 +105,7 @@ async function bootstrap() {
   );
 
   // Enable CORS
-  const allowedOrigins =
+  const allowedOriginsList =
     process.env.NODE_ENV === "production"
       ? (
           process.env.FRONTEND_URLS ||
@@ -114,10 +114,23 @@ async function bootstrap() {
         )
           .split(",")
           .map((url) => url.trim())
-      : true;
+      : null;
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin:
+      process.env.NODE_ENV !== "production"
+        ? true
+        : (origin, callback) => {
+            // Allow requests with no origin (mobile apps, curl, etc.)
+            if (!origin) return callback(null, true);
+            // Check explicit list
+            if (allowedOriginsList.includes(origin))
+              return callback(null, true);
+            // Allow Vercel preview deployments
+            if (origin.endsWith(".vercel.app"))
+              return callback(null, true);
+            callback(new Error(`CORS: ${origin} not allowed`));
+          },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
