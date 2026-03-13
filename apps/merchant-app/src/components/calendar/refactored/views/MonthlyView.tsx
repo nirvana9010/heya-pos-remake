@@ -70,10 +70,7 @@ export function MonthlyView({ onBookingClick, onDayClick }: MonthlyViewProps) {
 
   return (
     <div
-      className={cn("flex-1 overflow-auto", isMobile ? "p-1" : "p-4")}
-      style={{
-        maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
-      }}
+      className={cn("flex-1 overflow-auto min-h-0", isMobile ? "p-1" : "p-4")}
     >
       <div className="bg-white rounded-lg shadow-sm border">
         {/* Day headers */}

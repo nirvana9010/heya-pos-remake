@@ -154,10 +154,7 @@ export function WeeklyView({ onBookingClick }: WeeklyViewProps) {
 
       {/* Scrollable content area */}
       <div
-        className="flex-1 overflow-auto"
-        style={{
-          maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
-        }}
+        className="flex-1 overflow-auto min-h-0"
       >
         <div className={cn("flex", !isMobile && "min-w-[860px]")}>
           {/* Days columns with stacked bookings */}

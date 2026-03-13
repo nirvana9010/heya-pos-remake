@@ -1625,7 +1625,7 @@ function CalendarContent() {
     <TooltipProvider>
       <div
         ref={rootRef}
-        className="min-h-screen flex flex-col bg-gray-50"
+        className="h-full flex flex-col bg-gray-50 overflow-hidden"
         style={
           {
             "--calendar-topbar-offset": "120px",

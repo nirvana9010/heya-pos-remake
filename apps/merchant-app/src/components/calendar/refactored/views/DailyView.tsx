@@ -1206,10 +1206,7 @@ export function DailyView({
 
       <div
         ref={calendarScrollRef}
-        className="flex-1 overflow-x-auto overflow-y-auto"
-        style={{
-          maxHeight: "calc(100vh - var(--calendar-topbar-offset, 160px))",
-        }}
+        className="flex-1 overflow-x-auto overflow-y-auto min-h-0"
       >
         <div className={isMobile ? "" : "min-w-[600px]"}>
           {/* Desktop: sticky staff column header */}
