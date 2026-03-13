@@ -49,6 +49,8 @@ export function SlideOutPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  // Whether the container should cover the viewport (true during open + close animation)
+  const [isContainerExpanded, setIsContainerExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { isCompact, isKeyboardOpen } = useCompactViewport();
 
@@ -61,18 +63,28 @@ export function SlideOutPanel({
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
+      setIsContainerExpanded(true);
       // Small delay to ensure DOM is ready for animation
       requestAnimationFrame(() => {
         setIsVisible(true);
       });
     } else {
       setIsVisible(false);
+      // Collapse the container after the slide-out animation finishes
+      // so it no longer blocks touch events on the content beneath.
+      const collapseTimer = setTimeout(() => {
+        setIsContainerExpanded(false);
+      }, 300);
       if (!preserveState) {
         const timer = setTimeout(() => {
           setShouldRender(false);
         }, 300); // Match animation duration
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(collapseTimer);
+        };
       }
+      return () => clearTimeout(collapseTimer);
     }
   }, [isOpen, preserveState]);
 
@@ -138,17 +150,15 @@ export function SlideOutPanel({
         />
       )}
 
-      {/* Panel Container - prevents shadow overflow */}
+      {/* Panel Container - prevents shadow overflow.
+          In fullscreen mode, only cover viewport while open/animating.
+          A persistent fixed inset-0 element blocks touch scrolling on mobile. */}
       <div
         className={cn(
           "fixed z-50 overflow-hidden pointer-events-none",
-          fullScreen ? "inset-0" : "top-0 right-0",
+          fullScreen && isContainerExpanded ? "inset-0" : "top-0 right-0",
         )}
-        style={
-          fullScreen
-            ? { height: "var(--visual-viewport-height, 100dvh)" }
-            : { height: "var(--visual-viewport-height, 100dvh)" }
-        }
+        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
       >
         {/* Panel */}
         <div
