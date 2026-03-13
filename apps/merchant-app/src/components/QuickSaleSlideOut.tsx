@@ -593,7 +593,8 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
       >
         <div
           className={cn(
-            "pointer-events-auto relative",
+            "relative",
+            isOpen ? "pointer-events-auto" : "pointer-events-none",
             fullScreen ? "w-full h-full" : "w-screen max-w-lg",
           )}
         >

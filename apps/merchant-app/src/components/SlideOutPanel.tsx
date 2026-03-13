@@ -164,7 +164,8 @@ export function SlideOutPanel({
         <div
           ref={panelRef}
           className={cn(
-            "h-full bg-white shadow-xl flex flex-col pointer-events-auto",
+            "h-full bg-white shadow-xl flex flex-col",
+            isVisible ? "pointer-events-auto" : "pointer-events-none",
             "transform transition-transform duration-300 ease-out",
             isVisible ? "translate-x-0" : "translate-x-full",
             fullScreen
