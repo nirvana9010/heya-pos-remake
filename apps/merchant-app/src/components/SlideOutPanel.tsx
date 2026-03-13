@@ -137,8 +137,8 @@ export function SlideOutPanel({
 
   return (
     <>
-      {/* Overlay */}
-      {showOverlay && (
+      {/* Overlay — only mount when open/animating to avoid blocking touch scroll */}
+      {showOverlay && isContainerExpanded && (
         <div
           className={cn(
             "fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-40",
