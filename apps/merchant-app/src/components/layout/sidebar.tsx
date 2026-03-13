@@ -237,7 +237,7 @@ export function Sidebar({
             }
             onToggle(!collapsed);
           }}
-          className="btn btn-ghost btn-sm"
+          className="btn btn-ghost"
           aria-label={
             isMobile
               ? "Close sidebar"
@@ -247,6 +247,8 @@ export function Sidebar({
           }
           style={{
             padding: "0.5rem",
+            minWidth: "44px",
+            minHeight: "44px",
           }}
         >
           {isMobile ? (
