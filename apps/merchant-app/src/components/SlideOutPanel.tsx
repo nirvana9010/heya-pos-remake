@@ -166,8 +166,8 @@ export function SlideOutPanel({
                   width === "medium" && "max-w-2xl",
                   width === "wide" && "max-w-4xl",
                   width === "full" && "max-w-none w-full",
+                  className,
                 ),
-            className,
           )}
           style={{ display: shouldRender || preserveState ? "flex" : "none" }}
         >
