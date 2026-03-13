@@ -582,7 +582,7 @@ export const QuickSaleSlideOut: React.FC<QuickSaleSlideOutProps> = ({
           fullScreen
             ? cn(
                 "inset-0 transition-opacity duration-200",
-                isOpen ? "opacity-100" : "opacity-0",
+                isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
               )
             : cn(
                 "top-0 right-0 flex max-w-full pl-10 transform transition-transform",

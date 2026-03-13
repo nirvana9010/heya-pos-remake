@@ -96,7 +96,7 @@ export const ServiceSelectionSlideout: React.FC<
           fullScreen
             ? cn(
                 "inset-0 transition-opacity duration-200",
-                isVisible ? "opacity-100" : "opacity-0",
+                isVisible ? "opacity-100" : "opacity-0 pointer-events-none",
               )
             : cn(
                 "top-0 right-0 flex max-w-full transform transition-transform duration-300 ease-in-out",
